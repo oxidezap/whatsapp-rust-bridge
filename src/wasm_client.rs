@@ -516,7 +516,7 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
             if let Some(sid) = lazy.peer_data_request_session_id() {
                 js_sys::Reflect::set(&d, &"peerDataRequestSessionId".into(), &sid.into())?;
             }
-            ("history_sync", d.into())
+            ("history_sync", d)
         }
         // All other variants are handled by serialize_event! in event_to_js
         other => {
@@ -3166,13 +3166,20 @@ pub fn decrypt_poll_vote(
     let creator = parse_jid(poll_creator_jid)?;
     let voter = parse_jid(voter_jid)?;
 
-    let selected_hashes = whatsapp_rust::features::Polls::decrypt_vote(
+    // Client-less context: no LID/PN swap fallback available (that needs a
+    // `Client`), so call the underlying primitive directly with `None`.
+    let creator_str = creator.to_non_ad().to_string();
+    let voter_str = voter.to_non_ad().to_string();
+    let selected_hashes = wacore::poll::decrypt_poll_vote_with_fallback(
         enc_payload,
         enc_iv,
         message_secret,
         poll_msg_id,
-        &creator,
-        &voter,
+        wacore::poll::PollVoteAddressing {
+            poll_creator_jid: &creator_str,
+            voter_jid: &voter_str,
+        },
+        None,
     )?;
 
     // Map hashes back to option names
@@ -3201,36 +3208,70 @@ pub fn get_aggregate_votes_in_poll_message(
     poll_msg_id: &str,
     poll_creator_jid: &str,
 ) -> Result<Vec<crate::result_types::PollAggregateResult>, crate::errors::BridgeError> {
+    use std::collections::HashMap;
+
     let creator = parse_jid(poll_creator_jid)?;
+    let creator_str = creator.to_non_ad().to_string();
 
-    let vote_data: Vec<(Jid, Vec<u8>, Vec<u8>)> = voters
-        .into_iter()
-        .map(|v| {
-            let jid: Jid = v.voter.parse()?;
-            Ok((jid, v.enc_payload, v.enc_iv))
-        })
-        .collect::<Result<_, crate::errors::BridgeError>>()?;
-
-    let votes_refs: Vec<(&Jid, &[u8], &[u8])> = vote_data
+    let option_hashes: Vec<[u8; 32]> = option_names
         .iter()
-        .map(|(v, p, i)| (v, p.as_slice(), i.as_slice()))
+        .map(|name| wacore::poll::compute_option_hash(name))
         .collect();
 
-    let results = whatsapp_rust::features::Polls::aggregate_votes(
-        &option_names,
-        &votes_refs,
-        message_secret,
-        poll_msg_id,
-        &creator,
-    )?;
+    // Client-less aggregation: mirrors core `Polls::aggregate_votes` last-vote-wins
+    // semantics, minus the LID/PN swap fallback (which requires a `Client`).
+    // Keyed by the as-received non-AD voter JID; votes are oldest-first.
+    let mut latest_votes: HashMap<String, Vec<Vec<u8>>> = HashMap::with_capacity(voters.len());
+    for v in voters {
+        let voter_jid: Jid = v.voter.parse()?;
+        let voter_str = voter_jid.to_non_ad().to_string();
+        match wacore::poll::decrypt_poll_vote_with_fallback(
+            &v.enc_payload,
+            &v.enc_iv,
+            message_secret,
+            poll_msg_id,
+            wacore::poll::PollVoteAddressing {
+                poll_creator_jid: &creator_str,
+                voter_jid: &voter_str,
+            },
+            None,
+        ) {
+            Ok(selected_hashes) if selected_hashes.is_empty() => {
+                latest_votes.remove(&voter_str);
+            }
+            Ok(selected_hashes) => {
+                latest_votes.insert(voter_str, selected_hashes);
+            }
+            Err(e) => log::warn!("Failed to decrypt vote from {voter_jid}: {e}"),
+        }
+    }
 
-    Ok(results
+    // Move each option name into its result bucket (option_names is no longer
+    // borrowed once option_hashes is built).
+    let mut results: Vec<crate::result_types::PollAggregateResult> = option_names
         .into_iter()
-        .map(|r| crate::result_types::PollAggregateResult {
-            name: r.name,
-            voters: r.voters,
+        .map(|name| crate::result_types::PollAggregateResult {
+            name,
+            voters: Vec::new(),
         })
-        .collect())
+        .collect();
+
+    // Consume the map so each voter's String moves into its option bucket;
+    // only a voter who picked multiple options pays for a clone.
+    for (voter_str, selected_hashes) in latest_votes {
+        let mut matched = selected_hashes.iter().filter_map(|hash| {
+            let hash_arr = <[u8; 32]>::try_from(hash.as_slice()).ok()?;
+            option_hashes.iter().position(|h| *h == hash_arr)
+        });
+        if let Some(first) = matched.next() {
+            for idx in matched {
+                results[idx].voters.push(voter_str.clone());
+            }
+            results[first].voters.push(voter_str);
+        }
+    }
+
+    Ok(results)
 }
 
 /// Intern a runtime `String` into a `&'static str`, deduplicating across

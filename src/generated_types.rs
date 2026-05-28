@@ -601,6 +601,8 @@ export interface MsgBotInfo {
 export interface MsgMetaInfo {
   target_id?: string | null;
   target_sender?: Jid | null;
+  /** `<meta target_chat_jid="…">` — present when the bot reply addresses a chat distinct from the stanza-level `from` (used for msmsg secret lookup; see WA Web `decryptMsmsgBotMessage`). */
+  target_chat?: Jid | null;
   deprecated_lid_session?: boolean | null;
   thread_message_id?: string | null;
   thread_message_sender_jid?: Jid | null;

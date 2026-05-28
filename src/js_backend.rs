@@ -44,6 +44,7 @@ const STORE_BASE_KEY: &str = "base_key";
 const STORE_DEVICE_LIST: &str = "device_list";
 const STORE_TC_TOKEN: &str = "tc_token";
 const STORE_SENT_MESSAGE: &str = "sent_message";
+const STORE_MSG_SECRET: &str = "msg_secret";
 const STORE_META: &str = "meta";
 
 // ---------------------------------------------------------------------------
@@ -742,6 +743,92 @@ impl ProtocolStore for JsBackend {
         }
 
         self.flush_sent_keys(keys).await?;
+        Ok(deleted)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MsgSecretStore
+// ---------------------------------------------------------------------------
+
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl MsgSecretStore for JsBackend {
+    async fn put_msg_secret(
+        &self,
+        chat: &str,
+        sender: &str,
+        msg_id: &str,
+        secret: &[u8],
+    ) -> Result<()> {
+        let key = format!("{chat}:{sender}:{msg_id}");
+        // 8-byte BE timestamp prefix powers delete_expired_msg_secrets.
+        let now = wacore::time::now_secs();
+        let mut data = Vec::with_capacity(8 + secret.len());
+        data.extend_from_slice(&now.to_be_bytes());
+        data.extend_from_slice(secret);
+        self.js_set(STORE_MSG_SECRET, &key, &data).await?;
+
+        let mut keys: Vec<String> = self
+            .js_get_json(STORE_META, "msg_secret_keys")
+            .await?
+            .unwrap_or_default();
+        if !keys.iter().any(|k| k == &key) {
+            keys.push(key);
+            self.js_set_json(STORE_META, "msg_secret_keys", &keys)
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn get_msg_secret(
+        &self,
+        chat: &str,
+        sender: &str,
+        msg_id: &str,
+    ) -> Result<Option<Vec<u8>>> {
+        let key = format!("{chat}:{sender}:{msg_id}");
+        // Strip the 8-byte timestamp prefix written by put_msg_secret.
+        Ok(self
+            .js_get(STORE_MSG_SECRET, &key)
+            .await?
+            .filter(|d| d.len() >= 8)
+            .map(|d| d[8..].to_vec()))
+    }
+
+    async fn delete_expired_msg_secrets(&self, cutoff_timestamp: i64) -> Result<u32> {
+        let keys: Vec<String> = self
+            .js_get_json(STORE_META, "msg_secret_keys")
+            .await?
+            .unwrap_or_default();
+        let original_len = keys.len();
+        let mut deleted = 0u32;
+        let mut remaining = Vec::with_capacity(keys.len());
+        for key in keys {
+            match self.js_get(STORE_MSG_SECRET, &key).await? {
+                Some(data) if data.len() >= 8 => {
+                    let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                    if ts < cutoff_timestamp {
+                        self.js_delete(STORE_MSG_SECRET, &key).await?;
+                        deleted += 1;
+                    } else {
+                        remaining.push(key);
+                    }
+                }
+                Some(_) => {
+                    // Corrupted (no timestamp) — drop it.
+                    self.js_delete(STORE_MSG_SECRET, &key).await?;
+                    deleted += 1;
+                }
+                // Already gone from disk — drop from index.
+                None => {}
+            }
+        }
+        // Reserialize the index only when entries were actually dropped.
+        if remaining.len() != original_len {
+            self.js_set_json(STORE_META, "msg_secret_keys", &remaining)
+                .await?;
+        }
         Ok(deleted)
     }
 }
