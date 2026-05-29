@@ -138,6 +138,7 @@ bridge_events! {
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
         DeviceListUpdate         => "device_list_update"            => "DeviceListUpdate",
+        IdentityChange           => "identity_change"               => "IdentityChange",
         BusinessStatusUpdate     => "business_status_update"        => "BusinessStatusUpdate",
         TemporaryBan             => "temporary_ban"                 => "TemporaryBan",
         ConnectFailure           => "connect_failure"               => "ConnectFailure",
