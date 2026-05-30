@@ -13,7 +13,7 @@ use bytes::Bytes;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use wacore::net::{Transport, TransportEvent, TransportFactory};
+use wacore::net::{DisconnectReason, Transport, TransportEvent, TransportFactory};
 
 // ---------------------------------------------------------------------------
 // TypeScript interface (documentation only — actual impl uses raw Functions)
@@ -97,7 +97,9 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue 
     let tx = event_tx;
     let on_disconnected =
         Closure::wrap(
-            Box::new(move || match tx.try_send(TransportEvent::Disconnected) {
+            Box::new(move || match tx
+                .try_send(TransportEvent::Disconnected(DisconnectReason::Unknown))
+            {
                 Ok(()) => {}
                 Err(async_channel::TrySendError::Closed(_)) => {
                     log::debug!("Transport channel closed, Disconnected event dropped");

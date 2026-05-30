@@ -618,6 +618,14 @@ export interface MsgMetaInfo {
   reporting_token_version?: number | null;
 }
 
+/** Message-secret write entry keyed by chat, sender, and message ID. */
+export interface MsgSecretEntry {
+  chat: string;
+  sender: string;
+  msg_id: string;
+  secret: Uint8Array;
+}
+
 export interface MuteUpdate {
   /** The chat being muted or unmuted. */
   jid: Jid;
@@ -713,6 +721,8 @@ export interface PresenceUpdate {
 
 export type PrivacyCategory = "last" | "online" | "profile" | "status" | "groupadd" | "readreceipts" | "calladd" | "messages" | "defense" | string;
 
+export type PrivacySensitiveType = "1";
+
 export type PrivacySetting = "all" | "contacts" | "contact_blacklist" | "match_last_seen" | "known" | "none" | "undefined";
 
 export type PrivacySettingType = "group_add" | "last" | "status" | "profile" | "read_receipts" | "online" | "call_add";
@@ -739,6 +749,8 @@ export interface PushNameUpdate {
   old_push_name: string;
   new_push_name: string;
 }
+
+export type PushPriority = "high" | "high_force";
 
 export interface Receipt {
   source: MessageSource;
