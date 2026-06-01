@@ -136,7 +136,7 @@ export interface ConnectFailure {
   raw?: any | null;
 }
 
-/** Wire codes: 400=Generic, 401=LoggedOut, 402=TempBanned, 403=MainDeviceGone, 406=UnknownLogout, 405=ClientOutdated, 409=BadUserAgent, 413=CatExpired, 414=CatInvalid, 415=NotFound, 418=ClientUnknown, 500=InternalServerError, 501=Experimental, 503=ServiceUnavailable */
+/** Wire codes: 400=Generic, 401=LoggedOut, 402=TempBanned, 403=AccountLocked, 406=UnknownLogout, 405=ClientOutdated, 409=BadUserAgent, 413=CatExpired, 414=CatInvalid, 415=NotFound, 418=ClientUnknown, 500=InternalServerError, 501=Experimental, 503=ServiceUnavailable */
 export type ConnectFailureReason = number;
 
 /** A contact changed their phone number.  Emitted from `<notification type="contacts"><modify old="..." new="..." old_lid="..." new_lid="..."/>`.  The library updates the global LID-PN cache when both `old_lid` and `new_lid` are present, mirroring `WAWebDBCreateLidPnMappings`. No Signal session is wiped (WA Web `WAWebHandleContactNotification` also leaves sessions intact). Group participant updates arrive via separate `w:gp2` notifications, so per-group caches are not touched here. Consumers can subscribe and refresh their own caches if needed. */
@@ -549,6 +549,8 @@ export interface MessageInfo {
   verified_name_serial?: number | null;
   /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
   peer_recipient_pn?: Jid | null;
+  /** Broadcast-contact-list recipients from `<participants><to jid>` on an incoming broadcast/status stanza. Populated only for broadcasts; used to validate a `deviceSentMessage.phash` (WA Web `validateBclHash`). Empty otherwise. */
+  bcl_participants: Jid[];
 }
 
 export interface MessageSource {
@@ -624,6 +626,10 @@ export interface MsgSecretEntry {
   sender: string;
   msg_id: string;
   secret: Uint8Array;
+  /** Absolute unix-seconds retention deadline. `0` means never expire. Computed by the caller from the parent message's event time plus a per-add-on-kind horizon (see `MsgSecretRetention`). The store prunes rows whose deadline has passed; it does not know the horizon itself. */
+  expires_at: number;
+  /** Parent message event time (unix seconds), or `0` when unknown. Kept so the receive path can enforce the edit-processing window (`editTs < message_ts + window`) the same way WhatsApp Web does. */
+  message_ts: number;
 }
 
 export interface MuteUpdate {

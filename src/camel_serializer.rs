@@ -2,14 +2,91 @@
 //! - camelCase field names (converts from Rust snake_case)
 //! - Uint8Array for byte sequences (detects Vec<u8> serialized as seq of u8)
 //! - Skips None, empty Vec, empty String, zero numbers, false booleans
-//! - BigInt for u64/i64
+//! - protobufjs-style `Long` objects `{ low, high, unsigned }` for i64/u64
 //!
 //! This lives entirely in the bridge — waproto stays agnostic.
+//!
+//! ## Why `Long` objects and not `BigInt`
+//!
+//! protobuf `int64`/`uint64`/`fixed64`/`sfixed64` fields don't fit in a JS
+//! `number` without precision loss. We used to emit `BigInt`, but `BigInt`
+//! cannot be serialized by `JSON.stringify` (it throws `TypeError: cannot
+//! serialize BigInt`), and every Baileys-style consumer does
+//! `JSON.stringify(event)` for logging/debugging. protobufjs (what upstream
+//! Baileys decodes with) represents 64-bit fields as a `Long` object
+//! `{ low, high, unsigned }`, which `JSON.stringify` handles and which the
+//! baileyrs `toNumber()` helper already understands. We match that exactly so
+//! the event payload is a drop-in for the Baileys ecosystem.
 
 use base64::Engine;
 use js_sys::{Object, Uint8Array};
 use serde::ser::{self, Serialize};
 use wasm_bindgen::prelude::*;
+
+/// Split a signed `i64` into protobufjs-style `Long` parts: the low 32 bits as
+/// an unsigned value and the high 32 bits as a *signed* (two's-complement)
+/// value. `value = high * 2^32 + (low >>> 0)`. Pure arithmetic — unit-tested
+/// natively (the `JsValue` assembly in `long_object` is trivial plumbing).
+pub(crate) fn i64_to_long_parts(v: i64) -> (u32, i32) {
+    (v as u32, (v >> 32) as i32)
+}
+
+/// Split a `u64` into `Long` parts (low unsigned, high reinterpreted as the
+/// signed 32-bit field protobufjs uses). `value = (high >>> 0) * 2^32 + low`.
+pub(crate) fn u64_to_long_parts(v: u64) -> (u32, i32) {
+    (v as u32, (v >> 32) as u32 as i32)
+}
+
+/// Build a protobufjs-style `Long` JS object `{ low, high, unsigned }` from the
+/// split 32-bit halves. `low`/`high` are emitted as JS numbers (both fit in a
+/// 32-bit range, so exact). `JSON.stringify`-safe and consumed by baileyrs
+/// `toNumber()`. Mirrors `protobufjs/Long`.
+fn long_object(low: u32, high: i32, unsigned: bool) -> JsValue {
+    let obj = Object::new();
+    let _ = js_sys::Reflect::set(&obj, &"low".into(), &JsValue::from_f64(low as f64));
+    let _ = js_sys::Reflect::set(&obj, &"high".into(), &JsValue::from_f64(high as f64));
+    let _ = js_sys::Reflect::set(&obj, &"unsigned".into(), &JsValue::from_bool(unsigned));
+    obj.into()
+}
+
+/// `i64` → signed `Long` object.
+pub(crate) fn i64_to_long(v: i64) -> JsValue {
+    let (low, high) = i64_to_long_parts(v);
+    long_object(low, high, false)
+}
+
+/// `u64` → unsigned `Long` object.
+pub(crate) fn u64_to_long(v: u64) -> JsValue {
+    let (low, high) = u64_to_long_parts(v);
+    long_object(low, high, true)
+}
+
+/// True when `val` is a `Long` object whose 64-bit value is zero (`low` and
+/// `high` both 0). Used by `should_skip` so a default-zero 64-bit field is
+/// omitted just like a zero `number` is — without this a `0` int64 would be
+/// emitted as `{low:0,high:0,unsigned:..}` instead of being skipped.
+fn is_zero_long(val: &JsValue) -> bool {
+    if !val.is_object() {
+        return false;
+    }
+    let low = js_sys::Reflect::get(val, &"low".into()).ok();
+    let high = js_sys::Reflect::get(val, &"high".into()).ok();
+    match (
+        low.as_ref().and_then(JsValue::as_f64),
+        high.as_ref().and_then(JsValue::as_f64),
+    ) {
+        (Some(0.0), Some(0.0)) => {
+            // Guard against false positives: only treat as a Long if it also
+            // carries the `unsigned` discriminant (plain `{low,high}` data
+            // objects without it are vanishingly unlikely in proto output, but
+            // be precise).
+            js_sys::Reflect::get(val, &"unsigned".into())
+                .ok()
+                .is_some_and(|u| u.as_bool().is_some())
+        }
+        _ => false,
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Error type
@@ -100,7 +177,7 @@ impl ser::Serializer for CamelSerializer {
         Ok(JsValue::from_f64(v as f64))
     }
     fn serialize_i64(self, v: i64) -> Result<JsValue, Error> {
-        Ok(js_sys::BigInt::from(v).into())
+        Ok(i64_to_long(v))
     }
     fn serialize_u8(self, v: u8) -> Result<JsValue, Error> {
         Ok(JsValue::from_f64(v as f64))
@@ -112,7 +189,7 @@ impl ser::Serializer for CamelSerializer {
         Ok(JsValue::from_f64(v as f64))
     }
     fn serialize_u64(self, v: u64) -> Result<JsValue, Error> {
-        Ok(js_sys::BigInt::from(v).into())
+        Ok(u64_to_long(v))
     }
     fn serialize_f32(self, v: f32) -> Result<JsValue, Error> {
         Ok(JsValue::from_f64(v as f64))
@@ -404,6 +481,12 @@ fn should_skip(val: &JsValue) -> bool {
     }
     if let Some(b) = val.as_bool() {
         return !b;
+    }
+    // A zero-valued `Long` object (i64/u64 == 0) is a proto default — skip it
+    // exactly like a zero `number`. Without this, a default 0 int64 leaks into
+    // the output as `{low:0,high:0,unsigned:...}`.
+    if is_zero_long(val) {
+        return true;
     }
     // Expensive checks only for objects — avoid clone when possible
     if val.is_object() {

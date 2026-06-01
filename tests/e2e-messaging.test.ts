@@ -146,6 +146,19 @@ describe("Two-client E2E messaging", () => {
       console.log(
         `  Bob received: "${data.message.conversation}" from ${data.info.source.sender.user}@${data.info.source.sender.server}`
       );
+
+      // Regression: a real `message` event must survive `JSON.stringify` —
+      // every Baileys-style consumer logs events this way. 64-bit proto fields
+      // (messageTimestamp etc.) used to be emitted as `BigInt`, which throws
+      // `TypeError: cannot serialize BigInt`. They're now protobufjs-style
+      // `Long` objects `{low, high, unsigned}`, which serialize fine.
+      expect(() => JSON.stringify(event)).not.toThrow();
+      const seenBigInt = (o: unknown): boolean =>
+        typeof o === "bigint" ||
+        (!!o &&
+          typeof o === "object" &&
+          Object.values(o as Record<string, unknown>).some(seenBigInt));
+      expect(seenBigInt(event)).toBe(false);
     },
     30000
   );

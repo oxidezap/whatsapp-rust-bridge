@@ -1253,7 +1253,7 @@ impl DeviceStore for JsBackend {
         {
             use prost::Message;
             match waproto::whatsapp::AdvSignedDeviceIdentity::decode(bytes.as_slice()) {
-                Ok(account) => dev.account = Some(account),
+                Ok(account) => dev.account = Some(account.into()),
                 Err(e) => log::warn!("Failed to decode stored account identity: {e}"),
             }
         }
