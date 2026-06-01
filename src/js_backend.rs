@@ -56,13 +56,27 @@ pub(crate) fn new_in_memory_backend() -> Arc<dyn Backend> {
     Arc::new(InMemoryBackend::default())
 }
 
-/// Create a JsBackend from JS callback functions.
-pub(crate) fn new_js_backend(
-    get_fn: js_sys::Function,
-    set_fn: js_sys::Function,
-    delete_fn: js_sys::Function,
-) -> Arc<dyn Backend> {
-    Arc::new(JsBackend::new(get_fn, set_fn, delete_fn))
+/// Raw JS callback handles + capability flags pulled from the host store object.
+/// Grouped into one struct because the optional surface grew past clarity as a
+/// positional argument list.
+pub(crate) struct JsBackendHandles {
+    pub get_fn: js_sys::Function,
+    pub set_fn: js_sys::Function,
+    pub delete_fn: js_sys::Function,
+    pub set_many_fn: Option<js_sys::Function>,
+    pub delete_many_fn: Option<js_sys::Function>,
+    pub get_many_fn: Option<js_sys::Function>,
+    pub list_keys_fn: Option<js_sys::Function>,
+    pub delete_prefix_fn: Option<js_sys::Function>,
+    pub cap_enumerate: bool,
+    pub cap_prefix_delete: bool,
+}
+
+/// Create a JsBackend from JS callback handles. The batch/enumeration handles
+/// are optional — when absent the backend falls back to per-key `set`/`delete`
+/// and its self-maintained JSON meta-indexes.
+pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<dyn Backend> {
+    Arc::new(JsBackend::new(handles))
 }
 
 // ---------------------------------------------------------------------------
@@ -74,24 +88,52 @@ pub struct JsBackend {
     get_fn: js_sys::Function,
     set_fn: js_sys::Function,
     delete_fn: js_sys::Function,
+    /// Optional batch/enumeration handles — present only when the JS host
+    /// implements them. When absent, ops degrade to per-key handles and the
+    /// self-maintained JSON meta-indexes.
+    set_many_fn: Option<js_sys::Function>,
+    delete_many_fn: Option<js_sys::Function>,
+    get_many_fn: Option<js_sys::Function>,
+    list_keys_fn: Option<js_sys::Function>,
+    delete_prefix_fn: Option<js_sys::Function>,
+    /// True when the host can enumerate a namespace (capabilities.enumerate +
+    /// listKeys present). When true the core DROPS its hand-maintained key
+    /// indexes and derives the key set from the store directly.
+    has_enumerate: bool,
+    /// True when the host implements deletePrefix (capabilities.prefixDelete).
+    has_prefix_delete: bool,
     next_device_id: AtomicI32,
     /// In-memory cache of sent message keys — avoids O(n²) JSON re-serialization
-    /// on every store_sent_message call. Loaded lazily on first access.
+    /// on every store_sent_message call. Loaded lazily on first access. Only
+    /// used on the self-index path (`!has_enumerate`).
     sent_message_keys: async_lock::Mutex<Option<Vec<String>>>,
 }
 
 crate::wasm_send_sync!(JsBackend);
 
+/// Chunk size for value-scanning enumeration (delete-expired sweeps). Bounds
+/// how many values are materialized across the FFI boundary at once so a
+/// 20k-entry namespace doesn't spike JS-side memory in a single call.
+const SCAN_CHUNK: usize = 512;
+
 impl JsBackend {
-    fn new(
-        get_fn: js_sys::Function,
-        set_fn: js_sys::Function,
-        delete_fn: js_sys::Function,
-    ) -> Self {
+    fn new(h: JsBackendHandles) -> Self {
+        // A capability is only honored when its required method is actually
+        // present, so a misdeclared host degrades safely instead of calling a
+        // missing function.
+        let has_enumerate = h.cap_enumerate && h.list_keys_fn.is_some();
+        let has_prefix_delete = h.cap_prefix_delete && h.delete_prefix_fn.is_some();
         Self {
-            get_fn,
-            set_fn,
-            delete_fn,
+            get_fn: h.get_fn,
+            set_fn: h.set_fn,
+            delete_fn: h.delete_fn,
+            set_many_fn: h.set_many_fn,
+            delete_many_fn: h.delete_many_fn,
+            get_many_fn: h.get_many_fn,
+            list_keys_fn: h.list_keys_fn,
+            delete_prefix_fn: h.delete_prefix_fn,
+            has_enumerate,
+            has_prefix_delete,
             next_device_id: AtomicI32::new(1),
             sent_message_keys: async_lock::Mutex::new(None),
         }
@@ -165,6 +207,230 @@ impl JsBackend {
             .map_err(|e| js_err_to_store_err("delete", e))?;
 
         Ok(())
+    }
+
+    /// Batch-write `[(key, value)]` into one store via the host's `setMany`
+    /// callback. Returns `Ok(true)` when the host provided `setMany` (the whole
+    /// batch crossed the FFI boundary once); `Ok(false)` when no batch handle
+    /// exists, so the caller must fall back to per-key `js_set`.
+    async fn js_set_many(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
+        let Some(f) = self.set_many_fn.as_ref() else {
+            return Ok(false);
+        };
+        let arr = js_sys::Array::new();
+        for (k, v) in entries {
+            let tuple = js_sys::Array::new();
+            tuple.push(&JsValue::from_str(k));
+            let value = Uint8Array::from(v.as_slice());
+            tuple.push(&value.into());
+            arr.push(&tuple);
+        }
+        let result = f
+            .call2(&JsValue::NULL, &store.into(), &arr.into())
+            .map_err(|e| js_err_to_store_err("setMany", e))?;
+        resolve_promise(result)
+            .await
+            .map_err(|e| js_err_to_store_err("setMany", e))?;
+        Ok(true)
+    }
+
+    /// Batch-delete `keys` from one store via the host's `deleteMany` callback.
+    /// Returns `Ok(true)` when handled in one crossing; `Ok(false)` when no
+    /// batch handle exists, so the caller must fall back to per-key `js_delete`.
+    async fn js_delete_many(&self, store: &str, keys: &[String]) -> Result<bool> {
+        let Some(f) = self.delete_many_fn.as_ref() else {
+            return Ok(false);
+        };
+        let arr = js_sys::Array::new();
+        for k in keys {
+            arr.push(&JsValue::from_str(k));
+        }
+        let result = f
+            .call2(&JsValue::NULL, &store.into(), &arr.into())
+            .map_err(|e| js_err_to_store_err("deleteMany", e))?;
+        resolve_promise(result)
+            .await
+            .map_err(|e| js_err_to_store_err("deleteMany", e))?;
+        Ok(true)
+    }
+
+    /// Read many keys from one store in a single FFI crossing via `getMany`.
+    /// Falls back to a per-key `js_get` loop when the host has no batch handle.
+    /// Returns only FOUND entries (missing keys are omitted).
+    async fn js_get_many(&self, store: &str, keys: &[String]) -> Result<Vec<(String, Vec<u8>)>> {
+        if keys.is_empty() {
+            return Ok(Vec::new());
+        }
+        if let Some(f) = self.get_many_fn.as_ref() {
+            let arr = js_sys::Array::new();
+            for k in keys {
+                arr.push(&JsValue::from_str(k));
+            }
+            let result = f
+                .call2(&JsValue::NULL, &store.into(), &arr.into())
+                .map_err(|e| js_err_to_store_err("getMany", e))?;
+            let resolved = resolve_promise(result)
+                .await
+                .map_err(|e| js_err_to_store_err("getMany", e))?;
+            return parse_entry_array(resolved, "getMany");
+        }
+        // Fallback: per-key gets.
+        let mut out = Vec::with_capacity(keys.len());
+        for k in keys {
+            if let Some(v) = self.js_get(store, k).await? {
+                out.push((k.clone(), v));
+            }
+        }
+        Ok(out)
+    }
+
+    /// Enumerate live keys in `store` (optionally prefix-filtered) via the
+    /// host's `listKeys`. Only valid when `has_enumerate`; callers gate on it.
+    async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
+        let f = self
+            .list_keys_fn
+            .as_ref()
+            .ok_or_else(|| js_err_to_store_err("listKeys", JsValue::from_str("not available")))?;
+        let prefix_arg = match prefix {
+            Some(p) => JsValue::from_str(p),
+            None => JsValue::UNDEFINED,
+        };
+        let result = f
+            .call2(&JsValue::NULL, &store.into(), &prefix_arg)
+            .map_err(|e| js_err_to_store_err("listKeys", e))?;
+        let resolved = resolve_promise(result)
+            .await
+            .map_err(|e| js_err_to_store_err("listKeys", e))?;
+        let arr: js_sys::Array = resolved
+            .dyn_into()
+            .map_err(|_| js_err_to_store_err("listKeys", JsValue::from_str("expected array")))?;
+        // Strict parse: a non-string element means the host returned a
+        // malformed key set. Silently dropping it would make the core believe a
+        // live key is absent and prune it from the self-index, so FAIL instead.
+        let mut out = Vec::with_capacity(arr.length() as usize);
+        for v in arr.iter() {
+            let key = v.as_string().ok_or_else(|| {
+                js_err_to_store_err("listKeys", JsValue::from_str("non-string key in result"))
+            })?;
+            out.push(key);
+        }
+        Ok(out)
+    }
+
+    /// Delete every key in `store` starting with `prefix` via `deletePrefix`.
+    /// Returns `Ok(Some(count))` when handled, `Ok(None)` when no handle exists
+    /// (caller must fall back to enumerate-then-deleteMany).
+    async fn js_delete_prefix(&self, store: &str, prefix: &str) -> Result<Option<u32>> {
+        let Some(f) = self.delete_prefix_fn.as_ref() else {
+            return Ok(None);
+        };
+        let result = f
+            .call2(&JsValue::NULL, &store.into(), &prefix.into())
+            .map_err(|e| js_err_to_store_err("deletePrefix", e))?;
+        let resolved = resolve_promise(result)
+            .await
+            .map_err(|e| js_err_to_store_err("deletePrefix", e))?;
+        Ok(Some(resolved.as_f64().unwrap_or(0.0) as u32))
+    }
+
+    /// All keys currently in `store`. On the enumerate path this lists the
+    /// store directly; otherwise it reads the hand-maintained JSON index under
+    /// `STORE_META[meta_key]`. This is the single choke point that lets every
+    /// `get_all_*` / `delete_expired_*` method share one code path across both
+    /// host profiles.
+    async fn all_keys(&self, store: &str, meta_key: &str) -> Result<Vec<String>> {
+        if self.has_enumerate {
+            self.js_list_keys(store, None).await
+        } else {
+            Ok(self
+                .js_get_json(STORE_META, meta_key)
+                .await?
+                .unwrap_or_default())
+        }
+    }
+
+    /// Whether the core must maintain the JSON meta index for this backend.
+    /// True only when the host cannot enumerate.
+    fn needs_self_index(&self) -> bool {
+        !self.has_enumerate
+    }
+
+    /// Scan `keys` of a timestamp-prefixed store (8-byte BE seconds prefix) in
+    /// bounded chunks, classifying each into (expired victims, live survivors).
+    /// Values are pulled via `js_get_many` SCAN_CHUNK at a time, so a large
+    /// namespace never materializes every value at once. Keys already gone from
+    /// the store fall out of both sets (so a survivors rewrite prunes them from
+    /// the self-index); values shorter than the 8-byte prefix are treated as
+    /// corrupted victims.
+    async fn scan_expired(
+        &self,
+        store: &str,
+        keys: &[String],
+        cutoff_timestamp: i64,
+    ) -> Result<(Vec<String>, Vec<String>)> {
+        let mut victims = Vec::new();
+        let mut survivors = Vec::new();
+        for chunk in keys.chunks(SCAN_CHUNK) {
+            let found = self.js_get_many(store, chunk).await?;
+            let map: std::collections::HashMap<&str, &Vec<u8>> =
+                found.iter().map(|(k, v)| (k.as_str(), v)).collect();
+            for key in chunk {
+                match map.get(key.as_str()) {
+                    Some(data) if data.len() >= 8 => {
+                        let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                        if ts < cutoff_timestamp {
+                            victims.push(key.clone());
+                        } else {
+                            survivors.push(key.clone());
+                        }
+                    }
+                    Some(_) => victims.push(key.clone()),
+                    None => {}
+                }
+            }
+        }
+        Ok((victims, survivors))
+    }
+
+    /// Re-read `victims` immediately before deletion and split them into
+    /// `(still_expired, revived)`. A `revived` key gained a fresh timestamp
+    /// (a concurrent `put` between classification and now) and MUST NOT be
+    /// deleted — nor dropped from the self-index. This narrows the
+    /// scan→delete TOCTOU window to the gap between this re-read and the
+    /// delete (the smallest achievable without a store-level compare-and-delete
+    /// primitive). Bounded by `victims.len()` (small in steady state).
+    async fn confirm_expired(
+        &self,
+        store: &str,
+        victims: Vec<String>,
+        cutoff_timestamp: i64,
+    ) -> Result<(Vec<String>, Vec<String>)> {
+        if victims.is_empty() {
+            return Ok((victims, Vec::new()));
+        }
+        let mut still = Vec::new();
+        let mut revived = Vec::new();
+        for chunk in victims.chunks(SCAN_CHUNK) {
+            let found = self.js_get_many(store, chunk).await?;
+            let map: std::collections::HashMap<&str, &Vec<u8>> =
+                found.iter().map(|(k, v)| (k.as_str(), v)).collect();
+            for key in chunk {
+                match map.get(key.as_str()) {
+                    Some(data) if data.len() >= 8 => {
+                        let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                        if ts < cutoff_timestamp {
+                            still.push(key.clone());
+                        } else {
+                            revived.push(key.clone());
+                        }
+                    }
+                    // Corrupt → still delete. Missing → already gone (neither).
+                    Some(_) => still.push(key.clone()),
+                    None => {}
+                }
+            }
+        }
+        Ok((still, revived))
     }
 
     // ── Serialization helpers ────────────────────────────────────────────
@@ -288,11 +554,13 @@ impl SignalStore for JsBackend {
     async fn store_signed_prekey(&self, id: u32, record: &[u8]) -> Result<()> {
         self.js_set(STORE_SIGNED_PREKEY, &id.to_string(), record)
             .await?;
-        let mut ids = self.get_signed_prekey_ids().await?;
-        if !ids.contains(&id) {
-            ids.push(id);
-            self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
-                .await?;
+        if self.needs_self_index() {
+            let mut ids = self.get_signed_prekey_ids().await?;
+            if !ids.contains(&id) {
+                ids.push(id);
+                self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
+                    .await?;
+            }
         }
         Ok(())
     }
@@ -314,10 +582,12 @@ impl SignalStore for JsBackend {
 
     async fn remove_signed_prekey(&self, id: u32) -> Result<()> {
         self.js_delete(STORE_SIGNED_PREKEY, &id.to_string()).await?;
-        let mut ids = self.get_signed_prekey_ids().await?;
-        ids.retain(|&i| i != id);
-        self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
-            .await?;
+        if self.needs_self_index() {
+            let mut ids = self.get_signed_prekey_ids().await?;
+            ids.retain(|&i| i != id);
+            self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
+                .await?;
+        }
         Ok(())
     }
 
@@ -336,10 +606,16 @@ impl SignalStore for JsBackend {
 
 impl JsBackend {
     async fn get_signed_prekey_ids(&self) -> Result<Vec<u32>> {
-        Ok(self
-            .js_get_json::<Vec<u32>>(STORE_META, "signed_prekey_ids")
-            .await?
-            .unwrap_or_default())
+        if self.has_enumerate {
+            // Derive ids from the store's keys (id.to_string()) directly.
+            let keys = self.js_list_keys(STORE_SIGNED_PREKEY, None).await?;
+            Ok(keys.iter().filter_map(|k| k.parse::<u32>().ok()).collect())
+        } else {
+            Ok(self
+                .js_get_json::<Vec<u32>>(STORE_META, "signed_prekey_ids")
+                .await?
+                .unwrap_or_default())
+        }
     }
 }
 
@@ -430,30 +706,35 @@ impl ProtocolStore for JsBackend {
         }
         self.js_set_json(STORE_SENDER_KEY_DEVICES, group_jid, &devices)
             .await?;
-        // Track group JID so clear_all_sender_key_devices can enumerate them
-        let mut groups: Vec<String> = self
-            .js_get_json(STORE_META, "sender_key_groups")
-            .await?
-            .unwrap_or_default();
-        if !groups.iter().any(|g| g == group_jid) {
-            groups.push(group_jid.to_string());
-            self.js_set_json(STORE_META, "sender_key_groups", &groups)
-                .await?;
+        // Track group JID so clear_all can enumerate them — only needed when the
+        // host can't list the STORE_SENDER_KEY_DEVICES namespace itself.
+        if self.needs_self_index() {
+            let mut groups: Vec<String> = self
+                .js_get_json(STORE_META, "sender_key_groups")
+                .await?
+                .unwrap_or_default();
+            if !groups.iter().any(|g| g == group_jid) {
+                groups.push(group_jid.to_string());
+                self.js_set_json(STORE_META, "sender_key_groups", &groups)
+                    .await?;
+            }
         }
         Ok(())
     }
 
     async fn clear_sender_key_devices(&self, group_jid: &str) -> Result<()> {
         self.js_delete(STORE_SENDER_KEY_DEVICES, group_jid).await?;
-        // Remove from tracking list
-        let mut groups: Vec<String> = self
-            .js_get_json(STORE_META, "sender_key_groups")
-            .await?
-            .unwrap_or_default();
-        if let Some(pos) = groups.iter().position(|g| g == group_jid) {
-            groups.swap_remove(pos);
-            self.js_set_json(STORE_META, "sender_key_groups", &groups)
-                .await?;
+        if self.needs_self_index() {
+            // Remove from tracking list
+            let mut groups: Vec<String> = self
+                .js_get_json(STORE_META, "sender_key_groups")
+                .await?
+                .unwrap_or_default();
+            if let Some(pos) = groups.iter().position(|g| g == group_jid) {
+                groups.swap_remove(pos);
+                self.js_set_json(STORE_META, "sender_key_groups", &groups)
+                    .await?;
+            }
         }
         Ok(())
     }
@@ -463,10 +744,9 @@ impl ProtocolStore for JsBackend {
             return Ok(());
         }
         let targets: std::collections::HashSet<&str> = device_jids.iter().copied().collect();
-        let groups: Vec<String> = self
-            .js_get_json(STORE_META, "sender_key_groups")
-            .await?
-            .unwrap_or_default();
+        let groups = self
+            .all_keys(STORE_SENDER_KEY_DEVICES, "sender_key_groups")
+            .await?;
         for group in &groups {
             let mut devices: Vec<(String, bool)> = self
                 .js_get_json(STORE_SENDER_KEY_DEVICES, group)
@@ -483,14 +763,31 @@ impl ProtocolStore for JsBackend {
     }
 
     async fn clear_all_sender_key_devices(&self) -> Result<()> {
-        let groups: Vec<String> = self
-            .js_get_json(STORE_META, "sender_key_groups")
-            .await?
-            .unwrap_or_default();
-        for group in &groups {
-            self.js_delete(STORE_SENDER_KEY_DEVICES, group).await?;
+        // The STORE_SENDER_KEY_DEVICES namespace holds only per-group rows, so a
+        // whole-namespace prefix delete clears everything when available.
+        if !(self.has_prefix_delete
+            && self
+                .js_delete_prefix(STORE_SENDER_KEY_DEVICES, "")
+                .await?
+                .is_some())
+        {
+            let groups = self
+                .all_keys(STORE_SENDER_KEY_DEVICES, "sender_key_groups")
+                .await?;
+            if !groups.is_empty()
+                && !self
+                    .js_delete_many(STORE_SENDER_KEY_DEVICES, &groups)
+                    .await?
+            {
+                for group in &groups {
+                    self.js_delete(STORE_SENDER_KEY_DEVICES, group).await?;
+                }
+            }
         }
-        self.js_delete(STORE_META, "sender_key_groups").await
+        if self.needs_self_index() {
+            self.js_delete(STORE_META, "sender_key_groups").await?;
+        }
+        Ok(())
     }
 
     // --- LID-PN Mapping ---
@@ -531,22 +828,35 @@ impl ProtocolStore for JsBackend {
             entry.lid.as_bytes(),
         )
         .await?;
-        let mut lids: Vec<String> = self
-            .js_get_json(STORE_META, "lid_list")
-            .await?
-            .unwrap_or_default();
-        if !lids.contains(&entry.lid) {
-            lids.push(entry.lid.clone());
-            self.js_set_json(STORE_META, "lid_list", &lids).await?;
+        // `lid_list` tracks bare lids for get_all; only needed when the host
+        // can't enumerate the `lid:`-prefixed keys itself.
+        if self.needs_self_index() {
+            let mut lids: Vec<String> = self
+                .js_get_json(STORE_META, "lid_list")
+                .await?
+                .unwrap_or_default();
+            if !lids.contains(&entry.lid) {
+                lids.push(entry.lid.clone());
+                self.js_set_json(STORE_META, "lid_list", &lids).await?;
+            }
         }
         Ok(())
     }
 
     async fn get_all_lid_mappings(&self) -> Result<Vec<LidPnMappingEntry>> {
-        let lids: Vec<String> = self
-            .js_get_json(STORE_META, "lid_list")
-            .await?
-            .unwrap_or_default();
+        // Enumerate the `lid:`-prefixed keys directly, or fall back to the
+        // bare-lid index. Either way, resolve each via get_lid_mapping.
+        let lids: Vec<String> = if self.has_enumerate {
+            self.js_list_keys(STORE_LID_MAPPING, Some("lid:"))
+                .await?
+                .into_iter()
+                .filter_map(|k| k.strip_prefix("lid:").map(str::to_string))
+                .collect()
+        } else {
+            self.js_get_json(STORE_META, "lid_list")
+                .await?
+                .unwrap_or_default()
+        };
         let mut result = Vec::with_capacity(lids.len());
         for lid in lids {
             if let Some(entry) = self.get_lid_mapping(&lid).await? {
@@ -669,12 +979,14 @@ impl ProtocolStore for JsBackend {
         data.extend_from_slice(payload);
         self.js_set(STORE_SENT_MESSAGE, &key, &data).await?;
 
-        // Track key in memory — no serialization on the hot path.
-        // Lazily loads existing keys from disk on first access so prior-session
-        // keys aren't orphaned from the expiration index.
-        let mut guard = self.get_sent_keys().await?;
-        if let Some(ref mut keys) = *guard {
-            keys.push(key);
+        // Self-index path keeps an in-memory key list (no serialization on the
+        // hot path; flushed only on expiry). Enumerate-capable hosts skip it and
+        // derive the key set from the store at expiry time.
+        if self.needs_self_index() {
+            let mut guard = self.get_sent_keys().await?;
+            if let Some(ref mut keys) = *guard {
+                keys.push(key);
+            }
         }
         Ok(())
     }
@@ -689,8 +1001,8 @@ impl ProtocolStore for JsBackend {
         };
         self.js_delete(STORE_SENT_MESSAGE, &key).await?;
 
-        // Brief lock to update in-memory index
-        {
+        // Brief lock to update in-memory index (self-index path only).
+        if self.needs_self_index() {
             let mut guard = self.sent_message_keys.lock().await;
             if let Some(ref mut keys) = *guard {
                 keys.retain(|k| k != &key);
@@ -702,6 +1014,27 @@ impl ProtocolStore for JsBackend {
     }
 
     async fn delete_expired_sent_messages(&self, cutoff_timestamp: i64) -> Result<u32> {
+        // Enumerate-capable hosts: list the namespace and scan in bounded
+        // chunks — no in-memory index to maintain.
+        if self.has_enumerate {
+            let keys = self.js_list_keys(STORE_SENT_MESSAGE, None).await?;
+            let (victims, _survivors) = self
+                .scan_expired(STORE_SENT_MESSAGE, &keys, cutoff_timestamp)
+                .await?;
+            // Re-validate right before delete so a concurrently-rewritten entry
+            // (fresh timestamp) isn't deleted. No self-index on this path, so
+            // we only need the still-expired set.
+            let (victims, _revived) = self
+                .confirm_expired(STORE_SENT_MESSAGE, victims, cutoff_timestamp)
+                .await?;
+            if !victims.is_empty() && !self.js_delete_many(STORE_SENT_MESSAGE, &victims).await? {
+                for key in &victims {
+                    self.js_delete(STORE_SENT_MESSAGE, key).await?;
+                }
+            }
+            return Ok(victims.len() as u32);
+        }
+
         let mut guard = self.get_sent_keys().await?;
         let keys = match guard.as_mut() {
             Some(k) => k,
@@ -769,16 +1102,77 @@ impl MsgSecretStore for JsBackend {
         data.extend_from_slice(secret);
         self.js_set(STORE_MSG_SECRET, &key, &data).await?;
 
-        let mut keys: Vec<String> = self
-            .js_get_json(STORE_META, "msg_secret_keys")
-            .await?
-            .unwrap_or_default();
-        if !keys.iter().any(|k| k == &key) {
-            keys.push(key);
-            self.js_set_json(STORE_META, "msg_secret_keys", &keys)
-                .await?;
+        // Self-index only when the host can't enumerate; an enumerate-capable
+        // host derives the key set from the store directly (see all_keys).
+        if self.needs_self_index() {
+            let mut keys: Vec<String> = self
+                .js_get_json(STORE_META, "msg_secret_keys")
+                .await?
+                .unwrap_or_default();
+            if !keys.iter().any(|k| k == &key) {
+                keys.push(key);
+                self.js_set_json(STORE_META, "msg_secret_keys", &keys)
+                    .await?;
+            }
         }
         Ok(())
+    }
+
+    /// Batched variant. Builds the `[(key, value)]` batch once and writes it in
+    /// a single `setMany` crossing (history sync delivers tens of thousands of
+    /// secrets at once). The self-index is only maintained for non-enumerable
+    /// hosts, and even then loaded/rewritten ONCE (HashSet dedupe → O(n), not
+    /// the O(n²) a naive per-entry read+rewrite would cost).
+    async fn put_msg_secrets(&self, entries: Vec<MsgSecretEntry>) -> Result<usize> {
+        if entries.is_empty() {
+            return Ok(0);
+        }
+
+        // Single timestamp for the batch; 8-byte BE prefix powers
+        // delete_expired_msg_secrets (same format as put_msg_secret).
+        let now_bytes = wacore::time::now_secs().to_be_bytes();
+        let mut batch: Vec<(String, Vec<u8>)> = Vec::with_capacity(entries.len());
+        for entry in entries {
+            let key = format!("{}:{}:{}", entry.chat, entry.sender, entry.msg_id);
+            let mut data = Vec::with_capacity(8 + entry.secret.len());
+            data.extend_from_slice(&now_bytes);
+            data.extend_from_slice(&entry.secret);
+            batch.push((key, data));
+        }
+        let stored = batch.len();
+
+        // Self-index (non-enumerable hosts only): extend the index BEFORE the
+        // value writes. Ordering matters for crash safety: a dangling index
+        // entry (key indexed, value write later failed) is self-correcting —
+        // delete_expired's scan treats a missing value as "drop from index". An
+        // ORPHANED value (written but never indexed) is NOT self-correcting and
+        // would live forever. So index-first trades a harmless transient for an
+        // unbounded leak. Load once, dedupe via HashSet, rewrite once (O(n)).
+        if self.needs_self_index() {
+            let mut keys: Vec<String> = self
+                .js_get_json(STORE_META, "msg_secret_keys")
+                .await?
+                .unwrap_or_default();
+            let original_len = keys.len();
+            let mut seen: std::collections::HashSet<String> = keys.iter().cloned().collect();
+            for (key, _) in &batch {
+                if seen.insert(key.clone()) {
+                    keys.push(key.clone());
+                }
+            }
+            if keys.len() != original_len {
+                self.js_set_json(STORE_META, "msg_secret_keys", &keys)
+                    .await?;
+            }
+        }
+
+        // One FFI crossing when the host implements setMany; otherwise per-key.
+        if !self.js_set_many(STORE_MSG_SECRET, &batch).await? {
+            for (key, data) in &batch {
+                self.js_set(STORE_MSG_SECRET, key, data).await?;
+            }
+        }
+        Ok(stored)
     }
 
     async fn get_msg_secret(
@@ -797,39 +1191,34 @@ impl MsgSecretStore for JsBackend {
     }
 
     async fn delete_expired_msg_secrets(&self, cutoff_timestamp: i64) -> Result<u32> {
-        let keys: Vec<String> = self
-            .js_get_json(STORE_META, "msg_secret_keys")
-            .await?
-            .unwrap_or_default();
-        let original_len = keys.len();
-        let mut deleted = 0u32;
-        let mut remaining = Vec::with_capacity(keys.len());
-        for key in keys {
-            match self.js_get(STORE_MSG_SECRET, &key).await? {
-                Some(data) if data.len() >= 8 => {
-                    let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
-                    if ts < cutoff_timestamp {
-                        self.js_delete(STORE_MSG_SECRET, &key).await?;
-                        deleted += 1;
-                    } else {
-                        remaining.push(key);
-                    }
-                }
-                Some(_) => {
-                    // Corrupted (no timestamp) — drop it.
-                    self.js_delete(STORE_MSG_SECRET, &key).await?;
-                    deleted += 1;
-                }
-                // Already gone from disk — drop from index.
-                None => {}
+        // Key set from enumeration (enumerate hosts) or the JSON index (legacy
+        // hosts) — same code path either way, satisfying "legacy still expires
+        // via self-index".
+        let keys = self.all_keys(STORE_MSG_SECRET, "msg_secret_keys").await?;
+        let (victims, mut survivors) = self
+            .scan_expired(STORE_MSG_SECRET, &keys, cutoff_timestamp)
+            .await?;
+        // Re-read victims right before deleting: a concurrent put may have
+        // rewritten one with a fresh timestamp. `revived` keys are NOT deleted
+        // and stay in the index.
+        let (victims, revived) = self
+            .confirm_expired(STORE_MSG_SECRET, victims, cutoff_timestamp)
+            .await?;
+        survivors.extend(revived);
+
+        if !victims.is_empty() && !self.js_delete_many(STORE_MSG_SECRET, &victims).await? {
+            for key in &victims {
+                self.js_delete(STORE_MSG_SECRET, key).await?;
             }
         }
-        // Reserialize the index only when entries were actually dropped.
-        if remaining.len() != original_len {
-            self.js_set_json(STORE_META, "msg_secret_keys", &remaining)
+
+        // Rewrite the index to the survivors only on the self-index path, and
+        // only if anything was actually removed (deleted or vanished).
+        if self.needs_self_index() && survivors.len() != keys.len() {
+            self.js_set_json(STORE_META, "msg_secret_keys", &survivors)
                 .await?;
         }
-        Ok(deleted)
+        Ok(victims.len() as u32)
     }
 }
 
@@ -889,6 +1278,30 @@ impl DeviceStore for JsBackend {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/// Parse a JS `Array<[string, Uint8Array]>` (the shape returned by `getMany`)
+/// into owned `(key, value)` pairs. STRICT: a malformed tuple FAILS the whole
+/// batch rather than being silently dropped — a dropped entry would look like a
+/// missing key to the caller, which on the expiry path can prune a live key
+/// from the self-index while its value is still stored.
+fn parse_entry_array(value: JsValue, context: &'static str) -> Result<Vec<(String, Vec<u8>)>> {
+    let arr: js_sys::Array = value
+        .dyn_into()
+        .map_err(|_| js_err_to_store_err(context, JsValue::from_str("expected array")))?;
+    let malformed =
+        || js_err_to_store_err(context, JsValue::from_str("malformed [key, value] entry"));
+    let mut out = Vec::with_capacity(arr.length() as usize);
+    for entry in arr.iter() {
+        let tuple = entry.dyn_into::<js_sys::Array>().map_err(|_| malformed())?;
+        let key = tuple.get(0).as_string().ok_or_else(malformed)?;
+        let val = tuple
+            .get(1)
+            .dyn_into::<Uint8Array>()
+            .map_err(|_| malformed())?;
+        out.push((key, val.to_vec()));
+    }
+    Ok(out)
+}
 
 async fn resolve_promise(value: JsValue) -> std::result::Result<JsValue, JsValue> {
     if value.is_instance_of::<Promise>() {

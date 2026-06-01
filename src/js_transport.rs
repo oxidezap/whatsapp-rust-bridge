@@ -95,22 +95,19 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue 
     let _ = js_sys::Reflect::set(&obj, &"onConnected".into(), &on_connected.into_js_value());
 
     let tx = event_tx;
-    let on_disconnected =
-        Closure::wrap(
-            Box::new(move || match tx
-                .try_send(TransportEvent::Disconnected(DisconnectReason::Unknown))
-            {
-                Ok(()) => {}
-                Err(async_channel::TrySendError::Closed(_)) => {
-                    log::debug!("Transport channel closed, Disconnected event dropped");
-                }
-                Err(async_channel::TrySendError::Full(_)) => {
-                    // Receiver treats channel close as Disconnected (client.rs recv Err).
-                    log::error!("Transport channel full on Disconnected; closing");
-                    tx.close();
-                }
-            }) as Box<dyn FnMut()>,
-        );
+    let on_disconnected = Closure::wrap(Box::new(move || {
+        match tx.try_send(TransportEvent::Disconnected(DisconnectReason::Unknown)) {
+            Ok(()) => {}
+            Err(async_channel::TrySendError::Closed(_)) => {
+                log::debug!("Transport channel closed, Disconnected event dropped");
+            }
+            Err(async_channel::TrySendError::Full(_)) => {
+                // Receiver treats channel close as Disconnected (client.rs recv Err).
+                log::error!("Transport channel full on Disconnected; closing");
+                tx.close();
+            }
+        }
+    }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(
         &obj,
         &"onDisconnected".into(),

@@ -295,11 +295,79 @@ export interface WhatsAppClientConfig {
   onEvent?: (event: WhatsAppEvent) => void;
 }
 
-/** JS storage callbacks for persistent backend. */
+/**
+ * JS storage callbacks for the persistent backend.
+ *
+ * The boundary is a two-level namespaced key/value store: `store` is one of the
+ * fixed STORE_* namespaces (e.g. "session", "msg_secret", "lid_mapping") and
+ * `key` is an opaque, namespace-scoped id; values are raw bytes.
+ *
+ * Only `get`/`set`/`delete` are MANDATORY — a 3-method store keeps working
+ * exactly as before. The remaining methods are OPTIONAL performance/structural
+ * primitives the core feature-detects (by handle presence) and uses when the
+ * host provides them:
+ *   - `setMany`/`deleteMany` collapse N per-key FFI crossings into one (this is
+ *     what turns a ~20k-secret history-sync write from 20k awaits into a single
+ *     batched call).
+ *   - `listKeys`/`listEntries` let the core enumerate a namespace directly,
+ *     which lets it DROP its hand-maintained meta-index lists (msg_secret_keys,
+ *     tc_token_jids, …). A host that cannot enumerate a category (e.g. an
+ *     id-addressed Baileys keyStore) simply omits them; the core then keeps its
+ *     self-maintained index for that backend.
+ *   - `deletePrefix` accelerates unconditional bulk clears.
+ *
+ * `capabilities` is read ONCE at init. Omit it (or a field) and the core treats
+ * the corresponding primitive as absent. A capability declared `true` MUST have
+ * its method(s) present and working.
+ */
 export interface JsStoreCallbacks {
+  /** Read one value by (store, key). Null/undefined if absent. MANDATORY. */
   get(store: string, key: string): Promise<Uint8Array | null>;
+  /** Write one value by (store, key). MANDATORY. */
   set(store: string, key: string, value: Uint8Array): Promise<void>;
+  /** Delete one key. No-op if absent. MANDATORY. */
   delete(store: string, key: string): Promise<void>;
+
+  /**
+   * Write many [key, value] pairs into ONE store in a single call. Entries are
+   * tuples (so keys may contain any character). Best-effort: if the medium has
+   * no cross-key atomicity (file-per-key) it MUST still apply every entry and
+   * fail-fast on error so the core can retry (writes are idempotent by key).
+   * Empty array is a valid no-op.
+   */
+  setMany?(store: string, entries: [key: string, value: Uint8Array][]): Promise<void>;
+
+  /** Read many keys from ONE store; one entry per FOUND key, any order. */
+  getMany?(store: string, keys: string[]): Promise<[key: string, value: Uint8Array][]>;
+
+  /** Delete many keys from ONE store in a single call. Missing keys ignored. */
+  deleteMany?(store: string, keys: string[]): Promise<void>;
+
+  /** Enumerate live keys in `store` (optionally prefix-filtered). Unordered. */
+  listKeys?(store: string, prefix?: string): Promise<string[]>;
+
+  /**
+   * Like listKeys but returns [key, value] pairs, so the core can inspect the
+   * embedded timestamp prefix for delete-expired sweeps without N follow-up
+   * gets. If absent but listKeys exists, the core falls back to listKeys+getMany.
+   */
+  listEntries?(store: string, prefix?: string): Promise<[key: string, value: Uint8Array][]>;
+
+  /** Delete every key in `store` starting with `prefix`. Returns count removed. */
+  deletePrefix?(store: string, prefix: string): Promise<number>;
+
+  /** Static capability declaration, read once at init. Omitted => all false. */
+  capabilities?: {
+    /** setMany/getMany/deleteMany are implemented. */
+    batch?: boolean;
+    /** listKeys/listEntries reliably enumerate a namespace. */
+    enumerate?: boolean;
+    /** deletePrefix is implemented. */
+    prefixDelete?: boolean;
+  };
+
+  /** Optional durability barrier (flush pending writes). */
+  flush?(): Promise<void>;
 }
 
 /**
@@ -732,8 +800,56 @@ pub async fn create_whatsapp_client(
                 .map_err(|_| crate::errors::internal("store.delete is required"))?
                 .dyn_into::<js_sys::Function>()
                 .map_err(|_| crate::errors::internal("store.delete must be a function"))?;
-            info!("Using JS-backed persistent storage");
-            js_backend::new_js_backend(get_fn, set_fn, delete_fn)
+            // Optional batch primitives — feature-detected by handle presence.
+            // A host that omits them keeps the per-key set/delete fallback.
+            let opt_fn = |name: &str| {
+                js_sys::Reflect::get(store_val, &name.into())
+                    .ok()
+                    .and_then(|v| v.dyn_into::<js_sys::Function>().ok())
+            };
+            let set_many_fn = opt_fn("setMany");
+            let delete_many_fn = opt_fn("deleteMany");
+            let get_many_fn = opt_fn("getMany");
+            let list_keys_fn = opt_fn("listKeys");
+            let delete_prefix_fn = opt_fn("deletePrefix");
+            // `capabilities` is read once: a declared capability must have its
+            // method(s) present. Absent object => all false (legacy 3-method
+            // behavior: the core keeps its self-maintained meta-indexes).
+            let cap = |field: &str| {
+                js_sys::Reflect::get(store_val, &"capabilities".into())
+                    .ok()
+                    .and_then(|c| js_sys::Reflect::get(&c, &field.into()).ok())
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            };
+            let cap_batch = cap("batch");
+            let cap_enumerate = cap("enumerate");
+            let cap_prefix_delete = cap("prefixDelete");
+            // Batch helpers are only honored when the host DECLARES `batch`, not
+            // merely exposes the methods — keeps the contract (capability gates
+            // behavior) and impl in lockstep. Drop the handles otherwise so the
+            // backend falls back to per-key set/delete.
+            let (set_many_fn, delete_many_fn, get_many_fn) = if cap_batch {
+                (set_many_fn, delete_many_fn, get_many_fn)
+            } else {
+                (None, None, None)
+            };
+            info!(
+                "Using JS-backed persistent storage (batch={}, enumerate={}, prefixDelete={})",
+                cap_batch, cap_enumerate, cap_prefix_delete
+            );
+            js_backend::new_js_backend(js_backend::JsBackendHandles {
+                get_fn,
+                set_fn,
+                delete_fn,
+                set_many_fn,
+                delete_many_fn,
+                get_many_fn,
+                list_keys_fn,
+                delete_prefix_fn,
+                cap_enumerate,
+                cap_prefix_delete,
+            })
         }
         _ => {
             info!("Using in-memory storage (no persistence)");
