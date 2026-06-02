@@ -91,10 +91,49 @@ jobs:
         env:
           CI: true
 
+  rust-tests:
+    name: Rust Unit Tests (wasm32 / Node)
+    runs-on: ubuntu-latest
+    needs: fmt-clippy
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-04-05
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # `cargo test` can't run here: the crate only builds for wasm32, which has
+      # no native test harness. `test:rust` (wasm-pack test --node) runs the
+      # crate's `#[test]` unit tests (aliased to `#[wasm_bindgen_test]` in each
+      # test module) on wasm32 inside Node, so CI flags regressions in the
+      # pure-Rust logic (write-back cache, error mapping, …).
+      - name: Run Rust unit tests (wasm32 in Node)
+        run: bun run test:rust
+
   success:
     name: All checks passed
     if: success()
-    needs: [fmt-clippy, build-and-test]
+    needs: [fmt-clippy, build-and-test, rust-tests]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed!"

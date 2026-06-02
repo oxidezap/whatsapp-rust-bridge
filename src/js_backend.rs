@@ -25,6 +25,8 @@ use wacore::store::error::Result;
 use wacore::store::traits::*;
 use wacore_appstate::processor::AppStateMutationMAC;
 
+use crate::write_back_cache::WriteBackCache;
+
 // ---------------------------------------------------------------------------
 // Store name constants
 // ---------------------------------------------------------------------------
@@ -70,12 +72,20 @@ pub(crate) struct JsBackendHandles {
     pub delete_prefix_fn: Option<js_sys::Function>,
     pub cap_enumerate: bool,
     pub cap_prefix_delete: bool,
+    /// Opt-in write-back: absorb per-key writes in WASM and cross to the JS
+    /// store only on `flush_cache`. ONLY for ephemeral stores (benchmarks/tests)
+    /// — a crash before flush loses un-flushed writes. See [`WriteBackCache`].
+    pub cap_write_back: bool,
 }
 
 /// Create a JsBackend from JS callback handles. The batch/enumeration handles
 /// are optional — when absent the backend falls back to per-key `set`/`delete`
 /// and its self-maintained JSON meta-indexes.
-pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<dyn Backend> {
+///
+/// Returns the concrete `Arc<JsBackend>` (not `Arc<dyn Backend>`) so the caller
+/// can both pass it as `Arc<dyn Backend>` to the persistence manager AND keep a
+/// handle to call [`JsBackend::flush_cache`] on disconnect/shutdown.
+pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<JsBackend> {
     Arc::new(JsBackend::new(handles))
 }
 
@@ -107,6 +117,10 @@ pub struct JsBackend {
     /// on every store_sent_message call. Loaded lazily on first access. Only
     /// used on the self-index path (`!has_enumerate`).
     sent_message_keys: async_lock::Mutex<Option<Vec<String>>>,
+    /// Opt-in write-back cache. `Some` when the host declared `writeBack`: every
+    /// `js_*` helper routes through it so per-message writes stay in WASM and
+    /// only cross to JS on `flush_cache`. `None` => write-through (the default).
+    write_back: Option<async_lock::Mutex<WriteBackCache>>,
 }
 
 crate::wasm_send_sync!(JsBackend);
@@ -136,6 +150,11 @@ impl JsBackend {
             has_prefix_delete,
             next_device_id: AtomicI32::new(1),
             sent_message_keys: async_lock::Mutex::new(None),
+            write_back: if h.cap_write_back {
+                Some(async_lock::Mutex::new(WriteBackCache::new()))
+            } else {
+                None
+            },
         }
     }
 
@@ -159,9 +178,186 @@ impl JsBackend {
             .await
     }
 
-    // ── JS call helpers ──────────────────────────────────────────────────
+    // ── Write-back-aware entry points ─────────────────────────────────────
+    //
+    // Every trait method goes through these. When write-back is OFF (`None`)
+    // they delegate straight to the `*_raw` JS calls (the original behavior).
+    // When ON they serve reads from / absorb writes into the in-WASM cache, so
+    // the JS↔WASM boundary is crossed only by misses and by `flush_cache`.
+    // INVARIANT: a cache lock is never held across an FFI `await`.
 
     async fn js_get(&self, store: &str, key: &str) -> Result<Option<Vec<u8>>> {
+        let Some(wb) = &self.write_back else {
+            return self.js_get_raw(store, key).await;
+        };
+        {
+            let cache = wb.lock().await;
+            if let Some(hit) = cache.lookup(store, key) {
+                return Ok(hit.map(|b| b.to_vec()));
+            }
+        }
+        let fetched = self.js_get_raw(store, key).await?;
+        let mut cache = wb.lock().await;
+        // A write may have landed during the await — it wins over the read.
+        if let Some(hit) = cache.lookup(store, key) {
+            return Ok(hit.map(|b| b.to_vec()));
+        }
+        cache.populate(store, key, fetched.clone());
+        Ok(fetched)
+    }
+
+    async fn js_set(&self, store: &str, key: &str, value: &[u8]) -> Result<()> {
+        if let Some(wb) = &self.write_back {
+            wb.lock().await.write(store, key, value.to_vec());
+            return Ok(());
+        }
+        self.js_set_raw(store, key, value).await
+    }
+
+    async fn js_delete(&self, store: &str, key: &str) -> Result<()> {
+        if let Some(wb) = &self.write_back {
+            wb.lock().await.delete(store, key);
+            return Ok(());
+        }
+        self.js_delete_raw(store, key).await
+    }
+
+    async fn js_set_many(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
+        if let Some(wb) = &self.write_back {
+            let mut cache = wb.lock().await;
+            for (k, v) in entries {
+                cache.write(store, k, v.clone());
+            }
+            return Ok(true); // absorbed; the actual batch crosses at flush
+        }
+        self.js_set_many_raw(store, entries).await
+    }
+
+    async fn js_delete_many(&self, store: &str, keys: &[String]) -> Result<bool> {
+        if let Some(wb) = &self.write_back {
+            let mut cache = wb.lock().await;
+            for k in keys {
+                cache.delete(store, k);
+            }
+            return Ok(true);
+        }
+        self.js_delete_many_raw(store, keys).await
+    }
+
+    async fn js_get_many(&self, store: &str, keys: &[String]) -> Result<Vec<(String, Vec<u8>)>> {
+        let Some(wb) = &self.write_back else {
+            return self.js_get_many_raw(store, keys).await;
+        };
+        let mut out: Vec<(String, Vec<u8>)> = Vec::new();
+        let mut misses: Vec<String> = Vec::new();
+        {
+            let cache = wb.lock().await;
+            for k in keys {
+                match cache.lookup(store, k) {
+                    Some(Some(v)) => out.push((k.clone(), v.to_vec())),
+                    Some(None) => {} // tombstone → omitted (absent)
+                    None => misses.push(k.clone()),
+                }
+            }
+        }
+        if !misses.is_empty() {
+            let fetched = self.js_get_many_raw(store, &misses).await?;
+            let fetched_map: std::collections::HashMap<&str, &Vec<u8>> =
+                fetched.iter().map(|(k, v)| (k.as_str(), v)).collect();
+            let mut cache = wb.lock().await;
+            for k in &misses {
+                // A write/delete may have landed during the FFI await — the cache
+                // wins over the now-stale backend read (mirrors js_get's re-check).
+                match cache.lookup(store, k) {
+                    Some(Some(v)) => out.push((k.clone(), v.to_vec())),
+                    Some(None) => {} // tombstoned during the await → absent
+                    None => match fetched_map.get(k.as_str()) {
+                        Some(v) => {
+                            cache.populate(store, k, Some((*v).clone()));
+                            out.push((k.clone(), (*v).clone()));
+                        }
+                        // Backend didn't have it either → negative-cache so a
+                        // repeat lookup doesn't re-cross the boundary.
+                        None => cache.populate(store, k, None),
+                    },
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
+        let backend_keys = self.js_list_keys_raw(store, prefix).await?;
+        let Some(wb) = &self.write_back else {
+            return Ok(backend_keys);
+        };
+        let cache = wb.lock().await;
+        Ok(cache.merge_keys(store, backend_keys, prefix))
+    }
+
+    async fn js_delete_prefix(&self, store: &str, prefix: &str) -> Result<Option<u32>> {
+        let Some(wb) = &self.write_back else {
+            return self.js_delete_prefix_raw(store, prefix).await;
+        };
+        // Need the full matching key set (backend + un-flushed cache) so the
+        // delete also tombstones cache-only keys. Prefer the enumerate path; if
+        // the host can't list, delete from the backend now and tombstone the
+        // cache's own matching keys.
+        if self.list_keys_fn.is_some() {
+            let keys = self.js_list_keys(store, Some(prefix)).await?;
+            let mut cache = wb.lock().await;
+            for k in &keys {
+                cache.delete(store, k);
+            }
+            Ok(Some(keys.len() as u32))
+        } else {
+            let backend_count = self.js_delete_prefix_raw(store, prefix).await?;
+            let mut cache = wb.lock().await;
+            let cache_count = cache.tombstone_prefix(store, prefix);
+            Ok(Some(backend_count.unwrap_or(0).max(cache_count)))
+        }
+    }
+
+    /// Flush all pending write-back entries to the JS store (one batched
+    /// crossing per namespace, per-key fallback when no batch handle). No-op
+    /// when write-back is off or nothing is dirty. Called on disconnect/logout/
+    /// shutdown so the JS store ends up consistent.
+    pub(crate) async fn flush_cache(&self) -> Result<()> {
+        let Some(wb) = &self.write_back else {
+            return Ok(());
+        };
+        let batch = {
+            let cache = wb.lock().await;
+            if cache.dirty_is_empty() {
+                return Ok(());
+            }
+            cache.snapshot_for_flush()
+        };
+        // Writes first. A failure propagates via `?` BEFORE commit_flush, so the
+        // dirty set + tombstones stay intact and the batch is retried on the next
+        // flush (disconnect → logout → Drop give several chances).
+        for (store, entries) in &batch.sets {
+            if !self.js_set_many_raw(store, entries).await? {
+                for (k, v) in entries {
+                    self.js_set_raw(store, k, v).await?;
+                }
+            }
+        }
+        for (store, keys) in &batch.deletes {
+            if !self.js_delete_many_raw(store, keys).await? {
+                for k in keys {
+                    self.js_delete_raw(store, k).await?;
+                }
+            }
+        }
+        // All writes landed → drop the flushed keys from the dirty set.
+        wb.lock().await.commit_flush(&batch);
+        Ok(())
+    }
+
+    // ── JS call helpers ──────────────────────────────────────────────────
+
+    async fn js_get_raw(&self, store: &str, key: &str) -> Result<Option<Vec<u8>>> {
         let result = self
             .get_fn
             .call2(&JsValue::NULL, &store.into(), &key.into())
@@ -182,7 +378,7 @@ impl JsBackend {
         }
     }
 
-    async fn js_set(&self, store: &str, key: &str, value: &[u8]) -> Result<()> {
+    async fn js_set_raw(&self, store: &str, key: &str, value: &[u8]) -> Result<()> {
         let uint8 = Uint8Array::from(value);
         let result = self
             .set_fn
@@ -196,7 +392,7 @@ impl JsBackend {
         Ok(())
     }
 
-    async fn js_delete(&self, store: &str, key: &str) -> Result<()> {
+    async fn js_delete_raw(&self, store: &str, key: &str) -> Result<()> {
         let result = self
             .delete_fn
             .call2(&JsValue::NULL, &store.into(), &key.into())
@@ -213,7 +409,7 @@ impl JsBackend {
     /// callback. Returns `Ok(true)` when the host provided `setMany` (the whole
     /// batch crossed the FFI boundary once); `Ok(false)` when no batch handle
     /// exists, so the caller must fall back to per-key `js_set`.
-    async fn js_set_many(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
+    async fn js_set_many_raw(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
         let Some(f) = self.set_many_fn.as_ref() else {
             return Ok(false);
         };
@@ -237,7 +433,7 @@ impl JsBackend {
     /// Batch-delete `keys` from one store via the host's `deleteMany` callback.
     /// Returns `Ok(true)` when handled in one crossing; `Ok(false)` when no
     /// batch handle exists, so the caller must fall back to per-key `js_delete`.
-    async fn js_delete_many(&self, store: &str, keys: &[String]) -> Result<bool> {
+    async fn js_delete_many_raw(&self, store: &str, keys: &[String]) -> Result<bool> {
         let Some(f) = self.delete_many_fn.as_ref() else {
             return Ok(false);
         };
@@ -257,7 +453,11 @@ impl JsBackend {
     /// Read many keys from one store in a single FFI crossing via `getMany`.
     /// Falls back to a per-key `js_get` loop when the host has no batch handle.
     /// Returns only FOUND entries (missing keys are omitted).
-    async fn js_get_many(&self, store: &str, keys: &[String]) -> Result<Vec<(String, Vec<u8>)>> {
+    async fn js_get_many_raw(
+        &self,
+        store: &str,
+        keys: &[String],
+    ) -> Result<Vec<(String, Vec<u8>)>> {
         if keys.is_empty() {
             return Ok(Vec::new());
         }
@@ -274,10 +474,11 @@ impl JsBackend {
                 .map_err(|e| js_err_to_store_err("getMany", e))?;
             return parse_entry_array(resolved, "getMany");
         }
-        // Fallback: per-key gets.
+        // Fallback: per-key gets (raw — this IS the raw path; the cache-aware
+        // js_get_many handles caching before delegating here).
         let mut out = Vec::with_capacity(keys.len());
         for k in keys {
-            if let Some(v) = self.js_get(store, k).await? {
+            if let Some(v) = self.js_get_raw(store, k).await? {
                 out.push((k.clone(), v));
             }
         }
@@ -286,7 +487,7 @@ impl JsBackend {
 
     /// Enumerate live keys in `store` (optionally prefix-filtered) via the
     /// host's `listKeys`. Only valid when `has_enumerate`; callers gate on it.
-    async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
+    async fn js_list_keys_raw(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
         let f = self
             .list_keys_fn
             .as_ref()
@@ -320,7 +521,7 @@ impl JsBackend {
     /// Delete every key in `store` starting with `prefix` via `deletePrefix`.
     /// Returns `Ok(Some(count))` when handled, `Ok(None)` when no handle exists
     /// (caller must fall back to enumerate-then-deleteMany).
-    async fn js_delete_prefix(&self, store: &str, prefix: &str) -> Result<Option<u32>> {
+    async fn js_delete_prefix_raw(&self, store: &str, prefix: &str) -> Result<Option<u32>> {
         let Some(f) = self.delete_prefix_fn.as_ref() else {
             return Ok(None);
         };

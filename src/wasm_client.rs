@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use futures::channel::oneshot;
 use log::info;
-use wacore::types::events::{Event, EventHandler};
+use wacore::types::events::{Event, EventHandler, LazyHistorySync};
 use wacore_binary::jid::Jid;
 use wasm_bindgen::prelude::*;
 
@@ -364,6 +364,13 @@ export interface JsStoreCallbacks {
     enumerate?: boolean;
     /** deletePrefix is implemented. */
     prefixDelete?: boolean;
+    /**
+     * Opt-in write-back: the bridge buffers writes in WASM and crosses to this
+     * store only on flush (disconnect/shutdown). Declare it ONLY for EPHEMERAL
+     * stores (a crash before flush loses un-flushed writes) — it keeps the
+     * per-message Signal-state persistence off the JS↔WASM boundary.
+     */
+    writeBack?: boolean;
   };
 
   /** Optional durability barrier (flush pending writes). */
@@ -474,6 +481,24 @@ impl JsEventHandler {
 
 impl EventHandler for JsEventHandler {
     fn handle_event(&self, event: Arc<Event>) {
+        // HistorySync is split into bounded batches so the WASM decode peak is
+        // O(batch) instead of O(chunk). Each batch is sent as its own
+        // `history_sync` event; the consumer/baileyrs accumulates them (and
+        // gates `isLatest` on the final batch). See history_sync_to_js_batches.
+        const HS_BATCHING: bool = true; // batch HistorySync to cap WASM decode memory (set false to A/B vs monolithic)
+        if HS_BATCHING && let Event::HistorySync(lazy) = event.as_ref() {
+            match history_sync_to_js_batches(lazy) {
+                Ok(batches) => {
+                    for js_event in batches {
+                        if let Err(e) = self.event_tx.try_send(js_event) {
+                            log::warn!("History sync batch send failed: {e}");
+                        }
+                    }
+                }
+                Err(e) => log::warn!("History sync batch serialization failed: {e:?}"),
+            }
+            return;
+        }
         match event_to_js(&event) {
             Ok(js_event) => {
                 if js_event.is_undefined() {
@@ -486,6 +511,151 @@ impl EventHandler for JsEventHandler {
             Err(e) => log::warn!("Event serialization failed: {e:?}"),
         }
     }
+}
+
+/// WASM-memory varint reader for the streaming HistorySync wire walk.
+fn read_hs_varint(buf: &[u8]) -> Option<(u64, usize)> {
+    let mut result = 0u64;
+    let mut shift = 0u32;
+    let mut i = 0usize;
+    while i < buf.len() && i < 10 {
+        let b = buf[i];
+        result |= ((b & 0x7f) as u64) << shift;
+        i += 1;
+        if b & 0x80 == 0 {
+            return Some((result, i));
+        }
+        shift += 7;
+    }
+    None
+}
+
+/// How many `Conversation`s to decode + serialize per emitted batch. Bounds the
+/// peak WASM allocation (decoded proto + JsValue tree coexisting) to O(batch)
+/// instead of O(whole chunk) — talc reuses the freed slots between batches, so
+/// the linear-memory high-water stays low (measured: ~25 MB @ 32 vs 105 MB
+/// monolithic, for 300 conversations/chunk).
+const HS_BATCH: usize = 32;
+
+/// Convert one `Event::HistorySync` into N batched `{type, data}` JS events.
+///
+/// Walks the decompressed protobuf without the monolithic `prost` decode:
+/// `conversations` (field 2) are decoded + serialized HS_BATCH at a time and the
+/// decoded protos dropped between batches; every other top-level field is kept
+/// as raw wire bytes and decoded once into the FINAL batch, so the consumer
+/// still receives the full `HistorySync` shape regardless of wire-field order.
+/// Lenient: a malformed conversation is skipped, not fatal.
+fn history_sync_to_js_batches(lazy: &LazyHistorySync) -> Result<Vec<JsValue>, JsValue> {
+    use prost::Message;
+    let Some(raw) = lazy.raw_bytes() else {
+        return Ok(Vec::new());
+    };
+    let buf: &[u8] = &raw;
+
+    // First pass: locate conversation slices (field 2) and collect every other
+    // top-level field's raw bytes into `tail` — no decoding yet (cheap).
+    let mut conv_ranges: Vec<(usize, usize)> = Vec::new();
+    let mut tail: Vec<u8> = Vec::new();
+    let mut pos = 0usize;
+    while pos < buf.len() {
+        let field_start = pos;
+        let Some((tag, n)) = read_hs_varint(&buf[pos..]) else {
+            break;
+        };
+        pos += n;
+        let field = tag >> 3;
+        let wt = tag & 7;
+        let value_end = match wt {
+            0 => {
+                let Some((_, n2)) = read_hs_varint(&buf[pos..]) else {
+                    break;
+                };
+                pos + n2
+            }
+            1 => (pos + 8).min(buf.len()),
+            5 => (pos + 4).min(buf.len()),
+            2 => {
+                let Some((len, n2)) = read_hs_varint(&buf[pos..]) else {
+                    break;
+                };
+                pos += n2;
+                (pos + len as usize).min(buf.len())
+            }
+            _ => break,
+        };
+        if wt == 2 && field == 2 {
+            conv_ranges.push((pos, value_end));
+        } else {
+            tail.extend_from_slice(&buf[field_start..value_end]);
+        }
+        pos = value_end;
+    }
+
+    let mut events: Vec<JsValue> = Vec::new();
+    let mut batch_index = 0u32;
+    let mut i = 0usize;
+    while i < conv_ranges.len() {
+        let end = (i + HS_BATCH).min(conv_ranges.len());
+        let is_final = end == conv_ranges.len();
+        let mut convs: Vec<waproto::whatsapp::Conversation> = Vec::with_capacity(end - i);
+        for &(s, e) in &conv_ranges[i..end] {
+            if let Ok(c) = waproto::whatsapp::Conversation::decode(&buf[s..e]) {
+                convs.push(c);
+            }
+        }
+        // The final batch also carries the tail (pushnames/mappings/settings/…).
+        let hs = if is_final {
+            let mut hs =
+                waproto::whatsapp::HistorySync::decode(tail.as_slice()).unwrap_or_default();
+            hs.conversations = convs;
+            hs
+        } else {
+            waproto::whatsapp::HistorySync {
+                conversations: convs,
+                ..Default::default()
+            }
+        };
+        events.push(make_hs_event(lazy, &hs, batch_index, is_final)?);
+        batch_index += 1;
+        i = end;
+        // `hs` (decoded conversations) drops here → talc reuses before next batch.
+    }
+
+    // Zero-conversation blobs (PushName-only, nctSalt-only, empty ON_DEMAND)
+    // still emit one final batch so metadata + peerDataRequestSessionId arrive.
+    if conv_ranges.is_empty() {
+        let hs = waproto::whatsapp::HistorySync::decode(tail.as_slice()).unwrap_or_default();
+        events.push(make_hs_event(lazy, &hs, 0, true)?);
+    }
+
+    Ok(events)
+}
+
+/// Build one `{ type: "history_sync", data }` event from a (sub-batch) HistorySync,
+/// overlaying notification-level metadata + the batch markers.
+fn make_hs_event(
+    lazy: &LazyHistorySync,
+    hs: &waproto::whatsapp::HistorySync,
+    batch_index: u32,
+    is_final: bool,
+) -> Result<JsValue, JsValue> {
+    let d = crate::camel_serializer::to_js_value_camel(hs)?;
+    js_sys::Reflect::set(&d, &"syncType".into(), &lazy.sync_type().into())?;
+    if let Some(co) = lazy.chunk_order() {
+        js_sys::Reflect::set(&d, &"chunkOrder".into(), &co.into())?;
+    }
+    if let Some(p) = lazy.progress() {
+        js_sys::Reflect::set(&d, &"progress".into(), &p.into())?;
+    }
+    if let Some(sid) = lazy.peer_data_request_session_id() {
+        js_sys::Reflect::set(&d, &"peerDataRequestSessionId".into(), &sid.into())?;
+    }
+    js_sys::Reflect::set(&d, &"batchIndex".into(), &(batch_index as f64).into())?;
+    js_sys::Reflect::set(&d, &"isFinalBatch".into(), &is_final.into())?;
+    let obj = js_sys::Object::new();
+    js_sys::Reflect::set(&obj, &"type".into(), &"history_sync".into())?;
+    js_sys::Reflect::set(&obj, &"data".into(), &d)?;
+    Ok(obj.into())
 }
 
 /// Handles Event variants that need special serialization (no data, named
@@ -786,7 +956,11 @@ pub async fn create_whatsapp_client(
     drain_drop_cleanups().await;
 
     let runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
-    let backend = match store {
+    // When the store opts into write-back we keep the concrete `Arc<JsBackend>`
+    // (alongside the `dyn Backend` the persistence manager gets) so disconnect/
+    // logout/Drop can call `flush_cache()` to push buffered writes to JS.
+    let mut js_backend_handle: Option<Arc<js_backend::JsBackend>> = None;
+    let backend: Arc<dyn wacore::store::traits::Backend> = match store {
         Some(ref store_val) if !store_val.is_null() && !store_val.is_undefined() => {
             let get_fn = js_sys::Reflect::get(store_val, &"get".into())
                 .map_err(|_| crate::errors::internal("store.get is required"))?
@@ -825,6 +999,11 @@ pub async fn create_whatsapp_client(
             let cap_batch = cap("batch");
             let cap_enumerate = cap("enumerate");
             let cap_prefix_delete = cap("prefixDelete");
+            // Opt-in write-back: only an EPHEMERAL store (no durability needed)
+            // should declare it — writes are buffered in WASM and pushed to JS
+            // only on flush (disconnect/shutdown), so a crash loses un-flushed
+            // state. Keeps the per-message hot path off the JS↔WASM boundary.
+            let cap_write_back = cap("writeBack");
             // Batch helpers are only honored when the host DECLARES `batch`, not
             // merely exposes the methods — keeps the contract (capability gates
             // behavior) and impl in lockstep. Drop the handles otherwise so the
@@ -835,10 +1014,10 @@ pub async fn create_whatsapp_client(
                 (None, None, None)
             };
             info!(
-                "Using JS-backed persistent storage (batch={}, enumerate={}, prefixDelete={})",
-                cap_batch, cap_enumerate, cap_prefix_delete
+                "Using JS-backed persistent storage (batch={}, enumerate={}, prefixDelete={}, writeBack={})",
+                cap_batch, cap_enumerate, cap_prefix_delete, cap_write_back
             );
-            js_backend::new_js_backend(js_backend::JsBackendHandles {
+            let jb = js_backend::new_js_backend(js_backend::JsBackendHandles {
                 get_fn,
                 set_fn,
                 delete_fn,
@@ -849,7 +1028,13 @@ pub async fn create_whatsapp_client(
                 delete_prefix_fn,
                 cap_enumerate,
                 cap_prefix_delete,
-            })
+                cap_write_back,
+            });
+            // Keep a flush handle only when write-back is active.
+            if cap_write_back {
+                js_backend_handle = Some(jb.clone());
+            }
+            jb
         }
         _ => {
             info!("Using in-memory storage (no persistence)");
@@ -904,6 +1089,7 @@ pub async fn create_whatsapp_client(
         saver_handle: Mutex::new(Some(saver_handle)),
         run_handle: Mutex::new(None),
         sync_worker_handle: Mutex::new(None),
+        js_backend: js_backend_handle,
     })
 }
 
@@ -928,6 +1114,10 @@ pub struct WasmWhatsAppClient {
     /// wrapper.
     run_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
     sync_worker_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
+    /// Concrete handle to the write-back-enabled JS backend, present only when
+    /// the store opted into `writeBack`. Used to flush buffered writes to JS on
+    /// disconnect/logout/Drop. `None` for write-through and in-memory stores.
+    js_backend: Option<Arc<js_backend::JsBackend>>,
 }
 
 #[wasm_bindgen]
@@ -1096,6 +1286,13 @@ impl WasmWhatsAppClient {
         if let Err(e) = self.persistence_manager.flush().await {
             log::warn!("Failed to flush state on disconnect: {e}");
         }
+        // Push any write-back-buffered store writes to JS AFTER the persistence
+        // manager flush (which lands the core's final state into the backend).
+        if let Some(jb) = &self.js_backend
+            && let Err(e) = jb.flush_cache().await
+        {
+            log::warn!("Failed to flush write-back cache on disconnect: {e}");
+        }
     }
 
     /// Logout from WhatsApp — deregisters this companion device and disconnects.
@@ -1131,6 +1328,11 @@ impl WasmWhatsAppClient {
         }
         if let Err(e) = self.persistence_manager.flush().await {
             log::warn!("Failed to flush state on logout: {e}");
+        }
+        if let Some(jb) = &self.js_backend
+            && let Err(e) = jb.flush_cache().await
+        {
+            log::warn!("Failed to flush write-back cache on logout: {e}");
         }
         Ok(())
     }
@@ -3202,11 +3404,17 @@ impl Drop for WasmWhatsAppClient {
         // the heap until this completes.
         let client = self.client.clone();
         let persistence_manager = self.persistence_manager.clone();
+        let js_backend = self.js_backend.clone();
         let done = register_drop_cleanup();
         wasm_bindgen_futures::spawn_local(async move {
             client.disconnect().await;
             if let Err(e) = persistence_manager.flush().await {
                 log::warn!("Drop-side persistence flush failed: {e}");
+            }
+            if let Some(jb) = &js_backend
+                && let Err(e) = jb.flush_cache().await
+            {
+                log::warn!("Drop-side write-back flush failed: {e}");
             }
             let _ = done.send(());
         });

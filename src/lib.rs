@@ -28,6 +28,7 @@ pub mod proto;
 pub mod result_types;
 pub mod runtime;
 pub mod wasm_client;
+mod write_back_cache;
 
 /// SAFETY: WASM is single-threaded — Send + Sync are trivially satisfied.
 /// This macro reduces boilerplate for types that hold JS values.

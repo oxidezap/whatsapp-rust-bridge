@@ -21,7 +21,45 @@
 use base64::Engine;
 use js_sys::{Object, Uint8Array};
 use serde::ser::{self, Serialize};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
+
+thread_local! {
+    /// Cache of camelCase field-name JsStrings, keyed by the `&'static str` proto
+    /// field name. Proto field names are a small fixed set, so this is bounded.
+    /// Reusing one JsString per name across every message avoids — per field, per
+    /// message — a `to_camel_case` Rust `String` alloc AND a `JsValue::from_str`
+    /// (JS string alloc + externref register), which the heap profile showed to be
+    /// the bulk of the JS↔WASM message-serialization allocations.
+    static CAMEL_KEY_CACHE: RefCell<HashMap<&'static str, JsValue>> = RefCell::new(HashMap::new());
+}
+
+/// Run `f` with the cached camelCase-key JsString for `key` (built once per key).
+/// `f` is the `Reflect::set` call; passing the cached `&JsValue` by reference
+/// avoids creating/registering a new JS string for the key on every field.
+#[inline]
+fn with_camel_key<R>(key: &'static str, f: impl FnOnce(&JsValue) -> R) -> R {
+    CAMEL_KEY_CACHE.with(|c| {
+        let mut map = c.borrow_mut();
+        let js = map
+            .entry(key)
+            .or_insert_with(|| JsValue::from_str(&to_camel_case(key)));
+        f(js)
+    })
+}
+
+thread_local! {
+    /// The three protobufjs `Long` object keys, interned once per thread. Every
+    /// 64-bit field (e.g. `messageTimestamp`, present on every message) builds a
+    /// `Long` object; without interning each one re-allocates these three JS
+    /// strings per field per message. They never need camelCasing (already plain
+    /// lowercase identifiers), so they get dedicated slots instead of the
+    /// `CAMEL_KEY_CACHE` HashMap — no hashing on this hot path.
+    static LONG_KEY_LOW: JsValue = JsValue::from_str("low");
+    static LONG_KEY_HIGH: JsValue = JsValue::from_str("high");
+    static LONG_KEY_UNSIGNED: JsValue = JsValue::from_str("unsigned");
+}
 
 /// Split a signed `i64` into protobufjs-style `Long` parts: the low 32 bits as
 /// an unsigned value and the high 32 bits as a *signed* (two's-complement)
@@ -43,9 +81,15 @@ pub(crate) fn u64_to_long_parts(v: u64) -> (u32, i32) {
 /// `toNumber()`. Mirrors `protobufjs/Long`.
 fn long_object(low: u32, high: i32, unsigned: bool) -> JsValue {
     let obj = Object::new();
-    let _ = js_sys::Reflect::set(&obj, &"low".into(), &JsValue::from_f64(low as f64));
-    let _ = js_sys::Reflect::set(&obj, &"high".into(), &JsValue::from_f64(high as f64));
-    let _ = js_sys::Reflect::set(&obj, &"unsigned".into(), &JsValue::from_bool(unsigned));
+    LONG_KEY_LOW.with(|k| {
+        let _ = js_sys::Reflect::set(&obj, k, &JsValue::from_f64(low as f64));
+    });
+    LONG_KEY_HIGH.with(|k| {
+        let _ = js_sys::Reflect::set(&obj, k, &JsValue::from_f64(high as f64));
+    });
+    LONG_KEY_UNSIGNED.with(|k| {
+        let _ = js_sys::Reflect::set(&obj, k, &JsValue::from_bool(unsigned));
+    });
     obj.into()
 }
 
@@ -69,8 +113,8 @@ fn is_zero_long(val: &JsValue) -> bool {
     if !val.is_object() {
         return false;
     }
-    let low = js_sys::Reflect::get(val, &"low".into()).ok();
-    let high = js_sys::Reflect::get(val, &"high".into()).ok();
+    let low = LONG_KEY_LOW.with(|k| js_sys::Reflect::get(val, k)).ok();
+    let high = LONG_KEY_HIGH.with(|k| js_sys::Reflect::get(val, k)).ok();
     match (
         low.as_ref().and_then(JsValue::as_f64),
         high.as_ref().and_then(JsValue::as_f64),
@@ -80,7 +124,8 @@ fn is_zero_long(val: &JsValue) -> bool {
             // carries the `unsigned` discriminant (plain `{low,high}` data
             // objects without it are vanishingly unlikely in proto output, but
             // be precise).
-            js_sys::Reflect::get(val, &"unsigned".into())
+            LONG_KEY_UNSIGNED
+                .with(|k| js_sys::Reflect::get(val, k))
                 .ok()
                 .is_some_and(|u| u.as_bool().is_some())
         }
@@ -392,8 +437,7 @@ impl ser::SerializeStruct for StructSerializer {
         if should_skip(&js_val) {
             return Ok(());
         }
-        let camel_key = to_camel_case(key);
-        js_sys::Reflect::set(&self.obj, &JsValue::from_str(&camel_key), &js_val)
+        with_camel_key(key, |k| js_sys::Reflect::set(&self.obj, k, &js_val))
             .map_err(|e| Error(format!("{e:?}")))?;
         Ok(())
     }

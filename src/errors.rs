@@ -281,6 +281,13 @@ fn display_chain(err: &(dyn Error + 'static)) -> String {
 
 impl From<PairError> for BridgeError {
     fn from(e: PairError) -> Self {
+        // `PairError` does not expose its inner `PairCodeError` via `source()`,
+        // so the generic chain walk in `from_error_chain` would miss it and fall
+        // back to `Internal`. Route the validation variant directly so callers
+        // get the actionable `InvalidArgument`/`ProtocolViolation`/… mapping.
+        if let PairError::PairCode(pc) = &e {
+            return paircode_to_bridge(pc);
+        }
         Self::from_error_chain(&e)
     }
 }
@@ -459,6 +466,9 @@ pub fn to_js_error(e: &BridgeError) -> JsValue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Alias `#[test]` -> wasm_bindgen_test so these run on wasm32 via
+    // `wasm-pack test --node` (the crate has no native test target).
+    use wasm_bindgen_test::wasm_bindgen_test as test;
 
     #[test]
     fn iq_server_error_extracts_code_and_text() {

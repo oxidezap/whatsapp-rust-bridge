@@ -1,6 +1,6 @@
 {
     "name": "whatsapp-rust-bridge",
-    "version": "0.6.0-alpha.35",
+    "version": "0.6.0-alpha.36",
     "description": "A high-performance utilities for WhatsApp, powered by Rust and WebAssembly.",
     "author": "João Lucas <jlucaso@hotmail.com>",
     "license": "MIT",
@@ -41,6 +41,7 @@
         "build:profile": "cargo build --profile profiling --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run postbuild",
         "bump:wacore": "cargo update -p whatsapp-rust && bun run build",
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
+        "test:rust": "wasm-pack test --node",
         "prepublishOnly": "bun run build"
     },
     "devDependencies": {
