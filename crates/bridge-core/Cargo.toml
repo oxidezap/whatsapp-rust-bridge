@@ -1,0 +1,31 @@
+[package]
+name = "bridge-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+
+anyhow.workspace = true
+async-channel.workspace = true
+async-trait.workspace = true
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+bytes.workspace = true
+futures.workspace = true
+log.workspace = true
+prost = { version = "0.14.3", default-features = false }
+serde.workspace = true
+serde_bytes.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+wacore.workspace = true
+wacore-appstate.workspace = true
+wacore-binary.workspace = true
+wacore-libsignal.workspace = true
+waproto.workspace = true
+whatsapp-rust.workspace = true

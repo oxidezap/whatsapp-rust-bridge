@@ -130,6 +130,19 @@ export interface ChatPresenceUpdate {
 /** Chat state type for typing indicators. */
 export type ChatStateType = "composing" | "recording" | "paused";
 
+/** A chat's messages were cleared (kept) on a linked device. */
+export interface ClearChatUpdate {
+  /** The chat being cleared. */
+  jid: Jid;
+  /** From the index, not the proto — ClearChatAction only has messageRange. */
+  delete_starred: boolean;
+  /** From the index, not the proto. */
+  delete_media: boolean;
+  timestamp: number;
+  action: ClearChatAction;
+  from_full_sync: boolean;
+}
+
 export interface ConnectFailure {
   reason: ConnectFailureReason;
   message: string;
@@ -442,6 +455,8 @@ export interface IdentityChange {
   user: Jid;
   /** Optional LID for the user */
   lid_user?: Jid | null;
+  /** `true` when detected locally while saving a peer's new identity during decrypt (mirrors WA Web `saveIdentity` -> `handleNewIdentity`), `false` when triggered by the server's `<identity/>` notification. */
+  implicit: boolean;
 }
 
 export interface IncomingCall {
@@ -465,6 +480,26 @@ export interface KeyIndexInfo {
   timestamp: number;
   /** Signed key index bytes (only present for add) */
   signed_bytes?: Uint8Array | null;
+}
+
+/** A label was associated with or removed from a chat on a linked device. `action.labeled == Some(true)` means the label was added to the chat. */
+export interface LabelAssociationUpdate {
+  /** The label identifier. */
+  label_id: string;
+  /** The chat the label was associated with or removed from. */
+  chat_jid: Jid;
+  timestamp: number;
+  action: LabelAssociationAction;
+  from_full_sync: boolean;
+}
+
+/** A label was created, renamed/recolored, or deleted on a linked device. `action.deleted == Some(true)` means the label was removed. */
+export interface LabelEditUpdate {
+  /** The label identifier (the index key, not a JID). */
+  label_id: string;
+  timestamp: number;
+  action: LabelEditAction;
+  from_full_sync: boolean;
 }
 
 /** The source from which a LID-PN mapping was learned. Different sources have different trust levels and handling for identity changes. */
@@ -729,20 +764,6 @@ export type PrivacyCategory = "last" | "online" | "profile" | "status" | "groupa
 
 export type PrivacySensitiveType = "1";
 
-export type PrivacySetting = "all" | "contacts" | "contact_blacklist" | "match_last_seen" | "known" | "none" | "undefined";
-
-export type PrivacySettingType = "group_add" | "last" | "status" | "profile" | "read_receipts" | "online" | "call_add";
-
-export interface PrivacySettings {
-  group_add?: PrivacySetting | null;
-  last_seen?: PrivacySetting | null;
-  status?: PrivacySetting | null;
-  profile?: PrivacySetting | null;
-  read_receipts?: PrivacySetting | null;
-  call_add?: PrivacySetting | null;
-  online?: PrivacySetting | null;
-}
-
 export type PrivacyValue = "all" | "contacts" | "none" | "contact_blacklist" | "match_last_seen" | "known" | "off" | "on_standard" | string;
 
 /** Profile picture type (preview thumbnail or full-size). */
@@ -767,6 +788,7 @@ export interface Receipt {
 
 export type ReceiptType =
   | { type: "delivered" }
+  | { type: "sent" }
   | { type: "sender" }
   | { type: "retry" }
   | { type: "enc_rekey_retry" }
@@ -844,6 +866,17 @@ export interface UserAboutUpdate {
   jid: Jid;
   status: string;
   timestamp: number;
+}
+
+/** A contact/group/newsletter's status updates were muted/unmuted on a linked device. */
+export interface UserStatusMuteUpdate {
+  /** The entity whose status was (un)muted. */
+  jid: Jid;
+  /** `true` = status muted, `false` = unmuted. */
+  muted: boolean;
+  timestamp: number;
+  action: UserStatusMuteAction;
+  from_full_sync: boolean;
 }
 
 /** Usync context. */

@@ -1,5 +1,4 @@
+# Build nativo por padrão (addon napi). Os flags wasm ficam apenas como
+# target-specific, inertes a menos que se compile explicitamente para wasm32.
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "target-feature=+simd128", '--cfg', 'getrandom_backend="wasm_js"']
-
-[build]
-target = "wasm32-unknown-unknown"

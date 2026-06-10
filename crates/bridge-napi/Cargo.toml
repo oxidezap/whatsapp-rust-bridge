@@ -1,0 +1,29 @@
+[package]
+name = "bridge-napi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+anyhow.workspace = true
+async-channel.workspace = true
+async-trait.workspace = true
+bridge-core = { path = "../bridge-core" }
+bytes.workspace = true
+log.workspace = true
+
+napi = { version = "3", default-features = false, features = ["napi9", "tokio_rt", "async", "serde-json"] }
+napi-derive = "3"
+serde_json.workspace = true
+tokio.workspace = true
+
+# wacore types appear in Host adapter signatures (HttpRequest/HttpResponse, etc.)
+wacore.workspace = true
+
+[build-dependencies]
+napi-build = "2"
