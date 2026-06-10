@@ -134,7 +134,11 @@ bridge_events! {
         StarUpdate               => "star_update"                   => "StarUpdate",
         MarkChatAsReadUpdate     => "mark_chat_as_read_update"      => "MarkChatAsReadUpdate",
         DeleteChatUpdate         => "delete_chat_update"            => "DeleteChatUpdate",
+        ClearChatUpdate          => "clear_chat_update"             => "ClearChatUpdate",
+        UserStatusMuteUpdate     => "user_status_mute_update"       => "UserStatusMuteUpdate",
         DeleteMessageForMeUpdate => "delete_message_for_me_update"  => "DeleteMessageForMeUpdate",
+        LabelEditUpdate          => "label_edit_update"             => "LabelEditUpdate",
+        LabelAssociationUpdate   => "label_association_update"      => "LabelAssociationUpdate",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
         DeviceListUpdate         => "device_list_update"            => "DeviceListUpdate",
@@ -393,6 +397,11 @@ export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
  * @param http_config HTTP client callbacks (execute via fetch)
  * @param on_event Optional event callback — receives typed WhatsApp events in order
  * @param store Optional JS storage callbacks — if provided, enables persistent storage
+ * @param cache_config Optional cache TTL/capacity and custom store overrides
+ * @param version Optional [major, minor, patch] WhatsApp Web version override
+ * @param wanted_pre_key_count Optional pre-key upload batch size (default 812);
+ *   clamped to the protocol-safe range at upload time. Smaller batches reduce
+ *   memory pressure on embedded/WASM hosts.
  */
 export function createWhatsAppClient(
   transport_config: JsTransportCallbacks,
@@ -400,6 +409,8 @@ export function createWhatsAppClient(
   on_event?: ((event: WhatsAppEvent) => void) | null,
   store?: JsStoreCallbacks | null,
   cache_config?: CacheConfig | null,
+  version?: readonly [number, number, number] | null,
+  wanted_pre_key_count?: number | null,
 ): Promise<WasmWhatsAppClient>;
 
 /** Cache entry configuration. */
@@ -900,6 +911,27 @@ fn parse_optional_version(
     Ok(Some((parse(0)?, parse(1)?, parse(2)?)))
 }
 
+/// Parse the optional pre-key upload batch size. The core clamps to the
+/// protocol-safe range at upload time, so we only reject inputs that can't be a
+/// valid count here (non-numeric / negative / fractional / beyond u32).
+fn parse_optional_count(
+    value: Option<&JsValue>,
+) -> Result<Option<usize>, crate::errors::BridgeError> {
+    let Some(v) = value else { return Ok(None) };
+    if v.is_null() || v.is_undefined() {
+        return Ok(None);
+    }
+    let n = v
+        .as_f64()
+        .ok_or_else(|| crate::errors::internal("wantedPreKeyCount must be a number"))?;
+    if !n.is_finite() || n < 0.0 || n > u32::MAX as f64 || n.fract() != 0.0 {
+        return Err(crate::errors::internal(
+            "wantedPreKeyCount must be a non-negative integer fitting in u32",
+        ));
+    }
+    Ok(Some(n as usize))
+}
+
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
@@ -948,6 +980,7 @@ pub async fn create_whatsapp_client(
     store: Option<JsValue>,
     cache_config_js: Option<JsValue>,
     version_js: Option<JsValue>,
+    wanted_pre_key_count_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
     // Block on every in-flight `Drop` cleanup before allocating new state.
     // Each `Drop` registers a oneshot; we await all of them. Closes the race
@@ -1055,6 +1088,7 @@ pub async fn create_whatsapp_client(
 
     let cache_config = build_cache_config(cache_config_js.as_ref())?;
     let override_version = parse_optional_version(version_js.as_ref())?;
+    let wanted_pre_key_count = parse_optional_count(wanted_pre_key_count_js.as_ref())?;
 
     let (client, sync_rx) = whatsapp_rust::Client::new_with_cache_config(
         runtime.clone(),
@@ -1065,6 +1099,12 @@ pub async fn create_whatsapp_client(
         cache_config,
     )
     .await;
+
+    // Apply before connecting so it takes effect on the first pre-key upload;
+    // smaller batches matter for the WASM/embedded heap (default is 812).
+    if let Some(count) = wanted_pre_key_count {
+        client.set_wanted_pre_key_count(count);
+    }
 
     // Start the periodic saver AFTER the Client exists so we can subscribe to
     // its shutdown signal. The returned `AbortHandle` is stored on the wrapper
@@ -1212,7 +1252,7 @@ impl WasmWhatsAppClient {
     /// Fetch the account's reachout-timelock state.
     ///
     /// Wraps the `WAWebMexFetchReachoutTimelockJobQuery` MEX persisted
-    /// query (id sourced from `wacore::iq::mex_ids::reachout_timelock::FETCH`)
+    /// query (id sourced from `wacore::iq::mex_operations::fetch_reachout_timelock`)
     /// and returns the `xwa2_fetch_account_reachout_timelock` payload as a
     /// raw JSON object — typically:
     ///
@@ -1226,14 +1266,22 @@ impl WasmWhatsAppClient {
     /// Callers map snake_case → idiomatic shape themselves.
     #[wasm_bindgen(js_name = "fetchReachoutTimelock")]
     pub async fn fetch_reachout_timelock(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        use wacore::iq::mex_ids;
+        use wacore::iq::mex::MexDoc;
+        use wacore::iq::mex_operations::fetch_reachout_timelock as op;
         use whatsapp_rust::features::MexRequest;
 
+        // The hand-maintained `mex_ids` table was dropped (#728) in favor of the
+        // typed `mex_operations` registry. Rebuild the `MexDoc` from the op's
+        // `NAME`/`DOC_ID` constants — same persisted-query id as before — and keep
+        // the generic raw-JSON passthrough (we want the untyped payload here).
         let response = self
             .client
             .mex()
             .query(MexRequest {
-                doc: mex_ids::reachout_timelock::FETCH,
+                doc: MexDoc {
+                    name: op::NAME,
+                    id: op::DOC_ID,
+                },
                 variables: serde_json::json!({}),
             })
             .await?;
@@ -1687,7 +1735,8 @@ impl WasmWhatsAppClient {
         for (key, metadata) in &groups {
             let result = group_metadata_to_result(metadata);
             let js_metadata = serde_wasm_bindgen::to_value(&result)?;
-            js_sys::Reflect::set(&obj, &JsValue::from_str(key), &js_metadata)?;
+            // #767: get_participating now keys by Jid (was String) — stringify for the JS object key.
+            js_sys::Reflect::set(&obj, &JsValue::from_str(&key.to_string()), &js_metadata)?;
         }
         Ok(obj.into())
     }
@@ -1814,6 +1863,7 @@ impl WasmWhatsAppClient {
                 lid: r.lid.as_ref().map(jid_to_owned),
                 pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
                 is_business: r.is_business,
+                verified_name: r.verified_name.as_ref().and_then(|v| v.name.clone()),
             })
             .collect())
     }
@@ -1869,6 +1919,8 @@ impl WasmWhatsAppClient {
                 status: info.status.clone(),
                 picture_id: info.picture_id.clone(),
                 is_business: info.is_business,
+                verified_name: info.verified_name.as_ref().and_then(|v| v.name.clone()),
+                devices: info.devices.clone(),
             };
             let js_entry = serde_wasm_bindgen::to_value(&entry)?;
             js_sys::Reflect::set(&obj, &JsValue::from_str(&jid.to_string()), &js_entry)?;
@@ -2067,6 +2119,30 @@ impl WasmWhatsAppClient {
         .map_err(crate::errors::BridgeError::from)
     }
 
+    /// Save or rename a contact, syncing the name to the user's linked devices
+    /// (a `contact` app-state mutation). `jid` must be a bare phone-number JID
+    /// (the core rejects LID/group/device-specific JIDs).
+    #[wasm_bindgen(js_name = saveContact)]
+    pub async fn save_contact(
+        &self,
+        jid: &str,
+        full_name: Option<String>,
+        first_name: Option<String>,
+        save_on_primary_addressbook: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let contact_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .save_contact(
+                &contact_jid,
+                full_name,
+                first_name,
+                save_on_primary_addressbook,
+            )
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
     /// Star or unstar a message.
     #[wasm_bindgen(js_name = starMessage)]
     pub async fn star_message(
@@ -2089,6 +2165,73 @@ impl WasmWhatsAppClient {
                 .await
         }
         .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// React to a DM, group, or status@broadcast message. Empty/null `emoji`
+    /// removes a previous reaction. For group/status targets `key.participant`
+    /// must carry the original sender (DMs don't need it; for your own message
+    /// `fromMe: true` suffices). For a Community Announcement Group the core
+    /// encrypts the reaction with the target's `messageSecret` and sends
+    /// `enc_reaction_message` (WA Web `WAWebReactionEncryptMsgData`) — plaintext
+    /// reactions are rejected there, so this path must be used instead of a
+    /// JS-built `reactionMessage` proto. Returns the reaction's message id.
+    #[wasm_bindgen(js_name = sendReaction)]
+    pub async fn send_reaction(
+        &self,
+        jid: &str,
+        key: crate::result_types::TargetMessageKey,
+        emoji: Option<String>,
+    ) -> Result<String, crate::errors::BridgeError> {
+        let chat = parse_jid(jid)?;
+        let target_key = waproto::whatsapp::MessageKey {
+            remote_jid: Some(chat.to_string()),
+            from_me: Some(key.from_me),
+            id: Some(key.id),
+            participant: key.participant,
+        };
+        let result = self
+            .client
+            .send_reaction(chat, target_key, emoji.as_deref().unwrap_or(""))
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        Ok(result.message_id)
+    }
+
+    /// Comment on a channel (CAG) post. `bytes` is the encoded body `Message`
+    /// proto (encoding belongs to JS, like `sendMessageBytes`); `parent_key`
+    /// references the post: `participant` is the post author, or `fromMe: true`
+    /// for your own post (the core then resolves your LID/PN as the author).
+    /// Requires the parent's `messageSecret`, captured when the post was
+    /// received — the core derives the addon key and sends the encrypted
+    /// comment envelope. Returns the comment's message id.
+    #[wasm_bindgen(js_name = sendCommentBytes)]
+    pub async fn send_comment_bytes(
+        &self,
+        jid: &str,
+        parent_key: crate::result_types::TargetMessageKey,
+        bytes: &[u8],
+    ) -> Result<String, crate::errors::BridgeError> {
+        // Without either, the core would fall back to the chat JID as the
+        // author and fail the secret lookup the slow way — reject up front.
+        if parent_key.participant.is_none() && !parent_key.from_me {
+            return Err(crate::errors::internal(
+                "parent_key needs participant (the post author) or fromMe: true",
+            ));
+        }
+        let (chat, body) = parse_jid_and_msg_bytes(jid, bytes)?;
+        let key = waproto::whatsapp::MessageKey {
+            remote_jid: Some(chat.to_string()),
+            from_me: Some(parent_key.from_me),
+            id: Some(parent_key.id),
+            participant: parent_key.participant,
+        };
+        let result = self
+            .client
+            .comments()
+            .send_message(chat, key, body)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        Ok(result.message_id)
     }
 
     /// Mark a chat as read or unread via app state mutation.
@@ -2114,6 +2257,26 @@ impl WasmWhatsAppClient {
         self.client
             .chat_actions()
             .delete_chat(&chat_jid, true, None)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Clear a chat's messages while keeping the chat (WA Web's clearChat), via an
+    /// app-state mutation. `delete_starred` also removes starred messages and
+    /// `delete_media` also removes downloaded media (both flags live in the mutation
+    /// index, not the proto). Mirrors `deleteChat` in passing `None` for the message
+    /// range, i.e. clears the whole chat.
+    #[wasm_bindgen(js_name = clearChat)]
+    pub async fn clear_chat(
+        &self,
+        jid: &str,
+        delete_starred: bool,
+        delete_media: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .clear_chat(&chat_jid, delete_starred, delete_media, None)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -2224,8 +2387,44 @@ impl WasmWhatsAppClient {
             let chat_jid = parse_jid(&chat_jid_str)?;
             let participant_jid = participant_str.as_deref().map(parse_jid).transpose()?;
 
+            // #775: mark_as_read now takes &[&str] (alloc-aware); borrow the owned ids.
+            let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             self.client
-                .mark_as_read(&chat_jid, participant_jid.as_ref(), ids)
+                .mark_as_read(&chat_jid, participant_jid.as_ref(), &id_refs)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Mark voice/video notes as played by sending played receipts
+    /// (`<receipt type="played"|"played-self">`). Groups keys by chat +
+    /// participant exactly like [`Self::read_messages`]; the core picks
+    /// `played` vs `played-self` (newsletters) and sets `participant` only for
+    /// group/broadcast chats, so the JS side just hands over the message keys.
+    #[wasm_bindgen(js_name = markPlayed)]
+    pub async fn mark_played(
+        &self,
+        keys: Vec<crate::result_types::ReadMessageKey>,
+    ) -> Result<(), crate::errors::BridgeError> {
+        use std::collections::HashMap;
+        let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
+
+        for key in keys {
+            grouped
+                .entry((key.remote_jid, key.participant))
+                .or_default()
+                .push(key.id);
+        }
+
+        for ((chat_jid_str, participant_str), ids) in grouped {
+            let chat_jid = parse_jid(&chat_jid_str)?;
+            let participant_jid = participant_str.as_deref().map(parse_jid).transpose()?;
+
+            // #775: mark_as_played now takes &[&str] (alloc-aware); borrow the owned ids.
+            let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+            self.client
+                .mark_as_played(&chat_jid, participant_jid.as_ref(), &id_refs)
                 .await?;
         }
 
@@ -2586,6 +2785,23 @@ impl WasmWhatsAppClient {
             .map_err(crate::errors::BridgeError::from)
     }
 
+    /// Mute or unmute a newsletter's follower-activity notifications — the channel
+    /// mute a subscriber toggles (WA Web `MUTE_FOLLOWER_ACTIVITY`). `muted = true`
+    /// silences them. The separate owner-only admin-activity mute is not exposed.
+    #[wasm_bindgen(js_name = newsletterMute)]
+    pub async fn newsletter_mute(
+        &self,
+        jid: &str,
+        muted: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let target = parse_jid(jid)?;
+        self.client
+            .newsletter()
+            .set_follower_mute(&target, muted)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
     // ── Media reupload ────────────────────────────────────────────────────
 
     /// Request the server to re-upload expired media.
@@ -2696,14 +2912,14 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let data = self
             .client
-            .download_from_params(
+            .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
                 direct_path,
                 media_key,
                 file_sha256,
                 file_enc_sha256,
                 file_length as u64,
                 mt,
-            )
+            ))
             .await?;
         Ok(js_sys::Uint8Array::from(&data[..]))
     }
@@ -2737,14 +2953,14 @@ impl WasmWhatsAppClient {
             use futures::SinkExt;
 
             match client
-                .download_from_params(
-                    &direct_path,
+                .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
+                    direct_path.as_str(),
                     &media_key,
                     &file_sha256,
                     &file_enc_sha256,
                     file_length,
                     mt,
-                )
+                ))
                 .await
             {
                 Ok(data) => {
@@ -2998,7 +3214,9 @@ impl WasmWhatsAppClient {
     /// Get the current push name.
     #[wasm_bindgen(js_name = getPushName)]
     pub async fn get_push_name(&self) -> String {
-        self.client.get_push_name().await
+        // Sync since whatsapp-rust #808 (cached Arc<Device> snapshot); kept
+        // async so the JS surface stays Promise-based.
+        self.client.get_push_name()
     }
 
     /// Get the own JID (phone number JID) if logged in.
@@ -3007,10 +3225,7 @@ impl WasmWhatsAppClient {
     /// This is the JID used for addressing in messages.
     #[wasm_bindgen(js_name = getJid)]
     pub async fn get_jid(&self) -> Option<String> {
-        self.client
-            .get_pn()
-            .await
-            .map(|j| j.to_non_ad().to_string())
+        self.client.get_pn().map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the own LID (linked identity) if available.
@@ -3018,17 +3233,14 @@ impl WasmWhatsAppClient {
     /// Returns the non-AD LID (without device suffix), e.g. "100000012345678@lid".
     #[wasm_bindgen(js_name = getLid)]
     pub async fn get_lid(&self) -> Option<String> {
-        self.client
-            .get_lid()
-            .await
-            .map(|j| j.to_non_ad().to_string())
+        self.client.get_lid().map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the ADV signed device identity (account), if available.
     /// Used by upstream Baileys consumers that access `authState.creds.account`.
     #[wasm_bindgen(js_name = getAccount)]
     pub async fn get_account(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let snapshot = self.persistence_manager.get_device_snapshot().await;
+        let snapshot = self.persistence_manager.get_device_snapshot();
         match &snapshot.account {
             Some(account) => crate::camel_serializer::to_js_value_camel(account)
                 .map_err(|e| crate::errors::internal(format!("account serialization: {e:?}"))),
@@ -3496,8 +3708,10 @@ pub fn decrypt_poll_vote(
     let creator_str = creator.to_non_ad().to_string();
     let voter_str = voter.to_non_ad().to_string();
     let selected_hashes = wacore::poll::decrypt_poll_vote_with_fallback(
-        enc_payload,
-        enc_iv,
+        wacore::poll::PollVoteCiphertext {
+            enc_payload,
+            enc_iv,
+        },
         message_secret,
         poll_msg_id,
         wacore::poll::PollVoteAddressing {
@@ -3551,8 +3765,10 @@ pub fn get_aggregate_votes_in_poll_message(
         let voter_jid: Jid = v.voter.parse()?;
         let voter_str = voter_jid.to_non_ad().to_string();
         match wacore::poll::decrypt_poll_vote_with_fallback(
-            &v.enc_payload,
-            &v.enc_iv,
+            wacore::poll::PollVoteCiphertext {
+                enc_payload: &v.enc_payload,
+                enc_iv: &v.enc_iv,
+            },
             message_secret,
             poll_msg_id,
             wacore::poll::PollVoteAddressing {

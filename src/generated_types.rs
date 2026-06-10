@@ -130,6 +130,19 @@ export interface ChatPresenceUpdate {
 /** Chat state type for typing indicators. */
 export type ChatStateType = "composing" | "recording" | "paused";
 
+/** A chat's messages were cleared (kept) on a linked device. */
+export interface ClearChatUpdate {
+  /** The chat being cleared. */
+  jid: Jid;
+  /** From the index, not the proto — ClearChatAction only has messageRange. */
+  delete_starred: boolean;
+  /** From the index, not the proto. */
+  delete_media: boolean;
+  timestamp: number;
+  action: ClearChatAction;
+  from_full_sync: boolean;
+}
+
 export interface ConnectFailure {
   reason: ConnectFailureReason;
   message: string;
@@ -221,8 +234,10 @@ export interface Device {
   edge_routing_info?: Uint8Array | null;
   /** Hash from the last props (A/B experiment config) fetch. Sent on subsequent connects to enable delta updates instead of full fetches. */
   props_hash?: string | null;
-  /** Monotonically increasing counter for one-time pre-key ID generation. Matches WhatsApp Web's `NEXT_PK_ID` pattern: only increases, never resets. Prevents prekey ID collisions when prekeys are consumed non-sequentially. */
+  /** Monotonically increasing counter for one-time pre-key ID generation. Matches WhatsApp Web's `NEXT_PK_ID` pattern: only increases, never resets. Advances at GENERATION time (WA Web `savePreKeys`), so it covers every key that exists in the store, uploaded or not. */
   next_pre_key_id: number;
+  /** Watermark of the first generated-but-not-yet-uploaded one-time prekey, matching WA Web's `FIRST_UNUPLOAD_PK_ID`. `next_pre_key_id - this` is the pool of leftover keys an upload re-offers before generating new ones. `0` = unset (legacy device); initialised on the first upload. */
+  first_unupload_pre_key_id: number;
   /** Persisted flag matching WA Web's `signal_sever_has_pre_keys` metadata. */
   server_has_prekeys: boolean;
   /** NCT salt provisioned by the server via app state sync or history sync. */
@@ -347,6 +362,8 @@ export type EditAttribute = "" | "1" | "2" | "3" | "7" | "8" | string;
 export interface GroupInfo {
   participants: Jid[];
   addressing_mode: AddressingMode;
+  /** Whether this group is a Community Announcement Group (WA Web `isCag`, derived from `default_sub_group`). `None` means the persisted blob predates the field, so the answer is unknown and callers must re-query. */
+  is_community_announce?: boolean | null;
 }
 
 /** All possible group notification action types.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
@@ -442,6 +459,8 @@ export interface IdentityChange {
   user: Jid;
   /** Optional LID for the user */
   lid_user?: Jid | null;
+  /** `true` when detected locally while saving a peer's new identity during decrypt (mirrors WA Web `saveIdentity` -> `handleNewIdentity`), `false` when triggered by the server's `<identity/>` notification. */
+  implicit: boolean;
 }
 
 export interface IncomingCall {
@@ -467,12 +486,32 @@ export interface KeyIndexInfo {
   signed_bytes?: Uint8Array | null;
 }
 
+/** A label was associated with or removed from a chat on a linked device. `action.labeled == Some(true)` means the label was added to the chat. */
+export interface LabelAssociationUpdate {
+  /** The label identifier. */
+  label_id: string;
+  /** The chat the label was associated with or removed from. */
+  chat_jid: Jid;
+  timestamp: number;
+  action: LabelAssociationAction;
+  from_full_sync: boolean;
+}
+
+/** A label was created, renamed/recolored, or deleted on a linked device. `action.deleted == Some(true)` means the label was removed. */
+export interface LabelEditUpdate {
+  /** The label identifier (the index key, not a JID). */
+  label_id: string;
+  timestamp: number;
+  action: LabelEditAction;
+  from_full_sync: boolean;
+}
+
 /** The source from which a LID-PN mapping was learned. Different sources have different trust levels and handling for identity changes. */
 export type LearningSource = "usync" | "peer_pn_message" | "peer_lid_message" | "recipient_latest_lid" | "migration_sync_latest" | "migration_sync_old" | "blocklist_active" | "blocklist_inactive" | "pairing" | "device_notification" | "other";
 
 /** An entry in the LID-PN cache containing the full mapping information. */
 export interface LidPnEntry {
-  /** The LID user part (e.g., "100000012345678") */
+  /** The LID user part (e.g., "100000012345678"). `Arc<str>`: the cache stores each mapping under both directions, so the identifier strings are shared between the entry and the cache keys instead of re-allocated per copy (this cache is unbounded by design). */
   lid: string;
   /** The phone number user part (e.g., "559980000001") */
   phone_number: string;
@@ -549,6 +588,8 @@ export interface MessageInfo {
   verified_name_serial?: number | null;
   /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
   peer_recipient_pn?: Jid | null;
+  /** Parent post key when the dispatched message is a decrypted CAG channel comment (`enc_comment_message`). The inner `Message` proto has no slot for the threading link, so it surfaces here. */
+  comment_target?: MessageKey | null;
   /** Broadcast-contact-list recipients from `<participants><to jid>` on an incoming broadcast/status stanza. Populated only for broadcasts; used to validate a `deviceSentMessage.phash` (WA Web `validateBclHash`). Empty otherwise. */
   bcl_participants: Jid[];
 }
@@ -729,20 +770,6 @@ export type PrivacyCategory = "last" | "online" | "profile" | "status" | "groupa
 
 export type PrivacySensitiveType = "1";
 
-export type PrivacySetting = "all" | "contacts" | "contact_blacklist" | "match_last_seen" | "known" | "none" | "undefined";
-
-export type PrivacySettingType = "group_add" | "last" | "status" | "profile" | "read_receipts" | "online" | "call_add";
-
-export interface PrivacySettings {
-  group_add?: PrivacySetting | null;
-  last_seen?: PrivacySetting | null;
-  status?: PrivacySetting | null;
-  profile?: PrivacySetting | null;
-  read_receipts?: PrivacySetting | null;
-  call_add?: PrivacySetting | null;
-  online?: PrivacySetting | null;
-}
-
 export type PrivacyValue = "all" | "contacts" | "none" | "contact_blacklist" | "match_last_seen" | "known" | "off" | "on_standard" | string;
 
 /** Profile picture type (preview thumbnail or full-size). */
@@ -763,10 +790,13 @@ export interface Receipt {
   message_ids: string[];
   timestamp: number;
   type: ReceiptType;
+  /** True when the receipt carried the `offline` attribute, i.e. it was drained from the server's offline queue on reconnect rather than delivered live. Mirrors WA Web `incomingMsgReceiptParser` (`offline: maybeAttrString`). */
+  offline: boolean;
 }
 
 export type ReceiptType =
   | { type: "delivered" }
+  | { type: "sent" }
   | { type: "sender" }
   | { type: "retry" }
   | { type: "enc_rekey_retry" }
@@ -844,6 +874,17 @@ export interface UserAboutUpdate {
   jid: Jid;
   status: string;
   timestamp: number;
+}
+
+/** A contact/group/newsletter's status updates were muted/unmuted on a linked device. */
+export interface UserStatusMuteUpdate {
+  /** The entity whose status was (un)muted. */
+  jid: Jid;
+  /** `true` = status muted, `false` = unmuted. */
+  muted: boolean;
+  timestamp: number;
+  action: UserStatusMuteAction;
+  from_full_sync: boolean;
 }
 
 /** Usync context. */

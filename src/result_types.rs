@@ -175,6 +175,13 @@ pub struct UserInfoResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture_id: Option<String>,
     pub is_business: bool,
+    /// Verified business name from the usync `<business><verified_name>` cert, if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verified_name: Option<String>,
+    /// Device IDs from the usync `<devices>` sublist the same query returns. Empty when
+    /// the server returned no device list.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub devices: Vec<u16>,
 }
 
 /// A participant change result from `groupParticipantsUpdate`.
@@ -266,6 +273,21 @@ pub struct ReadMessageKey {
     pub participant: Option<String>,
 }
 
+/// Key of an existing message targeted by `sendReaction` / `sendCommentBytes`.
+/// The chat JID comes from the method's `jid` argument; `participant` is the
+/// original sender (required for group/status targets).
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetMessageKey {
+    pub id: String,
+    #[tsify(optional)]
+    #[serde(default)]
+    pub from_me: bool,
+    #[tsify(optional)]
+    pub participant: Option<String>,
+}
+
 /// Result from `createPoll`.
 #[derive(Serialize, Tsify)]
 #[tsify(into_wasm_abi)]
@@ -296,6 +318,9 @@ pub struct IsOnWhatsAppResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pn_jid: Option<String>,
     pub is_business: bool,
+    /// Verified business name from the usync `<business><verified_name>` cert, if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verified_name: Option<String>,
 }
 
 /// Result from `fetchStatus`.
