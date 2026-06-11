@@ -548,6 +548,18 @@ fn read_hs_varint(buf: &[u8]) -> Option<(u64, usize)> {
 /// monolithic, for 300 conversations/chunk).
 const HS_BATCH: usize = 32;
 
+/// Pinned, non-generic `Conversation` decode with the same buffer shape as
+/// `waproto::codec` (`&mut &[u8]`), so this crate's instantiation of the proto
+/// decode tree is byte-identical to waproto's and wasm-opt's
+/// duplicate-function-elimination can fold the two copies.
+#[inline(never)]
+fn conversation_decode(
+    mut bytes: &[u8],
+) -> Result<waproto::whatsapp::Conversation, prost::DecodeError> {
+    use prost::Message;
+    waproto::whatsapp::Conversation::decode(&mut bytes)
+}
+
 /// Convert one `Event::HistorySync` into N batched `{type, data}` JS events.
 ///
 /// Walks the decompressed protobuf without the monolithic `prost` decode:
@@ -557,7 +569,6 @@ const HS_BATCH: usize = 32;
 /// still receives the full `HistorySync` shape regardless of wire-field order.
 /// Lenient: a malformed conversation is skipped, not fatal.
 fn history_sync_to_js_batches(lazy: &LazyHistorySync) -> Result<Vec<JsValue>, JsValue> {
-    use prost::Message;
     let Some(raw) = lazy.raw_bytes() else {
         return Ok(Vec::new());
     };
@@ -610,14 +621,13 @@ fn history_sync_to_js_batches(lazy: &LazyHistorySync) -> Result<Vec<JsValue>, Js
         let is_final = end == conv_ranges.len();
         let mut convs: Vec<waproto::whatsapp::Conversation> = Vec::with_capacity(end - i);
         for &(s, e) in &conv_ranges[i..end] {
-            if let Ok(c) = waproto::whatsapp::Conversation::decode(&buf[s..e]) {
+            if let Ok(c) = conversation_decode(&buf[s..e]) {
                 convs.push(c);
             }
         }
         // The final batch also carries the tail (pushnames/mappings/settings/…).
         let hs = if is_final {
-            let mut hs =
-                waproto::whatsapp::HistorySync::decode(tail.as_slice()).unwrap_or_default();
+            let mut hs = waproto::codec::history_sync_decode(tail.as_slice()).unwrap_or_default();
             hs.conversations = convs;
             hs
         } else {
@@ -635,7 +645,7 @@ fn history_sync_to_js_batches(lazy: &LazyHistorySync) -> Result<Vec<JsValue>, Js
     // Zero-conversation blobs (PushName-only, nctSalt-only, empty ON_DEMAND)
     // still emit one final batch so metadata + peerDataRequestSessionId arrive.
     if conv_ranges.is_empty() {
-        let hs = waproto::whatsapp::HistorySync::decode(tail.as_slice()).unwrap_or_default();
+        let hs = waproto::codec::history_sync_decode(tail.as_slice()).unwrap_or_default();
         events.push(make_hs_event(lazy, &hs, 0, true)?);
     }
 
@@ -2350,8 +2360,7 @@ impl WasmWhatsAppClient {
         bytes: &[u8],
         recipients: Vec<String>,
     ) -> Result<String, crate::errors::BridgeError> {
-        use prost::Message;
-        let msg = waproto::whatsapp::Message::decode(bytes)
+        let msg = waproto::codec::message_decode(bytes)
             .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
         let jids: Vec<Jid> = recipients
             .iter()
@@ -3539,13 +3548,12 @@ impl WasmWhatsAppClient {
         bytes: &[u8],
         _extra_attrs: JsValue,
     ) -> Result<JsValue, crate::errors::BridgeError> {
-        use prost::Message;
         let recipient_jids: Vec<wacore_binary::jid::Jid> = jids
             .iter()
             .map(|j| parse_jid(j))
             .collect::<Result<_, _>>()?;
 
-        let msg = waproto::whatsapp::Message::decode(bytes)
+        let msg = waproto::codec::message_decode(bytes)
             .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
 
         let (nodes, should_include_device_identity) = self
@@ -4034,9 +4042,8 @@ fn parse_jid_and_msg_bytes(
     jid: &str,
     bytes: &[u8],
 ) -> Result<(Jid, waproto::whatsapp::Message), crate::errors::BridgeError> {
-    use prost::Message;
     let to = parse_jid(jid)?;
-    let msg = waproto::whatsapp::Message::decode(bytes)
+    let msg = waproto::codec::message_decode(bytes)
         .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
     Ok((to, msg))
 }
