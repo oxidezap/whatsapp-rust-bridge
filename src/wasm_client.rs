@@ -456,11 +456,17 @@ interface WasmWhatsAppClient {
 
 /// Bridges Rust events to a JS callback function via an ordered channel.
 ///
-/// Events are sent through an async channel and dispatched by a single
-/// consumer loop, which guarantees delivery order (unlike per-event
-/// `spawn_local` which does not).
+/// Raw `Arc<Event>`s are sent through an async channel and SERIALIZED in the
+/// single consumer loop (not in `handle_event`), which guarantees delivery
+/// order (unlike per-event `spawn_local` which does not) AND keeps each
+/// serialized JS object tree short-lived: a JsValue is built right before its
+/// callback and is collectable right after it returns. Pre-serializing in
+/// `handle_event` made every queued event's full JS tree coexist in the
+/// channel during bursts (history sync, offline replay) — the surviving
+/// objects got tenured into V8's old space, permanently growing heapTotal
+/// (committed pages V8 never returns to the OS).
 struct JsEventHandler {
-    event_tx: async_channel::Sender<JsValue>,
+    event_tx: async_channel::Sender<Arc<Event>>,
 }
 
 crate::wasm_send_sync!(JsEventHandler);
@@ -475,14 +481,7 @@ impl JsEventHandler {
         wasm_bindgen_futures::spawn_local(async move {
             let mut count = 0u32;
             while let Ok(event) = event_rx.recv().await {
-                if let Err(e) = callback.call1(&JsValue::NULL, &event) {
-                    log::warn!("JS event callback threw: {:?}", e);
-                }
-                count += 1;
-                if count.is_multiple_of(50) {
-                    // Macrotask yield — lets I/O callbacks (WebSocket, storage) run
-                    crate::runtime::set_timeout_0().await;
-                }
+                dispatch_event_to_js(&callback, &event, &mut count).await;
             }
         });
 
@@ -490,166 +489,142 @@ impl JsEventHandler {
     }
 }
 
-impl EventHandler for JsEventHandler {
-    fn handle_event(&self, event: Arc<Event>) {
-        // HistorySync is split into bounded batches so the WASM decode peak is
-        // O(batch) instead of O(chunk). Each batch is sent as its own
-        // `history_sync` event; the consumer/baileyrs accumulates them (and
-        // gates `isLatest` on the final batch). See history_sync_to_js_batches.
-        const HS_BATCHING: bool = true; // batch HistorySync to cap WASM decode memory (set false to A/B vs monolithic)
-        if HS_BATCHING && let Event::HistorySync(lazy) = event.as_ref() {
-            match history_sync_to_js_batches(lazy) {
-                Ok(batches) => {
-                    for js_event in batches {
-                        if let Err(e) = self.event_tx.try_send(js_event) {
-                            log::warn!("History sync batch send failed: {e}");
-                        }
-                    }
-                }
-                Err(e) => log::warn!("History sync batch serialization failed: {e:?}"),
+/// Serialize + dispatch one event inside the consumer loop.
+async fn dispatch_event_to_js(callback: &js_sys::Function, event: &Arc<Event>, count: &mut u32) {
+    // HistorySync is split into bounded batches so BOTH peaks are O(batch)
+    // instead of O(chunk): the WASM decode peak (decoded protos) and the JS
+    // heap peak (each batch's object tree dies before the next is built).
+    // The consumer/baileyrs accumulates the batches (and gates `isLatest` on
+    // the final batch). See dispatch_history_sync_batches.
+    const HS_BATCHING: bool = true; // batch HistorySync to cap decode + JS-heap memory (set false to A/B vs monolithic)
+    if HS_BATCHING && let Event::HistorySync(lazy) = event.as_ref() {
+        dispatch_history_sync_batches(callback, lazy).await;
+        return;
+    }
+    match event_to_js(event) {
+        Ok(js_event) => {
+            if js_event.is_undefined() {
+                return; // unhandled variant, already logged
             }
-            return;
-        }
-        match event_to_js(&event) {
-            Ok(js_event) => {
-                if js_event.is_undefined() {
-                    return; // unhandled variant, already logged
-                }
-                if let Err(e) = self.event_tx.try_send(js_event) {
-                    log::warn!("Event channel send failed: {e}");
-                }
+            if let Err(e) = callback.call1(&JsValue::NULL, &js_event) {
+                log::warn!("JS event callback threw: {:?}", e);
             }
-            Err(e) => log::warn!("Event serialization failed: {e:?}"),
+            *count += 1;
+            if count.is_multiple_of(50) {
+                // Macrotask yield — lets I/O callbacks (WebSocket, storage) run
+                crate::runtime::set_timeout_0().await;
+            }
         }
+        Err(e) => log::warn!("Event serialization failed: {e:?}"),
     }
 }
 
-/// WASM-memory varint reader for the streaming HistorySync wire walk.
-fn read_hs_varint(buf: &[u8]) -> Option<(u64, usize)> {
-    let mut result = 0u64;
-    let mut shift = 0u32;
-    let mut i = 0usize;
-    while i < buf.len() && i < 10 {
-        let b = buf[i];
-        result |= ((b & 0x7f) as u64) << shift;
-        i += 1;
-        if b & 0x80 == 0 {
-            return Some((result, i));
+impl EventHandler for JsEventHandler {
+    fn handle_event(&self, event: Arc<Event>) {
+        if let Err(e) = self.event_tx.try_send(event) {
+            log::warn!("Event channel send failed: {e}");
         }
-        shift += 7;
     }
-    None
 }
 
 /// How many `Conversation`s to decode + serialize per emitted batch. Bounds the
-/// peak WASM allocation (decoded proto + JsValue tree coexisting) to O(batch)
-/// instead of O(whole chunk) — talc reuses the freed slots between batches, so
-/// the linear-memory high-water stays low (measured: ~25 MB @ 32 vs 105 MB
-/// monolithic, for 300 conversations/chunk).
+/// peak WASM allocation (decoded batch + its JsValue tree coexisting) to
+/// O(batch) instead of O(whole chunk).
 const HS_BATCH: usize = 32;
 
-/// Pinned, non-generic `Conversation` decode with the same buffer shape as
-/// `waproto::codec` (`&mut &[u8]`), so this crate's instantiation of the proto
-/// decode tree is byte-identical to waproto's and wasm-opt's
-/// duplicate-function-elimination can fold the two copies.
-#[inline(never)]
-fn conversation_decode(
-    mut bytes: &[u8],
-) -> Result<waproto::whatsapp::Conversation, prost::DecodeError> {
-    use prost::Message;
-    waproto::whatsapp::Conversation::decode(&mut bytes)
+/// Pull the next conversation from the stream, treating a stream error
+/// (truncated/corrupt blob — the producer already inflated these bytes once,
+/// so this is belt-and-suspenders) as end-of-stream: the batches decoded so
+/// far still reach the consumer.
+fn next_hs_conversation(
+    stream: &mut wacore::history_sync::HistorySyncStream<'_>,
+) -> Option<waproto::whatsapp::Conversation> {
+    match stream.next_conversation() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("History sync stream ended early: {e}");
+            None
+        }
+    }
 }
 
-/// Convert one `Event::HistorySync` into N batched `{type, data}` JS events.
+/// Serialize + dispatch one `Event::HistorySync` as N batched `{type, data}`
+/// JS events, yielding to the event loop between batches.
 ///
-/// Walks the decompressed protobuf without the monolithic `prost` decode:
-/// `conversations` (field 2) are decoded + serialized HS_BATCH at a time and the
-/// decoded protos dropped between batches; every other top-level field is kept
-/// as raw wire bytes and decoded once into the FINAL batch, so the consumer
-/// still receives the full `HistorySync` shape regardless of wire-field order.
-/// Lenient: a malformed conversation is skipped, not fatal.
-fn history_sync_to_js_batches(lazy: &LazyHistorySync) -> Result<Vec<JsValue>, JsValue> {
-    let Some(raw) = lazy.raw_bytes() else {
-        return Ok(Vec::new());
-    };
-    let buf: &[u8] = &raw;
-
-    // First pass: locate conversation slices (field 2) and collect every other
-    // top-level field's raw bytes into `tail` — no decoding yet (cheap).
-    let mut conv_ranges: Vec<(usize, usize)> = Vec::new();
-    let mut tail: Vec<u8> = Vec::new();
-    let mut pos = 0usize;
-    while pos < buf.len() {
-        let field_start = pos;
-        let Some((tag, n)) = read_hs_varint(&buf[pos..]) else {
-            break;
-        };
-        pos += n;
-        let field = tag >> 3;
-        let wt = tag & 7;
-        let value_end = match wt {
-            0 => {
-                let Some((_, n2)) = read_hs_varint(&buf[pos..]) else {
-                    break;
-                };
-                pos + n2
-            }
-            1 => (pos + 8).min(buf.len()),
-            5 => (pos + 4).min(buf.len()),
-            2 => {
-                let Some((len, n2)) = read_hs_varint(&buf[pos..]) else {
-                    break;
-                };
-                pos += n2;
-                (pos + len as usize).min(buf.len())
-            }
-            _ => break,
-        };
-        if wt == 2 && field == 2 {
-            conv_ranges.push((pos, value_end));
-        } else {
-            tail.extend_from_slice(&buf[field_start..value_end]);
-        }
-        pos = value_end;
-    }
-
-    let mut events: Vec<JsValue> = Vec::new();
+/// Consumes the core's `HistorySyncStream`: conversations are decoded one at a
+/// time straight from the COMPRESSED payload (bounded inflate window), so the
+/// decompressed blob never materializes at all — the event queued in the
+/// channel costs O(compressed). Each batch's JsValue is handed to the callback
+/// and dropped BEFORE the next batch is decoded, so at any instant at most one
+/// batch exists on each side of the boundary (WASM decode peak AND JS
+/// object-tree peak are O(batch)). The macrotask yield between batches lets
+/// the JS side consume/scavenge instead of tenuring a whole chunk's objects
+/// into V8 old space.
+///
+/// The one-conversation lookahead keeps the batch count identical to the
+/// previous range-walk implementation: the last batch (even a full one) is the
+/// final event and carries the decoded non-conversation remainder
+/// (pushnames/mappings/settings/…). Lenient like the core stream: a malformed
+/// conversation is skipped, not fatal.
+async fn dispatch_history_sync_batches(callback: &js_sys::Function, lazy: &LazyHistorySync) {
+    let mut stream = lazy.stream();
     let mut batch_index = 0u32;
-    let mut i = 0usize;
-    while i < conv_ranges.len() {
-        let end = (i + HS_BATCH).min(conv_ranges.len());
-        let is_final = end == conv_ranges.len();
-        let mut convs: Vec<waproto::whatsapp::Conversation> = Vec::with_capacity(end - i);
-        for &(s, e) in &conv_ranges[i..end] {
-            if let Ok(c) = conversation_decode(&buf[s..e]) {
-                convs.push(c);
+    let mut convs: Vec<waproto::whatsapp::Conversation> = Vec::with_capacity(HS_BATCH);
+    let mut next = next_hs_conversation(&mut stream);
+    while let Some(conversation) = next.take() {
+        convs.push(conversation);
+        next = next_hs_conversation(&mut stream);
+        if convs.len() == HS_BATCH && next.is_some() {
+            let hs = waproto::whatsapp::HistorySync {
+                conversations: std::mem::replace(&mut convs, Vec::with_capacity(HS_BATCH)),
+                ..Default::default()
+            };
+            emit_hs_event(callback, lazy, &hs, batch_index, false);
+            batch_index += 1;
+            // `hs` (decoded conversations) + the batch's JsValue drop here →
+            // freed/collectable before the next batch is decoded.
+            crate::runtime::set_timeout_0().await;
+        }
+    }
+    if stream.skipped_conversations() > 0 {
+        log::warn!(
+            "History sync: {} undecodable conversation(s) skipped",
+            stream.skipped_conversations()
+        );
+    }
+
+    // Final batch: the remaining conversations (possibly zero — PushName-only,
+    // nctSalt-only and empty ON_DEMAND blobs still emit it) + the decoded
+    // remainder, so metadata + peerDataRequestSessionId always arrive.
+    let mut hs = match stream.remainder() {
+        Ok(hs) => hs,
+        Err(e) => {
+            log::warn!("History sync remainder decode failed: {e}");
+            waproto::whatsapp::HistorySync::default()
+        }
+    };
+    hs.conversations = convs;
+    emit_hs_event(callback, lazy, &hs, batch_index, true);
+}
+
+/// Build one batch event and hand it to the JS callback. Lenient: a
+/// serialization/callback failure is logged and skipped, not fatal to the
+/// remaining batches.
+fn emit_hs_event(
+    callback: &js_sys::Function,
+    lazy: &LazyHistorySync,
+    hs: &waproto::whatsapp::HistorySync,
+    batch_index: u32,
+    is_final: bool,
+) {
+    match make_hs_event(lazy, hs, batch_index, is_final) {
+        Ok(js_event) => {
+            if let Err(e) = callback.call1(&JsValue::NULL, &js_event) {
+                log::warn!("JS event callback threw: {:?}", e);
             }
         }
-        // The final batch also carries the tail (pushnames/mappings/settings/…).
-        let hs = if is_final {
-            let mut hs = waproto::codec::history_sync_decode(tail.as_slice()).unwrap_or_default();
-            hs.conversations = convs;
-            hs
-        } else {
-            waproto::whatsapp::HistorySync {
-                conversations: convs,
-                ..Default::default()
-            }
-        };
-        events.push(make_hs_event(lazy, &hs, batch_index, is_final)?);
-        batch_index += 1;
-        i = end;
-        // `hs` (decoded conversations) drops here → talc reuses before next batch.
+        Err(e) => log::warn!("History sync batch serialization failed: {e:?}"),
     }
-
-    // Zero-conversation blobs (PushName-only, nctSalt-only, empty ON_DEMAND)
-    // still emit one final batch so metadata + peerDataRequestSessionId arrive.
-    if conv_ranges.is_empty() {
-        let hs = waproto::codec::history_sync_decode(tail.as_slice()).unwrap_or_default();
-        events.push(make_hs_event(lazy, &hs, 0, true)?);
-    }
-
-    Ok(events)
 }
 
 /// Build one `{ type: "history_sync", data }` event from a (sub-batch) HistorySync,

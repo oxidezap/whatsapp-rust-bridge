@@ -74,7 +74,6 @@ symphonia = { version = "0.5.5", default-features = false, features = [
   "isomp4",
   "ogg",
 ], optional = true }
-talc = { version = "5", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
 tsify-next = { version = "0.5", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
@@ -95,6 +94,13 @@ web-sys = { version = "0.3", features = [
 ] }
 whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = ["debug-diagnostics"] }
 
+# Runs the crate's `#[test]` unit tests on wasm32 in Node via
+# `wasm-pack test --node` — plain `cargo test` can't, because the crate only
+# builds for wasm32 (no native test harness). The test modules alias
+# `#[test]` -> `#[wasm_bindgen_test]`, so there is no per-test annotation churn.
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
 [profile.release]
 lto = "fat"
 opt-level = "z"
@@ -108,10 +114,3 @@ inherits = "release"
 strip = false
 debug = 2
 lto = false
-
-# Runs the crate's `#[test]` unit tests on wasm32 in Node via
-# `wasm-pack test --node` — plain `cargo test` can't, because the crate only
-# builds for wasm32 (no native test harness). The test modules alias
-# `#[test]` -> `#[wasm_bindgen_test]`, so there is no per-test annotation churn.
-[dev-dependencies]
-wasm-bindgen-test = "0.3"
