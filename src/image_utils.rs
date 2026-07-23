@@ -3,7 +3,7 @@ use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
-use tsify_next::Tsify;
+use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 const JPEG_QUALITY: u8 = 50;

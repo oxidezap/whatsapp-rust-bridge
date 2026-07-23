@@ -18,14 +18,15 @@ use js_sys::{Promise, Uint8Array};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use wacore::appstate::hash::HashState;
-use wacore::store::Device;
-use wacore::store::InMemoryBackend;
-use wacore::store::error::Result;
-use wacore::store::traits::*;
-use wacore_appstate::processor::AppStateMutationMAC;
-
-use crate::write_back_cache::WriteBackCache;
+use whatsapp_rust::buffa::Message;
+use whatsapp_rust::wacore;
+use whatsapp_rust::wacore::appstate::hash::HashState;
+use whatsapp_rust::wacore::appstate::processor::AppStateMutationMAC;
+use whatsapp_rust::wacore::store::Device;
+use whatsapp_rust::wacore::store::InMemoryBackend;
+use whatsapp_rust::wacore::store::error::Result;
+use whatsapp_rust::wacore::store::traits::*;
+use whatsapp_rust::waproto;
 
 // ---------------------------------------------------------------------------
 // Store name constants
@@ -48,9 +49,61 @@ const STORE_TC_TOKEN: &str = "tc_token";
 const STORE_SENT_MESSAGE: &str = "sent_message";
 const STORE_MSG_SECRET: &str = "msg_secret";
 const STORE_META: &str = "meta";
-/// `STORE_META` key holding the self-index of mutation-MAC keys (`"<name>:<hex>"`),
-/// maintained on non-enumerate hosts so `clear_mutation_macs` can enumerate them.
+const META_SENT_MESSAGE_KEYS: &str = "sent_message_keys";
+const META_MAX_PREKEY_ID: &str = "max_prekey_id";
+const META_SIGNED_PREKEY_IDS: &str = "signed_prekey_ids";
+const META_LATEST_SYNC_KEY_ID: &str = "latest_sync_key_id";
+const META_SENDER_KEY_GROUPS: &str = "sender_key_groups";
+const META_LID_LIST: &str = "lid_list";
+const META_TC_TOKEN_JIDS: &str = "tc_token_jids";
+const META_MSG_SECRET_KEYS: &str = "msg_secret_keys";
+/// Self-index of mutation-MAC keys (`"<name>:<hex>"`) for hosts without enumeration.
 const MUTATION_MAC_INDEX: &str = "mutation_mac_keys";
+const DEVICE_RECORD: &str = "device";
+const DEVICE_ACCOUNT: &str = "account";
+const ALL_KEYS_PREFIX: &str = "";
+const STORE_KEY_SEPARATOR: &str = ":";
+const TIMESTAMP_PREFIX_LEN: usize = std::mem::size_of::<i64>();
+
+/// Join store-key components with an exact-capacity allocation. Besides
+/// avoiding formatting machinery on hot paths, exact capacity avoids carrying
+/// spare allocation through batch and host-boundary calls.
+#[inline]
+fn compound_store_key<const N: usize>(parts: [&str; N]) -> String {
+    let component_bytes = parts.iter().map(|part| part.len()).sum::<usize>();
+    let separator_bytes = STORE_KEY_SEPARATOR
+        .len()
+        .saturating_mul(parts.len().saturating_sub(1));
+    let mut key = String::with_capacity(component_bytes + separator_bytes);
+    for (index, part) in parts.into_iter().enumerate() {
+        if index != 0 {
+            key.push_str(STORE_KEY_SEPARATOR);
+        }
+        key.push_str(part);
+    }
+    key
+}
+
+#[cfg(test)]
+mod compound_store_key_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn joins_components_without_retaining_spare_capacity() {
+        let key = compound_store_key(["chat", "sender", "message"]);
+        assert_eq!(key, "chat:sender:message");
+        assert_eq!(key.capacity(), key.len());
+    }
+}
+
+#[inline]
+fn signal_address_matches_user(address: &str, user: &str) -> bool {
+    address
+        .strip_prefix(user)
+        .and_then(|rest| rest.as_bytes().first())
+        .is_some_and(|separator| matches!(separator, b'@' | b':'))
+}
 
 // ---------------------------------------------------------------------------
 // Public API: backend factory
@@ -75,19 +128,12 @@ pub(crate) struct JsBackendHandles {
     pub delete_prefix_fn: Option<js_sys::Function>,
     pub cap_enumerate: bool,
     pub cap_prefix_delete: bool,
-    /// Opt-in write-back: absorb per-key writes in WASM and cross to the JS
-    /// store only on `flush_cache`. ONLY for ephemeral stores (benchmarks/tests)
-    /// — a crash before flush loses un-flushed writes. See [`WriteBackCache`].
-    pub cap_write_back: bool,
 }
 
 /// Create a JsBackend from JS callback handles. The batch/enumeration handles
 /// are optional — when absent the backend falls back to per-key `set`/`delete`
 /// and its self-maintained JSON meta-indexes.
 ///
-/// Returns the concrete `Arc<JsBackend>` (not `Arc<dyn Backend>`) so the caller
-/// can both pass it as `Arc<dyn Backend>` to the persistence manager AND keep a
-/// handle to call [`JsBackend::flush_cache`] on disconnect/shutdown.
 pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<JsBackend> {
     Arc::new(JsBackend::new(handles))
 }
@@ -120,10 +166,6 @@ pub struct JsBackend {
     /// on every store_sent_message call. Loaded lazily on first access. Only
     /// used on the self-index path (`!has_enumerate`).
     sent_message_keys: async_lock::Mutex<Option<Vec<String>>>,
-    /// Opt-in write-back cache. `Some` when the host declared `writeBack`: every
-    /// `js_*` helper routes through it so per-message writes stay in WASM and
-    /// only cross to JS on `flush_cache`. `None` => write-through (the default).
-    write_back: Option<async_lock::Mutex<WriteBackCache>>,
 }
 
 crate::wasm_send_sync!(JsBackend);
@@ -132,7 +174,6 @@ crate::wasm_send_sync!(JsBackend);
 /// how many values are materialized across the FFI boundary at once so a
 /// 20k-entry namespace doesn't spike JS-side memory in a single call.
 const SCAN_CHUNK: usize = 512;
-
 impl JsBackend {
     fn new(h: JsBackendHandles) -> Self {
         // A capability is only honored when its required method is actually
@@ -153,11 +194,6 @@ impl JsBackend {
             has_prefix_delete,
             next_device_id: AtomicI32::new(1),
             sent_message_keys: async_lock::Mutex::new(None),
-            write_back: if h.cap_write_back {
-                Some(async_lock::Mutex::new(WriteBackCache::new()))
-            } else {
-                None
-            },
         }
     }
 
@@ -166,7 +202,7 @@ impl JsBackend {
         let mut guard = self.sent_message_keys.lock().await;
         if guard.is_none() {
             let keys: Vec<String> = self
-                .js_get_json(STORE_META, "sent_message_keys")
+                .js_get_json(STORE_META, META_SENT_MESSAGE_KEYS)
                 .await?
                 .unwrap_or_default();
             *guard = Some(keys);
@@ -177,185 +213,50 @@ impl JsBackend {
     /// Persist the in-memory key list to JS store.
     /// Only called during cleanup/expiration — never on the send hot path.
     async fn flush_sent_keys(&self, keys: &Vec<String>) -> Result<()> {
-        self.js_set_json(STORE_META, "sent_message_keys", keys)
+        self.js_set_json(STORE_META, META_SENT_MESSAGE_KEYS, keys)
             .await
     }
 
-    // ── Write-back-aware entry points ─────────────────────────────────────
-    //
-    // Every trait method goes through these. When write-back is OFF (`None`)
-    // they delegate straight to the `*_raw` JS calls (the original behavior).
-    // When ON they serve reads from / absorb writes into the in-WASM cache, so
-    // the JS↔WASM boundary is crossed only by misses and by `flush_cache`.
-    // INVARIANT: a cache lock is never held across an FFI `await`.
+    // ── Backend entry points ───────────────────────────────────────────────
 
     async fn js_get(&self, store: &str, key: &str) -> Result<Option<Vec<u8>>> {
-        let Some(wb) = &self.write_back else {
-            return self.js_get_raw(store, key).await;
-        };
-        {
-            let cache = wb.lock().await;
-            if let Some(hit) = cache.lookup(store, key) {
-                return Ok(hit.map(|b| b.to_vec()));
-            }
-        }
-        let fetched = self.js_get_raw(store, key).await?;
-        let mut cache = wb.lock().await;
-        // A write may have landed during the await — it wins over the read.
-        if let Some(hit) = cache.lookup(store, key) {
-            return Ok(hit.map(|b| b.to_vec()));
-        }
-        cache.populate(store, key, fetched.clone());
-        Ok(fetched)
+        self.js_get_raw(store, key).await
     }
 
     async fn js_set(&self, store: &str, key: &str, value: &[u8]) -> Result<()> {
-        if let Some(wb) = &self.write_back {
-            wb.lock().await.write(store, key, value.to_vec());
-            return Ok(());
-        }
         self.js_set_raw(store, key, value).await
     }
 
     async fn js_delete(&self, store: &str, key: &str) -> Result<()> {
-        if let Some(wb) = &self.write_back {
-            wb.lock().await.delete(store, key);
-            return Ok(());
-        }
         self.js_delete_raw(store, key).await
     }
 
-    async fn js_set_many(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
-        if let Some(wb) = &self.write_back {
-            let mut cache = wb.lock().await;
-            for (k, v) in entries {
-                cache.write(store, k, v.clone());
-            }
-            return Ok(true); // absorbed; the actual batch crosses at flush
+    /// Persist an owned byte batch, degrading to the per-key write-through
+    /// primitive only when the host has no batch capability.
+    async fn js_put_many_owned(&self, store: &str, entries: Vec<(String, Vec<u8>)>) -> Result<()> {
+        if self.js_set_many_raw(store, &entries).await? {
+            return Ok(());
         }
-        self.js_set_many_raw(store, entries).await
+        for (key, value) in entries {
+            self.js_set_raw(store, &key, &value).await?;
+        }
+        Ok(())
     }
 
     async fn js_delete_many(&self, store: &str, keys: &[String]) -> Result<bool> {
-        if let Some(wb) = &self.write_back {
-            let mut cache = wb.lock().await;
-            for k in keys {
-                cache.delete(store, k);
-            }
-            return Ok(true);
-        }
         self.js_delete_many_raw(store, keys).await
     }
 
     async fn js_get_many(&self, store: &str, keys: &[String]) -> Result<Vec<(String, Vec<u8>)>> {
-        let Some(wb) = &self.write_back else {
-            return self.js_get_many_raw(store, keys).await;
-        };
-        let mut out: Vec<(String, Vec<u8>)> = Vec::new();
-        let mut misses: Vec<String> = Vec::new();
-        {
-            let cache = wb.lock().await;
-            for k in keys {
-                match cache.lookup(store, k) {
-                    Some(Some(v)) => out.push((k.clone(), v.to_vec())),
-                    Some(None) => {} // tombstone → omitted (absent)
-                    None => misses.push(k.clone()),
-                }
-            }
-        }
-        if !misses.is_empty() {
-            let fetched = self.js_get_many_raw(store, &misses).await?;
-            let fetched_map: std::collections::HashMap<&str, &Vec<u8>> =
-                fetched.iter().map(|(k, v)| (k.as_str(), v)).collect();
-            let mut cache = wb.lock().await;
-            for k in &misses {
-                // A write/delete may have landed during the FFI await — the cache
-                // wins over the now-stale backend read (mirrors js_get's re-check).
-                match cache.lookup(store, k) {
-                    Some(Some(v)) => out.push((k.clone(), v.to_vec())),
-                    Some(None) => {} // tombstoned during the await → absent
-                    None => match fetched_map.get(k.as_str()) {
-                        Some(v) => {
-                            cache.populate(store, k, Some((*v).clone()));
-                            out.push((k.clone(), (*v).clone()));
-                        }
-                        // Backend didn't have it either → negative-cache so a
-                        // repeat lookup doesn't re-cross the boundary.
-                        None => cache.populate(store, k, None),
-                    },
-                }
-            }
-        }
-        Ok(out)
+        self.js_get_many_raw(store, keys).await
     }
 
     async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
-        let backend_keys = self.js_list_keys_raw(store, prefix).await?;
-        let Some(wb) = &self.write_back else {
-            return Ok(backend_keys);
-        };
-        let cache = wb.lock().await;
-        Ok(cache.merge_keys(store, backend_keys, prefix))
+        self.js_list_keys_raw(store, prefix).await
     }
 
     async fn js_delete_prefix(&self, store: &str, prefix: &str) -> Result<Option<u32>> {
-        let Some(wb) = &self.write_back else {
-            return self.js_delete_prefix_raw(store, prefix).await;
-        };
-        // Need the full matching key set (backend + un-flushed cache) so the
-        // delete also tombstones cache-only keys. Prefer the enumerate path; if
-        // the host can't list, delete from the backend now and tombstone the
-        // cache's own matching keys.
-        if self.list_keys_fn.is_some() {
-            let keys = self.js_list_keys(store, Some(prefix)).await?;
-            let mut cache = wb.lock().await;
-            for k in &keys {
-                cache.delete(store, k);
-            }
-            Ok(Some(keys.len() as u32))
-        } else {
-            let backend_count = self.js_delete_prefix_raw(store, prefix).await?;
-            let mut cache = wb.lock().await;
-            let cache_count = cache.tombstone_prefix(store, prefix);
-            Ok(Some(backend_count.unwrap_or(0).max(cache_count)))
-        }
-    }
-
-    /// Flush all pending write-back entries to the JS store (one batched
-    /// crossing per namespace, per-key fallback when no batch handle). No-op
-    /// when write-back is off or nothing is dirty. Called on disconnect/logout/
-    /// shutdown so the JS store ends up consistent.
-    pub(crate) async fn flush_cache(&self) -> Result<()> {
-        let Some(wb) = &self.write_back else {
-            return Ok(());
-        };
-        let batch = {
-            let cache = wb.lock().await;
-            if cache.dirty_is_empty() {
-                return Ok(());
-            }
-            cache.snapshot_for_flush()
-        };
-        // Writes first. A failure propagates via `?` BEFORE commit_flush, so the
-        // dirty set + tombstones stay intact and the batch is retried on the next
-        // flush (disconnect → logout → Drop give several chances).
-        for (store, entries) in &batch.sets {
-            if !self.js_set_many_raw(store, entries).await? {
-                for (k, v) in entries {
-                    self.js_set_raw(store, k, v).await?;
-                }
-            }
-        }
-        for (store, keys) in &batch.deletes {
-            if !self.js_delete_many_raw(store, keys).await? {
-                for k in keys {
-                    self.js_delete_raw(store, k).await?;
-                }
-            }
-        }
-        // All writes landed → drop the flushed keys from the dirty set.
-        wb.lock().await.commit_flush(&batch);
-        Ok(())
+        self.js_delete_prefix_raw(store, prefix).await
     }
 
     // ── JS call helpers ──────────────────────────────────────────────────
@@ -412,6 +313,10 @@ impl JsBackend {
     /// callback. Returns `Ok(true)` when the host provided `setMany` (the whole
     /// batch crossed the FFI boundary once); `Ok(false)` when no batch handle
     /// exists, so the caller must fall back to per-key `js_set`.
+    #[cfg_attr(
+        feature = "memory-profiling",
+        tracing::instrument(name = "bridge.store.set_many_ffi", level = "trace", skip_all)
+    )]
     async fn js_set_many_raw(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
         let Some(f) = self.set_many_fn.as_ref() else {
             return Ok(false);
@@ -559,12 +464,12 @@ impl JsBackend {
         !self.has_enumerate
     }
 
-    /// Scan `keys` of a timestamp-prefixed store (8-byte BE seconds prefix) in
+    /// Scan `keys` of a timestamp-prefixed store (i64 BE seconds prefix) in
     /// bounded chunks, classifying each into (expired victims, live survivors).
     /// Values are pulled via `js_get_many` SCAN_CHUNK at a time, so a large
     /// namespace never materializes every value at once. Keys already gone from
     /// the store fall out of both sets (so a survivors rewrite prunes them from
-    /// the self-index); values shorter than the 8-byte prefix are treated as
+    /// the self-index); values shorter than the timestamp prefix are treated as
     /// corrupted victims.
     async fn scan_expired(
         &self,
@@ -580,8 +485,12 @@ impl JsBackend {
                 found.iter().map(|(k, v)| (k.as_str(), v)).collect();
             for key in chunk {
                 match map.get(key.as_str()) {
-                    Some(data) if data.len() >= 8 => {
-                        let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                    Some(data) if data.len() >= TIMESTAMP_PREFIX_LEN => {
+                        let ts = i64::from_be_bytes(
+                            data[..TIMESTAMP_PREFIX_LEN]
+                                .try_into()
+                                .unwrap_or([0; TIMESTAMP_PREFIX_LEN]),
+                        );
                         if ts < cutoff_timestamp {
                             victims.push(key.clone());
                         } else {
@@ -620,8 +529,12 @@ impl JsBackend {
                 found.iter().map(|(k, v)| (k.as_str(), v)).collect();
             for key in chunk {
                 match map.get(key.as_str()) {
-                    Some(data) if data.len() >= 8 => {
-                        let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                    Some(data) if data.len() >= TIMESTAMP_PREFIX_LEN => {
+                        let ts = i64::from_be_bytes(
+                            data[..TIMESTAMP_PREFIX_LEN]
+                                .try_into()
+                                .unwrap_or([0; TIMESTAMP_PREFIX_LEN]),
+                        );
                         if ts < cutoff_timestamp {
                             still.push(key.clone());
                         } else {
@@ -689,6 +602,14 @@ impl SignalStore for JsBackend {
         self.js_set(STORE_IDENTITY, address, &key).await
     }
 
+    async fn put_identities_batch(&self, identities: &[(Arc<str>, [u8; 32])]) -> Result<()> {
+        let entries = identities
+            .iter()
+            .map(|(address, key)| (address.to_string(), key.to_vec()))
+            .collect::<Vec<_>>();
+        self.js_put_many_owned(STORE_IDENTITY, entries).await
+    }
+
     async fn load_identity(&self, address: &str) -> Result<Option<[u8; 32]>> {
         match self.js_get(STORE_IDENTITY, address).await? {
             Some(bytes) => Ok(Some(bytes.try_into().map_err(|v: Vec<u8>| {
@@ -713,8 +634,37 @@ impl SignalStore for JsBackend {
         self.js_set(STORE_SESSION, address, session).await
     }
 
+    async fn put_sessions_batch(&self, sessions: &[(Arc<str>, Bytes)]) -> Result<()> {
+        let entries = sessions
+            .iter()
+            .map(|(address, session)| (address.to_string(), session.to_vec()))
+            .collect::<Vec<_>>();
+        self.js_put_many_owned(STORE_SESSION, entries).await
+    }
+
     async fn delete_session(&self, address: &str) -> Result<()> {
         self.js_delete(STORE_SESSION, address).await
+    }
+
+    async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
+        // Non-enumerating stores cannot prove absence, so preserve the trait's
+        // conservative answer. Enumerating stores can avoid the core's full
+        // PN->LID device scan without baking any address range into the bridge.
+        if !self.has_enumerate {
+            return Ok(true);
+        }
+
+        for store in [STORE_SESSION, STORE_IDENTITY] {
+            if self
+                .js_list_keys(store, Some(user))
+                .await?
+                .iter()
+                .any(|address| signal_address_matches_user(address, user))
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     async fn store_prekey(&self, id: u32, record: &[u8], _uploaded: bool) -> Result<()> {
@@ -726,6 +676,23 @@ impl SignalStore for JsBackend {
             .js_get(STORE_PREKEY, &id.to_string())
             .await?
             .map(Bytes::from))
+    }
+
+    async fn load_prekeys_batch(&self, ids: &[u32]) -> Result<Vec<(u32, Bytes)>> {
+        let keys = ids.iter().map(u32::to_string).collect::<Vec<_>>();
+        self.js_get_many(STORE_PREKEY, &keys)
+            .await?
+            .into_iter()
+            .map(|(id, record)| {
+                id.parse::<u32>()
+                    .map(|id| (id, Bytes::from(record)))
+                    .map_err(|_| {
+                        wacore::store::error::StoreError::Validation(format!(
+                            "pre-key store returned a non-numeric id: {id}"
+                        ))
+                    })
+            })
+            .collect()
     }
 
     async fn remove_prekey(&self, id: u32) -> Result<()> {
@@ -740,7 +707,7 @@ impl SignalStore for JsBackend {
     }
 
     async fn get_max_prekey_id(&self) -> Result<u32> {
-        match self.js_get(STORE_META, "max_prekey_id").await? {
+        match self.js_get(STORE_META, META_MAX_PREKEY_ID).await? {
             Some(bytes) => {
                 let s = String::from_utf8(bytes).unwrap_or_default();
                 Ok(s.parse::<u32>().unwrap_or(0))
@@ -750,15 +717,24 @@ impl SignalStore for JsBackend {
     }
 
     async fn store_prekeys_batch(&self, keys: &[(u32, Bytes)], uploaded: bool) -> Result<()> {
-        let mut max_id = self.get_max_prekey_id().await?;
-        for (id, record) in keys {
-            self.store_prekey(*id, record, uploaded).await?;
-            if *id > max_id {
-                max_id = *id;
-            }
-        }
-        self.js_set(STORE_META, "max_prekey_id", max_id.to_string().as_bytes())
-            .await?;
+        let _ = uploaded;
+        let entries = keys
+            .iter()
+            .map(|(id, record)| (id.to_string(), record.to_vec()))
+            .collect::<Vec<_>>();
+        self.js_put_many_owned(STORE_PREKEY, entries).await?;
+        let max_id = keys
+            .iter()
+            .map(|(id, _)| *id)
+            .max()
+            .unwrap_or_default()
+            .max(self.get_max_prekey_id().await?);
+        self.js_set(
+            STORE_META,
+            META_MAX_PREKEY_ID,
+            max_id.to_string().as_bytes(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -769,7 +745,7 @@ impl SignalStore for JsBackend {
             let mut ids = self.get_signed_prekey_ids().await?;
             if !ids.contains(&id) {
                 ids.push(id);
-                self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
+                self.js_set_json(STORE_META, META_SIGNED_PREKEY_IDS, &ids)
                     .await?;
             }
         }
@@ -796,7 +772,7 @@ impl SignalStore for JsBackend {
         if self.needs_self_index() {
             let mut ids = self.get_signed_prekey_ids().await?;
             ids.retain(|&i| i != id);
-            self.js_set_json(STORE_META, "signed_prekey_ids", &ids)
+            self.js_set_json(STORE_META, META_SIGNED_PREKEY_IDS, &ids)
                 .await?;
         }
         Ok(())
@@ -804,6 +780,14 @@ impl SignalStore for JsBackend {
 
     async fn put_sender_key(&self, address: &str, record: &[u8]) -> Result<()> {
         self.js_set(STORE_SENDER_KEY, address, record).await
+    }
+
+    async fn put_sender_keys_batch(&self, sender_keys: &[(Arc<str>, Bytes)]) -> Result<()> {
+        let entries = sender_keys
+            .iter()
+            .map(|(address, record)| (address.to_string(), record.to_vec()))
+            .collect::<Vec<_>>();
+        self.js_put_many_owned(STORE_SENDER_KEY, entries).await
     }
 
     async fn get_sender_key(&self, address: &str) -> Result<Option<Vec<u8>>> {
@@ -823,7 +807,7 @@ impl JsBackend {
             Ok(keys.iter().filter_map(|k| k.parse::<u32>().ok()).collect())
         } else {
             Ok(self
-                .js_get_json::<Vec<u32>>(STORE_META, "signed_prekey_ids")
+                .js_get_json::<Vec<u32>>(STORE_META, META_SIGNED_PREKEY_IDS)
                 .await?
                 .unwrap_or_default())
         }
@@ -845,7 +829,8 @@ impl AppSyncStore for JsBackend {
     async fn set_sync_key(&self, key_id: &[u8], key: AppStateSyncKey) -> Result<()> {
         let hex_id = to_hex(key_id);
         self.js_set_json(STORE_SYNC_KEY, &hex_id, &key).await?;
-        self.js_set(STORE_META, "latest_sync_key_id", key_id).await
+        self.js_set(STORE_META, META_LATEST_SYNC_KEY_ID, key_id)
+            .await
     }
 
     async fn get_version(&self, name: &str) -> Result<HashState> {
@@ -983,7 +968,7 @@ impl AppSyncStore for JsBackend {
     }
 
     async fn get_latest_sync_key_id(&self) -> Result<Option<Vec<u8>>> {
-        self.js_get(STORE_META, "latest_sync_key_id").await
+        self.js_get(STORE_META, META_LATEST_SYNC_KEY_ID).await
     }
 }
 
@@ -1018,12 +1003,12 @@ impl ProtocolStore for JsBackend {
         // host can't list the STORE_SENDER_KEY_DEVICES namespace itself.
         if self.needs_self_index() {
             let mut groups: Vec<String> = self
-                .js_get_json(STORE_META, "sender_key_groups")
+                .js_get_json(STORE_META, META_SENDER_KEY_GROUPS)
                 .await?
                 .unwrap_or_default();
             if !groups.iter().any(|g| g == group_jid) {
                 groups.push(group_jid.to_string());
-                self.js_set_json(STORE_META, "sender_key_groups", &groups)
+                self.js_set_json(STORE_META, META_SENDER_KEY_GROUPS, &groups)
                     .await?;
             }
         }
@@ -1035,12 +1020,12 @@ impl ProtocolStore for JsBackend {
         if self.needs_self_index() {
             // Remove from tracking list
             let mut groups: Vec<String> = self
-                .js_get_json(STORE_META, "sender_key_groups")
+                .js_get_json(STORE_META, META_SENDER_KEY_GROUPS)
                 .await?
                 .unwrap_or_default();
             if let Some(pos) = groups.iter().position(|g| g == group_jid) {
                 groups.swap_remove(pos);
-                self.js_set_json(STORE_META, "sender_key_groups", &groups)
+                self.js_set_json(STORE_META, META_SENDER_KEY_GROUPS, &groups)
                     .await?;
             }
         }
@@ -1053,7 +1038,7 @@ impl ProtocolStore for JsBackend {
         }
         let targets: std::collections::HashSet<&str> = device_jids.iter().copied().collect();
         let groups = self
-            .all_keys(STORE_SENDER_KEY_DEVICES, "sender_key_groups")
+            .all_keys(STORE_SENDER_KEY_DEVICES, META_SENDER_KEY_GROUPS)
             .await?;
         for group in &groups {
             let mut devices: Vec<(String, bool)> = self
@@ -1075,12 +1060,12 @@ impl ProtocolStore for JsBackend {
         // whole-namespace prefix delete clears everything when available.
         if !(self.has_prefix_delete
             && self
-                .js_delete_prefix(STORE_SENDER_KEY_DEVICES, "")
+                .js_delete_prefix(STORE_SENDER_KEY_DEVICES, ALL_KEYS_PREFIX)
                 .await?
                 .is_some())
         {
             let groups = self
-                .all_keys(STORE_SENDER_KEY_DEVICES, "sender_key_groups")
+                .all_keys(STORE_SENDER_KEY_DEVICES, META_SENDER_KEY_GROUPS)
                 .await?;
             if !groups.is_empty()
                 && !self
@@ -1093,7 +1078,7 @@ impl ProtocolStore for JsBackend {
             }
         }
         if self.needs_self_index() {
-            self.js_delete(STORE_META, "sender_key_groups").await?;
+            self.js_delete(STORE_META, META_SENDER_KEY_GROUPS).await?;
         }
         Ok(())
     }
@@ -1140,12 +1125,12 @@ impl ProtocolStore for JsBackend {
         // can't enumerate the `lid:`-prefixed keys itself.
         if self.needs_self_index() {
             let mut lids: Vec<String> = self
-                .js_get_json(STORE_META, "lid_list")
+                .js_get_json(STORE_META, META_LID_LIST)
                 .await?
                 .unwrap_or_default();
             if !lids.contains(&entry.lid) {
                 lids.push(entry.lid.clone());
-                self.js_set_json(STORE_META, "lid_list", &lids).await?;
+                self.js_set_json(STORE_META, META_LID_LIST, &lids).await?;
             }
         }
         Ok(())
@@ -1161,7 +1146,7 @@ impl ProtocolStore for JsBackend {
                 .filter_map(|k| k.strip_prefix("lid:").map(str::to_string))
                 .collect()
         } else {
-            self.js_get_json(STORE_META, "lid_list")
+            self.js_get_json(STORE_META, META_LID_LIST)
                 .await?
                 .unwrap_or_default()
         };
@@ -1223,12 +1208,13 @@ impl ProtocolStore for JsBackend {
     async fn put_tc_token(&self, jid: &str, entry: &TcTokenEntry) -> Result<()> {
         self.js_set_json(STORE_TC_TOKEN, jid, entry).await?;
         let mut jids: Vec<String> = self
-            .js_get_json(STORE_META, "tc_token_jids")
+            .js_get_json(STORE_META, META_TC_TOKEN_JIDS)
             .await?
             .unwrap_or_default();
         if !jids.iter().any(|j| j == jid) {
             jids.push(jid.to_string());
-            self.js_set_json(STORE_META, "tc_token_jids", &jids).await?;
+            self.js_set_json(STORE_META, META_TC_TOKEN_JIDS, &jids)
+                .await?;
         }
         Ok(())
     }
@@ -1236,21 +1222,22 @@ impl ProtocolStore for JsBackend {
     async fn delete_tc_token(&self, jid: &str) -> Result<()> {
         self.js_delete(STORE_TC_TOKEN, jid).await?;
         let mut jids: Vec<String> = self
-            .js_get_json(STORE_META, "tc_token_jids")
+            .js_get_json(STORE_META, META_TC_TOKEN_JIDS)
             .await?
             .unwrap_or_default();
         jids.retain(|j| j != jid);
-        self.js_set_json(STORE_META, "tc_token_jids", &jids).await
+        self.js_set_json(STORE_META, META_TC_TOKEN_JIDS, &jids)
+            .await
     }
 
     async fn get_all_tc_token_jids(&self) -> Result<Vec<String>> {
         Ok(self
-            .js_get_json(STORE_META, "tc_token_jids")
+            .js_get_json(STORE_META, META_TC_TOKEN_JIDS)
             .await?
             .unwrap_or_default())
     }
 
-    async fn delete_expired_tc_tokens(&self, cutoff_timestamp: i64) -> Result<u32> {
+    async fn delete_expired_tc_tokens(&self, token_cutoff: i64, sender_cutoff: i64) -> Result<u32> {
         let jids = self.get_all_tc_token_jids().await?;
         let mut deleted = 0u32;
         let mut remaining_jids = Vec::new();
@@ -1259,7 +1246,11 @@ impl ProtocolStore for JsBackend {
                 .js_get_json::<TcTokenEntry>(STORE_TC_TOKEN, &jid)
                 .await?
             {
-                if entry.token_timestamp < cutoff_timestamp {
+                let token_live = !entry.token.is_empty() && entry.token_timestamp >= token_cutoff;
+                let sender_live = entry
+                    .sender_timestamp
+                    .is_some_and(|timestamp| timestamp >= sender_cutoff);
+                if !token_live && !sender_live {
                     self.js_delete(STORE_TC_TOKEN, &jid).await?;
                     deleted += 1;
                 } else {
@@ -1267,22 +1258,26 @@ impl ProtocolStore for JsBackend {
                 }
             }
         }
-        self.js_set_json(STORE_META, "tc_token_jids", &remaining_jids)
+        self.js_set_json(STORE_META, META_TC_TOKEN_JIDS, &remaining_jids)
             .await?;
         Ok(deleted)
     }
 
     // --- Sent Message Store ---
 
+    #[cfg_attr(
+        feature = "memory-profiling",
+        tracing::instrument(name = "bridge.store.sent_message", level = "trace", skip_all)
+    )]
     async fn store_sent_message(
         &self,
         chat_jid: &str,
         message_id: &str,
         payload: &[u8],
     ) -> Result<()> {
-        let key = format!("{chat_jid}:{message_id}");
+        let key = compound_store_key([chat_jid, message_id]);
         let now = wacore::time::now_secs();
-        let mut data = Vec::with_capacity(8 + payload.len());
+        let mut data = Vec::with_capacity(TIMESTAMP_PREFIX_LEN + payload.len());
         data.extend_from_slice(&now.to_be_bytes());
         data.extend_from_slice(payload);
         self.js_set(STORE_SENT_MESSAGE, &key, &data).await?;
@@ -1300,11 +1295,11 @@ impl ProtocolStore for JsBackend {
     }
 
     async fn take_sent_message(&self, chat_jid: &str, message_id: &str) -> Result<Option<Vec<u8>>> {
-        let key = format!("{chat_jid}:{message_id}");
+        let key = compound_store_key([chat_jid, message_id]);
 
         // Fetch and delete from store WITHOUT holding the mutex
         let data = match self.js_get(STORE_SENT_MESSAGE, &key).await? {
-            Some(data) if data.len() > 8 => data,
+            Some(data) if data.len() > TIMESTAMP_PREFIX_LEN => data,
             _ => return Ok(None),
         };
         self.js_delete(STORE_SENT_MESSAGE, &key).await?;
@@ -1317,8 +1312,8 @@ impl ProtocolStore for JsBackend {
             }
         }
 
-        // Skip 8-byte timestamp prefix
-        Ok(Some(data[8..].to_vec()))
+        // Skip the timestamp prefix.
+        Ok(Some(data[TIMESTAMP_PREFIX_LEN..].to_vec()))
     }
 
     async fn delete_expired_sent_messages(&self, cutoff_timestamp: i64) -> Result<u32> {
@@ -1354,8 +1349,12 @@ impl ProtocolStore for JsBackend {
         let mut to_remove = Vec::new();
         for (i, key) in keys.iter().enumerate() {
             match self.js_get(STORE_SENT_MESSAGE, key).await {
-                Ok(Some(data)) if data.len() >= 8 => {
-                    let ts = i64::from_be_bytes(data[..8].try_into().unwrap_or([0; 8]));
+                Ok(Some(data)) if data.len() >= TIMESTAMP_PREFIX_LEN => {
+                    let ts = i64::from_be_bytes(
+                        data[..TIMESTAMP_PREFIX_LEN]
+                            .try_into()
+                            .unwrap_or([0; TIMESTAMP_PREFIX_LEN]),
+                    );
                     if ts < cutoff_timestamp {
                         self.js_delete(STORE_SENT_MESSAGE, key).await?;
                         to_remove.push(i);
@@ -1400,12 +1399,12 @@ impl MsgSecretStore for JsBackend {
         chat: &str,
         sender: &str,
         msg_id: &str,
-        secret: &[u8],
+        secret: &[u8; wacore::reporting_token::MESSAGE_SECRET_SIZE],
     ) -> Result<()> {
-        let key = format!("{chat}:{sender}:{msg_id}");
-        // 8-byte BE timestamp prefix powers delete_expired_msg_secrets.
+        let key = compound_store_key([chat, sender, msg_id]);
+        // The BE timestamp prefix powers delete_expired_msg_secrets.
         let now = wacore::time::now_secs();
-        let mut data = Vec::with_capacity(8 + secret.len());
+        let mut data = Vec::with_capacity(TIMESTAMP_PREFIX_LEN + secret.len());
         data.extend_from_slice(&now.to_be_bytes());
         data.extend_from_slice(secret);
         self.js_set(STORE_MSG_SECRET, &key, &data).await?;
@@ -1414,12 +1413,12 @@ impl MsgSecretStore for JsBackend {
         // host derives the key set from the store directly (see all_keys).
         if self.needs_self_index() {
             let mut keys: Vec<String> = self
-                .js_get_json(STORE_META, "msg_secret_keys")
+                .js_get_json(STORE_META, META_MSG_SECRET_KEYS)
                 .await?
                 .unwrap_or_default();
             if !keys.iter().any(|k| k == &key) {
                 keys.push(key);
-                self.js_set_json(STORE_META, "msg_secret_keys", &keys)
+                self.js_set_json(STORE_META, META_MSG_SECRET_KEYS, &keys)
                     .await?;
             }
         }
@@ -1431,20 +1430,28 @@ impl MsgSecretStore for JsBackend {
     /// secrets at once). The self-index is only maintained for non-enumerable
     /// hosts, and even then loaded/rewritten ONCE (HashSet dedupe → O(n), not
     /// the O(n²) a naive per-entry read+rewrite would cost).
+    #[cfg_attr(
+        feature = "memory-profiling",
+        tracing::instrument(name = "bridge.store.msg_secrets", level = "trace", skip_all)
+    )]
     async fn put_msg_secrets(&self, entries: Vec<MsgSecretEntry>) -> Result<usize> {
         if entries.is_empty() {
             return Ok(0);
         }
 
-        // Single timestamp for the batch; 8-byte BE prefix powers
+        // Single timestamp for the batch; the BE prefix powers
         // delete_expired_msg_secrets (same format as put_msg_secret).
         let now_bytes = wacore::time::now_secs().to_be_bytes();
         let mut batch: Vec<(String, Vec<u8>)> = Vec::with_capacity(entries.len());
         for entry in entries {
-            let key = format!("{}:{}:{}", entry.chat, entry.sender, entry.msg_id);
-            let mut data = Vec::with_capacity(8 + entry.secret.len());
+            let key = compound_store_key([
+                entry.chat.as_ref(),
+                entry.sender.as_ref(),
+                entry.msg_id.as_ref(),
+            ]);
+            let mut data = Vec::with_capacity(TIMESTAMP_PREFIX_LEN + entry.secret.len());
             data.extend_from_slice(&now_bytes);
-            data.extend_from_slice(&entry.secret);
+            data.extend_from_slice(entry.secret.as_ref());
             batch.push((key, data));
         }
         let stored = batch.len();
@@ -1458,7 +1465,7 @@ impl MsgSecretStore for JsBackend {
         // unbounded leak. Load once, dedupe via HashSet, rewrite once (O(n)).
         if self.needs_self_index() {
             let mut keys: Vec<String> = self
-                .js_get_json(STORE_META, "msg_secret_keys")
+                .js_get_json(STORE_META, META_MSG_SECRET_KEYS)
                 .await?
                 .unwrap_or_default();
             let original_len = keys.len();
@@ -1469,17 +1476,12 @@ impl MsgSecretStore for JsBackend {
                 }
             }
             if keys.len() != original_len {
-                self.js_set_json(STORE_META, "msg_secret_keys", &keys)
+                self.js_set_json(STORE_META, META_MSG_SECRET_KEYS, &keys)
                     .await?;
             }
         }
 
-        // One FFI crossing when the host implements setMany; otherwise per-key.
-        if !self.js_set_many(STORE_MSG_SECRET, &batch).await? {
-            for (key, data) in &batch {
-                self.js_set(STORE_MSG_SECRET, key, data).await?;
-            }
-        }
+        self.js_put_many_owned(STORE_MSG_SECRET, batch).await?;
         Ok(stored)
     }
 
@@ -1489,20 +1491,22 @@ impl MsgSecretStore for JsBackend {
         sender: &str,
         msg_id: &str,
     ) -> Result<Option<Vec<u8>>> {
-        let key = format!("{chat}:{sender}:{msg_id}");
-        // Strip the 8-byte timestamp prefix written by put_msg_secret.
+        let key = compound_store_key([chat, sender, msg_id]);
+        // Strip the timestamp prefix written by put_msg_secret.
         Ok(self
             .js_get(STORE_MSG_SECRET, &key)
             .await?
-            .filter(|d| d.len() >= 8)
-            .map(|d| d[8..].to_vec()))
+            .filter(|d| d.len() >= TIMESTAMP_PREFIX_LEN)
+            .map(|d| d[TIMESTAMP_PREFIX_LEN..].to_vec()))
     }
 
     async fn delete_expired_msg_secrets(&self, cutoff_timestamp: i64) -> Result<u32> {
         // Key set from enumeration (enumerate hosts) or the JSON index (legacy
         // hosts) — same code path either way, satisfying "legacy still expires
         // via self-index".
-        let keys = self.all_keys(STORE_MSG_SECRET, "msg_secret_keys").await?;
+        let keys = self
+            .all_keys(STORE_MSG_SECRET, META_MSG_SECRET_KEYS)
+            .await?;
         let (victims, mut survivors) = self
             .scan_expired(STORE_MSG_SECRET, &keys, cutoff_timestamp)
             .await?;
@@ -1523,7 +1527,7 @@ impl MsgSecretStore for JsBackend {
         // Rewrite the index to the survivors only on the self-index path, and
         // only if anything was actually removed (deleted or vanished).
         if self.needs_self_index() && survivors.len() != keys.len() {
-            self.js_set_json(STORE_META, "msg_secret_keys", &survivors)
+            self.js_set_json(STORE_META, META_MSG_SECRET_KEYS, &survivors)
                 .await?;
         }
         Ok(victims.len() as u32)
@@ -1538,14 +1542,14 @@ impl MsgSecretStore for JsBackend {
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl DeviceStore for JsBackend {
     async fn save(&self, device: &Device) -> Result<()> {
-        self.js_set_json(STORE_DEVICE, "device", device).await?;
+        self.js_set_json(STORE_DEVICE, DEVICE_RECORD, device)
+            .await?;
 
         // `account` (AdvSignedDeviceIdentity) is #[serde(skip)] in Device,
         // so we persist it separately as raw protobuf bytes — same approach
         // as SQLite storage which uses a dedicated column.
         if let Some(ref account) = device.account {
-            use prost::Message;
-            self.js_set(STORE_DEVICE, "account", &account.encode_to_vec())
+            self.js_set(STORE_DEVICE, DEVICE_ACCOUNT, &account.encode_to_vec())
                 .await?;
         }
 
@@ -1553,14 +1557,13 @@ impl DeviceStore for JsBackend {
     }
 
     async fn load(&self) -> Result<Option<Device>> {
-        let mut device: Option<Device> = self.js_get_json(STORE_DEVICE, "device").await?;
+        let mut device: Option<Device> = self.js_get_json(STORE_DEVICE, DEVICE_RECORD).await?;
 
         // Restore the #[serde(skip)] `account` field from its separate key.
         if let Some(ref mut dev) = device
-            && let Some(bytes) = self.js_get(STORE_DEVICE, "account").await?
+            && let Some(bytes) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await?
         {
-            use prost::Message;
-            match waproto::whatsapp::AdvSignedDeviceIdentity::decode(bytes.as_slice()) {
+            match waproto::whatsapp::ADVSignedDeviceIdentity::decode_from_slice(bytes.as_slice()) {
                 Ok(account) => dev.account = Some(account.into()),
                 Err(e) => log::warn!("Failed to decode stored account identity: {e}"),
             }
@@ -1570,7 +1573,7 @@ impl DeviceStore for JsBackend {
     }
 
     async fn exists(&self) -> Result<bool> {
-        Ok(self.js_get(STORE_DEVICE, "device").await?.is_some())
+        Ok(self.js_get(STORE_DEVICE, DEVICE_RECORD).await?.is_some())
     }
 
     async fn create(&self) -> Result<i32> {
@@ -1644,8 +1647,38 @@ pub(crate) struct JsonStoreError {
 }
 
 fn js_err_to_store_err(context: &'static str, e: JsValue) -> wacore::store::error::StoreError {
-    let message = e.as_string().unwrap_or_else(|| format!("{e:?}"));
+    // Rejected promises normally carry an Error object, not a JS string.
+    // `JsValue::as_string()` therefore returns `None` for the useful case and
+    // the old fallback reduced the callback failure to an opaque debug value.
+    // Reading `.message` keeps the original host/codec reason in the Rust
+    // source chain without retaining a stack or adding work to the success path.
+    let message = e
+        .as_string()
+        .or_else(|| {
+            js_sys::Reflect::get(&e, &JsValue::from_str("message"))
+                .ok()
+                .and_then(|value| value.as_string())
+        })
+        .unwrap_or_else(|| format!("{e:?}"));
     wacore::store::error::StoreError::Database(Box::new(JsCallbackError { context, message }))
+}
+
+#[cfg(test)]
+mod js_callback_error_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn rejected_error_object_preserves_its_message_in_the_source_chain() {
+        let callback_error = js_sys::Error::new("session projection failed");
+        let store_error = js_err_to_store_err("setMany", callback_error.into());
+
+        assert_eq!(
+            store_error.source().map(ToString::to_string).as_deref(),
+            Some("JS setMany: session projection failed")
+        );
+    }
 }
 
 /// Simple hex encoding for byte slices (avoids adding `hex` crate dependency).

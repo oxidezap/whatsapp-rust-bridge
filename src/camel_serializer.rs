@@ -11,12 +11,11 @@
 //! protobuf `int64`/`uint64`/`fixed64`/`sfixed64` fields don't fit in a JS
 //! `number` without precision loss. We used to emit `BigInt`, but `BigInt`
 //! cannot be serialized by `JSON.stringify` (it throws `TypeError: cannot
-//! serialize BigInt`), and every Baileys-style consumer does
-//! `JSON.stringify(event)` for logging/debugging. protobufjs (what upstream
-//! Baileys decodes with) represents 64-bit fields as a `Long` object
+//! serialize BigInt`), while downstream consumers commonly use
+//! `JSON.stringify(event)` for logging/debugging. protobufjs represents 64-bit fields as a `Long` object
 //! `{ low, high, unsigned }`, which `JSON.stringify` handles and which the
-//! baileyrs `toNumber()` helper already understands. We match that exactly so
-//! the event payload is a drop-in for the Baileys ecosystem.
+//! numeric conversion helpers already understand. The output follows that
+//! interoperable representation.
 
 use base64::Engine;
 use js_sys::{Object, Uint8Array};
@@ -195,7 +194,19 @@ fn to_camel_case(s: &str) -> String {
 // ---------------------------------------------------------------------------
 
 /// Serializes Rust values to JsValue with camelCase keys and proto-friendly output.
-pub struct CamelSerializer;
+#[derive(Clone, Copy)]
+pub struct CamelSerializer {
+    skip_struct_defaults: bool,
+}
+
+impl CamelSerializer {
+    const PROTO: Self = Self {
+        skip_struct_defaults: true,
+    };
+    const PRESERVE_TOP_LEVEL_DEFAULTS: Self = Self {
+        skip_struct_defaults: false,
+    };
+}
 
 impl ser::Serializer for CamelSerializer {
     type Ok = JsValue;
@@ -286,16 +297,16 @@ impl ser::Serializer for CamelSerializer {
         value: &T,
     ) -> Result<JsValue, Error> {
         let obj = Object::new();
-        let val = value.serialize(CamelSerializer)?;
+        let val = value.serialize(Self::PROTO)?;
         js_sys::Reflect::set(&obj, &JsValue::from_str(variant), &val)
             .map_err(|e| Error(format!("{e:?}")))?;
         Ok(obj.into())
     }
     fn serialize_seq(self, len: Option<usize>) -> Result<SeqSerializer, Error> {
         Ok(SeqSerializer {
-            items: Vec::with_capacity(len.unwrap_or(0)),
-            all_u8: true,
-            u8_buf: Vec::new(),
+            items: SeqItems::Unknown {
+                capacity: len.unwrap_or(0),
+            },
         })
     }
     fn serialize_tuple(self, len: usize) -> Result<SeqSerializer, Error> {
@@ -324,7 +335,10 @@ impl ser::Serializer for CamelSerializer {
         })
     }
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<StructSerializer, Error> {
-        Ok(StructSerializer { obj: Object::new() })
+        Ok(StructSerializer {
+            obj: Object::new(),
+            skip_defaults: self.skip_struct_defaults,
+        })
     }
     fn serialize_struct_variant(
         self,
@@ -335,7 +349,10 @@ impl ser::Serializer for CamelSerializer {
     ) -> Result<StructVariantSerializer, Error> {
         Ok(StructVariantSerializer {
             variant,
-            inner: StructSerializer { obj: Object::new() },
+            inner: StructSerializer {
+                obj: Object::new(),
+                skip_defaults: self.skip_struct_defaults,
+            },
         })
     }
 }
@@ -344,10 +361,26 @@ impl ser::Serializer for CamelSerializer {
 // SerializeSeq — detects all-u8 sequences → outputs Uint8Array
 // ---------------------------------------------------------------------------
 
+enum SeqItems {
+    /// No element has established the output representation yet. Keeping only
+    /// the capacity hint avoids allocating two candidate buffers for every
+    /// protobuf sequence.
+    Unknown {
+        capacity: usize,
+    },
+    Bytes(Vec<u8>),
+    Values(Vec<JsValue>),
+}
+
 pub struct SeqSerializer {
-    items: Vec<JsValue>,
-    all_u8: bool,
-    u8_buf: Vec<u8>,
+    items: SeqItems,
+}
+
+#[inline]
+fn js_u8(value: &JsValue) -> Option<u8> {
+    let number = value.as_f64()?;
+    let byte = number as u8;
+    ((byte as f64 - number).abs() < f64::EPSILON && (0.0..=255.0).contains(&number)).then_some(byte)
 }
 
 impl ser::SerializeSeq for SeqSerializer {
@@ -355,32 +388,50 @@ impl ser::SerializeSeq for SeqSerializer {
     type Error = Error;
 
     fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
-        let js = value.serialize(CamelSerializer)?;
-        if self.all_u8 {
-            if let Some(n) = js.as_f64() {
-                let rounded = n as u8;
-                if (rounded as f64 - n).abs() < f64::EPSILON && (0.0..=255.0).contains(&n) {
-                    self.u8_buf.push(rounded);
+        let js = value.serialize(CamelSerializer::PROTO)?;
+        let byte = js_u8(&js);
+        match &mut self.items {
+            SeqItems::Unknown { capacity } => {
+                if let Some(byte) = byte {
+                    let mut bytes = Vec::with_capacity(*capacity);
+                    bytes.push(byte);
+                    self.items = SeqItems::Bytes(bytes);
                 } else {
-                    self.all_u8 = false;
+                    let mut values = Vec::with_capacity(*capacity);
+                    values.push(js);
+                    self.items = SeqItems::Values(values);
                 }
-            } else {
-                self.all_u8 = false;
             }
+            SeqItems::Bytes(bytes) => {
+                if let Some(byte) = byte {
+                    bytes.push(byte);
+                } else {
+                    // Preserve the established heterogeneous-sequence behavior:
+                    // numeric values seen before the first non-u8 become normal
+                    // JS numbers in the final Array.
+                    let mut values = Vec::with_capacity(bytes.capacity().max(bytes.len() + 1));
+                    values.extend(bytes.drain(..).map(|byte| JsValue::from_f64(byte as f64)));
+                    values.push(js);
+                    self.items = SeqItems::Values(values);
+                }
+            }
+            SeqItems::Values(values) => values.push(js),
         }
-        self.items.push(js);
         Ok(())
     }
 
     fn end(self) -> Result<JsValue, Error> {
-        if self.all_u8 && !self.u8_buf.is_empty() {
-            return Ok(Uint8Array::from(self.u8_buf.as_slice()).into());
+        match self.items {
+            SeqItems::Unknown { .. } => Ok(js_sys::Array::new().into()),
+            SeqItems::Bytes(bytes) => Ok(Uint8Array::from(bytes.as_slice()).into()),
+            SeqItems::Values(values) => {
+                let arr = js_sys::Array::new_with_length(values.len() as u32);
+                for (index, item) in values.into_iter().enumerate() {
+                    arr.set(index as u32, item);
+                }
+                Ok(arr.into())
+            }
         }
-        let arr = js_sys::Array::new_with_length(self.items.len() as u32);
-        for (i, item) in self.items.into_iter().enumerate() {
-            arr.set(i as u32, item);
-        }
-        Ok(arr.into())
     }
 }
 
@@ -422,6 +473,7 @@ impl ser::SerializeTupleVariant for SeqSerializer {
 
 pub struct StructSerializer {
     obj: Object,
+    skip_defaults: bool,
 }
 
 impl ser::SerializeStruct for StructSerializer {
@@ -433,8 +485,15 @@ impl ser::SerializeStruct for StructSerializer {
         key: &'static str,
         value: &T,
     ) -> Result<(), Error> {
-        let js_val = value.serialize(CamelSerializer)?;
-        if should_skip(&js_val) {
+        let js_val = value.serialize(CamelSerializer::PROTO)?;
+        let skip = if self.skip_defaults {
+            should_skip(&js_val)
+        } else {
+            // Envelope mode preserves meaningful scalar defaults (`0` and
+            // `false`) but still omits absent Option fields.
+            js_val.is_null() || js_val.is_undefined()
+        };
+        if skip {
             return Ok(());
         }
         with_camel_key(key, |k| js_sys::Reflect::set(&self.obj, k, &js_val))
@@ -491,14 +550,14 @@ impl ser::SerializeMap for MapSerializer {
     type Error = Error;
 
     fn serialize_key<T: Serialize + ?Sized>(&mut self, key: &T) -> Result<(), Error> {
-        let js_key = key.serialize(CamelSerializer)?;
+        let js_key = key.serialize(CamelSerializer::PROTO)?;
         self.next_key = js_key.as_string();
         Ok(())
     }
 
     fn serialize_value<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
         let key = self.next_key.take().unwrap_or_default();
-        let js_val = value.serialize(CamelSerializer)?;
+        let js_val = value.serialize(CamelSerializer::PROTO)?;
         js_sys::Reflect::set(&self.obj, &JsValue::from_str(&key), &js_val)
             .map_err(|e| Error(format!("{e:?}")))?;
         Ok(())
@@ -555,7 +614,19 @@ fn should_skip(val: &JsValue) -> bool {
 /// Serialize a value to JsValue with camelCase keys, Uint8Array for bytes,
 /// and proto default values skipped. For proto types only.
 pub fn to_js_value_camel<T: Serialize>(val: &T) -> Result<JsValue, JsValue> {
-    val.serialize(CamelSerializer).map_err(|e| e.into())
+    val.serialize(CamelSerializer::PROTO).map_err(|e| e.into())
+}
+
+/// Same JS representation as [`to_js_value_camel`], but preserves scalar
+/// defaults for fields of the outer struct while still omitting absent
+/// `Option`s. This is for non-protobuf envelopes whose `0`/`false` values carry
+/// presence semantics; nested protobuf values keep the normal default-skipping
+/// behavior.
+pub fn to_js_value_camel_preserve_top_level_defaults<T: Serialize>(
+    val: &T,
+) -> Result<JsValue, JsValue> {
+    val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_DEFAULTS)
+        .map_err(|e| e.into())
 }
 
 // ===========================================================================
@@ -907,4 +978,71 @@ impl ser::SerializeMap for JsonMapSerializer {
 pub fn to_json_value_camel<T: Serialize>(val: &T) -> Result<JsonValue, String> {
     val.serialize(JsonCamelSerializer)
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod js_serializer_tests {
+    use super::{to_js_value_camel, to_js_value_camel_preserve_top_level_defaults};
+    use serde::Serialize;
+    use wasm_bindgen::{JsCast, JsValue};
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[derive(Serialize)]
+    struct Envelope {
+        sync_type: i32,
+        is_final: bool,
+        progress: Option<u32>,
+        absent: Option<u32>,
+    }
+
+    #[derive(Serialize)]
+    struct Sequences {
+        bytes: Vec<u8>,
+        // Starts in the byte candidate state, then transitions to a JS Array.
+        wider_numbers: Vec<u16>,
+    }
+
+    fn field(value: &JsValue, key: &str) -> JsValue {
+        js_sys::Reflect::get(value, &JsValue::from_str(key)).expect("read serialized field")
+    }
+
+    #[test]
+    fn envelope_mode_preserves_scalar_defaults_but_not_absent_options() {
+        let envelope = Envelope {
+            sync_type: 0,
+            is_final: false,
+            progress: Some(0),
+            absent: None,
+        };
+
+        let regular = to_js_value_camel(&envelope).expect("regular serialization");
+        assert!(field(&regular, "syncType").is_undefined());
+        assert!(field(&regular, "isFinal").is_undefined());
+        assert!(field(&regular, "progress").is_undefined());
+
+        let preserved = to_js_value_camel_preserve_top_level_defaults(&envelope)
+            .expect("envelope serialization");
+        assert_eq!(field(&preserved, "syncType").as_f64(), Some(0.0));
+        assert_eq!(field(&preserved, "isFinal").as_bool(), Some(false));
+        assert_eq!(field(&preserved, "progress").as_f64(), Some(0.0));
+        assert!(field(&preserved, "absent").is_undefined());
+    }
+
+    #[test]
+    fn sequence_state_preserves_byte_and_array_representations() {
+        let serialized = to_js_value_camel(&Sequences {
+            bytes: vec![1, 2, 255],
+            wider_numbers: vec![1, 256],
+        })
+        .expect("sequence serialization");
+
+        let bytes = field(&serialized, "bytes");
+        assert!(bytes.is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(js_sys::Uint8Array::from(bytes).to_vec(), vec![1, 2, 255]);
+
+        let wider = js_sys::Array::from(&field(&serialized, "widerNumbers"));
+        assert_eq!(wider.length(), 2);
+        assert_eq!(wider.get(0).as_f64(), Some(1.0));
+        assert_eq!(wider.get(1).as_f64(), Some(256.0));
+    }
 }

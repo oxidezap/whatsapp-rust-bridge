@@ -9,7 +9,7 @@ use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use wacore::store::cache::CacheStore;
+use whatsapp_rust::wacore::store::cache::CacheStore;
 
 /// Wraps JS `JsCacheStore` callbacks to implement Rust's `CacheStore` trait.
 pub struct JsCacheStoreAdapter {

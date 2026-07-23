@@ -4,9 +4,10 @@
 //! underlying proto adds a field.
 
 use serde::{Deserialize, Serialize};
-use tsify_next::Tsify;
-use wacore::store::DevicePropsOverride;
-use waproto::whatsapp::device_props as wa_dp;
+use tsify::Tsify;
+use whatsapp_rust::wacore;
+use whatsapp_rust::wacore::store::DevicePropsOverride;
+use whatsapp_rust::waproto::whatsapp::device_props as wa_dp;
 
 /// Mirrors `device_props.PlatformType`. The display value the phone shows in
 /// "Linked Devices" — and the type WhatsApp's server uses to decide whether

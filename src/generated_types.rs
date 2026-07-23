@@ -22,7 +22,7 @@ export type AddressingMode = "pn" | "lid";
 export interface AppStateSyncKey {
   key_data: Uint8Array;
   fingerprint: Uint8Array;
-  timestamp: number;
+  timestamp: number | string;
 }
 
 export interface ArchiveUpdate {
@@ -32,6 +32,9 @@ export interface ArchiveUpdate {
   action: ArchiveChatAction;
   from_full_sync: boolean;
 }
+
+/** How a [`MessageBatch`] was delivered. This describes the delivery shape, not a message's provenance: whether a stanza came from the offline queue is `info.is_offline` on each [`InboundMessage`]. */
+export type BatchOrigin = "Live" | "OfflineDrain";
 
 /** Action to perform on a blocklist entry. */
 export type BlocklistAction = "block" | "unblock";
@@ -44,7 +47,7 @@ export type BusinessHourMode = "open_24h" | "specific_hours" | "appointment_only
 export interface BusinessNotification {
   from: Jid;
   stanza_id: string;
-  timestamp: number;
+  timestamp: number | string;
   notification_type: BusinessNotificationType;
   jid?: Jid | null;
   hash?: string | null;
@@ -75,8 +78,8 @@ export interface BusinessStatusUpdate {
 export interface BusinessSubscription {
   id: string;
   status: string;
-  expiration_date?: number | null;
-  creation_time?: number | null;
+  expiration_date?: number | string | null;
+  creation_time?: number | string | null;
 }
 
 /** Type of business status update. */
@@ -85,10 +88,10 @@ export type BusinessUpdateType = "removed_as_business" | "verified_name_changed"
 /** Minimal cached form of a Noise certificate. Mirrors the JSON shape WA Web persists in `waNoiseInfo.certificateChainBuffer` (only `key` plus the validity window — signatures and issuer_serial are intentionally dropped). */
 export interface CachedNoiseCert {
   /** 32-byte X25519 public key from `NoiseCertificate.Details.key`. */
-  key: any;
+  key: Uint8Array;
   /** Unix epoch seconds. Validation window from `NoiseCertificate.Details`. */
-  not_before: number;
-  not_after: number;
+  not_before: number | string;
+  not_after: number | string;
 }
 
 /** Cached form of the server's two-cert chain. `leaf.key` is the server static public key consumed by Noise IK; the intermediate is kept solely to mirror WA Web's expiry checks. */
@@ -101,14 +104,26 @@ export interface CachedServerCertChain {
 export type CallAction =
   | { type: "offer"; call_id: string; call_creator: Jid; caller_pn?: Jid | null; caller_country_code?: string | null; device_class?: string | null; joinable: boolean; is_video: boolean; audio: CallAudioCodec[]; group_jid?: Jid | null }
   | { type: "offer_notice"; call_id: string; call_creator: Jid; is_video: boolean; is_group: boolean }
-  | { type: "pre_accept"; call_id: string; call_creator: Jid }
-  | { type: "accept"; call_id: string; call_creator: Jid }
+  | { type: "pre_accept"; call_id: string; call_creator: Jid; audio: CallAudioCodec[] }
+  | { type: "accept"; call_id: string; call_creator: Jid; audio: CallAudioCodec[] }
   | { type: "reject"; call_id: string; call_creator: Jid }
-  | { type: "terminate"; call_id: string; call_creator: Jid; duration?: number | null; audio_duration?: number | null };
+  | { type: "terminate"; call_id: string; call_creator: Jid; reason?: string | null; duration?: number | null; audio_duration?: number | null }
+  | { type: "transport"; call_id: string; call_creator: Jid; p2p_cand_round?: string | null; transport_message_type?: string | null }
+  | { type: "relay_latency"; call_id: string; call_creator: Jid }
+  | { type: "video"; call_id: string; call_creator: Jid; state: VideoState; orientation?: number | null; dec?: string | null };
 
 export interface CallAudioCodec {
   enc: string;
   rate: number;
+}
+
+/** An incoming call we were ringing for was resolved on ANOTHER of our devices (multi-device): the caller dismissed this device with a `<terminate reason="accepted_elsewhere"|"rejected_elsewhere">`. Distinct from [`MissedCall`] (a genuinely unanswered call) so a consumer can render "answered on another device" instead of a missed call. Mirrors WA Web's AcceptedElsewhere / Rejected outcomes. */
+export interface CallEndedElsewhere {
+  from: Jid;
+  /** The call id (from the `<offer>` action); distinct from the `<call>` stanza id. */
+  call_id: string;
+  timestamp: number;
+  outcome: ElsewhereOutcome;
 }
 
 /** Identifies a specific message within a chat. */
@@ -145,7 +160,8 @@ export interface ClearChatUpdate {
 
 export interface ConnectFailure {
   reason: ConnectFailureReason;
-  message: string;
+  /** The server's `message` attribute on the `<failure>` stanza, when present. */
+  message?: string | null;
   raw?: any | null;
 }
 
@@ -219,17 +235,14 @@ export interface Device {
   identity_key: KeyPair;
   signed_pre_key: KeyPair;
   signed_pre_key_id: number;
-  signed_pre_key_signature: any;
-  adv_secret_key: any;
-  account?: AdvSignedDeviceIdentity | null;
+  signed_pre_key_signature: Uint8Array;
+  adv_secret_key: Uint8Array;
+  account?: ADVSignedDeviceIdentity | null;
   push_name: string;
   app_version_primary: number;
   app_version_secondary: number;
   app_version_tertiary: number;
-  app_version_last_fetched_ms: number;
-  device_props: DeviceProps;
-  /** Runtime-only. Set before `connect()` on every process start. */
-  client_profile: ClientProfile;
+  app_version_last_fetched_ms: number | string;
   /** Edge routing info received from server, used for optimized reconnection. When present, this should be sent as a pre-intro before the Noise handshake. */
   edge_routing_info?: Uint8Array | null;
   /** Hash from the last props (A/B experiment config) fetch. Sent on subsequent connects to enable delta updates instead of full fetches. */
@@ -242,12 +255,16 @@ export interface Device {
   server_has_prekeys: boolean;
   /** NCT salt provisioned by the server via app state sync or history sync. */
   nct_salt?: Uint8Array | null;
-  /** Runtime-only marker that an authoritative nct_salt_sync mutation was seen. This prevents stale history sync data from resurrecting a cleared salt. */
-  nct_salt_sync_seen: boolean;
   /** Server cert chain cached from the last successful XX (or XX-fallback) handshake. Enables Noise IK on the next connect by exposing `leaf.key` as the server's static public key, and lets us reject stale entries via `not_after` before even attempting IK. `None` forces XX on the next connect. */
   server_cert_chain?: CachedServerCertChain | null;
   /** Login counter sent as `ClientPayload.lc` on every login. WA Web's `WAWebUserPrefsGeneral.getLoginCounter()` reads (and bumps) this from localStorage on each connect; the server uses it as an anti-abuse signal. Persisted so it survives restarts. */
   login_counter: number;
+  /** WA Web's `WAIsAccountLidFieldMigrated` pref: whether the account is 1:1-LID-migrated. Set from `ClientPairingProps.isChatDbLidMigrated` at pair time or when the primary pushes migration mappings. Gates outbound DM wire addressing (LID vs PN); the Signal session layer stays LID-first regardless, mirroring WAWebSignalAddress. Once set it never reverts, like the WA Web pref. */
+  lid_migrated: boolean;
+  /** Wall-clock ms of the last signed-pre-key rotation, driving WA Web's `RotateKeyJob` cadence. Fresh devices baseline off creation; devices persisted before this field existed deserialize to `0`, which the rotation path treats as "seed the baseline, don't rotate yet". */
+  last_signed_pre_key_rotation_ms: number | string;
+  /** true means the account's `readreceipts` privacy is `none`, so DM read/played receipts go out as `*-self` (which don't notify the sender). Persisted so the value is known on reconnect before the privacy fetch completes; `false` (WA default `all`) sends plain `read`/`played`. */
+  read_receipts_disabled: boolean;
 }
 
 /** Device element from notification.  Wire format: ```xml <device jid="185169143189667:75@lid" key-index="2" lid="..."/> ```  Device ID is extracted from the JID's device part (e.g., 75 from "user:75@lid").  Per WhatsApp Web: if both `jid` and `lid` attributes are present, the device IDs must match or the notification is rejected. */
@@ -266,6 +283,8 @@ export interface DeviceInfo {
   device_id: number;
   /** The key index, if known */
   key_index?: number | null;
+  /** Whether the device uses the hosted PN/LID address space. */
+  is_hosted: boolean;
 }
 
 /** Device list record matching WhatsApp Web's DeviceListRecord structure. */
@@ -275,7 +294,7 @@ export interface DeviceListRecord {
   /** List of known devices for this user */
   devices: DeviceInfo[];
   /** Timestamp when this record was last updated */
-  timestamp: number;
+  timestamp: number | string;
   /** Participant hash from usync, if available */
   phash?: string | null;
   /** ADV raw_id from `ADVKeyIndexList` — used to detect identity changes. When this changes, all sessions and sender keys for the user must be cleared. */
@@ -310,7 +329,7 @@ export interface DeviceNotification {
   /** Stanza ID (for ACK) */
   stanza_id: string;
   /** Timestamp */
-  timestamp: number;
+  timestamp: number | string;
   /** The operation (one per notification, priority: remove > add > update) */
   operation: DeviceOperation;
 }
@@ -343,6 +362,12 @@ export interface DeviceSentMeta {
   phash: string;
 }
 
+/** A valid `<ib><dirty>` marker received from the server.  The client still performs its built-in clean/resync work; this event lets consumers refresh domain-specific derived state without observing every raw stanza. */
+export interface DirtyState {
+  dirty_type: DirtyType;
+  timestamp?: number | string | null;
+}
+
 export type DirtyType = "account_sync" | "groups" | "syncd_app_state" | "newsletter_metadata" | string;
 
 export type DisallowedListAction = "add" | "remove";
@@ -357,13 +382,36 @@ export interface DisappearingModeChanged {
   setting_timestamp: number;
 }
 
+/** Why the transport connection ended. Lets a benign server-initiated stream recycle (a clean Close frame) be told apart from an abrupt EOF or a real read error when diagnosing reconnect behavior.  Serialize: carried by `events::Disconnected`, whose payload consumers forward as JSON (webhooks, dashboards) — snake_case so the wire shape doesn't leak Rust variant naming. */
+export type DisconnectReason =
+  | { "server_close": { code?: number | null; reason: string } }
+  | "stream_ended"
+  | { "read_error": string }
+  | "unknown";
+
+export interface Disconnected {
+  /** Why the transport ended — lets consumers tell a routine server stream recycle (`reason.is_clean_shutdown()`) from a genuine transport failure without parsing logs. */
+  reason: DisconnectReason;
+}
+
 export type EditAttribute = "" | "1" | "2" | "3" | "7" | "8" | string;
+
+/** Which terminal outcome another of our devices reached for a call we were ringing for. */
+export type ElsewhereOutcome = "accepted" | "rejected";
+
+/** Review state for an appeal on a suspended group. */
+export type GroupAppealStatus = "approved" | "in_review" | "none" | "rejected";
+
+/** Delivery state for history shared with a newly joined participant. */
+export type GroupHistorySentState = "HISTORY_NOT_SENT" | "HISTORY_SENT" | "NOTICE_SENT";
 
 export interface GroupInfo {
   participants: Jid[];
   addressing_mode: AddressingMode;
   /** Whether this group is a Community Announcement Group (WA Web `isCag`, derived from `default_sub_group`). `None` means the persisted blob predates the field, so the answer is unknown and callers must re-query. */
   is_community_announce?: boolean | null;
+  /** Maps a LID user identifier (the `user` part of the LID JID) to the corresponding phone-number JID. This is used for device queries since LID usync requests may not work reliably. */
+  lid_to_pn_map: Record<string, Jid>;
 }
 
 /** All possible group notification action types.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
@@ -373,7 +421,7 @@ export type GroupNotificationAction =
   | { type: "promote"; participants: GroupParticipantInfo[] }
   | { type: "demote"; participants: GroupParticipantInfo[] }
   | { type: "modify"; participants: GroupParticipantInfo[] }
-  | { type: "subject"; subject: string; subject_owner?: Jid | null; subject_time?: number | null }
+  | { type: "subject"; subject: string; subject_owner?: Jid | null; subject_time?: number | string | null }
   | { type: "description"; id: string; description?: string | null }
   | { type: "locked"; threshold?: string | null }
   | { type: "unlocked" }
@@ -426,7 +474,9 @@ export interface GroupParticipantInfo {
   /** Username, gated by `WAWebUsernameGatingUtils`. Empty in classic PN-addressed groups. */
   username?: string | null;
   /** Unix seconds since the participant joined the group. Used by admin UI for tenure display. */
-  join_time?: number | null;
+  join_time?: number | string | null;
+  /** Delivery state for post-join group history. */
+  group_history_sent_state?: GroupHistorySentState | null;
 }
 
 /** Admin tier from `<participant type="...">`. Mirrors `GROUP_PARTICIPANT_TYPES` in `WAWebGroupApiConst`. */
@@ -439,14 +489,28 @@ export type GroupQueryRequestType = "interactive";
 export interface GroupUpdate {
   /** The group this update applies to */
   group_jid: Jid;
+  /** Identifier of the source notification stanza. */
+  notification_id?: string | null;
+  /** Display name supplied with the source notification. */
+  notify?: string | null;
+  /** Raw offline-delivery marker supplied with the source notification. */
+  offline?: string | null;
+  /** Zero-based emitted-action index within the source notification. */
+  action_index: number;
   /** The admin/user who triggered the change (`participant` attribute) */
   participant?: Jid | null;
   /** Phone number JID of the participant (for LID-addressed groups) */
   participant_pn?: Jid | null;
+  /** Username of the participant, when supplied by the group notification. */
+  participant_username?: string | null;
+  /** Country code supplied for the participant by the server. */
+  participant_country_code?: string | null;
   /** When the change occurred */
   timestamp: number;
   /** Whether the group uses LID addressing mode */
   is_lid_addressing_mode: boolean;
+  /** Whether participant identity information was incomplete in the source stanza. */
+  has_incomplete_participant_information: boolean;
   /** The specific action */
   action: GroupNotificationAction;
 }
@@ -461,6 +525,12 @@ export interface IdentityChange {
   lid_user?: Jid | null;
   /** `true` when detected locally while saving a peer's new identity during decrypt (mirrors WA Web `saveIdentity` -> `handleNewIdentity`), `false` when triggered by the server's `<identity/>` notification. */
   implicit: boolean;
+}
+
+/** One decrypted inbound message. The same items (and order) back both consumer surfaces: the durability hook's batch and [`Event::Messages`]. */
+export interface InboundMessage {
+  message: any;
+  info: MessageInfo;
 }
 
 export interface IncomingCall {
@@ -481,7 +551,7 @@ export type InfoQueryType = "set" | "get";
 /** Key index information from `<key-index-list>` element.  Wire format: ```xml <!-- For add: has signed bytes content --> <key-index-list ts="1769296600">SIGNED_BYTES</key-index-list> <!-- For remove: empty, ts required --> <key-index-list ts="1769296600"/> ```  Required for add/remove operations per WhatsApp Web. */
 export interface KeyIndexInfo {
   /** Timestamp (required for remove per WhatsApp Web) */
-  timestamp: number;
+  timestamp: number | string;
   /** Signed key index bytes (only present for add) */
   signed_bytes?: Uint8Array | null;
 }
@@ -506,7 +576,7 @@ export interface LabelEditUpdate {
   from_full_sync: boolean;
 }
 
-/** The source from which a LID-PN mapping was learned. Different sources have different trust levels and handling for identity changes. */
+/** The source from which a LID-PN mapping was learned.  The source is load-bearing, not just provenance: it selects the write policy applied when the pair reaches the cache — see `lid_pn_write_policy` in the `whatsapp-rust` client, which mirrors WhatsApp Web's `createLidPnMappings` `switch (learningSource)`. Directed sources overwrite on any change; observational bulk sources (`Other` and friends, WA Web `"other"`) only seed new LIDs and re-resolve conflicts via a live query; known-stale sources are stamped `created_at = 0` so they never outrank a fresher mapping for the same phone (the PN→LID resolution direction; the LID→PN reverse map always takes the latest write). */
 export type LearningSource = "usync" | "peer_pn_message" | "peer_lid_message" | "recipient_latest_lid" | "migration_sync_latest" | "migration_sync_old" | "blocklist_active" | "blocklist_inactive" | "pairing" | "device_notification" | "other";
 
 /** An entry in the LID-PN cache containing the full mapping information. */
@@ -516,7 +586,7 @@ export interface LidPnEntry {
   /** The phone number user part (e.g., "559980000001") */
   phone_number: string;
   /** Unix timestamp when the mapping was first learned */
-  created_at: number;
+  created_at: number | string;
   /** The source from which this mapping was learned */
   learning_source: LearningSource;
 }
@@ -528,9 +598,9 @@ export interface LidPnMappingEntry {
   /** The phone number user part (e.g., "559980000001") */
   phone_number: string;
   /** Unix timestamp when the mapping was first learned */
-  created_at: number;
+  created_at: number | string;
   /** Unix timestamp when the mapping was last updated */
-  updated_at: number;
+  updated_at: number | string;
   /** The source from which this mapping was learned (e.g., "usync", "peer_pn_message") */
   learning_source: string;
 }
@@ -557,6 +627,12 @@ export type MemberShareHistoryMode = "admin_share" | "all_member_share";
 /** How a membership request was initiated.  Maps to `WAWebRequestMethodType` in WhatsApp Web JS. */
 export type MembershipRequestMethod = "invite_link" | "linked_group_join" | "non_admin_add";
 
+/** Payload of [`Event::Messages`]: the decrypted messages of one durable commit, in arrival order. Behaves as a collection of its messages — `for msg in &batch`, `batch.iter()`, `batch.len()` — with `origin` carrying the delivery shape alongside. */
+export interface MessageBatch {
+  messages: InboundMessage[];
+  origin: BatchOrigin;
+}
+
 export type MessageCategory = "" | "peer" | string;
 
 export interface MessageInfo {
@@ -581,11 +657,11 @@ export interface MessageInfo {
   /** Set when this message was recovered via PDO rather than normal decryption. Contains the PDO request message ID. */
   unavailable_request_id?: string | null;
   /** Server-store timestamp in microseconds (envelope `sts` attr). Used by WA Web for read-self watermark ordering across companion devices. */
-  server_timestamp_us?: number | null;
+  server_timestamp_us?: number | string | null;
   /** Envelope `verified_level` attr (e.g. "unknown"/"low"/"high"). For business messages this is the server-asserted verification tier; for regular messages it is absent. */
   verified_level?: string | null;
   /** Envelope `verified_name` int attr (business name certificate serial). Separate from the `verified_name` child cert bytes already on this struct. */
-  verified_name_serial?: number | null;
+  verified_name_serial?: number | string | null;
   /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
   peer_recipient_pn?: Jid | null;
   /** Parent post key when the dispatched message is a decrypted CAG channel comment (`enc_comment_message`). The inner `Message` proto has no slot for the threading link, so it surfaces here. */
@@ -635,6 +711,18 @@ export interface MexResponse {
   errors?: MexGraphQLError[] | null;
 }
 
+/** A call that must NOT ring: surfaced instead of [`IncomingCall`] so a consumer cannot auto-accept it. Currently this is an offer the server replayed from the offline queue on reconnect (the `<call>` carried the `offline` attribute) -- the call is long dead (no relay, not connectable). Mirrors WA Web's `cancel_call` + `missed_call` path for `offerReceivedWhileOffline`. */
+export interface MissedCall {
+  from: Jid;
+  /** The call id (from the `<offer>` action); distinct from the `<call>` stanza id. */
+  call_id: string;
+  timestamp: number;
+  reason: MissedReason;
+}
+
+/** Why a call surfaced as missed rather than ringing. */
+export type MissedReason = "offline" | "remote";
+
 export interface MsgBotInfo {
   edit_type?: BotEditType | null;
   edit_target_id?: string | null;
@@ -658,19 +746,22 @@ export interface MsgMetaInfo {
   /** `<reporting><reporting_token>` content bytes (16). Pre-requisite for the server-side report-abuse flow. */
   reporting_token?: Uint8Array | null;
   /** `v` attr on `<reporting_token>`. WA Web defaults to 1 when missing. */
-  reporting_token_version?: number | null;
+  reporting_token_version?: number | string | null;
 }
 
 /** Message-secret write entry keyed by chat, sender, and message ID. */
 export interface MsgSecretEntry {
+  /** Canonical non-AD chat JID. Shared across entries from the same history conversation instead of allocating one identical string per message. */
   chat: string;
+  /** Canonical non-AD sender JID. Often aliases `chat` for direct messages. */
   sender: string;
+  /** Message identifier. `Arc<str>` keeps entry clones used by buffered persistence cheap without changing the serialized representation. */
   msg_id: string;
-  secret: Uint8Array;
+  secret: MessageSecret;
   /** Absolute unix-seconds retention deadline. `0` means never expire. Computed by the caller from the parent message's event time plus a per-add-on-kind horizon (see `MsgSecretRetention`). The store prunes rows whose deadline has passed; it does not know the horizon itself. */
-  expires_at: number;
+  expires_at: number | string;
   /** Parent message event time (unix seconds), or `0` when unknown. Kept so the receive path can enforce the edit-processing window (`editTs < message_ts + window`) the same way WhatsApp Web does. */
-  message_ts: number;
+  message_ts: number | string;
 }
 
 export interface MuteUpdate {
@@ -693,14 +784,14 @@ export interface NewsletterLiveUpdate {
 
 /** A single message entry in a newsletter live update. */
 export interface NewsletterLiveUpdateMessage {
-  server_id: number;
+  server_id: number | string;
   reactions: NewsletterLiveUpdateReaction[];
 }
 
 /** A reaction count in a newsletter live update. */
 export interface NewsletterLiveUpdateReaction {
   code: string;
-  count: number;
+  count: number | string;
 }
 
 export type NewsletterMessageType = "text" | "media" | "reaction" | "revoke" | "poll_creation" | "poll_vote" | "edit" | string;
@@ -725,11 +816,51 @@ export interface PairError {
   error: string;
 }
 
+/** Payload for [`Event::PairPasskeyConfirmation`]. */
+export interface PairPasskeyConfirmation {
+  code: string;
+  skip_handoff_ux: boolean;
+}
+
+/** Payload for [`Event::PairPasskeyError`]. */
+export interface PairPasskeyError {
+  error: string;
+  continuation: boolean;
+}
+
+/** Payload for [`Event::PairPasskeyRequest`]. */
+export interface PairPasskeyRequest {
+  /** Verbatim `PublicKeyCredentialRequestOptions` JSON from the server. Pass it straight to a WebAuthn `get` (e.g. Android Credential Manager), or parse it with `whatsapp_rust::passkey::parse_request_options`. */
+  request_options_json: string;
+}
+
 export interface PairSuccess {
   id: Jid;
   lid: Jid;
   business_name: string;
   platform: string;
+}
+
+/** Generated pair code for phone number linking. User should enter this code on their phone in WhatsApp > Linked Devices. */
+export interface PairingCode {
+  /** The 8-character pairing code to display. */
+  code: string;
+  /** Approximate validity duration (~180 seconds). */
+  timeout: number;
+}
+
+/** The server asked the companion to refresh an in-progress phone-number pairing code (WA Web `refreshAltLinkingCode` / `forceManualRefresh`). Only emitted while a pair-code flow is outstanding and the server's ref matches it. The consumer should request a fresh code via `pair_with_code`; the previous code is no longer guaranteed valid. */
+export interface PairingCodeRefresh {
+  /** `true` when the server set `force_manual_refresh` — the code must be re-requested explicitly rather than auto-rotated. */
+  force_manual: boolean;
+}
+
+/** A QR code the consumer renders during multi-device pairing. */
+export interface PairingQrCode {
+  /** The QR payload to render. */
+  code: string;
+  /** How long this code stays valid before the next one rotates in. */
+  timeout: number;
 }
 
 /** Participant type (admin level). */
@@ -795,20 +926,20 @@ export interface Receipt {
 }
 
 export type ReceiptType =
-  | { type: "delivered" }
-  | { type: "sent" }
-  | { type: "sender" }
-  | { type: "retry" }
-  | { type: "enc_rekey_retry" }
-  | { type: "read" }
-  | { type: "read_self" }
-  | { type: "played" }
-  | { type: "played_self" }
-  | { type: "server_error" }
-  | { type: "inactive" }
-  | { type: "peer_msg" }
-  | { type: "history_sync" }
-  | { type: "other"; data: string };
+  | "Delivered"
+  | "Sent"
+  | "Sender"
+  | "Retry"
+  | "EncRekeyRetry"
+  | "Read"
+  | "ReadSelf"
+  | "Played"
+  | "PlayedSelf"
+  | "ServerError"
+  | "Inactive"
+  | "PeerMsg"
+  | "HistorySync"
+  | { "Other": string };
 
 /** Chat state type as received from incoming stanzas.  Aligned with WhatsApp Web's `WAChatState` constants: - `typing` = ACTIVE_CHAT_STATE_TYPE.TYPING - `recording_audio` = ACTIVE_CHAT_STATE_TYPE.RECORDING_AUDIO - `idle` = IDLE_CHAT_STATE_TYPE.IDLE */
 export type ReceivedChatState = "typing" | "recording_audio" | "idle";
@@ -817,6 +948,20 @@ export interface SelfPushNameUpdated {
   from_server: boolean;
   old_name: string;
   new_name: string;
+}
+
+/** Payload of [`Event::ServerAck`]: the server acknowledged (or nacked) an outgoing stanza. Server acks cover every outgoing stanza class — message, receipt, notification, call — so consumers should filter on [`class`](Self::class) before correlating ids. */
+export interface ServerAck {
+  /** Id of the acked stanza (for a sent message, its message id). */
+  id: string;
+  /** Stanza class the ack refers to (`"message"`, `"receipt"`, `"notification"`, `"call"`, …). `None` when the server omits it. */
+  class?: string | null;
+  /** Chat/entity the ack refers to, when present and parseable. */
+  from?: Jid | null;
+  /** Server timestamp from the ack's `t` attribute, when present. For a message ack this is the authoritative send timestamp (whatsmeow reads the same attribute into `SendResponse.Timestamp`). */
+  timestamp?: number | null;
+  /** Nack code (e.g. `"479"`) when the server rejected the stanza; `None` for a plain ack. */
+  error?: string | null;
 }
 
 /** The type of spam flow indicating the source of the report. */
@@ -847,9 +992,9 @@ export interface TcTokenEntry {
   /** Raw token bytes received from the server. */
   token: Uint8Array;
   /** Unix timestamp (seconds) when the token was received. */
-  token_timestamp: number;
+  token_timestamp: number | string;
   /** Unix timestamp (seconds) when we last issued our token to this contact. */
-  sender_timestamp?: number | null;
+  sender_timestamp?: number | string | null;
 }
 
 /** Wire codes: 101=SentToTooManyPeople, 102=BlockedByUsers, 103=CreatedTooManyGroups, 104=SentTooManySameMessage, 106=BroadcastList */
@@ -860,7 +1005,7 @@ export interface TemporaryBan {
   expire: number;
 }
 
-export type UnavailableType = "unknown" | "view_once";
+export type UnavailableType = "unknown" | "view_once" | "hosted" | "bot";
 
 export interface UndecryptableMessage {
   info: MessageInfo;
@@ -887,11 +1032,195 @@ export interface UserStatusMuteUpdate {
   from_full_sync: boolean;
 }
 
+/** Addressing mode used by the contact subprotocol. */
+export type UsyncAddressingMode = "pn" | "lid";
+
+export interface UsyncBotCommand {
+  name: string;
+  description: string;
+}
+
+export type UsyncBotProfessionalType = "unknown" | "yes" | "no" | string;
+
+export interface UsyncBotProfileResult {
+  name: string;
+  attributes: string;
+  description: string;
+  category: string;
+  is_default: boolean;
+  prompts: UsyncBotPrompt[];
+  persona_id: string;
+  commands: UsyncBotCommand[];
+  commands_description: string;
+  is_meta_created?: boolean | null;
+  creator_name?: string | null;
+  creator_profile_url?: string | null;
+  posing_as_professional?: UsyncBotProfessionalType | null;
+}
+
+export interface UsyncBotPrompt {
+  emoji: string;
+  text: string;
+}
+
+export interface UsyncBusinessResult {
+  verified_name?: VerifiedName | null;
+}
+
+export interface UsyncContactResult {
+  contact_type: string;
+  username?: string | null;
+  content?: string | null;
+}
+
 /** Usync context. */
-export type UsyncContext = "interactive" | "background" | "message";
+export type UsyncContext = "interactive" | "background" | "message" | "voip";
+
+export interface UsyncDeviceListResult {
+  hash?: string | null;
+  devices: UsyncDeviceResult[];
+}
+
+export interface UsyncDeviceResult {
+  id: number;
+  key_index?: number | null;
+  is_hosted: boolean;
+}
+
+/** Per-user cache hints carried by the devices v2 subprotocol. */
+export interface UsyncDeviceSyncHint {
+  /** Cached device-list hash, if known. */
+  device_hash?: string | null;
+  /** Timestamp associated with the cached hash. */
+  timestamp?: number | string | null;
+  /** Expected timestamp used to detect stale key-index state. */
+  expected_timestamp?: number | string | null;
+}
+
+export interface UsyncDevicesResult {
+  device_list?: UsyncDeviceListResult | null;
+  key_index?: UsyncKeyIndexResult | null;
+}
+
+export interface UsyncDisappearingModeResult {
+  duration_seconds: number;
+  setting_timestamp: number | string;
+  ephemerality_disabled: boolean;
+}
+
+/** Feature names accepted by the USync feature protocol. */
+export type UsyncFeature = "document" | "encrypt" | "encrypt_blist" | "encrypt_contact" | "encrypt_group_gen2" | "encrypt_image" | "encrypt_location" | "encrypt_url" | "encrypt_v2" | "voip" | "multi_agent";
+
+export interface UsyncFeatureResult {
+  feature: UsyncFeature;
+  value: string;
+}
+
+export interface UsyncKeyIndexResult {
+  timestamp: number | string;
+  signed_key_index_bytes?: Uint8Array | null;
+  expected_timestamp?: number | string | null;
+}
 
 /** Usync mode. */
-export type UsyncMode = "query" | "full";
+export type UsyncMode = "query" | "full" | "delta";
+
+/** A protocol value or its per-user error. Errors are boxed because they are rare and contain owned strings; this keeps every successful result variant from inheriting their size. */
+export type UsyncOutcome<T> =
+  | { type: "value"; data: T }
+  | { type: "error"; data: UsyncSubprotocolError };
+
+/** A known, typed USync subprotocol request. */
+export type UsyncProtocol =
+  | { type: "contact"; data: { addressing_mode: UsyncAddressingMode } }
+  | { type: "devices" }
+  | { type: "status" }
+  | { type: "text_status" }
+  | { type: "disappearing_mode" }
+  | { type: "business" }
+  | { type: "picture" }
+  | { type: "lid" }
+  | { type: "username" }
+  | { type: "bot" }
+  | { type: "feature"; data: UsyncFeature[] };
+
+/** Known USync protocol tags from the captured WhatsApp Web client. */
+export type UsyncProtocolKind = "feature" | "devices" | "contact" | "picture" | "status" | "business" | "disappearing_mode" | "lid" | "bot" | "username" | "text_status";
+
+/** Sparse per-user result. Large, uncommon payloads are boxed so their layout does not inflate every status/contact/device item in large sync responses. */
+export type UsyncProtocolResult =
+  | { type: "contact"; data: UsyncOutcome<UsyncContactResult> }
+  | { type: "devices"; data: UsyncOutcome<UsyncDevicesResult> }
+  | { type: "status"; data: UsyncOutcome<UsyncStatusResult> }
+  | { type: "text_status"; data: UsyncOutcome<UsyncTextStatusResult> }
+  | { type: "disappearing_mode"; data: UsyncOutcome<UsyncDisappearingModeResult> }
+  | { type: "business"; data: UsyncOutcome<UsyncBusinessResult> }
+  | { type: "picture"; data: UsyncOutcome<number | string> }
+  | { type: "lid"; data: UsyncOutcome<Jid | null> }
+  | { type: "username"; data: UsyncOutcome<string | null> }
+  | { type: "bot"; data: UsyncOutcome<UsyncBotProfileResult> }
+  | { type: "feature"; data: UsyncOutcome<UsyncFeatureResult[]> };
+
+/** Result-level state for a single protocol. */
+export interface UsyncProtocolState {
+  protocol: UsyncProtocolKind;
+  refresh_seconds?: number | null;
+  error?: UsyncSubprotocolError | null;
+}
+
+/** A complete typed USync query, validated before it reaches the network.  Deserialization always delegates to [`Self::new`], so a serialized input cannot bypass protocol uniqueness or per-user validation. */
+export interface UsyncQuery {
+  mode: UsyncMode;
+  context: UsyncContext;
+  protocols: UsyncProtocol[];
+  users: UsyncUser[];
+}
+
+/** Full neutral response from a typed USync query.  Its serialization walks this model by reference; no projection tree is constructed by the core. */
+export interface UsyncResponse {
+  protocol_states: UsyncProtocolState[];
+  users: UsyncUserResult[];
+}
+
+/** About/status payload. WhatsApp Web consumes only `status`, while the optional wire timestamp is retained for callers that need a lossless projection of responses carrying `t`. */
+export interface UsyncStatusResult {
+  status?: string | null;
+  timestamp?: number | string | null;
+}
+
+export interface UsyncSubprotocolError {
+  code?: number | null;
+  text?: string | null;
+  backoff?: number | null;
+}
+
+export interface UsyncTextStatusResult {
+  text?: string | null;
+  emoji?: string | null;
+  ephemeral_duration_seconds?: number | null;
+  last_update_time?: string | null;
+}
+
+/** A USync user input.  Constructors establish an identity and protocol-specific additions use explicit builder methods. Deserialization applies the same phone and JID normalization as those constructors; all invariants are validated when the user becomes part of [`UsyncQuery::new`]. */
+export interface UsyncUser {
+  id?: Jid | null;
+  pn_jid?: Jid | null;
+  phone?: string | null;
+  known_lid?: Jid | null;
+  device_sync?: UsyncDeviceSyncHint | null;
+  persona_id?: string | null;
+  username?: string | null;
+  username_pin?: string | null;
+  contact_type?: string | null;
+  tc_token?: Uint8Array | null;
+}
+
+/** Per-user response. `id` is optional because contact-only results without a JID are accepted by WhatsApp Web. */
+export interface UsyncUserResult {
+  id?: Jid | null;
+  pn_jid?: Jid | null;
+  protocols: UsyncProtocolResult[];
+}
 
 /** Verified name certificate information. */
 export interface VerifiedName {
@@ -900,4 +1229,7 @@ export interface VerifiedName {
   issuer?: string | null;
   certificate?: Uint8Array | null;
 }
+
+/** In-call `<video state=N>` handshake states (audio→video upgrade, video→audio downgrade). Values verified against WA Web captures relayed by the mock server; unknown future states land in `Unknown` so a new server value degrades to an observable no-op instead of a parse failure. Wire codes: 0=Disabled, 1=Enabled, 3=UpgradeRequest, 4=UpgradeAccept, 5=UpgradeReject, 6=Stopped, 8=UpgradeCancel, 11=UpgradeRequestV2 */
+export type VideoState = number;
 "#;

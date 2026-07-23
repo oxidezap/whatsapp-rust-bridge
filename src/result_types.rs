@@ -4,7 +4,8 @@
 //! and eliminates manual `js_sys::Object` construction + `skip_typescript`.
 
 use serde::{Deserialize, Serialize};
-use tsify_next::Tsify;
+use tsify::Tsify;
+use whatsapp_rust::wacore;
 
 // ---------------------------------------------------------------------------
 // Parameter enums — typed string alternatives for &str dispatch
@@ -88,6 +89,7 @@ pub enum GroupParticipantAction {
     Remove,
     Promote,
     Demote,
+    Modify,
 }
 
 /// Group setting type.
@@ -125,6 +127,22 @@ pub enum PictureType {
 pub enum GroupRequestAction {
     Approve,
     Reject,
+}
+
+/// Neutral controls for retransmitting an existing message to one device.
+///
+/// The encoded message remains a separate byte slice so this small control
+/// object never base64-encodes or copies the protobuf payload.
+#[derive(Debug, Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageRetransmissionInput {
+    pub requester_jid: String,
+    pub message_id: String,
+    pub retry_count: u32,
+    #[tsify(optional)]
+    pub recipient_jid: Option<String>,
+    pub refresh_group_metadata: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +212,21 @@ pub struct ParticipantChangeResult {
     pub status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub add_request: Option<ParticipantAddRequestResult>,
+}
+
+/// Invite fallback returned for a participant that could not be added directly.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ParticipantAddRequestResult {
+    pub code: String,
+    pub expiration: f64,
 }
 
 /// A single media host from `getMediaConn`.
@@ -248,18 +281,71 @@ pub struct EncryptMediaResult {
     pub file_length: f64,
 }
 
-/// A single voter entry for `getAggregateVotesInPollMessage`.
+/// Public portion of one pre-key in a supplied pairwise session bundle.
+#[derive(Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalPreKeyInput {
+    pub key_id: u32,
+    #[tsify(type = "Uint8Array")]
+    #[serde(with = "serde_bytes")]
+    pub public_key: Vec<u8>,
+}
+
+/// Signed pre-key in a supplied pairwise session bundle.
+#[derive(Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalSignedPreKeyInput {
+    pub key_id: u32,
+    #[tsify(type = "Uint8Array")]
+    #[serde(with = "serde_bytes")]
+    pub public_key: Vec<u8>,
+    #[tsify(type = "Uint8Array")]
+    #[serde(with = "serde_bytes")]
+    pub signature: Vec<u8>,
+}
+
+/// Inputs required to establish one outgoing pairwise session.
 #[derive(Deserialize, Tsify)]
 #[tsify(from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
-pub struct PollVoterEntry {
-    pub voter: String,
+pub struct SignalSessionBundleInput {
+    pub registration_id: u32,
     #[tsify(type = "Uint8Array")]
     #[serde(with = "serde_bytes")]
-    pub enc_payload: Vec<u8>,
+    pub identity_key: Vec<u8>,
+    pub signed_pre_key: SignalSignedPreKeyInput,
+    #[tsify(optional)]
+    pub pre_key: Option<SignalPreKeyInput>,
+}
+
+/// Read-only information from a currently open pairwise session.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalSessionInfoResult {
     #[tsify(type = "Uint8Array")]
     #[serde(with = "serde_bytes")]
-    pub enc_iv: Vec<u8>,
+    pub base_key: Vec<u8>,
+    pub registration_id: u32,
+}
+
+/// One linked-identifier to phone-number mapping supplied by the host.
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct LidPnMappingInput {
+    pub lid: String,
+    pub pn: String,
+}
+
+/// Counts produced while moving pairwise sessions between identifier namespaces.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalSessionMigrationResult {
+    pub migrated: u32,
+    pub skipped: u32,
+    pub total: u32,
 }
 
 /// A message key for `readMessages`.
@@ -343,7 +429,40 @@ pub struct GroupMetadataParticipant {
     pub jid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phone_number: Option<String>,
+    /// LID counterpart when `jid` is a phone-number JID.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lid: Option<String>,
+    /// Meta username carried by the participant node, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// Protocol role (`member`, `admin`, or `superadmin`).
+    pub participant_type: String,
     pub is_admin: bool,
+    pub is_super_admin: bool,
+}
+
+/// Disappearing-message settings returned by the group `<ephemeral>` node.
+///
+/// The outer `Option` on `GroupMetadataResult::ephemeral` preserves the
+/// distinction between an absent node and a present node whose values are
+/// zero or omitted.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupEphemeralSettingsResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trigger: Option<f64>,
+}
+
+/// Server-managed group growth lock information.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupGrowthLockInfoResult {
+    pub lock_type: String,
+    pub expiration: f64,
 }
 
 /// Result from `getGroupMetadata`.
@@ -353,10 +472,18 @@ pub struct GroupMetadataParticipant {
 pub struct GroupMetadataResult {
     pub id: String,
     pub subject: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify: Option<String>,
     pub participants: Vec<GroupMetadataParticipant>,
     pub addressing_mode: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub creator: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_country_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub creation_time: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -364,12 +491,25 @@ pub struct GroupMetadataResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subject_owner: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_owner_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_owner_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_time: Option<f64>,
     pub is_locked: bool,
     pub is_announcement: bool,
-    pub ephemeral_expiration: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ephemeral: Option<GroupEphemeralSettingsResult>,
     pub membership_approval: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub member_add_mode: Option<String>,
@@ -383,6 +523,17 @@ pub struct GroupMetadataResult {
     pub is_default_sub_group: bool,
     pub is_general_chat: bool,
     pub allow_non_admin_sub_group_creation: bool,
+    pub no_frequently_forwarded: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_share_history_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub growth_locked: Option<GroupGrowthLockInfoResult>,
+    pub is_suspended: bool,
+    pub allow_admin_reports: bool,
+    pub is_hidden_group: bool,
+    pub is_incognito: bool,
+    pub has_group_history: bool,
+    pub is_limit_sharing_enabled: bool,
 }
 
 /// Result from newsletter methods.
@@ -415,15 +566,29 @@ pub struct NewsletterMetadataResult {
 #[serde(rename_all = "camelCase")]
 pub struct MemoryDiagnosticsResult {
     pub group_cache: f64,
+    pub group_cache_bytes: f64,
     pub device_registry_cache: f64,
+    pub device_registry_cache_bytes: f64,
     pub sender_key_device_cache: f64,
+    pub sender_key_device_cache_bytes: f64,
+    pub group_devices_memo: f64,
+    pub group_devices_memo_bytes: f64,
     pub lid_pn_lid_entries: f64,
+    pub lid_pn_lid_bytes: f64,
     pub lid_pn_pn_entries: f64,
+    pub lid_pn_pn_bytes: f64,
     pub recent_messages: f64,
+    pub recent_messages_bytes: f64,
     pub message_retry_counts: f64,
+    pub undecryptable_dispatched: f64,
     pub pdo_pending_requests: f64,
+    pub pdo_requested: f64,
     pub session_locks: f64,
     pub chat_lanes: f64,
+    pub group_distribution_locks: f64,
+    pub group_distribution_lock_evictions: f64,
+    pub group_distribution_lock_eviction_blocks: f64,
+    pub resend_rate_limiter_chats: f64,
     pub response_waiters: f64,
     pub node_waiters: f64,
     pub pending_retries: f64,
@@ -431,18 +596,52 @@ pub struct MemoryDiagnosticsResult {
     pub app_state_key_requests: f64,
     pub app_state_syncing: f64,
     pub signal_cache_sessions: f64,
+    pub signal_cache_sessions_bytes: f64,
     pub signal_cache_identities: f64,
+    pub signal_cache_identities_bytes: f64,
     pub signal_cache_sender_keys: f64,
+    pub signal_cache_sender_keys_bytes: f64,
+    pub history_sync_tasks: f64,
+    pub history_sync_payload_bytes: f64,
+    pub history_sync_peak_tasks: f64,
+    pub history_sync_peak_payload_bytes: f64,
     pub chatstate_handlers: f64,
     pub custom_enc_handlers: f64,
+    pub client_estimated_bytes: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_memory_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_pages: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_io_read_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_io_write_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_read_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_write_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_tls_state_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_pool_connections: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_pool_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_inflight_bytes: Option<f64>,
+    pub resource_estimated_bytes: f64,
 }
 
-/// Result from `getAggregateVotesInPollMessage`.
+/// Allocation churn attributed by whatsapp-rust's own `AllocMeter` to tasks
+/// spawned for this client. Available in diagnostics builds only.
 #[derive(Serialize, Tsify)]
 #[tsify(into_wasm_abi)]
-pub struct PollAggregateResult {
-    pub name: String,
-    pub voters: Vec<String>,
+#[serde(rename_all = "camelCase")]
+pub struct CoreAllocationSnapshotResult {
+    pub enabled: bool,
+    pub allocated_bytes: f64,
+    pub freed_bytes: f64,
+    pub allocations: f64,
+    pub net_bytes: f64,
 }
 
 /// Result from `groupRequestParticipantsList`.
@@ -453,6 +652,41 @@ pub struct MembershipRequestResult {
     pub jid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_time: Option<f64>,
+}
+
+/// A subgroup returned by a parent-group metadata query.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunitySubgroupResult {
+    pub id: String,
+    pub subject: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creation: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    pub is_default_sub_group: bool,
+    pub is_general_chat: bool,
+}
+
+/// One failed parent/subgroup relationship mutation.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunityLinkFailureResult {
+    pub jid: String,
+    pub error: f64,
+}
+
+/// Result of linking or unlinking subgroups.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunityLinkResult {
+    pub succeeded: Vec<String>,
+    pub failed: Vec<CommunityLinkFailureResult>,
 }
 
 /// Result from `getBusinessProfile`.
@@ -498,6 +732,8 @@ pub struct BusinessHoursResult {
 pub struct BusinessHoursConfigResult {
     pub day_of_week: String,
     pub mode: String,
-    pub open_time: f64,
-    pub close_time: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub close_time: Option<f64>,
 }

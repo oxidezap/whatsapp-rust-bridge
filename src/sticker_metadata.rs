@@ -2,7 +2,7 @@ use img_parts::webp::WebP;
 use img_parts::{Bytes, ImageEXIF};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use tsify_next::Tsify;
+use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 /// EXIF header for WhatsApp sticker metadata.

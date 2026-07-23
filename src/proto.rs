@@ -1,12 +1,28 @@
 use wasm_bindgen::prelude::*;
 
+/// Deserialize a host value directly into a core-owned Serde model.
+///
+/// This is the shared typed-input path for thin bindings: it does not create a
+/// bridge DTO or pass through JSON, and it keeps the public argument name in a
+/// structured `InvalidArgument` error.
+pub fn from_js_value<T>(
+    value: JsValue,
+    field: &'static str,
+) -> Result<T, crate::errors::BridgeError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    serde_wasm_bindgen::from_value(value)
+        .map_err(|error| crate::errors::invalid_arg(field, error.to_string()))
+}
+
 /// Serialize a value to JsValue (snake_case-preserving path — used for the
 /// `info` payload and the `serialize {}` event variants).
 ///
 /// - 64-bit integer types (`i64`/`u64`) are emitted as plain JS `number`s, NOT
 ///   `BigInt`. `BigInt` cannot be serialized by `JSON.stringify` (it throws
-///   `TypeError: cannot serialize BigInt`), and Baileys-style consumers
-///   routinely `JSON.stringify(event)` for logging — a single `BigInt` field
+///   `TypeError: cannot serialize BigInt`), and downstream consumers routinely
+///   `JSON.stringify(event)` for logging — a single `BigInt` field
 ///   crashes the whole serialization. The 64-bit fields that flow through this
 ///   path are bounded (microsecond timestamps, verified-name serials,
 ///   newsletter server ids / reaction counts), all comfortably under 2^53, so
@@ -30,7 +46,7 @@ pub fn to_js_value<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
         // like 2310452236816384026. Without a fallback the WHOLE event fails to
         // serialize and is dropped (the message never reaches the consumer).
         // Re-serialize via serde_json, emitting only the out-of-range integers as
-        // strings (protobufjs/Baileys already treat huge ids as strings/Longs);
+        // strings (protobufjs already treats huge ids as strings/Longs);
         // every other field keeps its exact prior shape, incl. plain `number`s
         // for the in-range 64-bit fields that `asNumber`-style consumers read.
         Err(_) => {
@@ -93,6 +109,7 @@ mod tests {
     use super::*;
     // Alias `#[test]` -> wasm_bindgen_test so these run on wasm32 via
     // `wasm-pack test --node` (the crate has no native test target).
+    use wasm_bindgen::JsCast;
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     #[derive(serde::Serialize)]
@@ -124,5 +141,89 @@ mod tests {
         // Other fields unchanged.
         let pn = js_sys::Reflect::get(&js, &JsValue::from_str("push_name")).unwrap();
         assert_eq!(pn.as_string().as_deref(), Some("x"));
+    }
+
+    fn set(target: &JsValue, key: &str, value: &JsValue) {
+        js_sys::Reflect::set(target, &JsValue::from_str(key), value).expect("set test field");
+    }
+
+    fn usync_query_value(protocol_count: usize) -> JsValue {
+        let query = js_sys::Object::new();
+        set(&query, "mode", &JsValue::from_str("query"));
+        set(&query, "context", &JsValue::from_str("interactive"));
+
+        let protocols = js_sys::Array::new();
+        for _ in 0..protocol_count {
+            let protocol = js_sys::Object::new();
+            set(&protocol, "type", &JsValue::from_str("status"));
+            protocols.push(&protocol);
+        }
+        set(&query, "protocols", &protocols);
+
+        let user = js_sys::Object::new();
+        let id = js_sys::Object::new();
+        set(&id, "user", &JsValue::from_str("15551234567"));
+        set(&id, "server", &JsValue::from_str("s.whatsapp.net"));
+        set(&id, "agent", &JsValue::from_f64(0.0));
+        set(&id, "device", &JsValue::from_f64(0.0));
+        set(&id, "integrator", &JsValue::from_f64(0.0));
+        set(&user, "id", &id);
+        set(
+            &user,
+            "tc_token",
+            &js_sys::Uint8Array::from(&[1_u8, 2, 3][..]),
+        );
+        let users = js_sys::Array::new();
+        users.push(&user);
+        set(&query, "users", &users);
+        query.into()
+    }
+
+    #[test]
+    fn typed_usync_boundary_preserves_adjacent_tags_and_uint8array() {
+        let query =
+            from_js_value::<whatsapp_rust::usync::UsyncQuery>(usync_query_value(1), "query")
+                .expect("valid typed query");
+        let encoded = to_js_value(&query).expect("query serializes");
+
+        let protocols: js_sys::Array = js_sys::Reflect::get(&encoded, &"protocols".into())
+            .expect("protocols")
+            .unchecked_into();
+        let protocol = protocols.get(0);
+        assert_eq!(
+            js_sys::Reflect::get(&protocol, &"type".into())
+                .expect("protocol type")
+                .as_string()
+                .as_deref(),
+            Some("status")
+        );
+
+        let users: js_sys::Array = js_sys::Reflect::get(&encoded, &"users".into())
+            .expect("users")
+            .unchecked_into();
+        let token = js_sys::Reflect::get(&users.get(0), &"tc_token".into()).expect("tc token");
+        assert!(token.is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(js_sys::Uint8Array::new(&token).to_vec(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn typed_usync_boundary_runs_core_validation_before_network_use() {
+        let empty =
+            from_js_value::<whatsapp_rust::usync::UsyncQuery>(usync_query_value(0), "query")
+                .expect_err("empty protocol list must fail");
+        assert!(matches!(
+            empty,
+            crate::errors::BridgeError::InvalidArgument { field, reason }
+                if field == "query" && reason.contains("at least one protocol")
+        ));
+
+        let duplicate =
+            from_js_value::<whatsapp_rust::usync::UsyncQuery>(usync_query_value(2), "query")
+                .expect_err("duplicate protocols must fail");
+        assert!(matches!(
+            duplicate,
+            crate::errors::BridgeError::InvalidArgument { field, reason }
+                if field == "query" && reason.contains("duplicate USync protocol")
+        ));
     }
 }

@@ -7,7 +7,7 @@ use js_sys::{Object, Uint8Array};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use wacore::net::{HttpClient, HttpRequest, HttpResponse};
+use whatsapp_rust::wacore::net::{HttpClient, HttpRequest, HttpResponse};
 
 #[wasm_bindgen(typescript_custom_section)]
 const TS_HTTP: &str = r#"

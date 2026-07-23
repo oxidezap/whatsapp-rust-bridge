@@ -131,10 +131,13 @@ enum TsTypeDef {
     Interface {
         fields: Vec<TsField>,
         doc: Option<String>,
+        generics: Vec<String>,
     },
     Enum {
         variants: Vec<TsEnumVariant>,
         doc: Option<String>,
+        generics: Vec<String>,
+        representation: EnumRepresentation,
     },
     StringEnum {
         variants: Vec<(String, String)>, // (name, value)
@@ -151,6 +154,18 @@ enum TsTypeDef {
         codes: Vec<(String, String)>, // (variant_name, numeric_literal)
         doc: Option<String>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum EnumRepresentation {
+    /// `#[serde(tag = "...")]` or the equivalent `WireEnum` representation.
+    Internal { tag: String },
+    /// `#[serde(tag = "...", content = "...")]`.
+    Adjacent { tag: String, content: String },
+    /// Serde's default externally-tagged representation.
+    External,
+    /// `#[serde(untagged)]`.
+    Untagged,
 }
 
 #[derive(Debug)]
@@ -186,67 +201,63 @@ enum TsEnumVariant {
 impl TsTypeDef {
     fn to_typescript(&self, name: &str) -> String {
         match self {
-            TsTypeDef::Interface { fields, doc } => {
+            TsTypeDef::Interface {
+                fields,
+                doc,
+                generics,
+            } => {
                 let mut out = String::new();
                 if let Some(d) = doc {
                     out.push_str(&format!("/** {} */\n", d.trim()));
                 }
-                out.push_str(&format!("export interface {} {{\n", name));
+                out.push_str(&format!(
+                    "export interface {}{} {{\n",
+                    name,
+                    render_generics(generics)
+                ));
                 for f in fields {
                     if let Some(d) = &f.doc {
                         out.push_str(&format!("  /** {} */\n", d.trim()));
                     }
                     let opt = if f.optional { "?" } else { "" };
-                    out.push_str(&format!("  {}{}: {};\n", f.name, opt, f.ts_type));
+                    out.push_str(&format!(
+                        "  {}{}: {};\n",
+                        render_property_name(&f.name),
+                        opt,
+                        f.ts_type
+                    ));
                 }
                 out.push('}');
                 out
             }
-            TsTypeDef::Enum { variants, doc } => {
+            TsTypeDef::Enum {
+                variants,
+                doc,
+                generics,
+                representation,
+            } => {
                 let mut out = String::new();
                 if let Some(d) = doc {
                     out.push_str(&format!("/** {} */\n", d.trim()));
                 }
-                out.push_str(&format!("export type {} =\n", name));
+                out.push_str(&format!(
+                    "export type {}{} =\n",
+                    name,
+                    render_generics(generics)
+                ));
                 let parts: Vec<String> = variants
                     .iter()
-                    .map(|v| match v {
-                        TsEnumVariant::Unit { name, wire } => {
-                            let tag = if wire.is_empty() { to_snake_case(name) } else { wire.clone() };
-                            format!("  | {{ type: \"{}\" }}", tag)
-                        }
-                        TsEnumVariant::Tuple { name, wire, inner } => {
-                            let tag = if wire.is_empty() { to_snake_case(name) } else { wire.clone() };
-                            format!("  | {{ type: \"{}\"; data: {} }}", tag, inner)
-                        }
-                        TsEnumVariant::Struct { name, wire, fields } => {
-                            let tag = if wire.is_empty() { to_snake_case(name) } else { wire.clone() };
-                            let fs: Vec<String> = fields
-                                .iter()
-                                .map(|f| {
-                                    let opt = if f.optional { "?" } else { "" };
-                                    format!("{}{}: {}", f.name, opt, f.ts_type)
-                                })
-                                .collect();
-                            if fs.is_empty() {
-                                format!("  | {{ type: \"{}\" }}", tag)
-                            } else {
-                                format!("  | {{ type: \"{}\"; {} }}", tag, fs.join("; "))
-                            }
-                        }
-                        TsEnumVariant::Fallback => {
-                            // Catch-all: any other discriminator string + the
-                            // captured tag. Mirrors `#[wire_fallback]` Unknown
-                            // { tag: String } on the rust side.
-                            "  | { type: string; tag: string }".to_string()
-                        }
-                    })
+                    .map(|variant| render_enum_variant(variant, representation))
                     .collect();
                 out.push_str(&parts.join("\n"));
                 out.push(';');
                 out
             }
-            TsTypeDef::StringEnum { variants, has_fallback, doc } => {
+            TsTypeDef::StringEnum {
+                variants,
+                has_fallback,
+                doc,
+            } => {
                 let mut out = String::new();
                 if let Some(d) = doc {
                     out.push_str(&format!("/** {} */\n", d.trim()));
@@ -283,58 +294,205 @@ impl TsTypeDef {
     }
 }
 
+fn render_generics(generics: &[String]) -> String {
+    if generics.is_empty() {
+        String::new()
+    } else {
+        format!("<{}>", generics.join(", "))
+    }
+}
+
+fn render_property_name(name: &str) -> String {
+    let mut chars = name.chars();
+    let valid_start = chars
+        .next()
+        .is_some_and(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphabetic());
+    let valid_rest = chars.all(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphanumeric());
+    if valid_start && valid_rest {
+        name.to_string()
+    } else {
+        format!("\"{}\"", escape_ts_string(name))
+    }
+}
+
+fn escape_ts_string(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+}
+
+fn enum_variant_tag(name: &str, wire: &str) -> String {
+    if wire.is_empty() {
+        to_snake_case(name)
+    } else {
+        wire.to_string()
+    }
+}
+
+fn render_inline_fields(fields: &[TsField]) -> String {
+    fields
+        .iter()
+        .map(|field| {
+            let optional = if field.optional { "?" } else { "" };
+            format!(
+                "{}{}: {}",
+                render_property_name(&field.name),
+                optional,
+                field.ts_type
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+fn render_enum_variant(variant: &TsEnumVariant, representation: &EnumRepresentation) -> String {
+    if matches!(variant, TsEnumVariant::Fallback) {
+        return match representation {
+            EnumRepresentation::Internal { tag } | EnumRepresentation::Adjacent { tag, .. } => {
+                format!(
+                    "  | {{ {}: string; tag: string }}",
+                    render_property_name(tag)
+                )
+            }
+            EnumRepresentation::External | EnumRepresentation::Untagged => "  | string".to_string(),
+        };
+    }
+
+    let (name, wire) = match variant {
+        TsEnumVariant::Unit { name, wire }
+        | TsEnumVariant::Tuple { name, wire, .. }
+        | TsEnumVariant::Struct { name, wire, .. } => (name, wire),
+        TsEnumVariant::Fallback => unreachable!(),
+    };
+    let variant_name = enum_variant_tag(name, wire);
+    let literal = format!("\"{}\"", escape_ts_string(&variant_name));
+
+    match representation {
+        EnumRepresentation::Internal { tag } => {
+            let tag = render_property_name(tag);
+            match variant {
+                TsEnumVariant::Unit { .. } => format!("  | {{ {tag}: {literal} }}"),
+                TsEnumVariant::Tuple { inner, .. } => {
+                    format!("  | {{ {tag}: {literal}; data: {inner} }}")
+                }
+                TsEnumVariant::Struct { fields, .. } => {
+                    let fields = render_inline_fields(fields);
+                    if fields.is_empty() {
+                        format!("  | {{ {tag}: {literal} }}")
+                    } else {
+                        format!("  | {{ {tag}: {literal}; {fields} }}")
+                    }
+                }
+                TsEnumVariant::Fallback => unreachable!(),
+            }
+        }
+        EnumRepresentation::Adjacent { tag, content } => {
+            let tag = render_property_name(tag);
+            let content = render_property_name(content);
+            match variant {
+                TsEnumVariant::Unit { .. } => format!("  | {{ {tag}: {literal} }}"),
+                TsEnumVariant::Tuple { inner, .. } => {
+                    format!("  | {{ {tag}: {literal}; {content}: {inner} }}")
+                }
+                TsEnumVariant::Struct { fields, .. } => {
+                    let fields = render_inline_fields(fields);
+                    format!("  | {{ {tag}: {literal}; {content}: {{ {fields} }} }}")
+                }
+                TsEnumVariant::Fallback => unreachable!(),
+            }
+        }
+        EnumRepresentation::External => match variant {
+            TsEnumVariant::Unit { .. } => format!("  | {literal}"),
+            TsEnumVariant::Tuple { inner, .. } => {
+                format!("  | {{ {literal}: {inner} }}")
+            }
+            TsEnumVariant::Struct { fields, .. } => {
+                let fields = render_inline_fields(fields);
+                format!("  | {{ {literal}: {{ {fields} }} }}")
+            }
+            TsEnumVariant::Fallback => unreachable!(),
+        },
+        EnumRepresentation::Untagged => match variant {
+            TsEnumVariant::Unit { .. } => "  | null".to_string(),
+            TsEnumVariant::Tuple { inner, .. } => format!("  | {inner}"),
+            TsEnumVariant::Struct { fields, .. } => {
+                format!("  | {{ {} }}", render_inline_fields(fields))
+            }
+            TsEnumVariant::Fallback => unreachable!(),
+        },
+    }
+}
+
 fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
     let Ok(content) = std::fs::read_to_string(path) else {
         return;
     };
-    let Ok(file) = syn::parse_file(&content) else {
+    parse_source(&content, types);
+}
+
+fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
+    let Ok(file) = syn::parse_file(content) else {
         return;
     };
 
     for item in &file.items {
         match item {
-            Item::Struct(s) => {
-                if has_serde_derive(&s.attrs) && is_pub(&s.vis) {
-                    let name = s.ident.to_string();
+            Item::Struct(s) if has_serde_derive(&s.attrs) && is_pub(&s.vis) => {
+                let name = s.ident.to_string();
 
-                    // Skip types that are already generated by Tsify derives in
-                    // result_types.rs — avoids duplicate export conflicts.
-                    const TSIFY_STRUCTS: &[&str] = &[
-                        "BusinessProfile",
-                        "BusinessCategory",
-                        "BusinessHours",
-                        "BusinessHoursConfig",
-                        "GroupMetadataParticipant",
-                        "MembershipRequest",
-                    ];
-                    if TSIFY_STRUCTS.contains(&name.as_str()) {
-                        continue;
-                    }
+                // Skip types that are already generated by Tsify derives in
+                // result_types.rs — avoids duplicate export conflicts.
+                const TSIFY_STRUCTS: &[&str] = &[
+                    "BusinessProfile",
+                    "BusinessCategory",
+                    "BusinessHours",
+                    "BusinessHoursConfig",
+                    "GroupMetadataParticipant",
+                    "MembershipRequest",
+                ];
+                if TSIFY_STRUCTS.contains(&name.as_str()) {
+                    continue;
+                }
 
-                    let doc = extract_doc(&s.attrs);
-                    let fields = match &s.fields {
-                        Fields::Named(named) => named
-                            .named
-                            .iter()
-                            .filter(|f| is_pub(&f.vis))
-                            .map(|f| {
-                                let field_name =
-                                    f.ident.as_ref().unwrap().to_string().replace("r#", "");
-                                let (ts_type, optional) = rust_type_to_ts(&f.ty);
-                                let serde_name = get_serde_rename(f);
-                                TsField {
-                                    name: serde_name.unwrap_or(field_name),
-                                    ts_type,
-                                    optional,
-                                    doc: extract_doc(&f.attrs),
-                                }
-                            })
-                            .collect(),
-                        _ => Vec::new(),
-                    };
-                    if !fields.is_empty() {
-                        types.insert(name, TsTypeDef::Interface { fields, doc });
-                    }
+                let doc = extract_doc(&s.attrs);
+                let serde = parse_serde_container(&s.attrs);
+                let generics = type_parameters(&s.generics);
+                let fields = match &s.fields {
+                    Fields::Named(named) => named
+                        .named
+                        .iter()
+                        // Rust visibility is irrelevant to Serde. Private
+                        // fields are part of the host ABI unless Serde
+                        // explicitly skips them.
+                        .filter(|field| !has_serde_skip(&field.attrs))
+                        .map(|f| {
+                            let field_name =
+                                f.ident.as_ref().unwrap().to_string().replace("r#", "");
+                            let (ts_type, optional) = rust_type_to_ts(&f.ty);
+                            let serde_name = get_serde_rename(f);
+                            TsField {
+                                name: serde_name.unwrap_or_else(|| {
+                                    apply_rename_rule(&field_name, serde.rename_all.as_deref())
+                                }),
+                                ts_type,
+                                optional,
+                                doc: extract_doc(&f.attrs),
+                            }
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                if !fields.is_empty() {
+                    types.insert(
+                        name,
+                        TsTypeDef::Interface {
+                            fields,
+                            doc,
+                            generics,
+                        },
+                    );
                 }
             }
             Item::Enum(e) => {
@@ -370,17 +528,27 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
                                 .variants
                                 .iter()
                                 .filter(|v| !is_wire_fallback(&v.attrs))
-                                .map(|v| (v.ident.to_string(), get_wire_attr_lit(&v.attrs).unwrap_or_default()))
+                                .map(|v| {
+                                    (
+                                        v.ident.to_string(),
+                                        get_wire_attr_lit(&v.attrs).unwrap_or_default(),
+                                    )
+                                })
                                 .filter(|(_, lit)| !lit.is_empty())
                                 .collect();
-                            types.insert(name, TsTypeDef::IntEnum { codes, doc: extract_doc(&e.attrs) });
+                            types.insert(
+                                name,
+                                TsTypeDef::IntEnum {
+                                    codes,
+                                    doc: extract_doc(&e.attrs),
+                                },
+                            );
                             continue;
                         }
-                        WireEnumKind::Tagged(_discriminator) => {
-                            // The discriminator field name is always `"type"`
-                            // for the variants we care about — encoded directly
-                            // in the rendered `{ type: "..." }` shape. Keep it
-                            // around in case we generalize later.
+                        WireEnumKind::Tagged {
+                            discriminator,
+                            content,
+                        } => {
                             let doc = extract_doc(&e.attrs);
                             let variants: Vec<TsEnumVariant> = e
                                 .variants
@@ -395,9 +563,15 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
                                         Fields::Unit => TsEnumVariant::Unit { name: vname, wire },
                                         Fields::Unnamed(unnamed) if unnamed.unnamed.len() == 1 => {
                                             let (ts, _) = rust_type_to_ts(&unnamed.unnamed[0].ty);
-                                            TsEnumVariant::Tuple { name: vname, wire, inner: ts }
+                                            TsEnumVariant::Tuple {
+                                                name: vname,
+                                                wire,
+                                                inner: ts,
+                                            }
                                         }
-                                        Fields::Unnamed(_) => TsEnumVariant::Unit { name: vname, wire },
+                                        Fields::Unnamed(_) => {
+                                            TsEnumVariant::Unit { name: vname, wire }
+                                        }
                                         Fields::Named(named) => {
                                             let fields: Vec<TsField> = named
                                                 .named
@@ -415,12 +589,30 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
                                                     }
                                                 })
                                                 .collect();
-                                            TsEnumVariant::Struct { name: vname, wire, fields }
+                                            TsEnumVariant::Struct {
+                                                name: vname,
+                                                wire,
+                                                fields,
+                                            }
                                         }
                                     }
                                 })
                                 .collect();
-                            types.insert(name, TsTypeDef::Enum { variants, doc });
+                            types.insert(
+                                name,
+                                TsTypeDef::Enum {
+                                    variants,
+                                    doc,
+                                    generics: type_parameters(&e.generics),
+                                    representation: match content {
+                                        Some(content) => EnumRepresentation::Adjacent {
+                                            tag: discriminator,
+                                            content,
+                                        },
+                                        None => EnumRepresentation::Internal { tag: discriminator },
+                                    },
+                                },
+                            );
                             continue;
                         }
                         WireEnumKind::UnitString => {
@@ -442,7 +634,11 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
                                 .collect();
                             types.insert(
                                 name,
-                                TsTypeDef::StringEnum { variants, has_fallback, doc },
+                                TsTypeDef::StringEnum {
+                                    variants,
+                                    has_fallback,
+                                    doc,
+                                },
                             );
                             continue;
                         }
@@ -456,73 +652,117 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
                 // Skip types that are already generated by Tsify derives in
                 // result_types.rs — avoids duplicate export conflicts.
                 const TSIFY_GENERATED: &[&str] = &[
-                    "Event",             // WhatsAppEvent via bridge_events! macro
-                    "MemberAddMode",     // Tsify enum in result_types.rs
+                    "Event",                  // WhatsAppEvent via bridge_events! macro
+                    "MemberAddMode",          // Tsify enum in result_types.rs
                     "MembershipApprovalMode", // Used as bool param, not needed
-                    "PresenceStatus",    // Tsify enum in result_types.rs
-                    "MembershipRequest", // MembershipRequestResult in result_types.rs
+                    "PresenceStatus",         // Tsify enum in result_types.rs
+                    "MembershipRequest",      // MembershipRequestResult in result_types.rs
                 ];
                 if TSIFY_GENERATED.contains(&name.as_str()) {
                     continue;
                 }
                 let doc = extract_doc(&e.attrs);
+                let serde = parse_serde_container(&e.attrs);
+                let representation = serde.enum_representation();
+                let generics = type_parameters(&e.generics);
 
-                // Check if all variants are unit (simple enum → string union)
-                let all_unit = e.variants.iter().all(|v| matches!(v.fields, Fields::Unit));
-                if all_unit {
+                // Serde's default externally-tagged unit enum is a string
+                // union. Explicitly tagged and untagged enums keep their
+                // configured representation even when every variant is unit.
+                let all_unit = e
+                    .variants
+                    .iter()
+                    .filter(|variant| !has_serde_skip(&variant.attrs))
+                    .all(|variant| matches!(variant.fields, Fields::Unit));
+                if all_unit && representation == EnumRepresentation::External {
                     let variants: Vec<(String, String)> = e
                         .variants
                         .iter()
+                        .filter(|variant| !has_serde_skip(&variant.attrs))
                         .map(|v| {
                             let vname = v.ident.to_string();
-                            let value = get_serde_rename_variant(v)
-                                .unwrap_or_else(|| to_snake_case(&vname));
+                            let value = get_serde_rename_variant(v).unwrap_or_else(|| {
+                                apply_rename_rule(&vname, serde.rename_all.as_deref())
+                            });
                             (vname, value)
                         })
                         .collect();
                     types.insert(
                         name,
-                        TsTypeDef::StringEnum { variants, has_fallback: false, doc },
+                        TsTypeDef::StringEnum {
+                            variants,
+                            has_fallback: false,
+                            doc,
+                        },
                     );
                 } else {
                     // Tagged enum (serde-derived, no WireEnum)
                     let variants: Vec<TsEnumVariant> = e
                         .variants
                         .iter()
+                        .filter(|variant| !has_serde_skip(&variant.attrs))
                         .map(|v| {
                             let vname = v.ident.to_string();
-                            let wire = get_serde_rename_variant(v).unwrap_or_default();
+                            let wire = get_serde_rename_variant(v).unwrap_or_else(|| {
+                                apply_rename_rule(&vname, serde.rename_all.as_deref())
+                            });
                             match &v.fields {
                                 Fields::Unit => TsEnumVariant::Unit { name: vname, wire },
                                 Fields::Unnamed(unnamed) => {
                                     if unnamed.unnamed.len() == 1 {
                                         let (ts, _) = rust_type_to_ts(&unnamed.unnamed[0].ty);
-                                        TsEnumVariant::Tuple { name: vname, wire, inner: ts }
+                                        TsEnumVariant::Tuple {
+                                            name: vname,
+                                            wire,
+                                            inner: ts,
+                                        }
                                     } else {
-                                        TsEnumVariant::Unit { name: vname, wire }
+                                        TsEnumVariant::Tuple {
+                                            name: vname,
+                                            wire,
+                                            inner: tuple_fields_to_ts(&unnamed.unnamed),
+                                        }
                                     }
                                 }
                                 Fields::Named(named) => {
                                     let fields: Vec<TsField> = named
                                         .named
                                         .iter()
+                                        .filter(|field| !has_serde_skip(&field.attrs))
                                         .map(|f| {
                                             let fname = f.ident.as_ref().unwrap().to_string();
                                             let (ts, opt) = rust_type_to_ts(&f.ty);
                                             TsField {
-                                                name: fname,
+                                                name: get_serde_rename(f).unwrap_or_else(|| {
+                                                    apply_rename_rule(
+                                                        &fname,
+                                                        serde.rename_all_fields.as_deref(),
+                                                    )
+                                                }),
                                                 ts_type: ts,
                                                 optional: opt,
-                                                doc: None,
+                                                doc: extract_doc(&f.attrs),
                                             }
                                         })
                                         .collect();
-                                    TsEnumVariant::Struct { name: vname, wire, fields }
+                                    TsEnumVariant::Struct {
+                                        name: vname,
+                                        wire,
+                                        fields,
+                                    }
                                 }
                             }
                         })
                         .collect();
-                    types.insert(name, TsTypeDef::Enum { variants, doc });
+                    types.insert(
+                        name,
+                        TsTypeDef::Enum {
+                            variants,
+                            doc,
+                            generics,
+                            representation,
+                        },
+                    );
                 }
             }
             _ => {}
@@ -541,6 +781,128 @@ fn has_serde_derive(attrs: &[Attribute]) -> bool {
         let s = meta.to_string();
         s.contains("Serialize") || s.contains("serde :: Serialize")
     })
+}
+
+#[derive(Debug, Default)]
+struct SerdeContainer {
+    tag: Option<String>,
+    content: Option<String>,
+    rename_all: Option<String>,
+    rename_all_fields: Option<String>,
+    untagged: bool,
+}
+
+impl SerdeContainer {
+    fn enum_representation(&self) -> EnumRepresentation {
+        if self.untagged {
+            EnumRepresentation::Untagged
+        } else if let Some(tag) = &self.tag {
+            if let Some(content) = &self.content {
+                EnumRepresentation::Adjacent {
+                    tag: tag.clone(),
+                    content: content.clone(),
+                }
+            } else {
+                EnumRepresentation::Internal { tag: tag.clone() }
+            }
+        } else {
+            EnumRepresentation::External
+        }
+    }
+}
+
+fn parse_serde_container(attrs: &[Attribute]) -> SerdeContainer {
+    SerdeContainer {
+        tag: serde_string_argument(attrs, "tag"),
+        content: serde_string_argument(attrs, "content"),
+        rename_all: serde_string_argument(attrs, "rename_all"),
+        rename_all_fields: serde_string_argument(attrs, "rename_all_fields"),
+        untagged: serde_has_flag(attrs, "untagged"),
+    }
+}
+
+fn serde_attribute_tokens(attrs: &[Attribute]) -> impl Iterator<Item = String> + '_ {
+    attrs
+        .iter()
+        .filter(|attribute| attribute.path().is_ident("serde"))
+        .filter_map(|attribute| {
+            attribute
+                .parse_args::<proc_macro2::TokenStream>()
+                .ok()
+                .map(|tokens| tokens.to_string())
+        })
+}
+
+fn serde_string_argument(attrs: &[Attribute], key: &str) -> Option<String> {
+    let needle = format!("{key} = \"");
+    for tokens in serde_attribute_tokens(attrs) {
+        if let Some(start) = tokens.find(&needle) {
+            let value = &tokens[start + needle.len()..];
+            if let Some(end) = value.find('"') {
+                return Some(value[..end].to_string());
+            }
+        }
+    }
+    None
+}
+
+fn serde_has_flag(attrs: &[Attribute], flag: &str) -> bool {
+    serde_attribute_tokens(attrs).any(|tokens| {
+        tokens
+            .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+            .any(|word| word == flag)
+    })
+}
+
+fn has_serde_skip(attrs: &[Attribute]) -> bool {
+    serde_has_flag(attrs, "skip")
+}
+
+fn type_parameters(generics: &syn::Generics) -> Vec<String> {
+    generics
+        .type_params()
+        .map(|parameter| parameter.ident.to_string())
+        .collect()
+}
+
+fn tuple_fields_to_ts(fields: &syn::punctuated::Punctuated<syn::Field, syn::Token![,]>) -> String {
+    let fields = fields
+        .iter()
+        .map(|field| rust_type_to_ts(&field.ty).0)
+        .collect::<Vec<_>>();
+    format!("[{}]", fields.join(", "))
+}
+
+fn apply_rename_rule(value: &str, rule: Option<&str>) -> String {
+    match rule {
+        Some("lowercase") => value.to_ascii_lowercase(),
+        Some("UPPERCASE") => value.to_ascii_uppercase(),
+        Some("PascalCase") => uppercase_first(value),
+        Some("camelCase") => lowercase_first(value),
+        Some("snake_case") => to_snake_case(value),
+        Some("SCREAMING_SNAKE_CASE") => to_snake_case(value).to_ascii_uppercase(),
+        Some("kebab-case") => to_snake_case(value).replace('_', "-"),
+        Some("SCREAMING-KEBAB-CASE") => to_snake_case(value).replace('_', "-").to_ascii_uppercase(),
+        // Unknown future Serde rename rules are deliberately not guessed.
+        // Keeping the source identifier makes drift visible in generator tests.
+        Some(_) | None => value.to_string(),
+    }
+}
+
+fn lowercase_first(value: &str) -> String {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(first) => first.to_ascii_lowercase().to_string() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
+fn uppercase_first(value: &str) -> String {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(first) => first.to_ascii_uppercase().to_string() + chars.as_str(),
+        None => String::new(),
+    }
 }
 
 /// Detect `#[derive(WireEnum)]` (the unified successor to `StringEnum` plus
@@ -562,7 +924,10 @@ fn has_wire_enum_derive(attrs: &[Attribute]) -> bool {
 #[derive(Debug)]
 enum WireEnumKind {
     UnitString,
-    Tagged(String),
+    Tagged {
+        discriminator: String,
+        content: Option<String>,
+    },
     Int,
 }
 
@@ -570,6 +935,7 @@ enum WireEnumKind {
 /// `WireEnum` derive runs in. Mirrors `wacore_derive`'s `parse_enum_level_wire`.
 fn wire_enum_kind(attrs: &[Attribute]) -> WireEnumKind {
     let mut tag_field: Option<String> = None;
+    let mut content_field: Option<String> = None;
     let mut int_kind = false;
     for attr in attrs {
         if !attr.path().is_ident("wire") {
@@ -584,21 +950,29 @@ fn wire_enum_kind(attrs: &[Attribute]) -> WireEnumKind {
                 {
                     tag_field = Some(lit.value());
                 }
-            } else if meta.path.is_ident("kind") {
+            } else if meta.path.is_ident("content") {
                 if let Ok(value) = meta.value()
                     && let Ok(lit) = value.parse::<syn::LitStr>()
-                    && lit.value() == "int"
                 {
-                    int_kind = true;
+                    content_field = Some(lit.value());
                 }
+            } else if meta.path.is_ident("kind")
+                && let Ok(value) = meta.value()
+                && let Ok(lit) = value.parse::<syn::LitStr>()
+                && lit.value() == "int"
+            {
+                int_kind = true;
             }
             Ok(())
         });
     }
     if int_kind {
         WireEnumKind::Int
-    } else if let Some(t) = tag_field {
-        WireEnumKind::Tagged(t)
+    } else if let Some(discriminator) = tag_field {
+        WireEnumKind::Tagged {
+            discriminator,
+            content: content_field,
+        }
     } else {
         WireEnumKind::UnitString
     }
@@ -678,41 +1052,12 @@ fn extract_doc(attrs: &[Attribute]) -> Option<String> {
 }
 
 fn get_serde_rename(f: &syn::Field) -> Option<String> {
-    for attr in &f.attrs {
-        if attr.path().is_ident("serde") {
-            let Ok(meta) = attr.parse_args::<proc_macro2::TokenStream>() else {
-                continue;
-            };
-            let s = meta.to_string();
-            if let Some(pos) = s.find("rename = \"") {
-                let rest = &s[pos + 10..];
-                if let Some(end) = rest.find('"') {
-                    return Some(rest[..end].to_string());
-                }
-            }
-        }
-    }
-    None
+    serde_string_argument(&f.attrs, "rename")
 }
 
 fn get_serde_rename_variant(v: &syn::Variant) -> Option<String> {
-    for attr in &v.attrs {
-        if attr.path().is_ident("serde") {
-            let Ok(meta) = attr.parse_args::<proc_macro2::TokenStream>() else {
-                continue;
-            };
-            let s = meta.to_string();
-            if let Some(pos) = s.find("rename = \"") {
-                let rest = &s[pos + 10..];
-                if let Some(end) = rest.find('"') {
-                    return Some(rest[..end].to_string());
-                }
-            }
-        }
-    }
-    None
+    serde_string_argument(&v.attrs, "rename")
 }
-
 
 /// Map a Rust type to a TypeScript type string.
 /// Returns (ts_type, is_optional).
@@ -724,14 +1069,15 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
 
             match ident.as_str() {
                 // Primitives
-                "String" | "str" => ("string".to_string(), false),
+                "String" | "str" | "CompactString" => ("string".to_string(), false),
                 "bool" => ("boolean".to_string(), false),
                 "u8" | "u16" | "u32" | "i8" | "i16" | "i32" | "f32" | "f64" => {
                     ("number".to_string(), false)
                 }
-                "u64" | "i64" | "u128" | "i128" | "usize" | "isize" => {
-                    ("number".to_string(), false)
-                }
+                // The bridge emits safe values as Number and falls back to a
+                // decimal string outside Number's exact integer range.
+                "u64" | "i64" | "u128" | "i128" => ("number | string".to_string(), false),
+                "usize" | "isize" => ("number".to_string(), false),
 
                 // Option<T> → T | null (optional field)
                 "Option" => {
@@ -739,7 +1085,7 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                         && let Some(GenericArgument::Type(inner)) = args.args.first()
                     {
                         let (inner_ts, _) = rust_type_to_ts(inner);
-                        return (format!("{} | null", inner_ts), true);
+                        return (append_null(inner_ts), true);
                     }
                     ("any".to_string(), true)
                 }
@@ -753,7 +1099,16 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                             return ("Uint8Array".to_string(), false);
                         }
                         let (inner_ts, _) = rust_type_to_ts(inner);
-                        return (format!("{}[]", inner_ts), false);
+                        return (array_type(inner_ts), false);
+                    }
+                    ("any[]".to_string(), false)
+                }
+
+                "HashSet" | "BTreeSet" => {
+                    if let PathArguments::AngleBracketed(args) = &last.arguments
+                        && let Some(GenericArgument::Type(inner)) = args.args.first()
+                    {
+                        return (array_type(rust_type_to_ts(inner).0), false);
                     }
                     ("any[]".to_string(), false)
                 }
@@ -808,13 +1163,61 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                 "Message" if path_contains_wa(path) => ("any".to_string(), false),
                 "HistorySync" if path_contains_wa(path) => ("any".to_string(), false),
 
-                // Default: use the type name as-is (assume it's another generated type)
-                other => (other.to_string(), false),
+                // Default: preserve generic arguments and assume the named
+                // type is another generated declaration.
+                other => (render_named_type(other, &last.arguments), false),
             }
         }
         Type::Reference(r) => rust_type_to_ts(&r.elem),
         Type::Tuple(t) if t.elems.is_empty() => ("void".to_string(), false),
+        Type::Tuple(t) => {
+            let values = t
+                .elems
+                .iter()
+                .map(|element| rust_type_to_ts(element).0)
+                .collect::<Vec<_>>();
+            (format!("[{}]", values.join(", ")), false)
+        }
+        Type::Array(array) if is_u8(&array.elem) => ("Uint8Array".to_string(), false),
+        Type::Array(array) => (array_type(rust_type_to_ts(&array.elem).0), false),
+        Type::Slice(slice) if is_u8(&slice.elem) => ("Uint8Array".to_string(), false),
+        Type::Slice(slice) => (array_type(rust_type_to_ts(&slice.elem).0), false),
         _ => ("any".to_string(), false),
+    }
+}
+
+fn append_null(ts_type: String) -> String {
+    if ts_type.split('|').any(|part| part.trim() == "null") {
+        ts_type
+    } else {
+        format!("{ts_type} | null")
+    }
+}
+
+fn array_type(element: String) -> String {
+    if element.contains(" | ") {
+        format!("({element})[]")
+    } else {
+        format!("{element}[]")
+    }
+}
+
+fn render_named_type(name: &str, arguments: &PathArguments) -> String {
+    let PathArguments::AngleBracketed(arguments) = arguments else {
+        return name.to_string();
+    };
+    let arguments = arguments
+        .args
+        .iter()
+        .filter_map(|argument| match argument {
+            GenericArgument::Type(ty) => Some(rust_type_to_ts(ty).0),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if arguments.is_empty() {
+        name.to_string()
+    } else {
+        format!("{name}<{}>", arguments.join(", "))
     }
 }
 
@@ -845,4 +1248,118 @@ fn to_snake_case(s: &str) -> String {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn generated_type(source: &str, name: &str) -> String {
+        let mut types = BTreeMap::new();
+        parse_source(source, &mut types);
+        types
+            .get(name)
+            .unwrap_or_else(|| panic!("missing generated type {name}"))
+            .to_typescript(name)
+    }
+
+    #[test]
+    fn serde_private_fields_generics_and_binary_types_are_preserved() {
+        let generated = generated_type(
+            r#"
+                #[derive(Serialize, Deserialize)]
+                #[serde(try_from = "Input<T>")]
+                pub struct Input<T> {
+                    private_name: CompactString,
+                    values: Vec<T>,
+                    maybe_bytes: Option<Vec<u8>>,
+                    large: u64,
+                    #[serde(skip)]
+                    internal: String,
+                }
+            "#,
+            "Input",
+        );
+
+        assert!(generated.contains("export interface Input<T>"));
+        assert!(generated.contains("private_name: string;"));
+        assert!(generated.contains("values: T[];"));
+        assert!(generated.contains("maybe_bytes?: Uint8Array | null;"));
+        assert!(generated.contains("large: number | string;"));
+        assert!(!generated.contains("internal"));
+    }
+
+    #[test]
+    fn adjacent_tagged_enum_keeps_payloads_and_concrete_generic_arguments() {
+        let generated = generated_type(
+            r#"
+                #[derive(Serialize, Deserialize)]
+                #[serde(tag = "type", content = "data", rename_all = "snake_case")]
+                pub enum Outcome<T> {
+                    Value(T),
+                    Structured { optional: Option<CompactString> },
+                    Empty,
+                }
+            "#,
+            "Outcome",
+        );
+
+        assert!(generated.contains("export type Outcome<T>"));
+        assert!(generated.contains("{ type: \"value\"; data: T }"));
+        assert!(generated.contains("{ type: \"structured\"; data: { optional?: string | null } }"));
+        assert!(generated.contains("{ type: \"empty\" }"));
+
+        let (concrete, optional) = rust_type_to_ts(
+            &syn::parse_str::<Type>("Outcome<Box<Option<CompactString>>>").unwrap(),
+        );
+        assert_eq!(concrete, "Outcome<string | null>");
+        assert!(!optional);
+    }
+
+    #[test]
+    fn serde_external_and_internal_representations_are_not_conflated() {
+        let external = generated_type(
+            r#"
+                #[derive(Serialize)]
+                pub enum External { Item(u32), Empty }
+            "#,
+            "External",
+        );
+        assert!(external.contains("{ \"Item\": number }"));
+        assert!(external.contains("| \"Empty\""));
+
+        let internal = generated_type(
+            r#"
+                #[derive(Serialize)]
+                #[serde(tag = "kind", rename_all = "snake_case")]
+                pub enum Internal { Item { renamed_field: u32 }, Empty }
+            "#,
+            "Internal",
+        );
+        assert!(internal.contains("{ kind: \"item\"; renamed_field: number }"));
+        assert!(internal.contains("{ kind: \"empty\" }"));
+    }
+
+    #[test]
+    fn adjacent_wire_enum_uses_declared_tags_and_nested_content() {
+        let generated = generated_type(
+            r#"
+                #[derive(WireEnum)]
+                #[wire(tag = "type", content = "data")]
+                pub enum Protocol {
+                    #[wire = "contact"]
+                    Contact { addressing_mode: Mode },
+                    #[wire = "devices"]
+                    DevicesV2,
+                    #[wire = "feature"]
+                    Features(Vec<Feature>),
+                }
+            "#,
+            "Protocol",
+        );
+
+        assert!(generated.contains("{ type: \"contact\"; data: { addressing_mode: Mode } }"));
+        assert!(generated.contains("{ type: \"devices\" }"));
+        assert!(generated.contains("{ type: \"feature\"; data: Feature[] }"));
+    }
 }

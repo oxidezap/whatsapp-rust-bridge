@@ -94,6 +94,29 @@ describe("encodeProto / decodeProto roundtrip", () => {
     expect(decoded.messageContextInfo.messageSecret.length).toBe(32);
   });
 
+  test("preserves an explicitly present zero-valued optional scalar", () => {
+    const bytes = encodeProto("Message", {
+      messageContextInfo: { messageAddOnDurationInSecs: 0 },
+    });
+    const decoded = decodeProto("Message", bytes);
+
+    expect(decoded.messageContextInfo).toBeDefined();
+    expect(decoded.messageContextInfo.messageAddOnDurationInSecs).toBe(0);
+  });
+
+  test("preserves a zero-valued optional scalar in a nested Signal record", () => {
+    const bytes = encodeProto("RecordStructure", {
+      currentSession: {
+        senderChain: {
+          chainKey: { index: 0, key: new Uint8Array([1]) },
+        },
+      },
+    });
+    const decoded = decodeProto("RecordStructure", bytes);
+
+    expect(decoded.currentSession.senderChain.chainKey.index).toBe(0);
+  });
+
   test("reactionMessage", () => {
     const msg = {
       reactionMessage: {
@@ -204,8 +227,8 @@ describe("encodeProto / decodeProto roundtrip", () => {
     expect(decoded.extendedTextMessage.text).toBe("hello");
   });
 
-  test("encode with camelCase keys (what Baileys sends)", () => {
-    // Baileys uses camelCase, our encodeProto converts to snake_case
+  test("encode with camelCase keys", () => {
+    // Host-facing camelCase is converted to the generated snake_case fields.
     const msg = {
       extendedTextMessage: {
         text: "camelCase test",

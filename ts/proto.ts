@@ -77,6 +77,7 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
+import { BinaryReader } from "./proto-reader";
 
 const GENERATED_MODULE = gen as unknown as Record<string, unknown>;
 
@@ -129,22 +130,25 @@ function longToBigInt(l: LongObject): bigint {
   return hi * 4294967296n + lo;
 }
 
-// Replace every nested `Long` object with a BigInt, allocation-consciously:
-//  - Zero allocation on the clean path: a message with no Long objects (the
+// Normalize the two protobufjs inputs that ts-proto cannot encode directly:
+// `Long` objects become BigInts and explicit null fields become absent fields.
+// Allocation-conscious implementation:
+//  - Zero allocation on the clean path: a message with neither case (the
 //    common non-quoted send) is returned by reference, untouched — no GC churn.
-//  - Structural sharing: only the objects/arrays ON THE PATH to a Long are
+//  - Structural sharing: only the objects/arrays ON THE PATH to a change are
 //    copied (`{ ...obj }` / `slice()`); unchanged subtrees are shared by ref.
 //  - Never mutates the input (the locally-echoed message keeps its Long objects).
 //  - Short-circuits on primitives and `Uint8Array`/typed-array byte fields.
 // Runs once per `encodeProto` — the outgoing-message path, not a hot receive loop.
-function normalizeLongObjects(value: unknown): unknown {
+function normalizeProtoInput(value: unknown): unknown {
+  if (value === null) return undefined;
   if (isLongObject(value)) return longToBigInt(value);
-  if (value === null || typeof value !== "object") return value;
+  if (typeof value !== "object") return value;
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
   if (Array.isArray(value)) {
     let copy: unknown[] | undefined;
     for (let i = 0; i < value.length; i++) {
-      const nv = normalizeLongObjects(value[i]);
+      const nv = normalizeProtoInput(value[i]);
       if (nv !== value[i]) (copy ??= value.slice())[i] = nv;
     }
     return copy ?? value;
@@ -156,7 +160,7 @@ function normalizeLongObjects(value: unknown): unknown {
   // message objects are plain (no enumerable prototype props), so nothing extra
   // is visited.
   for (const k in obj) {
-    const nv = normalizeLongObjects(obj[k]);
+    const nv = normalizeProtoInput(obj[k]);
     if (nv !== obj[k]) (copy ??= { ...obj })[k] = nv;
   }
   return copy ?? value;
@@ -164,10 +168,60 @@ function normalizeLongObjects(value: unknown): unknown {
 
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   const fns = resolve(typeName);
-  return fns.encode(fns.fromPartial(normalizeLongObjects(obj ?? {}))).finish();
+  // ts-proto's encoder accepts partial objects directly. Calling fromPartial
+  // first rebuilt the entire protobuf tree and walked every possible field
+  // before the encoder immediately walked it again.
+  return fns.encode(normalizeProtoInput(obj ?? {})).finish();
 }
 
 export function decodeProto(typeName: string, data: Uint8Array): unknown {
   const fns = resolve(typeName);
   return fns.decode(data);
+}
+
+const BATCH_OFFSET_SENTINEL_COUNT = 1;
+
+/**
+ * Decode concatenated protobuf payloads with one reader and no per-entry
+ * `Uint8Array.subarray()`. `offsets` must contain N + 1 monotonic positions,
+ * starting at zero and ending at `data.length`.
+ */
+export function decodeProtoBatch(
+  typeName: string,
+  data: Uint8Array,
+  offsets: Uint32Array,
+): unknown[] {
+  if (offsets.length < BATCH_OFFSET_SENTINEL_COUNT) {
+    throw new RangeError("protobuf batch offsets must contain the leading sentinel");
+  }
+  if (offsets[0] !== 0) {
+    throw new RangeError("protobuf batch offsets must start at zero");
+  }
+
+  const entryCount = offsets.length - BATCH_OFFSET_SENTINEL_COUNT;
+  for (let index = 0; index < entryCount; index++) {
+    if (offsets[index + 1]! < offsets[index]!) {
+      throw new RangeError("protobuf batch offsets must be monotonic");
+    }
+  }
+  if (offsets[entryCount] !== data.length) {
+    throw new RangeError("protobuf batch offsets must end at the data length");
+  }
+
+  const codec = resolve(typeName);
+  const reader = new BinaryReader(data);
+  const decoded = new Array<unknown>(entryCount);
+  for (let index = 0; index < entryCount; index++) {
+    const start = offsets[index]!;
+    const end = offsets[index + 1]!;
+    // The previous decoder normally leaves the reader at `start`; assigning it
+    // explicitly makes each offset authoritative and keeps zero-length entries
+    // deterministic.
+    reader.pos = start;
+    decoded[index] = codec.decode(reader, end - start);
+    if (reader.pos !== end) {
+      throw new RangeError("protobuf decoder did not consume the delimited entry");
+    }
+  }
+  return decoded;
 }

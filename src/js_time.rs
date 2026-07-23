@@ -1,7 +1,8 @@
 //! WASM time providers backed by JS globals.
 
-use wacore::time::{MonotonicProvider, TimeProvider};
 use wasm_bindgen::prelude::*;
+use whatsapp_rust::wacore;
+use whatsapp_rust::wacore::time::{MonotonicProvider, TimeProvider};
 
 #[wasm_bindgen]
 extern "C" {

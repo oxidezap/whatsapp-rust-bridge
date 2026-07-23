@@ -20,7 +20,7 @@ beforeAll(() => {
 
 describe("sendMessage serde path (camelCase → snake_case)", () => {
   test("encodeProto handles camelCase extendedTextMessage", () => {
-    // This is what Baileys generates (camelCase)
+    // Host-facing protobuf objects use camelCase.
     const msg = { extendedTextMessage: { text: "hello" } };
     const bytes = encodeProto("Message", msg);
     const decoded = decodeProto("Message", bytes);

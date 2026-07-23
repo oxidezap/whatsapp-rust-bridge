@@ -1,11 +1,11 @@
 /**
  * Auto-assembled `proto` namespace, protobufjs-API-compatible.
  *
- * Walks every value exported by `./generated/whatsapp` (the ts-proto output),
- * splits the flat `Parent_Child_GrandChild` naming into a nested namespace tree,
- * and wraps each `MessageFns` into the `{ encode, decode, fromObject, create,
- * toObject }` surface that legacy Baileys-style consumers expect from
- * `WAProto.X.encode(obj).finish()` and friends.
+ * Walks values exported by `./generated/whatsapp` (the ts-proto output), maps
+ * the flat `Parent_Child_GrandChild` naming into a nested namespace, and wraps
+ * each `MessageFns` into the `{ encode, decode,
+ * fromObject, create, toObject }` surface that protobufjs-style consumers
+ * expect from `WAProto.X.encode(obj).finish()` and friends.
  *
  * Why: there used to be a hand-maintained shim covering ~90 of the 1,352
  * generated types. Bots that touched anything outside the manual list
@@ -29,7 +29,8 @@
  */
 
 import * as gen from "./generated/whatsapp";
-import { encodeProto, decodeProto } from "./proto";
+import { encodeProto } from "./proto";
+import { BinaryReader } from "./proto-reader";
 
 // Tag the union type loosely — the generated module is huge and individual
 // member types matter less than the shape we extract from each value.
@@ -54,12 +55,14 @@ const isMessageFns = (v: AnyExport): v is MessageFnsLike =>
 const isEnumLike = (v: AnyExport): v is Record<string, number | string> =>
   typeof v === "object" && v !== null && !isMessageFns(v);
 
+function toJSONIdentity(this: unknown): unknown {
+  return this;
+}
+
 const attachToJSONIdentity = (obj: unknown): void => {
   if (obj && typeof obj === "object" && !("toJSON" in obj)) {
     Object.defineProperty(obj, "toJSON", {
-      value: function () {
-        return this;
-      },
+      value: toJSONIdentity,
       enumerable: false,
       writable: true,
       configurable: true,
@@ -75,14 +78,21 @@ const wrapMessage = (typeName: string, fns: MessageFnsLike) => ({
       },
     };
   },
-  decode(buffer: Uint8Array | ArrayBuffer | ArrayBufferView): any {
-    const data =
-      buffer instanceof Uint8Array
+  decode(buffer: BinaryReader | Uint8Array | ArrayBuffer | ArrayBufferView, length?: number): any {
+    const reader =
+      buffer instanceof BinaryReader
         ? buffer
-        : ArrayBuffer.isView(buffer)
-          ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-          : new Uint8Array(buffer as ArrayBuffer);
-    const decoded = decodeProto(typeName, data);
+        : new BinaryReader(
+            buffer instanceof Uint8Array
+              ? buffer
+              : ArrayBuffer.isView(buffer)
+                ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+                : new Uint8Array(buffer as ArrayBuffer),
+          );
+    // The wrapper already captured the generated codec while assembling the
+    // namespace. Decode through that typed reference instead of resolving the
+    // same type name in the string registry for every message.
+    const decoded = fns.decode(reader, length);
     attachToJSONIdentity(decoded);
     return decoded;
   },
@@ -110,60 +120,76 @@ const passthrough = () => ({
   },
 });
 
-/**
- * Wrap an object so unknown capitalized accesses synthesize a passthrough.
- * Lets `proto.Message.NewlyAddedThing.fromObject(...)` keep working when bots
- * compile against a newer `.d.ts` than the runtime knows about.
- */
-const wrapWithLazyChildren = <T extends object>(target: T): T =>
-  new Proxy(target, {
-    get(t, prop, receiver) {
-      const value = Reflect.get(t, prop, receiver);
-      if (value !== undefined) return value;
-      if (typeof prop !== "string" || !/^[A-Z]/.test(prop)) return value;
-      const synth = passthrough();
-      Reflect.set(t, prop, synth);
-      return synth;
-    },
-  });
-
-// ts-proto names nested types like `Message_VideoMessage` and nested enums like
-// `Message_ProtocolMessage_Type`. Splitting on `_` gives the namespace path
-// because proto type names themselves never contain underscores by convention.
-const splitNamespacePath = (flatName: string): string[] => flatName.split("_");
+const NAMESPACE_SEPARATOR = "_";
+const PROTO_TYPE_SEPARATOR = ".";
+const PROTOBUF_PACKAGE_EXPORT = "protobufPackage";
 
 // Some message-class names need protobufjs-style aliases that don't fall out
 // of the underscore-split scheme. Add them here as needed — `ADV*` is the
 // classic case (proto has `ADVDeviceIdentity`; ts-proto preserves it; both
-// shapes are accepted by upstream Baileys consumers).
+// shapes remain accepted for compatibility with persisted data).
 const HISTORICAL_ALIASES: Record<string, string> = {
   ADVKeyIndexList: "ADVSignedKeyIndexList",
 };
+
+/** Top-level carriers that synthesize unknown future children. */
+const FORWARD_COMPATIBLE_PARENTS = [
+  "Message",
+  "WebMessageInfo",
+  "ContextInfo",
+  "SyncActionValue",
+] as const;
+
+const isVisibleGeneratedExport = (name: string, value: AnyExport): boolean =>
+  name !== PROTOBUF_PACKAGE_EXPORT &&
+  !name.startsWith(NAMESPACE_SEPARATOR) &&
+  typeof value !== "function" &&
+  (isMessageFns(value) || isEnumLike(value));
+
+const isCapitalizedIdentifier = (name: string): boolean => {
+  const first = name.at(0);
+  return first !== undefined && first === first.toUpperCase() && first !== first.toLowerCase();
+};
+
+/**
+ * Preserve forward compatibility for the few well-known carrier namespaces.
+ * The generated tree itself stays eager and plain; only an unknown capitalized
+ * child on these carriers is synthesized and cached on demand.
+ */
+const wrapWithForwardCompatibleChildren = <T extends Record<string, any>>(target: T): T =>
+  new Proxy(target, {
+    get(current, prop, receiver) {
+      const value = Reflect.get(current, prop, receiver);
+      if (value !== undefined || typeof prop !== "string" || !isCapitalizedIdentifier(prop)) {
+        return value;
+      }
+      const synthesized = passthrough();
+      Reflect.set(current, prop, synthesized);
+      return synthesized;
+    },
+  });
 
 const buildNamespace = (): Record<string, any> => {
   const root: Record<string, any> = {};
 
   for (const [flatName, value] of Object.entries(gen)) {
-    if (flatName === "protobufPackage" || flatName.startsWith("_")) continue;
-    if (typeof value === "function") continue; // skip ts-proto's tag helpers
+    if (!isVisibleGeneratedExport(flatName, value)) continue;
 
-    const path = splitNamespacePath(flatName);
-    const leaf = path[path.length - 1]!;
+    const path = flatName.split(NAMESPACE_SEPARATOR);
+    const leaf = path.pop()!;
     let cursor = root;
-    for (let i = 0; i < path.length - 1; i++) {
-      const segment = path[i]!;
-      if (!cursor[segment]) cursor[segment] = {};
+    for (const segment of path) {
+      cursor[segment] ??= {};
       cursor = cursor[segment];
     }
 
     if (isMessageFns(value)) {
-      // Preserve any nested namespace already attached at this slot
-      // (children are processed in any order).
-      const wrapped = wrapMessage(flatName.replace(/_/g, "."), value);
-      cursor[leaf] = Object.assign(wrapped, cursor[leaf] || {});
+      // A nested namespace may have been attached before its parent message;
+      // merge it onto the wrapper so export order cannot discard children.
+      const wrapped = wrapMessage(flatName.replaceAll(NAMESPACE_SEPARATOR, PROTO_TYPE_SEPARATOR), value);
+      cursor[leaf] = Object.assign(wrapped, cursor[leaf] ?? {});
     } else if (isEnumLike(value)) {
-      // Merge enum entries onto whatever might already be there.
-      cursor[leaf] = Object.assign({}, cursor[leaf] || {}, value);
+      cursor[leaf] = Object.assign({}, cursor[leaf] ?? {}, value);
     }
   }
 
@@ -171,10 +197,8 @@ const buildNamespace = (): Record<string, any> => {
     if (root[target] && !root[alias]) root[alias] = root[target];
   }
 
-  // Wrap the busiest top-level messages so unknown sub-types lazy-fall through.
-  // Limit to the well-known carriers — wrapping every node would be overkill.
-  for (const lazyParent of ["Message", "WebMessageInfo", "ContextInfo", "SyncActionValue"]) {
-    if (root[lazyParent]) root[lazyParent] = wrapWithLazyChildren(root[lazyParent]);
+  for (const parent of FORWARD_COMPATIBLE_PARENTS) {
+    if (root[parent]) root[parent] = wrapWithForwardCompatibleChildren(root[parent]);
   }
 
   return root;
@@ -182,7 +206,6 @@ const buildNamespace = (): Record<string, any> => {
 
 /**
  * Protobufjs-shaped namespace covering every type the bridge knows about.
- * Stable surface; safe to import as `proto` (or alias to `WAProto` for legacy
- * upstream-Baileys-style bot code).
+ * Stable surface; safe to import as `proto`.
  */
 export const proto: Record<string, any> = buildNamespace();

@@ -15,12 +15,13 @@ use core::error::Error;
 
 use serde::Serialize;
 use thiserror::Error;
-use tsify_next::Tsify;
+use tsify::Tsify;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
 
 use whatsapp_rust::pair_code::{PairCodeError, PairError};
 use whatsapp_rust::request::IqError;
+use whatsapp_rust::{wacore, wacore_binary};
 
 /// Public error shape that crosses the WASM→JS boundary.
 ///
@@ -381,6 +382,39 @@ impl From<whatsapp_rust::features::PresenceError> for BridgeError {
     }
 }
 
+macro_rules! impl_from_error_chain {
+    ($($error:ty),+ $(,)?) => {
+        $(
+            impl From<$error> for BridgeError {
+                fn from(e: $error) -> Self {
+                    Self::from_error_chain(&e)
+                }
+            }
+        )+
+    };
+}
+
+// Domain facades now return their own typed errors instead of routing every
+// failure through ClientError/anyhow. Keep the JS error classification stable
+// by feeding each new entry point through the same source-chain walker.
+impl_from_error_chain!(
+    whatsapp_rust::CallError,
+    whatsapp_rust::SendError,
+    whatsapp_rust::features::AppStateError,
+    whatsapp_rust::features::BlockingError,
+    whatsapp_rust::features::ChatStateError,
+    whatsapp_rust::features::CommunityError,
+    whatsapp_rust::features::ContactError,
+    whatsapp_rust::features::GroupError,
+    whatsapp_rust::features::MediaReuploadError,
+    whatsapp_rust::features::NewsletterError,
+    whatsapp_rust::features::PollError,
+    whatsapp_rust::features::ProfileError,
+    whatsapp_rust::features::RetryRequestError,
+    whatsapp_rust::features::SignalError,
+    whatsapp_rust::features::StanzaResponseError,
+);
+
 // Deliberate non-impl: `From<serde_json::Error>`. The right `kind` depends on
 // where the JSON came from — caller-supplied input is `InvalidArgument`,
 // remote/CDN responses are `ProtocolViolation`, internal serialization is
@@ -559,6 +593,25 @@ mod tests {
                 assert!(message.contains("encoder blew up"));
             }
             other => panic!("expected Internal, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn contextualized_storage_error_keeps_the_callback_reason() {
+        let store_error = wacore::store::error::StoreError::Database(Box::new(
+            crate::js_backend::JsCallbackError {
+                context: "setMany",
+                message: "session projection failed".into(),
+            },
+        ));
+        let error = anyhow::Error::new(store_error).context("Failed to flush signal cache");
+        let bridge: BridgeError = error.into();
+
+        match bridge {
+            BridgeError::Storage { operation } => {
+                assert_eq!(operation, "JS setMany: session projection failed");
+            }
+            other => panic!("expected Storage, got {other:?}"),
         }
     }
 }

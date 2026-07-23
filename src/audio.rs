@@ -1,14 +1,13 @@
-use crate::js_val_to_error as js_val_err;
 use js_sys::{ArrayBuffer, Reflect, Uint8Array};
 use std::io::Cursor;
-use symphonia::core::audio::{AudioBuffer, AudioBufferRef, SampleBuffer, Signal};
-use symphonia::core::codecs::{CODEC_TYPE_NULL, Decoder, DecoderOptions};
+use symphonia::core::audio::{Audio, AudioBuffer, GenericAudioBufferRef};
+use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error;
-use symphonia::core::formats::{FormatOptions, FormatReader, Track};
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, FormatReader, Track, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
-use symphonia::core::units::TimeBase;
+use symphonia::core::units::{Duration, TimeBase, Timestamp};
 use wasm_bindgen::{JsCast, prelude::*};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{ReadableStream, ReadableStreamDefaultReader};
@@ -42,15 +41,8 @@ pub fn generate_waveform(audio_data: Vec<u8>) -> Result<Vec<u8>, String> {
 
     loop {
         let packet = match format.next_packet() {
-            Ok(packet) => packet,
-            Err(Error::IoError(ref e))
-                if matches!(
-                    e.kind(),
-                    std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::NotFound
-                ) =>
-            {
-                break;
-            }
+            Ok(Some(packet)) => packet,
+            Ok(None) => break,
             Err(Error::ResetRequired) => {
                 decoder.reset();
                 continue;
@@ -60,7 +52,7 @@ pub fn generate_waveform(audio_data: Vec<u8>) -> Result<Vec<u8>, String> {
             }
         };
 
-        if packet.track_id() != track_id {
+        if packet.track_id != track_id {
             continue;
         }
 
@@ -69,7 +61,7 @@ pub fn generate_waveform(audio_data: Vec<u8>) -> Result<Vec<u8>, String> {
             continue;
         }
 
-        let packet_start = packet.ts();
+        let packet_start = u64::try_from(packet.pts.get()).unwrap_or(0);
 
         match decoder.decode(&packet) {
             Ok(audio_buf) => {
@@ -117,21 +109,17 @@ pub fn compute_duration(audio_data: Vec<u8>) -> Result<f64, String> {
 
     let mss = MediaSourceStream::new(Box::new(Cursor::new(audio_data)), Default::default());
 
-    let probed = symphonia::default::get_probe()
-        .format(
+    let mut format = symphonia::default::get_probe()
+        .probe(
             &Hint::new(),
             mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
+            FormatOptions::default(),
+            MetadataOptions::default(),
         )
         .map_err(|e| format!("Failed to probe audio format: {e}"))?;
 
-    let mut format = probed.format;
-
     let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .default_track(TrackType::Audio)
         .cloned()
         .ok_or_else(|| "No supported audio track found".to_string())?;
 
@@ -144,26 +132,19 @@ pub fn compute_duration(audio_data: Vec<u8>) -> Result<f64, String> {
 
     loop {
         let packet = match format.next_packet() {
-            Ok(packet) => packet,
-            Err(Error::IoError(ref e))
-                if matches!(
-                    e.kind(),
-                    std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::NotFound
-                ) =>
-            {
-                break;
-            }
+            Ok(Some(packet)) => packet,
+            Ok(None) => break,
             Err(Error::ResetRequired) => continue,
             Err(e) => {
                 return Err(format!("Audio decode error: {e}"));
             }
         };
 
-        if packet.track_id() != track_id {
+        if packet.track_id != track_id {
             continue;
         }
 
-        stats.update(packet.ts(), packet.dur());
+        stats.update(packet.pts, packet.dur);
     }
 
     let ticks = stats
@@ -172,8 +153,12 @@ pub fn compute_duration(audio_data: Vec<u8>) -> Result<f64, String> {
 
     convert_ticks_to_seconds(
         ticks,
-        track.codec_params.time_base,
-        track.codec_params.sample_rate,
+        track.time_base,
+        track
+            .codec_params
+            .as_ref()
+            .and_then(|params| params.audio())
+            .and_then(|params| params.sample_rate),
     )
     .ok_or_else(|| "Missing timing information for audio track".to_string())
 }
@@ -194,48 +179,36 @@ pub fn generate_audio_waveform(audio_data: Vec<u8>) -> Result<Uint8Array, JsErro
 /// Accumulate audio samples into waveform bins
 #[inline]
 fn accumulate_to_bins(
-    buffer: &AudioBufferRef<'_>,
+    buffer: &GenericAudioBufferRef<'_>,
     bins: &mut [(f32, u32); WAVEFORM_SAMPLES],
     packet_start: u64,
     estimated_total: u64,
     total_processed: &mut u64,
 ) {
     // Optimized path for S16 (most common for MP3)
-    if let AudioBufferRef::S16(buf) = buffer {
-        accumulate_s16(
-            buf.as_ref(),
-            bins,
-            packet_start,
-            estimated_total,
-            total_processed,
-        );
+    if let GenericAudioBufferRef::S16(buf) = buffer {
+        accumulate_s16(buf, bins, packet_start, estimated_total, total_processed);
         return;
     }
 
-    // Generic path using SampleBuffer for format conversion
-    let spec = buffer.spec();
+    // Generic path using Symphonia's format-converting planar copy.
     let frames = buffer.frames();
-    let channel_count = spec.channels.count();
+    let channel_count = buffer.num_planes();
 
     if frames == 0 || channel_count == 0 {
         return;
     }
 
-    // Convert to f32 using SampleBuffer (clone is cheap - just copying references)
-    let mut sample_buf = SampleBuffer::<f32>::new(frames as u64, *spec);
-    sample_buf.copy_planar_ref(buffer.clone());
-    let samples = sample_buf.samples();
+    let mut samples = Vec::<Vec<f32>>::with_capacity(channel_count);
+    buffer.copy_to_vecs_planar(&mut samples);
 
     let inv_channels = 1.0f32 / channel_count as f32;
     let bin_count = WAVEFORM_SAMPLES as u64;
     let est_max = estimated_total.max(1);
 
-    for i in 0..frames {
+    for (i, _) in samples[0].iter().enumerate() {
         // Average all channels
-        let sample: f32 = (0..channel_count)
-            .map(|c| samples[c * frames + i])
-            .sum::<f32>()
-            * inv_channels;
+        let sample: f32 = (0..channel_count).map(|c| samples[c][i]).sum::<f32>() * inv_channels;
 
         let bin_idx = ((packet_start + i as u64) * bin_count / est_max) as usize;
         let bin_idx = bin_idx.min(WAVEFORM_SAMPLES - 1);
@@ -254,7 +227,7 @@ fn accumulate_s16(
     estimated_total: u64,
     total_processed: &mut u64,
 ) {
-    let channel_count = buffer.spec().channels.count();
+    let channel_count = buffer.num_planes();
     let frames = buffer.frames();
     if frames == 0 || channel_count == 0 {
         return;
@@ -274,12 +247,15 @@ fn accumulate_s16(
 
     match channel_count {
         1 => {
-            for (i, &sample) in buffer.chan(0).iter().enumerate().take(frames) {
+            let channel = buffer.plane(0).expect("audio plane must exist");
+            for (i, &sample) in channel.iter().enumerate().take(frames) {
                 update_bin(i, (sample as f32 * SCALE).abs());
             }
         }
         2 => {
-            let (chan0, chan1) = (buffer.chan(0), buffer.chan(1));
+            let (chan0, chan1) = buffer
+                .plane_pair(0, 1)
+                .expect("stereo audio planes must exist");
             for i in 0..frames {
                 let sample = ((chan0[i] as f32 + chan1[i] as f32) * 0.5 * SCALE).abs();
                 update_bin(i, sample);
@@ -288,7 +264,9 @@ fn accumulate_s16(
         _ => {
             let inv_channels = 1.0 / channel_count as f32;
             for i in 0..frames {
-                let sum: i32 = (0..channel_count).map(|c| buffer.chan(c)[i] as i32).sum();
+                let sum: i32 = (0..channel_count)
+                    .map(|c| buffer.plane(c).expect("audio plane must exist")[i] as i32)
+                    .sum();
                 let sample = (sum as f32 * inv_channels * SCALE).abs();
                 update_bin(i, sample);
             }
@@ -342,10 +320,14 @@ export function getAudioDuration(input: AudioDurationInput): Promise<number>;
 "#;
 
 fn duration_from_track_metadata(track: &Track) -> Option<f64> {
-    let codec_params = &track.codec_params;
-    let frames = codec_params.n_frames?;
+    if let (Some(duration), Some(time_base)) = (track.duration, track.time_base) {
+        return convert_ticks_to_seconds(duration.get(), Some(time_base), None);
+    }
 
-    convert_ticks_to_seconds(frames, codec_params.time_base, codec_params.sample_rate)
+    let frames = track.num_frames?;
+    let sample_rate = track.codec_params.as_ref()?.audio()?.sample_rate;
+
+    convert_ticks_to_seconds(frames, track.time_base, sample_rate)
 }
 
 #[inline]
@@ -359,8 +341,7 @@ fn convert_ticks_to_seconds(
     }
 
     if let Some(tb) = time_base {
-        let time = tb.calc_time(ticks);
-        return Some(time.seconds as f64 + time.frac);
+        return Some(ticks as f64 * f64::from(tb.numer.get()) / f64::from(tb.denom.get()));
     }
 
     sample_rate.map(|rate| ticks as f64 / rate as f64)
@@ -368,18 +349,19 @@ fn convert_ticks_to_seconds(
 
 #[derive(Default)]
 struct DurationAccumulator {
-    first_ts: Option<u64>,
-    max_end_ts: u64,
+    first_ts: Option<i64>,
+    max_end_ts: i128,
 }
 
 impl DurationAccumulator {
     #[inline]
-    fn update(&mut self, ts: u64, dur: u64) {
+    fn update(&mut self, ts: Timestamp, dur: Duration) {
+        let ts = ts.get();
         if self.first_ts.is_none() {
             self.first_ts = Some(ts);
         }
 
-        let end = ts.saturating_add(dur);
+        let end = i128::from(ts) + i128::from(dur.get());
         if end > self.max_end_ts {
             self.max_end_ts = end;
         }
@@ -388,7 +370,7 @@ impl DurationAccumulator {
     #[inline]
     fn elapsed_ticks(&self) -> Option<u64> {
         let start = self.first_ts?;
-        Some(self.max_end_ts.saturating_sub(start))
+        u64::try_from(self.max_end_ts - i128::from(start)).ok()
     }
 }
 
@@ -417,6 +399,13 @@ async fn read_stream(stream: &ReadableStream) -> Result<Vec<u8>, JsError> {
     read_from_reader(reader).await
 }
 
+fn js_val_err(value: JsValue) -> JsError {
+    let message = value
+        .as_string()
+        .unwrap_or_else(|| format!("JavaScript error: {value:?}"));
+    JsError::new(&message)
+}
+
 async fn read_from_reader(reader: ReadableStreamDefaultReader) -> Result<Vec<u8>, JsError> {
     let mut buf: Vec<u8> = Vec::with_capacity(64 * 1024);
 
@@ -443,7 +432,7 @@ async fn read_from_reader(reader: ReadableStreamDefaultReader) -> Result<Vec<u8>
 
 struct DecoderContext {
     format: Box<dyn FormatReader>,
-    decoder: Box<dyn Decoder>,
+    decoder: Box<dyn AudioDecoder>,
     track_id: u32,
     total_frames: Option<u64>,
 }
@@ -451,28 +440,30 @@ struct DecoderContext {
 fn prepare_decoder(audio_data: Vec<u8>) -> Result<DecoderContext, String> {
     let mss = MediaSourceStream::new(Box::new(Cursor::new(audio_data)), Default::default());
 
-    let probed = symphonia::default::get_probe()
-        .format(
+    let format = symphonia::default::get_probe()
+        .probe(
             &Hint::new(),
             mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
+            FormatOptions::default(),
+            MetadataOptions::default(),
         )
         .map_err(|e| format!("Failed to probe audio format: {e}"))?;
 
-    let format = probed.format;
-
     let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .default_track(TrackType::Audio)
+        .cloned()
         .ok_or_else(|| "No supported audio track found".to_string())?;
 
     let track_id = track.id;
-    let total_frames = track.codec_params.n_frames;
+    let total_frames = track.num_frames;
+    let audio_params = track
+        .codec_params
+        .as_ref()
+        .and_then(|params| params.audio())
+        .ok_or_else(|| "Audio track has no codec parameters".to_string())?;
 
     let decoder = symphonia::default::get_codecs()
-        .make(&track.codec_params.clone(), &DecoderOptions::default())
+        .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
         .map_err(|e| format!("Failed to create decoder: {e}"))?;
 
     Ok(DecoderContext {

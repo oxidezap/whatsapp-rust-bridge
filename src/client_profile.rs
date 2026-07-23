@@ -6,8 +6,8 @@
 //! defaults for any platform.
 
 use serde::{Deserialize, Serialize};
-use tsify_next::Tsify;
-use wacore::client_profile::ClientProfile;
+use tsify::Tsify;
+use whatsapp_rust::wacore::client_profile::ClientProfile;
 
 /// Optional Noise-payload overrides applied on top of every preset.
 /// Leaving any field `None` preserves wacore's default, which matches
@@ -45,9 +45,8 @@ impl ClientProfileOverrides {
 /// controls the "Linked Devices" display on the phone, this controls what
 /// the server sees in the noise layer.
 ///
-/// Use `{ preset: 'android', osVersion: '13' }` to mirror the upstream
-/// Baileys `Browsers.android('13')` behavior (UserAgent.platform = ANDROID,
-/// `web_info` omitted).
+/// Use `{ preset: 'android', osVersion: '13' }` to advertise
+/// `UserAgent.platform = ANDROID` with `web_info` omitted.
 ///
 /// Every variant flattens the [`ClientProfileOverrides`] fields, so the
 /// JS literal is flat (e.g. `{ preset: 'web', phoneId: 'fixed-id' }`).

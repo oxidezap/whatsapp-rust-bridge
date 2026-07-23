@@ -1,17 +1,17 @@
 //! WAProto TypeScript type generator.
 //!
 //! Parses `waproto/src/whatsapp.rs` (prost-generated) and outputs TypeScript
-//! type declarations matching the protobufjs format used by Baileys.
+//! type declarations matching the protobufjs format.
 //!
 //! Key features:
 //! - Generates `interface IFoo` + `class Foo` for each prost Message struct
 //! - Generates `enum Foo` for each prost Enumeration
 //! - Handles prost Oneof enums as both flat fields (protobufjs compat) AND
 //!   nested oneof object (prost serde compat) on the parent struct
-//! - camelCase field names matching protobufjs/Baileys convention
+//! - camelCase field names matching protobufjs convention
 //! - Proper nesting via `namespace` blocks matching proto package structure
 //!
-//! Usage: cargo run -p bridge-codegen --bin gen-proto-types > ../Baileys/WAProto/index.d.ts
+//! Usage: cargo run -p bridge-codegen --bin gen-proto-types
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -21,23 +21,12 @@ use syn::{Fields, GenericArgument, Item, PathArguments, Type, TypePath};
 // Data model
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct ProtoModule {
     messages: Vec<ProtoMessage>,
     enums: Vec<ProtoEnum>,
     oneofs: Vec<ProtoOneof>,
     submodules: BTreeMap<String, ProtoModule>,
-}
-
-impl Default for ProtoModule {
-    fn default() -> Self {
-        Self {
-            messages: Vec::new(),
-            enums: Vec::new(),
-            oneofs: Vec::new(),
-            submodules: BTreeMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -78,8 +67,6 @@ struct OneofVariant {
     name: String,
     /// TypeScript type of the variant's inner value
     ts_type: String,
-    /// The prost type annotation (message, string, bool, etc.)
-    prost_type: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -98,28 +85,31 @@ fn find_waproto_source() -> PathBuf {
     let lock_path = Path::new("../Cargo.lock");
     if let Ok(lock_content) = std::fs::read_to_string(lock_path) {
         for line in lock_content.lines() {
-            if line.contains("whatsapp-rust") && line.contains('#') {
-                if let Some(hash_start) = line.rfind('#') {
-                    let full_hash = line[hash_start + 1..].trim_end_matches('"');
-                    let short_hash = &full_hash[..7];
-                    let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
-                        let home = std::env::var("HOME").expect("HOME not set");
-                        format!("{home}/.cargo")
-                    });
-                    let checkouts = PathBuf::from(&cargo_home).join("git/checkouts");
-                    if let Ok(entries) = std::fs::read_dir(&checkouts) {
-                        for entry in entries.flatten() {
-                            if entry
-                                .file_name()
-                                .to_string_lossy()
-                                .starts_with("whatsapp-rust-")
-                            {
-                                let candidate =
-                                    entry.path().join(short_hash).join("waproto/src/whatsapp.rs");
-                                if candidate.exists() {
-                                    eprintln!("Using Cargo cache: {}", candidate.display());
-                                    return candidate;
-                                }
+            if line.contains("whatsapp-rust")
+                && line.contains('#')
+                && let Some(hash_start) = line.rfind('#')
+            {
+                let full_hash = line[hash_start + 1..].trim_end_matches('"');
+                let short_hash = &full_hash[..7];
+                let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
+                    let home = std::env::var("HOME").expect("HOME not set");
+                    format!("{home}/.cargo")
+                });
+                let checkouts = PathBuf::from(&cargo_home).join("git/checkouts");
+                if let Ok(entries) = std::fs::read_dir(&checkouts) {
+                    for entry in entries.flatten() {
+                        if entry
+                            .file_name()
+                            .to_string_lossy()
+                            .starts_with("whatsapp-rust-")
+                        {
+                            let candidate = entry
+                                .path()
+                                .join(short_hash)
+                                .join("waproto/src/whatsapp.rs");
+                            if candidate.exists() {
+                                eprintln!("Using Cargo cache: {}", candidate.display());
+                                return candidate;
                             }
                         }
                     }
@@ -128,7 +118,9 @@ fn find_waproto_source() -> PathBuf {
         }
     }
 
-    panic!("Cannot find waproto/src/whatsapp.rs — run from codegen/ dir or ensure whatsapp-rust is in ../");
+    panic!(
+        "Cannot find waproto/src/whatsapp.rs — run from codegen/ dir or ensure whatsapp-rust is in ../"
+    );
 }
 
 fn parse_waproto(path: &Path) -> ProtoModule {
@@ -194,7 +186,6 @@ fn parse_items(items: &[Item], module: &mut ProtoModule) {
                             OneofVariant {
                                 name: vname,
                                 ts_type,
-                                prost_type,
                             }
                         })
                         .collect();
@@ -204,14 +195,14 @@ fn parse_items(items: &[Item], module: &mut ProtoModule) {
                     let variants = e
                         .variants
                         .iter()
-                        .filter_map(|v| {
+                        .map(|v| {
                             let vname = v.ident.to_string();
-                            if let Some((_, syn::Expr::Lit(lit))) = &v.discriminant {
-                                if let syn::Lit::Int(i) = &lit.lit {
-                                    return Some((vname, i.base10_parse::<i32>().unwrap_or(0)));
-                                }
+                            if let Some((_, syn::Expr::Lit(lit))) = &v.discriminant
+                                && let syn::Lit::Int(i) = &lit.lit
+                            {
+                                return (vname, i.base10_parse::<i32>().unwrap_or(0));
                             }
-                            Some((vname, 0))
+                            (vname, 0)
                         })
                         .collect();
                     module.enums.push(ProtoEnum { name, variants });
@@ -220,10 +211,7 @@ fn parse_items(items: &[Item], module: &mut ProtoModule) {
             Item::Mod(m) => {
                 if let Some((_, items)) = &m.content {
                     let mod_name = m.ident.to_string();
-                    let sub = module
-                        .submodules
-                        .entry(mod_name)
-                        .or_insert_with(ProtoModule::default);
+                    let sub = module.submodules.entry(mod_name).or_default();
                     parse_items(items, sub);
                 }
             }
@@ -437,37 +425,11 @@ fn rust_type_to_ts_inner(ty: &Type) -> (String, bool) {
                 }
                 "Bytes" => ("Uint8Array".to_string(), false),
                 // Known prost/proto types — use last meaningful segment
-                other => {
-                    (format!("proto.I{other}"), false)
-                }
+                other => (format!("proto.I{other}"), false),
             }
         }
         _ => ("any".to_string(), false),
     }
-}
-
-/// Resolve a Rust type path to a TypeScript qualified name.
-/// Handles `super::` prefixes and module-qualified paths.
-fn resolve_ts_name(ident: &str, path: &syn::Path) -> String {
-    // Collect all path segments
-    let segments: Vec<String> = path.segments.iter().map(|s| s.ident.to_string()).collect();
-
-    // Filter out prost/alloc/core prefixes and "super"
-    // Keep only meaningful segments
-    let meaningful: Vec<&str> = segments
-        .iter()
-        .filter(|s| *s != "super" && *s != "prost" && *s != "alloc" && *s != "core" && *s != "option" && *s != "vec" && *s != "boxed")
-        .map(|s| s.as_str())
-        .collect();
-
-    if meaningful.is_empty() {
-        return format!("I{ident}");
-    }
-
-    // The last segment is the type name, preceding segments are module names
-    // Convert module names to PascalCase namespaces
-    let last = meaningful.last().unwrap();
-    format!("I{last}")
 }
 
 /// Convert a prost module path like "history_sync::HistorySyncType" to
@@ -483,45 +445,40 @@ fn rust_path_to_ts_path(path: &str) -> String {
 }
 
 fn unwrap_generic(ty: &Type) -> Option<&Type> {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if let Some(seg) = path.segments.last() {
-            if let PathArguments::AngleBracketed(args) = &seg.arguments {
-                if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                    return Some(inner);
-                }
-            }
-        }
+    if let Type::Path(TypePath { path, .. }) = ty
+        && let Some(seg) = path.segments.last()
+        && let PathArguments::AngleBracketed(args) = &seg.arguments
+        && let Some(GenericArgument::Type(inner)) = args.args.first()
+    {
+        return Some(inner);
     }
     None
 }
 
 fn unwrap_vec(ty: &Type) -> Option<&Type> {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if let Some(seg) = path.segments.last() {
-            if seg.ident == "Vec" {
-                return unwrap_generic(ty);
-            }
-        }
+    if let Type::Path(TypePath { path, .. }) = ty
+        && let Some(seg) = path.segments.last()
+        && seg.ident == "Vec"
+    {
+        return unwrap_generic(ty);
     }
     None
 }
 
 fn is_optional_type(ty: &Type) -> bool {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if let Some(seg) = path.segments.last() {
-            return seg.ident == "Option";
-        }
-    }
-    false
+    matches!(
+        ty,
+        Type::Path(TypePath { path, .. })
+            if path.segments.last().is_some_and(|segment| segment.ident == "Option")
+    )
 }
 
 fn is_u8_type(ty: &Type) -> bool {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        if let Some(seg) = path.segments.last() {
-            return seg.ident == "u8";
-        }
-    }
-    false
+    matches!(
+        ty,
+        Type::Path(TypePath { path, .. })
+            if path.segments.last().is_some_and(|segment| segment.ident == "u8")
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -604,7 +561,9 @@ fn emit_module(module: &ProtoModule, indent: usize, output: &mut String) {
                 // For oneof fields, emit:
                 // 1. Flat variant fields (protobufjs compat — used by sendMessage)
                 // 2. Nested oneof object (prost compat — used by relayMessage/encodeProto)
-                if let Some((_, Some(oneof))) = oneofs.iter().find(|(of, _)| of.rust_name == f.rust_name) {
+                if let Some((_, Some(oneof))) =
+                    oneofs.iter().find(|(of, _)| of.rust_name == f.rust_name)
+                {
                     // Flat variants (protobufjs style)
                     for v in &oneof.variants {
                         let camel_name = to_camel(&snake_from_pascal(&v.name));
@@ -638,12 +597,17 @@ fn emit_module(module: &ProtoModule, indent: usize, output: &mut String) {
         output.push_str(&format!("{pad}}}\n"));
 
         // Class with static methods (protobufjs compat)
-        output.push_str(&format!("\n{pad}class {name} implements {iname} {{\n", name = msg.name));
+        output.push_str(&format!(
+            "\n{pad}class {name} implements {iname} {{\n",
+            name = msg.name
+        ));
         output.push_str(&format!("{pad}    constructor(p?: {iname});\n"));
         // Repeat fields as public properties
         for f in &msg.fields {
             if f.oneof_path.is_some() {
-                if let Some((_, Some(oneof))) = oneofs.iter().find(|(of, _)| of.rust_name == f.rust_name) {
+                if let Some((_, Some(oneof))) =
+                    oneofs.iter().find(|(of, _)| of.rust_name == f.rust_name)
+                {
                     for v in &oneof.variants {
                         let camel_name = to_camel(&snake_from_pascal(&v.name));
                         output.push_str(&format!(
@@ -692,7 +656,9 @@ fn emit_module(module: &ProtoModule, indent: usize, output: &mut String) {
             "{pad}    public static toObject(m: {name}, o?: $protobuf.IConversionOptions): {{ [k: string]: any }};\n",
             name = msg.name
         ));
-        output.push_str(&format!("{pad}    public toJSON(): {{ [k: string]: any }};\n"));
+        output.push_str(&format!(
+            "{pad}    public toJSON(): {{ [k: string]: any }};\n"
+        ));
         output.push_str(&format!("{pad}}}\n"));
     }
 
@@ -702,12 +668,17 @@ fn emit_module(module: &ProtoModule, indent: usize, output: &mut String) {
         let ns_name = to_pascal(mod_name);
 
         // Only emit namespace if it has content
-        if sub.messages.is_empty() && sub.enums.is_empty() && sub.submodules.is_empty() && sub.oneofs.is_empty() {
+        if sub.messages.is_empty()
+            && sub.enums.is_empty()
+            && sub.submodules.is_empty()
+            && sub.oneofs.is_empty()
+        {
             continue;
         }
 
         // Check if there's content beyond just oneofs
-        let has_real_content = !sub.messages.is_empty() || !sub.enums.is_empty() || !sub.submodules.is_empty();
+        let has_real_content =
+            !sub.messages.is_empty() || !sub.enums.is_empty() || !sub.submodules.is_empty();
         if !has_real_content {
             continue;
         }
@@ -790,7 +761,7 @@ fn main() {
         println!();
 
         // Pick raw string delimiter that doesn't conflict with content
-        let delim = if ts.contains("\"#") {{ "##" }} else {{ "#" }};
+        let delim = if ts.contains("\"#") { "##" } else { "#" };
 
         println!("#[wasm_bindgen(typescript_custom_section)]");
         println!("const _TS_PROTO_TYPES: &str = r{delim}\"");
@@ -802,9 +773,7 @@ fn main() {
     let count_messages = count_items(&root, |m| m.messages.len());
     let count_enums = count_items(&root, |m| m.enums.len());
     let count_oneofs = count_items(&root, |m| m.oneofs.len());
-    eprintln!(
-        "Generated: {count_messages} messages, {count_enums} enums, {count_oneofs} oneofs"
-    );
+    eprintln!("Generated: {count_messages} messages, {count_enums} enums, {count_oneofs} oneofs");
 }
 
 fn count_items(module: &ProtoModule, counter: fn(&ProtoModule) -> usize) -> usize {

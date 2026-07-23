@@ -40,6 +40,11 @@ default = []
 audio = ["dep:symphonia"]
 image = ["dep:image"]
 sticker = ["dep:img-parts"]
+# Diagnostics-only counting allocator and scoped history-sync attribution.
+# Kept out of production builds because every allocation pays counter overhead.
+# The core's own tracing metadata supplies task names; the bridge never mirrors
+# its operation list.
+memory-profiling = ["dep:tracing", "dep:tracing-core", "whatsapp-rust/tracing"]
 
 [dependencies]
 anyhow = { version = "1.0", default-features = false }
@@ -55,44 +60,40 @@ getrandom = { version = "0.4", features = ["wasm_js"] }
 # Ensure all getrandom usages (including via rand in whatsapp-rust) get wasm_js support
 # This doesn't modify whatsapp-rust — Cargo unifies features across the dependency graph
 image = { version = "0.25.10", default-features = false, features = [
-  "jpeg",
-  "png",
-  "webp",
+    "jpeg",
+    "png",
+    "webp",
 ], optional = true }
 
 img-parts = { version = "0.4", default-features = false, optional = true }
 js-sys = "0.3"
 log = "0.4"
-prost = { version = "0.14.3", default-features = false }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
 serde-wasm-bindgen = "0.6.5"
 serde_bytes = "0.11"
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-symphonia = { version = "0.5.5", default-features = false, features = [
-  "mp3",
-  "aac",
-  "isomp4",
-  "ogg",
+symphonia = { version = "0.6.0", default-features = false, features = [
+    "mp3",
+    "aac",
+    "isomp4",
+    "ogg",
 ], optional = true }
 thiserror = { version = "2.0.18", default-features = false }
-tsify-next = { version = "0.5", default-features = false, features = ["js"] }
+tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
+tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
+tsify = { version = "0.5.6", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
 
-wacore = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", features = ["js", "danger-skip-cert-chain-verify"] }
-wacore-appstate = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main" }
-wacore-binary = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", features = ["serde"] }
-wacore-libsignal = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main" }
-waproto = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main" }
 wasm-bindgen = "0.2.121"
 wasm-bindgen-futures = "0.4.71"
-wasm-streams = "0.5"
+wasm-streams = "0.6"
 web-sys = { version = "0.3", features = [
-  "ReadableStream",
-  "ReadableStreamDefaultReader",
-  "WritableStream",
-  "Window",
+    "ReadableStream",
+    "ReadableStreamDefaultReader",
+    "WritableStream",
+    "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = ["debug-diagnostics"] }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = ["danger-skip-cert-chain-verify", "legacy-session-interop"] }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
@@ -107,6 +108,33 @@ opt-level = "z"
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# History sync inflates each retained blob once for core extraction and once
+# for bounded consumer streaming. Size-oriented codegen was measurably slower
+# in this dependency, so keep the bridge compact while optimizing the inflater's
+# hot loops for speed.
+[profile.release.package.zlib-rs]
+opt-level = 3
+
+# Large encrypted media (including downloaded history-sync chunks) stays on
+# the allocation-preserving Rust CBC path. Optimize that narrowly-scoped hot
+# stack without applying speed-oriented codegen to the whole WASM graph.
+[profile.release.package.wacore-libsignal]
+opt-level = 3
+[profile.release.package.aes]
+opt-level = 3
+[profile.release.package.cbc]
+opt-level = 3
+[profile.release.package.cipher]
+opt-level = 3
+[profile.release.package.inout]
+opt-level = 3
+
+# Keep the bounded inflater wrapper and binary framing on the same
+# speed-oriented codegen as zlib itself. Higher-level core/client crates remain
+# size-optimized; promoting them increased resident memory disproportionately.
+[profile.release.package.wacore-binary]
+opt-level = 3
 
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]

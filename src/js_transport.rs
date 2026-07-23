@@ -6,6 +6,7 @@
 //! (e.g. disconnect → ws.close → ws.onclose → reconnect → connect).
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use async_channel::Receiver;
 use async_trait::async_trait;
@@ -13,7 +14,7 @@ use bytes::Bytes;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use wacore::net::{DisconnectReason, Transport, TransportEvent, TransportFactory};
+use whatsapp_rust::wacore::net::{DisconnectReason, Transport, TransportEvent, TransportFactory};
 
 // ---------------------------------------------------------------------------
 // TypeScript interface (documentation only — actual impl uses raw Functions)
@@ -33,6 +34,11 @@ const TS_TRANSPORT: &str = r#"
  *   - Wire ws.onclose → handle.onDisconnected()
  *
  * `send(data)` sends raw bytes over the active WebSocket.
+ * `sendBorrowed(data)`, when provided, is the zero-copy fast path. The view is
+ * borrowed from WASM memory and is valid ONLY for the synchronous duration of
+ * the call: implementations MUST consume/copy it before returning and MUST NOT
+ * retain it, re-enter WASM, or return a Promise. The mandatory `send` method is
+ * kept as the safe copying fallback for every other transport.
  * `disconnect()` closes the WebSocket.
  */
 export interface JsTransportHandle {
@@ -44,9 +50,15 @@ export interface JsTransportHandle {
 export interface JsTransportCallbacks {
     connect(handle: JsTransportHandle): void | Promise<void>;
     send(data: Uint8Array): void | Promise<void>;
+    sendBorrowed?(data: Uint8Array): void;
     disconnect(): void | Promise<void>;
 }
 "#;
+
+const CONNECT_METHOD: &str = "connect";
+const SEND_METHOD: &str = "send";
+const SEND_BORROWED_METHOD: &str = "sendBorrowed";
+const DISCONNECT_METHOD: &str = "disconnect";
 
 // ---------------------------------------------------------------------------
 // Transport handle — JS pushes WebSocket events through this
@@ -129,6 +141,7 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue 
 struct RawTransportCallbacks {
     connect_fn: js_sys::Function,
     send_fn: js_sys::Function,
+    send_borrowed_fn: Option<js_sys::Function>,
     disconnect_fn: js_sys::Function,
     /// The original JS object — kept alive to prevent GC
     _js_obj: JsValue,
@@ -139,19 +152,23 @@ crate::wasm_send_sync!(RawTransportCallbacks);
 impl RawTransportCallbacks {
     /// Extract callbacks from a JS object with connect/send/disconnect methods.
     fn from_js(obj: JsValue) -> Result<Self, JsValue> {
-        let connect_fn = js_sys::Reflect::get(&obj, &"connect".into())?
+        let connect_fn = js_sys::Reflect::get(&obj, &CONNECT_METHOD.into())?
             .dyn_into::<js_sys::Function>()
             .map_err(|_| JsValue::from_str("transport.connect must be a function"))?;
-        let send_fn = js_sys::Reflect::get(&obj, &"send".into())?
+        let send_fn = js_sys::Reflect::get(&obj, &SEND_METHOD.into())?
             .dyn_into::<js_sys::Function>()
             .map_err(|_| JsValue::from_str("transport.send must be a function"))?;
-        let disconnect_fn = js_sys::Reflect::get(&obj, &"disconnect".into())?
+        let send_borrowed_fn = js_sys::Reflect::get(&obj, &SEND_BORROWED_METHOD.into())
+            .ok()
+            .and_then(|value| value.dyn_into::<js_sys::Function>().ok());
+        let disconnect_fn = js_sys::Reflect::get(&obj, &DISCONNECT_METHOD.into())?
             .dyn_into::<js_sys::Function>()
             .map_err(|_| JsValue::from_str("transport.disconnect must be a function"))?;
 
         Ok(Self {
             connect_fn,
             send_fn,
+            send_borrowed_fn,
             disconnect_fn,
             _js_obj: obj,
         })
@@ -166,6 +183,23 @@ impl RawTransportCallbacks {
     }
 
     async fn call_send(&self, data: &[u8]) -> Result<(), anyhow::Error> {
+        if let Some(send_borrowed_fn) = &self.send_borrowed_fn {
+            // SAFETY: this capability has an intentionally strict synchronous
+            // contract (documented in JsTransportCallbacks). The slice remains
+            // alive for the entire JS call; baileyrs immediately passes it to
+            // WebSocket.send and neither retains it nor re-enters WASM. A
+            // Promise result is rejected because the view cannot cross an
+            // asynchronous boundary or a possible WASM memory.grow.
+            let uint8 = unsafe { js_sys::Uint8Array::view(data) };
+            let result = send_borrowed_fn
+                .call1(&JsValue::NULL, &uint8.into())
+                .map_err(|e| anyhow::anyhow!("sendBorrowed: {e:?}"))?;
+            if result.is_instance_of::<js_sys::Promise>() {
+                anyhow::bail!("transport.sendBorrowed must return synchronously");
+            }
+            return Ok(());
+        }
+
         let uint8 = js_sys::Uint8Array::from(data);
         let result = self
             .send_fn
@@ -198,6 +232,7 @@ async fn resolve_maybe(val: JsValue) -> Result<(), anyhow::Error> {
 
 struct JsTransportInner {
     callbacks: Arc<RawTransportCallbacks>,
+    disconnected: AtomicBool,
 }
 
 crate::wasm_send_sync!(JsTransportInner);
@@ -206,11 +241,22 @@ crate::wasm_send_sync!(JsTransportInner);
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for JsTransportInner {
     async fn send(&self, data: Bytes) -> Result<(), anyhow::Error> {
+        if self.disconnected.load(Ordering::Acquire) {
+            anyhow::bail!("transport is disconnected");
+        }
         log::trace!("Transport::send {} bytes", data.len());
         self.callbacks.call_send(&data).await
     }
 
     async fn disconnect(&self) {
+        // The core may close a transport explicitly and then reach the
+        // authoritative cleanup path, which closes it again. The callback is
+        // shared across transport generations, so forwarding the second call
+        // could close the newly-created WebSocket instead of the old one.
+        if self.disconnected.swap(true, Ordering::AcqRel) {
+            log::debug!("Transport::disconnect ignored (already disconnected)");
+            return;
+        }
         log::debug!("Transport::disconnect called");
         let _ = self.callbacks.call_disconnect().await;
         log::debug!("Transport::disconnect completed");
@@ -252,6 +298,7 @@ impl TransportFactory for JsTransportFactory {
 
         let transport = Arc::new(JsTransportInner {
             callbacks: self.callbacks.clone(),
+            disconnected: AtomicBool::new(false),
         }) as Arc<dyn Transport>;
 
         Ok((transport, event_rx))

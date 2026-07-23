@@ -5,16 +5,14 @@ const wasmUrl = new URL("whatsapp_rust_bridge_bg.wasm", import.meta.url);
 const wasmBytes = readFileSync(wasmUrl);
 initSync({ module: wasmBytes });
 
-// Runtime exports from WASM
-export {
-  getWasmMemoryBytes,
-  getEnabledFeatures,
-  decryptPollVote,
-  getAggregateVotesInPollMessage,
-} from "../pkg/whatsapp_rust_bridge.js";
+// Re-export the generated WASM surface so feature-gated functions are exposed
+// whenever their Rust feature is enabled. Explicit wrappers below take
+// precedence for APIs whose public TypeScript signature needs refinement.
+export * from "../pkg/whatsapp_rust_bridge.js";
 
 // Pure-JS proto codec (bundled at build time, zero runtime deps for consumers)
-export { encodeProto, decodeProto } from "./proto";
+export { encodeProto, decodeProto, decodeProtoBatch } from "./proto";
+export { BinaryReader } from "./proto-reader";
 
 // Auto-assembled protobufjs-style namespace covering every ts-proto type.
 // Lets `WAProto.X.encode(obj).finish()` and friends work for the full schema
@@ -27,7 +25,7 @@ import {
   initWasmEngine as _initWasmEngine,
   createWhatsAppClient as _createWhatsAppClient,
 } from "../pkg/whatsapp_rust_bridge.js";
-import type { WhatsAppEvent, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig } from "../pkg/whatsapp_rust_bridge.js";
+import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig } from "../pkg/whatsapp_rust_bridge.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
@@ -35,12 +33,9 @@ export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEng
 export const createWhatsAppClient: (
   transport: JsTransportCallbacks,
   httpClient: JsHttpClientConfig,
-  onEvent?: ((event: WhatsAppEvent) => void) | null,
+  onEvent?: WhatsAppEventHandler | null,
   store?: JsStoreCallbacks | null,
   cache?: CacheConfig | null,
   version?: readonly [number, number, number] | null,
   wantedPreKeyCount?: number | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
-
-// All types come from pkg (Tsify types + generated wacore types via typescript_custom_section)
-export type * from "../pkg/whatsapp_rust_bridge.js";

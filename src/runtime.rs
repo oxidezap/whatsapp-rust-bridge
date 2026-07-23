@@ -7,9 +7,10 @@ use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use wacore::runtime::{AbortHandle, Runtime};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
+use whatsapp_rust::wacore;
+use whatsapp_rust::wacore::runtime::{AbortHandle, Runtime};
 
 /// WASM-based implementation of [`Runtime`].
 ///
