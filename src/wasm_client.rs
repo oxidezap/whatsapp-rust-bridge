@@ -133,19 +133,6 @@ macro_rules! bridge_events {
             };
             make_js_event(event_type, &data)
         }
-
-        // Generate event_to_json dispatch (host-agnostic)
-        /// Serialize an Event to a host-agnostic JSON value: `{"type": "...", "data": {...}}`.
-        pub fn event_to_json(event: &Event) -> Result<serde_json::Value, String> {
-            let (event_type, data) = match event {
-                $( Event::$variant(data) => {
-                    let val = serde_json::to_value(data).map_err(|e| e.to_string())?;
-                    ($name, val)
-                }, )*
-                other => return event_to_json_special(other),
-            };
-            Ok(serde_json::json!({ "type": event_type, "data": data }))
-        }
     };
 }
 
@@ -212,11 +199,11 @@ bridge_events! {
         "qr_scanned_without_multidevice"  => "Record<string, never>",
         "client_outdated"                 => "Record<string, never>",
         "raw_node"                        => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
-        // HistorySync ships the fully-decoded `proto.IHistorySync` (camelCase
-        // keys, Uint8Array bytes, defaults skipped — same convention as the
-        // `message` event) plus three top-level metadata fields the bridge
-        // already knew without parsing the proto. The raw bytes stay
-        // server-side; consumers get a typed structured payload.
+        // The bridge itself never emits `message`/`history_sync` events — both
+        // cross the boundary as wire batches (`onMessageBatch` /
+        // `onHistorySyncBatch`). The union entries describe the host-side
+        // reconstruction: hosts decode the wire payloads with their own codec
+        // and rebuild these shapes for their downstream consumers.
         "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
     }
 }
@@ -230,24 +217,21 @@ export interface WhatsAppClientConfig {
 }
 
 /**
- * Typed event sink. `onEventBatch` is an optional throughput capability: the
- * bridge gives an isolated message one cooperative I/O turn to collect an
- * adjacent frame, then invokes this method only when at least two messages are
- * ready. It never uses a batching timer or reorders events. Other event kinds
- * and remaining singletons continue through `onEvent`.
+ * Typed event sink. Message and history-sync events cross the boundary as
+ * protobuf wire bytes only: the host decodes them with its own codec, so the
+ * bridge never materializes an intermediate reflected JS tree (and never
+ * compiles the Rust->JS serializers for those proto graphs). A handler that
+ * omits `onMessageBatch`/`onHistorySyncBatch` has those events dropped with an
+ * error log; every other event kind continues through `onEvent`.
  */
 export interface WhatsAppEventCallbacks {
   onEvent(event: WhatsAppEvent): void;
-  onEventBatch?(events: readonly WhatsAppEvent[]): void;
   /**
-   * Optional protobuf-wire message path. When provided, it takes precedence
-   * over `onEvent`/`onEventBatch` for message events only. The bridge packs a
-   * bounded ordered group into one byte buffer; `messageOffsets` has N + 1
-   * entries (starts at 0, ends at `messageData.length`) and `infos` has N.
-   * This keeps the bridge transport-only and lets the host decode directly
-   * into its final object model without an intermediate reflected JS tree.
+   * Protobuf-wire message path. The bridge packs a bounded ordered group into
+   * one byte buffer; `messageOffsets` has N + 1 entries (starts at 0, ends at
+   * `messageData.length`) and `infos` has N.
    */
-  onMessageBatch?(batch: MessageWireBatch): void;
+  onMessageBatch(batch: MessageWireBatch): void;
   /**
    * Optional host-interest filter for conversation records. When present, the
    * bridge still walks every history payload and emits its final metadata, but
@@ -256,19 +240,24 @@ export interface WhatsAppEventCallbacks {
    */
   historySyncConversationTypes?: readonly number[];
   /**
-   * Optional zero-copy-friendly history-sync capability. Conversation protobuf
-   * entries cross as wire bytes and are decoded by the host directly into its
-   * final object model, avoiding an intermediate owned Rust protobuf tree.
+   * Protobuf-wire history-sync path. Conversation entries cross as wire bytes
+   * and the non-conversation remainder (pushnames, mappings, settings, ...)
+   * crosses as one encoded `proto.HistorySync` payload in `remainderData`.
    * Return the number of malformed entries skipped by the host, if any.
    */
-  onHistorySyncBatch?(batch: HistorySyncWireBatch): number | void;
+  onHistorySyncBatch(batch: HistorySyncWireBatch): number | void;
 }
 
-export type HistorySyncWireBatch = import('./proto-types').proto.IHistorySync & {
+export type HistorySyncWireBatch = {
   /** Concatenated Conversation protobuf payloads for this bounded batch. */
   conversationData: Uint8Array;
   /** Start offsets into conversationData, followed by its final byte length. */
   conversationOffsets: Uint32Array;
+  /**
+   * Encoded `proto.HistorySync` carrying every non-conversation field. Present
+   * only on the final batch of a chunk.
+   */
+  remainderData?: Uint8Array;
   syncType: number;
   chunkOrder?: number;
   progress?: number;
@@ -277,7 +266,11 @@ export type HistorySyncWireBatch = import('./proto-types').proto.IHistorySync & 
   isFinalBatch: boolean;
 };
 
-/** Legacy functions remain supported; callback objects opt into batching. */
+/**
+ * Plain functions remain supported for control-plane events (pairing, QR,
+ * connection lifecycle); message and history-sync delivery requires the
+ * callback-object form above.
+ */
 export type WhatsAppEventHandler =
   | ((event: WhatsAppEvent) => void)
   | WhatsAppEventCallbacks;
@@ -469,7 +462,6 @@ const HISTORY_SYNC_BATCH_MAX_CONVERSATIONS: usize = 16;
 /// alone; the count ceiling still bounds tiny-entry callback latency.
 const HISTORY_SYNC_BATCH_MAX_BYTES: usize = crate::WASM_PAGE_BYTES;
 const EVENT_CALLBACK_METHOD: &str = "onEvent";
-const EVENT_BATCH_CALLBACK_METHOD: &str = "onEventBatch";
 const MESSAGE_BATCH_CALLBACK_METHOD: &str = "onMessageBatch";
 const HISTORY_SYNC_BATCH_CALLBACK_METHOD: &str = "onHistorySyncBatch";
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
@@ -512,12 +504,12 @@ fn history_sync_wire_batch_next_capacity(current: usize, required: usize) -> usi
 }
 
 /// Parsed once at client creation so the hot dispatch loop never performs
-/// reflective method lookup. A plain function is the legacy single-event
-/// shape; an object may additionally opt into ready-queue message batching.
+/// reflective method lookup. A plain function is the legacy control-plane
+/// shape; message and history-sync delivery requires the object form with the
+/// wire-batch methods (their events are dropped with an error log otherwise).
 struct JsEventCallbacks {
     receiver: JsValue,
     on_event: js_sys::Function,
-    on_event_batch: Option<js_sys::Function>,
     on_message_batch: Option<js_sys::Function>,
     on_history_sync_batch: Option<js_sys::Function>,
     /// Bitset of host-requested numeric sync types; `None` preserves the legacy
@@ -531,7 +523,6 @@ impl JsEventCallbacks {
             return Ok(Self {
                 receiver: JsValue::NULL,
                 on_event: value.unchecked_into(),
-                on_event_batch: None,
                 on_message_batch: None,
                 on_history_sync_batch: None,
                 history_sync_conversation_types: None,
@@ -552,17 +543,26 @@ impl JsEventCallbacks {
             .dyn_into::<js_sys::Function>()
             .map_err(|_| crate::errors::invalid_arg("on_event.onEvent", "must be a function"))?;
 
-        let on_event_batch = Self::optional_method(&value, EVENT_BATCH_CALLBACK_METHOD)?;
         let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
         let on_history_sync_batch =
             Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
         let history_sync_conversation_types =
             Self::optional_history_sync_conversation_types(&value)?;
+        // Surface the contract gap at registration time: dispatch drops these
+        // events later, and a host that only learns from per-event error logs
+        // under load has a much worse debugging experience.
+        if on_message_batch.is_none() {
+            log::warn!("event callbacks lack onMessageBatch; message events will be dropped");
+        }
+        if on_history_sync_batch.is_none() {
+            log::warn!(
+                "event callbacks lack onHistorySyncBatch; history-sync events will be dropped"
+            );
+        }
 
         Ok(Self {
             receiver: value,
             on_event,
-            on_event_batch,
             on_message_batch,
             on_history_sync_batch,
             history_sync_conversation_types,
@@ -631,14 +631,6 @@ impl JsEventCallbacks {
         self.on_event.call1(&self.receiver, event)
     }
 
-    fn call_batch(&self, events: &js_sys::Array) -> Result<JsValue, JsValue> {
-        debug_assert!(self.on_event_batch.is_some());
-        self.on_event_batch
-            .as_ref()
-            .expect("batch callback checked before dispatch")
-            .call1(&self.receiver, events)
-    }
-
     fn call_history_sync_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
         debug_assert!(self.on_history_sync_batch.is_some());
         self.on_history_sync_batch
@@ -653,10 +645,6 @@ impl JsEventCallbacks {
             .as_ref()
             .expect("message callback checked before dispatch")
             .call1(&self.receiver, batch)
-    }
-
-    fn supports_batching(&self) -> bool {
-        self.on_event_batch.is_some()
     }
 
     fn supports_history_sync_batching(&self) -> bool {
@@ -772,12 +760,15 @@ async fn dispatch_event_to_js(
     // the final batch). See dispatch_history_sync_batches.
     if let Event::HistorySync(lazy) = event.as_ref() {
         let compressed_bytes = lazy.compressed_bytes().len();
-        let result = if callbacks.supports_history_sync_batching() {
-            dispatch_history_sync_wire_batches(callbacks, lazy)
-        } else {
-            dispatch_history_sync_batches(callbacks, lazy).await
-        };
-        if let Err(e) = result {
+        // Wire batching is the only history-sync boundary: the legacy
+        // structured-event path serialized every proto tree through the camel
+        // serializer, which kept the whole waproto Serialize graph alive in
+        // the binary even for hosts that never used it.
+        if !callbacks.supports_history_sync_batching() {
+            log::error!(
+                "History sync dropped: the event callbacks must provide onHistorySyncBatch"
+            );
+        } else if let Err(e) = dispatch_history_sync_wire_batches(callbacks, lazy) {
             log::warn!("History sync stream failed: {e}");
         }
         budget.reset();
@@ -790,29 +781,16 @@ async fn dispatch_event_to_js(
         return;
     }
 
-    if let Event::Messages(batch) = event.as_ref() {
-        if callbacks.supports_message_wire_batching() || callbacks.supports_batching() {
+    if let Event::Messages(_) = event.as_ref() {
+        // Wire batching is the only message boundary: protobuf payloads cross
+        // as bytes and the host decodes them with its own codec. The legacy
+        // per-message JS-object path serialized the full Message tree through
+        // the camel serializer, keeping that Serialize graph alive in the
+        // binary for every host.
+        if callbacks.supports_message_wire_batching() {
             dispatch_message_events(callbacks, event, event_rx, pending_event, budget).await;
-            return;
-        }
-
-        // Preserve the established one-callback-per-message contract for
-        // legacy function callbacks. Offline core batches are flattened in
-        // order and no consumer needs to learn a second payload shape.
-        for (index, inbound) in batch.iter().enumerate() {
-            match inbound_message_to_js(inbound) {
-                Ok(js_event) => {
-                    let batch_has_more = index + 1 < batch.len();
-                    dispatch_js_value(
-                        callbacks,
-                        js_event,
-                        budget,
-                        batch_has_more || !event_rx.is_empty(),
-                    )
-                    .await;
-                }
-                Err(e) => log::warn!("Message event serialization failed: {e:?}"),
-            }
+        } else {
+            log::error!("Messages dropped: the event callbacks must provide onMessageBatch");
         }
         return;
     }
@@ -997,9 +975,7 @@ async fn dispatch_message_events(
     }
 
     let mut current_event = Some(first_event);
-    let wire_enabled = callbacks.supports_message_wire_batching();
-    let mut wire_batch = wire_enabled.then(MessageWireBatch::default);
-    let mut js_events = (!wire_enabled).then(js_sys::Array::new);
+    let mut wire_batch = MessageWireBatch::default();
 
     loop {
         let event = current_event
@@ -1010,40 +986,19 @@ async fn dispatch_message_events(
         };
 
         for (index, inbound) in batch.iter().enumerate() {
-            if let Some(wire) = wire_batch.as_mut() {
-                if let Err(e) = wire.push(inbound) {
-                    log::warn!("Message wire serialization failed: {e:?}");
-                }
-                if wire.len() == EVENT_BATCH_CAPACITY {
-                    let more_in_core_batch = index + 1 < batch.len();
-                    let full_batch = std::mem::take(wire);
-                    dispatch_message_wire_batch(
-                        callbacks,
-                        full_batch,
-                        budget,
-                        more_in_core_batch || !event_rx.is_empty(),
-                    )
-                    .await;
-                }
-            } else if let Some(events) = js_events.as_mut() {
-                match inbound_message_to_js(inbound) {
-                    Ok(js_event) => {
-                        events.push(&js_event);
-                    }
-                    Err(e) => log::warn!("Message event serialization failed: {e:?}"),
-                };
-
-                if events.length() as usize == EVENT_BATCH_CAPACITY {
-                    let more_in_core_batch = index + 1 < batch.len();
-                    dispatch_js_events(
-                        callbacks,
-                        events,
-                        budget,
-                        more_in_core_batch || !event_rx.is_empty(),
-                    )
-                    .await;
-                    *events = js_sys::Array::new();
-                }
+            if let Err(e) = wire_batch.push(inbound) {
+                log::warn!("Message wire serialization failed: {e:?}");
+            }
+            if wire_batch.len() == EVENT_BATCH_CAPACITY {
+                let more_in_core_batch = index + 1 < batch.len();
+                let full_batch = std::mem::take(&mut wire_batch);
+                dispatch_message_wire_batch(
+                    callbacks,
+                    full_batch,
+                    budget,
+                    more_in_core_batch || !event_rx.is_empty(),
+                )
+                .await;
             }
         }
 
@@ -1062,10 +1017,8 @@ async fn dispatch_message_events(
     }
 
     let work_remains = pending_event.is_some() || !event_rx.is_empty();
-    if let Some(wire) = wire_batch.filter(|batch| !batch.is_empty()) {
-        dispatch_message_wire_batch(callbacks, wire, budget, work_remains).await;
-    } else if let Some(events) = js_events.filter(|events| events.length() > 0) {
-        dispatch_js_events(callbacks, &events, budget, work_remains).await;
+    if !wire_batch.is_empty() {
+        dispatch_message_wire_batch(callbacks, wire_batch, budget, work_remains).await;
     }
 }
 
@@ -1082,32 +1035,6 @@ async fn dispatch_message_wire_batch(
             }
         }
         Err(e) => log::warn!("Message wire batch materialization failed: {e:?}"),
-    }
-    if budget.record(work_remains) {
-        crate::runtime::set_timeout_0().await;
-    }
-}
-
-/// Use the legacy callback for a singleton and the batch capability for two or
-/// more events. This keeps low-volume latency/semantics unchanged while bursts
-/// cross the FFI boundary once per bounded group.
-async fn dispatch_js_events(
-    callbacks: &JsEventCallbacks,
-    events: &js_sys::Array,
-    budget: &mut EventDispatchBudget,
-    work_remains: bool,
-) {
-    match events.length() {
-        0 => return,
-        1 => {
-            dispatch_js_value(callbacks, events.get(0), budget, work_remains).await;
-            return;
-        }
-        _ => {}
-    }
-
-    if let Err(e) = callbacks.call_batch(events) {
-        log::warn!("JS event batch callback threw: {e:?}");
     }
     if budget.record(work_remains) {
         crate::runtime::set_timeout_0().await;
@@ -1135,8 +1062,8 @@ async fn dispatch_js_value(
 #[cfg(test)]
 mod event_dispatch_budget_tests {
     use super::{
-        EVENT_BATCH_CALLBACK_METHOD, EVENT_CALLBACK_BUDGET, EVENT_CALLBACK_METHOD,
-        EventDispatchBudget, HISTORY_SYNC_BATCH_CALLBACK_METHOD, HISTORY_SYNC_BATCH_MAX_BYTES,
+        EVENT_CALLBACK_BUDGET, EVENT_CALLBACK_METHOD, EventDispatchBudget,
+        HISTORY_SYNC_BATCH_CALLBACK_METHOD, HISTORY_SYNC_BATCH_MAX_BYTES,
         HISTORY_SYNC_BATCH_MAX_CONVERSATIONS, HISTORY_SYNC_CONVERSATION_TYPES_FIELD,
         JsEventCallbacks, MESSAGE_BATCH_CALLBACK_METHOD, MessageWireInfo,
         history_sync_wire_batch_next_capacity, history_sync_wire_batch_should_flush,
@@ -1261,32 +1188,9 @@ mod event_dispatch_budget_tests {
     fn accepts_the_legacy_function_callback() {
         let callback = js_sys::Function::new_no_args("");
         let parsed = JsEventCallbacks::from_js(callback.into()).expect("valid function");
-        assert!(!parsed.supports_batching());
         assert!(!parsed.supports_message_wire_batching());
-        assert!(parsed.wants_history_sync_conversations(-1));
-    }
-
-    #[test]
-    fn parses_the_typed_batch_capability_once() {
-        let callbacks = js_sys::Object::new();
-        let single = js_sys::Function::new_no_args("");
-        let batch = js_sys::Function::new_no_args("");
-        js_sys::Reflect::set(
-            &callbacks,
-            &JsValue::from_str(EVENT_CALLBACK_METHOD),
-            &single,
-        )
-        .expect("set onEvent");
-        js_sys::Reflect::set(
-            &callbacks,
-            &JsValue::from_str(EVENT_BATCH_CALLBACK_METHOD),
-            &batch,
-        )
-        .expect("set onEventBatch");
-
-        let parsed = JsEventCallbacks::from_js(callbacks.into()).expect("valid callback object");
-        assert!(parsed.supports_batching());
         assert!(!parsed.supports_history_sync_batching());
+        assert!(parsed.wants_history_sync_conversations(-1));
     }
 
     #[test]
@@ -1309,7 +1213,7 @@ mod event_dispatch_budget_tests {
 
         let parsed = JsEventCallbacks::from_js(callbacks.into()).expect("valid callback object");
         assert!(parsed.supports_message_wire_batching());
-        assert!(!parsed.supports_batching());
+        assert!(!parsed.supports_history_sync_batching());
     }
 
     #[test]
@@ -1377,10 +1281,10 @@ mod event_dispatch_budget_tests {
         .expect("set onEvent");
         js_sys::Reflect::set(
             &callbacks,
-            &JsValue::from_str(EVENT_BATCH_CALLBACK_METHOD),
+            &JsValue::from_str(MESSAGE_BATCH_CALLBACK_METHOD),
             &JsValue::from_str("not-a-function"),
         )
-        .expect("set invalid onEventBatch");
+        .expect("set invalid onMessageBatch");
 
         assert!(JsEventCallbacks::from_js(callbacks.into()).is_err());
     }
@@ -1407,12 +1311,11 @@ fn record_history_event_dequeued(event: &Event) {
     }
 }
 
-const HS_CONVERSATIONS_FIELD: &str = "conversations";
 const HS_CONVERSATION_DATA_FIELD: &str = "conversationData";
 const HS_CONVERSATION_OFFSETS_FIELD: &str = "conversationOffsets";
+const HS_REMAINDER_DATA_FIELD: &str = "remainderData";
 const HS_BATCH_INDEX_FIELD: &str = "batchIndex";
 const HS_FINAL_BATCH_FIELD: &str = "isFinalBatch";
-const HISTORY_SYNC_EVENT_TYPE: &str = "history_sync";
 
 /// Preferred history-sync host boundary: the core performs its existing
 /// bounded inflate/framing walk, while the host decodes each conversation wire
@@ -1546,110 +1449,6 @@ fn dispatch_history_sync_wire_batches(
     Ok(())
 }
 
-/// Serialize + dispatch one `Event::HistorySync` as N batched `{type, data}`
-/// JS events, yielding to the event loop between batches.
-///
-/// Consumes the core's `HistorySyncStream`: conversations are decoded one at a
-/// time straight from the COMPRESSED payload (bounded inflate window), so the
-/// decompressed blob never materializes at all — the event queued in the
-/// channel costs O(compressed). Each conversation is decoded into the same
-/// reusable Rust struct and copied immediately into its JS representation. The
-/// Rust side therefore never retains a batch of proto trees while the
-/// equivalent JS trees also exist: WASM decode memory is O(one conversation),
-/// while only the JS event remains O(batch). The macrotask yield between
-/// batches lets the JS side consume/scavenge instead of tenuring a whole
-/// chunk's objects into V8 old space.
-///
-/// The one-conversation lookahead keeps the batch count identical to the
-/// previous range-walk implementation: the last batch (even a full one) is the
-/// final event and carries the decoded non-conversation remainder
-/// (pushnames/mappings/settings/…). Lenient like the core stream: a malformed
-/// conversation is skipped, not fatal.
-async fn dispatch_history_sync_batches(
-    callbacks: &JsEventCallbacks,
-    lazy: &LazyHistorySync,
-) -> Result<(), wacore::history_sync::HistorySyncError> {
-    crate::memory_profile::record_history_sync(
-        lazy.compressed_bytes().len(),
-        lazy.decompressed_size(),
-    );
-    let mut stream = {
-        let _scope = crate::memory_profile::enter_scope(
-            crate::memory_profile::AllocationScope::HistoryDecode,
-        );
-        lazy.stream()
-    };
-    let mut batch_index = 0u32;
-    let mut batch_len = 0usize;
-    let mut js_conversations = js_sys::Array::new();
-    let mut conversation = waproto::whatsapp::Conversation::default();
-    let mut has_conversation = {
-        let _scope = crate::memory_profile::enter_scope(
-            crate::memory_profile::AllocationScope::HistoryDecode,
-        );
-        stream.next_conversation_into(&mut conversation)?
-    };
-
-    while has_conversation {
-        crate::memory_profile::record_history_conversation();
-        let serialized = {
-            let _scope = crate::memory_profile::enter_scope(
-                crate::memory_profile::AllocationScope::HistorySerialize,
-            );
-            crate::camel_serializer::to_js_value_camel(&conversation)
-        };
-        match serialized {
-            Ok(js_conversation) => {
-                js_conversations.push(&js_conversation);
-            }
-            Err(e) => log::warn!("History sync conversation serialization failed: {e:?}"),
-        }
-        batch_len += 1;
-
-        // Decode one item ahead so a full final batch still carries the
-        // remainder/metadata instead of requiring an extra empty event.
-        has_conversation = {
-            let _scope = crate::memory_profile::enter_scope(
-                crate::memory_profile::AllocationScope::HistoryDecode,
-            );
-            stream.next_conversation_into(&mut conversation)?
-        };
-        if batch_len == HISTORY_SYNC_BATCH_MAX_CONVERSATIONS && has_conversation {
-            emit_hs_event(callbacks, lazy, &js_conversations, None, batch_index, false);
-            batch_index += 1;
-            batch_len = 0;
-            js_conversations = js_sys::Array::new();
-            crate::runtime::set_timeout_0().await;
-        }
-    }
-    if stream.skipped_conversations() > 0 {
-        crate::memory_profile::record_history_skipped(stream.skipped_conversations());
-        log::warn!(
-            "History sync: {} undecodable conversation(s) skipped",
-            stream.skipped_conversations()
-        );
-    }
-
-    // Final batch: the remaining conversations (possibly zero — PushName-only,
-    // nctSalt-only and empty ON_DEMAND blobs still emit it) + the decoded
-    // remainder, so metadata + peerDataRequestSessionId always arrive.
-    let hs = {
-        let _scope = crate::memory_profile::enter_scope(
-            crate::memory_profile::AllocationScope::HistoryDecode,
-        );
-        stream.remainder()?
-    };
-    emit_hs_event(
-        callbacks,
-        lazy,
-        &js_conversations,
-        Some(&hs),
-        batch_index,
-        true,
-    );
-    Ok(())
-}
-
 fn emit_hs_wire_batch(
     callbacks: &JsEventCallbacks,
     lazy: &LazyHistorySync,
@@ -1699,65 +1498,32 @@ fn emit_hs_wire_batch(
     }
 }
 
-/// Build one batch event and hand it to the JS callback. Lenient: a
-/// serialization/callback failure is logged and skipped, not fatal to the
-/// remaining batches.
-fn emit_hs_event(
-    callbacks: &JsEventCallbacks,
-    lazy: &LazyHistorySync,
-    conversations: &js_sys::Array,
-    remainder: Option<&waproto::whatsapp::HistorySync>,
-    batch_index: u32,
-    is_final: bool,
-) {
-    crate::memory_profile::record_history_batch();
-    let event = {
-        let _scope = crate::memory_profile::enter_scope(
-            crate::memory_profile::AllocationScope::HistoryEnvelope,
-        );
-        make_hs_event(lazy, conversations, remainder, batch_index, is_final)
-    };
-    match event {
-        Ok(js_event) => {
-            let _scope = crate::memory_profile::enter_scope(
-                crate::memory_profile::AllocationScope::HistoryCallback,
-            );
-            if let Err(e) = callbacks.call_event(&js_event) {
-                log::warn!("JS event callback threw: {:?}", e);
-            }
-        }
-        Err(e) => log::warn!("History sync batch serialization failed: {e:?}"),
-    }
-}
-
-fn history_sync_data(
-    lazy: &LazyHistorySync,
-    history_sync: Option<&waproto::whatsapp::HistorySync>,
-) -> Result<js_sys::Object, JsValue> {
-    let data: js_sys::Object = match history_sync {
-        Some(hs) => crate::camel_serializer::to_js_value_camel(hs)?,
-        None => js_sys::Object::new().into(),
-    }
-    .unchecked_into();
-
-    // LazyHistorySync owns the canonical notification metadata and its
-    // Serialize implementation owns the field names. Keeping that contract in
-    // whatsapp-rust means new core metadata automatically crosses the bridge
-    // without another manually mirrored field list here.
-    let metadata: js_sys::Object =
-        crate::camel_serializer::to_js_value_camel_preserve_top_level_defaults(lazy)?
-            .unchecked_into();
-    js_sys::Object::assign(&data, &metadata);
-    Ok(data)
-}
-
 fn history_sync_batch_data(
     lazy: &LazyHistorySync,
     remainder: Option<&waproto::whatsapp::HistorySync>,
     batch_index: u32,
     is_final: bool,
 ) -> Result<js_sys::Object, JsValue> {
-    let data = history_sync_data(lazy, remainder)?;
+    // LazyHistorySync owns the canonical notification metadata and its
+    // Serialize implementation owns the field names. Keeping that contract in
+    // whatsapp-rust means new core metadata automatically crosses the bridge
+    // without another manually mirrored field list here.
+    let data: js_sys::Object =
+        crate::camel_serializer::to_js_value_camel_preserve_top_level_defaults(lazy)?
+            .unchecked_into();
+
+    // The non-conversation remainder crosses as one encoded protobuf payload
+    // and the host decodes it with its own codec. Reflecting the tree into JS
+    // here would keep the whole waproto Serialize graph compiled into the
+    // binary just for this field.
+    if let Some(remainder) = remainder {
+        use whatsapp_rust::buffa::Message as _;
+        js_sys::Reflect::set(
+            &data,
+            &HS_REMAINDER_DATA_FIELD.into(),
+            &js_sys::Uint8Array::from(remainder.encode_to_vec().as_slice()),
+        )?;
+    }
     js_sys::Reflect::set(
         &data,
         &HS_BATCH_INDEX_FIELD.into(),
@@ -1787,76 +1553,6 @@ fn make_hs_wire_batch(
         &js_sys::Uint32Array::from(conversation_offsets),
     )?;
     Ok(data.into())
-}
-
-/// Build one `{ type: "history_sync", data }` event from a (sub-batch) HistorySync,
-/// overlaying notification-level metadata + the batch markers.
-fn make_hs_event(
-    lazy: &LazyHistorySync,
-    conversations: &js_sys::Array,
-    remainder: Option<&waproto::whatsapp::HistorySync>,
-    batch_index: u32,
-    is_final: bool,
-) -> Result<JsValue, JsValue> {
-    let data = history_sync_batch_data(lazy, remainder, batch_index, is_final)?;
-
-    if conversations.length() > 0 {
-        js_sys::Reflect::set(&data, &HS_CONVERSATIONS_FIELD.into(), conversations)?;
-    }
-    make_js_event(HISTORY_SYNC_EVENT_TYPE, data.as_ref())
-}
-
-const MESSAGE_EVENT_TYPE: &str = "message";
-const MESSAGE_EVENT_MESSAGE_FIELD: &str = "message";
-const MESSAGE_EVENT_INFO_FIELD: &str = "info";
-const MESSAGE_INFO_VIEW_ONCE_FIELD: &str = "is_view_once";
-
-fn inbound_message_info_to_js(
-    inbound: &wacore::types::events::InboundMessage,
-) -> Result<JsValue, JsValue> {
-    use wacore::proto_helpers::MessageExt;
-
-    let info = crate::proto::to_js_value(&inbound.info)?;
-    js_sys::Reflect::set(
-        &info,
-        &MESSAGE_INFO_VIEW_ONCE_FIELD.into(),
-        &inbound.message.is_view_once().into(),
-    )?;
-    Ok(info)
-}
-
-fn inbound_message_to_js(
-    inbound: &wacore::types::events::InboundMessage,
-) -> Result<JsValue, JsValue> {
-    let data = js_sys::Object::new();
-    js_sys::Reflect::set(
-        &data,
-        &MESSAGE_EVENT_MESSAGE_FIELD.into(),
-        &crate::camel_serializer::to_js_value_camel(inbound.message.as_ref())?,
-    )?;
-    js_sys::Reflect::set(
-        &data,
-        &MESSAGE_EVENT_INFO_FIELD.into(),
-        &inbound_message_info_to_js(inbound)?,
-    )?;
-
-    make_js_event(MESSAGE_EVENT_TYPE, data.as_ref())
-}
-
-fn inbound_message_to_json(
-    inbound: &wacore::types::events::InboundMessage,
-) -> Result<serde_json::Value, String> {
-    use wacore::proto_helpers::MessageExt;
-
-    let message = crate::camel_serializer::to_json_value_camel(inbound.message.as_ref())?;
-    let mut info = serde_json::to_value(&inbound.info).map_err(|e| e.to_string())?;
-    if let Some(obj) = info.as_object_mut() {
-        obj.insert("is_view_once".into(), inbound.message.is_view_once().into());
-    }
-    Ok(serde_json::json!({
-        "type": "message",
-        "data": { "message": message, "info": info },
-    }))
 }
 
 /// Handles Event variants that need special serialization (no data, named
@@ -1917,12 +1613,6 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
             js_sys::Reflect::set(&d, &"reason".into(), &format!("{:?}", lo.reason).into())?;
             ("logged_out", d.into())
         }
-        Event::Messages(batch) => {
-            return match batch.first() {
-                Some(inbound) => inbound_message_to_js(inbound),
-                None => Ok(JsValue::UNDEFINED),
-            };
-        }
         Event::Notification(node) => {
             let data = node_ref_to_js(node.get())?;
             ("notification", data)
@@ -1931,18 +1621,10 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
             let data = node_ref_to_js(node.get())?;
             ("raw_node", data)
         }
-        Event::HistorySync(lazy) => {
-            // Drop if the proto blob can't be decoded — consumers can't act on it.
-            let Some(parsed) = lazy.get() else {
-                log::warn!("history_sync event with undecodable bytes; dropping");
-                return Ok(JsValue::UNDEFINED);
-            };
-            (
-                "history_sync",
-                history_sync_data(lazy, Some(parsed))?.into(),
-            )
-        }
-        // All other variants are handled by serialize_event! in event_to_js
+        // Messages and HistorySync never reach this function: the dispatch
+        // loop intercepts them and requires the wire-batch callbacks, so they
+        // fall through to the unhandled-variant log below if that invariant is
+        // ever broken.
         other => {
             log::warn!(
                 "unhandled event variant in event_to_js_special: {:?}",
@@ -1953,96 +1635,6 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
     };
 
     make_js_event(event_type, &data)
-}
-
-/// Host-agnostic equivalent of `event_to_js_special`.
-fn event_to_json_special(event: &Event) -> Result<serde_json::Value, String> {
-    let (event_type, data) = match event {
-        Event::Connected(_) => ("connected", serde_json::json!({})),
-        Event::Disconnected(_) => ("disconnected", serde_json::json!({})),
-        Event::QrScannedWithoutMultidevice(_) => {
-            ("qr_scanned_without_multidevice", serde_json::json!({}))
-        }
-        Event::ClientOutdated(_) => ("client_outdated", serde_json::json!({})),
-        Event::StreamReplaced(_) => ("stream_replaced", serde_json::json!({})),
-        Event::PairingQrCode(qr) => (
-            "qr",
-            serde_json::json!({ "code": qr.code, "timeout": qr.timeout.as_secs() }),
-        ),
-        Event::PairingCode(pairing) => (
-            "pairing_code",
-            serde_json::json!({
-                "code": pairing.code,
-                "timeout": pairing.timeout.as_secs(),
-            }),
-        ),
-        Event::PairSuccess(ps) => (
-            "pair_success",
-            serde_json::json!({
-                "id": ps.id.to_string(),
-                "lid": ps.lid.to_string(),
-                "business_name": ps.business_name.as_str(),
-                "platform": ps.platform.as_str(),
-            }),
-        ),
-        Event::PairError(pe) => (
-            "pair_error",
-            serde_json::json!({
-                "id": pe.id.to_string(),
-                "lid": pe.lid.to_string(),
-                "business_name": pe.business_name.as_str(),
-                "platform": pe.platform.as_str(),
-                "error": pe.error.as_str(),
-            }),
-        ),
-        Event::LoggedOut(lo) => (
-            "logged_out",
-            serde_json::json!({
-                "on_connect": lo.on_connect,
-                "reason": format!("{:?}", lo.reason),
-            }),
-        ),
-        Event::Messages(batch) => {
-            return match batch.first() {
-                Some(inbound) => inbound_message_to_json(inbound),
-                None => Ok(serde_json::Value::Null),
-            };
-        }
-        Event::Notification(node) => {
-            let val = serde_json::to_value(node.get()).map_err(|e| e.to_string())?;
-            ("notification", val)
-        }
-        Event::RawNode(node) => {
-            let val = serde_json::to_value(node.get()).map_err(|e| e.to_string())?;
-            ("raw_node", val)
-        }
-        Event::HistorySync(lazy) => {
-            let Some(parsed) = lazy.get() else {
-                return Ok(serde_json::Value::Null);
-            };
-            let mut val = crate::camel_serializer::to_json_value_camel(parsed)?;
-            if let Some(obj) = val.as_object_mut() {
-                obj.insert("syncType".into(), serde_json::Value::from(lazy.sync_type()));
-                if let Some(co) = lazy.chunk_order() {
-                    obj.insert("chunkOrder".into(), serde_json::Value::from(co));
-                }
-                if let Some(p) = lazy.progress() {
-                    obj.insert("progress".into(), serde_json::Value::from(p));
-                }
-                if let Some(sid) = lazy.peer_data_request_session_id() {
-                    obj.insert(
-                        "peerDataRequestSessionId".into(),
-                        serde_json::Value::from(sid),
-                    );
-                }
-            }
-            ("history_sync", val)
-        }
-        _other => {
-            return Ok(serde_json::Value::Null);
-        }
-    };
-    Ok(serde_json::json!({ "type": event_type, "data": data }))
 }
 
 /// Parse `[major, minor, patch]` from a JS value into `(u32, u32, u32)`.

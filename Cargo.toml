@@ -26,6 +26,10 @@ wasm-opt = [
     "--vacuum",
     "--directize",
     "--optimize-stack-ir",
+    # Folds near-identical function bodies (proto codegen monomorphizations)
+    # into shared parameterized ones. Only cold, structurally-similar code
+    # merges, so speed-critical paths keep their dedicated bodies.
+    "--merge-similar-functions",
     "--strip-debug",
 ]
 
