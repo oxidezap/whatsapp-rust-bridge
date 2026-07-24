@@ -59,6 +59,40 @@ thread_local! {
     static LONG_KEY_UNSIGNED: JsValue = JsValue::from_str("unsigned");
 }
 
+thread_local! {
+    /// Interned JS strings for JID values. Serialized events repeat the same
+    /// handful of addresses (chat/sender/participant) on every message, and
+    /// each uncached crossing pays a TextDecoder decode plus a fresh JS string
+    /// allocation. Bounded: cleared when it reaches `JID_CACHE_MAX` entries.
+    static JID_VALUE_CACHE: RefCell<HashMap<String, JsValue>> = RefCell::new(HashMap::new());
+}
+
+const JID_CACHE_MAX: usize = 1024;
+
+/// High-precision test for interning: the core's zero-alloc JID parser plus
+/// its canonical server table, so only address-shaped values enter the cache
+/// (unbounded user content like message text never does) and new servers stay
+/// recognized without a duplicated list here.
+fn is_jid_like(v: &str) -> bool {
+    use whatsapp_rust::wacore_binary::jid::{Server, parse_jid_fast};
+    v.len() <= 64 && parse_jid_fast(v).is_some_and(|parts| Server::try_from(parts.server).is_ok())
+}
+
+fn intern_str_value(v: &str) -> JsValue {
+    JID_VALUE_CACHE.with(|c| {
+        let mut map = c.borrow_mut();
+        if let Some(js) = map.get(v) {
+            return js.clone();
+        }
+        if map.len() >= JID_CACHE_MAX {
+            map.clear();
+        }
+        let js = JsValue::from_str(v);
+        map.insert(v.to_owned(), js.clone());
+        js
+    })
+}
+
 /// Split a signed `i64` into protobufjs-style `Long` parts: the low 32 bits as
 /// an unsigned value and the high 32 bits as a *signed* (two's-complement)
 /// value. `value = high * 2^32 + (low >>> 0)`. Pure arithmetic — unit-tested
@@ -75,7 +109,7 @@ pub(crate) fn u64_to_long_parts(v: u64) -> (u32, i32) {
 
 /// Build a protobufjs-style `Long` JS object `{ low, high, unsigned }` from the
 /// split 32-bit halves. `low`/`high` are emitted as JS numbers (both fit in a
-/// 32-bit range, so exact). `JSON.stringify`-safe and consumed by baileyrs
+/// 32-bit range, so exact). `JSON.stringify`-safe and consumed by host
 /// `toNumber()`. Mirrors `protobufjs/Long`.
 fn long_object(low: u32, high: i32, unsigned: bool) -> JsValue {
     let obj = Object::new();
@@ -256,6 +290,9 @@ impl ser::Serializer for CamelSerializer {
         Ok(JsValue::from_str(&v.to_string()))
     }
     fn serialize_str(self, v: &str) -> Result<JsValue, Error> {
+        if is_jid_like(v) {
+            return Ok(intern_str_value(v));
+        }
         Ok(JsValue::from_str(v))
     }
     fn serialize_bytes(self, v: &[u8]) -> Result<JsValue, Error> {

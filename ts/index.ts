@@ -14,6 +14,23 @@ export * from "../pkg/whatsapp_rust_bridge.js";
 export { encodeProto, decodeProto, decodeProtoBatch } from "./proto";
 export { BinaryReader } from "./proto-reader";
 
+// Packed wire-batch codecs (message metadata, receipts, server acks).
+export {
+  decodeMessageWireInfos,
+  decodeReceiptWireBatch,
+  decodeServerAckWireBatch,
+  encodeMessageWireInfos,
+  encodeReceiptWireBatch,
+  encodeServerAckWireBatch,
+  MESSAGE_WIRE_INFO_RECORD_WIDTH,
+  type MessageWireInfo,
+  type PackedMessageWireInfos,
+  type PackedWireBatch,
+  type ReceiptWireData,
+  type ServerAckWireData,
+  type WireJid,
+} from "./wire-info";
+
 // Auto-assembled protobufjs-style namespace covering every ts-proto type.
 // Lets `WAProto.X.encode(obj).finish()` and friends work for the full schema
 // without a hand-maintained shim — see `proto-namespace.ts` for details.

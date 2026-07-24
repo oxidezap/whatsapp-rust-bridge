@@ -4,11 +4,11 @@
 //! transport (WebSocket), storage (InMemory/JS), and HTTP (fetch).
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use futures::channel::oneshot;
 use log::info;
-use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::types::events::{Event, EventHandler, LazyHistorySync};
 use whatsapp_rust::wacore_binary::jid::Jid;
@@ -19,6 +19,7 @@ use crate::js_http::JsHttpClientAdapter;
 use crate::js_time;
 use crate::js_transport::JsTransportFactory;
 use crate::runtime::WasmRuntime;
+use crate::wire_batch::{MessageWireBatch, PackedEventBatch, ReceiptWireBatch, ServerAckWireBatch};
 
 thread_local! {
     /// Receivers signaled when a `Drop`-spawned cleanup task completes.
@@ -100,10 +101,27 @@ macro_rules! ev {
 const EVENT_TYPE_FIELD: &str = "type";
 const EVENT_DATA_FIELD: &str = "data";
 
-fn make_js_event(event_type: &str, data: &JsValue) -> Result<JsValue, JsValue> {
+thread_local! {
+    /// The envelope keys and the event-name strings, interned once per thread.
+    /// Without this every dispatched event re-crosses all three from WASM,
+    /// paying a `TextDecoder` decode plus a JS string allocation each time.
+    /// The name set is bounded by the event enum.
+    static EVENT_TYPE_KEY: JsValue = JsValue::from_str(EVENT_TYPE_FIELD);
+    static EVENT_DATA_KEY: JsValue = JsValue::from_str(EVENT_DATA_FIELD);
+    static EVENT_NAME_CACHE: RefCell<HashMap<&'static str, JsValue>> =
+        RefCell::new(HashMap::new());
+}
+
+fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, JsValue> {
     let event = js_sys::Object::new();
-    js_sys::Reflect::set(&event, &EVENT_TYPE_FIELD.into(), &event_type.into())?;
-    js_sys::Reflect::set(&event, &EVENT_DATA_FIELD.into(), data)?;
+    let name = EVENT_NAME_CACHE.with(|c| {
+        c.borrow_mut()
+            .entry(event_type)
+            .or_insert_with(|| JsValue::from_str(event_type))
+            .clone()
+    });
+    EVENT_TYPE_KEY.with(|k| js_sys::Reflect::set(&event, k, &name))?;
+    EVENT_DATA_KEY.with(|k| js_sys::Reflect::set(&event, k, data))?;
     Ok(event.into())
 }
 
@@ -229,7 +247,8 @@ export interface WhatsAppEventCallbacks {
   /**
    * Protobuf-wire message path. The bridge packs a bounded ordered group into
    * one byte buffer; `messageOffsets` has N + 1 entries (starts at 0, ends at
-   * `messageData.length`) and `infos` has N.
+   * `messageData.length`) and `infoRecords` has N packed metadata records.
+   * Decode the records with `decodeMessageWireInfos`.
    */
   onMessageBatch(batch: MessageWireBatch): void;
   /**
@@ -246,7 +265,50 @@ export interface WhatsAppEventCallbacks {
    * Return the number of malformed entries skipped by the host, if any.
    */
   onHistorySyncBatch(batch: HistorySyncWireBatch): number | void;
+  /**
+   * Optional packed receipt path: adjacent `receipt` events coalesce into one
+   * flat buffer (decode with `decodeReceiptWireBatch`) instead of one
+   * reflected object per event. Without it, receipts use `onEvent`.
+   * Decode the batch fully before calling back into the client: the reader
+   * walks the buffer in order and shares cached JID objects across events.
+   */
+  onReceiptBatch?(batch: ReceiptWireBatch): void;
+  /**
+   * Optional packed server-ack path, analogous to `onReceiptBatch`; decode
+   * with `decodeServerAckWireBatch`. Without it, acks use `onEvent`.
+   */
+  onServerAckBatch?(batch: ServerAckWireBatch): void;
 }
+
+export type MessageWireBatch = {
+  /** Concatenated `proto.Message` payloads in event order. */
+  messageData: Uint8Array;
+  /** N + 1 byte offsets delimiting the N payloads (starts at 0). */
+  messageOffsets: Uint32Array;
+  /** Concatenated UTF-8 payloads of the per-batch deduplicated string table. */
+  infoStringData: Uint8Array;
+  /** K + 1 byte offsets delimiting the K table entries (starts at 0). */
+  infoStringOffsets: Uint32Array;
+  /**
+   * Packed metadata, one fixed-width record per message; see
+   * `decodeMessageWireInfos` for the layout.
+   */
+  infoRecords: Float64Array;
+};
+
+export type ReceiptWireBatch = {
+  /**
+   * One flat batch buffer: header, cache definitions, fixed-width records and
+   * string bytes. Decode with `decodeReceiptWireBatch`, which keeps the
+   * process-wide caches the encoder writes against.
+   */
+  buffer: Uint8Array;
+};
+
+export type ServerAckWireBatch = {
+  /** Flat batch buffer; decode with `decodeServerAckWireBatch`. */
+  buffer: Uint8Array;
+};
 
 export type HistorySyncWireBatch = {
   /** Concatenated Conversation protobuf payloads for this bounded batch. */
@@ -452,6 +514,11 @@ const EVENT_CHANNEL_CAPACITY: usize = 16_384;
 /// This is a host-boundary resource limit shared by every batched event path,
 /// not a WhatsApp protocol rule.
 const EVENT_BATCH_CAPACITY: usize = 32;
+/// Whether an isolated live message spends one cooperative I/O turn trying to
+/// collect an adjacent frame before dispatching. Measured: disabling it drops
+/// coalescing to 1.00 messages per batch and the extra batches cost more than
+/// the saved macrotask.
+const MESSAGE_SINGLETON_COLLECT_TURN: bool = true;
 /// History conversations expand into dozens of JS objects each. A smaller
 /// boundary limits each synchronous callback's object tree. The whole chunk is
 /// drained without admitting more I/O; one macrotask yield happens only after
@@ -464,6 +531,8 @@ const HISTORY_SYNC_BATCH_MAX_BYTES: usize = crate::WASM_PAGE_BYTES;
 const EVENT_CALLBACK_METHOD: &str = "onEvent";
 const MESSAGE_BATCH_CALLBACK_METHOD: &str = "onMessageBatch";
 const HISTORY_SYNC_BATCH_CALLBACK_METHOD: &str = "onHistorySyncBatch";
+const RECEIPT_BATCH_CALLBACK_METHOD: &str = "onReceiptBatch";
+const SERVER_ACK_BATCH_CALLBACK_METHOD: &str = "onServerAckBatch";
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
 
 #[inline]
@@ -512,6 +581,8 @@ struct JsEventCallbacks {
     on_event: js_sys::Function,
     on_message_batch: Option<js_sys::Function>,
     on_history_sync_batch: Option<js_sys::Function>,
+    on_receipt_batch: Option<js_sys::Function>,
+    on_server_ack_batch: Option<js_sys::Function>,
     /// Bitset of host-requested numeric sync types; `None` preserves the legacy
     /// behavior of materializing conversations for every type.
     history_sync_conversation_types: Option<u128>,
@@ -525,6 +596,8 @@ impl JsEventCallbacks {
                 on_event: value.unchecked_into(),
                 on_message_batch: None,
                 on_history_sync_batch: None,
+                on_receipt_batch: None,
+                on_server_ack_batch: None,
                 history_sync_conversation_types: None,
             });
         }
@@ -546,6 +619,8 @@ impl JsEventCallbacks {
         let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
         let on_history_sync_batch =
             Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
+        let on_receipt_batch = Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?;
+        let on_server_ack_batch = Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?;
         let history_sync_conversation_types =
             Self::optional_history_sync_conversation_types(&value)?;
         // Surface the contract gap at registration time: dispatch drops these
@@ -565,6 +640,8 @@ impl JsEventCallbacks {
             on_event,
             on_message_batch,
             on_history_sync_batch,
+            on_receipt_batch,
+            on_server_ack_batch,
             history_sync_conversation_types,
         })
     }
@@ -653,6 +730,30 @@ impl JsEventCallbacks {
 
     fn supports_message_wire_batching(&self) -> bool {
         self.on_message_batch.is_some()
+    }
+
+    fn supports_receipt_batching(&self) -> bool {
+        self.on_receipt_batch.is_some()
+    }
+
+    fn supports_server_ack_batching(&self) -> bool {
+        self.on_server_ack_batch.is_some()
+    }
+
+    fn call_receipt_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
+        debug_assert!(self.on_receipt_batch.is_some());
+        self.on_receipt_batch
+            .as_ref()
+            .expect("receipt callback checked before dispatch")
+            .call1(&self.receiver, batch)
+    }
+
+    fn call_server_ack_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
+        debug_assert!(self.on_server_ack_batch.is_some());
+        self.on_server_ack_batch
+            .as_ref()
+            .expect("server-ack callback checked before dispatch")
+            .call1(&self.receiver, batch)
     }
 
     fn wants_history_sync_conversations(&self, sync_type: i32) -> bool {
@@ -756,7 +857,7 @@ async fn dispatch_event_to_js(
     // HistorySync is split into bounded batches so BOTH peaks are O(batch)
     // instead of O(chunk): the WASM decode peak (decoded protos) and the JS
     // heap peak (each batch's object tree dies before the next is built).
-    // The consumer/baileyrs accumulates the batches (and gates `isLatest` on
+    // The host accumulates the batches (and gates `isLatest` on
     // the final batch). See dispatch_history_sync_batches.
     if let Event::HistorySync(lazy) = event.as_ref() {
         let compressed_bytes = lazy.compressed_bytes().len();
@@ -794,156 +895,111 @@ async fn dispatch_event_to_js(
         }
         return;
     }
+    // Optional packed fast paths: receipts and server acks arrive one per
+    // stanza at message rate, so a host that opts in receives coalesced
+    // typed-array batches instead of one reflected object per event. Hosts
+    // without the callbacks keep the generic single-event path below.
+    if ReceiptWireBatch::accepts(event.as_ref()) && callbacks.supports_receipt_batching() {
+        dispatch_packed_events::<ReceiptWireBatch>(
+            callbacks,
+            event,
+            event_rx,
+            pending_event,
+            budget,
+        )
+        .await;
+        return;
+    }
+    if ServerAckWireBatch::accepts(event.as_ref()) && callbacks.supports_server_ack_batching() {
+        dispatch_packed_events::<ServerAckWireBatch>(
+            callbacks,
+            event,
+            event_rx,
+            pending_event,
+            budget,
+        )
+        .await;
+        return;
+    }
+
     match event_to_js(&event) {
         Ok(js_event) => dispatch_js_value(callbacks, js_event, budget, !event_rx.is_empty()).await,
         Err(e) => log::warn!("Event serialization failed: {e:?}"),
     }
 }
 
-const MESSAGE_WIRE_DATA_FIELD: &str = "messageData";
-const MESSAGE_WIRE_OFFSETS_FIELD: &str = "messageOffsets";
-const MESSAGE_WIRE_INFOS_FIELD: &str = "infos";
-
-/// Minimal metadata envelope paired with one wire-format message.
-#[derive(serde::Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-struct MessageWireInfo<'a> {
-    /// Canonical device-independent chat address.
-    chat: String,
-    /// Canonical device-independent author address.
-    sender: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sender_alt: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    recipient_alt: Option<String>,
-    is_from_me: bool,
-    is_group: bool,
-    id: &'a str,
-    /// Unix timestamp in seconds.
-    timestamp: f64,
-    push_name: &'a str,
-    is_view_once: bool,
-    is_offline: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    unavailable_request_id: Option<&'a str>,
-    /// Raw protocol edit attribute; absent when the attribute was empty.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    edit: Option<&'a str>,
+/// JS delivery channel for a packed batch kind: which registered callback
+/// receives it. Split from `PackedEventBatch` so the batch encoders in
+/// `wire_batch` stay independent of the callbacks owner.
+trait PackedBatchChannel: PackedEventBatch {
+    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue>;
 }
 
-impl<'a> MessageWireInfo<'a> {
-    fn from_inbound(inbound: &'a wacore::types::events::InboundMessage) -> Self {
-        use wacore::proto_helpers::MessageExt;
+impl PackedBatchChannel for ReceiptWireBatch {
+    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue> {
+        callbacks.call_receipt_batch(batch)
+    }
+}
 
-        let info = inbound.info.as_ref();
-        let source = &info.source;
-        let edit = info.edit.to_string_val();
-        Self {
-            chat: source.chat.to_non_ad_string(),
-            sender: source.sender.to_non_ad_string(),
-            sender_alt: source.sender_alt.as_ref().map(Jid::to_non_ad_string),
-            recipient_alt: source.recipient_alt.as_ref().map(Jid::to_non_ad_string),
-            is_from_me: source.is_from_me,
-            is_group: source.is_group,
-            id: &info.id,
-            timestamp: info.timestamp.timestamp() as f64,
-            push_name: &info.push_name,
-            is_view_once: inbound.message.is_view_once(),
-            is_offline: info.is_offline,
-            unavailable_request_id: info.unavailable_request_id.as_deref(),
-            edit: (!edit.is_empty()).then_some(edit),
+impl PackedBatchChannel for ServerAckWireBatch {
+    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue> {
+        callbacks.call_server_ack_batch(batch)
+    }
+}
+
+/// Coalesce an adjacent same-kind run into packed batches. The cross-kind
+/// lookahead is retained in `pending_event`, preserving exact ordering.
+///
+/// Unlike the message path there is no collect turn and no minimum run: the
+/// encoder's caches persist across batches, so a single event still costs two
+/// bytes for each repeated address instead of a rebuilt object graph.
+async fn dispatch_packed_events<B: PackedBatchChannel>(
+    callbacks: &JsEventCallbacks,
+    first_event: Arc<Event>,
+    event_rx: &async_channel::Receiver<Arc<Event>>,
+    pending_event: &mut Option<Arc<Event>>,
+    budget: &mut EventDispatchBudget,
+) {
+    let mut run = vec![first_event];
+    while let Ok(next) = event_rx.try_recv() {
+        if B::accepts(next.as_ref()) {
+            run.push(next);
+        } else {
+            record_history_event_dequeued(&next);
+            *pending_event = Some(next);
+            break;
         }
     }
 
-    fn into_js(self) -> Result<JsValue, JsValue> {
-        crate::camel_serializer::to_js_value_camel_preserve_top_level_defaults(&self)
-    }
-}
-
-/// Bounded transport representation for decrypted messages. Protobuf payloads
-/// share one backing buffer and one offset table; metadata remains structured
-/// because it is a small Rust-native envelope rather than a protobuf tree.
-#[derive(Tsify)]
-#[serde(rename_all = "camelCase")]
-struct MessageWireBatch {
-    /// Concatenated `proto.Message` payloads in event order.
-    #[tsify(type = "Uint8Array")]
-    message_data: Vec<u8>,
-    /// N + 1 byte offsets delimiting the N payloads in `messageData`.
-    #[tsify(type = "Uint32Array")]
-    message_offsets: Vec<u32>,
-    /// Metadata corresponding 1:1 with the delimited payloads.
-    #[tsify(type = "readonly MessageWireInfo[]")]
-    infos: js_sys::Array,
-}
-
-impl Default for MessageWireBatch {
-    fn default() -> Self {
-        Self {
-            message_data: Vec::new(),
-            // N messages always have N + 1 offsets. The leading sentinel also
-            // makes empty and singleton batches unambiguous to every host.
-            message_offsets: vec![0],
-            infos: js_sys::Array::new(),
-        }
-    }
-}
-
-impl MessageWireBatch {
-    #[inline]
-    fn len(&self) -> usize {
-        // The leading zero is the offset sentinel, so the remaining entries
-        // are exactly the number of messages and metadata objects appended.
-        self.message_offsets.len() - 1
-    }
-
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    #[cfg_attr(
-        feature = "memory-profiling",
-        tracing::instrument(name = "bridge.event.message_wire.encode", level = "trace", skip_all)
-    )]
-    fn push(&mut self, inbound: &wacore::types::events::InboundMessage) -> Result<(), JsValue> {
-        // Build metadata first: if its JS conversion fails, the packed byte
-        // stream stays untouched and the remaining messages remain decodable.
-        let info = MessageWireInfo::from_inbound(inbound).into_js()?;
-        let previous_len = self.message_data.len();
-        waproto::codec::message_encode_into(&inbound.message, &mut self.message_data);
-        let end = match u32::try_from(self.message_data.len()) {
-            Ok(end) => end,
-            Err(_) => {
-                self.message_data.truncate(previous_len);
-                return Err(JsValue::from_str(
-                    "message wire batch exceeded the Uint32 offset range",
-                ));
+    let total = run.len();
+    let mut start = 0;
+    while start < total {
+        let end = (start + EVENT_BATCH_CAPACITY).min(total);
+        // Encoding borrows the shared encoder; the callback runs after the
+        // borrow ends so a re-entrant host cannot observe a half-built batch.
+        let encoded = B::with_encoder(|encoder| {
+            encoder.begin();
+            for event in &run[start..end] {
+                if let Err(e) = encoder.push(event) {
+                    log::warn!("{} wire serialization failed: {e:?}", B::KIND);
+                }
             }
-        };
-        self.message_offsets.push(end);
-        self.infos.push(&info);
-        Ok(())
-    }
+            encoder.finish()
+        });
+        start = end;
 
-    #[cfg_attr(
-        feature = "memory-profiling",
-        tracing::instrument(name = "bridge.event.message_wire.ffi", level = "trace", skip_all)
-    )]
-    fn into_js(self) -> Result<JsValue, JsValue> {
-        let batch = js_sys::Object::new();
-        js_sys::Reflect::set(
-            &batch,
-            &MESSAGE_WIRE_DATA_FIELD.into(),
-            &js_sys::Uint8Array::from(self.message_data.as_slice()),
-        )?;
-        js_sys::Reflect::set(
-            &batch,
-            &MESSAGE_WIRE_OFFSETS_FIELD.into(),
-            &js_sys::Uint32Array::from(self.message_offsets.as_slice()),
-        )?;
-        js_sys::Reflect::set(&batch, &MESSAGE_WIRE_INFOS_FIELD.into(), &self.infos)?;
-        Ok(batch.into())
+        let work_remains = start < total || pending_event.is_some() || !event_rx.is_empty();
+        match encoded {
+            Ok(batch) => {
+                if let Err(e) = B::call(callbacks, &batch) {
+                    log::warn!("JS {} batch callback threw: {e:?}", B::KIND);
+                }
+            }
+            Err(e) => log::warn!("{} wire batch materialization failed: {e:?}", B::KIND),
+        }
+        if budget.record(work_remains) {
+            crate::runtime::set_timeout_0().await;
+        }
     }
 }
 
@@ -970,7 +1026,7 @@ async fn dispatch_message_events(
         first_event.as_ref(),
         Event::Messages(batch) if batch.len() == 1
     );
-    if is_singleton && event_rx.is_empty() {
+    if MESSAGE_SINGLETON_COLLECT_TURN && is_singleton && event_rx.is_empty() {
         crate::runtime::set_timeout_0().await;
     }
 
@@ -1065,15 +1121,11 @@ mod event_dispatch_budget_tests {
         EVENT_CALLBACK_BUDGET, EVENT_CALLBACK_METHOD, EventDispatchBudget,
         HISTORY_SYNC_BATCH_CALLBACK_METHOD, HISTORY_SYNC_BATCH_MAX_BYTES,
         HISTORY_SYNC_BATCH_MAX_CONVERSATIONS, HISTORY_SYNC_CONVERSATION_TYPES_FIELD,
-        JsEventCallbacks, MESSAGE_BATCH_CALLBACK_METHOD, MessageWireInfo,
-        history_sync_wire_batch_next_capacity, history_sync_wire_batch_should_flush,
+        JsEventCallbacks, MESSAGE_BATCH_CALLBACK_METHOD, history_sync_wire_batch_next_capacity,
+        history_sync_wire_batch_should_flush,
     };
-    use std::sync::Arc;
     use wasm_bindgen::JsValue;
     use wasm_bindgen_test::wasm_bindgen_test as test;
-    use whatsapp_rust::wacore::types::events::InboundMessage;
-    use whatsapp_rust::wacore::types::message::{EditAttribute, MessageInfo};
-    use whatsapp_rust::waproto::whatsapp::Message;
 
     #[test]
     fn idle_queue_resets_the_burst_without_an_extra_yield() {
@@ -1097,47 +1149,6 @@ mod event_dispatch_budget_tests {
         }
         assert!(budget.record(true));
         assert!(!budget.record(true));
-    }
-
-    #[test]
-    fn message_wire_info_is_flat_canonical_and_preserves_scalar_defaults() {
-        let mut info = MessageInfo::default();
-        info.source.chat = "120363@g.us".parse().expect("valid chat jid");
-        info.source.sender = "5511:7@s.whatsapp.net".parse().expect("valid sender jid");
-        info.source.sender_alt = Some("999:3@lid".parse().expect("valid alternate jid"));
-        info.id = "WIRE-1".into();
-        info.push_name = "Alice".into();
-        info.edit = EditAttribute::MessageEdit;
-        info.unavailable_request_id = Some("PDO-1".into());
-
-        let inbound = InboundMessage::builder()
-            .message(Arc::new(Message::default()))
-            .info(Arc::new(info))
-            .build();
-        let wire = MessageWireInfo::from_inbound(&inbound)
-            .into_js()
-            .expect("wire metadata serializes");
-
-        let field =
-            |name| js_sys::Reflect::get(&wire, &JsValue::from_str(name)).expect("read wire field");
-        assert_eq!(field("chat").as_string().as_deref(), Some("120363@g.us"));
-        assert_eq!(
-            field("sender").as_string().as_deref(),
-            Some("5511@s.whatsapp.net")
-        );
-        assert_eq!(field("senderAlt").as_string().as_deref(), Some("999@lid"));
-        assert_eq!(field("id").as_string().as_deref(), Some("WIRE-1"));
-        assert_eq!(field("pushName").as_string().as_deref(), Some("Alice"));
-        assert_eq!(field("isFromMe").as_bool(), Some(false));
-        assert_eq!(field("isGroup").as_bool(), Some(false));
-        assert_eq!(field("isViewOnce").as_bool(), Some(false));
-        assert_eq!(field("isOffline").as_bool(), Some(false));
-        assert_eq!(
-            field("unavailableRequestId").as_string().as_deref(),
-            Some("PDO-1")
-        );
-        assert_eq!(field("edit").as_string().as_deref(), Some("1"));
-        assert!(field("sender_alt").is_undefined());
     }
 
     #[test]
@@ -1517,11 +1528,10 @@ fn history_sync_batch_data(
     // here would keep the whole waproto Serialize graph compiled into the
     // binary just for this field.
     if let Some(remainder) = remainder {
-        use whatsapp_rust::buffa::Message as _;
         js_sys::Reflect::set(
             &data,
             &HS_REMAINDER_DATA_FIELD.into(),
-            &js_sys::Uint8Array::from(remainder.encode_to_vec().as_slice()),
+            &js_sys::Uint8Array::from(waproto::codec::history_sync_to_vec(remainder).as_slice()),
         )?;
     }
     js_sys::Reflect::set(
@@ -2076,7 +2086,7 @@ impl WasmWhatsAppClient {
     /// then disconnects. Does NOT clear stored keys — the caller should
     /// delete the store to fully clear credentials.
     pub async fn logout(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.logout().await?;
+        self.client.logout().await;
         if let Some(handle) = self
             .saver_handle
             .lock()
@@ -2229,10 +2239,10 @@ impl WasmWhatsAppClient {
         message_id: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let options = whatsapp_rust::SendOptions {
-            message_id,
-            ..Default::default()
-        };
+        let mut options = whatsapp_rust::SendOptions::default();
+        if let Some(message_id) = message_id {
+            options = options.with_message_id(message_id);
+        }
         send_message_with_options(&self.client, to, msg, options).await
     }
 
@@ -2251,13 +2261,13 @@ impl WasmWhatsAppClient {
         refresh_devices: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let options = whatsapp_rust::SendOptions {
-            message_id,
-            extra_stanza_nodes: js_node_array_to_vec(extra_nodes)?,
-            group_metadata_freshness: freshness(refresh_group_metadata),
-            device_freshness: freshness(refresh_devices),
-            ..Default::default()
-        };
+        let mut options = whatsapp_rust::SendOptions::default()
+            .with_extra_stanza_nodes(js_node_array_to_vec(extra_nodes)?)
+            .with_group_metadata_freshness(freshness(refresh_group_metadata))
+            .with_device_freshness(freshness(refresh_devices));
+        if let Some(message_id) = message_id {
+            options = options.with_message_id(message_id);
+        }
         send_message_with_options(&self.client, to, msg, options).await
     }
 
@@ -2408,7 +2418,14 @@ impl WasmWhatsAppClient {
 
         self.client
             .groups()
-            .set_description(&group_jid, desc, None)
+            // The caller holds no description id, so the core reads the current
+            // one before sending: without that token the server rejects every
+            // update of a group that already has a description.
+            .set_description(
+                &group_jid,
+                desc,
+                whatsapp_rust::features::PreviousDescription::Resolve,
+            )
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -3266,7 +3283,6 @@ impl WasmWhatsAppClient {
         &self,
         keys: Vec<crate::result_types::ReadMessageKey>,
     ) -> Result<(), crate::errors::BridgeError> {
-        use std::collections::HashMap;
         let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
 
         for key in keys {
@@ -3300,7 +3316,6 @@ impl WasmWhatsAppClient {
         &self,
         keys: Vec<crate::result_types::ReadMessageKey>,
     ) -> Result<(), crate::errors::BridgeError> {
-        use std::collections::HashMap;
         let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
 
         for key in keys {
@@ -4126,7 +4141,7 @@ impl WasmWhatsAppClient {
     pub async fn get_push_name(&self) -> String {
         // Sync since whatsapp-rust #808 (cached Arc<Device> snapshot); kept
         // async so the JS surface stays Promise-based.
-        self.client.get_push_name()
+        self.client.push_name()
     }
 
     /// Get the own JID (phone number JID) if logged in.
@@ -4135,7 +4150,7 @@ impl WasmWhatsAppClient {
     /// This is the JID used for addressing in messages.
     #[wasm_bindgen(js_name = getJid)]
     pub async fn get_jid(&self) -> Option<String> {
-        self.client.get_pn().map(|j| j.to_non_ad().to_string())
+        self.client.pn().map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the own LID (linked identity) if available.
@@ -4143,7 +4158,7 @@ impl WasmWhatsAppClient {
     /// Returns the non-AD LID (without device suffix), e.g. "100000012345678@lid".
     #[wasm_bindgen(js_name = getLid)]
     pub async fn get_lid(&self) -> Option<String> {
-        self.client.get_lid().map(|j| j.to_non_ad().to_string())
+        self.client.lid().map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the ADV signed device identity (account), if available.
@@ -5472,7 +5487,6 @@ fn business_profile_to_result(
 /// Omitted fields keep their defaults.
 fn build_cache_config(js: Option<&JsValue>) -> Result<whatsapp_rust::CacheConfig, JsValue> {
     use crate::js_cache_store::JsCacheStoreAdapter;
-    use std::sync::Arc;
 
     let mut config = whatsapp_rust::CacheConfig::default();
 
@@ -5528,7 +5542,6 @@ fn apply_cache_entry(
     store_slot: &mut Option<std::sync::Arc<dyn whatsapp_rust::CacheStore>>,
 ) -> Result<(), JsValue> {
     use crate::js_cache_store::JsCacheStoreAdapter;
-    use std::sync::Arc;
 
     let obj = match js_sys::Reflect::get(parent, &key.into()) {
         Ok(v) if !v.is_undefined() && !v.is_null() => v,

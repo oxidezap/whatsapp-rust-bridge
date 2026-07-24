@@ -926,22 +926,6 @@ export interface Receipt {
   offline: boolean;
 }
 
-export type ReceiptType =
-  | "Delivered"
-  | "Sent"
-  | "Sender"
-  | "Retry"
-  | "EncRekeyRetry"
-  | "Read"
-  | "ReadSelf"
-  | "Played"
-  | "PlayedSelf"
-  | "ServerError"
-  | "Inactive"
-  | "PeerMsg"
-  | "HistorySync"
-  | { "Other": string };
-
 /** Chat state type as received from incoming stanzas.  Aligned with WhatsApp Web's `WAChatState` constants: - `typing` = ACTIVE_CHAT_STATE_TYPE.TYPING - `recording_audio` = ACTIVE_CHAT_STATE_TYPE.RECORDING_AUDIO - `idle` = IDLE_CHAT_STATE_TYPE.IDLE */
 export type ReceivedChatState = "typing" | "recording_audio" | "idle";
 
@@ -1231,6 +1215,6 @@ export interface VerifiedName {
   certificate?: Uint8Array | null;
 }
 
-/** In-call `<video state=N>` handshake states (audio→video upgrade, video→audio downgrade). Values verified against WA Web captures relayed by the mock server; unknown future states land in `Unknown` so a new server value degrades to an observable no-op instead of a parse failure. Wire codes: 0=Disabled, 1=Enabled, 3=UpgradeRequest, 4=UpgradeAccept, 5=UpgradeReject, 6=Stopped, 8=UpgradeCancel, 11=UpgradeRequestV2 */
+/** In-call `<video state=N>` handshake states (audio→video upgrade, video→audio downgrade). Values verified against WA Web captures relayed by the mock server; unknown future states land in `Unknown` so a new server value degrades to an observable no-op instead of a parse failure. Wire codes: 0=Disabled, 1=Enabled, 2=Paused, 3=UpgradeRequest, 4=UpgradeAccept, 5=UpgradeReject, 6=Stopped, 7=UpgradeRejectByTimeout, 8=UpgradeCancel, 9=UpgradeCancelByTimeout, 10=UnknownPeer, 11=UpgradeRequestV2, 20=Error */
 export type VideoState = number;
 "#;

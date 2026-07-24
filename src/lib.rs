@@ -30,6 +30,7 @@ pub mod runtime;
 pub mod signal_records;
 pub mod wasm_client;
 mod wasm_utils;
+mod wire_batch;
 
 /// WebAssembly 1.0 linear-memory page size. Keep memory limits and diagnostics
 /// derived from the same unit instead of repeating the protocol constant.

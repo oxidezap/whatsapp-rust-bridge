@@ -1,0 +1,644 @@
+/**
+ * Packed wire-batch codecs (message metadata, receipts, server acks).
+ *
+ * The bridge crosses hot per-event metadata as fixed-width numeric records
+ * plus a per-batch deduplicated string table: repeated addresses, push names
+ * and ack classes pay one decode per batch instead of one FFI object build
+ * per event. This module is the single host-side owner of every record
+ * layout; the Rust writers live in `src/wasm_client.rs`.
+ */
+
+const utf8Decoder = new TextDecoder();
+const utf8Encoder = new TextEncoder();
+
+// ---------------------------------------------------------------------------
+// Shared string-table helpers
+// ---------------------------------------------------------------------------
+
+function decodeStringTable(data: Uint8Array, offsets: Uint32Array): string[] {
+  const table: string[] = new Array(Math.max(0, offsets.length - 1));
+  for (let i = 0; i + 1 < offsets.length; i++) {
+    table[i] = utf8Decoder.decode(data.subarray(offsets[i]!, offsets[i + 1]!));
+  }
+  return table;
+}
+
+function tableAccessors(table: string[]) {
+  const required = (index: number): string => {
+    const value = table[index];
+    if (value === undefined) throw new RangeError("packed record references a missing table entry");
+    return value;
+  };
+  // Optional slots carry table index + 1 so 0 can mean absent.
+  const optional = (raw: number): string | undefined => (raw === 0 ? undefined : required(raw - 1));
+  return { required, optional };
+}
+
+/** Build-side mirror of the Rust `WireStringTable`, for tests and tooling. */
+class StringTableBuilder {
+  private readonly table: string[] = [];
+  private readonly indexByValue = new Map<string, number>();
+
+  intern(value: string): number {
+    const existing = this.indexByValue.get(value);
+    if (existing !== undefined) return existing;
+    const index = this.table.length;
+    this.table.push(value);
+    this.indexByValue.set(value, index);
+    return index;
+  }
+
+  internOptional(value: string | undefined): number {
+    return value === undefined ? 0 : this.intern(value) + 1;
+  }
+
+  pack(): { data: Uint8Array; offsets: Uint32Array } {
+    const encoder = new TextEncoder();
+    const encoded = this.table.map(value => encoder.encode(value));
+    const offsets = new Uint32Array(encoded.length + 1);
+    let total = 0;
+    for (let i = 0; i < encoded.length; i++) {
+      total += encoded[i]!.length;
+      offsets[i + 1] = total;
+    }
+    const data = new Uint8Array(total);
+    for (let i = 0; i < encoded.length; i++) data.set(encoded[i]!, offsets[i]!);
+    return { data, offsets };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// JID components
+// ---------------------------------------------------------------------------
+
+/** Serde shape of the core's `Jid` as carried by bridge events. */
+export interface WireJid {
+  user: string;
+  server: string;
+  agent: number;
+  device: number;
+  integrator: number;
+}
+
+/** Slots per deduplicated JID entry in `jidComponents`. */
+const JID_COMPONENT_WIDTH = 5;
+
+/** Materialize the per-batch JID table from its packed components. */
+function decodeJidTable(components: Float64Array, table: string[]): WireJid[] {
+  if (components.length % JID_COMPONENT_WIDTH !== 0) {
+    throw new RangeError("jid components length is not a whole number of entries");
+  }
+  const count = components.length / JID_COMPONENT_WIDTH;
+  const jids: WireJid[] = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const base = i * JID_COMPONENT_WIDTH;
+    const user = table[components[base]!];
+    const server = table[components[base + 1]!];
+    if (user === undefined || server === undefined) {
+      throw new RangeError("jid components reference a missing table entry");
+    }
+    jids[i] = {
+      user,
+      server,
+      agent: components[base + 2]!,
+      device: components[base + 3]!,
+      integrator: components[base + 4]!,
+    };
+  }
+  return jids;
+}
+
+// ---------------------------------------------------------------------------
+// Message metadata records
+// ---------------------------------------------------------------------------
+
+/** Decoded per-message metadata envelope. */
+export interface MessageWireInfo {
+  /** Canonical device-independent chat address. */
+  chat: string;
+  /** Canonical device-independent author address. */
+  sender: string;
+  senderAlt?: string;
+  recipientAlt?: string;
+  isFromMe: boolean;
+  isGroup: boolean;
+  id: string;
+  /** Unix timestamp in seconds. */
+  timestamp: number;
+  pushName: string;
+  isViewOnce: boolean;
+  isOffline: boolean;
+  unavailableRequestId?: string;
+  /** Raw protocol edit attribute; absent when the attribute was empty. */
+  edit?: string;
+}
+
+/** Packed metadata slice of a `MessageWireBatch`. */
+export interface PackedMessageWireInfos {
+  infoStringData: Uint8Array;
+  infoStringOffsets: Uint32Array;
+  infoRecords: Float64Array;
+}
+
+export const MESSAGE_WIRE_INFO_RECORD_WIDTH = 10;
+const INFO_SLOT_CHAT = 0;
+const INFO_SLOT_SENDER = 1;
+const INFO_SLOT_SENDER_ALT = 2;
+const INFO_SLOT_RECIPIENT_ALT = 3;
+const INFO_SLOT_ID = 4;
+const INFO_SLOT_PUSH_NAME = 5;
+const INFO_SLOT_TIMESTAMP = 6;
+const INFO_SLOT_FLAGS = 7;
+const INFO_SLOT_UNAVAILABLE_REQUEST_ID = 8;
+const INFO_SLOT_EDIT = 9;
+const INFO_FLAG_FROM_ME = 1 << 0;
+const INFO_FLAG_GROUP = 1 << 1;
+const INFO_FLAG_VIEW_ONCE = 1 << 2;
+const INFO_FLAG_OFFLINE = 1 << 3;
+
+/** Decode every packed record into its structured envelope. */
+export function decodeMessageWireInfos(batch: PackedMessageWireInfos): MessageWireInfo[] {
+  const records = batch.infoRecords;
+  if (records.length % MESSAGE_WIRE_INFO_RECORD_WIDTH !== 0) {
+    throw new RangeError("message wire info records length is not a whole number of records");
+  }
+  const { required, optional } = tableAccessors(
+    decodeStringTable(batch.infoStringData, batch.infoStringOffsets),
+  );
+  const count = records.length / MESSAGE_WIRE_INFO_RECORD_WIDTH;
+  const infos: MessageWireInfo[] = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
+    const flags = records[base + INFO_SLOT_FLAGS]!;
+    infos[i] = {
+      chat: required(records[base + INFO_SLOT_CHAT]!),
+      sender: required(records[base + INFO_SLOT_SENDER]!),
+      senderAlt: optional(records[base + INFO_SLOT_SENDER_ALT]!),
+      recipientAlt: optional(records[base + INFO_SLOT_RECIPIENT_ALT]!),
+      isFromMe: (flags & INFO_FLAG_FROM_ME) !== 0,
+      isGroup: (flags & INFO_FLAG_GROUP) !== 0,
+      id: required(records[base + INFO_SLOT_ID]!),
+      timestamp: records[base + INFO_SLOT_TIMESTAMP]!,
+      pushName: required(records[base + INFO_SLOT_PUSH_NAME]!),
+      isViewOnce: (flags & INFO_FLAG_VIEW_ONCE) !== 0,
+      isOffline: (flags & INFO_FLAG_OFFLINE) !== 0,
+      unavailableRequestId: optional(records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID]!),
+      edit: optional(records[base + INFO_SLOT_EDIT]!),
+    };
+  }
+  return infos;
+}
+
+/**
+ * Inverse of `decodeMessageWireInfos`, for hosts that need to fabricate
+ * batches (tests, replay tooling). Mirrors the Rust writer exactly.
+ */
+export function encodeMessageWireInfos(infos: readonly MessageWireInfo[]): PackedMessageWireInfos {
+  const strings = new StringTableBuilder();
+  const records = new Float64Array(infos.length * MESSAGE_WIRE_INFO_RECORD_WIDTH);
+  for (let i = 0; i < infos.length; i++) {
+    const info = infos[i]!;
+    const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
+    records[base + INFO_SLOT_CHAT] = strings.intern(info.chat);
+    records[base + INFO_SLOT_SENDER] = strings.intern(info.sender);
+    records[base + INFO_SLOT_SENDER_ALT] = strings.internOptional(info.senderAlt);
+    records[base + INFO_SLOT_RECIPIENT_ALT] = strings.internOptional(info.recipientAlt);
+    records[base + INFO_SLOT_ID] = strings.intern(info.id);
+    records[base + INFO_SLOT_PUSH_NAME] = strings.intern(info.pushName);
+    records[base + INFO_SLOT_TIMESTAMP] = info.timestamp;
+    records[base + INFO_SLOT_FLAGS] =
+      (info.isFromMe ? INFO_FLAG_FROM_ME : 0) |
+      (info.isGroup ? INFO_FLAG_GROUP : 0) |
+      (info.isViewOnce ? INFO_FLAG_VIEW_ONCE : 0) |
+      (info.isOffline ? INFO_FLAG_OFFLINE : 0);
+    records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = strings.internOptional(
+      info.unavailableRequestId,
+    );
+    records[base + INFO_SLOT_EDIT] = strings.internOptional(info.edit);
+  }
+  const { data, offsets } = strings.pack();
+  return { infoStringData: data, infoStringOffsets: offsets, infoRecords: records };
+}
+
+// ---------------------------------------------------------------------------
+// Receipt and server-ack records
+// ---------------------------------------------------------------------------
+
+/** Packed batch envelope: one flat buffer with header, cache definitions,
+ * records and string bytes. See the Rust writer in `src/wire_batch.rs`. */
+export interface PackedWireBatch {
+  buffer: Uint8Array;
+}
+
+/** Serde shape of the core's `Receipt` payload, as the single-event path emits it. */
+export interface ReceiptWireData {
+  source: {
+    chat: WireJid;
+    sender: WireJid;
+    is_from_me: boolean;
+    is_group: boolean;
+    addressing_mode?: string;
+    sender_alt?: WireJid;
+    recipient_alt?: WireJid;
+    broadcast_list_owner?: WireJid;
+    recipient?: WireJid;
+  };
+  message_ids: string[];
+  /** Unix timestamp in seconds. */
+  timestamp: number;
+  /** Variant name, or `{ Other: value }` for unrecognized wire values. */
+  type: string | { Other: string };
+  offline: boolean;
+}
+
+/** Serde shape of the core's `ServerAck` payload. */
+export interface ServerAckWireData {
+  id: string;
+  class?: string;
+  from?: WireJid;
+  /** Unix timestamp in seconds. */
+  timestamp?: number;
+  error?: string;
+}
+
+const PACKED_HEADER_BYTES = 20;
+const PACKED_FLAG_RESET_CACHES = 1;
+/** Below this many bytes an ASCII region decodes faster in JS than through
+ * `TextDecoder`, whose constant cost dominates for short inputs. */
+const TINY_STRING_LIMIT = 100;
+
+const RECEIPT_FLAG_FROM_ME = 1 << 0;
+const RECEIPT_FLAG_GROUP = 1 << 1;
+const RECEIPT_FLAG_OFFLINE = 1 << 2;
+const RECEIPT_FLAG_TYPE_OTHER = 1 << 3;
+
+/**
+ * Host side of the packed transport: keeps the string/JID caches that mirror
+ * the encoder's, so a repeated address is materialized once per process.
+ *
+ * Cached JIDs are frozen and shared across events by design: the encoder only
+ * caches values it treats as immutable, and freezing makes that contract
+ * enforceable instead of documented.
+ */
+class PackedBatchReader {
+  private readonly strings: string[] = [];
+  private readonly jids: WireJid[] = [];
+  private view!: DataView;
+  private bytes!: Uint8Array;
+  private cursor = 0;
+  /** Offset of the next inline value inside the batch's string region. */
+  private inlineCursor = 0;
+  private region = "";
+
+  /** Read the header, apply cache definitions and position at the records. */
+  begin(buffer: Uint8Array): number {
+    this.bytes = buffer;
+    this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    if (buffer.byteLength < PACKED_HEADER_BYTES) {
+      throw new RangeError("packed batch is shorter than its header");
+    }
+    const recordCount = this.view.getUint32(0, true);
+    const newStringCount = this.view.getUint32(4, true);
+    const newJidCount = this.view.getUint32(8, true);
+    const stringBytes = this.view.getUint32(12, true);
+    const flags = this.view.getUint32(16, true);
+    if ((flags & PACKED_FLAG_RESET_CACHES) !== 0) {
+      this.strings.length = 0;
+      this.jids.length = 0;
+    }
+
+    let at = PACKED_HEADER_BYTES;
+    const newStringsAt = at;
+    at += newStringCount * 4;
+    const newJidsAt = at;
+    at += newJidCount * 11;
+    const recordsAt = at;
+    const stringsAt = buffer.byteLength - stringBytes;
+    if (stringsAt < recordsAt) throw new RangeError("packed batch regions overlap");
+
+    // One decode for the whole string region of the batch.
+    this.region = stringBytes === 0 ? "" : this.decodeRegion(stringsAt, stringBytes);
+    this.inlineCursor = 0;
+
+    for (let i = 0; i < newStringCount; i++) {
+      const at = newStringsAt + i * 4;
+      const slot = this.view.getUint16(at, true);
+      const length = this.view.getUint16(at + 2, true);
+      this.strings[slot] = this.region.substring(this.inlineCursor, (this.inlineCursor += length));
+    }
+    for (let i = 0; i < newJidCount; i++) {
+      const at = newJidsAt + i * 11;
+      const slot = this.view.getUint16(at, true);
+      const user = this.strings[this.view.getUint16(at + 2, true)];
+      const server = this.strings[this.view.getUint16(at + 4, true)];
+      if (user === undefined || server === undefined) {
+        throw new RangeError("packed jid references a missing string slot");
+      }
+      this.jids[slot] = Object.freeze({
+        user,
+        server,
+        agent: this.view.getUint8(at + 6),
+        device: this.view.getUint16(at + 7, true),
+        integrator: this.view.getUint16(at + 9, true),
+      });
+    }
+
+    this.cursor = recordsAt;
+    return recordCount;
+  }
+
+  private decodeRegion(at: number, length: number): string {
+    if (length >= TINY_STRING_LIMIT) {
+      return utf8Decoder.decode(this.bytes.subarray(at, at + length));
+    }
+    // Short region: read four bytes at a time and skip both the decoder's
+    // constant cost and the subarray allocation.
+    let out = "";
+    let p = at;
+    const wordEnd = at + ((length / 4) | 0) * 4;
+    while (p < wordEnd) {
+      const word = this.view.getUint32(p, true);
+      out += String.fromCharCode(word & 255, (word >> 8) & 255, (word >> 16) & 255, word >>> 24);
+      p += 4;
+    }
+    while (p < at + length) out += String.fromCharCode(this.view.getUint8(p++));
+    return out;
+  }
+
+  u8(): number {
+    return this.view.getUint8(this.cursor++);
+  }
+
+  f64(): number {
+    const value = this.view.getFloat64(this.cursor, true);
+    this.cursor += 8;
+    return value;
+  }
+
+  /** Next inline value: its length lives in the record, its bytes in the region. */
+  inline(): string {
+    const length = this.view.getUint16(this.cursor, true);
+    this.cursor += 2;
+    return this.region.substring(this.inlineCursor, (this.inlineCursor += length));
+  }
+
+  private slot(): number {
+    const slot = this.view.getUint16(this.cursor, true);
+    this.cursor += 2;
+    return slot;
+  }
+
+  str(): string {
+    const value = this.strings[this.slot()];
+    if (value === undefined) throw new RangeError("packed record references a missing string slot");
+    return value;
+  }
+
+  strOptional(): string | undefined {
+    const raw = this.slot();
+    if (raw === 0) return undefined;
+    const value = this.strings[raw - 1];
+    if (value === undefined) throw new RangeError("packed record references a missing string slot");
+    return value;
+  }
+
+  jid(): WireJid {
+    const value = this.jids[this.slot()];
+    if (value === undefined) throw new RangeError("packed record references a missing jid slot");
+    return value;
+  }
+
+  jidOptional(): WireJid | undefined {
+    const raw = this.slot();
+    if (raw === 0) return undefined;
+    const value = this.jids[raw - 1];
+    if (value === undefined) throw new RangeError("packed record references a missing jid slot");
+    return value;
+  }
+}
+
+const receiptReader = new PackedBatchReader();
+const serverAckReader = new PackedBatchReader();
+
+export function decodeReceiptWireBatch(batch: PackedWireBatch): ReceiptWireData[] {
+  const count = receiptReader.begin(batch.buffer);
+  const receipts: ReceiptWireData[] = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const flags = receiptReader.u8();
+    const chat = receiptReader.jid();
+    const sender = receiptReader.jid();
+    const senderAlt = receiptReader.jidOptional();
+    const recipientAlt = receiptReader.jidOptional();
+    const broadcastListOwner = receiptReader.jidOptional();
+    const recipient = receiptReader.jidOptional();
+    const addressingMode = receiptReader.strOptional();
+    const type = receiptReader.str();
+    const timestamp = receiptReader.f64();
+    const idCount = receiptReader.u8();
+    const messageIds: string[] = new Array(idCount);
+    for (let j = 0; j < idCount; j++) messageIds[j] = receiptReader.inline();
+    receipts[i] = {
+      source: {
+        chat,
+        sender,
+        is_from_me: (flags & RECEIPT_FLAG_FROM_ME) !== 0,
+        is_group: (flags & RECEIPT_FLAG_GROUP) !== 0,
+        addressing_mode: addressingMode,
+        sender_alt: senderAlt,
+        recipient_alt: recipientAlt,
+        broadcast_list_owner: broadcastListOwner,
+        recipient,
+      },
+      message_ids: messageIds,
+      timestamp,
+      type: (flags & RECEIPT_FLAG_TYPE_OTHER) !== 0 ? { Other: type } : type,
+      offline: (flags & RECEIPT_FLAG_OFFLINE) !== 0,
+    };
+  }
+  return receipts;
+}
+
+export function decodeServerAckWireBatch(batch: PackedWireBatch): ServerAckWireData[] {
+  const count = serverAckReader.begin(batch.buffer);
+  const acks: ServerAckWireData[] = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const cls = serverAckReader.strOptional();
+    const from = serverAckReader.jidOptional();
+    const error = serverAckReader.strOptional();
+    const timestamp = serverAckReader.f64();
+    acks[i] = {
+      id: serverAckReader.inline(),
+      class: cls,
+      from,
+      timestamp: Number.isNaN(timestamp) ? undefined : timestamp,
+      error,
+    };
+  }
+  return acks;
+}
+
+// ---------------------------------------------------------------------------
+// Batch builders (tests and replay tooling)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a packed batch the way the Rust writer does. Every batch defines its
+ * own caches and asks the reader to reset, so a fabricated batch decodes the
+ * same regardless of what ran before it.
+ */
+class PackedBatchBuilder {
+  private readonly stringSlots = new Map<string, number>();
+  private readonly jidSlots = new Map<string, number>();
+  private readonly newStrings: Array<[number, number]> = [];
+  private readonly newJids: Array<[number, number, number, number, number, number]> = [];
+  private readonly records: number[] = [];
+  private readonly definitions: string[] = [];
+  private readonly inline: string[] = [];
+  private recordCount = 0;
+
+  cacheStr(value: string): number {
+    const existing = this.stringSlots.get(value);
+    if (existing !== undefined) return existing;
+    const slot = this.stringSlots.size;
+    this.stringSlots.set(value, slot);
+    this.newStrings.push([slot, utf8Encoder.encode(value).length]);
+    this.definitions.push(value);
+    return slot;
+  }
+
+  cacheStrOptional(value: string | undefined): number {
+    return value === undefined ? 0 : this.cacheStr(value) + 1;
+  }
+
+  cacheJid(jid: WireJid): number {
+    const key = [jid.user, jid.server, jid.agent, jid.device, jid.integrator].join(" ");
+    const existing = this.jidSlots.get(key);
+    if (existing !== undefined) return existing;
+    const user = this.cacheStr(jid.user);
+    const server = this.cacheStr(jid.server);
+    const slot = this.jidSlots.size;
+    this.jidSlots.set(key, slot);
+    this.newJids.push([slot, user, server, jid.agent, jid.device, jid.integrator]);
+    return slot;
+  }
+
+  cacheJidOptional(jid: WireJid | undefined): number {
+    return jid === undefined ? 0 : this.cacheJid(jid) + 1;
+  }
+
+  u8(value: number): void {
+    this.records.push(value & 255);
+  }
+
+  slot(value: number): void {
+    this.records.push(value & 255, (value >> 8) & 255);
+  }
+
+  f64(value: number): void {
+    const scratch = new DataView(new ArrayBuffer(8));
+    scratch.setFloat64(0, value, true);
+    for (let i = 0; i < 8; i++) this.records.push(scratch.getUint8(i));
+  }
+
+  writeInline(value: string): void {
+    const length = utf8Encoder.encode(value).length;
+    this.records.push(length & 255, (length >> 8) & 255);
+    this.inline.push(value);
+  }
+
+  endRecord(): void {
+    this.recordCount++;
+  }
+
+  finish(): PackedWireBatch {
+    const stringBytes = utf8Encoder.encode(this.definitions.join("") + this.inline.join(""));
+    const size =
+      PACKED_HEADER_BYTES +
+      this.newStrings.length * 4 +
+      this.newJids.length * 11 +
+      this.records.length +
+      stringBytes.length;
+    const buffer = new Uint8Array(size);
+    const view = new DataView(buffer.buffer);
+    view.setUint32(0, this.recordCount, true);
+    view.setUint32(4, this.newStrings.length, true);
+    view.setUint32(8, this.newJids.length, true);
+    view.setUint32(12, stringBytes.length, true);
+    view.setUint32(16, PACKED_FLAG_RESET_CACHES, true);
+
+    let at = PACKED_HEADER_BYTES;
+    for (const [slot, length] of this.newStrings) {
+      view.setUint16(at, slot, true);
+      view.setUint16(at + 2, length, true);
+      at += 4;
+    }
+    for (const [slot, user, server, agent, device, integrator] of this.newJids) {
+      view.setUint16(at, slot, true);
+      view.setUint16(at + 2, user, true);
+      view.setUint16(at + 4, server, true);
+      view.setUint8(at + 6, agent);
+      view.setUint16(at + 7, device, true);
+      view.setUint16(at + 9, integrator, true);
+      at += 11;
+    }
+    buffer.set(this.records, at);
+    at += this.records.length;
+    buffer.set(stringBytes, at);
+    return { buffer };
+  }
+}
+
+/** Inverse of `decodeReceiptWireBatch`, for tests and replay tooling. */
+export function encodeReceiptWireBatch(receipts: readonly ReceiptWireData[]): PackedWireBatch {
+  const builder = new PackedBatchBuilder();
+  for (const receipt of receipts) {
+    const typeOther = typeof receipt.type !== "string";
+    const chat = builder.cacheJid(receipt.source.chat);
+    const sender = builder.cacheJid(receipt.source.sender);
+    const senderAlt = builder.cacheJidOptional(receipt.source.sender_alt);
+    const recipientAlt = builder.cacheJidOptional(receipt.source.recipient_alt);
+    const broadcastListOwner = builder.cacheJidOptional(receipt.source.broadcast_list_owner);
+    const recipient = builder.cacheJidOptional(receipt.source.recipient);
+    const addressingMode = builder.cacheStrOptional(receipt.source.addressing_mode);
+    const type = builder.cacheStr(
+      typeof receipt.type === "string" ? receipt.type : receipt.type.Other,
+    );
+    builder.u8(
+      (receipt.source.is_from_me ? RECEIPT_FLAG_FROM_ME : 0) |
+        (receipt.source.is_group ? RECEIPT_FLAG_GROUP : 0) |
+        (receipt.offline ? RECEIPT_FLAG_OFFLINE : 0) |
+        (typeOther ? RECEIPT_FLAG_TYPE_OTHER : 0),
+    );
+    for (const slot of [
+      chat,
+      sender,
+      senderAlt,
+      recipientAlt,
+      broadcastListOwner,
+      recipient,
+      addressingMode,
+      type,
+    ]) {
+      builder.slot(slot);
+    }
+    builder.f64(receipt.timestamp);
+    builder.u8(receipt.message_ids.length);
+    for (const id of receipt.message_ids) builder.writeInline(id);
+    builder.endRecord();
+  }
+  return builder.finish();
+}
+
+/** Inverse of `decodeServerAckWireBatch`, for tests and replay tooling. */
+export function encodeServerAckWireBatch(acks: readonly ServerAckWireData[]): PackedWireBatch {
+  const builder = new PackedBatchBuilder();
+  for (const ack of acks) {
+    builder.slot(builder.cacheStrOptional(ack.class));
+    builder.slot(builder.cacheJidOptional(ack.from));
+    builder.slot(builder.cacheStrOptional(ack.error));
+    builder.f64(ack.timestamp ?? Number.NaN);
+    builder.writeInline(ack.id);
+    builder.endRecord();
+  }
+  return builder.finish();
+}

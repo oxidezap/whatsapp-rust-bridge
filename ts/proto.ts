@@ -154,11 +154,25 @@ function normalizeProtoInput(value: unknown): unknown {
     return copy ?? value;
   }
   const obj = value as Record<string, unknown>;
+  const proto = Object.getPrototypeOf(obj);
+  if (proto !== Object.prototype && proto !== null) {
+    // protobufjs-style runtime instance: schema defaults live as enumerable
+    // `null`s on the prototype, and only own properties carry set fields.
+    // Serialize own fields into a fresh plain object — walking (or spreading)
+    // the prototype would materialize every unset field per node, and the
+    // ts-proto encoder only guards `!== undefined`, so it must never see the
+    // prototype's nulls.
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(obj)) {
+      const nv = normalizeProtoInput(obj[k]);
+      if (nv !== undefined) out[k] = nv;
+    }
+    return out;
+  }
   let copy: Record<string, unknown> | undefined;
   // `for...in` (not `Object.keys`) is deliberate: it visits keys WITHOUT
-  // allocating a keys array, keeping the clean path zero-allocation. ts-proto
-  // message objects are plain (no enumerable prototype props), so nothing extra
-  // is visited.
+  // allocating a keys array, keeping the clean path zero-allocation for the
+  // plain objects that reach here.
   for (const k in obj) {
     const nv = normalizeProtoInput(obj[k]);
     if (nv !== obj[k]) (copy ??= { ...obj })[k] = nv;

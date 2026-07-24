@@ -186,7 +186,7 @@ impl RawTransportCallbacks {
         if let Some(send_borrowed_fn) = &self.send_borrowed_fn {
             // SAFETY: this capability has an intentionally strict synchronous
             // contract (documented in JsTransportCallbacks). The slice remains
-            // alive for the entire JS call; baileyrs immediately passes it to
+            // alive for the entire JS call; the host immediately passes it to
             // WebSocket.send and neither retains it nor re-enters WASM. A
             // Promise result is rejected because the view cannot cross an
             // asynchronous boundary or a possible WASM memory.grow.

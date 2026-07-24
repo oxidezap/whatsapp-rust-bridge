@@ -302,6 +302,40 @@ impl From<PairError> for BridgeError {
     }
 }
 
+/// `connect()` is typed since whatsapp-rust #1090. The variants whose
+/// discriminant the host can act on are mapped directly; the ones that only
+/// wrap a lower-level failure fall through to the chain walk, which finds the
+/// typed leaf (transport, handshake, storage) below them.
+impl From<whatsapp_rust::ConnectError> for BridgeError {
+    fn from(e: whatsapp_rust::ConnectError) -> Self {
+        use whatsapp_rust::ConnectError;
+        match &e {
+            ConnectError::AlreadyConnected => Self::InvalidArgument {
+                field: "connect".into(),
+                reason: "client is already connected".into(),
+            },
+            ConnectError::Timeout { .. } => Self::Timeout,
+            _ => Self::from_error_chain(&e),
+        }
+    }
+}
+
+/// Signal maintenance (signed pre-key rotation, inbound drain) is typed since
+/// whatsapp-rust #1090. `CorruptKey` is the one variant a retry cannot fix, so
+/// it surfaces as a protocol violation; the rest carry a typed source that the
+/// chain walk resolves (IQ, storage, Signal primitives).
+impl From<whatsapp_rust::SignalMaintenanceError> for BridgeError {
+    fn from(e: whatsapp_rust::SignalMaintenanceError) -> Self {
+        use whatsapp_rust::SignalMaintenanceError;
+        match &e {
+            SignalMaintenanceError::CorruptKey(detail) => Self::ProtocolViolation {
+                reason: detail.clone(),
+            },
+            _ => Self::from_error_chain(&e),
+        }
+    }
+}
+
 impl From<IqError> for BridgeError {
     fn from(e: IqError) -> Self {
         Self::from_error_chain(&e)
@@ -382,6 +416,31 @@ impl From<whatsapp_rust::features::PresenceError> for BridgeError {
     }
 }
 
+/// `GroupError` needs two variants handled before the generic chain walk.
+///
+/// `Iq` is declared `#[error(transparent)]` upstream, which makes `source()`
+/// skip the `IqError` node and return *its* source instead — so the walk never
+/// sees the leaf and every group server error would arrive in JS as `internal`
+/// with the code buried in a message string. Unwrapping the variant restores
+/// `kind: 'server'` and `serverCode`.
+///
+/// `DescriptionConflict` is the core's typed form of `<error code="409"
+/// text="conflict"/>` on a description update. It carries no source at all, so
+/// it is mapped back to the server error it stands for rather than flattened.
+impl From<whatsapp_rust::features::GroupError> for BridgeError {
+    fn from(e: whatsapp_rust::features::GroupError) -> Self {
+        use whatsapp_rust::features::GroupError;
+        match e {
+            GroupError::Iq(iq) => iq.into(),
+            GroupError::DescriptionConflict => BridgeError::Server {
+                server_code: 409,
+                server_text: "conflict".into(),
+            },
+            other => Self::from_error_chain(&other),
+        }
+    }
+}
+
 macro_rules! impl_from_error_chain {
     ($($error:ty),+ $(,)?) => {
         $(
@@ -405,7 +464,6 @@ impl_from_error_chain!(
     whatsapp_rust::features::ChatStateError,
     whatsapp_rust::features::CommunityError,
     whatsapp_rust::features::ContactError,
-    whatsapp_rust::features::GroupError,
     whatsapp_rust::features::MediaReuploadError,
     whatsapp_rust::features::NewsletterError,
     whatsapp_rust::features::PollError,
@@ -552,6 +610,36 @@ mod tests {
                 assert_eq!(server_code, 400);
                 assert_eq!(server_text, "bad-request");
             }
+            other => panic!("expected Server via chain walk, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn group_description_conflict_keeps_its_server_code() {
+        let be: BridgeError = whatsapp_rust::features::GroupError::DescriptionConflict.into();
+        match be {
+            BridgeError::Server {
+                server_code,
+                server_text,
+            } => {
+                assert_eq!(server_code, 409);
+                assert_eq!(server_text, "conflict");
+            }
+            other => panic!("expected Server, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn other_group_errors_still_walk_the_source_chain() {
+        let iq = IqError::ServerError {
+            code: 403,
+            text: "forbidden".into(),
+            error_type: None,
+            backoff: None,
+        };
+        let be: BridgeError = whatsapp_rust::features::GroupError::Iq(iq).into();
+        match be {
+            BridgeError::Server { server_code, .. } => assert_eq!(server_code, 403),
             other => panic!("expected Server via chain walk, got {other:?}"),
         }
     }
