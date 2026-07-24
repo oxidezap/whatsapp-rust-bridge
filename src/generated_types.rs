@@ -648,7 +648,8 @@ export interface MessageInfo {
   edit: EditAttribute;
   bot_info?: MsgBotInfo | null;
   meta_info: MsgMetaInfo;
-  verified_name?: VerifiedNameCertificate | null;
+  /** Decoded `<verified_name>` child cert of business senders; the display name is in `.name`. Boxed: most messages carry none. */
+  verified_name?: VerifiedName | null;
   device_sent_meta?: DeviceSentMeta | null;
   /** Ephemeral duration in seconds, extracted from `contextInfo.expiration`. */
   ephemeral_expiration?: number | null;
