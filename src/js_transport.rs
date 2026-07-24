@@ -47,6 +47,13 @@ export interface JsTransportHandle {
     onDisconnected(): void;
 }
 
+/**
+ * Every Promise handed back to the bridge must settle, including on failure:
+ * reject rather than leaving it pending. The bridge awaits it through a
+ * wasm-bindgen `JsFuture`, whose resolve/reject pair is only released when the
+ * promise settles, so a promise that never settles retains two JS handles for
+ * the life of the process.
+ */
 export interface JsTransportCallbacks {
     connect(handle: JsTransportHandle): void | Promise<void>;
     send(data: Uint8Array): void | Promise<void>;

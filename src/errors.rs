@@ -129,6 +129,14 @@ impl BridgeError {
                 if let Some(b) = wacore_iq_to_bridge(iq) {
                     return b;
                 }
+            } else if let Some(server) = c.downcast_ref::<wacore::request::ServerErrorCode>() {
+                // The carrier the core uses to move a server rejection across a
+                // crate boundary inside `anyhow`. Reachable since whatsapp-rust
+                // #1100 exposed the head of an `anyhow` chain as `source()`.
+                return BridgeError::Server {
+                    server_code: server.code,
+                    server_text: server.text.clone(),
+                };
             } else if let Some(pc) = c.downcast_ref::<PairCodeError>() {
                 return paircode_to_bridge(pc);
             } else if let Some(jc) = c.downcast_ref::<crate::js_backend::JsCallbackError>() {
@@ -264,18 +272,39 @@ fn paircode_to_bridge(e: &PairCodeError) -> BridgeError {
         PairCodeError::MissingPairingRef => ProtocolViolation {
             reason: "server response missing pairing ref".into(),
         },
+        // `#[non_exhaustive]` upstream (whatsapp-rust #1100). A variant added
+        // later carries no classification we can honestly claim, so it keeps
+        // its own text instead of being filed under a kind by guesswork.
+        _ => Internal {
+            message: e.to_string(),
+        },
     }
 }
 
-/// Render the full `Display` chain of an error, separated by `: `. Mirrors
-/// what `tracing::error!(error = ?e)` would log if we did it manually.
+/// Render the full `Display` chain of an error, separated by `: `, collapsing
+/// neighbours that render the same text. Since whatsapp-rust #1100 a wrapping
+/// variant renders exactly what it wraps, so joining every node would repeat
+/// the same sentence once per layer.
 fn display_chain(err: &(dyn Error + 'static)) -> String {
     use core::fmt::Write;
+    const SEPARATOR: &str = ": ";
+
     let mut out = String::new();
     let _ = write!(out, "{err}");
+    // Each node is rendered straight into the buffer and compared in place
+    // against the previous one, so a duplicate costs a truncate instead of a
+    // per-node String.
+    let mut previous = 0..out.len();
     let mut cur = err.source();
     while let Some(c) = cur {
-        let _ = write!(out, ": {c}");
+        let appended_at = out.len();
+        let _ = write!(out, "{SEPARATOR}{c}");
+        let segment = appended_at + SEPARATOR.len()..out.len();
+        if out[segment.clone()] == out[previous.clone()] {
+            out.truncate(appended_at);
+        } else {
+            previous = segment;
+        }
         cur = c.source();
     }
     out
@@ -416,23 +445,15 @@ impl From<whatsapp_rust::features::PresenceError> for BridgeError {
     }
 }
 
-/// `GroupError` needs two variants handled before the generic chain walk.
-///
-/// `Iq` is declared `#[error(transparent)]` upstream, which makes `source()`
-/// skip the `IqError` node and return *its* source instead — so the walk never
-/// sees the leaf and every group server error would arrive in JS as `internal`
-/// with the code buried in a message string. Unwrapping the variant restores
-/// `kind: 'server'` and `serverCode`.
-///
-/// `DescriptionConflict` is the core's typed form of `<error code="409"
-/// text="conflict"/>` on a description update. It carries no source at all, so
-/// it is mapped back to the server error it stands for rather than flattened.
+/// `GroupError::DescriptionConflict` is the core's typed form of `<error
+/// code="409" text="conflict"/>` on a description update: a domain variant that
+/// carries no source, so the chain walk has nothing to find. It is mapped back
+/// to the server error it stands for. Every other variant reaches its typed
+/// leaf through `source()` like any other domain error.
 impl From<whatsapp_rust::features::GroupError> for BridgeError {
     fn from(e: whatsapp_rust::features::GroupError) -> Self {
-        use whatsapp_rust::features::GroupError;
         match e {
-            GroupError::Iq(iq) => iq.into(),
-            GroupError::DescriptionConflict => BridgeError::Server {
+            whatsapp_rust::features::GroupError::DescriptionConflict => BridgeError::Server {
                 server_code: 409,
                 server_text: "conflict".into(),
             },
@@ -629,19 +650,102 @@ mod tests {
         }
     }
 
-    #[test]
-    fn other_group_errors_still_walk_the_source_chain() {
-        let iq = IqError::ServerError {
-            code: 403,
+    fn rejected(code: u16) -> IqError {
+        IqError::ServerError {
+            code,
             text: "forbidden".into(),
             error_type: None,
             backoff: None,
-        };
-        let be: BridgeError = whatsapp_rust::features::GroupError::Iq(iq).into();
+        }
+    }
+
+    #[test]
+    fn other_group_errors_still_walk_the_source_chain() {
+        let be: BridgeError = whatsapp_rust::features::GroupError::Iq(rejected(403)).into();
         match be {
             BridgeError::Server { server_code, .. } => assert_eq!(server_code, 403),
             other => panic!("expected Server via chain walk, got {other:?}"),
         }
+    }
+
+    /// Since whatsapp-rust #1100 the chain is lossless for every domain, not
+    /// just the one whose symptom was reported. A consumer that branches on
+    /// `kind === 'server'` gets the same answer wherever the call came from.
+    #[test]
+    fn every_domain_surfaces_its_server_code() {
+        // Every domain the bridge actually returns; `TcTokenError` is absent
+        // because no boundary method exposes it.
+        use whatsapp_rust::features::{
+            BlockingError, CommunityError, ContactError, GroupError, NewsletterError, ProfileError,
+        };
+
+        let domains: Vec<BridgeError> = vec![
+            GroupError::Iq(rejected(403)).into(),
+            CommunityError::Iq(rejected(403)).into(),
+            ContactError::Iq(rejected(403)).into(),
+            ProfileError::Iq(rejected(403)).into(),
+            BlockingError::Iq(rejected(403)).into(),
+            NewsletterError::Iq(rejected(403)).into(),
+            // Nested two domains deep.
+            CommunityError::Group(GroupError::Iq(rejected(403))).into(),
+        ];
+
+        for be in domains {
+            match be {
+                BridgeError::Server { server_code, .. } => assert_eq!(server_code, 403),
+                other => panic!("expected Server, got {other:?}"),
+            }
+        }
+    }
+
+    /// The core moves a rejection across a crate boundary as `ServerErrorCode`
+    /// inside `anyhow`. That head only became reachable once the chain stopped
+    /// erasing it, so classifying it is what keeps it out of `internal`.
+    #[test]
+    fn server_error_code_carried_in_anyhow_is_a_server_error() {
+        let carrier = wacore::request::ServerErrorCode {
+            code: 409,
+            text: "conflict".into(),
+            error_type: None,
+            backoff: None,
+        };
+        let be: BridgeError =
+            whatsapp_rust::features::GroupError::Internal(anyhow::Error::new(carrier)).into();
+        match be {
+            BridgeError::Server {
+                server_code,
+                server_text,
+            } => {
+                assert_eq!(server_code, 409);
+                assert_eq!(server_text, "conflict");
+            }
+            other => panic!("expected Server, got {other:?}"),
+        }
+    }
+
+    /// A wrapping variant renders exactly what it wraps, so a naive join would
+    /// repeat the same sentence once per layer.
+    #[test]
+    fn display_chain_collapses_repeated_neighbours() {
+        use whatsapp_rust::features::{CommunityError, GroupError};
+
+        let err = CommunityError::Group(GroupError::Iq(rejected(403)));
+        let rendered = display_chain(&err);
+        let inner = rejected(403).to_string();
+
+        assert_eq!(rendered, inner, "three identical layers collapse into one");
+        assert_eq!(rendered.matches("received a server error").count(), 1);
+    }
+
+    /// Distinct texts still accumulate: collapsing must not swallow a layer
+    /// that adds information.
+    #[test]
+    fn display_chain_keeps_distinct_layers() {
+        let err = PairError::RequestFailed(rejected(400));
+        let rendered = display_chain(&err);
+
+        assert!(rendered.starts_with("pair-code IQ request failed"));
+        assert!(rendered.contains("received a server error"));
     }
 
     #[test]

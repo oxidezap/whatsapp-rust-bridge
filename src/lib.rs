@@ -19,6 +19,7 @@ pub mod js_backend;
 pub mod js_cache_store;
 pub mod js_crypto;
 pub mod js_http;
+mod js_keys;
 pub mod js_time;
 pub mod js_transport;
 pub mod legacy_session;

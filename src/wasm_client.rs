@@ -16,6 +16,7 @@ use whatsapp_rust::{wacore, wacore_binary, waproto};
 
 use crate::js_backend;
 use crate::js_http::JsHttpClientAdapter;
+use crate::js_keys;
 use crate::js_time;
 use crate::js_transport::JsTransportFactory;
 use crate::runtime::WasmRuntime;
@@ -98,16 +99,9 @@ macro_rules! ev {
     };
 }
 
-const EVENT_TYPE_FIELD: &str = "type";
-const EVENT_DATA_FIELD: &str = "data";
-
 thread_local! {
-    /// The envelope keys and the event-name strings, interned once per thread.
-    /// Without this every dispatched event re-crosses all three from WASM,
-    /// paying a `TextDecoder` decode plus a JS string allocation each time.
-    /// The name set is bounded by the event enum.
-    static EVENT_TYPE_KEY: JsValue = JsValue::from_str(EVENT_TYPE_FIELD);
-    static EVENT_DATA_KEY: JsValue = JsValue::from_str(EVENT_DATA_FIELD);
+    /// Event names, interned once per thread alongside the envelope keys in
+    /// [`crate::js_keys`]. Bounded by the event enum.
     static EVENT_NAME_CACHE: RefCell<HashMap<&'static str, JsValue>> =
         RefCell::new(HashMap::new());
 }
@@ -120,8 +114,8 @@ fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, Js
             .or_insert_with(|| JsValue::from_str(event_type))
             .clone()
     });
-    EVENT_TYPE_KEY.with(|k| js_sys::Reflect::set(&event, k, &name))?;
-    EVENT_DATA_KEY.with(|k| js_sys::Reflect::set(&event, k, data))?;
+    js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &name)?;
+    js_keys::set(&event, &js_keys::EVENT_DATA_KEY, data)?;
     Ok(event.into())
 }
 

@@ -76,6 +76,14 @@ struct SleepFut {
     /// cancelled it (in `drop`). When `setTimeout` is unavailable the slot
     /// stays `None` and the underlying promise is already resolved.
     timer_id: Rc<RefCell<Option<JsValue>>>,
+    /// Resolver captured from the promise executor, used to settle the promise
+    /// when the sleep is cancelled. `JsFuture` registers a resolve/reject pair
+    /// on the promise, and a promise that stays pending keeps both alive for
+    /// the life of the process: their wasm-bindgen handles are only released
+    /// when one of them runs. Cancelling a timer without settling therefore
+    /// leaks two handles per cancelled sleep, which is every request that
+    /// completes before its timeout.
+    resolve: Option<js_sys::Function>,
     js_future: JsFuture,
 }
 
@@ -99,6 +107,11 @@ impl Drop for SleepFut {
     fn drop(&mut self) {
         if let Some(id) = self.timer_id.borrow_mut().take() {
             clear_timeout(&id);
+            if let Some(resolve) = &self.resolve {
+                // Settling is what frees the promise's callbacks. Nothing
+                // observes the value: this future is already going away.
+                let _ = resolve.call0(&JsValue::NULL);
+            }
         }
     }
 }
@@ -129,9 +142,14 @@ fn make_sleep(ms: i32) -> SleepFut {
     let timer_id_slot: Rc<RefCell<Option<JsValue>>> = Rc::new(RefCell::new(None));
 
     let executor_slot = timer_id_slot.clone();
+    let resolve_slot: Rc<RefCell<Option<js_sys::Function>>> = Rc::new(RefCell::new(None));
+    let executor_resolve = resolve_slot.clone();
     let promise = js_sys::Promise::new(&mut |resolve, _reject| {
         match schedule_timeout(&resolve, ms) {
-            Some(id) => *executor_slot.borrow_mut() = Some(id),
+            Some(id) => {
+                *executor_slot.borrow_mut() = Some(id);
+                *executor_resolve.borrow_mut() = Some(resolve);
+            }
             None => {
                 // Couldn't schedule — resolve synchronously so the future is Ready.
                 let _ = resolve.call0(&JsValue::NULL);
@@ -139,8 +157,10 @@ fn make_sleep(ms: i32) -> SleepFut {
         }
     });
 
+    let resolve = resolve_slot.borrow_mut().take();
     SleepFut {
         timer_id: timer_id_slot,
+        resolve,
         js_future: JsFuture::from(promise),
     }
 }

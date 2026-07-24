@@ -6,6 +6,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use crate::js_keys;
 use wasm_bindgen::JsValue;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::types::events::Event;
@@ -31,12 +32,6 @@ pub(crate) trait PackedEventBatch: Default {
     /// caches survive so the next batch keeps interning against them.
     fn finish(&mut self) -> Result<JsValue, JsValue>;
 }
-
-const MESSAGE_WIRE_DATA_FIELD: &str = "messageData";
-const MESSAGE_WIRE_OFFSETS_FIELD: &str = "messageOffsets";
-const MESSAGE_WIRE_INFO_STRING_DATA_FIELD: &str = "infoStringData";
-const MESSAGE_WIRE_INFO_STRING_OFFSETS_FIELD: &str = "infoStringOffsets";
-const MESSAGE_WIRE_INFO_RECORDS_FIELD: &str = "infoRecords";
 
 /// Slots per packed metadata record. Layout is mirrored by the host-side
 /// decoder (`ts/wire-info.ts`); update both together.
@@ -86,21 +81,21 @@ impl WireStringTable {
     fn set_js(
         mut self,
         batch: &js_sys::Object,
-        data_field: &str,
-        offsets_field: &str,
+        data_key: &'static std::thread::LocalKey<JsValue>,
+        offsets_key: &'static std::thread::LocalKey<JsValue>,
     ) -> Result<(), JsValue> {
-        js_sys::Reflect::set(
+        js_keys::set(
             batch,
-            &data_field.into(),
-            &js_sys::Uint8Array::from(self.data.as_slice()),
+            data_key,
+            &js_sys::Uint8Array::from(self.data.as_slice()).into(),
         )?;
         if self.offsets.is_empty() {
             self.offsets.push(0);
         }
-        js_sys::Reflect::set(
+        js_keys::set(
             batch,
-            &offsets_field.into(),
-            &js_sys::Uint32Array::from(self.offsets.as_slice()),
+            offsets_key,
+            &js_sys::Uint32Array::from(self.offsets.as_slice()).into(),
         )?;
         Ok(())
     }
@@ -224,35 +219,33 @@ impl MessageWireBatch {
     )]
     pub(crate) fn into_js(self) -> Result<JsValue, JsValue> {
         let batch = js_sys::Object::new();
-        js_sys::Reflect::set(
+        js_keys::set(
             &batch,
-            &MESSAGE_WIRE_DATA_FIELD.into(),
-            &js_sys::Uint8Array::from(self.message_data.as_slice()),
+            &js_keys::MESSAGE_WIRE_DATA_KEY,
+            &js_sys::Uint8Array::from(self.message_data.as_slice()).into(),
         )?;
         let mut message_offsets = self.message_offsets;
         if message_offsets.is_empty() {
             message_offsets.push(0);
         }
-        js_sys::Reflect::set(
+        js_keys::set(
             &batch,
-            &MESSAGE_WIRE_OFFSETS_FIELD.into(),
-            &js_sys::Uint32Array::from(message_offsets.as_slice()),
+            &js_keys::MESSAGE_WIRE_OFFSETS_KEY,
+            &js_sys::Uint32Array::from(message_offsets.as_slice()).into(),
         )?;
         self.strings.set_js(
             &batch,
-            MESSAGE_WIRE_INFO_STRING_DATA_FIELD,
-            MESSAGE_WIRE_INFO_STRING_OFFSETS_FIELD,
+            &js_keys::MESSAGE_WIRE_INFO_STRING_DATA_KEY,
+            &js_keys::MESSAGE_WIRE_INFO_STRING_OFFSETS_KEY,
         )?;
-        js_sys::Reflect::set(
+        js_keys::set(
             &batch,
-            &MESSAGE_WIRE_INFO_RECORDS_FIELD.into(),
-            &js_sys::Float64Array::from(self.info_records.as_slice()),
+            &js_keys::MESSAGE_WIRE_INFO_RECORDS_KEY,
+            &js_sys::Float64Array::from(self.info_records.as_slice()).into(),
         )?;
         Ok(batch.into())
     }
 }
-
-const PACKED_BUFFER_FIELD: &str = "buffer";
 
 /// Cache ceilings before the encoder resets both sides. Bounded so a long
 /// session cannot grow the tables without limit; a reset costs one batch of
@@ -423,10 +416,10 @@ impl FlatBatchWriter {
         self.out.extend_from_slice(&self.definitions);
 
         let batch = js_sys::Object::new();
-        js_sys::Reflect::set(
+        js_keys::set(
             &batch,
-            &PACKED_BUFFER_FIELD.into(),
-            &js_sys::Uint8Array::from(self.out.as_slice()),
+            &js_keys::PACKED_BUFFER_KEY,
+            &js_sys::Uint8Array::from(self.out.as_slice()).into(),
         )?;
 
         self.new_strings.clear();
