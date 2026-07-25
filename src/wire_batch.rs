@@ -6,7 +6,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::js_keys;
 use wasm_bindgen::JsValue;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::types::events::Event;
@@ -36,6 +35,9 @@ pub(crate) trait PackedEventBatch: Default {
 /// Slots per packed metadata record. Layout is mirrored by the host-side
 /// decoder (`ts/wire-info.ts`); update both together.
 pub(crate) const MESSAGE_WIRE_INFO_RECORD_WIDTH: usize = 10;
+/// Six u32 fields: messages, strings, message bytes, string bytes, record width,
+/// reserved. A multiple of 8 so the f64 record block that follows is aligned.
+const MESSAGE_WIRE_HEADER_BYTES: usize = 24;
 const INFO_FLAG_FROM_ME: u32 = 1 << 0;
 const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
@@ -78,26 +80,44 @@ impl WireStringTable {
         }
     }
 
-    fn set_js(
-        mut self,
-        batch: &js_sys::Object,
-        data_key: &'static std::thread::LocalKey<JsValue>,
-        offsets_key: &'static std::thread::LocalKey<JsValue>,
-    ) -> Result<(), JsValue> {
-        js_keys::set(
-            batch,
-            data_key,
-            &js_sys::Uint8Array::from(self.data.as_slice()).into(),
-        )?;
-        if self.offsets.is_empty() {
-            self.offsets.push(0);
-        }
-        js_keys::set(
-            batch,
-            offsets_key,
-            &js_sys::Uint32Array::from(self.offsets.as_slice()).into(),
-        )?;
-        Ok(())
+    /// Number of interned entries. The offset vector carries a leading zero, so
+    /// it holds one more element than there are entries.
+    #[inline]
+    fn len(&self) -> usize {
+        self.offsets.len().saturating_sub(1)
+    }
+}
+
+/// Assemble a flat batch and cross it as the bare `Uint8Array` every packed
+/// transport shares — whatever the record layout inside is.
+///
+/// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
+/// a `Reflect::set` crossing per batch, and one message produces three batches
+/// (its own, its receipt, its ack). The buffer IS the batch.
+///
+/// The scratch buffer is process-wide because its bytes are copied into the JS
+/// typed array before this returns, so no batch can observe another's contents.
+fn cross_flat_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
+    thread_local! {
+        static SCRATCH: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+    }
+    SCRATCH.with(|scratch| {
+        let mut out = scratch.borrow_mut();
+        out.clear();
+        write(&mut out);
+        js_sys::Uint8Array::from(out.as_slice()).into()
+    })
+}
+
+/// Append a u32 offset table, materialising the leading zero sentinel that
+/// `push` only writes once there is a first entry.
+fn write_offsets(out: &mut Vec<u8>, offsets: &[u32]) {
+    if offsets.is_empty() {
+        out.extend_from_slice(&0u32.to_le_bytes());
+        return;
+    }
+    for offset in offsets {
+        out.extend_from_slice(&offset.to_le_bytes());
     }
 }
 
@@ -218,32 +238,42 @@ impl MessageWireBatch {
         tracing::instrument(name = "bridge.event.message_wire.ffi", level = "trace", skip_all)
     )]
     pub(crate) fn into_js(self) -> Result<JsValue, JsValue> {
-        let batch = js_sys::Object::new();
-        js_keys::set(
-            &batch,
-            &js_keys::MESSAGE_WIRE_DATA_KEY,
-            &js_sys::Uint8Array::from(self.message_data.as_slice()).into(),
-        )?;
-        let mut message_offsets = self.message_offsets;
-        if message_offsets.is_empty() {
-            message_offsets.push(0);
+        Ok(cross_flat_batch(|out| self.write_flat(out)))
+    }
+
+    /// Serialise the batch into one contiguous buffer.
+    ///
+    /// The `f64` record block leads so it lands 8-aligned (the header is a
+    /// multiple of 8) and the `u32` tables follow at 4-aligned offsets, which
+    /// lets the host build typed-array views straight over the buffer. Padding
+    /// is therefore never needed — a property the host-side decoder asserts.
+    fn write_flat(&self, out: &mut Vec<u8>) {
+        let header = [
+            self.len() as u32,
+            self.strings.len() as u32,
+            self.message_data.len() as u32,
+            self.strings.data.len() as u32,
+            MESSAGE_WIRE_INFO_RECORD_WIDTH as u32,
+            // Reserved: keeps the header a multiple of 8 for the record block.
+            0,
+        ];
+        out.reserve(
+            MESSAGE_WIRE_HEADER_BYTES
+                + self.info_records.len() * 8
+                + (self.message_offsets.len() + self.strings.offsets.len() + 2) * 4
+                + self.message_data.len()
+                + self.strings.data.len(),
+        );
+        for field in header {
+            out.extend_from_slice(&field.to_le_bytes());
         }
-        js_keys::set(
-            &batch,
-            &js_keys::MESSAGE_WIRE_OFFSETS_KEY,
-            &js_sys::Uint32Array::from(message_offsets.as_slice()).into(),
-        )?;
-        self.strings.set_js(
-            &batch,
-            &js_keys::MESSAGE_WIRE_INFO_STRING_DATA_KEY,
-            &js_keys::MESSAGE_WIRE_INFO_STRING_OFFSETS_KEY,
-        )?;
-        js_keys::set(
-            &batch,
-            &js_keys::MESSAGE_WIRE_INFO_RECORDS_KEY,
-            &js_sys::Float64Array::from(self.info_records.as_slice()).into(),
-        )?;
-        Ok(batch.into())
+        for record in &self.info_records {
+            out.extend_from_slice(&record.to_le_bytes());
+        }
+        write_offsets(out, &self.message_offsets);
+        write_offsets(out, &self.strings.offsets);
+        out.extend_from_slice(&self.message_data);
+        out.extend_from_slice(&self.strings.data);
     }
 }
 
@@ -307,7 +337,6 @@ pub(crate) struct FlatBatchWriter {
     new_jid_count: u32,
     record_count: u32,
     flags: u32,
-    out: Vec<u8>,
 }
 
 const PACKED_HEADER_BYTES: usize = 20;
@@ -394,33 +423,24 @@ impl FlatBatchWriter {
 
     fn finish(&mut self) -> Result<JsValue, JsValue> {
         self.definitions.extend_from_slice(&self.inline);
-        self.out.clear();
-        self.out.reserve(
-            PACKED_HEADER_BYTES
-                + self.new_strings.len()
-                + self.new_jids.len()
-                + self.records.len()
-                + self.definitions.len(),
-        );
-        self.out.extend_from_slice(&self.record_count.to_le_bytes());
-        self.out
-            .extend_from_slice(&self.new_string_count.to_le_bytes());
-        self.out
-            .extend_from_slice(&self.new_jid_count.to_le_bytes());
-        self.out
-            .extend_from_slice(&(self.definitions.len() as u32).to_le_bytes());
-        self.out.extend_from_slice(&self.flags.to_le_bytes());
-        self.out.extend_from_slice(&self.new_strings);
-        self.out.extend_from_slice(&self.new_jids);
-        self.out.extend_from_slice(&self.records);
-        self.out.extend_from_slice(&self.definitions);
-
-        let batch = js_sys::Object::new();
-        js_keys::set(
-            &batch,
-            &js_keys::PACKED_BUFFER_KEY,
-            &js_sys::Uint8Array::from(self.out.as_slice()).into(),
-        )?;
+        let batch = cross_flat_batch(|out| {
+            out.reserve(
+                PACKED_HEADER_BYTES
+                    + self.new_strings.len()
+                    + self.new_jids.len()
+                    + self.records.len()
+                    + self.definitions.len(),
+            );
+            out.extend_from_slice(&self.record_count.to_le_bytes());
+            out.extend_from_slice(&self.new_string_count.to_le_bytes());
+            out.extend_from_slice(&self.new_jid_count.to_le_bytes());
+            out.extend_from_slice(&(self.definitions.len() as u32).to_le_bytes());
+            out.extend_from_slice(&self.flags.to_le_bytes());
+            out.extend_from_slice(&self.new_strings);
+            out.extend_from_slice(&self.new_jids);
+            out.extend_from_slice(&self.records);
+            out.extend_from_slice(&self.definitions);
+        });
 
         self.new_strings.clear();
         self.new_jids.clear();
@@ -431,7 +451,7 @@ impl FlatBatchWriter {
         self.new_jid_count = 0;
         self.record_count = 0;
         self.flags = 0;
-        Ok(batch.into())
+        Ok(batch)
     }
 }
 
@@ -662,5 +682,62 @@ mod tests {
         assert_eq!(second_record[2], 0.0); // senderAlt absent
         assert_eq!(second_record[4], 7.0); // id "WIRE-2"
         assert_eq!(second_record[5], 4.0); // pushName deduplicated
+    }
+
+    /// Pins the byte layout the host decoder (`decodeMessageWireBatch`) reads.
+    /// A divergence here would otherwise only surface end to end.
+    #[test]
+    fn message_wire_batch_writes_the_aligned_flat_layout() {
+        let mut info = MessageInfo::default();
+        info.source.chat = "120363@g.us".parse().expect("valid chat jid");
+        info.source.sender = "5511:7@s.whatsapp.net".parse().expect("valid sender jid");
+        info.id = "WIRE-1".into();
+        info.push_name = "Alice".into();
+
+        let mut batch = MessageWireBatch::default();
+        let inbound = InboundMessage::builder()
+            .message(Arc::new(Message::default()))
+            .info(Arc::new(info))
+            .build();
+        batch.push(&inbound).expect("push packs the record");
+
+        let mut out = Vec::new();
+        batch.write_flat(&mut out);
+
+        let u32_at = |offset: usize| {
+            u32::from_le_bytes(out[offset..offset + 4].try_into().expect("4 bytes")) as usize
+        };
+        assert_eq!(u32_at(0), 1, "message count");
+        let string_count = u32_at(4);
+        assert_eq!(string_count, 4, "chat, sender, id, pushName");
+        let message_bytes = u32_at(8);
+        let string_bytes = u32_at(12);
+        assert_eq!(u32_at(16), MESSAGE_WIRE_INFO_RECORD_WIDTH, "record width");
+        assert_eq!(u32_at(20), 0, "reserved keeps the header 8-aligned");
+
+        // Records lead so they land 8-aligned behind the header.
+        assert_eq!(MESSAGE_WIRE_HEADER_BYTES % 8, 0);
+        let records_end = MESSAGE_WIRE_HEADER_BYTES + MESSAGE_WIRE_INFO_RECORD_WIDTH * 8;
+        let chat_slot = f64::from_le_bytes(
+            out[MESSAGE_WIRE_HEADER_BYTES..MESSAGE_WIRE_HEADER_BYTES + 8]
+                .try_into()
+                .expect("8 bytes"),
+        );
+        assert_eq!(chat_slot, 0.0, "chat interns first");
+
+        // Then the two offset tables, each carrying its leading sentinel.
+        assert_eq!(u32_at(records_end), 0, "payload offset sentinel");
+        assert_eq!(u32_at(records_end + 4), message_bytes, "payload end");
+        let string_offsets_at = records_end + 8;
+        assert_eq!(u32_at(string_offsets_at), 0, "string offset sentinel");
+
+        let payloads_at = string_offsets_at + (string_count + 1) * 4;
+        let strings_at = payloads_at + message_bytes;
+        assert_eq!(out.len(), strings_at + string_bytes, "no trailing padding");
+        assert_eq!(
+            std::str::from_utf8(&out[strings_at..strings_at + string_bytes])
+                .expect("table bytes are UTF-8"),
+            "120363@g.us5511@s.whatsapp.netWIRE-1Alice"
+        );
     }
 }

@@ -18,6 +18,7 @@
 //! }
 //! ```
 
+use crate::js_bytes;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::libsignal::crypto::{
@@ -25,12 +26,40 @@ use whatsapp_rust::wacore::libsignal::crypto::{
     set_crypto_provider,
 };
 
-/// Below this payload size the JS/FFI/native-cipher setup costs more than the
-/// software AES operation. This boundary was measured on Node/Linux and keeps
-/// ordinary Signal messages on the allocation-free Rust path while retaining
-/// native acceleration for large payloads.
-const NATIVE_AES_MIN_BYTES: usize = 512;
-const NATIVE_HMAC_MIN_BYTES: usize = NATIVE_AES_MIN_BYTES;
+/// Payload size at which the host's native cipher starts winning, per operation.
+///
+/// A `node:crypto` call has a floor of roughly 9 microseconds regardless of size:
+/// constructing the cipher object and its Buffers, not encrypting. Below the
+/// crossover the WASM software implementation is several times faster, so routing
+/// there early is a pessimisation, and the crossover is NOT the same for every
+/// primitive — CBC encrypt is serial per block while its decrypt, GCM and HMAC
+/// parallelise, so they stay ahead of the native call for much longer.
+///
+/// Measured per operation (see the `crypto-hw-bench` project: same provider, wasm
+/// built with the bridge's own flags, one cipher per call as a real caller does):
+///
+/// | operation         | crossover  |
+/// |-------------------|------------|
+/// | CBC encrypt       | 512 B–1 KB |
+/// | CBC decrypt       | 1–4 KB     |
+/// | GCM encrypt/decr. | 1–4 KB     |
+/// | HMAC-SHA256       | 4–16 KB    |
+///
+/// Values sit at the low end of each range: past the crossover the native side
+/// wins by a wide margin, so erring early costs little while erring late costs a
+/// lot on media payloads.
+const NATIVE_CBC_ENCRYPT_MIN_BYTES: usize = 512;
+const NATIVE_CBC_DECRYPT_MIN_BYTES: usize = 2048;
+const NATIVE_GCM_MIN_BYTES: usize = 2048;
+const NATIVE_HMAC_MIN_BYTES: usize = 8192;
+
+// The ordering between the thresholds is the measurement's conclusion: CBC
+// encrypt is serial per block and crosses over first, while the primitives that
+// parallelise stay ahead of the host call for longer. Asserting it in a const
+// block fails the build rather than a test, so a future edit cannot reorder them
+// on a target the test suite does not run.
+const _: () = assert!(NATIVE_CBC_DECRYPT_MIN_BYTES > NATIVE_CBC_ENCRYPT_MIN_BYTES);
+const _: () = assert!(NATIVE_HMAC_MIN_BYTES > NATIVE_GCM_MIN_BYTES);
 const AES_CBC_BLOCK_BYTES: usize = 16;
 const GCM_AUTH_TAG_BYTES: usize = 16;
 const HMAC_SHA256_BYTES: usize = 32;
@@ -96,26 +125,15 @@ impl JsCryptoAdapter {
 
 /// Append the bytes of a JS `Uint8Array` to `out` without pre-zeroing the tail.
 ///
-/// `Vec::resize(new_len, 0)` would memset-zero the grown region before `copy_to`
+/// `Vec::resize(new_len, 0)` would memset-zero the grown region before the copy
 /// overwrites it — pure waste. We use `reserve` + `spare_capacity_mut` +
-/// `set_len` to let `copy_to` write straight into the uninit tail.
+/// `set_len` to let the copy write straight into the uninit tail.
 #[inline]
 fn append_returned_bytes(out: &mut Vec<u8>, value: JsValue) -> Result<(), CryptoProviderError> {
     let arr: Uint8Array = value
         .dyn_into()
         .map_err(|_| CryptoProviderError::BackendFailed)?;
-    let len = arr.length() as usize;
-    let start = out.len();
-    out.reserve(len);
-    // SAFETY: reserve() above guarantees capacity for `len` more bytes. We form
-    // a &mut [u8] over the uninit tail, call copy_to which does a JS→WASM
-    // memcpy fully initializing those bytes, then commit via set_len. We never
-    // read the uninit region before the memcpy completes.
-    unsafe {
-        let dst = std::slice::from_raw_parts_mut(out.as_mut_ptr().add(start), len);
-        arr.copy_to(dst);
-        out.set_len(start + len);
-    }
+    js_bytes::append(out, &arr);
     Ok(())
 }
 
@@ -124,11 +142,9 @@ fn copy_hmac_result(value: JsValue) -> [u8; HMAC_SHA256_BYTES] {
     let arr: Uint8Array = value
         .dyn_into()
         .expect("HMAC-SHA256 callback must return Uint8Array");
-    assert_eq!(
-        arr.length() as usize,
-        HMAC_SHA256_BYTES,
-        "HMAC-SHA256 callback returned the wrong length"
-    );
+    // The length check lives in `copy_to`, which panics unless the array is
+    // exactly `dst.len()` long. Asserting it here first only bought a nicer
+    // message, at the price of a second `length` crossing per HMAC.
     let mut out = [0u8; HMAC_SHA256_BYTES];
     arr.copy_to(&mut out);
     out
@@ -220,7 +236,7 @@ impl SignalCryptoProvider for JsCryptoAdapter {
             return Err(CryptoProviderError::BackendFailed);
         }
 
-        plaintext.copy_to(&mut buffer[..plaintext_len]);
+        js_bytes::copy_exact(&mut buffer[..plaintext_len], &plaintext);
         buffer.truncate(plaintext_len);
         Ok(())
     }
@@ -298,7 +314,7 @@ impl SignalCryptoProvider for JsCryptoAdapter {
             return Err(CryptoProviderError::BackendFailed);
         }
         buffer.resize(new_len, 0);
-        arr.copy_to(buffer.as_mut_slice());
+        js_bytes::copy_exact(buffer.as_mut_slice(), &arr);
         Ok(())
     }
 
@@ -319,7 +335,7 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         if new_len + GCM_AUTH_TAG_BYTES != buffer.len() {
             return Err(CryptoProviderError::BackendFailed);
         }
-        arr.copy_to(&mut buffer.as_mut_slice()[..new_len]);
+        js_bytes::copy_exact(&mut buffer.as_mut_slice()[..new_len], &arr);
         buffer.truncate(new_len);
         Ok(())
     }
@@ -336,8 +352,8 @@ struct HybridCryptoAdapter {
 }
 
 #[inline]
-fn use_native_aes(payload_len: usize) -> bool {
-    payload_len >= NATIVE_AES_MIN_BYTES
+fn use_native(payload_len: usize, min_bytes: usize) -> bool {
+    payload_len >= min_bytes
 }
 
 #[inline]
@@ -353,7 +369,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         plaintext: &[u8],
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
-        if use_native_aes(plaintext.len()) {
+        if use_native(plaintext.len(), NATIVE_CBC_ENCRYPT_MIN_BYTES) {
             self.js.aes_256_cbc_encrypt(key, iv, plaintext, out)
         } else {
             self.rust.aes_256_cbc_encrypt(key, iv, plaintext, out)
@@ -367,7 +383,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         ciphertext: &[u8],
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
-        if use_native_aes(ciphertext.len()) {
+        if use_native(ciphertext.len(), NATIVE_CBC_DECRYPT_MIN_BYTES) {
             self.js.aes_256_cbc_decrypt(key, iv, ciphertext, out)
         } else {
             self.rust.aes_256_cbc_decrypt(key, iv, ciphertext, out)
@@ -396,7 +412,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         plaintext: &[u8],
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
-        if use_native_aes(plaintext.len()) {
+        if use_native(plaintext.len(), NATIVE_GCM_MIN_BYTES) {
             self.js.aes_256_gcm_encrypt(key, nonce, aad, plaintext, out)
         } else {
             self.rust
@@ -412,7 +428,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
         let plaintext_len = gcm_plaintext_len(ciphertext_with_tag.len());
-        if use_native_aes(plaintext_len) {
+        if use_native(plaintext_len, NATIVE_GCM_MIN_BYTES) {
             self.js
                 .aes_256_gcm_decrypt(key, nonce, aad, ciphertext_with_tag, out)
         } else {
@@ -440,7 +456,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         aad: &[u8],
         buffer: &mut dyn GcmInPlaceBuffer,
     ) -> Result<(), CryptoProviderError> {
-        if use_native_aes(buffer.len()) {
+        if use_native(buffer.len(), NATIVE_GCM_MIN_BYTES) {
             self.js
                 .aes_256_gcm_encrypt_in_place(key, nonce, aad, buffer)
         } else {
@@ -457,7 +473,7 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         buffer: &mut dyn GcmInPlaceBuffer,
     ) -> Result<(), CryptoProviderError> {
         let plaintext_len = gcm_plaintext_len(buffer.len());
-        if use_native_aes(plaintext_len) {
+        if use_native(plaintext_len, NATIVE_GCM_MIN_BYTES) {
             self.js
                 .aes_256_gcm_decrypt_in_place(key, nonce, aad, buffer)
         } else {
@@ -500,10 +516,18 @@ mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
+    /// The threshold ORDERING is a const assertion next to the constants; this
+    /// covers the runtime half, that the boundary itself is inclusive.
     #[test]
     fn native_aes_threshold_has_an_explicit_boundary() {
-        assert!(!use_native_aes(NATIVE_AES_MIN_BYTES - 1));
-        assert!(use_native_aes(NATIVE_AES_MIN_BYTES));
+        assert!(!use_native(
+            NATIVE_CBC_ENCRYPT_MIN_BYTES - 1,
+            NATIVE_CBC_ENCRYPT_MIN_BYTES
+        ));
+        assert!(use_native(
+            NATIVE_CBC_ENCRYPT_MIN_BYTES,
+            NATIVE_CBC_ENCRYPT_MIN_BYTES
+        ));
     }
 
     #[test]
@@ -511,8 +535,8 @@ mod tests {
         assert_eq!(gcm_plaintext_len(GCM_AUTH_TAG_BYTES - 1), 0);
         assert_eq!(gcm_plaintext_len(GCM_AUTH_TAG_BYTES), 0);
         assert_eq!(
-            gcm_plaintext_len(NATIVE_AES_MIN_BYTES + GCM_AUTH_TAG_BYTES),
-            NATIVE_AES_MIN_BYTES
+            gcm_plaintext_len(NATIVE_GCM_MIN_BYTES + GCM_AUTH_TAG_BYTES),
+            NATIVE_GCM_MIN_BYTES
         );
     }
 }

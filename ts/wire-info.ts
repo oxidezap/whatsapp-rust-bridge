@@ -133,13 +133,6 @@ export interface MessageWireInfo {
   edit?: string;
 }
 
-/** Packed metadata slice of a `MessageWireBatch`. */
-export interface PackedMessageWireInfos {
-  infoStringData: Uint8Array;
-  infoStringOffsets: Uint32Array;
-  infoRecords: Float64Array;
-}
-
 export const MESSAGE_WIRE_INFO_RECORD_WIDTH = 10;
 const INFO_SLOT_CHAT = 0;
 const INFO_SLOT_SENDER = 1;
@@ -156,19 +149,94 @@ const INFO_FLAG_GROUP = 1 << 1;
 const INFO_FLAG_VIEW_ONCE = 1 << 2;
 const INFO_FLAG_OFFLINE = 1 << 3;
 
-/** Decode every packed record into its structured envelope. */
-export function decodeMessageWireInfos(batch: PackedMessageWireInfos): MessageWireInfo[] {
-  const records = batch.infoRecords;
-  if (records.length % MESSAGE_WIRE_INFO_RECORD_WIDTH !== 0) {
-    throw new RangeError("message wire info records length is not a whole number of records");
+/**
+ * Byte layout of a message batch, written by `MessageWireBatch::write_flat` in
+ * `src/wire_batch.rs`:
+ *
+ * ```text
+ * header (24 B): u32 messages | u32 strings | u32 message_bytes
+ *                u32 string_bytes | u32 record_width | u32 reserved
+ * records:       messages * record_width * f64
+ * offsets:       (messages + 1) * u32
+ * str offsets:   (strings + 1) * u32
+ * payloads:      message_bytes
+ * strings:       string_bytes
+ * ```
+ *
+ * The f64 block leads so it lands 8-aligned behind the 24-byte header, and the
+ * u32 tables follow at 4-aligned offsets. That is what lets this decoder build
+ * views straight over the one buffer the bridge crossed, instead of the five
+ * typed arrays an object envelope would have carried.
+ */
+const MESSAGE_WIRE_HEADER_BYTES = 24;
+const HEADER_SLOT_MESSAGES = 0;
+const HEADER_SLOT_STRINGS = 4;
+const HEADER_SLOT_MESSAGE_BYTES = 8;
+const HEADER_SLOT_STRING_BYTES = 12;
+const HEADER_SLOT_RECORD_WIDTH = 16;
+
+/** Decoded message batch: payload slices plus one envelope per message. */
+export interface MessageWireBatchView {
+  /** Concatenated `proto.Message` payloads, in event order. */
+  messageData: Uint8Array;
+  /** N + 1 byte offsets delimiting the N payloads in `messageData`. */
+  messageOffsets: Uint32Array;
+  /** One decoded envelope per message, parallel to the payload offsets. */
+  infos: MessageWireInfo[];
+}
+
+/**
+ * Typed-array views need their byte offset aligned to the element size. The
+ * bridge always crosses a freshly allocated `Uint8Array` (byteOffset 0), so the
+ * layout is aligned by construction; a caller-built batch over a subarray may
+ * not be, and is copied once rather than rejected.
+ */
+function alignedBuffer(buffer: Uint8Array): Uint8Array {
+  return (buffer.byteOffset + MESSAGE_WIRE_HEADER_BYTES) % 8 === 0 ? buffer : new Uint8Array(buffer);
+}
+
+/** Decode a packed message batch into payload slices and metadata envelopes. */
+export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatchView {
+  const buffer = alignedBuffer(batch);
+  if (buffer.byteLength < MESSAGE_WIRE_HEADER_BYTES) {
+    throw new RangeError("message wire batch is shorter than its header");
   }
-  const { required, optional } = tableAccessors(
-    decodeStringTable(batch.infoStringData, batch.infoStringOffsets),
-  );
-  const count = records.length / MESSAGE_WIRE_INFO_RECORD_WIDTH;
-  const infos: MessageWireInfo[] = new Array(count);
-  for (let i = 0; i < count; i++) {
-    const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
+  const header = new DataView(buffer.buffer, buffer.byteOffset, MESSAGE_WIRE_HEADER_BYTES);
+  const messageCount = header.getUint32(HEADER_SLOT_MESSAGES, true);
+  const stringCount = header.getUint32(HEADER_SLOT_STRINGS, true);
+  const messageBytes = header.getUint32(HEADER_SLOT_MESSAGE_BYTES, true);
+  const stringBytes = header.getUint32(HEADER_SLOT_STRING_BYTES, true);
+  const recordWidth = header.getUint32(HEADER_SLOT_RECORD_WIDTH, true);
+  if (recordWidth !== MESSAGE_WIRE_INFO_RECORD_WIDTH) {
+    throw new RangeError(
+      `message wire batch record width ${recordWidth} does not match the expected ${MESSAGE_WIRE_INFO_RECORD_WIDTH}`,
+    );
+  }
+
+  const recordBytes = messageCount * recordWidth * 8;
+  const offsetBytes = (messageCount + 1) * 4;
+  const stringOffsetBytes = (stringCount + 1) * 4;
+  const expected =
+    MESSAGE_WIRE_HEADER_BYTES + recordBytes + offsetBytes + stringOffsetBytes + messageBytes + stringBytes;
+  if (buffer.byteLength < expected) {
+    throw new RangeError(`message wire batch is truncated: ${buffer.byteLength} bytes, expected ${expected}`);
+  }
+
+  let cursor = MESSAGE_WIRE_HEADER_BYTES;
+  const records = new Float64Array(buffer.buffer, buffer.byteOffset + cursor, messageCount * recordWidth);
+  cursor += recordBytes;
+  const messageOffsets = new Uint32Array(buffer.buffer, buffer.byteOffset + cursor, messageCount + 1);
+  cursor += offsetBytes;
+  const stringOffsets = new Uint32Array(buffer.buffer, buffer.byteOffset + cursor, stringCount + 1);
+  cursor += stringOffsetBytes;
+  const messageData = buffer.subarray(cursor, cursor + messageBytes);
+  cursor += messageBytes;
+  const stringData = buffer.subarray(cursor, cursor + stringBytes);
+
+  const { required, optional } = tableAccessors(decodeStringTable(stringData, stringOffsets));
+  const infos: MessageWireInfo[] = new Array(messageCount);
+  for (let i = 0; i < messageCount; i++) {
+    const base = i * recordWidth;
     const flags = records[base + INFO_SLOT_FLAGS]!;
     infos[i] = {
       chat: required(records[base + INFO_SLOT_CHAT]!),
@@ -186,18 +254,29 @@ export function decodeMessageWireInfos(batch: PackedMessageWireInfos): MessageWi
       edit: optional(records[base + INFO_SLOT_EDIT]!),
     };
   }
-  return infos;
+  return { messageData, messageOffsets, infos };
+}
+
+/** One message as a caller supplies it to `encodeMessageWireBatch`. */
+export interface MessageWireEntry {
+  /** Encoded `proto.Message` payload. */
+  payload: Uint8Array;
+  info: MessageWireInfo;
 }
 
 /**
- * Inverse of `decodeMessageWireInfos`, for hosts that need to fabricate
- * batches (tests, replay tooling). Mirrors the Rust writer exactly.
+ * Inverse of `decodeMessageWireBatch`, for hosts that need to fabricate batches
+ * (tests, replay tooling). Mirrors the Rust writer byte for byte.
  */
-export function encodeMessageWireInfos(infos: readonly MessageWireInfo[]): PackedMessageWireInfos {
+export function encodeMessageWireBatch(entries: readonly MessageWireEntry[]): PackedWireBatch {
   const strings = new StringTableBuilder();
-  const records = new Float64Array(infos.length * MESSAGE_WIRE_INFO_RECORD_WIDTH);
-  for (let i = 0; i < infos.length; i++) {
-    const info = infos[i]!;
+  const records = new Float64Array(entries.length * MESSAGE_WIRE_INFO_RECORD_WIDTH);
+  const messageOffsets = new Uint32Array(entries.length + 1);
+  let payloadBytes = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const { payload, info } = entries[i]!;
+    payloadBytes += payload.byteLength;
+    messageOffsets[i + 1] = payloadBytes;
     const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
     records[base + INFO_SLOT_CHAT] = strings.intern(info.chat);
     records[base + INFO_SLOT_SENDER] = strings.intern(info.sender);
@@ -211,24 +290,55 @@ export function encodeMessageWireInfos(infos: readonly MessageWireInfo[]): Packe
       (info.isGroup ? INFO_FLAG_GROUP : 0) |
       (info.isViewOnce ? INFO_FLAG_VIEW_ONCE : 0) |
       (info.isOffline ? INFO_FLAG_OFFLINE : 0);
-    records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = strings.internOptional(
-      info.unavailableRequestId,
-    );
+    records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = strings.internOptional(info.unavailableRequestId);
     records[base + INFO_SLOT_EDIT] = strings.internOptional(info.edit);
   }
-  const { data, offsets } = strings.pack();
-  return { infoStringData: data, infoStringOffsets: offsets, infoRecords: records };
+  const { data: stringData, offsets: stringOffsets } = strings.pack();
+
+  const total =
+    MESSAGE_WIRE_HEADER_BYTES +
+    records.byteLength +
+    messageOffsets.byteLength +
+    stringOffsets.byteLength +
+    payloadBytes +
+    stringData.byteLength;
+  const buffer = new Uint8Array(total);
+  const header = new DataView(buffer.buffer, 0, MESSAGE_WIRE_HEADER_BYTES);
+  header.setUint32(HEADER_SLOT_MESSAGES, entries.length, true);
+  header.setUint32(HEADER_SLOT_STRINGS, Math.max(0, stringOffsets.length - 1), true);
+  header.setUint32(HEADER_SLOT_MESSAGE_BYTES, payloadBytes, true);
+  header.setUint32(HEADER_SLOT_STRING_BYTES, stringData.byteLength, true);
+  header.setUint32(HEADER_SLOT_RECORD_WIDTH, MESSAGE_WIRE_INFO_RECORD_WIDTH, true);
+
+  let cursor = MESSAGE_WIRE_HEADER_BYTES;
+  buffer.set(new Uint8Array(records.buffer, records.byteOffset, records.byteLength), cursor);
+  cursor += records.byteLength;
+  buffer.set(new Uint8Array(messageOffsets.buffer, messageOffsets.byteOffset, messageOffsets.byteLength), cursor);
+  cursor += messageOffsets.byteLength;
+  buffer.set(new Uint8Array(stringOffsets.buffer, stringOffsets.byteOffset, stringOffsets.byteLength), cursor);
+  cursor += stringOffsets.byteLength;
+  for (const { payload } of entries) {
+    buffer.set(payload, cursor);
+    cursor += payload.byteLength;
+  }
+  buffer.set(stringData, cursor);
+  return buffer;
 }
 
 // ---------------------------------------------------------------------------
 // Receipt and server-ack records
 // ---------------------------------------------------------------------------
 
-/** Packed batch envelope: one flat buffer with header, cache definitions,
- * records and string bytes. See the Rust writer in `src/wire_batch.rs`. */
-export interface PackedWireBatch {
-  buffer: Uint8Array;
-}
+/**
+ * A packed batch IS its buffer: one flat run of header, cache definitions,
+ * fixed-width records and string bytes. See the Rust writers in
+ * `src/wire_batch.rs`.
+ *
+ * Crossing the bare typed array rather than a `{ buffer }` object saves an
+ * object construction and a property write per batch, and a single message
+ * produces three batches (its own, its receipt, its ack).
+ */
+export type PackedWireBatch = Uint8Array;
 
 /** Serde shape of the core's `Receipt` payload, as the single-event path emits it. */
 export interface ReceiptWireData {
@@ -421,7 +531,7 @@ const receiptReader = new PackedBatchReader();
 const serverAckReader = new PackedBatchReader();
 
 export function decodeReceiptWireBatch(batch: PackedWireBatch): ReceiptWireData[] {
-  const count = receiptReader.begin(batch.buffer);
+  const count = receiptReader.begin(batch);
   const receipts: ReceiptWireData[] = new Array(count);
   for (let i = 0; i < count; i++) {
     const flags = receiptReader.u8();
@@ -459,7 +569,7 @@ export function decodeReceiptWireBatch(batch: PackedWireBatch): ReceiptWireData[
 }
 
 export function decodeServerAckWireBatch(batch: PackedWireBatch): ServerAckWireData[] {
-  const count = serverAckReader.begin(batch.buffer);
+  const count = serverAckReader.begin(batch);
   const acks: ServerAckWireData[] = new Array(count);
   for (let i = 0; i < count; i++) {
     const cls = serverAckReader.strOptional();
@@ -584,7 +694,7 @@ class PackedBatchBuilder {
     buffer.set(this.records, at);
     at += this.records.length;
     buffer.set(stringBytes, at);
-    return { buffer };
+    return buffer;
   }
 }
 

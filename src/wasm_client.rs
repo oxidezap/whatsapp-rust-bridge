@@ -239,10 +239,9 @@ export interface WhatsAppClientConfig {
 export interface WhatsAppEventCallbacks {
   onEvent(event: WhatsAppEvent): void;
   /**
-   * Protobuf-wire message path. The bridge packs a bounded ordered group into
-   * one byte buffer; `messageOffsets` has N + 1 entries (starts at 0, ends at
-   * `messageData.length`) and `infoRecords` has N packed metadata records.
-   * Decode the records with `decodeMessageWireInfos`.
+   * Protobuf-wire message path. The bridge packs a bounded ordered group of
+   * messages — payloads and metadata alike — into one flat buffer. Decode it
+   * with `decodeMessageWireBatch`.
    */
   onMessageBatch(batch: MessageWireBatch): void;
   /**
@@ -274,35 +273,17 @@ export interface WhatsAppEventCallbacks {
   onServerAckBatch?(batch: ServerAckWireBatch): void;
 }
 
-export type MessageWireBatch = {
-  /** Concatenated `proto.Message` payloads in event order. */
-  messageData: Uint8Array;
-  /** N + 1 byte offsets delimiting the N payloads (starts at 0). */
-  messageOffsets: Uint32Array;
-  /** Concatenated UTF-8 payloads of the per-batch deduplicated string table. */
-  infoStringData: Uint8Array;
-  /** K + 1 byte offsets delimiting the K table entries (starts at 0). */
-  infoStringOffsets: Uint32Array;
-  /**
-   * Packed metadata, one fixed-width record per message; see
-   * `decodeMessageWireInfos` for the layout.
-   */
-  infoRecords: Float64Array;
-};
-
-export type ReceiptWireBatch = {
-  /**
-   * One flat batch buffer: header, cache definitions, fixed-width records and
-   * string bytes. Decode with `decodeReceiptWireBatch`, which keeps the
-   * process-wide caches the encoder writes against.
-   */
-  buffer: Uint8Array;
-};
-
-export type ServerAckWireBatch = {
-  /** Flat batch buffer; decode with `decodeServerAckWireBatch`. */
-  buffer: Uint8Array;
-};
+/**
+ * A packed batch is one flat buffer: header, records and string bytes. Decode it
+ * with the matching codec (`decodeMessageWireBatch`, `decodeReceiptWireBatch`,
+ * `decodeServerAckWireBatch`), which reads views over the buffer instead of
+ * copying. The bare typed array crosses rather than a wrapper object: one
+ * message produces three batches, so an object per batch is three constructions
+ * and three property writes of pure overhead.
+ */
+export type MessageWireBatch = Uint8Array;
+export type ReceiptWireBatch = Uint8Array;
+export type ServerAckWireBatch = Uint8Array;
 
 export type HistorySyncWireBatch = {
   /** Concatenated Conversation protobuf payloads for this bounded batch. */

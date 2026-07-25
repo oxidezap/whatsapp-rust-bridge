@@ -16,6 +16,7 @@ pub mod device_props;
 pub mod errors;
 mod generated_types;
 pub mod js_backend;
+mod js_bytes;
 pub mod js_cache_store;
 pub mod js_crypto;
 pub mod js_http;

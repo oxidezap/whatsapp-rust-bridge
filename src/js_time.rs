@@ -6,8 +6,15 @@ use whatsapp_rust::wacore::time::{MonotonicProvider, TimeProvider};
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_namespace = performance, js_name = now)]
+    fn performance_now() -> f64;
+
+    /// Only used to decide, once, whether the clock is callable at all. The
+    /// `catch` form wraps every call in a try/catch and returns a JS result
+    /// object that has to be unwrapped and dropped — measurable at four calls
+    /// per message, and pointless once availability is known.
     #[wasm_bindgen(js_namespace = performance, js_name = now, catch)]
-    fn performance_now() -> Result<f64, JsValue>;
+    fn performance_now_checked() -> Result<f64, JsValue>;
 }
 
 pub struct JsTimeProvider;
@@ -27,11 +34,23 @@ pub struct JsMonotonicProvider;
 
 crate::wasm_send_sync!(JsMonotonicProvider);
 
+thread_local! {
+    /// Probed once: hosts either have a usable `performance.now` or they never
+    /// will, so the per-call guard buys nothing after the first answer.
+    static MONOTONIC_USABLE: bool =
+        matches!(performance_now_checked(), Ok(ms) if ms.is_finite() && ms >= 0.0);
+}
+
 impl MonotonicProvider for JsMonotonicProvider {
     fn now_nanos(&self) -> u64 {
-        match performance_now() {
-            Ok(ms) if ms.is_finite() && ms >= 0.0 => (ms * 1_000_000.0) as u64,
-            _ => 0,
+        if !MONOTONIC_USABLE.with(|usable| *usable) {
+            return 0;
+        }
+        let ms = performance_now();
+        if ms.is_finite() && ms >= 0.0 {
+            (ms * 1_000_000.0) as u64
+        } else {
+            0
         }
     }
 }

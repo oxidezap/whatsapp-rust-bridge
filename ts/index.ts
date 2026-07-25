@@ -16,15 +16,16 @@ export { BinaryReader } from "./proto-reader";
 
 // Packed wire-batch codecs (message metadata, receipts, server acks).
 export {
-  decodeMessageWireInfos,
+  decodeMessageWireBatch,
   decodeReceiptWireBatch,
   decodeServerAckWireBatch,
-  encodeMessageWireInfos,
+  encodeMessageWireBatch,
   encodeReceiptWireBatch,
   encodeServerAckWireBatch,
   MESSAGE_WIRE_INFO_RECORD_WIDTH,
+  type MessageWireBatchView,
+  type MessageWireEntry,
   type MessageWireInfo,
-  type PackedMessageWireInfos,
   type PackedWireBatch,
   type ReceiptWireData,
   type ServerAckWireData,

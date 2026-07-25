@@ -1,14 +1,12 @@
-use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, VecDeque};
 use std::future::Future;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
 use async_trait::async_trait;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::runtime::{AbortHandle, Runtime};
 
@@ -56,112 +54,183 @@ fn clear_timeout(id: &JsValue) {
 }
 
 // ---------------------------------------------------------------------------
-// Cancellation-aware sleep future
+// Cancellation-aware sleep
 // ---------------------------------------------------------------------------
 //
-// `Promise::new` + `setTimeout` alone leaks timers on cancellation: if the
-// owning Rust future is dropped (via `futures::select!`, Abortable, etc.)
-// before the timer fires, the Rust-side `JsFuture` goes away — but the
-// JS-side `setTimeout` callback remains queued and keeps the Node.js event
-// loop alive until it fires naturally. For long sleeps (minutes) during
-// shutdown this causes the process to hang.
+// A sleep has to be cancellable: when the owning future is dropped before the
+// timer fires — `select!`, `Abortable`, a request answered before its timeout —
+// the JS timer must be cleared, or it keeps the Node event loop alive until it
+// fires on its own. For a multi-minute sleep during shutdown that hangs the
+// process.
 //
-// `SleepFut` captures the timer ID returned by `setTimeout` into a shared
-// `Rc<RefCell<Option<JsValue>>>` so that Drop can call `clearTimeout(id)`.
-// When the timer fires naturally we clear the slot so Drop is a no-op.
+// The obvious shape, `Promise::new` + `setTimeout(resolve)` awaited through a
+// `JsFuture`, costs a promise, a resolve function, a `then` registration and two
+// type checks per sleep. It also made cancellation subtle: `JsFuture` registers
+// a resolve/reject pair, and a promise that never settles retains both for the
+// life of the process, so every cancelled sleep leaked two JS handles until Drop
+// was taught to settle it.
+//
+// This mirrors the `SetImmediateYield` design further down instead: ONE
+// persistent JS callback shared by every timer, plus a Rust-side registry of
+// `Waker`s. `setTimeout(cb, ms, id)` passes the id back to that shared callback,
+// so it knows which sleep to wake. Nothing per-sleep crosses the boundary except
+// the `setTimeout` call, and there is no promise that could retain anything —
+// the leak is impossible by construction rather than fixed by Drop.
 
+type SleepId = u32;
+
+thread_local! {
+    /// Wakers of sleeps whose timer has not fired yet. A missing id means the
+    /// timer already fired, which is how `poll` detects completion without any
+    /// extra state.
+    static SLEEP_WAKERS: RefCell<HashMap<SleepId, Waker>> = RefCell::new(HashMap::new());
+    static NEXT_SLEEP_ID: Cell<SleepId> = const { Cell::new(0) };
+    /// The single callback every timer shares.
+    static SLEEP_CB: RefCell<Option<JsValue>> = const { RefCell::new(None) };
+}
+
+/// Create the shared timer callback once.
+fn ensure_sleep_callback() {
+    SLEEP_CB.with(|cached| {
+        if cached.borrow().is_some() {
+            return;
+        }
+        let callback = Closure::wrap(Box::new(|id: f64| {
+            let id = id as SleepId;
+            // Take the waker out before waking. `wake` can re-enter Rust, which
+            // must not find the registry borrowed, and removing it first is what
+            // makes the sleep look finished to `poll`.
+            let waker = SLEEP_WAKERS.with(|wakers| wakers.borrow_mut().remove(&id));
+            if let Some(waker) = waker {
+                waker.wake();
+            }
+        }) as Box<dyn FnMut(f64)>);
+        *cached.borrow_mut() = Some(callback.into_js_value());
+    });
+}
+
+/// Register `waker` and arm a timer for it.
+///
+/// Returns the registry id and the handle `clearTimeout` needs, or `None` when
+/// no timer could be armed — the caller then completes immediately rather than
+/// waiting for something that will never fire.
+fn arm_sleep(ms: i32, waker: Waker) -> Option<(SleepId, JsValue)> {
+    let set_timeout_fn = get_set_timeout()?;
+    ensure_sleep_callback();
+
+    let id = SLEEP_WAKERS.with(|wakers| {
+        let mut wakers = wakers.borrow_mut();
+        // Ids wrap. Skipping live ones keeps a long-pending sleep from being
+        // woken by a much later timer that happened to reuse its id.
+        let mut id = NEXT_SLEEP_ID.get();
+        while wakers.contains_key(&id) {
+            id = id.wrapping_add(1);
+        }
+        NEXT_SLEEP_ID.set(id.wrapping_add(1));
+        wakers.insert(id, waker);
+        id
+    });
+
+    let handle = SLEEP_CB.with(|cb| {
+        let cb = cb.borrow();
+        let cb = cb.as_ref()?;
+        set_timeout_fn
+            .call3(&JsValue::NULL, cb, &JsValue::from(ms), &JsValue::from(id))
+            .ok()
+    });
+
+    match handle {
+        Some(handle) => Some((id, handle)),
+        None => {
+            SLEEP_WAKERS.with(|wakers| wakers.borrow_mut().remove(&id));
+            None
+        }
+    }
+}
+
+struct ArmedSleep {
+    id: SleepId,
+    /// Value `setTimeout` returned, passed back to `clearTimeout` on cancel.
+    handle: JsValue,
+}
+
+/// Sleep that clears its timer when dropped.
+///
+/// The timer is armed on the first poll rather than at construction, which is
+/// what lets the registry hold the real waker instead of a placeholder. Every
+/// caller awaits the future it just created, so the difference is not observable.
 struct SleepFut {
-    /// Shared timer ID — `Some` while the timer is pending, cleared to
-    /// `None` either when the timer fires (in `poll`) or when we've already
-    /// cancelled it (in `drop`). When `setTimeout` is unavailable the slot
-    /// stays `None` and the underlying promise is already resolved.
-    timer_id: Rc<RefCell<Option<JsValue>>>,
-    /// Resolver captured from the promise executor, used to settle the promise
-    /// when the sleep is cancelled. `JsFuture` registers a resolve/reject pair
-    /// on the promise, and a promise that stays pending keeps both alive for
-    /// the life of the process: their wasm-bindgen handles are only released
-    /// when one of them runs. Cancelling a timer without settling therefore
-    /// leaks two handles per cancelled sleep, which is every request that
-    /// completes before its timeout.
-    resolve: Option<js_sys::Function>,
-    js_future: JsFuture,
+    ms: i32,
+    armed: Option<ArmedSleep>,
+    /// No timer could be armed; complete instead of hanging forever.
+    unschedulable: bool,
 }
 
 impl Future for SleepFut {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        match Pin::new(&mut self.js_future).poll(cx) {
-            Poll::Ready(_) => {
-                // Timer fired naturally (or was never scheduled) — clear the ID
-                // so Drop is a no-op.
-                self.timer_id.borrow_mut().take();
-                Poll::Ready(())
+        if self.unschedulable {
+            return Poll::Ready(());
+        }
+        let Some(armed) = &self.armed else {
+            return match arm_sleep(self.ms, cx.waker().clone()) {
+                Some((id, handle)) => {
+                    self.armed = Some(ArmedSleep { id, handle });
+                    Poll::Pending
+                }
+                None => {
+                    self.unschedulable = true;
+                    Poll::Ready(())
+                }
+            };
+        };
+        // The shared callback removes the registration when the timer fires, so
+        // a missing one means this sleep is done.
+        let still_pending = SLEEP_WAKERS.with(|wakers| {
+            match wakers.borrow_mut().get_mut(&armed.id) {
+                Some(slot) => {
+                    // The executor may poll us from a different task context.
+                    if !slot.will_wake(cx.waker()) {
+                        *slot = cx.waker().clone();
+                    }
+                    true
+                }
+                None => false,
             }
-            Poll::Pending => Poll::Pending,
+        });
+        if still_pending {
+            Poll::Pending
+        } else {
+            Poll::Ready(())
         }
     }
 }
 
 impl Drop for SleepFut {
     fn drop(&mut self) {
-        if let Some(id) = self.timer_id.borrow_mut().take() {
-            clear_timeout(&id);
-            if let Some(resolve) = &self.resolve {
-                // Settling is what frees the promise's callbacks. Nothing
-                // observes the value: this future is already going away.
-                let _ = resolve.call0(&JsValue::NULL);
+        if let Some(armed) = &self.armed {
+            // Deregister first: a timer that fires anyway then finds nothing to
+            // wake, so a failed `clearTimeout` is harmless.
+            let was_pending = SLEEP_WAKERS
+                .with(|wakers| wakers.borrow_mut().remove(&armed.id))
+                .is_some();
+            if was_pending {
+                clear_timeout(&armed.handle);
             }
         }
-    }
-}
-
-/// Schedule `callback` via `setTimeout(ms)` and return the timer ID.
-///
-/// Returns `None` if scheduling failed (e.g. `globalThis.setTimeout` missing
-/// — the caller should treat this as "resolved synchronously").
-fn schedule_timeout(callback: &JsValue, ms: i32) -> Option<JsValue> {
-    let set_timeout_fn = get_set_timeout()?;
-    let id = set_timeout_fn
-        .call2(&JsValue::NULL, callback, &JsValue::from(ms))
-        .ok()?;
-    if id.is_undefined() || id.is_null() {
-        None
-    } else {
-        Some(id)
     }
 }
 
 /// Build a cancellation-aware sleep future.
 ///
-/// `ms == 0` still allocates a timer to preserve "yield to event loop" semantics,
-/// but Drop-cancellation works identically.
+/// `ms == 0` still goes through a timer to preserve "yield to the event loop"
+/// semantics; cancellation works identically.
 fn make_sleep(ms: i32) -> SleepFut {
-    // `timer_id_slot` is populated by the Promise executor (runs synchronously
-    // during `Promise::new`). We share it with `SleepFut` so Drop can cancel.
-    let timer_id_slot: Rc<RefCell<Option<JsValue>>> = Rc::new(RefCell::new(None));
-
-    let executor_slot = timer_id_slot.clone();
-    let resolve_slot: Rc<RefCell<Option<js_sys::Function>>> = Rc::new(RefCell::new(None));
-    let executor_resolve = resolve_slot.clone();
-    let promise = js_sys::Promise::new(&mut |resolve, _reject| {
-        match schedule_timeout(&resolve, ms) {
-            Some(id) => {
-                *executor_slot.borrow_mut() = Some(id);
-                *executor_resolve.borrow_mut() = Some(resolve);
-            }
-            None => {
-                // Couldn't schedule — resolve synchronously so the future is Ready.
-                let _ = resolve.call0(&JsValue::NULL);
-            }
-        }
-    });
-
-    let resolve = resolve_slot.borrow_mut().take();
     SleepFut {
-        timer_id: timer_id_slot,
-        resolve,
-        js_future: JsFuture::from(promise),
+        ms,
+        armed: None,
+        unschedulable: false,
     }
 }
 
@@ -408,5 +477,77 @@ impl Runtime for WasmRuntime {
         // Yield every single frame in WASM. The default (10) is too infrequent
         // for single-threaded execution — pending I/O starves between yields.
         1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn pending_sleeps() -> usize {
+        SLEEP_WAKERS.with(|wakers| wakers.borrow().len())
+    }
+
+    #[wasm_bindgen_test]
+    async fn sleep_fires_and_leaves_no_registration() {
+        let before = pending_sleeps();
+        make_sleep(1).await;
+        assert_eq!(
+            pending_sleeps(),
+            before,
+            "a fired timer must deregister its waker"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn concurrent_sleeps_each_wake_their_own_future() {
+        let before = pending_sleeps();
+        // Distinct durations so they complete out of registration order.
+        let (a, b, c) = futures::join!(make_sleep(8), make_sleep(1), make_sleep(4));
+        assert_eq!((a, b, c), ((), (), ()));
+        assert_eq!(pending_sleeps(), before);
+    }
+
+    /// The whole point of the design: a dropped sleep must clear both its JS
+    /// timer and its registry slot, with nothing left to retain.
+    #[wasm_bindgen_test]
+    async fn dropping_a_pending_sleep_deregisters_it() {
+        let before = pending_sleeps();
+        {
+            let mut sleep = Box::pin(make_sleep(60_000));
+            let poll = futures::poll!(sleep.as_mut());
+            assert!(poll.is_pending(), "a minute-long sleep must not be ready");
+            assert_eq!(
+                pending_sleeps(),
+                before + 1,
+                "an armed sleep registers exactly one waker"
+            );
+        }
+        assert_eq!(
+            pending_sleeps(),
+            before,
+            "dropping an armed sleep must deregister it"
+        );
+    }
+
+    /// Cancelling must not disturb sleeps that are still waiting.
+    #[wasm_bindgen_test]
+    async fn cancelling_one_sleep_leaves_the_others_running() {
+        let before = pending_sleeps();
+        let mut long = Box::pin(make_sleep(60_000));
+        assert!(futures::poll!(long.as_mut()).is_pending());
+        let mut other = Box::pin(make_sleep(60_000));
+        assert!(futures::poll!(other.as_mut()).is_pending());
+        assert_eq!(pending_sleeps(), before + 2);
+
+        drop(long);
+        assert_eq!(pending_sleeps(), before + 1);
+
+        // The survivor still completes on its own terms.
+        drop(other);
+        assert_eq!(pending_sleeps(), before);
+        make_sleep(1).await;
+        assert_eq!(pending_sleeps(), before);
     }
 }

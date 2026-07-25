@@ -81,7 +81,7 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue 
 
     let tx = event_tx.clone();
     let on_data = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
-        let bytes = data.to_vec();
+        let bytes = crate::js_bytes::to_vec(&data);
         match tx.try_send(TransportEvent::DataReceived(Bytes::from(bytes))) {
             Ok(()) => {}
             Err(async_channel::TrySendError::Closed(_)) => {
@@ -149,6 +149,13 @@ struct RawTransportCallbacks {
     connect_fn: js_sys::Function,
     send_fn: js_sys::Function,
     send_borrowed_fn: Option<js_sys::Function>,
+    /// Whether `sendBorrowed`'s synchronous contract has been verified.
+    ///
+    /// Whether a JS function returns a Promise is a property of the function,
+    /// not of the call, so the check answers the same way forever. Repeating it
+    /// costs an `instanceof` crossing on the busiest path there is — one per
+    /// frame sent.
+    send_borrowed_checked: std::cell::Cell<bool>,
     disconnect_fn: js_sys::Function,
     /// The original JS object — kept alive to prevent GC
     _js_obj: JsValue,
@@ -176,6 +183,7 @@ impl RawTransportCallbacks {
             connect_fn,
             send_fn,
             send_borrowed_fn,
+            send_borrowed_checked: std::cell::Cell::new(false),
             disconnect_fn,
             _js_obj: obj,
         })
@@ -201,8 +209,11 @@ impl RawTransportCallbacks {
             let result = send_borrowed_fn
                 .call1(&JsValue::NULL, &uint8.into())
                 .map_err(|e| anyhow::anyhow!("sendBorrowed: {e:?}"))?;
-            if result.is_instance_of::<js_sys::Promise>() {
-                anyhow::bail!("transport.sendBorrowed must return synchronously");
+            if !self.send_borrowed_checked.get() {
+                if result.is_instance_of::<js_sys::Promise>() {
+                    anyhow::bail!("transport.sendBorrowed must return synchronously");
+                }
+                self.send_borrowed_checked.set(true);
             }
             return Ok(());
         }

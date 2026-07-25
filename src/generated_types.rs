@@ -801,12 +801,15 @@ export interface OfflineSyncCompleted {
   count: number;
 }
 
+/** `total` is authoritative; the per-kind counts need not sum to it. */
 export interface OfflineSyncPreview {
   total: number;
   app_data_changes: number;
   messages: number;
   notifications: number;
   receipts: number;
+  calls: number;
+  statuses: number;
 }
 
 export interface PairError {

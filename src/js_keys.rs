@@ -26,14 +26,7 @@ js_keys! {
     EVENT_TYPE_KEY => "type",
     EVENT_DATA_KEY => "data",
 
-    /// `MessageWireBatch` fields, mirrored by `ts/wire-info.ts`.
-    MESSAGE_WIRE_DATA_KEY => "messageData",
-    MESSAGE_WIRE_OFFSETS_KEY => "messageOffsets",
-    MESSAGE_WIRE_INFO_STRING_DATA_KEY => "infoStringData",
-    MESSAGE_WIRE_INFO_STRING_OFFSETS_KEY => "infoStringOffsets",
-    MESSAGE_WIRE_INFO_RECORDS_KEY => "infoRecords",
-
-    /// Single-buffer batches (`FlatBatchWriter`).
+    /// The envelope every packed batch crosses with — see `cross_flat_batch`.
     PACKED_BUFFER_KEY => "buffer",
 }
 
