@@ -11,6 +11,7 @@ pub mod sticker_metadata;
 pub mod addon_crypto;
 pub mod camel_serializer;
 pub mod client_profile;
+pub mod compression;
 pub mod crypto;
 pub mod device_props;
 pub mod errors;
