@@ -222,3 +222,21 @@ export function waitForEventMatching<T extends { type: string }>(
     }, 100);
   });
 }
+
+/**
+ * Whether the mock server answers. The E2E suites need one running locally and
+ * CI does not start it, so they skip on this rather than spending their timeout
+ * failing to connect and reporting it as a broken build.
+ */
+export async function mockServerReachable(timeoutMs = 2000): Promise<boolean> {
+  const admin = new URL(MOCK_SERVER_URL.replace(/^ws/, "http"));
+  try {
+    const res = await fetch(`${admin.protocol}//${admin.host}/`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      tls: { rejectUnauthorized: false },
+    } as RequestInit);
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}

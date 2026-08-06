@@ -739,12 +739,23 @@ mod tests {
 
     /// Distinct texts still accumulate: collapsing must not swallow a layer
     /// that adds information.
+    ///
+    /// The outer layer is declared here rather than taken from the core. The
+    /// core renders a wrapping variant as what it wraps, so every wrapper it
+    /// offers is a collapse case, and pinning this to whichever one still
+    /// carried its own sentence made the test fail when that sentence was
+    /// dropped — a rendering change in an unrelated crate, not a regression in
+    /// this function.
     #[test]
     fn display_chain_keeps_distinct_layers() {
-        let err = PairError::RequestFailed(rejected(400));
+        #[derive(Debug, thiserror::Error)]
+        #[error("outer layer")]
+        struct Outer(#[source] IqError);
+
+        let err = Outer(rejected(400));
         let rendered = display_chain(&err);
 
-        assert!(rendered.starts_with("pair-code IQ request failed"));
+        assert!(rendered.starts_with("outer layer"));
         assert!(rendered.contains("received a server error"));
     }
 

@@ -22,6 +22,7 @@ import {
   waitForEvent,
   waitForEventMatching,
   autoScanQr,
+  mockServerReachable,
 } from "./helpers.js";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -81,7 +82,12 @@ function isIncomingMessage(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("Two-client E2E messaging", () => {
+// Every test here pairs two clients against the mock server on
+// MOCK_SERVER_URL, which CI does not start. Skipping keeps a missing server out
+// of the build result; a real regression still shows up wherever it is running.
+const hasMockServer = await mockServerReachable();
+
+describe.skipIf(!hasMockServer)("Two-client E2E messaging", () => {
   let alice: TestClient;
   let bob: TestClient;
   let aliceJid: string;
