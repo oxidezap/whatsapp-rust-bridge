@@ -18,6 +18,18 @@ export interface Jid {
 /** Addressing mode for a group (phone number vs LID). */
 export type AddressingMode = "pn" | "lid";
 
+/** A batched app-state sync finished without leaving every collection synced.  Collections are named as they appear on the wire (`critical_block`, `regular_high`, …) rather than as an enum, so the payload stays stable if the set of collections changes.  `fatal` is the one a consumer usually has to act on: the server refused the collection, and repeating the request gets the same answer. WhatsApp Web treats that as grounds to notify the primary device and log out; this library will not end a session on its own, so it reports the refusal and keeps the connection. When `connected` is true the client dispatched [`Event::Connected`] anyway and is usable, minus whatever those collections carry — for `critical_block` that includes the push name, so presence stays unavailable until it syncs. */
+export interface AppStateSyncFailed {
+  /** Refused outright by the server (400/404). Terminal for this connection. */
+  fatal: string[];
+  /** Did not sync, but a later attempt can. */
+  retryable: string[];
+  /** Another writer held the collection, so this sync did nothing for it. */
+  skipped: string[];
+  /** Whether the client went on to dispatch [`Event::Connected`]. */
+  connected: boolean;
+}
+
 /** App state synchronization key for WhatsApp's app state protocol. */
 export interface AppStateSyncKey {
   key_data: Uint8Array;
@@ -104,13 +116,18 @@ export interface CachedServerCertChain {
 export type CallAction =
   | { type: "offer"; call_id: string; call_creator: Jid; caller_pn?: Jid | null; caller_country_code?: string | null; device_class?: string | null; joinable: boolean; is_video: boolean; audio: CallAudioCodec[]; group_jid?: Jid | null }
   | { type: "offer_notice"; call_id: string; call_creator: Jid; is_video: boolean; is_group: boolean }
-  | { type: "pre_accept"; call_id: string; call_creator: Jid; audio: CallAudioCodec[] }
+  | { type: "preaccept"; call_id: string; call_creator: Jid; audio: CallAudioCodec[] }
   | { type: "accept"; call_id: string; call_creator: Jid; audio: CallAudioCodec[] }
-  | { type: "reject"; call_id: string; call_creator: Jid }
+  | { type: "reject"; call_id: string; call_creator: Jid; reason?: string | null }
   | { type: "terminate"; call_id: string; call_creator: Jid; reason?: string | null; duration?: number | null; audio_duration?: number | null }
   | { type: "transport"; call_id: string; call_creator: Jid; p2p_cand_round?: string | null; transport_message_type?: string | null }
-  | { type: "relay_latency"; call_id: string; call_creator: Jid }
-  | { type: "video"; call_id: string; call_creator: Jid; state: VideoState; orientation?: number | null; dec?: string | null };
+  | { type: "relaylatency"; call_id: string; call_creator: Jid }
+  | { type: "video"; call_id: string; call_creator: Jid; state: VideoState; orientation?: number | null; dec?: string | null }
+  | { type: "group_update"; update: GroupCallUpdate }
+  | { type: "enc_rekey"; rekey: GroupCallEncRekey }
+  | { type: "waiting_room_update"; room: WaitingRoom }
+  | { type: "user_action"; call_id: string; call_creator: Jid; raised: boolean }
+  | { type: "screen_share"; call_id: string; call_creator: Jid; screen_share: ScreenShare };
 
 export interface CallAudioCodec {
   enc: string;
@@ -124,6 +141,38 @@ export interface CallEndedElsewhere {
   call_id: string;
   timestamp: number;
   outcome: ElsewhereOutcome;
+}
+
+/** Result of creating a reusable call link. */
+export interface CallLink {
+  token: string;
+  media: CallLinkMedia;
+}
+
+/** Admission state returned after joining a reusable call link. */
+export interface CallLinkJoin {
+  token: string;
+  media: CallLinkMedia;
+  call_id: string;
+  call_creator: Jid;
+  waiting_room_enabled: boolean;
+  in_waiting_room: boolean;
+  is_admin: boolean;
+  waiting_room?: WaitingRoom | null;
+  group?: GroupCallUpdate | null;
+}
+
+/** Audio/video mode of a reusable call link. */
+export type CallLinkMedia = "audio" | "video";
+
+/** Metadata returned without joining a reusable call link. */
+export interface CallLinkPreview {
+  token: string;
+  media: CallLinkMedia;
+  creator: Jid;
+  creator_pn?: Jid | null;
+  waiting_room_enabled: boolean;
+  is_admin: boolean;
 }
 
 /** Identifies a specific message within a chat. */
@@ -156,6 +205,11 @@ export interface ClearChatUpdate {
   timestamp: number;
   action: ClearChatAction;
   from_full_sync: boolean;
+}
+
+export interface ClientOutdated {
+  /** The whole `<failure>` stanza, so no attribute is lost to a log line. */
+  raw?: any | null;
 }
 
 export interface ConnectFailure {
@@ -402,6 +456,71 @@ export type ElsewhereOutcome = "accepted" | "rejected";
 /** Review state for an appeal on a suspended group. */
 export type GroupAppealStatus = "approved" | "in_review" | "none" | "rejected";
 
+/** One device in an authoritative group-call roster. */
+export interface GroupCallDevice {
+  jid: Jid;
+  platform?: string | null;
+  pid?: number | null;
+  capability_version?: number | null;
+}
+
+/** One encrypted keygen-v2 epoch delivered to a participant device. */
+export interface GroupCallEncRekey {
+  call_id: string;
+  call_creator: Jid;
+  transaction_id: number;
+  key_generation: number;
+  encryption_type: string;
+  encryption_version: number;
+}
+
+/** One user in an authoritative group-call roster. */
+export interface GroupCallParticipant {
+  jid: Jid;
+  state?: string | null;
+  participant_type?: string | null;
+  devices: GroupCallDevice[];
+}
+
+/** Shared relay allocation embedded in a group snapshot. */
+export interface GroupCallRelay {
+  transaction_id?: number | null;
+  self_pid?: number | null;
+  uuid: string;
+  participant_uuid: string;
+  attribute_padding: boolean;
+  warp_mi_tag_len?: number | null;
+  endpoints: GroupCallRelayEndpoint[];
+}
+
+/** One address advertised by the shared group relay. */
+export interface GroupCallRelayEndpoint {
+  relay_id: number;
+  token_id: number;
+  auth_token_id: number;
+  relay_name: string;
+  domain_name?: string | null;
+  rtt_ms?: number | null;
+  is_fna: boolean;
+  ipv4?: string | null;
+  port?: number | null;
+}
+
+/** One transaction-ordered authoritative group-call snapshot. */
+export interface GroupCallUpdate {
+  call_id: string;
+  call_creator: Jid;
+  group_jid?: Jid | null;
+  transaction_id: number;
+  media: string;
+  connected_limit: number;
+  joinable: boolean;
+  av_upgradable: boolean;
+  rekey_requested: boolean;
+  participants: GroupCallParticipant[];
+  relay?: GroupCallRelay | null;
+}
+
 /** Delivery state for history shared with a newly joined participant. */
 export type GroupHistorySentState = "HISTORY_NOT_SENT" | "HISTORY_SENT" | "NOTICE_SENT";
 
@@ -540,9 +659,15 @@ export interface IncomingCall {
   notify?: string | null;
   platform?: string | null;
   version?: string | null;
+  /** Companion-routing metadata copied from the outer `<call>` wrapper. */
+  participant?: Jid | null;
+  /** Companion recipient metadata copied from the outer `<call>` wrapper. */
+  recipient?: Jid | null;
   timestamp: number;
   offline: boolean;
   action: CallAction;
+  /** Group snapshot embedded in an initial offer or active-call invitation. */
+  group?: GroupCallUpdate | null;
 }
 
 /** IQ request type for WhatsApp protocol queries. */
@@ -608,6 +733,18 @@ export interface LidPnMappingEntry {
 export interface LoggedOut {
   on_connect: boolean;
   reason: ConnectFailureReason;
+  /** Server-supplied logout copy, when it sent any. Present in practice on [`ConnectFailureReason::AccountLocked`]. */
+  logout_message?: LogoutMessage | null;
+  /** The whole stanza that caused the logout, when one did.  Two shapes reach here, so dispatch on `raw.tag` rather than assuming one: `<failure>` for a server-side refusal (`on_connect` is then true), and `<stream:error>` for a `<conflict>`, a 516 device removal or a 401. `None` when nothing was received at all — a locally initiated logout has no stanza to report.  A forced logout is where the server puts data it will never repeat: an account lock carries a one-time `appeal_token` plus `violation_reason` and `vt`, which WA Web ignores (its own appeal flow is native) but which an embedder cannot recover once the stanza is gone. Parsing policy stays with the consumer — `violation_reason` is not a closed set — but the bytes have to survive the dispatch. */
+  raw?: any | null;
+}
+
+/** Localized text the server wants shown when it forces a logout, from `logout_message_header` / `logout_message_subtext` on `<failure>`.  `locale` is what makes the text safe to render: WA Web (`WAWebHandleFailure`) shows the header/subtext only when the locale equals the client's current one, and otherwise falls back to its own generic copy. It travels with the text so a consumer can apply the same rule. */
+export interface LogoutMessage {
+  header?: string | null;
+  subtext?: string | null;
+  /** e.g. `"pt_BR"`. Compare against the consumer's locale before rendering. */
+  locale?: string | null;
 }
 
 export interface MarkChatAsReadUpdate {
@@ -631,6 +768,8 @@ export type MembershipRequestMethod = "invite_link" | "linked_group_join" | "non
 export interface MessageBatch {
   messages: InboundMessage[];
   origin: BatchOrigin;
+  /** Whether an inbound durability hook already committed these messages before this event was dispatched.  Orthogonal to [`origin`](Self::origin), which describes delivery shape: a hook commits live batches and drain batches alike. What this answers is whether the consumer's own durable copy already exists, so a materializer that the hook feeds can skip the batch instead of rewriting every row (and re-firing every invalidation) a second time.  `false` for the producers that dispatch `Event::Messages` while deliberately bypassing the commit pipeline — newsletters and PDO-recovered messages — because for those the materialization on this event is the only one there is. */
+  hook_committed: boolean;
 }
 
 export type MessageCategory = "" | "peer" | string;
@@ -812,6 +951,9 @@ export interface OfflineSyncPreview {
   statuses: number;
 }
 
+/** How the server refused a pair-code request, as a matchable status.  The five named variants are the complete set WA Web's own response parser accepts (`WASmaxInMdIqMixinErrors.parseIqMixinErrors`, reached from `WASmaxInMdCompanionHelloResponseError`); anything else makes its RPC throw "unknown error". They exist so a consumer can branch on the refusal instead of matching the formatted message, which is not a stable surface.  Both stages report through this, though they were read off `companion_hello` and the `companion_finish` parser is narrower — `WASmaxInMdCompanionFinishErrors` admits only `bad-request` and `internal-server-error`, and WA Web shows its generic failure for anything else. A code outside that pair is still classified here rather than discarded: what a consumer does about a refusal follows from the code, which is one namespace across both requests, and answering "nothing was refused" to a refusal we can read would be worse than naming it.  The numbers are the `code` attribute, and each is the enum's whole wire form — [`code()`](Self::code) is what `Serialize` emits and what `From<i32>` reads back. WA Web pairs each code with a literal `text` (`429`/`rate-overlimit`, `452`/`feature-not-available`, …) and rejects a response whose two disagree, so construct these through [`from_server`](Self::from_server) rather than from a code alone: it is the only constructor that sees both attributes, and the only one that can decline to classify.  WA Web branches on exactly two of them (`DevicePhoneNumberCodeScreen`, on `CompanionHelloError.type.name`): [`RateOverlimit`](Self::RateOverlimit) becomes "too many attempts, try again later" and [`FeatureNotAvailable`](Self::FeatureNotAvailable) becomes "not available to you yet, link with QR code instead". The rest share a generic "try again or link with the QR code". In every case it resets the linking flow and waits for the person to act — it never retries on its own, and never reads the `backoff` hint, so treat that value as the server's advice rather than a schedule WA Web is known to follow. Wire codes: 400=BadRequest, 403=Forbidden, 429=RateOverlimit, 452=FeatureNotAvailable, 500=InternalServerError */
+export type PairCodeRejection = number;
+
 export interface PairError {
   id: Jid;
   lid: Jid;
@@ -853,7 +995,17 @@ export interface PairingCode {
   timeout: number;
 }
 
-/** The server asked the companion to refresh an in-progress phone-number pairing code (WA Web `refreshAltLinkingCode` / `forceManualRefresh`). Only emitted while a pair-code flow is outstanding and the server's ref matches it. The consumer should request a fresh code via `pair_with_code`; the previous code is no longer guaranteed valid. */
+/** A phone-number pair-code flow failed, so no linking will come of it.  The counterpart to [`PairingCode`] on the failure path, and the only surface that reports it when pairing is driven by `BotBuilder::with_pair_code` — that request runs in a detached task, so nothing returns its error to the caller. `Client::pair_with_code` dispatches this in addition to returning `Err`, matching how the success path both returns the code and emits [`PairingCode`].  Both of the flow's server round trips report here, and the consumer's move is the same either way — this code is finished, request another or fall back to the QR. The later one arrives after a code was already displayed and entered: the phone answered, but the server refused the key bundle that answer produced. Silence at that stage is not this event, because nothing was refused; it surfaces as [`PairingCodeRefresh`] once the timer runs out.  Fires for every failure, including local validation (a phone number that is too short never reaches the server): a consumer waiting on a code needs to learn that it is not coming, whatever the reason. [`rejection`](Self::rejection) is what distinguishes the two — `None` means the request never got an answer from the server.  A claim the failed request itself took is released before this fires, so nothing is left holding the flow and `pair_with_code` can be called again.  Two failures do **not** arrive here, because for them a code may still be on its way and this event would say the opposite — a consumer acting on it would tear down a code that is about to arrive:  - `CodeAlreadyOutstanding` — refused precisely because an earlier code is still live, and the consumer already has it from the [`PairingCode`] that minted it. Retrying is futile until `cancel_pair_code` runs or the window closes. - `Cancelled` — the caller withdrew this request, and a replacement may already own the slot. A superseded request can return this *after* its replacement started, so the event would be uncorrelated with the flow that is actually running.  Both follow from something the caller did, so neither is news, and a direct caller still gets the `Err`.  Whether to retry at all is the point of the fields: back off on [`PairCodeRejection::is_throttled`](crate::pair_code::PairCodeRejection::is_throttled), stop on [`PairCodeRejection::FeatureNotAvailable`](crate::pair_code::PairCodeRejection::FeatureNotAvailable). */
+export interface PairingCodeError {
+  /** The server's refusal, when it answered with one. `None` when the failure was local (validation, no connection) or the request went unanswered (timeout) — nothing was refused, so there is no status to report. */
+  rejection?: PairCodeRejection | null;
+  /** How long the server asked the client to wait, from the `backoff` attribute. Usually absent — WA Web does not read it on this path — but when present it is the server naming its own retry delay, which beats any interval the consumer would pick. */
+  backoff?: number | null;
+  /** The failure rendered for logs. Do not branch on it; use [`rejection`](Self::rejection). */
+  error: string;
+}
+
+/** The in-progress phone-number pairing code should be replaced.  Emitted for the two cases WA Web regenerates on (`Alt/DeviceLinkingApi.js` + `Link/DevicePhoneNumberCodeScreen.react.js`): the server asking for it (`refreshAltLinkingCode` / `forceManualRefresh`, ref-gated against the outstanding flow), and a `companion_finish` that went unanswered for a minute — a primary that could not open the key bundle just goes quiet, so silence is the only signal there is.  The outstanding flow is cleared before this fires, so the consumer can call `pair_with_code` straight away. The previous code is no longer valid. */
 export interface PairingCodeRefresh {
   /** `true` when the server set `force_manual_refresh` — the code must be re-requested explicitly rather than auto-rotated. */
   force_manual: boolean;
@@ -865,6 +1017,12 @@ export interface PairingQrCode {
   code: string;
   /** How long this code stays valid before the next one rotates in. */
   timeout: number;
+}
+
+/** The server's `<pair-device>` refs are used up: there is no QR left to render until the connection is re-established.  WA Web's rotation timer (`Handle/PairDevice.js`) reports `UNPAIRED_IDLE` here and stops — it does not close the socket, because an alt-linking (phone-number) flow may still be riding the same connection. */
+export interface PairingQrCodesExhausted {
+  /** `true` when the client closed the connection itself, which it only does with no pair-code flow outstanding. `false` means the socket was left up and reconnecting is the consumer's call. */
+  disconnected: boolean;
 }
 
 /** Participant type (admin level). */
@@ -932,6 +1090,16 @@ export interface Receipt {
 /** Chat state type as received from incoming stanzas.  Aligned with WhatsApp Web's `WAChatState` constants: - `typing` = ACTIVE_CHAT_STATE_TYPE.TYPING - `recording_audio` = ACTIVE_CHAT_STATE_TYPE.RECORDING_AUDIO - `idle` = IDLE_CHAT_STATE_TYPE.IDLE */
 export type ReceivedChatState = "typing" | "recording_audio" | "idle";
 
+/** Parsed screen-share state for one participant. */
+export interface ScreenShare {
+  state: ScreenShareState;
+  version: number;
+  screen_share_id?: number | null;
+}
+
+/** Wire state of a screen-share transition. Wire codes: 1=Started, 2=Stopped */
+export type ScreenShareState = number;
+
 export interface SelfPushNameUpdated {
   from_server: boolean;
   old_name: string;
@@ -990,7 +1158,14 @@ export type TempBanReason = number;
 
 export interface TemporaryBan {
   code: TempBanReason;
+  /** How long the ban lasts — the wire's `expire` is a duration in seconds, not a deadline (WA Web renders it as "You'll be able to use WhatsApp again in {duration}").  Dispatched only when the server sent an `expire` that fits a `Duration`; a ban stanza missing `code`/`expire`, or carrying one that does not, surfaces as [`Event::ConnectFailure`] instead, the way WA Web rejects it rather than inventing a zero. */
   expire: number;
+  /** The server's `message` attribute, when present. */
+  message?: string | null;
+  /** Support/appeal link the official UI opens for the ban. */
+  url?: string | null;
+  /** The whole `<failure>` stanza. */
+  raw?: any | null;
 }
 
 export type UnavailableType = "unknown" | "view_once" | "hosted" | "bot";
@@ -1220,4 +1395,23 @@ export interface VerifiedName {
 
 /** In-call `<video state=N>` handshake states (audio→video upgrade, video→audio downgrade). Values verified against WA Web captures relayed by the mock server; unknown future states land in `Unknown` so a new server value degrades to an observable no-op instead of a parse failure. Wire codes: 0=Disabled, 1=Enabled, 2=Paused, 3=UpgradeRequest, 4=UpgradeAccept, 5=UpgradeReject, 6=Stopped, 7=UpgradeRejectByTimeout, 8=UpgradeCancel, 9=UpgradeCancelByTimeout, 10=UnknownPeer, 11=UpgradeRequestV2, 20=Error */
 export type VideoState = number;
+
+/** Authoritative waiting-room state for a call-link call. */
+export interface WaitingRoom {
+  call_id: string;
+  call_creator: Jid;
+  link_token: string;
+  media: CallLinkMedia;
+  enabled: boolean;
+  is_admin: boolean;
+  transaction_id?: number | null;
+  users: WaitingRoomUser[];
+}
+
+/** One user in a waiting-room snapshot. */
+export interface WaitingRoomUser {
+  jid: Jid;
+  pn?: Jid | null;
+  state: string;
+}
 "#;

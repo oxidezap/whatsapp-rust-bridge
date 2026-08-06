@@ -227,35 +227,48 @@ pub struct SenderMessageKeyComponents {
     pub seed: Vec<u8>,
 }
 
-impl From<SessionMessageKeyMaterial> for CoreSessionMessageKeyMaterial {
-    fn from(value: SessionMessageKeyMaterial) -> Self {
-        match value {
-            SessionMessageKeyMaterial::Seed { seed } => Self::Seed(seed),
+/// The core models skipped-message-key material as fixed-width arrays. These
+/// bytes arrive from JS, so the width is checked here and reported rather than
+/// truncated or panicked on.
+fn key_material<const N: usize>(value: Vec<u8>, field: &'static str) -> Result<[u8; N], JsValue> {
+    let len = value.len();
+    <[u8; N]>::try_from(value)
+        .map_err(|_| error_value(format!("{field} must be {N} bytes, got {len}")))
+}
+
+impl TryFrom<SessionMessageKeyMaterial> for CoreSessionMessageKeyMaterial {
+    type Error = JsValue;
+
+    fn try_from(value: SessionMessageKeyMaterial) -> Result<Self, Self::Error> {
+        Ok(match value {
+            SessionMessageKeyMaterial::Seed { seed } => Self::Seed(key_material(seed, "seed")?),
             SessionMessageKeyMaterial::Derived {
                 cipher_key,
                 mac_key,
                 iv,
             } => Self::Derived {
-                cipher_key,
-                mac_key,
-                iv,
+                cipher_key: key_material(cipher_key, "cipherKey")?,
+                mac_key: key_material(mac_key, "macKey")?,
+                iv: key_material(iv, "iv")?,
             },
-        }
+        })
     }
 }
 
 impl From<CoreSessionMessageKeyMaterial> for SessionMessageKeyMaterial {
     fn from(value: CoreSessionMessageKeyMaterial) -> Self {
         match value {
-            CoreSessionMessageKeyMaterial::Seed(seed) => Self::Seed { seed },
+            CoreSessionMessageKeyMaterial::Seed(seed) => Self::Seed {
+                seed: seed.to_vec(),
+            },
             CoreSessionMessageKeyMaterial::Derived {
                 cipher_key,
                 mac_key,
                 iv,
             } => Self::Derived {
-                cipher_key,
-                mac_key,
-                iv,
+                cipher_key: cipher_key.to_vec(),
+                mac_key: mac_key.to_vec(),
+                iv: iv.to_vec(),
             },
         }
     }
@@ -277,10 +290,27 @@ macro_rules! impl_component_conversion {
     };
 }
 
-impl_component_conversion!(SessionMessageKeyComponents, CoreSessionMessageKeyComponents, {
-    index,
-    material
-});
+// Not the macro: the JS-to-core direction validates the material's width.
+impl TryFrom<SessionMessageKeyComponents> for CoreSessionMessageKeyComponents {
+    type Error = JsValue;
+
+    fn try_from(value: SessionMessageKeyComponents) -> Result<Self, Self::Error> {
+        Ok(Self {
+            index: value.index,
+            material: value.material.try_into()?,
+        })
+    }
+}
+
+impl From<CoreSessionMessageKeyComponents> for SessionMessageKeyComponents {
+    fn from(value: CoreSessionMessageKeyComponents) -> Self {
+        Self {
+            index: value.index,
+            material: value.material.into(),
+        }
+    }
+}
+
 impl_component_conversion!(SessionChainKeyComponents, CoreSessionChainKeyComponents, {
     index,
     key
@@ -313,14 +343,20 @@ impl_component_conversion!(SenderMessageKeyComponents, CoreSenderMessageKeyCompo
     iteration,
     seed
 });
-impl From<SessionChainComponents> for CoreSessionChainComponents {
-    fn from(value: SessionChainComponents) -> Self {
-        Self {
+impl TryFrom<SessionChainComponents> for CoreSessionChainComponents {
+    type Error = JsValue;
+
+    fn try_from(value: SessionChainComponents) -> Result<Self, Self::Error> {
+        Ok(Self {
             sender_ratchet_key: value.sender_ratchet_key,
             sender_ratchet_key_private: value.sender_ratchet_key_private,
             chain_key: value.chain_key.map(Into::into),
-            message_keys: value.message_keys.into_iter().map(Into::into).collect(),
-        }
+            message_keys: value
+                .message_keys
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -335,23 +371,29 @@ impl From<CoreSessionChainComponents> for SessionChainComponents {
     }
 }
 
-impl From<SessionComponents> for CoreSessionComponents {
-    fn from(value: SessionComponents) -> Self {
-        Self {
+impl TryFrom<SessionComponents> for CoreSessionComponents {
+    type Error = JsValue;
+
+    fn try_from(value: SessionComponents) -> Result<Self, Self::Error> {
+        Ok(Self {
             session_version: value.session_version,
             local_identity_public: value.local_identity_public,
             remote_identity_public: value.remote_identity_public,
             root_key: value.root_key,
             previous_counter: value.previous_counter,
-            sender_chain: value.sender_chain.map(Into::into),
-            receiver_chains: value.receiver_chains.into_iter().map(Into::into).collect(),
+            sender_chain: value.sender_chain.map(TryInto::try_into).transpose()?,
+            receiver_chains: value
+                .receiver_chains
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
             pending_key_exchange: value.pending_key_exchange.map(Into::into),
             pending_pre_key: value.pending_pre_key.map(Into::into),
             remote_registration_id: value.remote_registration_id,
             local_registration_id: value.local_registration_id,
             needs_refresh: value.needs_refresh,
             alice_base_key: value.alice_base_key,
-        }
+        })
     }
 }
 
@@ -375,16 +417,18 @@ impl From<CoreSessionComponents> for SessionComponents {
     }
 }
 
-impl From<SessionRecordComponents> for CoreSessionRecordComponents {
-    fn from(value: SessionRecordComponents) -> Self {
-        Self {
-            current_session: value.current_session.map(Into::into),
+impl TryFrom<SessionRecordComponents> for CoreSessionRecordComponents {
+    type Error = JsValue;
+
+    fn try_from(value: SessionRecordComponents) -> Result<Self, Self::Error> {
+        Ok(Self {
+            current_session: value.current_session.map(TryInto::try_into).transpose()?,
             previous_sessions: value
                 .previous_sessions
                 .into_iter()
-                .map(Into::into)
-                .collect(),
-        }
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -443,7 +487,7 @@ impl From<CoreSenderKeyRecordComponents> for SenderKeyRecordComponents {
 pub fn encode_session_record_components(
     value: SessionRecordComponents,
 ) -> Result<Uint8Array, JsValue> {
-    let bytes = SessionRecord::from_components(value.into())
+    let bytes = SessionRecord::from_components(value.try_into()?)
         .and_then(|record| record.serialize())
         .map_err(error_value)?;
     Ok(byte_array(&bytes))
