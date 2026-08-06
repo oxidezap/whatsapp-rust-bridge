@@ -1,14 +1,17 @@
 {
-    "name": "whatsapp-rust-bridge",
-    "version": "0.6.0-alpha.44",
+    "name": "@oxidezap/whatsapp-rust-bridge",
+    "version": "0.6.0",
     "description": "A high-performance utilities for WhatsApp, powered by Rust and WebAssembly.",
     "author": "João Lucas <jlucaso@hotmail.com>",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/WhiskeySockets/whatsapp-rust-bridge.git"
+        "url": "git+https://github.com/oxidezap/whatsapp-rust-bridge.git"
     },
     "type": "module",
+    "publishConfig": {
+        "access": "public"
+    },
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "files": [
