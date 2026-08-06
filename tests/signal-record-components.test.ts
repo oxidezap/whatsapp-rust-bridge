@@ -106,21 +106,27 @@ describe("Signal record component boundary", () => {
     }
   });
 
-  test("derives skipped-message material inside the core", () => {
+  test("keeps skipped-message seeds through the core", () => {
+    const seed = bytes(32, 5);
     const record = sessionRecord();
     record.currentSession!.senderChain = undefined;
     record.currentSession!.receiverChains = [
       {
         senderRatchetKey: publicKey(4),
         chainKey: undefined,
-        messageKeys: [{ index: 11, material: { kind: "seed", seed: bytes(32, 5) } }],
+        messageKeys: [{ index: 11, material: { kind: "seed", seed } }],
       },
     ];
 
     const material = decodeSessionRecordComponents(encodeSessionRecordComponents(record)).currentSession
       ?.receiverChains[0]?.messageKeys[0]?.material;
 
-    assert.equal(material?.kind, "derived");
+    // The core retains the v1 seed alongside the keys it derives from it, so a
+    // record that carried one still projects back to the legacy shape. Records
+    // persisted before it did so hold only the derived keys and come back as
+    // `derived`, which has no inverse.
+    assert.equal(material?.kind, "seed");
+    assert.deepEqual(material?.kind === "seed" ? material.seed : undefined, seed);
   });
 
   test("round-trips sender-key state and rejects invalid public keys", () => {

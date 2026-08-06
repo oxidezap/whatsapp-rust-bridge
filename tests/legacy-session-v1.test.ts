@@ -72,7 +72,7 @@ describe("legacy session v1 boundary", () => {
 
     assert.equal(canonical.senderChain?.chainKey.index, 0);
     assert.equal(canonical.receiverChains[0]?.chainKey?.index, 2);
-    assert.equal(canonical.receiverChains[0]?.messageKeys[0]?.material.kind, "derived");
+    assert.equal(canonical.receiverChains[0]?.messageKeys[0]?.material.kind, "seed");
     assert.deepEqual(canonical.localIdentityPublic, context.identityKey);
     assert.equal(canonical.localRegistrationId, context.registrationId);
   });
@@ -90,15 +90,26 @@ describe("legacy session v1 boundary", () => {
     assert.equal(session.chains.find(chain => chain.role === 1)?.chainKey.counter, -1);
   });
 
-  test("reports non-reversible skipped keys as a typed projection result", () => {
-    const canonical = importLegacySessionRecordV1(legacyRecord(true), context);
-    const projection = projectLegacySessionRecordV1(canonical);
+  // The core keeps the v1 seed of a skipped message key, so a record that
+  // carried one survives the round trip. It used to come back as
+  // `unrepresentable / derived_message_key`, which froze the legacy row for any
+  // session that took a single out-of-order message. That result is still
+  // reachable, but only for records persisted before the seed was retained —
+  // which no longer includes anything imported through this entry point.
+  test("round-trips a skipped key imported from v1", () => {
+    const record = legacyRecord(true);
+    const expected = record.sessions[0]!.session.chains.find(candidate => candidate.role === 2)!.messageKeys[0]!;
+    const projection = projectLegacySessionRecordV1(importLegacySessionRecordV1(record, context));
 
-    assert.equal(projection.status, "unrepresentable");
-    if (projection.status !== "unrepresentable") return;
-    assert.equal(projection.issue.field, "derived_message_key");
-    assert.equal(projection.issue.session, 0);
-    assert.equal(projection.issue.chain, 1);
+    assert.equal(projection.status, "projected");
+    if (projection.status !== "projected") return;
+    const chain = projection.record.sessions[0]!.session.chains.find(candidate => candidate.role === 2);
+    assert.equal(chain?.messageKeys.length, 1);
+    // Identity, not just survival: the seed is what the projection has no
+    // inverse for, so a round trip that returned some other key would still
+    // leave the session unable to read the message it was kept for.
+    assert.equal(chain?.messageKeys[0]?.index, expected.index);
+    assert.deepEqual(chain?.messageKeys[0]?.seed, expected.seed);
   });
 
   test("accepts the v1 never-used sending-chain counter across the boundary", () => {

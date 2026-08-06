@@ -5210,7 +5210,7 @@ fn node_ref_to_js(node: &wacore_binary::node::NodeRef<'_>) -> Result<JsValue, Js
     }
     js_sys::Reflect::set(&obj, &"attrs".into(), &attrs_obj.into())?;
 
-    if let Some(content) = node.content.as_deref() {
+    if let Some(content) = node.content.as_ref() {
         let content_js = match content {
             wacore_binary::node::NodeContentRef::Nodes(children) => {
                 let arr = js_sys::Array::new_with_length(children.len() as u32);
@@ -5222,7 +5222,7 @@ fn node_ref_to_js(node: &wacore_binary::node::NodeRef<'_>) -> Result<JsValue, Js
             wacore_binary::node::NodeContentRef::Bytes(bytes) => {
                 js_sys::Uint8Array::from(bytes.as_ref()).into()
             }
-            wacore_binary::node::NodeContentRef::String(s) => JsValue::from_str(s),
+            wacore_binary::node::NodeContentRef::String(s) => JsValue::from_str(s.as_ref()),
         };
         js_sys::Reflect::set(&obj, &"content".into(), &content_js)?;
     }
