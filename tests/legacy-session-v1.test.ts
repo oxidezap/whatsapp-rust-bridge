@@ -97,13 +97,19 @@ describe("legacy session v1 boundary", () => {
   // reachable, but only for records persisted before the seed was retained —
   // which no longer includes anything imported through this entry point.
   test("round-trips a skipped key imported from v1", () => {
-    const canonical = importLegacySessionRecordV1(legacyRecord(true), context);
-    const projection = projectLegacySessionRecordV1(canonical);
+    const record = legacyRecord(true);
+    const expected = record.sessions[0]!.session.chains.find(candidate => candidate.role === 2)!.messageKeys[0]!;
+    const projection = projectLegacySessionRecordV1(importLegacySessionRecordV1(record, context));
 
     assert.equal(projection.status, "projected");
     if (projection.status !== "projected") return;
     const chain = projection.record.sessions[0]!.session.chains.find(candidate => candidate.role === 2);
     assert.equal(chain?.messageKeys.length, 1);
+    // Identity, not just survival: the seed is what the projection has no
+    // inverse for, so a round trip that returned some other key would still
+    // leave the session unable to read the message it was kept for.
+    assert.equal(chain?.messageKeys[0]?.index, expected.index);
+    assert.deepEqual(chain?.messageKeys[0]?.seed, expected.seed);
   });
 
   test("accepts the v1 never-used sending-chain counter across the boundary", () => {
