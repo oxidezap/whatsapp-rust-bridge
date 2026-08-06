@@ -11,6 +11,17 @@ name: Release
 on:
   push:
     branches: [main]
+  # Recovery path. A release tag is created by the job below and only that run
+  # carries `release_created`, so a publish that fails for a reason outside the
+  # tag — a missing tool on the runner, a registry outage — cannot be retried by
+  # re-running it: the re-run replays the workflow file of that commit, which is
+  # the one that failed. Dispatch builds and publishes an existing tag with the
+  # workflow as it stands now.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and publish
+        required: true
 
 permissions:
   contents: read
@@ -26,6 +37,7 @@ env:
 jobs:
   release-please:
     name: Prepare release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -77,7 +89,7 @@ jobs:
   verify:
     name: Verify the tag
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: always() && (needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -85,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
           persist-credentials: false
 
       - name: Install Rust
@@ -100,7 +112,9 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          tool: wasm-pack
+          # protoc: `bun run build` regenerates the proto codec, which ci.yml
+          # never exercises because it calls wasm-pack and build:ts directly.
+          tool: wasm-pack,protoc
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -131,7 +145,7 @@ jobs:
   publish:
     name: Publish to npm
     needs: [release-please, verify]
-    if: needs.release-please.outputs.release_created == 'true'
+    if: always() && needs.verify.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Gate for the publish step: add required reviewers here to make releases
@@ -145,7 +159,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
           # Nothing here talks to the remote after checkout, and the steps below
           # run cargo, bun and third-party build scripts in a job holding OIDC
           # publish rights. Don't leave the token in .git/config for them.
@@ -163,7 +177,9 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          tool: wasm-pack
+          # protoc: `bun run build` regenerates the proto codec, which ci.yml
+          # never exercises because it calls wasm-pack and build:ts directly.
+          tool: wasm-pack,protoc
 
       # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
       # npm, so a floating version would change the published bytes without a
