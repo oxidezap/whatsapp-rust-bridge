@@ -2,12 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
+
+# A wasm release build plus wasm-opt is expensive; a new push to a pull request
+# makes the run in flight pointless.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,7 +43,12 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   build-and-test:
-    name: Build + Test (Bun) + Benchmark (Node.js)
+    # The benchmark step that used to run here invoked `bench:node`, whose
+    # targets under benches/ were deleted in 157f43a. It never surfaced because
+    # this workflow only triggered on master; pointing it at main would have
+    # failed every run on MODULE_NOT_FOUND. The `bench` scripts in package.json
+    # are still orphaned and want either restoring or removing.
+    name: Build + Test (Bun)
     runs-on: ubuntu-latest
     needs: fmt-clippy
     steps:
@@ -85,11 +96,6 @@ jobs:
           # Optional: make test output clearer
           CI: true
 
-      - name: Run Benchmarks with Node.js 24
-        run: |
-          bun run bench:node
-        env:
-          CI: true
 
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
