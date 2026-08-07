@@ -215,12 +215,11 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          # protoc: `bun run build` regenerates the proto codec, which ci.yml
-          # never exercises because it calls wasm-pack and build:ts directly.
-          # protoc pinned like bun and npm: verify and publish each install it, and
-          # publish can start much later behind the environment gate, so an
-          # unpinned default could generate one codec for the tests and another
-          # for the tarball.
+          # protoc is needed because `bun run build` regenerates the proto
+          # codec. Pinned to the same versions ci.yml uses, so a break shows up
+          # on a pull request; and pinned at all because publish can start much
+          # later than verify, behind the environment gate, where a new default
+          # would generate one codec for the tests and another for the tarball.
           tool: wasm-pack,protoc@3.35.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -287,12 +286,11 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          # protoc: `bun run build` regenerates the proto codec, which ci.yml
-          # never exercises because it calls wasm-pack and build:ts directly.
-          # protoc pinned like bun and npm: verify and publish each install it, and
-          # publish can start much later behind the environment gate, so an
-          # unpinned default could generate one codec for the tests and another
-          # for the tarball.
+          # protoc is needed because `bun run build` regenerates the proto
+          # codec. Pinned to the same versions ci.yml uses, so a break shows up
+          # on a pull request; and pinned at all because publish can start much
+          # later than verify, behind the environment gate, where a new default
+          # would generate one codec for the tests and another for the tarball.
           tool: wasm-pack,protoc@3.35.1
 
       # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
