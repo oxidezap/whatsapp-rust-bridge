@@ -29,7 +29,17 @@ pub(crate) trait PackedEventBatch: Default {
     fn push(&mut self, event: &Event) -> Result<(), JsValue>;
     /// Assemble the batch for the host and reset the per-batch state; the
     /// caches survive so the next batch keeps interning against them.
-    fn finish(&mut self) -> Result<JsValue, JsValue>;
+    fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue>;
+}
+
+/// Which host-side buffer a crossed batch lands in.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum BatchBuffer {
+    /// A typed array of this batch's own, which the host may keep forever.
+    Owned,
+    /// The shared buffer, which the next batch overwrites. Only for hosts that
+    /// opted into the synchronous borrow.
+    Borrowed,
 }
 
 /// Slots per packed metadata record. Layout is mirrored by the host-side
@@ -44,6 +54,11 @@ const MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES: usize = 4 * crate::WASM_PAGE_BYTES;
 /// Metadata capacity the reused string table keeps. A full batch of addresses,
 /// ids and push names fits well inside it; the cap is what an outlier hits.
 const WIRE_STRING_TABLE_RETAINED_BYTES: usize = 16 * 1024;
+/// Size of the single host-allocated buffer offered to hosts that opted into
+/// borrowing, and therefore the whole resident cost of the opt-in. A full
+/// `EVENT_BATCH_CAPACITY` run of receipts packs into roughly 2 KiB, so this
+/// holds every realistic batch; anything larger gets its own typed array.
+const BORROWED_BATCH_BUFFER_BYTES: usize = 8 * 1024;
 const INFO_FLAG_FROM_ME: u32 = 1 << 0;
 const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
@@ -148,20 +163,40 @@ impl WireStringTable {
 /// (its own, its receipt, its ack). The buffer IS the batch.
 ///
 /// The scratch is process-wide because its bytes are copied into the JS typed
-/// array before this returns, so no batch can observe another's contents. The
-/// host buffer is NOT reused for the same reason the payload cap exists: the
-/// batch callbacks are declared returning `void` and the dispatch loop does not
-/// await them, so a host that defers decoding past an `await` must still find
-/// its own bytes there.
-fn cross_flat_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
+/// array before this returns, so no batch can observe another's contents.
+///
+/// [`BatchBuffer::Borrowed`] hands out a window on one shared host buffer
+/// instead, which the next batch overwrites. Only a host that registered a
+/// borrowing callback ever sees it, and that callback's contract is what makes
+/// the reuse safe: the window is dead the moment it returns.
+fn cross_flat_batch(buffer: BatchBuffer, write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
     thread_local! {
         static SCRATCH: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+        /// Allocated on the host heap, never a view into linear memory: the
+        /// host callback re-enters WASM by design, and a `memory.grow` there
+        /// would detach such a view mid-batch.
+        static SHARED: RefCell<Option<js_sys::Uint8Array>> = const { RefCell::new(None) };
     }
     SCRATCH.with(|scratch| {
         let mut out = scratch.borrow_mut();
         out.clear();
         write(&mut out);
-        let batch = js_sys::Uint8Array::from(out.as_slice());
+        let batch = match buffer {
+            // An outlier gets its own typed array, so it neither pins a larger
+            // shared buffer nor loses its tail to the next batch.
+            BatchBuffer::Borrowed if out.len() <= BORROWED_BATCH_BUFFER_BYTES => {
+                SHARED.with(|shared| {
+                    let mut shared = shared.borrow_mut();
+                    let shared = shared.get_or_insert_with(|| {
+                        js_sys::Uint8Array::new_with_length(BORROWED_BATCH_BUFFER_BYTES as u32)
+                    });
+                    let window = shared.subarray(0, out.len() as u32);
+                    window.copy_from(&out);
+                    window
+                })
+            }
+            _ => js_sys::Uint8Array::from(out.as_slice()),
+        };
         if out.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
             // `shrink_to` never goes below the length, so drop it first.
             out.clear();
@@ -292,12 +327,16 @@ impl MessageWireBatch {
     /// reuses the allocations the first batch paid for. A batch of unusually
     /// large payloads would otherwise pin its peak for the whole session, so
     /// the payload buffer is the one that gets trimmed back.
+    ///
+    /// The batch always crosses in a buffer of its own. `decodeMessageWireBatch`
+    /// hands the host `Uint8Array`/`Uint32Array` views over it rather than
+    /// copies, so a borrowed buffer would alias whatever the host keeps.
     #[cfg_attr(
         feature = "memory-profiling",
         tracing::instrument(name = "bridge.event.message_wire.ffi", level = "trace", skip_all)
     )]
     pub(crate) fn finish(&mut self) -> Result<JsValue, JsValue> {
-        let batch = cross_flat_batch(|out| self.write_flat(out));
+        let batch = cross_flat_batch(BatchBuffer::Owned, |out| self.write_flat(out));
         self.reset();
         Ok(batch)
     }
@@ -506,9 +545,9 @@ impl FlatBatchWriter {
         self.inline.extend_from_slice(value.as_bytes());
     }
 
-    fn finish(&mut self) -> Result<JsValue, JsValue> {
+    fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
         self.definitions.extend_from_slice(&self.inline);
-        let batch = cross_flat_batch(|out| {
+        let batch = cross_flat_batch(buffer, |out| {
             out.reserve(
                 PACKED_HEADER_BYTES
                     + self.new_strings.len()
@@ -629,8 +668,8 @@ impl PackedEventBatch for ReceiptWireBatch {
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<JsValue, JsValue> {
-        self.writer.finish()
+    fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
+        self.writer.finish(buffer)
     }
 }
 
@@ -684,8 +723,8 @@ impl PackedEventBatch for ServerAckWireBatch {
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<JsValue, JsValue> {
-        self.writer.finish()
+    fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
+        self.writer.finish(buffer)
     }
 }
 
@@ -944,8 +983,10 @@ mod tests {
     /// rewritten by the next one.
     #[test]
     fn crossed_batches_do_not_alias() {
-        let first = as_bytes(cross_flat_batch(|out| out.extend_from_slice(&[1u8; 64])));
-        let _second = cross_flat_batch(|out| out.extend_from_slice(&[2u8; 64]));
+        let first = as_bytes(cross_flat_batch(BatchBuffer::Owned, |out| {
+            out.extend_from_slice(&[1u8; 64])
+        }));
+        let _second = cross_flat_batch(BatchBuffer::Owned, |out| out.extend_from_slice(&[2u8; 64]));
         assert_eq!(
             first.to_vec(),
             vec![1u8; 64],
@@ -958,7 +999,9 @@ mod tests {
     /// the latter, and the host callback re-enters WASM by design.
     #[test]
     fn crossed_batch_survives_linear_memory_growth() {
-        let batch = as_bytes(cross_flat_batch(|out| out.extend_from_slice(&[7u8; 128])));
+        let batch = as_bytes(cross_flat_batch(BatchBuffer::Owned, |out| {
+            out.extend_from_slice(&[7u8; 128])
+        }));
 
         // Grow linear memory while the host still holds the batch.
         assert_ne!(
@@ -976,12 +1019,14 @@ mod tests {
     #[test]
     fn crossing_scratch_capacity_stays_bounded() {
         let big = MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES * 2;
-        let oversized = as_bytes(cross_flat_batch(|out| out.resize(big, 9)));
+        let oversized = as_bytes(cross_flat_batch(BatchBuffer::Owned, |out| {
+            out.resize(big, 9)
+        }));
         assert_eq!(oversized.length() as usize, big);
 
         // The next batch reveals what the scratch kept: it has to grow again.
         let mut capacity_after = 0;
-        let next = as_bytes(cross_flat_batch(|out| {
+        let next = as_bytes(cross_flat_batch(BatchBuffer::Owned, |out| {
             capacity_after = out.capacity();
             out.extend_from_slice(&[3u8; 32]);
         }));
@@ -995,6 +1040,117 @@ mod tests {
             9,
             "the oversized batch was rewritten"
         );
+    }
+
+    /// Two typed arrays over the same bytes.
+    fn same_buffer(a: &js_sys::Uint8Array, b: &js_sys::Uint8Array) -> bool {
+        js_sys::Object::is(&a.buffer().into(), &b.buffer().into())
+    }
+
+    /// The opt-in has to actually reuse the buffer, or it buys nothing. The
+    /// second half of this is what the contract forbids: a window kept past its
+    /// callback finds the next batch's bytes.
+    #[test]
+    fn borrowed_batches_share_one_host_buffer() {
+        let first = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[1u8; 48])
+        }));
+        assert_eq!(first.to_vec(), vec![1u8; 48]);
+
+        let second = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[2u8; 64])
+        }));
+        assert_eq!(second.to_vec(), vec![2u8; 64]);
+        assert!(
+            same_buffer(&first, &second),
+            "the batches did not share a buffer"
+        );
+        assert_eq!(first.to_vec(), vec![2u8; 48]);
+    }
+
+    /// The shared buffer is host-allocated, so it must survive the `memory.grow`
+    /// that a host callback re-entering WASM can trigger.
+    #[test]
+    fn a_borrowed_batch_survives_linear_memory_growth() {
+        let batch = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[7u8; 128])
+        }));
+
+        assert_ne!(
+            core::arch::wasm32::memory_grow::<0>(16),
+            usize::MAX,
+            "memory.grow should succeed"
+        );
+
+        assert_eq!(batch.length(), 128, "the batch was detached by the growth");
+        assert_eq!(batch.to_vec(), vec![7u8; 128]);
+    }
+
+    /// An outlier neither grows the shared buffer nor loses its tail to it.
+    #[test]
+    fn an_oversized_borrowed_batch_gets_its_own_buffer() {
+        let held = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[5u8; 32])
+        }));
+        let big = BORROWED_BATCH_BUFFER_BYTES + 1;
+        let oversized = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.resize(big, 6)
+        }));
+        assert_eq!(oversized.length() as usize, big);
+        assert_eq!(oversized.to_vec(), vec![6u8; big]);
+        assert!(
+            !same_buffer(&held, &oversized),
+            "the outlier landed in the shared buffer"
+        );
+        assert_eq!(
+            held.to_vec(),
+            vec![5u8; 32],
+            "the shared buffer was rewritten"
+        );
+
+        let next = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[3u8; 16])
+        }));
+        assert!(same_buffer(&held, &next), "the shared buffer was replaced");
+        assert_eq!(
+            next.buffer().byte_length() as usize,
+            BORROWED_BATCH_BUFFER_BYTES,
+            "the outlier pinned a larger shared buffer"
+        );
+    }
+
+    /// Opting in changes where the bytes land, never what they are.
+    #[test]
+    fn a_borrowed_receipt_batch_carries_the_bytes_an_owned_one_would() {
+        let receipt = || {
+            Event::Receipt(
+                wacore::types::events::Receipt::builder()
+                    .source(wacore::types::message::MessageSource {
+                        chat: "5511999@s.whatsapp.net".parse().expect("valid chat jid"),
+                        sender: "5511999:9@s.whatsapp.net"
+                            .parse()
+                            .expect("valid sender jid"),
+                        ..Default::default()
+                    })
+                    .message_ids(vec!["RCPT-1".into()])
+                    .timestamp(Default::default())
+                    .r#type(wacore::types::presence::ReceiptType::Delivered)
+                    .offline(false)
+                    .build(),
+            )
+        };
+
+        // The encoder's caches persist across batches, so both arms have to
+        // start from the same cache state to be comparable.
+        let encode = |buffer| {
+            ReceiptWireBatch::with_encoder(|encoder| {
+                *encoder = ReceiptWireBatch::default();
+                encoder.begin();
+                encoder.push(&receipt()).expect("packs");
+                as_bytes(encoder.finish(buffer).expect("crosses")).to_vec()
+            })
+        };
+        assert_eq!(encode(BatchBuffer::Borrowed), encode(BatchBuffer::Owned));
     }
 
     /// The encoder is process-wide, so the borrow must end before any host

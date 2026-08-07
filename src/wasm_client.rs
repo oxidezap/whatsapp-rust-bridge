@@ -3,7 +3,7 @@
 //! Wraps `whatsapp_rust::Client` with JS-provided adapters for
 //! transport (WebSocket), storage (InMemory/JS), and HTTP (fetch).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -20,7 +20,9 @@ use crate::js_keys;
 use crate::js_time;
 use crate::js_transport::JsTransportFactory;
 use crate::runtime::WasmRuntime;
-use crate::wire_batch::{MessageWireBatch, PackedEventBatch, ReceiptWireBatch, ServerAckWireBatch};
+use crate::wire_batch::{
+    BatchBuffer, MessageWireBatch, PackedEventBatch, ReceiptWireBatch, ServerAckWireBatch,
+};
 
 thread_local! {
     /// Receivers signaled when a `Drop`-spawned cleanup task completes.
@@ -271,6 +273,29 @@ export interface WhatsAppEventCallbacks {
    * with `decodeServerAckWireBatch`. Without it, acks use `onEvent`.
    */
   onServerAckBatch?(batch: ServerAckWireBatch): void;
+  /**
+   * Borrowing form of `onReceiptBatch`, and the whole of the opt-in: declaring
+   * it replaces `onReceiptBatch` as the receipt sink and lets the bridge hand
+   * every batch out of one buffer it reuses.
+   *
+   * The batch is therefore a window on shared memory, valid ONLY for the
+   * synchronous duration of the call: implementations MUST decode or copy it
+   * before returning, and MUST NOT retain it, pass it to an async consumer, or
+   * return a Promise. `decodeReceiptWireBatch` satisfies that on its own, since
+   * it materializes every field and keeps no view over the buffer, so the usual
+   * body is a decode plus whatever the host does with the result. A callback
+   * caught returning a Promise drops back to a buffer per batch for the rest of
+   * the session, before the buffer is reused, so its window stays intact.
+   *
+   * `onReceiptBatch` remains the copying path for every host that does not opt
+   * in, and a batch too large for the shared buffer gets its own regardless.
+   * There is no borrowing form of `onMessageBatch`: `decodeMessageWireBatch`
+   * returns views over the batch, so reuse there would alias the decoded result
+   * and not just the buffer.
+   */
+  onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;
+  /** Borrowing form of `onServerAckBatch`, under the contract above. */
+  onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;
 }
 
 /**
@@ -508,6 +533,8 @@ const MESSAGE_BATCH_CALLBACK_METHOD: &str = "onMessageBatch";
 const HISTORY_SYNC_BATCH_CALLBACK_METHOD: &str = "onHistorySyncBatch";
 const RECEIPT_BATCH_CALLBACK_METHOD: &str = "onReceiptBatch";
 const SERVER_ACK_BATCH_CALLBACK_METHOD: &str = "onServerAckBatch";
+const RECEIPT_BATCH_BORROWED_CALLBACK_METHOD: &str = "onReceiptBatchBorrowed";
+const SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD: &str = "onServerAckBatchBorrowed";
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
 
 #[inline]
@@ -547,6 +574,77 @@ fn history_sync_wire_batch_next_capacity(current: usize, required: usize) -> usi
         .unwrap_or(required)
 }
 
+/// Whether a borrowing callback's synchronous contract still holds.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum BorrowState {
+    #[default]
+    Unchecked,
+    Verified,
+    /// The callback returned a Promise, so this channel copies from now on.
+    Revoked,
+}
+
+/// Registered delivery for one packed batch kind: the copying callback and,
+/// when the host opted in, the borrowing one.
+#[derive(Default)]
+struct PackedBatchChannelState {
+    copying: Option<js_sys::Function>,
+    borrowing: Option<js_sys::Function>,
+    borrow: Cell<BorrowState>,
+}
+
+impl PackedBatchChannelState {
+    /// The registered sink. Opting in replaces the copying callback rather than
+    /// supplementing it, so a host never has to keep both in step.
+    fn target(&self) -> Option<&js_sys::Function> {
+        self.borrowing.as_ref().or(self.copying.as_ref())
+    }
+
+    fn is_registered(&self) -> bool {
+        self.target().is_some()
+    }
+
+    /// Whether the next batch may cross in the shared buffer. Nothing between
+    /// this and [`Self::call`] can change the answer: the dispatch loop does
+    /// not await in between.
+    fn borrows(&self) -> bool {
+        self.borrowing.is_some() && self.borrow.get() != BorrowState::Revoked
+    }
+
+    fn buffer(&self) -> BatchBuffer {
+        if self.borrows() {
+            BatchBuffer::Borrowed
+        } else {
+            BatchBuffer::Owned
+        }
+    }
+
+    /// Deliver a batch crossed in the buffer [`Self::buffer`] picked.
+    ///
+    /// A borrowing callback that returns a Promise has broken its contract, so
+    /// the channel goes back to a buffer per batch. Revoking here, before the
+    /// shared buffer is written again, is what keeps the window that callback
+    /// kept from ever being rewritten.
+    fn call(&self, receiver: &JsValue, kind: &str, batch: &JsValue) -> Result<JsValue, JsValue> {
+        let borrowed = self.borrows();
+        let result = self
+            .target()
+            .expect("packed callback checked before dispatch")
+            .call1(receiver, batch)?;
+        if borrowed && self.borrow.get() == BorrowState::Unchecked {
+            if result.is_instance_of::<js_sys::Promise>() {
+                self.borrow.set(BorrowState::Revoked);
+                log::error!(
+                    "{kind} borrowing batch callback returned a Promise; falling back to a buffer per batch"
+                );
+            } else {
+                self.borrow.set(BorrowState::Verified);
+            }
+        }
+        Ok(result)
+    }
+}
+
 /// Parsed once at client creation so the hot dispatch loop never performs
 /// reflective method lookup. A plain function is the legacy control-plane
 /// shape; message and history-sync delivery requires the object form with the
@@ -556,8 +654,8 @@ struct JsEventCallbacks {
     on_event: js_sys::Function,
     on_message_batch: Option<js_sys::Function>,
     on_history_sync_batch: Option<js_sys::Function>,
-    on_receipt_batch: Option<js_sys::Function>,
-    on_server_ack_batch: Option<js_sys::Function>,
+    receipt_channel: PackedBatchChannelState,
+    server_ack_channel: PackedBatchChannelState,
     /// Bitset of host-requested numeric sync types; `None` preserves the legacy
     /// behavior of materializing conversations for every type.
     history_sync_conversation_types: Option<u128>,
@@ -571,8 +669,8 @@ impl JsEventCallbacks {
                 on_event: value.unchecked_into(),
                 on_message_batch: None,
                 on_history_sync_batch: None,
-                on_receipt_batch: None,
-                on_server_ack_batch: None,
+                receipt_channel: PackedBatchChannelState::default(),
+                server_ack_channel: PackedBatchChannelState::default(),
                 history_sync_conversation_types: None,
             });
         }
@@ -594,8 +692,16 @@ impl JsEventCallbacks {
         let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
         let on_history_sync_batch =
             Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
-        let on_receipt_batch = Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?;
-        let on_server_ack_batch = Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?;
+        let receipt_channel = PackedBatchChannelState {
+            copying: Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?,
+            borrowing: Self::optional_method(&value, RECEIPT_BATCH_BORROWED_CALLBACK_METHOD)?,
+            borrow: Cell::default(),
+        };
+        let server_ack_channel = PackedBatchChannelState {
+            copying: Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?,
+            borrowing: Self::optional_method(&value, SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD)?,
+            borrow: Cell::default(),
+        };
         let history_sync_conversation_types =
             Self::optional_history_sync_conversation_types(&value)?;
         // Surface the contract gap at registration time: dispatch drops these
@@ -615,8 +721,8 @@ impl JsEventCallbacks {
             on_event,
             on_message_batch,
             on_history_sync_batch,
-            on_receipt_batch,
-            on_server_ack_batch,
+            receipt_channel,
+            server_ack_channel,
             history_sync_conversation_types,
         })
     }
@@ -705,30 +811,6 @@ impl JsEventCallbacks {
 
     fn supports_message_wire_batching(&self) -> bool {
         self.on_message_batch.is_some()
-    }
-
-    fn supports_receipt_batching(&self) -> bool {
-        self.on_receipt_batch.is_some()
-    }
-
-    fn supports_server_ack_batching(&self) -> bool {
-        self.on_server_ack_batch.is_some()
-    }
-
-    fn call_receipt_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
-        debug_assert!(self.on_receipt_batch.is_some());
-        self.on_receipt_batch
-            .as_ref()
-            .expect("receipt callback checked before dispatch")
-            .call1(&self.receiver, batch)
-    }
-
-    fn call_server_ack_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
-        debug_assert!(self.on_server_ack_batch.is_some());
-        self.on_server_ack_batch
-            .as_ref()
-            .expect("server-ack callback checked before dispatch")
-            .call1(&self.receiver, batch)
     }
 
     fn wants_history_sync_conversations(&self, sync_type: i32) -> bool {
@@ -874,7 +956,7 @@ async fn dispatch_event_to_js(
     // stanza at message rate, so a host that opts in receives coalesced
     // typed-array batches instead of one reflected object per event. Hosts
     // without the callbacks keep the generic single-event path below.
-    if ReceiptWireBatch::accepts(event.as_ref()) && callbacks.supports_receipt_batching() {
+    if ReceiptWireBatch::accepts(event.as_ref()) && callbacks.receipt_channel.is_registered() {
         dispatch_packed_events::<ReceiptWireBatch>(
             callbacks,
             event,
@@ -885,7 +967,7 @@ async fn dispatch_event_to_js(
         .await;
         return;
     }
-    if ServerAckWireBatch::accepts(event.as_ref()) && callbacks.supports_server_ack_batching() {
+    if ServerAckWireBatch::accepts(event.as_ref()) && callbacks.server_ack_channel.is_registered() {
         dispatch_packed_events::<ServerAckWireBatch>(
             callbacks,
             event,
@@ -907,18 +989,18 @@ async fn dispatch_event_to_js(
 /// receives it. Split from `PackedEventBatch` so the batch encoders in
 /// `wire_batch` stay independent of the callbacks owner.
 trait PackedBatchChannel: PackedEventBatch {
-    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue>;
+    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState;
 }
 
 impl PackedBatchChannel for ReceiptWireBatch {
-    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue> {
-        callbacks.call_receipt_batch(batch)
+    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
+        &callbacks.receipt_channel
     }
 }
 
 impl PackedBatchChannel for ServerAckWireBatch {
-    fn call(callbacks: &JsEventCallbacks, batch: &JsValue) -> Result<JsValue, JsValue> {
-        callbacks.call_server_ack_batch(batch)
+    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
+        &callbacks.server_ack_channel
     }
 }
 
@@ -946,6 +1028,7 @@ async fn dispatch_packed_events<B: PackedBatchChannel>(
         }
     }
 
+    let channel = B::channel(callbacks);
     let total = run.len();
     let mut start = 0;
     while start < total {
@@ -959,14 +1042,14 @@ async fn dispatch_packed_events<B: PackedBatchChannel>(
                     log::warn!("{} wire serialization failed: {e:?}", B::KIND);
                 }
             }
-            encoder.finish()
+            encoder.finish(channel.buffer())
         });
         start = end;
 
         let work_remains = start < total || pending_event.is_some() || !event_rx.is_empty();
         match encoded {
             Ok(batch) => {
-                if let Err(e) = B::call(callbacks, &batch) {
+                if let Err(e) = channel.call(&callbacks.receiver, B::KIND, &batch) {
                     log::warn!("JS {} batch callback threw: {e:?}", B::KIND);
                 }
             }
@@ -1100,10 +1183,11 @@ async fn dispatch_js_value(
 #[cfg(test)]
 mod event_dispatch_budget_tests {
     use super::{
-        EVENT_CALLBACK_BUDGET, EVENT_CALLBACK_METHOD, EventDispatchBudget,
+        BatchBuffer, EVENT_CALLBACK_BUDGET, EVENT_CALLBACK_METHOD, EventDispatchBudget,
         HISTORY_SYNC_BATCH_CALLBACK_METHOD, HISTORY_SYNC_BATCH_MAX_BYTES,
         HISTORY_SYNC_BATCH_MAX_CONVERSATIONS, HISTORY_SYNC_CONVERSATION_TYPES_FIELD,
-        JsEventCallbacks, MESSAGE_BATCH_CALLBACK_METHOD, history_sync_wire_batch_next_capacity,
+        JsEventCallbacks, MESSAGE_BATCH_CALLBACK_METHOD, RECEIPT_BATCH_BORROWED_CALLBACK_METHOD,
+        RECEIPT_BATCH_CALLBACK_METHOD, history_sync_wire_batch_next_capacity,
         history_sync_wire_batch_should_flush,
     };
     use wasm_bindgen::JsValue;
@@ -1207,6 +1291,41 @@ mod event_dispatch_budget_tests {
         let parsed = JsEventCallbacks::from_js(callbacks.into()).expect("valid callback object");
         assert!(parsed.supports_message_wire_batching());
         assert!(!parsed.supports_history_sync_batching());
+    }
+
+    /// The borrow is negotiated by presence like every other batch capability,
+    /// and only the borrowing form turns it on.
+    #[test]
+    fn parses_the_packed_batch_borrow_opt_in_once() {
+        let build = |method: &str| {
+            let callbacks = js_sys::Object::new();
+            js_sys::Reflect::set(
+                &callbacks,
+                &JsValue::from_str(EVENT_CALLBACK_METHOD),
+                &js_sys::Function::new_no_args(""),
+            )
+            .expect("set onEvent");
+            js_sys::Reflect::set(
+                &callbacks,
+                &JsValue::from_str(method),
+                &js_sys::Function::new_no_args(""),
+            )
+            .expect("set the receipt callback");
+            JsEventCallbacks::from_js(callbacks.into()).expect("valid callback object")
+        };
+
+        let copying = build(RECEIPT_BATCH_CALLBACK_METHOD);
+        assert!(copying.receipt_channel.is_registered());
+        assert_eq!(copying.receipt_channel.buffer(), BatchBuffer::Owned);
+        assert_eq!(copying.server_ack_channel.buffer(), BatchBuffer::Owned);
+
+        let borrowing = build(RECEIPT_BATCH_BORROWED_CALLBACK_METHOD);
+        assert!(borrowing.receipt_channel.is_registered());
+        assert_eq!(borrowing.receipt_channel.buffer(), BatchBuffer::Borrowed);
+        assert!(
+            !borrowing.server_ack_channel.is_registered(),
+            "opting one kind in enrolled the other"
+        );
     }
 
     #[test]
@@ -5582,4 +5701,128 @@ fn apply_ttl_capacity(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod packed_batch_channel_tests {
+    use super::*;
+    use std::rc::Rc;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    /// A receipt batch as the dispatch loop crosses it, with `id` inline so the
+    /// bytes identify which batch a callback saw.
+    fn cross_receipt_batch(id: &str, buffer: BatchBuffer) -> JsValue {
+        let event = Event::Receipt(
+            wacore::types::events::Receipt::builder()
+                .source(wacore::types::message::MessageSource {
+                    chat: "5511999@s.whatsapp.net".parse().expect("valid chat jid"),
+                    sender: "5511999:9@s.whatsapp.net"
+                        .parse()
+                        .expect("valid sender jid"),
+                    ..Default::default()
+                })
+                .message_ids(vec![id.into()])
+                .timestamp(Default::default())
+                .r#type(wacore::types::presence::ReceiptType::Delivered)
+                .offline(false)
+                .build(),
+        );
+        ReceiptWireBatch::with_encoder(|encoder| {
+            encoder.begin();
+            encoder.push(&event).expect("packs");
+            encoder.finish(buffer).expect("crosses")
+        })
+    }
+
+    /// A conforming host: it reads the batch and returns, keeping nothing.
+    fn decoding_callback(seen: Rc<RefCell<Vec<String>>>) -> js_sys::Function {
+        let closure = Closure::wrap(Box::new(move |batch: js_sys::Uint8Array| {
+            seen.borrow_mut()
+                .push(String::from_utf8_lossy(&batch.to_vec()).into_owned());
+        }) as Box<dyn FnMut(js_sys::Uint8Array)>);
+        closure.into_js_value().unchecked_into()
+    }
+
+    /// A host that keeps the typed array it was handed.
+    fn retaining_callback(held: Rc<RefCell<Vec<js_sys::Uint8Array>>>) -> js_sys::Function {
+        let closure = Closure::wrap(Box::new(move |batch: js_sys::Uint8Array| {
+            held.borrow_mut().push(batch);
+        }) as Box<dyn FnMut(js_sys::Uint8Array)>);
+        closure.into_js_value().unchecked_into()
+    }
+
+    fn channel(
+        copying: Option<js_sys::Function>,
+        borrowing: Option<js_sys::Function>,
+    ) -> PackedBatchChannelState {
+        ReceiptWireBatch::with_encoder(|encoder| *encoder = ReceiptWireBatch::default());
+        PackedBatchChannelState {
+            copying,
+            borrowing,
+            borrow: Cell::default(),
+        }
+    }
+
+    fn deliver(channel: &PackedBatchChannelState, id: &str) -> JsValue {
+        let batch = cross_receipt_batch(id, channel.buffer());
+        channel
+            .call(&JsValue::NULL, ReceiptWireBatch::KIND, &batch)
+            .expect("the callback returned");
+        batch
+    }
+
+    /// Each callback sees its own batch: the shared buffer is rewritten only
+    /// after the previous call has returned.
+    #[test]
+    fn a_borrowing_host_sees_its_own_batch_inside_each_callback() {
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let channel = channel(None, Some(decoding_callback(seen.clone())));
+
+        for id in ["RCPT-A", "RCPT-B"] {
+            assert_eq!(channel.buffer(), BatchBuffer::Borrowed);
+            deliver(&channel, id);
+        }
+
+        let seen = seen.borrow();
+        assert!(seen[0].contains("RCPT-A") && !seen[0].contains("RCPT-B"));
+        assert!(seen[1].contains("RCPT-B") && !seen[1].contains("RCPT-A"));
+    }
+
+    /// The default path is untouched: without the opt-in every batch keeps its
+    /// own buffer, so a host may hold one for as long as it likes.
+    #[test]
+    fn a_host_that_did_not_opt_in_keeps_a_buffer_per_batch() {
+        let held = Rc::new(RefCell::new(Vec::new()));
+        let channel = channel(Some(retaining_callback(held.clone())), None);
+
+        for id in ["RCPT-A", "RCPT-B"] {
+            assert_eq!(channel.buffer(), BatchBuffer::Owned);
+            deliver(&channel, id);
+        }
+
+        let held = held.borrow();
+        assert!(
+            !js_sys::Object::is(&held[0].buffer().into(), &held[1].buffer().into()),
+            "the batches shared a buffer"
+        );
+        assert!(String::from_utf8_lossy(&held[0].to_vec()).contains("RCPT-A"));
+    }
+
+    /// A borrowing callback that returns a Promise has broken the contract. It
+    /// is revoked before the shared buffer is written again, so the window it
+    /// kept is still its own.
+    #[test]
+    fn a_borrowing_callback_that_returns_a_promise_is_revoked() {
+        let channel = channel(
+            None,
+            Some(js_sys::Function::new_no_args("return Promise.resolve()")),
+        );
+
+        let first = deliver(&channel, "RCPT-A").unchecked_into::<js_sys::Uint8Array>();
+        assert_eq!(channel.buffer(), BatchBuffer::Owned, "the borrow survived");
+
+        let bytes = first.to_vec();
+        deliver(&channel, "RCPT-B");
+        assert_eq!(first.to_vec(), bytes, "the retained batch was rewritten");
+    }
 }
