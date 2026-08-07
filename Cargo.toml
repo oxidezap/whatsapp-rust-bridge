@@ -141,6 +141,12 @@ opt-level = 3
 [profile.release.package.wacore-binary]
 opt-level = 3
 
+# Every ratchet step runs a scalar multiplication, so this field arithmetic is
+# the single most expensive thing on the per-message path. Its neighbours on
+# that path (sha2, subtle, digest) measured flat and stay size-optimized.
+[profile.release.package.curve25519-dalek]
+opt-level = 3
+
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]
 inherits = "release"
