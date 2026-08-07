@@ -111,7 +111,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || format('refs/tags/{0}', needs.release-please.outputs.tag_name) }}
+          # On dispatch, the sha the event recorded rather than the ref: a tag
+          # force-updated between the event and this checkout would otherwise be
+          # built here while provenance still names the original commit. On the
+          # push path the event sha is the main commit, so the tag is the ref.
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || format('refs/tags/{0}', needs.release-please.outputs.tag_name) }}
           persist-credentials: false
 
       - id: verified
