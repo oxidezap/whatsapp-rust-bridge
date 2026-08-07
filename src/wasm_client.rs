@@ -5,6 +5,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use futures::channel::oneshot;
@@ -284,8 +285,9 @@ export interface WhatsAppEventCallbacks {
    * return a Promise. `decodeReceiptWireBatch` satisfies that on its own, since
    * it materializes every field and keeps no view over the buffer, so the usual
    * body is a decode plus whatever the host does with the result. A callback
-   * caught returning a Promise drops back to a buffer per batch for the rest of
-   * the session, before the buffer is reused, so its window stays intact.
+   * caught handing back something promise-like drops every borrowing callback
+   * back to a buffer per batch for the rest of the session, before the buffer
+   * is reused, so the window it kept stays intact.
    *
    * `onReceiptBatch` remains the copying path for every host that does not opt
    * in, and a batch too large for the shared buffer gets its own regardless.
@@ -574,15 +576,29 @@ fn history_sync_wire_batch_next_capacity(current: usize, required: usize) -> usi
         .unwrap_or(required)
 }
 
+/// Whether `value` defers work the way the borrow contract forbids.
+///
+/// Thenable rather than `instanceof Promise`: the latter is realm-local, so it
+/// would clear a promise built in another realm, and it would clear a bare
+/// thenable. Both defer the host's decode past the callback, which is the thing
+/// being checked for. Reached only when the callback returned an object, which
+/// a conforming `void` callback never does.
+fn is_thenable(value: &JsValue) -> bool {
+    value.is_object()
+        && js_sys::Reflect::get(value, &"then".into()).is_ok_and(|then| then.is_function())
+}
+
 /// Registered delivery for one packed batch kind: the copying callback and,
 /// when the host opted in, the borrowing one.
 #[derive(Default)]
 struct PackedBatchChannelState {
     copying: Option<js_sys::Function>,
     borrowing: Option<js_sys::Function>,
-    /// Set once a borrowing callback has been seen breaking its contract. The
-    /// borrow never comes back.
-    borrow_revoked: Cell<bool>,
+    /// Set once any borrowing callback has been seen breaking its contract, and
+    /// never cleared. Shared with the other packed kind because the buffer is:
+    /// containment that stopped at this channel would leave the other one free
+    /// to rewrite the window this one's callback kept.
+    borrow_revoked: Rc<Cell<bool>>,
 }
 
 impl PackedBatchChannelState {
@@ -613,22 +629,23 @@ impl PackedBatchChannelState {
 
     /// Deliver a batch crossed in the buffer [`Self::buffer`] picked.
     ///
-    /// A borrowing callback that returns a Promise has broken its contract, so
-    /// the channel goes back to a buffer per batch. Revoking here, before the
-    /// shared buffer is written again, is what keeps the window that callback
-    /// kept from ever being rewritten. Every borrowed delivery is checked, not
-    /// just the first: a callback that returns a promise down only one of its
-    /// branches is precisely the one a single check would clear and then miss.
+    /// A borrowing callback that hands back something promise-like has broken
+    /// its contract, so the borrow is revoked. Revoking here, after that call
+    /// and before the shared buffer is written again by any kind, is what keeps
+    /// the window that callback kept from ever being rewritten. Every borrowed
+    /// delivery is checked, not just the first: a callback that goes async down
+    /// only one of its branches is precisely the one a single check would clear
+    /// and then miss.
     fn call(&self, receiver: &JsValue, kind: &str, batch: &JsValue) -> Result<JsValue, JsValue> {
         let borrowed = self.borrows();
         let result = self
             .target()
             .expect("packed callback checked before dispatch")
             .call1(receiver, batch)?;
-        if borrowed && result.is_instance_of::<js_sys::Promise>() {
+        if borrowed && is_thenable(&result) {
             self.borrow_revoked.set(true);
             log::error!(
-                "{kind} borrowing batch callback returned a Promise; falling back to a buffer per batch"
+                "{kind} borrowing batch callback did not return synchronously; falling back to a buffer per batch"
             );
         }
         Ok(result)
@@ -682,15 +699,16 @@ impl JsEventCallbacks {
         let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
         let on_history_sync_batch =
             Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
+        let borrow_revoked = Rc::new(Cell::new(false));
         let receipt_channel = PackedBatchChannelState {
             copying: Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?,
             borrowing: Self::optional_method(&value, RECEIPT_BATCH_BORROWED_CALLBACK_METHOD)?,
-            borrow_revoked: Cell::default(),
+            borrow_revoked: borrow_revoked.clone(),
         };
         let server_ack_channel = PackedBatchChannelState {
             copying: Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?,
             borrowing: Self::optional_method(&value, SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD)?,
-            borrow_revoked: Cell::default(),
+            borrow_revoked,
         };
         let history_sync_conversation_types =
             Self::optional_history_sync_conversation_types(&value)?;
@@ -5749,8 +5767,36 @@ mod packed_batch_channel_tests {
         PackedBatchChannelState {
             copying,
             borrowing,
-            borrow_revoked: Cell::default(),
+            borrow_revoked: Rc::new(Cell::new(false)),
         }
+    }
+
+    /// A second channel sharing the first one's revocation, as `from_js` builds
+    /// the receipt and server-ack pair.
+    fn sibling_channel(
+        borrowing: js_sys::Function,
+        of: &PackedBatchChannelState,
+    ) -> PackedBatchChannelState {
+        PackedBatchChannelState {
+            copying: None,
+            borrowing: Some(borrowing),
+            borrow_revoked: of.borrow_revoked.clone(),
+        }
+    }
+
+    /// A callback that returns synchronously the first time and promise-like
+    /// afterwards, counting its own calls so no shared global can shift it.
+    fn conditionally_async_callback(async_from: u32, thenable: JsValue) -> js_sys::Function {
+        let calls = Cell::new(0u32);
+        let closure = Closure::wrap(Box::new(move |_: js_sys::Uint8Array| -> JsValue {
+            calls.set(calls.get() + 1);
+            if calls.get() >= async_from {
+                thenable.clone()
+            } else {
+                JsValue::UNDEFINED
+            }
+        }) as Box<dyn FnMut(js_sys::Uint8Array) -> JsValue>);
+        closure.into_js_value().unchecked_into()
     }
 
     fn deliver(channel: &PackedBatchChannelState, id: &str) -> JsValue {
@@ -5823,9 +5869,9 @@ mod packed_batch_channel_tests {
     fn a_borrowing_callback_that_turns_async_later_is_revoked_then() {
         let channel = channel(
             None,
-            Some(js_sys::Function::new_no_args(
-                "globalThis.__calls = (globalThis.__calls | 0) + 1;
-                 if (globalThis.__calls > 1) return Promise.resolve();",
+            Some(conditionally_async_callback(
+                2,
+                js_sys::Promise::resolve(&JsValue::UNDEFINED).into(),
             )),
         );
 
@@ -5842,5 +5888,46 @@ mod packed_batch_channel_tests {
         let bytes = second.to_vec();
         deliver(&channel, "RCPT-C");
         assert_eq!(second.to_vec(), bytes, "the retained batch was rewritten");
+    }
+
+    /// `instanceof Promise` is realm-local and blind to a bare thenable, and
+    /// both defer the host's work exactly the way the borrow forbids.
+    #[test]
+    fn a_borrowing_callback_that_returns_a_bare_thenable_is_revoked() {
+        let thenable = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &thenable,
+            &"then".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .expect("set then");
+        let channel = channel(None, Some(conditionally_async_callback(1, thenable.into())));
+
+        deliver(&channel, "RCPT-A");
+        assert_eq!(channel.buffer(), BatchBuffer::Owned, "the borrow survived");
+    }
+
+    /// One buffer serves every packed kind, so containment has to as well: a
+    /// server-ack batch must not rewrite the window a revoked receipt callback
+    /// kept.
+    #[test]
+    fn revoking_one_kind_stops_the_other_borrowing_too() {
+        let receipts = channel(
+            None,
+            Some(js_sys::Function::new_no_args("return Promise.resolve()")),
+        );
+        let acks = sibling_channel(js_sys::Function::new_no_args(""), &receipts);
+        assert_eq!(acks.buffer(), BatchBuffer::Borrowed);
+
+        let held = deliver(&receipts, "RCPT-A").unchecked_into::<js_sys::Uint8Array>();
+        let bytes = held.to_vec();
+        assert_eq!(
+            acks.buffer(),
+            BatchBuffer::Owned,
+            "the sibling kept borrowing the buffer the revoked window is in"
+        );
+
+        deliver(&acks, "ACK-B");
+        assert_eq!(held.to_vec(), bytes, "the retained batch was rewritten");
     }
 }
