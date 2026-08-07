@@ -156,18 +156,32 @@ impl WireStringTable {
 }
 
 thread_local! {
-    /// Set when a borrowing host was seen breaking the synchronous contract,
-    /// and never cleared.
+    /// The one buffer every borrowed batch is handed a window on.
     ///
-    /// It lives beside the shared buffer rather than with a callback, a batch
-    /// kind or a client, because the buffer does: a window one host kept has to
-    /// be safe from every later batch, whoever produces it.
+    /// Allocated on the host heap, never a view into linear memory: the host
+    /// callback re-enters WASM by design, and a `memory.grow` there would
+    /// detach such a view mid-batch.
+    static SHARED_BORROW_BUFFER: RefCell<Option<js_sys::Uint8Array>> = const { RefCell::new(None) };
+    /// Set when a borrowing host was seen breaking the synchronous contract.
+    ///
+    /// It lives with the buffer rather than with a callback, a batch kind or a
+    /// client, because the buffer does: a window one host kept has to be safe
+    /// from every later batch, whoever produces it.
     static BORROW_REVOKED: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Stop handing out windows on the shared buffer, for the rest of the process.
+/// Stop handing out windows on the shared buffer, for the rest of the process,
+/// and abandon the buffer itself.
+///
+/// Dropping it is what makes the window the offending host kept unreachable no
+/// matter what happens next, rather than merely unwritten by a flag someone
+/// could later scope wrong. The flag then only decides whether to keep paying
+/// for reuse, and it stays set: nothing can tell when a host that deferred its
+/// decode is finished, so a later borrow is a guess, and the cost of guessing
+/// wrong is silent corruption against an optimization worth a few percent.
 pub(crate) fn revoke_borrowed_batches() {
     BORROW_REVOKED.with(|revoked| revoked.set(true));
+    SHARED_BORROW_BUFFER.with(|shared| shared.borrow_mut().take());
 }
 
 pub(crate) fn borrowed_batches_revoked() -> bool {
@@ -198,10 +212,6 @@ pub(crate) fn reset_borrowed_batches() {
 fn cross_flat_batch(buffer: BatchBuffer, write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
     thread_local! {
         static SCRATCH: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
-        /// Allocated on the host heap, never a view into linear memory: the
-        /// host callback re-enters WASM by design, and a `memory.grow` there
-        /// would detach such a view mid-batch.
-        static SHARED: RefCell<Option<js_sys::Uint8Array>> = const { RefCell::new(None) };
     }
     SCRATCH.with(|scratch| {
         let mut out = scratch.borrow_mut();
@@ -213,7 +223,7 @@ fn cross_flat_batch(buffer: BatchBuffer, write: impl FnOnce(&mut Vec<u8>)) -> Js
             BatchBuffer::Borrowed
                 if !borrowed_batches_revoked() && out.len() <= BORROWED_BATCH_BUFFER_BYTES =>
             {
-                SHARED.with(|shared| {
+                SHARED_BORROW_BUFFER.with(|shared| {
                     let mut shared = shared.borrow_mut();
                     let shared = shared.get_or_insert_with(|| {
                         js_sys::Uint8Array::new_with_length(BORROWED_BATCH_BUFFER_BYTES as u32)
@@ -1148,6 +1158,39 @@ mod tests {
             BORROWED_BATCH_BUFFER_BYTES,
             "the outlier pinned a larger shared buffer"
         );
+    }
+
+    /// The guard here is the last line of defense, below whatever the delivery
+    /// channel decides, so it gets its own coverage.
+    #[test]
+    fn a_revoked_borrow_falls_back_to_its_own_buffer() {
+        reset_borrowed_batches();
+        let held = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[5u8; 32])
+        }));
+
+        revoke_borrowed_batches();
+        let after = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[6u8; 32])
+        }));
+        assert!(
+            !same_buffer(&held, &after),
+            "a revoked borrow reused the shared buffer"
+        );
+        assert_eq!(
+            held.to_vec(),
+            vec![5u8; 32],
+            "the shared buffer was rewritten"
+        );
+
+        // Revoking also drops the buffer, so the window stays unreachable even
+        // if something later decides to borrow again.
+        reset_borrowed_batches();
+        let next = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
+            out.extend_from_slice(&[7u8; 32])
+        }));
+        assert!(!same_buffer(&held, &next), "the abandoned buffer came back");
+        assert_eq!(held.to_vec(), vec![5u8; 32]);
     }
 
     /// Opting in changes where the bytes land, never what they are.

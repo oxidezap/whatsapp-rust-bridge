@@ -284,9 +284,10 @@ export interface WhatsAppEventCallbacks {
    * return a Promise. `decodeReceiptWireBatch` satisfies that on its own, since
    * it materializes every field and keeps no view over the buffer, so the usual
    * body is a decode plus whatever the host does with the result. A callback
-   * caught handing back something promise-like drops every borrowing callback
-   * back to a buffer per batch for the rest of the session, before the buffer
-   * is reused, so the window it kept stays intact.
+   * caught handing back something promise-like, or letting an exception escape,
+   * drops every borrowing callback of every packed kind back to a buffer per
+   * batch for the rest of the session, before the buffer is reused, so the
+   * window it kept stays intact.
    *
    * `onReceiptBatch` remains the copying path for every host that does not opt
    * in, and a batch too large for the shared buffer gets its own regardless.
