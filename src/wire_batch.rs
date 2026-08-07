@@ -3,7 +3,7 @@
 //! host-side decode per batch instead of one FFI object build per event.
 //! Record layouts are mirrored by the host decoders in `ts/wire-info.ts`.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use wasm_bindgen::JsValue;
@@ -155,6 +155,32 @@ impl WireStringTable {
     }
 }
 
+thread_local! {
+    /// Set when a borrowing host was seen breaking the synchronous contract,
+    /// and never cleared.
+    ///
+    /// It lives beside the shared buffer rather than with a callback, a batch
+    /// kind or a client, because the buffer does: a window one host kept has to
+    /// be safe from every later batch, whoever produces it.
+    static BORROW_REVOKED: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Stop handing out windows on the shared buffer, for the rest of the process.
+pub(crate) fn revoke_borrowed_batches() {
+    BORROW_REVOKED.with(|revoked| revoked.set(true));
+}
+
+pub(crate) fn borrowed_batches_revoked() -> bool {
+    BORROW_REVOKED.with(Cell::get)
+}
+
+/// Test-only: the flag is permanent by design, so tests that exercise a
+/// violation would otherwise disarm every test that runs after them.
+#[cfg(test)]
+pub(crate) fn reset_borrowed_batches() {
+    BORROW_REVOKED.with(|revoked| revoked.set(false));
+}
+
 /// Assemble a flat batch and cross it as the bare `Uint8Array` every packed
 /// transport shares, whatever the record layout inside is.
 ///
@@ -184,7 +210,9 @@ fn cross_flat_batch(buffer: BatchBuffer, write: impl FnOnce(&mut Vec<u8>)) -> Js
         let batch = match buffer {
             // An outlier gets its own typed array, so it neither pins a larger
             // shared buffer nor loses its tail to the next batch.
-            BatchBuffer::Borrowed if out.len() <= BORROWED_BATCH_BUFFER_BYTES => {
+            BatchBuffer::Borrowed
+                if !borrowed_batches_revoked() && out.len() <= BORROWED_BATCH_BUFFER_BYTES =>
+            {
                 SHARED.with(|shared| {
                     let mut shared = shared.borrow_mut();
                     let shared = shared.get_or_insert_with(|| {
@@ -1052,6 +1080,7 @@ mod tests {
     /// callback finds the next batch's bytes.
     #[test]
     fn borrowed_batches_share_one_host_buffer() {
+        reset_borrowed_batches();
         let first = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
             out.extend_from_slice(&[1u8; 48])
         }));
@@ -1072,6 +1101,7 @@ mod tests {
     /// that a host callback re-entering WASM can trigger.
     #[test]
     fn a_borrowed_batch_survives_linear_memory_growth() {
+        reset_borrowed_batches();
         let batch = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
             out.extend_from_slice(&[7u8; 128])
         }));
@@ -1089,6 +1119,7 @@ mod tests {
     /// An outlier neither grows the shared buffer nor loses its tail to it.
     #[test]
     fn an_oversized_borrowed_batch_gets_its_own_buffer() {
+        reset_borrowed_batches();
         let held = as_bytes(cross_flat_batch(BatchBuffer::Borrowed, |out| {
             out.extend_from_slice(&[5u8; 32])
         }));
@@ -1140,6 +1171,7 @@ mod tests {
             )
         };
 
+        reset_borrowed_batches();
         // The encoder's caches persist across batches, so both arms have to
         // start from the same cache state to be comparable.
         let encode = |buffer| {
