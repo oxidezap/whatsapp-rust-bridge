@@ -60,10 +60,13 @@ jobs:
           echo "id token obtained; claims (no signature):"
           echo "$id_token" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, repository, workflow_ref, environment, job_workflow_ref}' || true
 
-          pkg=$(jq -r .name package.json | sed 's|/|%2f|')
-          echo "--- exchange for $pkg ---"
-          code=$(curl -sS -o /tmp/exchange.json -w '%{http_code}' -X POST \
-            -H "Authorization: Bearer $id_token" -H 'Content-Type: application/json' \
-            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$pkg")
-          echo "HTTP $code"
-          jq 'del(.token)' /tmp/exchange.json 2>/dev/null || cat /tmp/exchange.json
+          # Controlled comparison. baileyrs is known to have no trusted
+          # publisher configured, so if it answers exactly like this package
+          # does, the message is npm's way of saying "no trust config for this
+          # package" rather than anything about the package existing.
+          for pkg in '@oxidezap%2fwhatsapp-rust-bridge' '@oxidezap%2Fwhatsapp-rust-bridge' '@oxidezap%2fbaileyrs'; do
+            code=$(curl -sS -o /tmp/exchange.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $id_token" -H 'Content-Type: application/json' \
+              "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$pkg")
+            echo "$pkg -> HTTP $code $(jq -c 'del(.token)' /tmp/exchange.json 2>/dev/null || cat /tmp/exchange.json)"
+          done
