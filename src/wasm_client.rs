@@ -875,6 +875,19 @@ impl BatchDelivery {
         self.envelope.as_ref().is_some_and(|e| !e.is_empty())
     }
 
+    /// Events the next segment may carry. A segment is indivisible once built,
+    /// so the split has to happen while the batch is still being filled: that
+    /// is what keeps a whole envelope inside the boundary's event ceiling
+    /// rather than one segment inside it.
+    fn segment_capacity(&self) -> usize {
+        match &self.envelope {
+            Some(envelope) => EVENT_BATCH_CAPACITY
+                .saturating_sub(envelope.records())
+                .max(1),
+            None => EVENT_BATCH_CAPACITY,
+        }
+    }
+
     /// Hand over the message encoder's current batch.
     async fn emit_message_batch(
         &mut self,
@@ -924,8 +937,8 @@ impl BatchDelivery {
         self.flush_if_full(callbacks, budget, work_remains).await;
     }
 
-    /// An envelope carries at most as many events as a single batch did, so the
-    /// object tree one callback builds stays bounded by the same ceiling.
+    /// Cross a run that has reached the ceiling, so the next segment starts
+    /// from a full budget again.
     async fn flush_if_full(
         &mut self,
         callbacks: &JsEventCallbacks,
@@ -1176,7 +1189,7 @@ async fn dispatch_packed_events<B: PackedBatchChannel>(
     let total = run.len();
     let mut start = 0;
     while start < total {
-        let end = (start + EVENT_BATCH_CAPACITY).min(total);
+        let end = (start + delivery.segment_capacity()).min(total);
         // Encoding borrows the shared encoder; delivery happens after the
         // borrow ends so a re-entrant host cannot observe a half-built batch.
         B::with_encoder(|encoder| {
@@ -1241,11 +1254,12 @@ async fn dispatch_message_events(
         };
 
         for (index, inbound) in batch.iter().enumerate() {
+            let capacity = delivery.segment_capacity();
             let full = MessageWireBatch::with_encoder(|encoder| {
                 if let Err(e) = encoder.push(inbound) {
                     log::warn!("Message wire serialization failed: {e:?}");
                 }
-                encoder.len() == EVENT_BATCH_CAPACITY
+                encoder.len() >= capacity
             });
             if full {
                 let more_in_core_batch = index + 1 < batch.len();
@@ -6057,6 +6071,41 @@ mod event_delivery_tests {
         let calls = drive(ENVELOPE_HOST, vec![receipt("R1")]).await;
         assert_eq!(names(&calls), [RECEIPT_BATCH_CALLBACK_METHOD]);
         assert!(carries(&calls[0].1, "R1"));
+    }
+
+    /// The boundary's event ceiling bounds a whole crossing, not one segment of
+    /// it: a mixed run must split across envelopes rather than hand the host a
+    /// callback carrying more events than a single batch ever did.
+    #[test]
+    async fn an_envelope_never_carries_more_events_than_the_ceiling() {
+        // Runs that each fit under the ceiling but together pass it.
+        let mut events = Vec::new();
+        for i in 0..EVENT_BATCH_CAPACITY - 1 {
+            events.push(receipt(&format!("R{i}-")));
+        }
+        for i in 0..EVENT_BATCH_CAPACITY - 1 {
+            events.push(ack(&format!("A{i}-")));
+        }
+        let total = events.len();
+        let calls = drive(ENVELOPE_HOST, events).await;
+
+        // Every packed layout opens with its record count as a u32.
+        let records =
+            |batch: &[u8]| u32::from_le_bytes(batch[..4].try_into().expect("4 bytes")) as usize;
+        let mut delivered = 0;
+        for (name, bytes) in &calls {
+            let carried: usize = if name == EVENT_BATCH_CALLBACK_METHOD {
+                segments(bytes).iter().map(|(_, b)| records(b)).sum()
+            } else {
+                records(bytes)
+            };
+            assert!(
+                carried <= EVENT_BATCH_CAPACITY,
+                "{name} carried {carried} events"
+            );
+            delivered += carried;
+        }
+        assert_eq!(delivered, total, "the run lost or duplicated an event");
     }
 
     /// Degraded path: a run past the boundary ceiling crosses in several
