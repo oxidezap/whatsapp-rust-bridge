@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.5](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.4...v0.6.5) (2026-08-07)
+
+
+### Performance
+
+* **bridge:** coalesce the batches a single message produces ([#17](https://github.com/oxidezap/whatsapp-rust-bridge/issues/17)) ([35ddbba](https://github.com/oxidezap/whatsapp-rust-bridge/commit/35ddbba276e642226ecb05fb001252082527ab3f))
+* **bridge:** let a host opt into borrowing the batch buffer ([#16](https://github.com/oxidezap/whatsapp-rust-bridge/issues/16)) ([5f1a989](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5f1a989e19bf41e9667b27e30f83a5ad17c16cd9))
+* **bridge:** stop allocating per message on both sides of the boundary ([#13](https://github.com/oxidezap/whatsapp-rust-bridge/issues/13)) ([b1ce63e](https://github.com/oxidezap/whatsapp-rust-bridge/commit/b1ce63e486159bb4ef03e271095a33a6323b7e91))
+* **deps:** compile curve25519 for speed instead of size ([#15](https://github.com/oxidezap/whatsapp-rust-bridge/issues/15)) ([18af7b2](https://github.com/oxidezap/whatsapp-rust-bridge/commit/18af7b205ae714dadf6b48296ada144bd2913429))
+
 ## [0.6.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.3...v0.6.4) (2026-08-07)
 
 
