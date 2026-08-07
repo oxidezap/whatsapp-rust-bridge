@@ -243,6 +243,13 @@ jobs:
       - name: Build the wasm package
         run: bun run build
 
+      # `bun run build` regenerates the type file. If what it produced differs
+      # from what is committed, the tarball's .d.ts would not be the reviewed
+      # one — which is how a build with missing sources shipped a .d.ts
+      # referencing types it no longer declared.
+      - name: Fail if the generated types drifted
+        run: git diff --exit-code -- src/generated_types.rs
+
       - run: bun test
 
       - name: Rust unit tests (wasm32 in Node)
@@ -321,6 +328,12 @@ jobs:
 
       - name: Build the wasm package
         run: bun run build
+
+      # The tarball is built from this step's output, so the same drift
+      # check applies here: publish what was reviewed, not what a runner
+      # happened to regenerate.
+      - name: Fail if the generated types drifted
+        run: git diff --exit-code -- src/generated_types.rs
 
       # `--ignore-scripts` below suppresses the prepack hook, and prepack is
       # where the tarball guard lives — run it directly so a build that leaks

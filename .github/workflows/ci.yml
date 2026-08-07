@@ -93,6 +93,13 @@ jobs:
       - name: Build the wasm package
         run: bun run build
 
+      # `bun run build` regenerates the type file. If what it produced differs
+      # from what is committed, the tarball's .d.ts would not be the reviewed
+      # one — which is how a build with missing sources shipped a .d.ts
+      # referencing types it no longer declared.
+      - name: Fail if the generated types drifted
+        run: git diff --exit-code -- src/generated_types.rs
+
       - name: Run Tests with Bun
         run: bun test
         env:
