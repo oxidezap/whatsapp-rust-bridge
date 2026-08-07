@@ -15,13 +15,17 @@ on:
   # carries `release_created`, so a publish that fails for a reason outside the
   # tag — a missing tool on the runner, a registry outage — cannot be retried by
   # re-running it: the re-run replays the workflow file of that commit, which is
-  # the one that failed. Dispatch builds and publishes an existing tag with the
-  # workflow as it stands now.
+  # the one that failed.
+  #
+  # Dispatch this **with the release tag selected as the ref**, not from a
+  # branch with the tag as a parameter. Taking it as a free-form input would let
+  # a dispatch publish any branch or commit through a job holding npm OIDC
+  # rights, and npm's provenance records the event's ref and sha rather than
+  # whatever the workspace was checked out to — so a tarball built from a tag
+  # while the event pointed at a branch would be attested to the wrong commit.
+  # The ref picker only offers refs that exist, and `ref_type` below rejects
+  # everything that is not a tag.
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing release tag to build and publish
-        required: true
 
 permissions:
   contents: read
@@ -89,16 +93,29 @@ jobs:
   verify:
     name: Verify the tag
     needs: release-please
-    if: always() && (needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch')
+    # `!cancelled()` rather than `always()`: the dispatch path needs this to run
+    # past a skipped release-please, but a cancelled run must not go on to
+    # publish.
+    if: >-
+      !cancelled() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+       (github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    outputs:
+      # The exact commit this job verified. Publish checks that out instead of
+      # resolving the ref a second time, so nothing can move in between.
+      sha: ${{ steps.verified.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || format('refs/tags/{0}', needs.release-please.outputs.tag_name) }}
           persist-credentials: false
+
+      - id: verified
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -145,7 +162,7 @@ jobs:
   publish:
     name: Publish to npm
     needs: [release-please, verify]
-    if: always() && needs.verify.result == 'success'
+    if: ${{ !cancelled() && needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Gate for the publish step: add required reviewers here to make releases
@@ -159,7 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+          ref: ${{ needs.verify.outputs.sha }}
           # Nothing here talks to the remote after checkout, and the steps below
           # run cargo, bun and third-party build scripts in a job holding OIDC
           # publish rights. Don't leave the token in .git/config for them.
