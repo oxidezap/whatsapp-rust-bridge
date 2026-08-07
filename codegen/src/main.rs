@@ -10,46 +10,105 @@ use std::path::{Path, PathBuf};
 use syn::{Attribute, Fields, GenericArgument, Item, PathArguments, Type, TypePath};
 use walkdir::WalkDir;
 
-/// Find whatsapp-rust source dir from Cargo's git cache by parsing Cargo.lock.
-/// Falls back to `../../whatsapp-rust/` for local development.
+/// Where the core's sources live, as two roots rather than one: published
+/// crates put `wacore` and `whatsapp-rust` side by side in the registry, while
+/// a git checkout or a working clone nests `wacore/` inside the repository.
+struct Sources {
+    wacore_src: PathBuf,
+    core_src: PathBuf,
+}
+
+/// Locate the core's sources on disk.
 ///
 /// This crate does not depend on whatsapp-rust, so `cargo run` never fetches
-/// it: the sources have to already be on disk. On a machine where they are not
-/// — a CI runner with a cold cache, where `gen` runs before anything downloads
-/// the core — every lookup below misses, and `WalkDir` over a missing directory
-/// yields nothing rather than erroring. That silently produced a type file with
+/// it — `gen:bridge-types` runs `cargo fetch` first for that. When the sources
+/// are absent every lookup here misses, and `WalkDir` over a missing directory
+/// yields nothing rather than erroring: that silently produced a type file with
 /// almost everything missing, which still compiled and shipped a `.d.ts`
 /// referencing types it no longer declared. Hence `require_sources`.
-fn find_whatsapp_rust_root() -> PathBuf {
-    // Try to find it in Cargo's git checkout cache
-    let lock_path = Path::new("../Cargo.lock");
-    if let Ok(lock_content) = std::fs::read_to_string(lock_path) {
-        // Find commit hash from: source = "git+https://...whatsapp-rust?...#<hash>"
-        for line in lock_content.lines() {
-            if line.contains("whatsapp-rust")
-                && line.contains("#")
-                && let Some(hash_start) = line.rfind('#')
-            {
-                let full_hash = line[hash_start + 1..].trim_end_matches('"');
-                // Cargo checkouts use first 7 chars of the commit hash as dir name
-                let short_hash = &full_hash[..7];
+fn find_sources() -> Sources {
+    let lock = std::fs::read_to_string("../Cargo.lock").unwrap_or_default();
 
-                // Search for the checkout dir in ~/.cargo/git/checkouts/
-                let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
-                    let home = std::env::var("HOME").expect("HOME not set");
-                    format!("{}/.cargo", home)
-                });
-                let checkouts = PathBuf::from(&cargo_home).join("git/checkouts");
+    // Registry layout: each crate is unpacked on its own, so the two roots are
+    // siblings named `<crate>-<version>`.
+    if let (Some(core), Some(wacore)) = (
+        locked_version(&lock, "whatsapp-rust"),
+        locked_version(&lock, "wacore"),
+    ) && let Some(registry) = registry_src()
+    {
+        let core_dir = registry.join(format!("whatsapp-rust-{core}"));
+        let wacore_dir = registry.join(format!("wacore-{wacore}"));
+        if core_dir.is_dir() && wacore_dir.is_dir() {
+            eprintln!("Using registry: {}", registry.display());
+            return Sources {
+                wacore_src: wacore_dir.join("src"),
+                core_src: core_dir.join("src"),
+            };
+        }
+    }
 
-                if let Ok(entries) = std::fs::read_dir(&checkouts) {
-                    for entry in entries.flatten() {
-                        let name = entry.file_name();
-                        if name.to_string_lossy().starts_with("whatsapp-rust-") {
-                            let candidate = entry.path().join(short_hash);
-                            if candidate.exists() {
-                                eprintln!("Using Cargo git cache: {}", candidate.display());
-                                return candidate;
-                            }
+    // Repository layout: one root, `wacore/` nested inside it.
+    let root = find_repository_root(&lock);
+    Sources {
+        wacore_src: root.join("wacore/src"),
+        core_src: root.join("src"),
+    }
+}
+
+/// Version of `name = "<crate>"` from the lock file, for the registry layout.
+fn locked_version(lock: &str, crate_name: &str) -> Option<String> {
+    let mut lines = lock.lines();
+    while let Some(line) = lines.next() {
+        if line.trim() == format!("name = \"{crate_name}\"") {
+            for next in lines.by_ref().take(3) {
+                if let Some(version) = next.trim().strip_prefix("version = ") {
+                    return Some(version.trim_matches('"').to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn registry_src() -> Option<PathBuf> {
+    let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
+        let home = std::env::var("HOME").expect("HOME not set");
+        format!("{home}/.cargo")
+    });
+    std::fs::read_dir(PathBuf::from(cargo_home).join("registry/src"))
+        .ok()?
+        .flatten()
+        .map(|entry| entry.path())
+        .find(|path| path.is_dir())
+}
+
+/// Git checkout keyed by the locked commit, else a working clone beside this
+/// repository.
+fn find_repository_root(lock: &str) -> PathBuf {
+    for line in lock.lines() {
+        if line.contains("whatsapp-rust")
+            && line.contains('#')
+            && let Some(hash_start) = line.rfind('#')
+        {
+            let full_hash = line[hash_start + 1..].trim_end_matches('"');
+            // Cargo checkouts use the first 7 chars of the commit hash.
+            let short_hash = &full_hash[..7.min(full_hash.len())];
+            let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
+                let home = std::env::var("HOME").expect("HOME not set");
+                format!("{home}/.cargo")
+            });
+            let checkouts = PathBuf::from(&cargo_home).join("git/checkouts");
+            if let Ok(entries) = std::fs::read_dir(&checkouts) {
+                for entry in entries.flatten() {
+                    if entry
+                        .file_name()
+                        .to_string_lossy()
+                        .starts_with("whatsapp-rust-")
+                    {
+                        let candidate = entry.path().join(short_hash);
+                        if candidate.exists() {
+                            eprintln!("Using Cargo git cache: {}", candidate.display());
+                            return candidate;
                         }
                     }
                 }
@@ -57,7 +116,6 @@ fn find_whatsapp_rust_root() -> PathBuf {
         }
     }
 
-    // Fallback to local clone
     let fallback = PathBuf::from("../../whatsapp-rust");
     eprintln!("Using local path: {}", fallback.display());
     fallback
@@ -66,38 +124,38 @@ fn find_whatsapp_rust_root() -> PathBuf {
 /// Refuse to generate from sources that are not there. Parsing nothing is not
 /// an empty result, it is a broken one.
 ///
-/// Every path the generator reads is checked, not just the first: `wacore`
-/// alone contributes enough types that a checkout missing only `src/` would
-/// produce a plausible-looking file and slip past an emptiness check.
-fn require_sources(root: &Path) {
-    let missing: Vec<String> = REQUIRED_SOURCES
+/// Every directory the generator reads is checked, not just the first: wacore
+/// alone contributes most of the types, so a tree missing only the core's own
+/// `src/` would produce a plausible file and slip past an emptiness check.
+fn require_sources(sources: &Sources) {
+    let required = [
+        sources.wacore_src.clone(),
+        sources.core_src.join("features"),
+        sources.core_src.join("types"),
+        sources.core_src.join("send"),
+    ];
+    let missing: Vec<String> = required
         .iter()
-        .map(|rel| root.join(rel))
         .filter(|path| !path.exists())
         .map(|path| path.display().to_string())
         .collect();
 
     assert!(
         missing.is_empty(),
-        "whatsapp-rust sources are incomplete at {}\n\
+        "whatsapp-rust sources are incomplete\n\
          Missing: {}\n\
          This generator reads the core's sources off disk rather than depending on it, so \n\
-         `cargo fetch` has to have populated the git checkout — that is what `gen:bridge-types` \n\
-         runs first. A sibling clone of whatsapp-rust also works.",
-        root.display(),
+         `cargo fetch` has to have populated them — that is what `gen:bridge-types` runs \n\
+         first. A sibling clone of whatsapp-rust also works.",
         missing.join(", ")
     );
 }
 
-/// Everything `main` parses. Kept next to the guard so adding a source without
-/// guarding it is a visible omission rather than a silent one.
-const REQUIRED_SOURCES: [&str; 4] = ["wacore/src", "src/features", "src/types", "src/send"];
-
 fn main() {
-    let root = find_whatsapp_rust_root();
-    require_sources(&root);
-    let wacore_dir = root.join("wacore/src");
-    let src_dir = root.join("src");
+    let sources = find_sources();
+    require_sources(&sources);
+    let wacore_dir = sources.wacore_src.clone();
+    let src_dir = sources.core_src.clone();
 
     let mut all_types = BTreeMap::new();
 
@@ -137,11 +195,15 @@ fn main() {
     // close to it breaks every legitimate change to the core. What guards the
     // output is `require_sources` above and the drift check in CI, which
     // compares against the committed file instead of guessing a number.
-    eprintln!("parsed {} types from {}", all_types.len(), root.display());
+    eprintln!(
+        "parsed {} types from {} and {}",
+        all_types.len(),
+        sources.wacore_src.display(),
+        sources.core_src.display()
+    );
     assert!(
         !all_types.is_empty(),
-        "no types parsed from {}: refusing to generate an empty type file",
-        root.display()
+        "no types parsed: refusing to generate an empty type file"
     );
 
     // Build TypeScript content
