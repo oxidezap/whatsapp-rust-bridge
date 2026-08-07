@@ -32,19 +32,15 @@ fn find_sources() -> Sources {
     // Registry layout: each crate is unpacked on its own, so the two roots are
     // siblings named `<crate>-<version>`.
     if let (Some(core), Some(wacore)) = (
-        locked_version(&lock, "whatsapp-rust"),
-        locked_version(&lock, "wacore"),
-    ) && let Some(registry) = registry_src()
+        locked_registry_version(&lock, "whatsapp-rust"),
+        locked_registry_version(&lock, "wacore"),
+    ) && let Some(registry) = registry_root_with(&core, &wacore)
     {
-        let core_dir = registry.join(format!("whatsapp-rust-{core}"));
-        let wacore_dir = registry.join(format!("wacore-{wacore}"));
-        if core_dir.is_dir() && wacore_dir.is_dir() {
-            eprintln!("Using registry: {}", registry.display());
-            return Sources {
-                wacore_src: wacore_dir.join("src"),
-                core_src: core_dir.join("src"),
-            };
-        }
+        eprintln!("Using registry: {}", registry.display());
+        return Sources {
+            wacore_src: registry.join(format!("wacore-{wacore}")).join("src"),
+            core_src: registry.join(format!("whatsapp-rust-{core}")).join("src"),
+        };
     }
 
     // Repository layout: one root, `wacore/` nested inside it.
@@ -55,22 +51,53 @@ fn find_sources() -> Sources {
     }
 }
 
-/// Version of `name = "<crate>"` from the lock file, for the registry layout.
-fn locked_version(lock: &str, crate_name: &str) -> Option<String> {
-    let mut lines = lock.lines();
-    while let Some(line) = lines.next() {
-        if line.trim() == format!("name = \"{crate_name}\"") {
-            for next in lines.by_ref().take(3) {
-                if let Some(version) = next.trim().strip_prefix("version = ") {
-                    return Some(version.trim_matches('"').to_string());
-                }
-            }
+/// A package as the lock file describes it. `source` is absent for path
+/// dependencies and patches, and names the registry or git remote otherwise.
+struct LockedPackage {
+    version: String,
+    source: Option<String>,
+}
+
+/// Parse `[[package]]` stanzas rather than scanning loose lines, so a version
+/// is never read from one package and a source from another.
+fn locked_package(lock: &str, crate_name: &str) -> Option<LockedPackage> {
+    for stanza in lock.split("[[package]]") {
+        let field = |key: &str| {
+            stanza.lines().find_map(|line| {
+                line.trim()
+                    .strip_prefix(&format!("{key} = "))
+                    .map(|value| value.trim_matches('"').to_string())
+            })
+        };
+        if field("name").as_deref() == Some(crate_name) {
+            return Some(LockedPackage {
+                version: field("version")?,
+                source: field("source"),
+            });
         }
     }
     None
 }
 
-fn registry_src() -> Option<PathBuf> {
+/// The version to look for in a registry checkout, or `None` when the lock
+/// points somewhere else.
+///
+/// A dependency temporarily on a git revision or a patched path can share a
+/// version number with a registry copy still sitting in the cache. Reading that
+/// copy would generate declarations for a revision Cargo is not going to
+/// compile, silently and without falling back.
+fn locked_registry_version(lock: &str, crate_name: &str) -> Option<String> {
+    let package = locked_package(lock, crate_name)?;
+    match package.source {
+        Some(source) if source.starts_with("registry+") => Some(package.version),
+        _ => None,
+    }
+}
+
+/// Registry roots that hold both packages. `registry/src` can carry several —
+/// a private registry beside crates.io, or leftovers from an older protocol —
+/// and only some of them will have what is being looked for.
+fn registry_root_with(core: &str, wacore: &str) -> Option<PathBuf> {
     let cargo_home = std::env::var("CARGO_HOME").unwrap_or_else(|_| {
         let home = std::env::var("HOME").expect("HOME not set");
         format!("{home}/.cargo")
@@ -79,7 +106,10 @@ fn registry_src() -> Option<PathBuf> {
         .ok()?
         .flatten()
         .map(|entry| entry.path())
-        .find(|path| path.is_dir())
+        .find(|root| {
+            root.join(format!("whatsapp-rust-{core}")).is_dir()
+                && root.join(format!("wacore-{wacore}")).is_dir()
+        })
 }
 
 /// Git checkout keyed by the locked commit, else a working clone beside this
