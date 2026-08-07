@@ -12,6 +12,14 @@ use walkdir::WalkDir;
 
 /// Find whatsapp-rust source dir from Cargo's git cache by parsing Cargo.lock.
 /// Falls back to `../../whatsapp-rust/` for local development.
+///
+/// This crate does not depend on whatsapp-rust, so `cargo run` never fetches
+/// it: the sources have to already be on disk. On a machine where they are not
+/// — a CI runner with a cold cache, where `gen` runs before anything downloads
+/// the core — every lookup below misses, and `WalkDir` over a missing directory
+/// yields nothing rather than erroring. That silently produced a type file with
+/// almost everything missing, which still compiled and shipped a `.d.ts`
+/// referencing types it no longer declared. Hence `require_sources`.
 fn find_whatsapp_rust_root() -> PathBuf {
     // Try to find it in Cargo's git checkout cache
     let lock_path = Path::new("../Cargo.lock");
@@ -55,8 +63,25 @@ fn find_whatsapp_rust_root() -> PathBuf {
     fallback
 }
 
+/// Refuse to generate from sources that are not there. Parsing nothing is not
+/// an empty result, it is a broken one.
+fn require_sources(root: &Path) {
+    let wacore = root.join("wacore/src");
+    if !wacore.is_dir() {
+        panic!(
+            "whatsapp-rust sources not found at {}\n\
+             Expected {} to exist. This generator reads the core's sources off disk and \n\
+             does not fetch them: run a cargo build first so the git checkout is populated, \n\
+             or clone whatsapp-rust next to this repository.",
+            root.display(),
+            wacore.display()
+        );
+    }
+}
+
 fn main() {
     let root = find_whatsapp_rust_root();
+    require_sources(&root);
     let wacore_dir = root.join("wacore/src");
     let src_dir = root.join("src");
 
@@ -88,6 +113,18 @@ fn main() {
 
     // Also parse send.rs for SendOptions/RevokeType
     parse_file(&src_dir.join("send.rs"), &mut all_types);
+
+    // Reported so a collapse is visible in the build log. Deliberately not
+    // asserted against a floor: the real count is what it is, and a threshold
+    // close to it breaks every legitimate change to the core. What guards the
+    // output is `require_sources` above and the drift check in CI, which
+    // compares against the committed file instead of guessing a number.
+    eprintln!("parsed {} types from {}", all_types.len(), root.display());
+    assert!(
+        !all_types.is_empty(),
+        "no types parsed from {}: refusing to generate an empty type file",
+        root.display()
+    );
 
     // Build TypeScript content
     let mut ts = String::new();
