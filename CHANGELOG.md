@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.3...v0.6.4) (2026-08-07)
+
+
+### Bug Fixes
+
+* **codegen:** fail when the core sources are missing instead of emitting less ([#10](https://github.com/oxidezap/whatsapp-rust-bridge/issues/10)) ([7305764](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7305764f360422ddecbae5e52afe01ace4bdf9c0))
+* **deps:** take whatsapp-rust 0.7.0 from crates.io ([#12](https://github.com/oxidezap/whatsapp-rust-bridge/issues/12)) ([66c945d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/66c945df0812b5c300e5a01521701210511c3b1f))
+
 ## [0.6.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.2...v0.6.3) (2026-08-07)
 
 
