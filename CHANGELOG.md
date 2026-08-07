@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.2...v0.6.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ci:** correct the protoc pin, and build the package in CI ([c50c797](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c50c7976e361cd3724a903dec44aa92f19042dbc))
+
 ## [0.6.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.1...v0.6.2) (2026-08-07)
 
 
