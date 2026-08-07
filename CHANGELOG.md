@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.1...v0.6.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ci:** install protoc for the release build, and allow republishing a tag ([#4](https://github.com/oxidezap/whatsapp-rust-bridge/issues/4)) ([d6f5c44](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d6f5c445acb9cc56524764b5abc61c5aa8d1e6f9))
+
 ## [0.6.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.0...v0.6.1) (2026-08-06)
 
 
