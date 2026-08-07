@@ -125,11 +125,20 @@ impl WireStringTable {
     }
 }
 
-/// Lay a batch out in the process-wide scratch and hand the bytes to `cross`.
+/// Assemble a flat batch and cross it as the bare `Uint8Array` every packed
+/// transport shares, whatever the record layout inside is.
 ///
-/// The scratch is shared because `cross` finishes with the bytes before this
-/// returns, so no batch can observe another's contents.
-fn assemble_flat_batch<R>(write: impl FnOnce(&mut Vec<u8>), cross: impl FnOnce(&[u8]) -> R) -> R {
+/// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
+/// a `Reflect::set` crossing per batch, and one message produces three batches
+/// (its own, its receipt, its ack). The buffer IS the batch.
+///
+/// The scratch is process-wide because its bytes are copied into the JS typed
+/// array before this returns, so no batch can observe another's contents. The
+/// host buffer is NOT reused for the same reason the payload cap exists: the
+/// batch callbacks are declared returning `void` and the dispatch loop does not
+/// await them, so a host that defers decoding past an `await` must still find
+/// its own bytes there.
+fn cross_flat_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
     thread_local! {
         static SCRATCH: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
     }
@@ -137,55 +146,13 @@ fn assemble_flat_batch<R>(write: impl FnOnce(&mut Vec<u8>), cross: impl FnOnce(&
         let mut out = scratch.borrow_mut();
         out.clear();
         write(&mut out);
-        cross(&out)
-    })
-}
-
-/// Cross a batch the host may keep, as the bare `Uint8Array` every packed
-/// transport shares: it gets its own `ArrayBuffer`.
-///
-/// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
-/// a `Reflect::set` crossing per batch, and one message produces three batches
-/// (its own, its receipt, its ack). The buffer IS the batch.
-fn cross_owned_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
-    assemble_flat_batch(write, |bytes| js_sys::Uint8Array::from(bytes).into())
-}
-
-/// Bytes the shared host buffer keeps between batches. Beyond it a batch gets
-/// its own allocation instead, so one outlier cannot pin a large buffer for the
-/// rest of the session.
-const SHARED_HOST_BUFFER_MAX_BYTES: u32 = crate::WASM_PAGE_BYTES as u32;
-
-/// Cross a batch through one reused host buffer, returned as a subarray of it.
-///
-/// Sound only for batch kinds whose host decoder materialises every field
-/// before returning: receipts and server acks do, so nothing the caller holds
-/// still points here when the next batch overwrites it. The message batch hands
-/// out payload views instead and keeps [`cross_owned_batch`].
-///
-/// The buffer is allocated by the host, not carved out of linear memory, so
-/// growing WASM memory cannot detach it.
-fn cross_shared_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
-    thread_local! {
-        static HOST_BUFFER: RefCell<Option<js_sys::Uint8Array>> = const { RefCell::new(None) };
-    }
-    assemble_flat_batch(write, |bytes| {
-        let len = bytes.len() as u32;
-        if len > SHARED_HOST_BUFFER_MAX_BYTES {
-            return js_sys::Uint8Array::from(bytes).into();
+        let batch = js_sys::Uint8Array::from(out.as_slice());
+        if out.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
+            // `shrink_to` never goes below the length, so drop it first.
+            out.clear();
+            out.shrink_to(MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES);
         }
-        HOST_BUFFER.with(|cached| {
-            let mut cached = cached.borrow_mut();
-            let buffer = match cached.as_ref() {
-                Some(buffer) if buffer.length() >= len => buffer,
-                _ => cached.insert(js_sys::Uint8Array::new_with_length(
-                    SHARED_HOST_BUFFER_MAX_BYTES,
-                )),
-            };
-            let batch = buffer.subarray(0, len);
-            batch.copy_from(bytes);
-            batch.into()
-        })
+        batch.into()
     })
 }
 
@@ -315,7 +282,7 @@ impl MessageWireBatch {
         tracing::instrument(name = "bridge.event.message_wire.ffi", level = "trace", skip_all)
     )]
     pub(crate) fn finish(&mut self) -> Result<JsValue, JsValue> {
-        let batch = cross_owned_batch(|out| self.write_flat(out));
+        let batch = cross_flat_batch(|out| self.write_flat(out));
         self.reset();
         Ok(batch)
     }
@@ -526,7 +493,7 @@ impl FlatBatchWriter {
 
     fn finish(&mut self) -> Result<JsValue, JsValue> {
         self.definitions.extend_from_slice(&self.inline);
-        let batch = cross_shared_batch(|out| {
+        let batch = cross_flat_batch(|out| {
             out.reserve(
                 PACKED_HEADER_BYTES
                     + self.new_strings.len()
@@ -935,13 +902,12 @@ mod tests {
         assert_eq!(table.data, b"aab");
     }
 
-    /// The shared host buffer must not reach a batch the host may keep: two
-    /// owned crossings stay independent.
+    /// Reuse stops at the boundary: a batch the host holds must not be
+    /// rewritten by the next one.
     #[test]
-    fn owned_batches_do_not_alias() {
-        let first = cross_owned_batch(|out| out.extend_from_slice(&[1u8; 64]));
-        let first = as_bytes(first);
-        let _second = cross_owned_batch(|out| out.extend_from_slice(&[2u8; 64]));
+    fn crossed_batches_do_not_alias() {
+        let first = as_bytes(cross_flat_batch(|out| out.extend_from_slice(&[1u8; 64])));
+        let _second = cross_flat_batch(|out| out.extend_from_slice(&[2u8; 64]));
         assert_eq!(
             first.to_vec(),
             vec![1u8; 64],
@@ -949,29 +915,12 @@ mod tests {
         );
     }
 
-    /// The invariant the receipt and server-ack decoders rely on: consecutive
-    /// shared crossings reuse one host buffer, and each sees its own bytes.
+    /// A batch handed to the host is backed by host memory, not by a view into
+    /// the linear memory the encoder writes into: growing WASM memory detaches
+    /// the latter, and the host callback re-enters WASM by design.
     #[test]
-    fn shared_batches_reuse_one_host_buffer() {
-        let first = cross_shared_batch(|out| out.extend_from_slice(&[1u8; 64]));
-        let first = as_bytes(first);
-        let second = cross_shared_batch(|out| out.extend_from_slice(&[2u8; 48]));
-        let second = as_bytes(second);
-
-        assert_eq!(second.to_vec(), vec![2u8; 48]);
-        assert_eq!(second.length(), 48, "the view is trimmed to the batch");
-        assert!(
-            js_sys::Object::is(&first.buffer().into(), &second.buffer().into()),
-            "the buffer should be reused"
-        );
-    }
-
-    /// The reason the shared buffer is host-allocated rather than a view into
-    /// linear memory: growing WASM memory would detach the latter.
-    #[test]
-    fn shared_host_buffer_survives_linear_memory_growth() {
-        let batch = cross_shared_batch(|out| out.extend_from_slice(&[7u8; 128]));
-        let batch = as_bytes(batch);
+    fn crossed_batch_survives_linear_memory_growth() {
+        let batch = as_bytes(cross_flat_batch(|out| out.extend_from_slice(&[7u8; 128])));
 
         // Grow linear memory while the host still holds the batch.
         assert_ne!(
@@ -980,36 +929,41 @@ mod tests {
             "memory.grow should succeed"
         );
 
-        assert_eq!(batch.length(), 128, "the view was detached by the growth");
+        assert_eq!(batch.length(), 128, "the batch was detached by the growth");
         assert_eq!(batch.to_vec(), vec![7u8; 128]);
     }
 
-    /// A batch too large for the shared buffer gets its own, so an outlier
-    /// neither pins a big buffer nor is clobbered by the next batch.
+    /// The scratch is reused, so one oversized batch must not pin its peak for
+    /// the rest of the session.
     #[test]
-    fn oversized_batches_get_their_own_buffer() {
-        let big = SHARED_HOST_BUFFER_MAX_BYTES as usize + 1;
-        let oversized = cross_shared_batch(|out| out.extend_from_slice(&vec![9u8; big]));
-        let oversized = as_bytes(oversized);
-        let next = cross_shared_batch(|out| out.extend_from_slice(&[3u8; 32]));
-        let next = as_bytes(next);
-
+    fn crossing_scratch_capacity_stays_bounded() {
+        let big = MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES * 2;
+        let oversized = as_bytes(cross_flat_batch(|out| out.resize(big, 9)));
         assert_eq!(oversized.length() as usize, big);
+
+        // The next batch reveals what the scratch kept: it has to grow again.
+        let mut capacity_after = 0;
+        let next = as_bytes(cross_flat_batch(|out| {
+            capacity_after = out.capacity();
+            out.extend_from_slice(&[3u8; 32]);
+        }));
+        assert!(
+            capacity_after <= MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES,
+            "scratch kept {capacity_after} bytes"
+        );
+        assert_eq!(next.to_vec(), vec![3u8; 32]);
         assert_eq!(
             oversized.get_index(0),
             9,
             "the oversized batch was rewritten"
         );
-        assert!(!js_sys::Object::is(
-            &oversized.buffer().into(),
-            &next.buffer().into()
-        ));
     }
 
     /// The encoder is process-wide, so the borrow must end before any host
     /// callback runs. Two batches built back to back must stay independent.
     #[test]
     fn consecutive_batches_are_serialized_and_independent() {
+        MessageWireBatch::with_encoder(MessageWireBatch::reset);
         let first = MessageWireBatch::with_encoder(|encoder| {
             encoder.push(&inbound("FIRST", 16)).expect("packs");
             encoder.finish().expect("crosses")
