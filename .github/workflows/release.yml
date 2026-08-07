@@ -104,22 +104,34 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-    outputs:
-      # The exact commit this job verified. Publish checks that out instead of
-      # resolving the ref a second time, so nothing can move in between.
-      sha: ${{ steps.verified.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # On dispatch, the sha the event recorded rather than the ref: a tag
-          # force-updated between the event and this checkout would otherwise be
-          # built here while provenance still names the original commit. On the
-          # push path the event sha is the main commit, so the tag is the ref.
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || format('refs/tags/{0}', needs.release-please.outputs.tag_name) }}
+          # The commit the event recorded, never a ref. A ref can move between
+          # the event and either checkout, and npm records this sha as the
+          # package's source regardless of what the workspace holds — so
+          # resolving a tag here could publish one tree while attesting another.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
-      - id: verified
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      # Guards the assumption on the push path: release-please tags the commit
+      # it just merged, so a tag pointing elsewhere means this run would verify
+      # and publish something the release does not name.
+      - name: Confirm the release tag points at this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          target=$(jq -r '.object.sha' <<<"$ref")
+          if [ "$(jq -r '.object.type' <<<"$ref")" = tag ]; then
+            target=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$target" --jq '.object.sha')
+          fi
+          if [ "$target" != "$GITHUB_SHA" ]; then
+            echo "::error::$TAG points at $target, not $GITHUB_SHA"
+            exit 1
+          fi
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -180,7 +192,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.sha }}
+          # Same immutable commit verify checked out and vouched for.
+          ref: ${{ github.sha }}
           # Nothing here talks to the remote after checkout, and the steps below
           # run cargo, bun and third-party build scripts in a job holding OIDC
           # publish rights. Don't leave the token in .git/config for them.
