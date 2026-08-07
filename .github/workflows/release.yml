@@ -25,6 +25,13 @@ on:
   # while the event pointed at a branch would be attested to the wrong commit.
   # The ref picker only offers refs that exist, and `ref_type` below rejects
   # everything that is not a tag.
+  #
+  # The consequence, which is the price of the above: a dispatch runs the
+  # workflow file stored in the selected tag, so this only rescues tags created
+  # from this commit onwards. A tag older than this file has no dispatch trigger
+  # to select and cannot be recovered here — delete it along with its GitHub
+  # release and let the next release supersede it, since a tag that never
+  # reached npm has nothing depending on it.
   workflow_dispatch:
 
 permissions:
