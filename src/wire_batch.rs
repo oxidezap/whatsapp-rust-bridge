@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use wasm_bindgen::JsValue;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::types::events::Event;
-use whatsapp_rust::wacore_binary::jid::Jid;
+use whatsapp_rust::wacore_binary::jid::{Jid, push_jid_to_string};
 use whatsapp_rust::waproto;
 
 /// One packed run of same-kind events, coalesced by the dispatch loop in
@@ -38,6 +38,9 @@ pub(crate) const MESSAGE_WIRE_INFO_RECORD_WIDTH: usize = 10;
 /// Six u32 fields: messages, strings, message bytes, string bytes, record width,
 /// reserved. A multiple of 8 so the f64 record block that follows is aligned.
 const MESSAGE_WIRE_HEADER_BYTES: usize = 24;
+/// Payload capacity the reused encoder keeps between batches. Above it a batch
+/// of large media protobufs would pin its own peak for the rest of the session.
+const MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES: usize = 4 * crate::WASM_PAGE_BYTES;
 const INFO_FLAG_FROM_ME: u32 = 1 << 0;
 const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
@@ -46,28 +49,36 @@ const INFO_FLAG_OFFLINE: u32 = 1 << 3;
 /// Per-batch deduplicated string table shared by every packed wire batch.
 /// Repeated values (addresses, push names, ack classes) pay one host-side
 /// decode per batch instead of one FFI string crossing per event.
+///
+/// Dedup scans the entries already written instead of indexing them in a map:
+/// a batch holds at most `EVENT_BATCH_CAPACITY` messages, so the scan stays in
+/// the tens of length comparisons, and a map would cost one owned `String` per
+/// distinct value on a path that otherwise allocates nothing per message.
 #[derive(Default)]
 pub(crate) struct WireStringTable {
     /// Concatenated UTF-8 payloads of the table entries.
     data: Vec<u8>,
     /// K + 1 byte offsets delimiting the K entries (leading zero).
     offsets: Vec<u32>,
-    /// Build-time dedup index; never crosses the FFI.
-    index: HashMap<String, u32>,
+    /// Rendering buffer for values that have no `&str` form of their own,
+    /// reused so rendering one does not allocate.
+    scratch: String,
 }
 
 impl WireStringTable {
     fn intern(&mut self, value: &str) -> u32 {
-        if let Some(&index) = self.index.get(value) {
-            return index;
+        let value = value.as_bytes();
+        for (index, window) in self.offsets.windows(2).enumerate() {
+            if &self.data[window[0] as usize..window[1] as usize] == value {
+                return index as u32;
+            }
         }
         if self.offsets.is_empty() {
             self.offsets.push(0);
         }
         let index = (self.offsets.len() - 1) as u32;
-        self.data.extend_from_slice(value.as_bytes());
+        self.data.extend_from_slice(value);
         self.offsets.push(self.data.len() as u32);
-        self.index.insert(value.to_owned(), index);
         index
     }
 
@@ -80,24 +91,45 @@ impl WireStringTable {
         }
     }
 
+    /// Intern a JID in its canonical (non-AD) form, rendered into the reusable
+    /// scratch rather than into an owned `String` per call.
+    fn intern_jid(&mut self, jid: &Jid) -> u32 {
+        let mut scratch = std::mem::take(&mut self.scratch);
+        scratch.clear();
+        push_jid_to_string(&jid.user, jid.server, 0, 0, &mut scratch);
+        let index = self.intern(&scratch);
+        self.scratch = scratch;
+        index
+    }
+
+    #[inline]
+    fn intern_jid_optional(&mut self, jid: Option<&Jid>) -> f64 {
+        match jid {
+            Some(jid) => (self.intern_jid(jid) + 1) as f64,
+            None => 0.0,
+        }
+    }
+
     /// Number of interned entries. The offset vector carries a leading zero, so
     /// it holds one more element than there are entries.
     #[inline]
     fn len(&self) -> usize {
         self.offsets.len().saturating_sub(1)
     }
+
+    /// Drop the entries but keep every buffer, so the next batch interns into
+    /// allocations this one already paid for.
+    fn reset(&mut self) {
+        self.data.clear();
+        self.offsets.clear();
+    }
 }
 
-/// Assemble a flat batch and cross it as the bare `Uint8Array` every packed
-/// transport shares — whatever the record layout inside is.
+/// Lay a batch out in the process-wide scratch and hand the bytes to `cross`.
 ///
-/// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
-/// a `Reflect::set` crossing per batch, and one message produces three batches
-/// (its own, its receipt, its ack). The buffer IS the batch.
-///
-/// The scratch buffer is process-wide because its bytes are copied into the JS
-/// typed array before this returns, so no batch can observe another's contents.
-fn cross_flat_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
+/// The scratch is shared because `cross` finishes with the bytes before this
+/// returns, so no batch can observe another's contents.
+fn assemble_flat_batch<R>(write: impl FnOnce(&mut Vec<u8>), cross: impl FnOnce(&[u8]) -> R) -> R {
     thread_local! {
         static SCRATCH: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
     }
@@ -105,7 +137,55 @@ fn cross_flat_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
         let mut out = scratch.borrow_mut();
         out.clear();
         write(&mut out);
-        js_sys::Uint8Array::from(out.as_slice()).into()
+        cross(&out)
+    })
+}
+
+/// Cross a batch the host may keep, as the bare `Uint8Array` every packed
+/// transport shares: it gets its own `ArrayBuffer`.
+///
+/// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
+/// a `Reflect::set` crossing per batch, and one message produces three batches
+/// (its own, its receipt, its ack). The buffer IS the batch.
+fn cross_owned_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
+    assemble_flat_batch(write, |bytes| js_sys::Uint8Array::from(bytes).into())
+}
+
+/// Bytes the shared host buffer keeps between batches. Beyond it a batch gets
+/// its own allocation instead, so one outlier cannot pin a large buffer for the
+/// rest of the session.
+const SHARED_HOST_BUFFER_MAX_BYTES: u32 = crate::WASM_PAGE_BYTES as u32;
+
+/// Cross a batch through one reused host buffer, returned as a subarray of it.
+///
+/// Sound only for batch kinds whose host decoder materialises every field
+/// before returning: receipts and server acks do, so nothing the caller holds
+/// still points here when the next batch overwrites it. The message batch hands
+/// out payload views instead and keeps [`cross_owned_batch`].
+///
+/// The buffer is allocated by the host, not carved out of linear memory, so
+/// growing WASM memory cannot detach it.
+fn cross_shared_batch(write: impl FnOnce(&mut Vec<u8>)) -> JsValue {
+    thread_local! {
+        static HOST_BUFFER: RefCell<Option<js_sys::Uint8Array>> = const { RefCell::new(None) };
+    }
+    assemble_flat_batch(write, |bytes| {
+        let len = bytes.len() as u32;
+        if len > SHARED_HOST_BUFFER_MAX_BYTES {
+            return js_sys::Uint8Array::from(bytes).into();
+        }
+        HOST_BUFFER.with(|cached| {
+            let mut cached = cached.borrow_mut();
+            let buffer = match cached.as_ref() {
+                Some(buffer) if buffer.length() >= len => buffer,
+                _ => cached.insert(js_sys::Uint8Array::new_with_length(
+                    SHARED_HOST_BUFFER_MAX_BYTES,
+                )),
+            };
+            let batch = buffer.subarray(0, len);
+            batch.copy_from(bytes);
+            batch.into()
+        })
     })
 }
 
@@ -193,22 +273,12 @@ impl MessageWireBatch {
             flags |= INFO_FLAG_OFFLINE;
         }
 
-        let chat = self.strings.intern(&source.chat.to_non_ad_string()) as f64;
-        let sender = self.strings.intern(&source.sender.to_non_ad_string()) as f64;
-        let sender_alt = self.strings.intern_optional(
-            source
-                .sender_alt
-                .as_ref()
-                .map(Jid::to_non_ad_string)
-                .as_deref(),
-        );
-        let recipient_alt = self.strings.intern_optional(
-            source
-                .recipient_alt
-                .as_ref()
-                .map(Jid::to_non_ad_string)
-                .as_deref(),
-        );
+        let chat = self.strings.intern_jid(&source.chat) as f64;
+        let sender = self.strings.intern_jid(&source.sender) as f64;
+        let sender_alt = self.strings.intern_jid_optional(source.sender_alt.as_ref());
+        let recipient_alt = self
+            .strings
+            .intern_jid_optional(source.recipient_alt.as_ref());
         let id = self.strings.intern(&info.id) as f64;
         let push_name = self.strings.intern(&info.push_name) as f64;
         let unavailable_request_id = self
@@ -233,12 +303,45 @@ impl MessageWireBatch {
         Ok(())
     }
 
+    /// Assemble the batch for the host and reset the per-batch state.
+    ///
+    /// Every buffer keeps its capacity: the encoder outlives the batch (see
+    /// [`MessageWireBatch::with_encoder`]), so a steady stream of messages
+    /// reuses the allocations the first batch paid for. A batch of unusually
+    /// large payloads would otherwise pin its peak for the whole session, so
+    /// the payload buffer is the one that gets trimmed back.
     #[cfg_attr(
         feature = "memory-profiling",
         tracing::instrument(name = "bridge.event.message_wire.ffi", level = "trace", skip_all)
     )]
-    pub(crate) fn into_js(self) -> Result<JsValue, JsValue> {
-        Ok(cross_flat_batch(|out| self.write_flat(out)))
+    pub(crate) fn finish(&mut self) -> Result<JsValue, JsValue> {
+        let batch = cross_owned_batch(|out| self.write_flat(out));
+        self.reset();
+        Ok(batch)
+    }
+
+    /// Drop the batch contents while keeping the buffers.
+    pub(crate) fn reset(&mut self) {
+        self.message_data.clear();
+        if self.message_data.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
+            self.message_data
+                .shrink_to(MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES);
+        }
+        self.message_offsets.clear();
+        self.info_records.clear();
+        self.strings.reset();
+    }
+
+    /// Run `f` with the process-wide message encoder, so the buffers a batch
+    /// needs are allocated once rather than once per dispatch. Sound because
+    /// the batch bytes are copied into the JS typed array before the borrow
+    /// ends: no host callback ever observes the encoder.
+    pub(crate) fn with_encoder<R>(f: impl FnOnce(&mut Self) -> R) -> R {
+        thread_local! {
+            static MESSAGE_ENCODER: RefCell<MessageWireBatch> =
+                RefCell::new(MessageWireBatch::default());
+        }
+        MESSAGE_ENCODER.with(|encoder| f(&mut encoder.borrow_mut()))
     }
 
     /// Serialise the batch into one contiguous buffer.
@@ -423,7 +526,7 @@ impl FlatBatchWriter {
 
     fn finish(&mut self) -> Result<JsValue, JsValue> {
         self.definitions.extend_from_slice(&self.inline);
-        let batch = cross_flat_batch(|out| {
+        let batch = cross_shared_batch(|out| {
             out.reserve(
                 PACKED_HEADER_BYTES
                     + self.new_strings.len()
@@ -739,5 +842,191 @@ mod tests {
                 .expect("table bytes are UTF-8"),
             "120363@g.us5511@s.whatsapp.netWIRE-1Alice"
         );
+    }
+
+    /// Builds a one-message batch whose payload is `payload_len` bytes of text.
+    fn inbound(id: &str, payload_len: usize) -> InboundMessage {
+        let mut info = MessageInfo::default();
+        info.source.chat = "5511999@s.whatsapp.net".parse().expect("valid chat jid");
+        info.source.sender = "5511999:9@s.whatsapp.net"
+            .parse()
+            .expect("valid sender jid");
+        info.id = id.into();
+        info.push_name = "Peer".into();
+        let message = Message {
+            conversation: Some("m".repeat(payload_len)),
+            ..Default::default()
+        };
+        InboundMessage::builder()
+            .message(Arc::new(message))
+            .info(Arc::new(info))
+            .build()
+    }
+
+    /// The crossed batch, as the host sees it.
+    fn as_bytes(value: JsValue) -> js_sys::Uint8Array {
+        use wasm_bindgen::JsCast;
+        value.unchecked_into::<js_sys::Uint8Array>()
+    }
+
+    fn flat_of(batch: &MessageWireBatch) -> Vec<u8> {
+        let mut out = Vec::new();
+        batch.write_flat(&mut out);
+        out
+    }
+
+    /// Happy path: a reused encoder is byte-identical to a fresh one, below the
+    /// retained-payload threshold, at it, and above it.
+    #[test]
+    fn reused_encoder_is_byte_identical_to_a_fresh_one() {
+        let sizes = [
+            32,
+            MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES,
+            MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES * 2,
+        ];
+        for (round, size) in sizes.iter().copied().enumerate() {
+            let message = inbound(&format!("SIZE-{round}"), size);
+
+            let mut fresh = MessageWireBatch::default();
+            fresh.push(&message).expect("fresh encoder packs");
+            let expected = flat_of(&fresh);
+
+            let reused = MessageWireBatch::with_encoder(|encoder| {
+                encoder.push(&message).expect("reused encoder packs");
+                let bytes = flat_of(encoder);
+                encoder.reset();
+                bytes
+            });
+            assert_eq!(reused, expected, "payload of {size} bytes");
+        }
+    }
+
+    /// The encoder outlives the batch, so a batch abandoned before `finish`
+    /// must not resurface in the next one.
+    #[test]
+    fn reset_drops_an_abandoned_batch() {
+        let first = inbound("ABANDONED", 16);
+        let second = inbound("KEPT", 16);
+        MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&first).expect("packs");
+            encoder.reset();
+            encoder.push(&second).expect("packs");
+            assert_eq!(encoder.len(), 1);
+            let bytes = flat_of(encoder);
+            encoder.reset();
+            let text = String::from_utf8_lossy(&bytes).into_owned();
+            assert!(text.contains("KEPT"));
+            assert!(!text.contains("ABANDONED"));
+        });
+    }
+
+    /// The scan-based dedup must not confuse a value with a longer one that
+    /// starts the same way.
+    #[test]
+    fn string_table_distinguishes_prefixes() {
+        let mut table = WireStringTable::default();
+        let a = table.intern("a");
+        let ab = table.intern("ab");
+        let a_again = table.intern("a");
+        assert_eq!(a, 0);
+        assert_eq!(ab, 1);
+        assert_eq!(a_again, 0, "an exact repeat still dedups");
+        assert_eq!(table.len(), 2);
+        assert_eq!(table.data, b"aab");
+    }
+
+    /// The shared host buffer must not reach a batch the host may keep: two
+    /// owned crossings stay independent.
+    #[test]
+    fn owned_batches_do_not_alias() {
+        let first = cross_owned_batch(|out| out.extend_from_slice(&[1u8; 64]));
+        let first = as_bytes(first);
+        let _second = cross_owned_batch(|out| out.extend_from_slice(&[2u8; 64]));
+        assert_eq!(
+            first.to_vec(),
+            vec![1u8; 64],
+            "the first batch was rewritten"
+        );
+    }
+
+    /// The invariant the receipt and server-ack decoders rely on: consecutive
+    /// shared crossings reuse one host buffer, and each sees its own bytes.
+    #[test]
+    fn shared_batches_reuse_one_host_buffer() {
+        let first = cross_shared_batch(|out| out.extend_from_slice(&[1u8; 64]));
+        let first = as_bytes(first);
+        let second = cross_shared_batch(|out| out.extend_from_slice(&[2u8; 48]));
+        let second = as_bytes(second);
+
+        assert_eq!(second.to_vec(), vec![2u8; 48]);
+        assert_eq!(second.length(), 48, "the view is trimmed to the batch");
+        assert!(
+            js_sys::Object::is(&first.buffer().into(), &second.buffer().into()),
+            "the buffer should be reused"
+        );
+    }
+
+    /// The reason the shared buffer is host-allocated rather than a view into
+    /// linear memory: growing WASM memory would detach the latter.
+    #[test]
+    fn shared_host_buffer_survives_linear_memory_growth() {
+        let batch = cross_shared_batch(|out| out.extend_from_slice(&[7u8; 128]));
+        let batch = as_bytes(batch);
+
+        // Grow linear memory while the host still holds the batch.
+        assert_ne!(
+            core::arch::wasm32::memory_grow::<0>(16),
+            usize::MAX,
+            "memory.grow should succeed"
+        );
+
+        assert_eq!(batch.length(), 128, "the view was detached by the growth");
+        assert_eq!(batch.to_vec(), vec![7u8; 128]);
+    }
+
+    /// A batch too large for the shared buffer gets its own, so an outlier
+    /// neither pins a big buffer nor is clobbered by the next batch.
+    #[test]
+    fn oversized_batches_get_their_own_buffer() {
+        let big = SHARED_HOST_BUFFER_MAX_BYTES as usize + 1;
+        let oversized = cross_shared_batch(|out| out.extend_from_slice(&vec![9u8; big]));
+        let oversized = as_bytes(oversized);
+        let next = cross_shared_batch(|out| out.extend_from_slice(&[3u8; 32]));
+        let next = as_bytes(next);
+
+        assert_eq!(oversized.length() as usize, big);
+        assert_eq!(
+            oversized.get_index(0),
+            9,
+            "the oversized batch was rewritten"
+        );
+        assert!(!js_sys::Object::is(
+            &oversized.buffer().into(),
+            &next.buffer().into()
+        ));
+    }
+
+    /// The encoder is process-wide, so the borrow must end before any host
+    /// callback runs. Two batches built back to back must stay independent.
+    #[test]
+    fn consecutive_batches_are_serialized_and_independent() {
+        let first = MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&inbound("FIRST", 16)).expect("packs");
+            encoder.finish().expect("crosses")
+        });
+        let first = as_bytes(first);
+        let first_bytes = first.to_vec();
+
+        let second = MessageWireBatch::with_encoder(|encoder| {
+            assert!(encoder.is_empty(), "finish left state behind");
+            encoder.push(&inbound("SECOND", 16)).expect("packs");
+            encoder.finish().expect("crosses")
+        });
+        let second = as_bytes(second);
+
+        assert_eq!(first.to_vec(), first_bytes, "the first batch was rewritten");
+        let second_text = String::from_utf8_lossy(&second.to_vec()).into_owned();
+        assert!(second_text.contains("SECOND"));
+        assert!(!second_text.contains("FIRST"));
     }
 }

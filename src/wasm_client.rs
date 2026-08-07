@@ -1006,7 +1006,9 @@ async fn dispatch_message_events(
     }
 
     let mut current_event = Some(first_event);
-    let mut wire_batch = MessageWireBatch::default();
+    // The encoder is process-wide and outlives this call, so a run that was
+    // cancelled mid-batch could otherwise leak its messages into this one.
+    MessageWireBatch::with_encoder(MessageWireBatch::reset);
 
     loop {
         let event = current_event
@@ -1017,15 +1019,18 @@ async fn dispatch_message_events(
         };
 
         for (index, inbound) in batch.iter().enumerate() {
-            if let Err(e) = wire_batch.push(inbound) {
-                log::warn!("Message wire serialization failed: {e:?}");
-            }
-            if wire_batch.len() == EVENT_BATCH_CAPACITY {
+            let full = MessageWireBatch::with_encoder(|encoder| {
+                if let Err(e) = encoder.push(inbound) {
+                    log::warn!("Message wire serialization failed: {e:?}");
+                }
+                encoder.len() == EVENT_BATCH_CAPACITY
+            });
+            if full {
                 let more_in_core_batch = index + 1 < batch.len();
-                let full_batch = std::mem::take(&mut wire_batch);
+                let encoded = MessageWireBatch::with_encoder(MessageWireBatch::finish);
                 dispatch_message_wire_batch(
                     callbacks,
-                    full_batch,
+                    encoded,
                     budget,
                     more_in_core_batch || !event_rx.is_empty(),
                 )
@@ -1048,18 +1053,20 @@ async fn dispatch_message_events(
     }
 
     let work_remains = pending_event.is_some() || !event_rx.is_empty();
-    if !wire_batch.is_empty() {
-        dispatch_message_wire_batch(callbacks, wire_batch, budget, work_remains).await;
+    let trailing =
+        MessageWireBatch::with_encoder(|encoder| (!encoder.is_empty()).then(|| encoder.finish()));
+    if let Some(encoded) = trailing {
+        dispatch_message_wire_batch(callbacks, encoded, budget, work_remains).await;
     }
 }
 
 async fn dispatch_message_wire_batch(
     callbacks: &JsEventCallbacks,
-    batch: MessageWireBatch,
+    batch: Result<JsValue, JsValue>,
     budget: &mut EventDispatchBudget,
     work_remains: bool,
 ) {
-    match batch.into_js() {
+    match batch {
         Ok(batch) => {
             if let Err(e) = callbacks.call_message_batch(&batch) {
                 log::warn!("JS message batch callback threw: {e:?}");
