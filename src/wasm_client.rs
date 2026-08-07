@@ -21,7 +21,9 @@ use crate::js_time;
 use crate::js_transport::JsTransportFactory;
 use crate::runtime::WasmRuntime;
 use crate::wire_batch::{
-    BatchBuffer, MessageWireBatch, PackedEventBatch, ReceiptWireBatch, ServerAckWireBatch,
+    BatchBuffer, CrossedBatch, EVENT_SEGMENT_KIND_MESSAGE, EVENT_SEGMENT_KIND_RECEIPT,
+    EVENT_SEGMENT_KIND_SERVER_ACK, EventWireEnvelope, MessageWireBatch, PackedEventBatch,
+    ReceiptWireBatch, ServerAckWireBatch,
 };
 
 thread_local! {
@@ -298,19 +300,40 @@ export interface WhatsAppEventCallbacks {
   onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;
   /** Borrowing form of `onServerAckBatch`, under the contract above. */
   onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;
+  /**
+   * Optional coalescing path. A live message produces up to three batches (its
+   * own, its receipt, its ack); with this method the ones the dispatch loop
+   * already holds cross together as one envelope of tagged segments instead of
+   * one crossing each. Split it with `decodeEventWireEnvelope` and hand each
+   * segment to the codec its kind names, in order. Nothing is ever held back
+   * waiting for a companion event, so a batch with no company still arrives
+   * through its own callback above, in the buffer that callback negotiated.
+   *
+   * There is no borrowing form, for the reason `onMessageBatch` has none: an
+   * envelope may carry a message segment, whose decode returns views over the
+   * buffer.
+   */
+  onEventBatch?(batch: EventWireEnvelope): void;
 }
 
 /**
  * A packed batch is one flat buffer: header, records and string bytes. Decode it
  * with the matching codec (`decodeMessageWireBatch`, `decodeReceiptWireBatch`,
  * `decodeServerAckWireBatch`), which reads views over the buffer instead of
- * copying. The bare typed array crosses rather than a wrapper object: one
- * message produces three batches, so an object per batch is three constructions
+ * copying. The bare typed array crosses rather than a wrapper object: a message
+ * produces up to three batches, so an object per batch is three constructions
  * and three property writes of pure overhead.
  */
 export type MessageWireBatch = Uint8Array;
 export type ReceiptWireBatch = Uint8Array;
 export type ServerAckWireBatch = Uint8Array;
+
+/**
+ * Several packed batches in one buffer, each tagged with the kind that names
+ * its codec. Split it with `decodeEventWireEnvelope`; every segment is byte for
+ * byte the batch its own callback would have received.
+ */
+export type EventWireEnvelope = Uint8Array;
 
 export type HistorySyncWireBatch = {
   /** Concatenated Conversation protobuf payloads for this bounded batch. */
@@ -537,6 +560,7 @@ const RECEIPT_BATCH_CALLBACK_METHOD: &str = "onReceiptBatch";
 const SERVER_ACK_BATCH_CALLBACK_METHOD: &str = "onServerAckBatch";
 const RECEIPT_BATCH_BORROWED_CALLBACK_METHOD: &str = "onReceiptBatchBorrowed";
 const SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD: &str = "onServerAckBatchBorrowed";
+const EVENT_BATCH_CALLBACK_METHOD: &str = "onEventBatch";
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
 
 #[inline]
@@ -661,6 +685,7 @@ struct JsEventCallbacks {
     on_history_sync_batch: Option<js_sys::Function>,
     receipt_channel: PackedBatchChannelState,
     server_ack_channel: PackedBatchChannelState,
+    on_event_batch: Option<js_sys::Function>,
     /// Bitset of host-requested numeric sync types; `None` preserves the legacy
     /// behavior of materializing conversations for every type.
     history_sync_conversation_types: Option<u128>,
@@ -676,6 +701,7 @@ impl JsEventCallbacks {
                 on_history_sync_batch: None,
                 receipt_channel: PackedBatchChannelState::default(),
                 server_ack_channel: PackedBatchChannelState::default(),
+                on_event_batch: None,
                 history_sync_conversation_types: None,
             });
         }
@@ -705,6 +731,7 @@ impl JsEventCallbacks {
             copying: Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?,
             borrowing: Self::optional_method(&value, SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD)?,
         };
+        let on_event_batch = Self::optional_method(&value, EVENT_BATCH_CALLBACK_METHOD)?;
         let history_sync_conversation_types =
             Self::optional_history_sync_conversation_types(&value)?;
         // Surface the contract gap at registration time: dispatch drops these
@@ -726,6 +753,7 @@ impl JsEventCallbacks {
             on_history_sync_batch,
             receipt_channel,
             server_ack_channel,
+            on_event_batch,
             history_sync_conversation_types,
         })
     }
@@ -816,6 +844,38 @@ impl JsEventCallbacks {
         self.on_message_batch.is_some()
     }
 
+    fn call_event_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
+        debug_assert!(self.on_event_batch.is_some());
+        self.on_event_batch
+            .as_ref()
+            .expect("event-envelope callback checked before dispatch")
+            .call1(&self.receiver, batch)
+    }
+
+    /// Whether this event's batch may be buffered into an envelope: only the
+    /// kinds the host declared a packed callback for, since an envelope segment
+    /// is the same buffer that callback would have received.
+    fn buffers_into_envelope(&self, event: &Event) -> bool {
+        match event {
+            Event::Messages(_) => self.supports_message_wire_batching(),
+            Event::Receipt(_) => self.receipt_channel.is_registered(),
+            Event::ServerAck(_) => self.server_ack_channel.is_registered(),
+            _ => false,
+        }
+    }
+
+    /// The delivery a lone segment falls back to, which is the one it would
+    /// have used had the run never been buffered.
+    fn channel_of_kind(&self, kind: u32) -> Option<(&'static str, &PackedBatchChannelState)> {
+        match kind {
+            EVENT_SEGMENT_KIND_RECEIPT => Some((ReceiptWireBatch::KIND, &self.receipt_channel)),
+            EVENT_SEGMENT_KIND_SERVER_ACK => {
+                Some((ServerAckWireBatch::KIND, &self.server_ack_channel))
+            }
+            _ => None,
+        }
+    }
+
     fn wants_history_sync_conversations(&self, sync_type: i32) -> bool {
         let Some(types) = self.history_sync_conversation_types else {
             return true;
@@ -858,35 +918,220 @@ impl EventDispatchBudget {
     }
 }
 
+/// The wire encoders are process-wide and outlive the batch they build, so
+/// every suspension point in the dispatch path has to find them empty: a
+/// half-filled encoder would leak its events into whatever batch is built after
+/// the resumption, silently and without an error.
+fn debug_assert_encoders_empty() {
+    debug_assert!(MessageWireBatch::with_encoder(|encoder| encoder.is_empty()));
+    debug_assert!(ReceiptWireBatch::with_encoder(|encoder| encoder.is_empty()));
+    debug_assert!(ServerAckWireBatch::with_encoder(
+        |encoder| encoder.is_empty()
+    ));
+}
+
+/// Yield a macrotask so I/O callbacks (WebSocket, storage) can run.
+async fn yield_to_io() {
+    debug_assert_encoders_empty();
+    crate::runtime::set_timeout_0().await;
+}
+
+/// Where a finished batch goes.
+///
+/// Without `onEventBatch` each batch crosses on its own, exactly as before.
+/// With it, the batches an adjacent run of events produces are buffered and
+/// cross together: a live message, its receipt and its ack cost one crossing
+/// and one callback instead of three. Only what the dispatch loop already
+/// pulled out of the channel is ever buffered, so nothing waits for anything.
+struct BatchDelivery {
+    envelope: Option<EventWireEnvelope>,
+}
+
+impl BatchDelivery {
+    fn new(callbacks: &JsEventCallbacks) -> Self {
+        Self {
+            envelope: callbacks
+                .on_event_batch
+                .is_some()
+                .then(EventWireEnvelope::default),
+        }
+    }
+
+    /// Whether batches are buffered rather than delivered as they are built.
+    fn is_open(&self) -> bool {
+        self.envelope.as_ref().is_some_and(|e| !e.is_empty())
+    }
+
+    /// Events the next segment may carry. A segment is indivisible once built,
+    /// so the split has to happen while the batch is still being filled: that
+    /// is what keeps a whole envelope inside the boundary's event ceiling
+    /// rather than one segment inside it.
+    fn segment_capacity(&self) -> usize {
+        match &self.envelope {
+            Some(envelope) => EVENT_BATCH_CAPACITY
+                .saturating_sub(envelope.records())
+                .max(1),
+            None => EVENT_BATCH_CAPACITY,
+        }
+    }
+
+    /// Hand over the message encoder's current batch.
+    async fn emit_message_batch(
+        &mut self,
+        callbacks: &JsEventCallbacks,
+        budget: &mut EventDispatchBudget,
+        work_remains: bool,
+    ) {
+        let Some(envelope) = self.envelope.as_mut() else {
+            let encoded = MessageWireBatch::with_encoder(MessageWireBatch::finish);
+            dispatch_message_wire_batch(callbacks, encoded, budget, work_remains).await;
+            return;
+        };
+        MessageWireBatch::with_encoder(|encoder| {
+            let records = encoder.len();
+            envelope.push_segment(EVENT_SEGMENT_KIND_MESSAGE, records, |out| {
+                encoder.write_and_reset(out)
+            });
+        });
+        self.flush_if_full(callbacks, budget, work_remains).await;
+    }
+
+    /// Hand over a packed encoder's current batch.
+    async fn emit_packed_batch<B: PackedBatchChannel>(
+        &mut self,
+        callbacks: &JsEventCallbacks,
+        budget: &mut EventDispatchBudget,
+        work_remains: bool,
+    ) {
+        let Some(envelope) = self.envelope.as_mut() else {
+            let channel = B::channel(callbacks);
+            match B::with_encoder(|encoder| encoder.finish(channel.buffer())) {
+                Ok(batch) => {
+                    if let Err(e) = channel.call(&callbacks.receiver, B::KIND, &batch) {
+                        log::warn!("JS {} batch callback threw: {e:?}", B::KIND);
+                    }
+                }
+                Err(e) => log::warn!("{} wire batch materialization failed: {e:?}", B::KIND),
+            }
+            if budget.record(work_remains) {
+                yield_to_io().await;
+            }
+            return;
+        };
+        B::with_encoder(|encoder| {
+            let records = encoder.len();
+            envelope.push_segment(B::SEGMENT_KIND, records, |out| encoder.write_and_reset(out));
+        });
+        self.flush_if_full(callbacks, budget, work_remains).await;
+    }
+
+    /// Cross a run that has reached the ceiling, so the next segment starts
+    /// from a full budget again.
+    async fn flush_if_full(
+        &mut self,
+        callbacks: &JsEventCallbacks,
+        budget: &mut EventDispatchBudget,
+        work_remains: bool,
+    ) {
+        if self
+            .envelope
+            .as_ref()
+            .is_some_and(|e| e.records() >= EVENT_BATCH_CAPACITY)
+        {
+            self.flush(callbacks, budget, work_remains).await;
+        }
+    }
+
+    /// Cross whatever is buffered. Called before every suspension point and
+    /// before any other callback, so buffering never reorders or delays a
+    /// batch past something the host would otherwise have seen after it.
+    ///
+    /// A lone segment crosses through the callback and the buffer its own kind
+    /// negotiated, so a run with nothing to coalesce is delivered exactly as it
+    /// would have been without the envelope.
+    async fn flush(
+        &mut self,
+        callbacks: &JsEventCallbacks,
+        budget: &mut EventDispatchBudget,
+        work_remains: bool,
+    ) {
+        let Some(envelope) = self.envelope.as_mut() else {
+            return;
+        };
+        if envelope.is_empty() {
+            return;
+        }
+        let lone = envelope
+            .lone_segment_kind()
+            .map(|kind| (kind, callbacks.channel_of_kind(kind)));
+        let buffer = match lone {
+            Some((_, Some((_, channel)))) => channel.buffer(),
+            // A lone message segment, or an envelope: neither has a borrowing
+            // form, because a message decode returns views over the buffer.
+            _ => BatchBuffer::Owned,
+        };
+        let result = match envelope.finish(buffer) {
+            CrossedBatch::Single { kind, batch } => match callbacks.channel_of_kind(kind) {
+                Some((name, channel)) => channel.call(&callbacks.receiver, name, &batch),
+                None => callbacks.call_message_batch(&batch),
+            },
+            CrossedBatch::Envelope(batch) => callbacks.call_event_batch(&batch),
+        };
+        if let Err(e) = result {
+            log::warn!("JS batch callback threw: {e:?}");
+        }
+        if budget.record(work_remains) {
+            yield_to_io().await;
+        }
+    }
+}
+
+/// Single consumer loop — guarantees event ordering.
+/// Cooperatively yields only while a burst still has queued work.
+async fn run_event_consumer(
+    callbacks: &JsEventCallbacks,
+    event_rx: async_channel::Receiver<Arc<Event>>,
+) {
+    let mut budget = EventDispatchBudget::default();
+    let mut pending_event = None;
+    let mut delivery = BatchDelivery::new(callbacks);
+    loop {
+        let event = match pending_event.take() {
+            Some(event) => event,
+            None => {
+                // Nothing is left to coalesce: the dispatchers hand back their
+                // cross-kind lookahead in `pending_event`, so `None` here means
+                // their last `try_recv` found the channel empty. Cross before
+                // parking rather than holding a run across an idle wait.
+                delivery.flush(callbacks, &mut budget, false).await;
+                debug_assert_encoders_empty();
+                match event_rx.recv().await {
+                    Ok(event) => {
+                        record_history_event_dequeued(&event);
+                        event
+                    }
+                    Err(_) => break,
+                }
+            }
+        };
+        dispatch_event_to_js(
+            callbacks,
+            event,
+            &event_rx,
+            &mut pending_event,
+            &mut budget,
+            &mut delivery,
+        )
+        .await;
+    }
+}
+
 impl JsEventHandler {
     fn new(callbacks: JsEventCallbacks) -> Self {
         let (event_tx, event_rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
 
-        // Single consumer loop — guarantees event ordering.
-        // Cooperatively yields only while a burst still has queued work.
         wasm_bindgen_futures::spawn_local(async move {
-            let mut budget = EventDispatchBudget::default();
-            let mut pending_event = None;
-            loop {
-                let event = match pending_event.take() {
-                    Some(event) => event,
-                    None => match event_rx.recv().await {
-                        Ok(event) => {
-                            record_history_event_dequeued(&event);
-                            event
-                        }
-                        Err(_) => break,
-                    },
-                };
-                dispatch_event_to_js(
-                    &callbacks,
-                    event,
-                    &event_rx,
-                    &mut pending_event,
-                    &mut budget,
-                )
-                .await;
-            }
+            run_event_consumer(&callbacks, event_rx).await;
         });
 
         Self { event_tx }
@@ -913,7 +1158,17 @@ async fn dispatch_event_to_js(
     event_rx: &async_channel::Receiver<Arc<Event>>,
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
+    delivery: &mut BatchDelivery,
 ) {
+    // Anything that is not buffered into the open run has to see it delivered
+    // first: the host observes batches in the order the events arrived, and a
+    // buffered run must never trail a callback that came after it.
+    if !callbacks.buffers_into_envelope(event.as_ref()) {
+        delivery
+            .flush(callbacks, budget, !event_rx.is_empty())
+            .await;
+    }
+
     // HistorySync is split into bounded batches so BOTH peaks are O(batch)
     // instead of O(chunk): the WASM decode peak (decoded protos) and the JS
     // heap peak (each batch's object tree dies before the next is built).
@@ -938,7 +1193,7 @@ async fn dispatch_event_to_js(
         // window between chunks instead of one macrotask per tiny wire batch.
         drop(event);
         crate::memory_profile::record_history_event_completed(compressed_bytes);
-        crate::runtime::set_timeout_0().await;
+        yield_to_io().await;
         return;
     }
 
@@ -949,7 +1204,8 @@ async fn dispatch_event_to_js(
         // the camel serializer, keeping that Serialize graph alive in the
         // binary for every host.
         if callbacks.supports_message_wire_batching() {
-            dispatch_message_events(callbacks, event, event_rx, pending_event, budget).await;
+            dispatch_message_events(callbacks, event, event_rx, pending_event, budget, delivery)
+                .await;
         } else {
             log::error!("Messages dropped: the event callbacks must provide onMessageBatch");
         }
@@ -966,6 +1222,7 @@ async fn dispatch_event_to_js(
             event_rx,
             pending_event,
             budget,
+            delivery,
         )
         .await;
         return;
@@ -977,6 +1234,7 @@ async fn dispatch_event_to_js(
             event_rx,
             pending_event,
             budget,
+            delivery,
         )
         .await;
         return;
@@ -1019,6 +1277,7 @@ async fn dispatch_packed_events<B: PackedBatchChannel>(
     event_rx: &async_channel::Receiver<Arc<Event>>,
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
+    delivery: &mut BatchDelivery,
 ) {
     let mut run = vec![first_event];
     while let Ok(next) = event_rx.try_recv() {
@@ -1031,36 +1290,26 @@ async fn dispatch_packed_events<B: PackedBatchChannel>(
         }
     }
 
-    let channel = B::channel(callbacks);
     let total = run.len();
     let mut start = 0;
     while start < total {
-        let end = (start + EVENT_BATCH_CAPACITY).min(total);
-        // Encoding borrows the shared encoder; the callback runs after the
+        let end = (start + delivery.segment_capacity()).min(total);
+        // Encoding borrows the shared encoder; delivery happens after the
         // borrow ends so a re-entrant host cannot observe a half-built batch.
-        let encoded = B::with_encoder(|encoder| {
+        B::with_encoder(|encoder| {
             encoder.begin();
             for event in &run[start..end] {
                 if let Err(e) = encoder.push(event) {
                     log::warn!("{} wire serialization failed: {e:?}", B::KIND);
                 }
             }
-            encoder.finish(channel.buffer())
         });
         start = end;
 
         let work_remains = start < total || pending_event.is_some() || !event_rx.is_empty();
-        match encoded {
-            Ok(batch) => {
-                if let Err(e) = channel.call(&callbacks.receiver, B::KIND, &batch) {
-                    log::warn!("JS {} batch callback threw: {e:?}", B::KIND);
-                }
-            }
-            Err(e) => log::warn!("{} wire batch materialization failed: {e:?}", B::KIND),
-        }
-        if budget.record(work_remains) {
-            crate::runtime::set_timeout_0().await;
-        }
+        delivery
+            .emit_packed_batch::<B>(callbacks, budget, work_remains)
+            .await;
     }
 }
 
@@ -1075,6 +1324,7 @@ async fn dispatch_message_events(
     event_rx: &async_channel::Receiver<Arc<Event>>,
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
+    delivery: &mut BatchDelivery,
 ) {
     // A live message normally reaches this consumer as a singleton before the
     // next WebSocket callback has run, so a same-instant `try_recv` cannot see
@@ -1087,8 +1337,11 @@ async fn dispatch_message_events(
         first_event.as_ref(),
         Event::Messages(batch) if batch.len() == 1
     );
-    if MESSAGE_SINGLETON_COLLECT_TURN && is_singleton && event_rx.is_empty() {
-        crate::runtime::set_timeout_0().await;
+    // An open run is undelivered work, so the singleton's premise (nothing else
+    // to hand over) does not hold and the extra turn would only delay it.
+    if MESSAGE_SINGLETON_COLLECT_TURN && is_singleton && event_rx.is_empty() && !delivery.is_open()
+    {
+        yield_to_io().await;
     }
 
     let mut current_event = Some(first_event);
@@ -1105,22 +1358,22 @@ async fn dispatch_message_events(
         };
 
         for (index, inbound) in batch.iter().enumerate() {
+            let capacity = delivery.segment_capacity();
             let full = MessageWireBatch::with_encoder(|encoder| {
                 if let Err(e) = encoder.push(inbound) {
                     log::warn!("Message wire serialization failed: {e:?}");
                 }
-                encoder.len() == EVENT_BATCH_CAPACITY
+                encoder.len() >= capacity
             });
             if full {
                 let more_in_core_batch = index + 1 < batch.len();
-                let encoded = MessageWireBatch::with_encoder(MessageWireBatch::finish);
-                dispatch_message_wire_batch(
-                    callbacks,
-                    encoded,
-                    budget,
-                    more_in_core_batch || !event_rx.is_empty(),
-                )
-                .await;
+                delivery
+                    .emit_message_batch(
+                        callbacks,
+                        budget,
+                        more_in_core_batch || !event_rx.is_empty(),
+                    )
+                    .await;
             }
         }
 
@@ -1139,10 +1392,10 @@ async fn dispatch_message_events(
     }
 
     let work_remains = pending_event.is_some() || !event_rx.is_empty();
-    let trailing =
-        MessageWireBatch::with_encoder(|encoder| (!encoder.is_empty()).then(|| encoder.finish()));
-    if let Some(encoded) = trailing {
-        dispatch_message_wire_batch(callbacks, encoded, budget, work_remains).await;
+    if MessageWireBatch::with_encoder(|encoder| !encoder.is_empty()) {
+        delivery
+            .emit_message_batch(callbacks, budget, work_remains)
+            .await;
     }
 }
 
@@ -1161,7 +1414,7 @@ async fn dispatch_message_wire_batch(
         Err(e) => log::warn!("Message wire batch materialization failed: {e:?}"),
     }
     if budget.record(work_remains) {
-        crate::runtime::set_timeout_0().await;
+        yield_to_io().await;
     }
 }
 
@@ -1178,8 +1431,7 @@ async fn dispatch_js_value(
         log::warn!("JS event callback threw: {:?}", e);
     }
     if budget.record(work_remains) {
-        // Macrotask yield — lets I/O callbacks (WebSocket, storage) run
-        crate::runtime::set_timeout_0().await;
+        yield_to_io().await;
     }
 }
 
@@ -5943,5 +6195,375 @@ mod packed_batch_channel_tests {
 
         deliver(&acks, "ACK-B");
         assert_eq!(held.to_vec(), bytes, "the retained batch was rewritten");
+    }
+}
+
+/// Ordering, negotiation and coalescing behavior of the consumer loop, driven
+/// end to end: synthetic events in, recorded host callbacks out.
+#[cfg(test)]
+mod event_delivery_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen::closure::Closure;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::types::events::{
+        BatchOrigin, Connected, InboundMessage, MessageBatch, Receipt, ServerAck,
+    };
+    use whatsapp_rust::wacore::types::message::MessageInfo;
+    use whatsapp_rust::wacore::types::presence::ReceiptType;
+    use whatsapp_rust::waproto::whatsapp::Message;
+
+    /// One observed host callback: the method name and the bytes it received.
+    type Calls = Rc<RefCell<Vec<(String, Vec<u8>)>>>;
+
+    fn record(object: &js_sys::Object, method: &str, calls: &Calls) {
+        let calls = calls.clone();
+        let name = method.to_owned();
+        let closure = Closure::wrap(Box::new(move |batch: JsValue| {
+            // A host callback may re-enter the bridge, so the shared encoders
+            // have to be empty here too, not only at the suspension points.
+            debug_assert_encoders_empty();
+            let bytes = batch
+                .dyn_ref::<js_sys::Uint8Array>()
+                .map(js_sys::Uint8Array::to_vec)
+                .unwrap_or_default();
+            calls.borrow_mut().push((name.clone(), bytes));
+        }) as Box<dyn FnMut(JsValue)>);
+        js_sys::Reflect::set(object, &method.into(), &closure.into_js_value())
+            .expect("the callback object accepts a method");
+    }
+
+    /// Run the consumer loop over `events` against a host declaring `methods`,
+    /// and return what it observed. Closing the channel ends the loop.
+    async fn drive(methods: &[&str], events: Vec<Event>) -> Vec<(String, Vec<u8>)> {
+        let object = js_sys::Object::new();
+        let calls: Calls = Rc::new(RefCell::new(Vec::new()));
+        for method in methods {
+            record(&object, method, &calls);
+        }
+        drive_object(&object, events).await;
+        calls.borrow().clone()
+    }
+
+    /// Run the consumer loop over `events` against an already built host.
+    async fn drive_object(object: &js_sys::Object, events: Vec<Event>) {
+        let callbacks =
+            JsEventCallbacks::from_js(object.clone().into()).expect("the host shape parses");
+        let (tx, rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
+        for event in events {
+            tx.try_send(Arc::new(event)).expect("the channel accepts");
+        }
+        tx.close();
+        run_event_consumer(&callbacks, rx).await;
+    }
+
+    const LEGACY_HOST: &[&str] = &[
+        EVENT_CALLBACK_METHOD,
+        MESSAGE_BATCH_CALLBACK_METHOD,
+        RECEIPT_BATCH_CALLBACK_METHOD,
+        SERVER_ACK_BATCH_CALLBACK_METHOD,
+    ];
+    const ENVELOPE_HOST: &[&str] = &[
+        EVENT_CALLBACK_METHOD,
+        MESSAGE_BATCH_CALLBACK_METHOD,
+        RECEIPT_BATCH_CALLBACK_METHOD,
+        SERVER_ACK_BATCH_CALLBACK_METHOD,
+        EVENT_BATCH_CALLBACK_METHOD,
+    ];
+
+    fn message(id: &str) -> Event {
+        let mut info = MessageInfo::default();
+        info.source.chat = "5511999@s.whatsapp.net".parse().expect("valid chat jid");
+        info.source.sender = "5511999:9@s.whatsapp.net"
+            .parse()
+            .expect("valid sender jid");
+        info.id = id.into();
+        info.push_name = "Peer".into();
+        let inbound = InboundMessage::builder()
+            .message(Arc::new(Message::default()))
+            .info(Arc::new(info))
+            .build();
+        Event::Messages(
+            MessageBatch::builder()
+                .messages(Arc::from(vec![inbound]))
+                .origin(BatchOrigin::Live)
+                .build(),
+        )
+    }
+
+    fn receipt(id: &str) -> Event {
+        let source = whatsapp_rust::wacore::types::message::MessageSource {
+            chat: "5511999@s.whatsapp.net".parse().expect("valid chat jid"),
+            sender: "5511999@s.whatsapp.net".parse().expect("valid sender jid"),
+            ..Default::default()
+        };
+        Event::Receipt(
+            Receipt::builder()
+                .source(source)
+                .message_ids(vec![id.into()])
+                .timestamp(wacore::chrono::DateTime::from_timestamp(1, 0).expect("valid timestamp"))
+                .r#type(ReceiptType::Delivered)
+                .offline(false)
+                .build(),
+        )
+    }
+
+    fn ack(id: &str) -> Event {
+        Event::ServerAck(ServerAck::builder().id(id.to_owned()).build())
+    }
+
+    fn connected() -> Event {
+        Event::Connected(Connected::builder().build())
+    }
+
+    /// Ids travel as raw UTF-8 in every packed layout, so a batch's payload
+    /// names the events it carries without decoding the layout here.
+    fn carries(bytes: &[u8], id: &str) -> bool {
+        String::from_utf8_lossy(bytes).contains(id)
+    }
+
+    fn names(calls: &[(String, Vec<u8>)]) -> Vec<&str> {
+        calls.iter().map(|(name, _)| name.as_str()).collect()
+    }
+
+    /// Split an envelope the way `decodeEventWireEnvelope` does.
+    fn segments(envelope: &[u8]) -> Vec<(u32, Vec<u8>)> {
+        let u32_at = |at: usize| u32::from_le_bytes(envelope[at..at + 4].try_into().expect("4"));
+        let count = u32_at(0) as usize;
+        let mut out = Vec::with_capacity(count);
+        let mut at = 8;
+        for _ in 0..count {
+            let kind = u32_at(at);
+            let length = u32_at(at + 4) as usize;
+            at += 8;
+            out.push((kind, envelope[at..at + length].to_vec()));
+            at = (at + length).next_multiple_of(8);
+        }
+        out
+    }
+
+    /// Happy path, legacy arm: the three batches a message turn produces still
+    /// arrive one per crossing, in order.
+    #[test]
+    async fn a_host_without_the_envelope_keeps_one_batch_per_kind() {
+        let calls = drive(LEGACY_HOST, vec![message("M1"), receipt("R1"), ack("A1")]).await;
+        assert_eq!(
+            names(&calls),
+            [
+                MESSAGE_BATCH_CALLBACK_METHOD,
+                RECEIPT_BATCH_CALLBACK_METHOD,
+                SERVER_ACK_BATCH_CALLBACK_METHOD
+            ]
+        );
+        for (call, id) in calls.iter().zip(["M1", "R1", "A1"]) {
+            assert!(carries(&call.1, id), "{} lost {id}", call.0);
+        }
+    }
+
+    /// Happy path, new arm: the same turn costs one crossing, and each segment
+    /// is byte for byte the batch the legacy arm received.
+    #[test]
+    async fn an_envelope_host_receives_the_same_batches_in_one_crossing() {
+        let events = || vec![message("M1"), receipt("R1"), ack("A1")];
+        let legacy = drive(LEGACY_HOST, events()).await;
+        let coalesced = drive(ENVELOPE_HOST, events()).await;
+
+        assert_eq!(names(&coalesced), [EVENT_BATCH_CALLBACK_METHOD]);
+        let segments = segments(&coalesced[0].1);
+        assert_eq!(
+            segments.iter().map(|(kind, _)| *kind).collect::<Vec<_>>(),
+            [
+                EVENT_SEGMENT_KIND_MESSAGE,
+                EVENT_SEGMENT_KIND_RECEIPT,
+                EVENT_SEGMENT_KIND_SERVER_ACK
+            ]
+        );
+        for (segment, batch) in segments.iter().zip(legacy.iter()) {
+            assert_eq!(segment.1, batch.1, "{} segment diverged", batch.0);
+        }
+    }
+
+    /// The test the change stands on: a run where the batched kinds interleave
+    /// with an event that is not batched at all must reach the host in exactly
+    /// the order the events were dispatched.
+    #[test]
+    async fn coalescing_preserves_the_observed_order() {
+        let events = vec![
+            message("M1"),
+            receipt("R1"),
+            connected(),
+            ack("A1"),
+            message("M2"),
+            receipt("R2"),
+        ];
+        let expected = ["M1", "R1", "connected", "A1", "M2", "R2"];
+
+        for host in [LEGACY_HOST, ENVELOPE_HOST] {
+            let calls = drive(host, events.clone()).await;
+            let mut observed = Vec::new();
+            for (name, bytes) in &calls {
+                if name == EVENT_CALLBACK_METHOD {
+                    observed.push("connected");
+                    continue;
+                }
+                let batches: Vec<Vec<u8>> = if name == EVENT_BATCH_CALLBACK_METHOD {
+                    segments(bytes).into_iter().map(|(_, b)| b).collect()
+                } else {
+                    vec![bytes.clone()]
+                };
+                for batch in batches {
+                    let id = expected
+                        .iter()
+                        .find(|id| carries(&batch, id))
+                        .expect("every batch names its event");
+                    observed.push(id);
+                }
+            }
+            assert_eq!(observed, expected, "order changed for a host");
+        }
+    }
+
+    /// Negotiation: a host that declares the envelope but not every packed
+    /// callback still gets every event, through the path it did declare.
+    #[test]
+    async fn a_partially_declared_host_loses_no_event() {
+        let calls = drive(
+            &[
+                EVENT_CALLBACK_METHOD,
+                MESSAGE_BATCH_CALLBACK_METHOD,
+                EVENT_BATCH_CALLBACK_METHOD,
+            ],
+            vec![message("M1"), receipt("R1"), ack("A1")],
+        )
+        .await;
+        assert_eq!(
+            names(&calls),
+            [
+                MESSAGE_BATCH_CALLBACK_METHOD,
+                EVENT_CALLBACK_METHOD,
+                EVENT_CALLBACK_METHOD
+            ],
+            "undeclared kinds fall back to the single-event path"
+        );
+        assert!(carries(&calls[0].1, "M1"));
+    }
+
+    /// Degraded path: with nothing to coalesce, a batch crosses as the bare
+    /// per-kind buffer it always was, so the envelope only ever appears when it
+    /// saved a crossing.
+    #[test]
+    async fn a_lone_batch_still_crosses_through_its_own_callback() {
+        let calls = drive(ENVELOPE_HOST, vec![receipt("R1")]).await;
+        assert_eq!(names(&calls), [RECEIPT_BATCH_CALLBACK_METHOD]);
+        assert!(carries(&calls[0].1, "R1"));
+    }
+
+    /// The borrow opt-in and the envelope compose. A lone batch still crosses in
+    /// the shared buffer its own kind negotiated; a coalesced run gets a buffer
+    /// of its own, because an envelope may carry a message segment whose decode
+    /// returns views over it.
+    #[test]
+    async fn coalescing_keeps_a_lone_batch_borrowing_and_the_envelope_owned() {
+        crate::wire_batch::reset_borrowed_batches();
+        let held: Rc<RefCell<Vec<(String, js_sys::Uint8Array)>>> =
+            Rc::new(RefCell::new(Vec::new()));
+        let object = js_sys::Object::new();
+        for method in [
+            EVENT_CALLBACK_METHOD,
+            MESSAGE_BATCH_CALLBACK_METHOD,
+            RECEIPT_BATCH_BORROWED_CALLBACK_METHOD,
+            EVENT_BATCH_CALLBACK_METHOD,
+        ] {
+            let held = held.clone();
+            let name = method.to_owned();
+            let closure = Closure::wrap(Box::new(move |batch: js_sys::Uint8Array| {
+                held.borrow_mut().push((name.clone(), batch));
+            }) as Box<dyn FnMut(js_sys::Uint8Array)>);
+            js_sys::Reflect::set(&object, &method.into(), &closure.into_js_value())
+                .expect("the callback object accepts a method");
+        }
+
+        drive_object(&object, vec![receipt("RCPT-1")]).await;
+        drive_object(&object, vec![message("MSG-1"), receipt("RCPT-2")]).await;
+        let held = held.borrow().clone();
+        assert_eq!(
+            held.iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<Vec<_>>(),
+            [
+                RECEIPT_BATCH_BORROWED_CALLBACK_METHOD,
+                EVENT_BATCH_CALLBACK_METHOD
+            ]
+        );
+        let borrowed = held[0].1.to_vec();
+        let envelope = held[1].1.to_vec();
+
+        // One more borrowed batch of the same shape rewrites the shared buffer.
+        drive_object(&object, vec![receipt("RCPT-3")]).await;
+        assert_ne!(
+            held[0].1.to_vec(),
+            borrowed,
+            "the lone batch did not come out of the shared buffer"
+        );
+        assert_eq!(
+            held[1].1.to_vec(),
+            envelope,
+            "the envelope was rewritten by a later batch"
+        );
+    }
+
+    /// The boundary's event ceiling bounds a whole crossing, not one segment of
+    /// it: a mixed run must split across envelopes rather than hand the host a
+    /// callback carrying more events than a single batch ever did.
+    #[test]
+    async fn an_envelope_never_carries_more_events_than_the_ceiling() {
+        // Runs that each fit under the ceiling but together pass it.
+        let mut events = Vec::new();
+        for i in 0..EVENT_BATCH_CAPACITY - 1 {
+            events.push(receipt(&format!("R{i}-")));
+        }
+        for i in 0..EVENT_BATCH_CAPACITY - 1 {
+            events.push(ack(&format!("A{i}-")));
+        }
+        let total = events.len();
+        let calls = drive(ENVELOPE_HOST, events).await;
+
+        // Every packed layout opens with its record count as a u32.
+        let records =
+            |batch: &[u8]| u32::from_le_bytes(batch[..4].try_into().expect("4 bytes")) as usize;
+        let mut delivered = 0;
+        for (name, bytes) in &calls {
+            let carried: usize = if name == EVENT_BATCH_CALLBACK_METHOD {
+                segments(bytes).iter().map(|(_, b)| records(b)).sum()
+            } else {
+                records(bytes)
+            };
+            assert!(
+                carried <= EVENT_BATCH_CAPACITY,
+                "{name} carried {carried} events"
+            );
+            delivered += carried;
+        }
+        assert_eq!(delivered, total, "the run lost or duplicated an event");
+    }
+
+    /// Degraded path: a run past the boundary ceiling crosses in several
+    /// pieces, and every event appears exactly once across them.
+    #[test]
+    async fn a_run_past_the_boundary_ceiling_splits_without_loss_or_duplication() {
+        let total = EVENT_BATCH_CAPACITY * 2 + 3;
+        let events: Vec<Event> = (0..total).map(|i| receipt(&format!("R{i}-"))).collect();
+        let calls = drive(ENVELOPE_HOST, events).await;
+        assert!(calls.len() > 1, "the run should not cross as one batch");
+
+        for i in 0..total {
+            let id = format!("R{i}-");
+            let seen = calls
+                .iter()
+                .filter(|(_, bytes)| carries(bytes, &id))
+                .count();
+            assert_eq!(seen, 1, "{id} crossed {seen} times");
+        }
     }
 }

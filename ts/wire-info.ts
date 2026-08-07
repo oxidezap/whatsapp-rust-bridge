@@ -752,3 +752,82 @@ export function encodeServerAckWireBatch(acks: readonly ServerAckWireData[]): Pa
   }
   return builder.finish();
 }
+
+// ---------------------------------------------------------------------------
+// Event envelope
+// ---------------------------------------------------------------------------
+
+/** Segment tags, mirroring the Rust writer in `src/wire_batch.rs`. */
+export const EVENT_SEGMENT_KIND_MESSAGE = 1;
+export const EVENT_SEGMENT_KIND_RECEIPT = 2;
+export const EVENT_SEGMENT_KIND_SERVER_ACK = 3;
+
+/**
+ * Byte layout of an event envelope, written by `EventWireEnvelope::finish`:
+ *
+ * ```text
+ * header:  u32 segment_count | u32 reserved
+ * segment: u32 kind | u32 byte_len | byte_len bytes | padding to 8
+ * ```
+ *
+ * Payloads land 8-aligned so a message segment is still read as a view over the
+ * envelope rather than copied out of it.
+ */
+const ENVELOPE_HEADER_BYTES = 8;
+const ENVELOPE_SEGMENT_PREFIX_BYTES = 8;
+
+/** One packed batch inside an envelope. */
+export interface EventWireSegment {
+  /** One of the `EVENT_SEGMENT_KIND_*` tags; names the codec for `batch`. */
+  kind: number;
+  /** Exactly the bytes the segment's own callback would have received. */
+  batch: PackedWireBatch;
+}
+
+/**
+ * Split an envelope into its segments, in the order the events arrived. Decode
+ * each with the codec its kind names and deliver them in that order.
+ */
+export function decodeEventWireEnvelope(envelope: Uint8Array): EventWireSegment[] {
+  if (envelope.byteLength < ENVELOPE_HEADER_BYTES) {
+    throw new RangeError("event wire envelope is shorter than its header");
+  }
+  const view = new DataView(envelope.buffer, envelope.byteOffset, envelope.byteLength);
+  const count = view.getUint32(0, true);
+  const segments: EventWireSegment[] = new Array(count);
+  let at = ENVELOPE_HEADER_BYTES;
+  for (let i = 0; i < count; i++) {
+    if (at + ENVELOPE_SEGMENT_PREFIX_BYTES > envelope.byteLength) {
+      throw new RangeError("event wire envelope is truncated");
+    }
+    const kind = view.getUint32(at, true);
+    const length = view.getUint32(at + 4, true);
+    at += ENVELOPE_SEGMENT_PREFIX_BYTES;
+    if (at + length > envelope.byteLength) {
+      throw new RangeError("event wire envelope segment is truncated");
+    }
+    segments[i] = { kind, batch: envelope.subarray(at, at + length) };
+    at = (at + length + 7) & ~7;
+  }
+  return segments;
+}
+
+/** Inverse of `decodeEventWireEnvelope`, for tests and replay tooling. */
+export function encodeEventWireEnvelope(segments: readonly EventWireSegment[]): Uint8Array {
+  let total = ENVELOPE_HEADER_BYTES;
+  for (const { batch } of segments) {
+    total = (total + ENVELOPE_SEGMENT_PREFIX_BYTES + batch.byteLength + 7) & ~7;
+  }
+  const envelope = new Uint8Array(total);
+  const view = new DataView(envelope.buffer);
+  view.setUint32(0, segments.length, true);
+  let at = ENVELOPE_HEADER_BYTES;
+  for (const { kind, batch } of segments) {
+    view.setUint32(at, kind, true);
+    view.setUint32(at + 4, batch.byteLength, true);
+    at += ENVELOPE_SEGMENT_PREFIX_BYTES;
+    envelope.set(batch, at);
+    at = (at + batch.byteLength + 7) & ~7;
+  }
+  return envelope;
+}

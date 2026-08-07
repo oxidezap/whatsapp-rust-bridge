@@ -17,6 +17,8 @@ use whatsapp_rust::waproto;
 pub(crate) trait PackedEventBatch: Default {
     /// Label for dispatch failure logs.
     const KIND: &'static str;
+    /// Segment tag this kind carries inside an event envelope.
+    const SEGMENT_KIND: u32;
     /// Whether `event` belongs to this batch kind.
     fn accepts(event: &Event) -> bool;
     /// Run `f` with this kind's process-wide encoder. The encoder is reused
@@ -30,6 +32,14 @@ pub(crate) trait PackedEventBatch: Default {
     /// Assemble the batch for the host and reset the per-batch state; the
     /// caches survive so the next batch keeps interning against them.
     fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue>;
+    /// Same bytes as [`PackedEventBatch::finish`], appended to `out` instead of
+    /// crossed, so an envelope can carry the batch as one of its segments.
+    fn write_and_reset(&mut self, out: &mut Vec<u8>);
+    /// Records packed so far.
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// Which host-side buffer a crossed batch lands in.
@@ -199,8 +209,9 @@ pub(crate) fn reset_borrowed_batches() {
 /// transport shares, whatever the record layout inside is.
 ///
 /// Wrapping it in a `{ buffer }` object instead would cost an `Object::new` plus
-/// a `Reflect::set` crossing per batch, and one message produces three batches
-/// (its own, its receipt, its ack). The buffer IS the batch.
+/// a `Reflect::set` crossing per batch, and a live message still produces up to
+/// three batches (its own, its receipt, its ack) for a host that does not opt
+/// into [`EventWireEnvelope`]. The buffer IS the batch.
 ///
 /// The scratch is process-wide because its bytes are copied into the JS typed
 /// array before this returns, so no batch can observe another's contents.
@@ -217,31 +228,39 @@ fn cross_flat_batch(buffer: BatchBuffer, write: impl FnOnce(&mut Vec<u8>)) -> Js
         let mut out = scratch.borrow_mut();
         out.clear();
         write(&mut out);
-        let batch = match buffer {
-            // An outlier gets its own typed array, so it neither pins a larger
-            // shared buffer nor loses its tail to the next batch.
-            BatchBuffer::Borrowed
-                if !borrowed_batches_revoked() && out.len() <= BORROWED_BATCH_BUFFER_BYTES =>
-            {
-                SHARED_BORROW_BUFFER.with(|shared| {
-                    let mut shared = shared.borrow_mut();
-                    let shared = shared.get_or_insert_with(|| {
-                        js_sys::Uint8Array::new_with_length(BORROWED_BATCH_BUFFER_BYTES as u32)
-                    });
-                    let window = shared.subarray(0, out.len() as u32);
-                    window.copy_from(&out);
-                    window
-                })
-            }
-            _ => js_sys::Uint8Array::from(out.as_slice()),
-        };
+        let batch = cross_bytes(buffer, &out);
         if out.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
             // `shrink_to` never goes below the length, so drop it first.
             out.clear();
             out.shrink_to(MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES);
         }
-        batch.into()
+        batch
     })
+}
+
+/// Hand `bytes` to the host in the buffer `buffer` names. Split from
+/// [`cross_flat_batch`] so a batch already assembled elsewhere (an envelope's
+/// own buffer) crosses through the same borrow rules without a second copy.
+fn cross_bytes(buffer: BatchBuffer, bytes: &[u8]) -> JsValue {
+    let batch = match buffer {
+        // An outlier gets its own typed array, so it neither pins a larger
+        // shared buffer nor loses its tail to the next batch.
+        BatchBuffer::Borrowed
+            if !borrowed_batches_revoked() && bytes.len() <= BORROWED_BATCH_BUFFER_BYTES =>
+        {
+            SHARED_BORROW_BUFFER.with(|shared| {
+                let mut shared = shared.borrow_mut();
+                let shared = shared.get_or_insert_with(|| {
+                    js_sys::Uint8Array::new_with_length(BORROWED_BATCH_BUFFER_BYTES as u32)
+                });
+                let window = shared.subarray(0, bytes.len() as u32);
+                window.copy_from(bytes);
+                window
+            })
+        }
+        _ => js_sys::Uint8Array::from(bytes),
+    };
+    batch.into()
 }
 
 /// Append a u32 offset table, materialising the leading zero sentinel that
@@ -377,6 +396,13 @@ impl MessageWireBatch {
         let batch = cross_flat_batch(BatchBuffer::Owned, |out| self.write_flat(out));
         self.reset();
         Ok(batch)
+    }
+
+    /// Same bytes as [`MessageWireBatch::finish`], appended to `out` instead of
+    /// crossed, so an envelope can carry the batch as one of its segments.
+    pub(crate) fn write_and_reset(&mut self, out: &mut Vec<u8>) {
+        self.write_flat(out);
+        self.reset();
     }
 
     /// Drop the batch contents while keeping the buffers.
@@ -584,25 +610,27 @@ impl FlatBatchWriter {
     }
 
     fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
+        Ok(cross_flat_batch(buffer, |out| self.write_and_reset(out)))
+    }
+
+    fn write_and_reset(&mut self, out: &mut Vec<u8>) {
         self.definitions.extend_from_slice(&self.inline);
-        let batch = cross_flat_batch(buffer, |out| {
-            out.reserve(
-                PACKED_HEADER_BYTES
-                    + self.new_strings.len()
-                    + self.new_jids.len()
-                    + self.records.len()
-                    + self.definitions.len(),
-            );
-            out.extend_from_slice(&self.record_count.to_le_bytes());
-            out.extend_from_slice(&self.new_string_count.to_le_bytes());
-            out.extend_from_slice(&self.new_jid_count.to_le_bytes());
-            out.extend_from_slice(&(self.definitions.len() as u32).to_le_bytes());
-            out.extend_from_slice(&self.flags.to_le_bytes());
-            out.extend_from_slice(&self.new_strings);
-            out.extend_from_slice(&self.new_jids);
-            out.extend_from_slice(&self.records);
-            out.extend_from_slice(&self.definitions);
-        });
+        out.reserve(
+            PACKED_HEADER_BYTES
+                + self.new_strings.len()
+                + self.new_jids.len()
+                + self.records.len()
+                + self.definitions.len(),
+        );
+        out.extend_from_slice(&self.record_count.to_le_bytes());
+        out.extend_from_slice(&self.new_string_count.to_le_bytes());
+        out.extend_from_slice(&self.new_jid_count.to_le_bytes());
+        out.extend_from_slice(&(self.definitions.len() as u32).to_le_bytes());
+        out.extend_from_slice(&self.flags.to_le_bytes());
+        out.extend_from_slice(&self.new_strings);
+        out.extend_from_slice(&self.new_jids);
+        out.extend_from_slice(&self.records);
+        out.extend_from_slice(&self.definitions);
 
         self.new_strings.clear();
         self.new_jids.clear();
@@ -613,7 +641,120 @@ impl FlatBatchWriter {
         self.new_jid_count = 0;
         self.record_count = 0;
         self.flags = 0;
-        Ok(batch)
+    }
+}
+
+/// Segment tags carried by an event envelope. Mirrored by `ts/wire-info.ts`.
+pub(crate) const EVENT_SEGMENT_KIND_MESSAGE: u32 = 1;
+pub(crate) const EVENT_SEGMENT_KIND_RECEIPT: u32 = 2;
+pub(crate) const EVENT_SEGMENT_KIND_SERVER_ACK: u32 = 3;
+
+/// `u32 segment_count | u32 reserved`. Eight bytes so the first segment payload
+/// lands 8-aligned behind its own 8-byte prefix.
+const EVENT_ENVELOPE_HEADER_BYTES: usize = 8;
+/// `u32 kind | u32 byte_len` ahead of each segment payload.
+const EVENT_ENVELOPE_SEGMENT_PREFIX_BYTES: usize = 8;
+
+/// What an accumulated run crosses as.
+pub(crate) enum CrossedBatch {
+    /// A lone batch crosses as the bare per-kind buffer it has always been, so
+    /// a host only ever sees an envelope when the envelope saved a crossing.
+    Single { kind: u32, batch: JsValue },
+    /// Two or more batches, packed into one buffer of tagged segments.
+    Envelope(JsValue),
+}
+
+/// Buffers the batches an adjacent run of events produces so the whole run
+/// crosses once instead of once per batch.
+///
+/// A segment is byte for byte the buffer its per-kind callback would have
+/// received, which is what lets the host decode it with the codec it already
+/// has. Payloads stay 8-aligned so a message segment is still read as a view
+/// over the envelope rather than copied out of it.
+///
+/// Layout (little endian), mirrored by `ts/wire-info.ts`:
+/// ```text
+/// header:  u32 segment_count | u32 reserved
+/// segment: u32 kind | u32 byte_len | byte_len bytes | padding to 8
+/// ```
+#[derive(Default)]
+pub(crate) struct EventWireEnvelope {
+    buffer: Vec<u8>,
+    /// `(kind, payload start, payload length)` per buffered segment.
+    segments: Vec<(u32, usize, usize)>,
+    records: usize,
+}
+
+impl EventWireEnvelope {
+    #[inline]
+    pub(crate) fn is_empty(&self) -> bool {
+        self.segments.is_empty()
+    }
+
+    /// Events packed across every buffered segment.
+    #[inline]
+    pub(crate) fn records(&self) -> usize {
+        self.records
+    }
+
+    /// The kind of the only buffered segment, when the run produced one. The
+    /// caller needs it before crossing, to pick that kind's buffer.
+    pub(crate) fn lone_segment_kind(&self) -> Option<u32> {
+        match self.segments[..] {
+            [(kind, _, _)] => Some(kind),
+            _ => None,
+        }
+    }
+
+    /// Append one finished batch as a tagged segment.
+    pub(crate) fn push_segment(
+        &mut self,
+        kind: u32,
+        records: usize,
+        write: impl FnOnce(&mut Vec<u8>),
+    ) {
+        if self.buffer.is_empty() {
+            self.buffer.resize(EVENT_ENVELOPE_HEADER_BYTES, 0);
+        }
+        self.buffer.reserve(EVENT_ENVELOPE_SEGMENT_PREFIX_BYTES);
+        self.buffer.extend_from_slice(&kind.to_le_bytes());
+        let length_at = self.buffer.len();
+        self.buffer.extend_from_slice(&0u32.to_le_bytes());
+        let start = self.buffer.len();
+        write(&mut self.buffer);
+        let length = self.buffer.len() - start;
+        self.buffer[length_at..length_at + 4].copy_from_slice(&(length as u32).to_le_bytes());
+        self.buffer.resize(self.buffer.len().next_multiple_of(8), 0);
+        self.segments.push((kind, start, length));
+        self.records += records;
+    }
+
+    /// Cross the buffered run in `buffer` and drop it, keeping the buffers.
+    pub(crate) fn finish(&mut self, buffer: BatchBuffer) -> CrossedBatch {
+        debug_assert!(!self.is_empty(), "finishing an empty envelope");
+        let crossed = if let [(kind, start, length)] = self.segments[..] {
+            CrossedBatch::Single {
+                kind,
+                batch: cross_bytes(buffer, &self.buffer[start..start + length]),
+            }
+        } else {
+            let count = self.segments.len() as u32;
+            self.buffer[..4].copy_from_slice(&count.to_le_bytes());
+            CrossedBatch::Envelope(cross_bytes(buffer, &self.buffer))
+        };
+        self.reset();
+        crossed
+    }
+
+    /// Drop the run while keeping the buffers, capped the way the crossing
+    /// scratch is: one oversized run must not pin its peak for the session.
+    pub(crate) fn reset(&mut self) {
+        self.buffer.clear();
+        if self.buffer.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
+            self.buffer.shrink_to(MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES);
+        }
+        self.segments.clear();
+        self.records = 0;
     }
 }
 
@@ -633,6 +774,7 @@ thread_local! {
 
 impl PackedEventBatch for ReceiptWireBatch {
     const KIND: &'static str = "receipt";
+    const SEGMENT_KIND: u32 = EVENT_SEGMENT_KIND_RECEIPT;
 
     fn accepts(event: &Event) -> bool {
         matches!(event, Event::Receipt(_))
@@ -709,6 +851,14 @@ impl PackedEventBatch for ReceiptWireBatch {
     fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
         self.writer.finish(buffer)
     }
+
+    fn write_and_reset(&mut self, out: &mut Vec<u8>) {
+        self.writer.write_and_reset(out);
+    }
+
+    fn len(&self) -> usize {
+        self.writer.record_count as usize
+    }
 }
 
 /// Packed transport for `Event::ServerAck` runs.
@@ -727,6 +877,7 @@ thread_local! {
 
 impl PackedEventBatch for ServerAckWireBatch {
     const KIND: &'static str = "server_ack";
+    const SEGMENT_KIND: u32 = EVENT_SEGMENT_KIND_SERVER_ACK;
 
     fn accepts(event: &Event) -> bool {
         matches!(event, Event::ServerAck(_))
@@ -763,6 +914,14 @@ impl PackedEventBatch for ServerAckWireBatch {
 
     fn finish(&mut self, buffer: BatchBuffer) -> Result<JsValue, JsValue> {
         self.writer.finish(buffer)
+    }
+
+    fn write_and_reset(&mut self, out: &mut Vec<u8>) {
+        self.writer.write_and_reset(out);
+    }
+
+    fn len(&self) -> usize {
+        self.writer.record_count as usize
     }
 }
 
