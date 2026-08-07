@@ -66,7 +66,9 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@v2
         with:
-          tool: wasm-pack
+          # Same pin as the release workflow: this job now runs the same build,
+          # and the point is for it to fail here rather than there.
+          tool: wasm-pack,protoc@3.35.1
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -81,14 +83,11 @@ jobs:
       - name: Install JavaScript dependencies
         run: bun install
 
-      - name: Build WASM package
-        run: |
-          wasm-pack build --target web --out-dir pkg --release
-          # Fix .gitignore issue in pkg (wasm-pack includes it by default)
-          rm -f pkg/.gitignore
-
-      - name: Run TypeScript compilation (generate .d.ts)
-        run: bun run build:ts
+      # The package's real build, the same command the release runs. Calling
+      # wasm-pack and build:ts directly skipped `gen`, so a codegen or tooling
+      # break surfaced for the first time at publish, where it costs a version.
+      - name: Build the wasm package
+        run: bun run build
 
       - name: Run Tests with Bun
         run: bun test
