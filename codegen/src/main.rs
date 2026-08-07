@@ -65,19 +65,33 @@ fn find_whatsapp_rust_root() -> PathBuf {
 
 /// Refuse to generate from sources that are not there. Parsing nothing is not
 /// an empty result, it is a broken one.
+///
+/// Every path the generator reads is checked, not just the first: `wacore`
+/// alone contributes enough types that a checkout missing only `src/` would
+/// produce a plausible-looking file and slip past an emptiness check.
 fn require_sources(root: &Path) {
-    let wacore = root.join("wacore/src");
-    if !wacore.is_dir() {
-        panic!(
-            "whatsapp-rust sources not found at {}\n\
-             Expected {} to exist. This generator reads the core's sources off disk and \n\
-             does not fetch them: run a cargo build first so the git checkout is populated, \n\
-             or clone whatsapp-rust next to this repository.",
-            root.display(),
-            wacore.display()
-        );
-    }
+    let missing: Vec<String> = REQUIRED_SOURCES
+        .iter()
+        .map(|rel| root.join(rel))
+        .filter(|path| !path.exists())
+        .map(|path| path.display().to_string())
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "whatsapp-rust sources are incomplete at {}\n\
+         Missing: {}\n\
+         This generator reads the core's sources off disk rather than depending on it, so \n\
+         `cargo fetch` has to have populated the git checkout — that is what `gen:bridge-types` \n\
+         runs first. A sibling clone of whatsapp-rust also works.",
+        root.display(),
+        missing.join(", ")
+    );
 }
+
+/// Everything `main` parses. Kept next to the guard so adding a source without
+/// guarding it is a visible omission rather than a silent one.
+const REQUIRED_SOURCES: [&str; 4] = ["wacore/src", "src/features", "src/types", "src/send"];
 
 fn main() {
     let root = find_whatsapp_rust_root();
@@ -96,8 +110,12 @@ fn main() {
         parse_file(entry.path(), &mut all_types);
     }
 
-    // Parse whatsapp-rust feature types
-    let feature_dirs = ["features", "types"];
+    // Parse whatsapp-rust feature types. `send` replaces a hardcoded read of
+    // `send.rs`, which the core has since split into a module: the old path
+    // stopped matching and the call did nothing. Nothing was lost — the types
+    // it named are not `Serialize`, so this generator never emitted them — but
+    // pointing at what exists keeps the guard above honest.
+    let feature_dirs = ["features", "types", "send"];
     for dir in feature_dirs {
         let path = src_dir.join(dir);
         if path.exists() {
