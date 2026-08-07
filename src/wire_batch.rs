@@ -41,6 +41,9 @@ const MESSAGE_WIRE_HEADER_BYTES: usize = 24;
 /// Payload capacity the reused encoder keeps between batches. Above it a batch
 /// of large media protobufs would pin its own peak for the rest of the session.
 const MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES: usize = 4 * crate::WASM_PAGE_BYTES;
+/// Metadata capacity the reused string table keeps. A full batch of addresses,
+/// ids and push names fits well inside it; the cap is what an outlier hits.
+const WIRE_STRING_TABLE_RETAINED_BYTES: usize = 16 * 1024;
 const INFO_FLAG_FROM_ME: u32 = 1 << 0;
 const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
@@ -119,9 +122,21 @@ impl WireStringTable {
 
     /// Drop the entries but keep every buffer, so the next batch interns into
     /// allocations this one already paid for.
+    ///
+    /// The two buffers a peer can inflate are capped: push names and message
+    /// ids arrive from the wire, and the table now outlives the batch, so one
+    /// oversized event would otherwise pin its peak for the session. `offsets`
+    /// needs no cap, being bounded by the batch's entry count.
     fn reset(&mut self) {
         self.data.clear();
+        if self.data.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES {
+            self.data.shrink_to(WIRE_STRING_TABLE_RETAINED_BYTES);
+        }
         self.offsets.clear();
+        self.scratch.clear();
+        if self.scratch.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES {
+            self.scratch.shrink_to(WIRE_STRING_TABLE_RETAINED_BYTES);
+        }
     }
 }
 
@@ -900,6 +915,29 @@ mod tests {
         assert_eq!(a_again, 0, "an exact repeat still dedups");
         assert_eq!(table.len(), 2);
         assert_eq!(table.data, b"aab");
+    }
+
+    /// Push names and message ids come from the wire, so an oversized one must
+    /// not pin the reused table's peak for the rest of the session.
+    #[test]
+    fn string_table_capacity_stays_bounded() {
+        let oversized = "n".repeat(WIRE_STRING_TABLE_RETAINED_BYTES * 2);
+        let mut table = WireStringTable::default();
+        table.intern(&oversized);
+        table.intern_jid(&"5511999@s.whatsapp.net".parse().expect("valid jid"));
+        assert!(table.data.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES);
+
+        table.reset();
+        assert!(
+            table.data.capacity() <= WIRE_STRING_TABLE_RETAINED_BYTES,
+            "table kept {} bytes",
+            table.data.capacity()
+        );
+        assert!(table.scratch.capacity() <= WIRE_STRING_TABLE_RETAINED_BYTES);
+
+        // Still usable, and interning starts from an empty table again.
+        assert_eq!(table.intern("after"), 0);
+        assert_eq!(table.len(), 1);
     }
 
     /// Reuse stops at the boundary: a batch the host holds must not be
