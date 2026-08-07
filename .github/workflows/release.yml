@@ -37,8 +37,12 @@ on:
 permissions:
   contents: read
 
+# One group for every release and recovery run, not one per ref: a recovery
+# dispatched on a tag has a different `github.ref` than a release from main, so
+# keying on it would let the two reach `npm publish` at the same time and race
+# over which one `latest` ends up pointing at.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 env:
@@ -120,6 +124,39 @@ jobs:
           # resolving a tag here could publish one tree while attesting another.
           ref: ${{ github.sha }}
           persist-credentials: false
+
+      # `ref_type == 'tag'` only proves the ref is a tag, not that it is a
+      # release. Without this, anyone able to push a tag could point the job
+      # holding npm OIDC rights at arbitrary code, bypassing main entirely.
+      # A GitHub release is what release-please creates and what a hand-pushed
+      # tag does not have; the version match then ties the tag to the tree.
+      - name: Confirm the dispatch targets a release tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::$TAG has no GitHub release; only release tags can be published"
+            exit 1
+          fi
+
+          version=$(jq -r .version package.json)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::$TAG does not match package.json version $version"
+            exit 1
+          fi
+
+          # npm refuses to apply `latest` implicitly once the registry holds a
+          # higher version, so a recovery attempted after a newer release would
+          # fail at the publish step — after the whole build. Say so here.
+          name=$(jq -r .name package.json)
+          latest=$(npm view "$name" version 2>/dev/null || true)
+          if [ -n "$latest" ] && [ "$latest" != "$version" ] &&
+             [ "$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -1)" = "$latest" ]; then
+            echo "::error::$name@$latest is already published; $version cannot take latest implicitly"
+            exit 1
+          fi
 
       # Guards the assumption on the push path: release-please tags the commit
       # it just merged, so a tag pointing elsewhere means this run would verify
