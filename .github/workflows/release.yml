@@ -11,12 +11,38 @@ name: Release
 on:
   push:
     branches: [main]
+  # Recovery path. A release tag is created by the job below and only that run
+  # carries `release_created`, so a publish that fails for a reason outside the
+  # tag — a missing tool on the runner, a registry outage — cannot be retried by
+  # re-running it: the re-run replays the workflow file of that commit, which is
+  # the one that failed.
+  #
+  # Dispatch this **with the release tag selected as the ref**, not from a
+  # branch with the tag as a parameter. Taking it as a free-form input would let
+  # a dispatch publish any branch or commit through a job holding npm OIDC
+  # rights, and npm's provenance records the event's ref and sha rather than
+  # whatever the workspace was checked out to — so a tarball built from a tag
+  # while the event pointed at a branch would be attested to the wrong commit.
+  # The ref picker only offers refs that exist, and `ref_type` below rejects
+  # everything that is not a tag.
+  #
+  # The consequence, which is the price of the above: a dispatch runs the
+  # workflow file stored in the selected tag, so this only rescues tags created
+  # from this commit onwards. A tag older than this file has no dispatch trigger
+  # to select and cannot be recovered here — delete it along with its GitHub
+  # release and let the next release supersede it, since a tag that never
+  # reached npm has nothing depending on it.
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# One group for every release and recovery run, not one per ref: a recovery
+# dispatched on a tag has a different `github.ref` than a release from main, so
+# keying on it would let the two reach `npm publish` at the same time and race
+# over which one `latest` ends up pointing at.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 env:
@@ -26,6 +52,7 @@ env:
 jobs:
   release-please:
     name: Prepare release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -38,6 +65,11 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      # The commit the release was tagged at. Not necessarily the commit that
+      # triggered this run: if the run for a release PR merge fails or is
+      # superseded, a later push is what creates the release, and the tag then
+      # names the earlier merge.
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       # A pull request opened with GITHUB_TOKEN gets its checks queued in an
       # approval-required state, so the release PR sits there until a maintainer
@@ -77,7 +109,13 @@ jobs:
   verify:
     name: Verify the tag
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    # `!cancelled()` rather than `always()`: the dispatch path needs this to run
+    # past a skipped release-please, but a cancelled run must not go on to
+    # publish.
+    if: >-
+      !cancelled() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+       (github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -85,8 +123,85 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          # A sha, never a ref: a ref can move between this checkout and
+          # publish's, leaving the two jobs on different trees. On the push path
+          # that is the commit the release was tagged at, which is not always
+          # the one that triggered the run; on dispatch the event's sha is the
+          # tag's own commit.
+          ref: ${{ needs.release-please.outputs.sha || github.sha }}
           persist-credentials: false
+
+      # `ref_type == 'tag'` only proves the ref is a tag, not that it is a
+      # release. Without this, anyone able to push a tag could point the job
+      # holding npm OIDC rights at arbitrary code, bypassing main entirely.
+      # A GitHub release is what release-please creates and what a hand-pushed
+      # tag does not have; the version match then ties the tag to the tree.
+      - name: Confirm the dispatch targets a release tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # A GitHub release proves nothing on its own: anyone with write access
+          # can tag arbitrary code and attach a release record to it by hand.
+          # Reachability from main is what ties this commit to the protected
+          # branch it had to pass through, so check that first.
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$GITHUB_SHA" --jq .status)
+          case "$status" in
+            identical | behind) ;;
+            *)
+              echo "::error::$TAG is at a commit that is not on main ($status)"
+              exit 1
+              ;;
+          esac
+
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::$TAG has no GitHub release; only release tags can be published"
+            exit 1
+          fi
+
+          version=$(jq -r .version package.json)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::$TAG does not match package.json version $version"
+            exit 1
+          fi
+
+          # npm refuses to apply `latest` implicitly once the registry holds a
+          # higher version, so a recovery attempted after a newer release would
+          # fail at the publish step — after the whole build. Say so here.
+          name=$(jq -r .name package.json)
+          latest=$(npm view "$name" version 2>/dev/null || true)
+          if [ -n "$latest" ] && [ "$latest" != "$version" ] &&
+             [ "$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -1)" = "$latest" ]; then
+            echo "::error::$name@$latest is already published; $version cannot take latest implicitly"
+            exit 1
+          fi
+
+      # Guards the assumption on the push path: release-please tags the commit
+      # it just merged, so a tag pointing elsewhere means this run would verify
+      # and publish something the release does not name.
+      - name: Confirm the release tag points at this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          RELEASE_SHA: ${{ needs.release-please.outputs.sha }}
+        run: |
+          if [ "$RELEASE_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::$TAG was tagged at $RELEASE_SHA but this event is $GITHUB_SHA;"
+            echo "::error::provenance would name the wrong commit. Dispatch this workflow on $TAG instead."
+            exit 1
+          fi
+
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          target=$(jq -r '.object.sha' <<<"$ref")
+          if [ "$(jq -r '.object.type' <<<"$ref")" = tag ]; then
+            target=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$target" --jq '.object.sha')
+          fi
+          if [ "$target" != "$RELEASE_SHA" ]; then
+            echo "::error::$TAG points at $target, not $RELEASE_SHA"
+            exit 1
+          fi
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
@@ -100,7 +215,13 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          tool: wasm-pack
+          # protoc: `bun run build` regenerates the proto codec, which ci.yml
+          # never exercises because it calls wasm-pack and build:ts directly.
+          # protoc pinned like bun and npm: verify and publish each install it, and
+          # publish can start much later behind the environment gate, so an
+          # unpinned default could generate one codec for the tests and another
+          # for the tarball.
+          tool: wasm-pack,protoc@35.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -131,7 +252,7 @@ jobs:
   publish:
     name: Publish to npm
     needs: [release-please, verify]
-    if: needs.release-please.outputs.release_created == 'true'
+    if: ${{ !cancelled() && needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Gate for the publish step: add required reviewers here to make releases
@@ -145,7 +266,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          # Same immutable commit verify checked out and vouched for. Pinned by
+          # sha so retargeting the tag while this job waits on the environment
+          # approval cannot change what gets published.
+          ref: ${{ needs.release-please.outputs.sha || github.sha }}
           # Nothing here talks to the remote after checkout, and the steps below
           # run cargo, bun and third-party build scripts in a job holding OIDC
           # publish rights. Don't leave the token in .git/config for them.
@@ -163,7 +287,13 @@ jobs:
       - name: Install wasm-pack
         uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
         with:
-          tool: wasm-pack
+          # protoc: `bun run build` regenerates the proto codec, which ci.yml
+          # never exercises because it calls wasm-pack and build:ts directly.
+          # protoc pinned like bun and npm: verify and publish each install it, and
+          # publish can start much later behind the environment gate, so an
+          # unpinned default could generate one codec for the tests and another
+          # for the tarball.
+          tool: wasm-pack,protoc@35.1
 
       # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
       # npm, so a floating version would change the published bytes without a
