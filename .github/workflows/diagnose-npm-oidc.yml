@@ -43,7 +43,27 @@ jobs:
             [ -f "$f" ] && { echo "$f:"; sed 's/=.*/=<redacted>/' "$f"; } || echo "$f: absent"
           done
 
-      # The real question: with no token anywhere, does npm reach for the OIDC
-      # exchange or go straight to ENEEDAUTH?
-      - name: Dry-run publish
-        run: npm publish --dry-run --ignore-scripts 2>&1 | tail -25
+      # The decisive test: perform the exchange npm would perform, and print the
+      # registry's answer. A dry-run publish does not authenticate, so it cannot
+      # tell a missing trust config apart from a CLI that never tried.
+      #
+      # Prints status and body, never the tokens: the request token is a
+      # credential, and a successful exchange returns a publish token.
+      - name: Exchange the OIDC token by hand
+        run: |
+          id_token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
+          if [ -z "$id_token" ] || [ "$id_token" = null ]; then
+            echo "::error::GitHub did not return an id token for audience npm:registry.npmjs.org"
+            exit 1
+          fi
+          echo "id token obtained; claims (no signature):"
+          echo "$id_token" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, repository, workflow_ref, environment, job_workflow_ref}' || true
+
+          pkg=$(jq -r .name package.json | sed 's|/|%2f|')
+          echo "--- exchange for $pkg ---"
+          code=$(curl -sS -o /tmp/exchange.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $id_token" -H 'Content-Type: application/json' \
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$pkg")
+          echo "HTTP $code"
+          jq 'del(.token)' /tmp/exchange.json 2>/dev/null || cat /tmp/exchange.json
