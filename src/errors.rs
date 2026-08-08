@@ -480,7 +480,6 @@ macro_rules! impl_from_error_chain {
 impl_from_error_chain!(
     whatsapp_rust::CallError,
     whatsapp_rust::SendError,
-    whatsapp_rust::features::AppStateError,
     whatsapp_rust::features::BlockingError,
     whatsapp_rust::features::ChatStateError,
     whatsapp_rust::features::CommunityError,
@@ -493,6 +492,26 @@ impl_from_error_chain!(
     whatsapp_rust::features::SignalError,
     whatsapp_rust::features::StanzaResponseError,
 );
+
+/// App-state mutations split for the same reason as `BusinessError` below:
+/// `InvalidRequest` is the caller's own arguments failing the core's pre-flight
+/// — a past mute timestamp, a non-phone contact id, an empty label id — and it
+/// carries no source, so the walk lands it on `Internal` and the host cannot
+/// tell its own bad argument from a bridge fault.
+impl From<whatsapp_rust::features::AppStateError> for BridgeError {
+    fn from(e: whatsapp_rust::features::AppStateError) -> Self {
+        use whatsapp_rust::features::AppStateError;
+        match &e {
+            // The core names no field, and the arguments differ per call, so
+            // the reason carries the detail and `field` stays the request.
+            AppStateError::InvalidRequest(detail) => Self::InvalidArgument {
+                field: "request".into(),
+                reason: detail.to_string(),
+            },
+            _ => Self::from_error_chain(&e),
+        }
+    }
+}
 
 /// Business operations split three ways rather than going through the shared
 /// walk wholesale. `InvalidUpdate` is the caller's own delta failing the core's

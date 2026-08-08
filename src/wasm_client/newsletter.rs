@@ -80,9 +80,9 @@ impl WasmWhatsAppClient {
         reaction: Option<String>,
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-        let sid: u64 = server_id
-            .parse()
-            .map_err(|e| crate::errors::internal(format!("invalid server_id: {e}")))?;
+        let sid: u64 = server_id.parse().map_err(|e: std::num::ParseIntError| {
+            crate::errors::invalid_arg("serverId", e.to_string())
+        })?;
         self.client
             .newsletter()
             .send_reaction(&target, sid, reaction.as_deref().unwrap_or(""))
