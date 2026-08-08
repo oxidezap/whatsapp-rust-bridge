@@ -119,8 +119,17 @@ describe("a mistyped parameter rejects", () => {
   test("an unknown variant of a string enum", async () => {
     const client = await offlineClient();
     try {
+      // `mediaType` is the sixth argument. Every earlier slot gets a
+      // well-formed value so the rejection can only come from the enum.
       const error = await rejection(
-        (client as any).downloadMedia("http://x", new Uint8Array(0), "not-a-media-type", 0)
+        (client as any).downloadMedia(
+          "/path",
+          new Uint8Array(32),
+          new Uint8Array(32),
+          new Uint8Array(32),
+          1024,
+          "not-a-media-type"
+        )
       );
       expect(error.kind).toBe("invalid-argument");
       expect(error.message).toContain("media_type");
