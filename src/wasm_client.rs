@@ -2709,8 +2709,13 @@ impl WasmWhatsAppClient {
     /// is NOT implemented; if the server starts enforcing companion-type
     /// crypto, those connections may break.
     #[wasm_bindgen(js_name = setDeviceProps)]
-    pub async fn set_device_props(&self, input: crate::device_props::DevicePropsInput) {
+    pub async fn set_device_props(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "DevicePropsInput")] input: JsValue,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let input = from_js_input::<crate::device_props::DevicePropsInput>("input", input)?;
         self.client.set_device_props(input.into()).await;
+        Ok(())
     }
 
     /// Override the noise-handshake `ClientPayload` profile (UserAgent
@@ -2724,8 +2729,13 @@ impl WasmWhatsAppClient {
     /// Runtime-only — the field is `#[serde(skip)]` in the persisted Device,
     /// so re-apply on every fresh process before `connect()`.
     #[wasm_bindgen(js_name = setClientProfile)]
-    pub async fn set_client_profile(&self, input: crate::client_profile::ClientProfileInput) {
+    pub async fn set_client_profile(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "ClientProfileInput")] input: JsValue,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let input = from_js_input::<crate::client_profile::ClientProfileInput>("input", input)?;
         self.client.set_client_profile(input.into()).await;
+        Ok(())
     }
 
     // ── Pairing ──────────────────────────────────────────────────────────

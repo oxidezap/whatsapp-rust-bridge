@@ -97,6 +97,25 @@ describe("a mistyped parameter rejects", () => {
     }
   }, 20000);
 
+  test("the tagged-enum and struct config inputs", async () => {
+    const client = await offlineClient();
+    try {
+      // These two take their types from `device_props`/`client_profile` rather
+      // than `result_types`, which is how they were missed on the first pass.
+      const props = await rejection((client as any).setDeviceProps(42));
+      expect(props.kind).toBe("invalid-argument");
+      expect(props.message).toContain("input");
+
+      const profile = await rejection(
+        (client as any).setClientProfile({ preset: "notARealPreset" })
+      );
+      expect(profile.kind).toBe("invalid-argument");
+      expect(profile.message).toContain("input");
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
   test("an unknown variant of a string enum", async () => {
     const client = await offlineClient();
     try {
