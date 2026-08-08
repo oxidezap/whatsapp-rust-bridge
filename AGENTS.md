@@ -1,179 +1,108 @@
-# WhatsApp Rust Bridge - AI Coding Guidelines
+# Working in this repository
 
-Quick orientation for AI agents and contributors: this repo is a Rust → WebAssembly bridge that provides binary encoding/decoding utilities for WhatsApp protocols and a small LibSignal helper layer with JS bindings and TS types.
+A Rust → WebAssembly bridge that exposes the [`whatsapp-rust`](https://github.com/oxidezap/whatsapp-rust) core to JavaScript, plus a pure-JS protobuf codec and packed wire-batch encoders that avoid crossing the boundary per message.
 
-Core summary
+## The layer rule
 
-- Rust WASM core (`src/`) exposes functions (via `wasm_bindgen`) consumed in JS/TS.
-- TypeScript wrapper (`ts/binary.ts`) bundles wasm + lightweight entry API and exposes the `dist/` exports.
-- Tests are in `test/` (Bun) and benches in `benches/` (Mitata).
+The bridge **transports**. The core decides.
 
-Key files to review
+That means: no renaming a field on the way out, no inventing a default the core did not supply, no encoding a downstream consumer's assumptions. Absent is absent — the server omits rather than blanks, so an absent name is `undefined`, not `""`. Where a rule already lives in the core (which mute timestamps are valid, which JIDs an operation accepts), the bridge passes the value on and lets the core reject it.
 
-- `src/wasm_api.rs` — JS ↔ Rust conversions, zero-copy decoding, caching, wasm exports (`encode_node`/`decode_node`).
-- `src/key_helper_api.rs` — LibSignal helpers and key generation exposed to JS.
-- `ts/binary.ts` + `ts/macro.ts` — WASM initialization and build-time embedding for runtime/CI.
-- `test/` — Rigorous round-trip tests that illustrate supported content/attr conventions.
+The bridge's own job is the boundary: parse what JS sent, name what was wrong, and carry the core's answer across unflattened.
 
-Important patterns (do not deviate without a PR note)
+## Layout
 
-- Zero-copy decoding: `InternalBinaryNode` keeps an owned `Arc<Box<[u8]>>` buffer and returns `NodeRef` references (unsafe `mem::transmute` into `'static`). Be careful when adjusting lifetimes.
-- JS → Rust encoding: `js_to_node()` coerces non-string attrs to strings and skips empty values; content can be `string`, `Uint8Array` or `BinaryNode[]`.
-- Content types: decoded string content is returned as `Uint8Array` (UTF-8). Known token strings are encoded efficiently (small bytes). Ensure tests cover token vs binary behavior.
-- Export naming: `#[wasm_bindgen(js_name = XXX)]` controls JS names (e.g., `encode_node` → `encodeNode`). Keep `typescript_custom_section` updated for TS types.
-
-Build, test & release flow
-
-- Local dev build (WASM + TS):
-  - `bun run build` — runs `wasm-pack build` then TypeScript bundling; produces `pkg/` and `dist/`.
-  - `bun test` — run unit tests in `test/`. (always remember to run `bun run build` first to ensure latest changes are tested)
-  - `bun run bench` — build + run benches in `benches/`.
-- Ensure you have `wasm-pack`, `bun`, and `wasm-opt` available when building.
-
-Conventions & examples
-
-- Naming: Rust functions are `snake_case`, exports use a `js_name` camelCase; TS uses camelCase for functions.
-- Mutation model: `InternalBinaryNode` exposes JS getters/setters for `attrs` and `content`. Tests mutate and re-encode — ensure setters reflect intended semantics and re-encode correctly.
-
-Tests & contributing guidance
-
-- Follow the round-trip tests in `test/binary.test.ts` for behavior coverage: token strings, binary vs string content, attr coercion, and mutation/round-trip persistence.
-- Prefer adding tests whenever changing encoding/decoding semantics; maintain parity between `encodeNode`/`decodeNode`.
-
-Gotchas
-
-- Unsafe lifetime coercion: the crate uses `transmute` to create a `'static` slice for NodeRef — any change must preserve memory ownership semantics.
-- Type conversions: `js_to_node` converts numbers/booleans to strings and drops null/undefined/empty attrs.
-- Build order matters: wasm build (pkg) must be generated before TS bundling.
-
-If anything's unclear, ask for the target: (a) add a new wasm export, (b) change payload format, or (c) alter the Node lifetime/caching semantics.
-
-— End of guide —
-
-# WhatsApp Rust Bridge - AI Coding Guidelines
-
-## Architecture Overview
-
-This is a high-performance Rust-WebAssembly bridge for WhatsApp's binary protocol. The core architecture consists of:
-
-- **Rust WASM Core** (`src/`): Zero-copy binary encoding/decoding using `wacore-binary` crate
-- **TypeScript/JavaScript Layer** (`ts/`): WASM initialization and API exports
-
-## Key Design Patterns
-
-### Zero-Copy Decoding
-
-- `WasmNode` struct holds references to WASM memory, avoiding copies
-- Use `decodeNode()` for lazy access to decoded data
-- Memory managed by custom Talc allocator (see `src/lib.rs`)
-
-### Content Type Handling
-
-- **Strings**: Passed as `Uint8Array` in decoded content (always UTF-8 encoded)
-- **Binary data**: Direct `Uint8Array` representation
-- **Token strings**: Compressed to single bytes (e.g., "receipt" → 5 bytes)
-- Distinguish by input type: `string` vs `Uint8Array` in `INode.content`
-
-### Node Structure
-
-```typescript
-// For encoding (input)
-interface INode {
-  tag: string;
-  attrs: { [key: string]: string };
-  content?: INode[] | string | Uint8Array;
-}
-
-// For decoding (output handle)
-class WasmNode {
-  readonly tag: string;
-  readonly children: INode[];
-  readonly content?: Uint8Array;
-  getAttribute(key: string): string | undefined;
-  getAttributes(): { [key: string]: string };
-}
+```
+src/
+  wasm_client.rs        the client type, its construction, event plumbing,
+                        shared conversion helpers
+  wasm_client/          one #[wasm_bindgen] impl block per domain —
+                        connection, messaging, groups, contacts,
+                        chat_actions, business, newsletter, media, signal
+  result_types.rs       hand-written Tsify result structs
+  generated_types.rs    GENERATED by `bun run gen:bridge-types`; CI fails on drift
+  errors.rs             BridgeError — the single shape errors cross in
+  js_*.rs               JS-provided adapters: transport, http, storage, crypto, time
+  proto.rs, wire_batch.rs
+ts/
+  index.ts              entry point; initialises the wasm and re-exports it
+  proto*.ts, wire-info.ts
+tests/                  the client surface (Bun)
+test/                   the feature-gated codecs: audio, image, sticker (Bun)
 ```
 
-## Build & Development Workflow
+Both test directories run under a bare `bun test`.
 
-### Primary Commands
+`src/wasm_client.rs` holds no exported methods itself. wasm-bindgen accepts several `impl` blocks for one type, and a child module reaches its ancestor's private items, so a domain module gets the fields and helpers without anything being widened.
 
-- **Full build**: `bun run build` (WASM + TS bundle + declarations)
-- **Test**: `bun test` (runs `test/binary.test.ts`)
-- **Benchmark**: `bun run bench` (builds then runs `benches/binary.ts`)
+## Conventions
 
-### Testing Patterns
+**Naming.** Rust is `snake_case`; the JS surface is `camelCase` via `#[wasm_bindgen(js_name = ...)]`. Names mirror the core's — a method that wraps `newsletter().set_follower_mute` is `newsletterFollowerMute`, not something friendlier.
 
-- Use Bun's test runner (`bun:test`)
-- Round-trip testing: encode → decode → compare
-- Content type verification: string vs binary handling
-- Error case testing: truncated data, invalid inputs
+**Errors.** Every `WasmWhatsAppClient` method fails as `crate::errors::BridgeError`, which lands in JS as a real `Error` named `WhatsAppError` with `.kind` and per-variant fields. Don't open a second error channel out of the client.
 
-## Code Organization
+Two places do not follow that, and both are shape changes to fix rather than things to quietly correct in passing:
 
-### File Structure
+- The free-standing utility exports predate it — `inflateZlib`, the curve/crypto helpers in `src/crypto.rs`, and the signal-record codecs return `Result<_, JsValue>`, usually a plain string from `wasm_utils::error_value`.
+- A **stream** that fails after its method returned. `downloadMediaStream` hands back a `ReadableStream` and then reports a download failure through it as `JsValue::from_str`, so the reader rejects with a bare string carrying no `.kind`.
 
-- `src/wasm_api.rs` - Core WASM bindings and conversion logic
-- `src/wasm_types.rs` - TypeScript type definitions via `typescript_custom_section`
-- `ts/binary.ts` - JavaScript entry point with WASM initialization
-- `Cargo.toml` - Rust dependencies (note: uses private `wacore-binary` crate)
+The kind is a contract, not a label. All nine:
 
-### Naming Conventions
+| kind | means |
+|---|---|
+| `invalid-argument` | the caller's own doing. Set `field` to the argument that was wrong, and use the same value everywhere that argument can be wrong |
+| `server` | a typed `<error>` stanza, with `serverCode` / `serverText` |
+| `timeout` | no response inside the window |
+| `not-connected` | no socket, or not logged in |
+| `disconnected` | the server ended the stream mid-flight |
+| `protocol-violation` | a remote peer sent something unparseable |
+| `crypto` | a key, agreement or AEAD step failed |
+| `storage` | persistence failed — a JS callback, serde, the store |
+| `internal` | the bridge broke, and there is nothing the caller can do |
 
-- Rust: `snake_case` functions, `PascalCase` structs
-- JavaScript: `camelCase` functions, `PascalCase` classes/interfaces
-- WASM exports: `js_name` attributes for camelCase (e.g., `encode_node` → `encodeNode`)
+A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs. Reaching for `internal` because the specific kind takes more thought is the same mistake in slower motion.
 
-## Performance Considerations
+`field` names an argument where there is one, and the operation where there is not: `connect()` takes nothing and reports `field: "connect"` when the client is already connected, because the call was still the caller's mistake. Don't invent a pseudo-argument to fill the slot.
 
-### Memory Management
+It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
 
-- Custom Talc allocator optimized for WASM
-- Zero-copy where possible (decoding)
-- Reuse buffers with `encodeNodeTo()` for hot paths
+**Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
-### WASM Optimization
+`tests/exported-surface.test.ts` sweeps the whole surface for this: every exported method must settle.
 
-- Release profile: `lto = "fat"`, `opt-level = 3`, `codegen-units = 1`
-- Custom `wasm-opt` flags for size/speed balance
-- Target CPU: `native` for WASM builds
+**No `Debug` for a value you can name.** `format!("{:?}", …)` makes a trait impl in another repo into this one's contract, so every variant the core declares gets its string written down here instead. The one place `Debug` stays is the wildcard an upstream `#[non_exhaustive]` enum forces: a variant added later has no string of ours, and rendering its name beats collapsing it into a neighbour's. See `newsletter_role_str` and friends.
 
-## Common Patterns
+**Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
 
-### Encoding Flow
+**Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
-```rust
-// JS object → Rust Node → binary bytes
-let node: Node = js_to_node(js_val)?;
-let bytes = marshal(&node)?;
+## Build and test
+
+```
+bun run build         gen → wasm-pack (release) → bundle → tsc + finalize
+bun run build:dev     same, with a --dev wasm build
+bun test              both test directories
+bun run test:rust     wasm-pack test --node
 ```
 
-### Decoding Flow
+Build order matters: `pkg/` must exist before the TypeScript bundling that copies out of it.
 
-```rust
-// binary bytes → unpacked → NodeRef → WasmNode handle
-let unpacked = unpack(data)?;
-let node_ref = unmarshal_ref(unpacked)?;
-let handle = WasmNode { _owned_data, node_ref };
-```
+The release wasm build runs `wasm-opt` and is memory-hungry — it can be killed on a small machine. Building with `build:wasm:dev` locally and letting CI run the real thing is fine; say so in the PR when you do.
 
-### Attribute Access
+`bun run build` regenerates `src/generated_types.rs`, and CI fails if the result differs from what is committed. Commit the regenerated file rather than reverting it.
 
-- `getAttribute()` - Single attribute lookup
-- `getAttributes()` - All attributes as JS object (single FFI call)
-- `getAttributeAsJid()` - JID-specific parsing
+## Tests
 
-## Dependencies & Tooling
+There is **no mock server in CI**, so no test here proves an end-to-end response body. What tests can prove:
 
-- Declaration generation requires specific TypeScript config (`emitDeclarationOnly: true`)
-- **Testing**: Bun test runner
-- **Benchmarking**: Mitata
-- **WASM**: wasm-pack + wasm-bindgen
-- **Rust**: 2024 edition, custom allocator
+- a call reaches the core and comes back with the right typed error (build a client over a no-op transport — see `offlineClient` in the surface tests);
+- the emitted `.d.ts` has the shape the PR claims;
+- a value crosses the boundary unchanged.
 
-## Gotchas
+Say which of these a test does, and do not let a test's name claim more than it checks. A test that would still pass with the fix reverted is not a test of the fix — revert it and watch it fail.
 
-- WASM memory is static lifetime - careful with references
-- Content encoding: strings become `Uint8Array` (not `string`) in decoded output
-- Build order matters: WASM must be built before TypeScript bundling
-- Declaration generation requires specific TypeScript config (`emitDeclarationOnly: true`)
+## Pull requests
+
+Explain the failure the change prevents, not the lines it touches. Show the evidence — the failing output before, the passing output after. Name what you did *not* verify.
+
+Do not merge, and do not add labels.
