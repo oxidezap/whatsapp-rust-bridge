@@ -2060,17 +2060,28 @@ fn parse_optional_count(
     Ok(Some(n as usize))
 }
 
+/// Whether `value` is a millisecond count that survives the cast to `u64`.
+///
+/// The upper bound is not pedantry: `as u64` saturates, so a caller asking for
+/// `2 ** 64` ms would otherwise get `u64::MAX` — around 584 million years —
+/// instead of an error.
+fn is_representable_millis(value: f64) -> bool {
+    value.is_finite() && value >= 0.0 && value < u64::MAX as f64
+}
+
+const MILLIS_RANGE: &str = "must be a non-negative number of milliseconds below 2^64";
+
 fn parse_optional_timeout_ms(
     field: &'static str,
     value: Option<f64>,
 ) -> Result<Option<std::time::Duration>, crate::errors::BridgeError> {
     match value {
-        Some(value) if value.is_finite() && value >= 0.0 => {
+        Some(value) if is_representable_millis(value) => {
             Ok(Some(std::time::Duration::from_millis(value as u64)))
         }
         Some(_) => Err(crate::errors::BridgeError::InvalidArgument {
             field: field.into(),
-            reason: "must be a finite non-negative number".into(),
+            reason: MILLIS_RANGE.into(),
         }),
         None => Ok(None),
     }
@@ -2083,12 +2094,12 @@ fn parse_timeout_ms(
     field: &'static str,
     value: f64,
 ) -> Result<std::time::Duration, crate::errors::BridgeError> {
-    if value.is_finite() && value >= 0.0 {
+    if is_representable_millis(value) {
         Ok(std::time::Duration::from_millis(value as u64))
     } else {
         Err(crate::errors::BridgeError::InvalidArgument {
             field: field.into(),
-            reason: "must be a finite non-negative number".into(),
+            reason: MILLIS_RANGE.into(),
         })
     }
 }
@@ -2613,13 +2624,13 @@ impl WasmWhatsAppClient {
 
         let kind = DirtyType::from(dirty_type);
         let bit = match timestamp {
-            Some(value) if value.is_finite() && value >= 0.0 => {
+            Some(value) if is_representable_millis(value) => {
                 DirtyBit::with_timestamp(kind, value as u64)
             }
             Some(_) => {
                 return Err(crate::errors::BridgeError::InvalidArgument {
                     field: "timestamp".into(),
-                    reason: "must be a finite non-negative number".into(),
+                    reason: MILLIS_RANGE.into(),
                 });
             }
             None => DirtyBit::new(kind),

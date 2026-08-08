@@ -62,12 +62,25 @@ describe("lifecycle waits", () => {
     }
   }, 20000);
 
-  test("the waits reject a timeout that is not a finite non-negative number", async () => {
+  test("the waits reject a timeout outside the representable range", async () => {
     const client = await offlineClient();
     try {
-      for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
-        const error = await rejection(client.waitForSocket(bad));
-        expect(error.kind).toBe("invalid-argument");
+      // The last three are finite and non-negative but do not survive the cast
+      // to u64, which saturates: without an upper bound they would become
+      // u64::MAX milliseconds — a wait of roughly 584 million years — instead
+      // of an error.
+      const bad = [
+        -1,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        2 ** 64,
+        18446744073709551616,
+        Number.MAX_VALUE,
+      ];
+
+      for (const value of bad) {
+        const error = await rejection(client.waitForSocket(value));
+        expect(error.kind, String(value)).toBe("invalid-argument");
       }
     } finally {
       client.free();
@@ -100,6 +113,11 @@ describe("server-side operations", () => {
 
       const badTimestamp = await rejection(client.cleanDirtyBits("groups", -5));
       expect(badTimestamp.kind).toBe("invalid-argument");
+
+      // Same saturating cast as the timeouts: finite, non-negative, and still
+      // not a timestamp.
+      const oversized = await rejection(client.cleanDirtyBits("groups", 2 ** 64));
+      expect(oversized.kind).toBe("invalid-argument");
     } finally {
       client.free();
     }
