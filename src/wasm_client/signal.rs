@@ -141,6 +141,8 @@ impl WasmWhatsAppClient {
 
     /// Ensure E2E Signal sessions exist for the given JIDs.
     /// Returns true after sessions are established.
+    ///
+    /// `force` has no effect — the core exposes no such switch.
     #[wasm_bindgen(js_name = assertSessions)]
     pub async fn assert_sessions(
         &self,
@@ -157,6 +159,9 @@ impl WasmWhatsAppClient {
 
     /// Get the list of known devices for the given user JIDs via usync query.
     /// Returns an array of JID strings (one per device).
+    ///
+    /// `useCache` and `ignoreZeroDevices` have no effect — the core's device
+    /// query takes neither.
     #[wasm_bindgen(js_name = getUSyncDevices)]
     pub async fn get_usync_devices(
         &self,
@@ -231,6 +236,8 @@ impl WasmWhatsAppClient {
 
     /// Encrypt plaintext for a group (sender key).
     /// Returns `{ senderKeyDistributionMessage: Uint8Array, ciphertext: Uint8Array }`.
+    ///
+    /// `meId` has no effect — the core reads the sender from the store.
     #[wasm_bindgen(js_name = signalEncryptGroupMessage)]
     pub async fn signal_encrypt_group_message(
         &self,
@@ -591,6 +598,8 @@ impl WasmWhatsAppClient {
     /// Create encrypted participant `<to>` nodes for recipient JIDs.
     /// Returns `{ nodes: [...], shouldIncludeDeviceIdentity: boolean }`.
     /// Use `encodeProto('Message', obj)` on the JS side to produce the bytes.
+    ///
+    /// `extraAttrs` has no effect — the core sets the node attributes itself.
     #[wasm_bindgen(js_name = createParticipantNodesBytes)]
     pub async fn create_participant_nodes_bytes(
         &self,

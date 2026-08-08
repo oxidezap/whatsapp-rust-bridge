@@ -12,7 +12,8 @@ impl WasmWhatsAppClient {
 
     /// Get media connection info (auth token + upload hosts).
     ///
-    /// Returns `{ auth: string, ttl: number, hosts: [{hostname: string, maxContentLengthBytes: number}] }`.
+    /// Returns `{ auth: string, ttl: number, hosts: [{hostname: string}] }`.
+    /// The core's `hosts` carry nothing but the hostname, so neither does this.
     #[wasm_bindgen(js_name = getMediaConn)]
     pub async fn get_media_conn(
         &self,
@@ -65,8 +66,11 @@ impl WasmWhatsAppClient {
 
     /// Download, decrypt, and return a Web ReadableStream of decrypted chunks.
     ///
-    /// Same as `downloadMedia` but returns a `ReadableStream` instead of buffering
-    /// the entire file. In Node.js, consume with `Readable.fromWeb(stream)`.
+    /// Same as `downloadMedia`, delivered in 64 KB chunks. That bounds what JS
+    /// holds, not what WASM does: the core has no streaming download, so
+    /// `download_from_params` still resolves the whole plaintext into one
+    /// `Vec<u8>` before the chunking starts. In Node.js, consume with
+    /// `Readable.fromWeb(stream)`.
     #[wasm_bindgen(js_name = downloadMediaStream)]
     pub fn download_media_stream(
         &self,
