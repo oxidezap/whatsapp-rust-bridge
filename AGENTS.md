@@ -50,7 +50,7 @@ The kind is a contract, not a label. All nine:
 
 | kind | means |
 |---|---|
-| `invalid-argument` | the caller's input. Set `field` to the argument's name, and use the same value everywhere that argument can be wrong |
+| `invalid-argument` | the caller's own doing. Set `field` to the argument that was wrong, and use the same value everywhere that argument can be wrong |
 | `server` | a typed `<error>` stanza, with `serverCode` / `serverText` |
 | `timeout` | no response inside the window |
 | `not-connected` | no socket, or not logged in |
@@ -62,7 +62,9 @@ The kind is a contract, not a label. All nine:
 
 A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs. Reaching for `internal` because the specific kind takes more thought is the same mistake in slower motion.
 
-`field` is not yet reliable across the surface: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
+`field` names an argument where there is one, and the operation where there is not: `connect()` takes nothing and reports `field: "connect"` when the client is already connected, because the call was still the caller's mistake. Don't invent a pseudo-argument to fill the slot.
+
+It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
 
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
