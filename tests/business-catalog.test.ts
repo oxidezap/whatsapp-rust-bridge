@@ -56,7 +56,11 @@ describe("catalog reads", () => {
     }
   }, 30000);
 
-  test("options are optional and cross when given", async () => {
+  // Deliberately narrow: offline, both calls stop at the connection gate before
+  // the options are read, so this shows the option objects are accepted and
+  // deserialize — not that any field reaches the query. Proving that needs a
+  // peer, and none runs in CI.
+  test("an options object is accepted without changing where the call stops", async () => {
     const client = await offlineClient();
     try {
       const withOptions = await rejection(
