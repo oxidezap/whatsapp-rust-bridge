@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.5...v0.7.0) (2026-08-08)
+
+
+### Features
+
+* **client:** expose app state label actions ([#21](https://github.com/oxidezap/whatsapp-rust-bridge/issues/21)) ([217a3f1](https://github.com/oxidezap/whatsapp-rust-bridge/commit/217a3f153f0d659ee33abb40948eab7c9b0f0e36))
+* **client:** expose business catalog operations ([#24](https://github.com/oxidezap/whatsapp-rust-bridge/issues/24)) ([0bf06c4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/0bf06c4aac9ee4b2922939b1a079e46f8d54e46d))
+* **client:** expose lifecycle and server-side operations ([#20](https://github.com/oxidezap/whatsapp-rust-bridge/issues/20)) ([5a1742d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5a1742d07ec393a3a3741c8bd4625dc05a5b0c2c))
+* **client:** expose the remaining newsletter operations ([#23](https://github.com/oxidezap/whatsapp-rust-bridge/issues/23)) ([c07f5d3](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c07f5d39a4af5bf28c13c632aa1f51f682b89be6))
+
 ## [0.6.5](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.4...v0.6.5) (2026-08-07)
 
 
