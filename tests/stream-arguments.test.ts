@@ -64,6 +64,27 @@ describe("encryptMediaStream", () => {
     }
   }, 20000);
 
+  test("a stream from another realm still crosses", async () => {
+    const client = await offlineClient();
+    try {
+      // What `instanceof` would get wrong. A stream built by a ponyfill, an
+      // iframe or a worker carries a different realm's constructor while being
+      // a perfectly good stream, so the check asks whether it can hand over a
+      // reader rather than who made it.
+      const foreignIn = { getReader: () => readable().getReader() };
+      const foreignOut = { getWriter: () => writable().getWriter() };
+
+      const result = await (client as any).encryptMediaStream(
+        foreignIn,
+        foreignOut,
+        "image"
+      );
+      expect(result.fileLength).toBe(0);
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
   test("real streams still cross", async () => {
     const client = await offlineClient();
     try {

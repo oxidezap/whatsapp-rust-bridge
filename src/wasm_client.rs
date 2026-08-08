@@ -2684,24 +2684,37 @@ fn from_js_input<T: serde::de::DeserializeOwned>(
 }
 
 /// Take a parameter declared as an imported JS class, naming the field when it
-/// is something else.
+/// cannot do what this code is about to ask of it.
 ///
 /// The same trap [`from_js_input`] exists for, reached the other way:
 /// wasm-bindgen casts an imported type *unchecked*, so a plain object is
 /// accepted at the boundary and fails much deeper, where the throw escapes the
 /// async shim as an uncaught exception and the promise stays pending for good.
 /// `unchecked_param_type` keeps the declared TypeScript type.
+///
+/// The test is for `method` rather than for `instanceof`, because `instanceof`
+/// asks the wrong question. A stream from an iframe, a worker, or a WHATWG
+/// ponyfill is a working stream carrying a different realm's constructor, and
+/// brand-checking would start rejecting arguments that used to run fine.
 fn from_js_class<T: JsCast>(
     field: &'static str,
     expected: &str,
+    method: &str,
     value: JsValue,
 ) -> Result<T, crate::errors::BridgeError> {
-    value
-        .dyn_into::<T>()
-        .map_err(|_| crate::errors::BridgeError::InvalidArgument {
+    // `Reflect::get` walks the prototype chain, and errors on a primitive or
+    // on null rather than panicking — all three answer "not a stream".
+    let usable = js_sys::Reflect::get(&value, &JsValue::from_str(method))
+        .is_ok_and(|member| member.is_function());
+
+    if usable {
+        Ok(value.unchecked_into())
+    } else {
+        Err(crate::errors::BridgeError::InvalidArgument {
             field: field.into(),
-            reason: format!("must be a {expected}"),
+            reason: format!("must be a {expected} (nothing callable at .{method}())"),
         })
+    }
 }
 
 /// Carry the bot directory across as the core grouped it: every section, with

@@ -163,8 +163,18 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "WritableStream")] output: JsValue,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<crate::result_types::EncryptMediaResult, crate::errors::BridgeError> {
-        let input = from_js_class::<web_sys::ReadableStream>("input", "ReadableStream", input)?;
-        let output = from_js_class::<web_sys::WritableStream>("output", "WritableStream", output)?;
+        let input = from_js_class::<web_sys::ReadableStream>(
+            "input",
+            "ReadableStream",
+            "getReader",
+            input,
+        )?;
+        let output = from_js_class::<web_sys::WritableStream>(
+            "output",
+            "WritableStream",
+            "getWriter",
+            output,
+        )?;
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         use futures::SinkExt;
         use futures::StreamExt;
