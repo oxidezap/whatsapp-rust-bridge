@@ -53,6 +53,18 @@ export type BlocklistAction = "block" | "unblock";
 
 export type BotEditType = "first" | "inner" | "last";
 
+/** Shape version of a bot-list response, carried in `<bot v="...">`.  The two versions differ only in which fields are populated, so one parser reads both; this records which shape actually arrived. */
+export type BotListVersion = "2" | "3" | string;
+
+/** How a section should be laid out. Present only in `v="3"` responses. */
+export type BotSectionDisplayType = "hidden" | "hscroll" | "hscroll_icebreakers" | "hscroll_large" | "hscroll_small" | "listview" | string;
+
+/** What a section groups. WhatsApp Web reads bots out of *every* section regardless of type — the type only drives how the section is presented. */
+export type BotSectionType = "all" | "category" | "featured" | string;
+
+/** Colour scheme a `<theme>` block applies to. */
+export type BotThemeMode = "dark" | "light" | string;
+
 export type BusinessHourMode = "open_24h" | "specific_hours" | "appointment_only" | string;
 
 /** Parsed `<notification type="business">` stanza. */
@@ -175,6 +187,15 @@ export interface CallLinkPreview {
   is_admin: boolean;
 }
 
+/** Meta Verified subscription state, which is what lifts the cap permanently. */
+export type CappingMvStatus = "NOT_ELIGIBLE" | "NOT_ACTIVE" | "ACTIVE" | "ACTIVE_UPGRADE_AVAILABLE" | string;
+
+/** Eligibility for the one-time extension that lifts the cap for a cycle. */
+export type CappingOteStatus = "NOT_ELIGIBLE" | "ELIGIBLE" | "ACTIVE_IN_CURRENT_CYCLE" | "EXHAUSTED" | string;
+
+/** Where the account stands against the cap. */
+export type CappingStatus = "NONE" | "FIRST_WARNING" | "SECOND_WARNING" | "CAPPED" | string;
+
 /** Identifies a specific message within a chat. */
 export interface ChatMessageId {
   chat: Jid;
@@ -235,6 +256,14 @@ export interface ContactNumberChanged {
   timestamp: number;
 }
 
+/** A saved contact was deleted on a linked device.  Carries no action payload: the mutation is a syncd `Remove`, and WA Web's `WAWebContactSync` ignores the value on that branch and simply drops the contact from the address book. */
+export interface ContactRemoved {
+  /** The contact that is no longer saved. */
+  jid: Jid;
+  timestamp: number;
+  from_full_sync: boolean;
+}
+
 /** Server requests a full contact re-sync.  Emitted from `<notification type="contacts"><sync after="..."/>`. */
 export interface ContactSyncRequested {
   after?: number | null;
@@ -259,6 +288,16 @@ export interface ContactUpdated {
 export type DayOfWeek = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | string;
 
 export type DecryptFailMode = "show" | "hide";
+
+/** Payload of [`Event::DecryptedPayload`]: what Signal produced for one `<enc>`, before this build tried to make sense of it.  The client decodes a plaintext into [`wa::Message`] and dispatches that. A payload it cannot decode — a field this build predates, a message type it does not model — is logged and dropped, and with it goes something that cost a real decryption and advanced the ratchet. Nothing can ask for it back: the ratchet has moved on, so the same ciphertext will never decrypt again.  This event is that payload, handed over before decoding is attempted. It arrives whether or not the decode goes on to succeed.  Reasons to want it: recording traffic for faithful replay (re-encoding a decoded `Message` does not reproduce the original bytes), decoding with a newer protobuf than this build carries, and looking at a payload that failed to decode instead of only reading that it did.  Gated by `Client::acquire_decrypted_payload_forwarding()`: nothing is emitted, and nothing is cloned, while no consumer holds a lease. */
+export interface DecryptedPayload {
+  /** Which message this came from. */
+  info: MessageInfo;
+  /** Which `<enc>` of the stanza produced these bytes, counting from zero in the order the client enumerates them.  That order is the stanza's direct `<enc>` children first, then the ones under `<participants><to>` addressed to this device — the fan-out shape, where a single stanza carries a copy per device and only ours is ours to decrypt. It is *not* a child index: a consumer resolving this back to a node has to walk the same two groups in the same order. */
+  enc_index: number;
+  /** The `type` attribute the `<enc>` carried: `msg`, `pkmsg`, `skmsg`, … */
+  enc_type: string;
+}
 
 export interface DeleteChatUpdate {
   /** The chat being deleted. */
@@ -423,6 +462,15 @@ export interface DirtyState {
 }
 
 export type DirtyType = "account_sync" | "groups" | "syncd_app_state" | "newsletter_metadata" | string;
+
+/** The account-wide "disable link previews" privacy setting changed on a linked device (`setting_disableLinkPreviews`). */
+export interface DisableLinkPreviewsUpdate {
+  /** `true` when link previews are now disabled. Only emitted when the wire carried the flag; WA Web treats an absent one as a malformed mutation. */
+  previews_disabled: boolean;
+  timestamp: number;
+  action: PrivacySettingDisableLinkPreviewsAction;
+  from_full_sync: boolean;
+}
 
 export type DisallowedListAction = "add" | "remove";
 
@@ -810,6 +858,19 @@ export interface MessageInfo {
   bcl_participants: Jid[];
 }
 
+/** A label was associated with or removed from a single message on a linked device (`label_message`). `action.labeled == Some(true)` means the label was added. */
+export interface MessageLabelAssociationUpdate {
+  /** The label identifier. */
+  label_id: string;
+  /** The chat holding the labelled message. */
+  chat_jid: Jid;
+  /** The labelled message's id. */
+  message_id: string;
+  timestamp: number;
+  action: LabelAssociationAction;
+  from_full_sync: boolean;
+}
+
 export interface MessageSource {
   chat: Jid;
   sender: Jid;
@@ -1065,6 +1126,9 @@ export type PrivacySensitiveType = "1";
 
 export type PrivacyValue = "all" | "contacts" | "none" | "contact_blacklist" | "match_last_seen" | "known" | "off" | "on_standard" | string;
 
+/** Whether a product can currently be bought.  The wire values are the GraphQL enum names; WhatsApp Web maps anything it does not recognise to "unknown" rather than failing the whole catalog. */
+export type ProductAvailability = "IN_STOCK" | "OUT_OF_STOCK" | "AVAILABLE_FOR_ANOTHER_POSTCODE" | string;
+
 /** Profile picture type (preview thumbnail or full-size). */
 export type ProfilePictureType = "preview" | "image";
 
@@ -1077,6 +1141,15 @@ export interface PushNameUpdate {
 }
 
 export type PushPriority = "high" | "high_force";
+
+/** A quick reply was created, edited, or deleted on a linked device.  Deletion is the same mutation with `action.deleted == Some(true)`, not a syncd `Remove`, so a consumer must check that flag rather than assume the event always describes a live quick reply. */
+export interface QuickReplyUpdate {
+  /** The quick reply's identifier (the index key, not a JID). */
+  id: string;
+  timestamp: number;
+  action: QuickReplyAction;
+  from_full_sync: boolean;
+}
 
 export interface Receipt {
   source: MessageSource;
