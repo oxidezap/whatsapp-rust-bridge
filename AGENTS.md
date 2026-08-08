@@ -41,7 +41,10 @@ Both test directories run under a bare `bun test`.
 
 **Errors.** Every `WasmWhatsAppClient` method fails as `crate::errors::BridgeError`, which lands in JS as a real `Error` named `WhatsAppError` with `.kind` and per-variant fields. Don't open a second error channel out of the client.
 
-The free-standing utility exports predate it and are not part of that contract — `inflateZlib`, the curve/crypto helpers in `src/crypto.rs`, and the signal-record codecs return `Result<_, JsValue>`, usually a plain string from `wasm_utils::error_value`. Leave them alone unless you are deliberately changing their error shape, which is breaking.
+Two places do not follow that, and both are shape changes to fix rather than things to quietly correct in passing:
+
+- The free-standing utility exports predate it — `inflateZlib`, the curve/crypto helpers in `src/crypto.rs`, and the signal-record codecs return `Result<_, JsValue>`, usually a plain string from `wasm_utils::error_value`.
+- A **stream** that fails after its method returned. `downloadMediaStream` hands back a `ReadableStream` and then reports a download failure through it as `JsValue::from_str`, so the reader rejects with a bare string carrying no `.kind`.
 
 The kind is a contract, not a label. All nine:
 
@@ -59,13 +62,15 @@ The kind is a contract, not a label. All nine:
 
 A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs. Reaching for `internal` because the specific kind takes more thought is the same mistake in slower motion.
 
+`field` is not yet reliable across the surface: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
+
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
 `tests/exported-surface.test.ts` sweeps the whole surface for this: every exported method must settle.
 
-**No `Debug` in a public value.** `format!("{:?}", …)` makes a trait impl in another repo into this one's contract. Write the strings down.
+**No `Debug` for a value you can name.** `format!("{:?}", …)` makes a trait impl in another repo into this one's contract, so every variant the core declares gets its string written down here instead. The one place `Debug` stays is the wildcard an upstream `#[non_exhaustive]` enum forces: a variant added later has no string of ours, and rendering its name beats collapsing it into a neighbour's. See `newsletter_role_str` and friends.
 
-**Money.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number. It crosses as a string.
+**Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
