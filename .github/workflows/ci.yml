@@ -100,6 +100,12 @@ jobs:
       - name: Fail if the generated types drifted
         run: git diff --exit-code -- src/generated_types.rs
 
+      # Nothing measured the artifact, so it grew a little per release with
+      # nobody positioned to notice. Runs here rather than at `prepack`
+      # because by then the bytes are already in a version.
+      - name: Fail if the package outgrew its budget
+        run: bun run check:size
+
       - name: Run Tests with Bun
         run: bun test
         env:

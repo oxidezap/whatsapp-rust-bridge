@@ -4,17 +4,14 @@
  * double the package).
  */
 import { createHash } from "node:crypto";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(import.meta.dir, "..");
+import { ROOT, packedContents } from "./pack";
+
 const MIN_DUP_BYTES = 4096;
 
-const packed = JSON.parse(
-  execSync("npm pack --dry-run --json --ignore-scripts", { cwd: ROOT, encoding: "utf8" }),
-);
-const files: string[] = packed[0].files.map((f: { path: string }) => f.path);
+const files: string[] = packedContents().files.map((f) => f.path);
 
 const errors: string[] = [];
 
