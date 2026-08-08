@@ -47,9 +47,21 @@ function readSurface(): { methods: Method[]; unions: Map<string, string> } {
     "interface WasmWhatsAppClient {",
   ]) {
     const before = methods.length;
-    for (const m of block(dts, opening).matchAll(
-      /^ {4}([a-zA-Z_][A-Za-z0-9_]*)\(([^)]*)\): [^;]+;$/gm
-    )) {
+    for (const line of block(dts, opening).split("\n")) {
+      // Every callable member has to end up parsed or named as a known
+      // non-method. Recognising only one declaration shape and moving on is
+      // how a method goes unswept while this file still reports a pass.
+      // Indentation is not part of the contract: the class comes out of
+      // wasm-bindgen and the interface out of a hand-written custom section,
+      // and they do not have to agree on a width.
+      const member = line.trim();
+      if (!/^\s+\S.*\(.*;$/.test(line)) continue;
+      if (member === "private constructor();") continue;
+      if (member === "[Symbol.dispose](): void;") continue;
+
+      const m = /^([a-zA-Z_][A-Za-z0-9_]*)\(([^)]*)\): [^;]+;$/.exec(member);
+      if (!m) throw new Error(`unparsed member declaration: ${member}`);
+
       const list = m[2].trim();
       // Splitting on "," is only safe while no parameter type carries one of
       // its own. A generic would, so fail loudly rather than synthesise
@@ -60,8 +72,8 @@ function readSurface(): { methods: Method[]; unions: Map<string, string> } {
         params: list ? list.split(",").map((p) => p.slice(p.indexOf(":") + 1).trim()) : [],
       });
     }
-    // A block that parses to nothing is the failure this loop exists to
-    // prevent, and it would otherwise be invisible.
+    // And a block that yields nothing at all — the slice went wrong rather
+    // than a line failing to parse, which no per-line check would notice.
     if (methods.length === before) throw new Error(`no methods parsed from ${opening}`);
   }
 
