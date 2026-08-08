@@ -1977,7 +1977,11 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
         Event::LoggedOut(lo) => {
             let d = js_sys::Object::new();
             js_sys::Reflect::set(&d, &"on_connect".into(), &lo.on_connect.into())?;
-            js_sys::Reflect::set(&d, &"reason".into(), &format!("{:?}", lo.reason).into())?;
+            js_sys::Reflect::set(
+                &d,
+                &"reason".into(),
+                &connect_failure_reason_str(&lo.reason).into(),
+            )?;
             ("logged_out", d.into())
         }
         Event::Notification(node) => {
@@ -3057,6 +3061,74 @@ fn admin_profile_to_result(
     }
 }
 
+/// The JS spelling of a core enum, written down here rather than taken from
+/// `Debug`.
+///
+/// `Debug` is not a stable API. Renaming a variant upstream is an ordinary
+/// refactor there and neither crate would fail to build, but the string a host
+/// switches on would have changed. Each mapping below emits exactly what the
+/// surface emits today, so this is a change of source rather than of value.
+fn newsletter_verification_str(v: &whatsapp_rust::features::NewsletterVerification) -> String {
+    use whatsapp_rust::features::NewsletterVerification as V;
+    match v {
+        V::Verified => "Verified".into(),
+        V::Unverified => "Unverified".into(),
+        // `#[non_exhaustive]` forces a wildcard. `Debug` keeps a variant added
+        // upstream identifiable rather than folding it into a name above.
+        other => format!("{other:?}"),
+    }
+}
+
+/// See [`newsletter_verification_str`].
+fn newsletter_state_str(s: &whatsapp_rust::features::NewsletterState) -> String {
+    use whatsapp_rust::features::NewsletterState as S;
+    match s {
+        S::Active => "Active".into(),
+        S::Suspended => "Suspended".into(),
+        S::Geosuspended => "Geosuspended".into(),
+        other => format!("{other:?}"),
+    }
+}
+
+/// See [`newsletter_verification_str`].
+fn newsletter_role_str(r: &whatsapp_rust::features::NewsletterRole) -> String {
+    use whatsapp_rust::features::NewsletterRole as R;
+    match r {
+        R::Owner => "Owner".into(),
+        R::Admin => "Admin".into(),
+        R::Subscriber => "Subscriber".into(),
+        R::Guest => "Guest".into(),
+        other => format!("{other:?}"),
+    }
+}
+
+/// See [`newsletter_verification_str`].
+///
+/// This one is matched whole: the core enum is not `#[non_exhaustive]`, so a
+/// variant added upstream stops the build here and has to be given a string
+/// deliberately.
+fn connect_failure_reason_str(r: &wacore::types::events::ConnectFailureReason) -> String {
+    use wacore::types::events::ConnectFailureReason as R;
+    match r {
+        R::Generic => "Generic".into(),
+        R::LoggedOut => "LoggedOut".into(),
+        R::TempBanned => "TempBanned".into(),
+        R::AccountLocked => "AccountLocked".into(),
+        R::UnknownLogout => "UnknownLogout".into(),
+        R::ClientOutdated => "ClientOutdated".into(),
+        R::BadUserAgent => "BadUserAgent".into(),
+        R::CatExpired => "CatExpired".into(),
+        R::CatInvalid => "CatInvalid".into(),
+        R::NotFound => "NotFound".into(),
+        R::ClientUnknown => "ClientUnknown".into(),
+        R::InternalServerError => "InternalServerError".into(),
+        R::Experimental => "Experimental".into(),
+        R::ServiceUnavailable => "ServiceUnavailable".into(),
+        // The core's own fallback: the code it could not name, carried through.
+        R::Unknown(code) => format!("Unknown({code})"),
+    }
+}
+
 /// Convert NewsletterMetadata to a typed result struct.
 fn newsletter_metadata_to_result(
     meta: &whatsapp_rust::features::NewsletterMetadata,
@@ -3066,13 +3138,74 @@ fn newsletter_metadata_to_result(
         name: meta.name.to_string(),
         description: meta.description.clone(),
         subscriber_count: meta.subscriber_count as f64,
-        verification: format!("{:?}", meta.verification),
-        state: format!("{:?}", meta.state),
+        verification: newsletter_verification_str(&meta.verification),
+        state: newsletter_state_str(&meta.state),
         picture_url: meta.picture_url.clone(),
         preview_url: meta.preview_url.clone(),
         invite_code: meta.invite_code.clone(),
-        role: meta.role.as_ref().map(|r| format!("{:?}", r)),
+        role: meta.role.as_ref().map(newsletter_role_str),
         creation_time: meta.creation_time.map(|v| v as f64),
+    }
+}
+
+#[cfg(test)]
+mod enum_string_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    /// The strings are the contract, so they are written out here rather than
+    /// derived. A test that recomputed them from the same source would pass
+    /// through any rename, which is the failure these mappings exist to stop.
+    #[test]
+    fn every_variant_keeps_its_spelling() {
+        use whatsapp_rust::features::{
+            NewsletterRole as R, NewsletterState as S, NewsletterVerification as V,
+        };
+
+        assert_eq!(newsletter_verification_str(&V::Verified), "Verified");
+        assert_eq!(newsletter_verification_str(&V::Unverified), "Unverified");
+
+        assert_eq!(newsletter_state_str(&S::Active), "Active");
+        assert_eq!(newsletter_state_str(&S::Suspended), "Suspended");
+        assert_eq!(newsletter_state_str(&S::Geosuspended), "Geosuspended");
+
+        assert_eq!(newsletter_role_str(&R::Owner), "Owner");
+        assert_eq!(newsletter_role_str(&R::Admin), "Admin");
+        assert_eq!(newsletter_role_str(&R::Subscriber), "Subscriber");
+        assert_eq!(newsletter_role_str(&R::Guest), "Guest");
+    }
+
+    #[test]
+    fn connect_failure_reasons_keep_their_spelling() {
+        use wacore::types::events::ConnectFailureReason as R;
+
+        for (reason, expected) in [
+            (R::Generic, "Generic"),
+            (R::LoggedOut, "LoggedOut"),
+            (R::TempBanned, "TempBanned"),
+            (R::AccountLocked, "AccountLocked"),
+            (R::UnknownLogout, "UnknownLogout"),
+            (R::ClientOutdated, "ClientOutdated"),
+            (R::BadUserAgent, "BadUserAgent"),
+            (R::CatExpired, "CatExpired"),
+            (R::CatInvalid, "CatInvalid"),
+            (R::NotFound, "NotFound"),
+            (R::ClientUnknown, "ClientUnknown"),
+            (R::InternalServerError, "InternalServerError"),
+            (R::Experimental, "Experimental"),
+            (R::ServiceUnavailable, "ServiceUnavailable"),
+        ] {
+            assert_eq!(connect_failure_reason_str(&reason), expected);
+        }
+    }
+
+    /// The code the core could not name still has to reach the host: a
+    /// failure it cannot identify is one it cannot report.
+    #[test]
+    fn an_unnamed_failure_carries_its_code() {
+        use wacore::types::events::ConnectFailureReason as R;
+
+        assert_eq!(connect_failure_reason_str(&R::Unknown(499)), "Unknown(499)");
     }
 }
 
