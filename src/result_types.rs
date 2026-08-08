@@ -739,6 +739,91 @@ pub struct BusinessHoursConfigResult {
 }
 
 // ---------------------------------------------------------------------------
+// Newsletter
+// ---------------------------------------------------------------------------
+
+/// One follower of a newsletter, from `newsletterFollowers`.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterFollowerResult {
+    pub jid: String,
+    /// Withheld by the server when the follower's privacy settings hide it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone_jid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_profile: Option<NewsletterAdminProfileResult>,
+}
+
+/// An admin's published profile on a newsletter.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterAdminProfileResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_direct_path: Option<String>,
+}
+
+/// Result from `newsletterAdminInfo`.
+///
+/// `adminCount` has no query of its own — it rides along with the admin
+/// profile. Absent means the server withheld it (it answers only admins and
+/// owners), never zero.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterAdminInfoResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_count: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_profile: Option<NewsletterAdminProfileResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_profiles_enabled: Option<bool>,
+}
+
+/// A reaction tally on a newsletter message.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterReactionCountResult {
+    pub code: String,
+    pub count: f64,
+}
+
+/// One message from `newsletterMessages`.
+///
+/// `serverId` is the pagination cursor and the key `newsletterReactMessage`
+/// uses; `messageId` is what edit and revoke key on. They are different ids and
+/// both cross as strings, since a `serverId` is a u64.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterMessageResult {
+    pub message_id: String,
+    pub server_id: String,
+    pub timestamp: f64,
+    pub message_type: String,
+    pub is_sender: bool,
+    /// The decoded protobuf, re-encoded. Absent when the stanza carried none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<serde_bytes::ByteBuf>,
+    pub reactions: Vec<NewsletterReactionCountResult>,
+}
+
+// ---------------------------------------------------------------------------
 // Bot directory
 // ---------------------------------------------------------------------------
 
