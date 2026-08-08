@@ -66,10 +66,12 @@ impl WasmWhatsAppClient {
 
     /// Download, decrypt, and return a Web ReadableStream of decrypted chunks.
     ///
-    /// Same as `downloadMedia`, delivered in 64 KB chunks. That bounds what JS
-    /// holds, not what WASM does: the core has no streaming download, so
+    /// Same as `downloadMedia`, delivered in 64 KB chunks. Neither side is
+    /// bounded by that: the core has no streaming download, so
     /// `download_from_params` still resolves the whole plaintext into one
-    /// `Vec<u8>` before the chunking starts. In Node.js, consume with
+    /// `Vec<u8>` before chunking starts, and on the JS side only the queued
+    /// chunks are bounded — a consumer that keeps them, to rebuild the file,
+    /// ends up holding all of it. In Node.js, consume with
     /// `Readable.fromWeb(stream)`.
     #[wasm_bindgen(js_name = downloadMediaStream)]
     pub fn download_media_stream(

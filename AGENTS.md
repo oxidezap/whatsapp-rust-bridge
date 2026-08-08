@@ -39,16 +39,25 @@ Both test directories run under a bare `bun test`.
 
 **Naming.** Rust is `snake_case`; the JS surface is `camelCase` via `#[wasm_bindgen(js_name = ...)]`. Names mirror the core's — a method that wraps `newsletter().set_follower_mute` is `newsletterFollowerMute`, not something friendlier.
 
-**Errors.** Everything crosses as `crate::errors::BridgeError`, which lands in JS as a real `Error` named `WhatsAppError` with `.kind` and per-variant fields. Never open a second error channel.
+**Errors.** Every `WasmWhatsAppClient` method fails as `crate::errors::BridgeError`, which lands in JS as a real `Error` named `WhatsAppError` with `.kind` and per-variant fields. Don't open a second error channel out of the client.
 
-The kind is a contract, not a label:
+The free-standing utility exports predate it and are not part of that contract — `inflateZlib`, the curve/crypto helpers in `src/crypto.rs`, and the signal-record codecs return `Result<_, JsValue>`, usually a plain string from `wasm_utils::error_value`. Leave them alone unless you are deliberately changing their error shape, which is breaking.
 
-- `invalid-argument` — the caller's input. Set `field` to the argument's name, and use the same value everywhere that argument can be wrong.
-- `internal` — the bridge broke, and there is nothing the caller can do.
-- `protocol-violation` — a remote peer sent something unparseable.
-- `server` — a typed `<error>` stanza.
+The kind is a contract, not a label. All nine:
 
-A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs.
+| kind | means |
+|---|---|
+| `invalid-argument` | the caller's input. Set `field` to the argument's name, and use the same value everywhere that argument can be wrong |
+| `server` | a typed `<error>` stanza, with `serverCode` / `serverText` |
+| `timeout` | no response inside the window |
+| `not-connected` | no socket, or not logged in |
+| `disconnected` | the server ended the stream mid-flight |
+| `protocol-violation` | a remote peer sent something unparseable |
+| `crypto` | a key, agreement or AEAD step failed |
+| `storage` | persistence failed — a JS callback, serde, the store |
+| `internal` | the bridge broke, and there is nothing the caller can do |
+
+A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs. Reaching for `internal` because the specific kind takes more thought is the same mistake in slower motion.
 
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
