@@ -3945,6 +3945,242 @@ impl WasmWhatsAppClient {
         Ok(profile.map(|p| business_profile_to_result(&p)))
     }
 
+    // ── Business catalog ─────────────────────────────────────────────────
+
+    /// Fetch one page of a business's product catalog.
+    ///
+    /// Paginate by feeding `afterCursor` back through `options.after` until it
+    /// comes back absent.
+    #[wasm_bindgen(js_name = getCatalog)]
+    pub async fn get_catalog(
+        &self,
+        jid: &str,
+        options: Option<crate::result_types::CatalogOptionsInput>,
+    ) -> Result<crate::result_types::CatalogResult, crate::errors::BridgeError> {
+        use whatsapp_rust::features::CatalogOptions;
+
+        let target = parse_jid(jid)?;
+        let input = options.unwrap_or_default();
+        // Start from the core's defaults and override only what was supplied,
+        // so an omitted field takes the core's value and not a second one.
+        let mut opts = CatalogOptions::default();
+        if let Some(limit) = input.limit {
+            opts.limit = limit;
+        }
+        if let Some(width) = input.image_width {
+            opts.image_width = width;
+        }
+        if let Some(height) = input.image_height {
+            opts.image_height = height;
+        }
+        if let Some(allow) = input.allow_shop_source {
+            opts.allow_shop_source = allow;
+        }
+        opts.after = input.after;
+
+        let catalog = self.client.business().get_catalog(&target, &opts).await?;
+        Ok(crate::result_types::CatalogResult {
+            products: catalog.products.iter().map(product_to_result).collect(),
+            after_cursor: catalog.after_cursor.clone(),
+            before_cursor: catalog.before_cursor.clone(),
+        })
+    }
+
+    /// Fetch one page of a business's product collections, each with its first
+    /// products inline.
+    #[wasm_bindgen(js_name = getCollections)]
+    pub async fn get_collections(
+        &self,
+        jid: &str,
+        options: Option<crate::result_types::CollectionOptionsInput>,
+    ) -> Result<crate::result_types::CollectionsResult, crate::errors::BridgeError> {
+        use whatsapp_rust::features::CollectionOptions;
+
+        let target = parse_jid(jid)?;
+        let input = options.unwrap_or_default();
+        let mut opts = CollectionOptions::default();
+        if let Some(limit) = input.collection_limit {
+            opts.collection_limit = limit;
+        }
+        if let Some(limit) = input.item_limit {
+            opts.item_limit = limit;
+        }
+        if let Some(width) = input.image_width {
+            opts.image_width = width;
+        }
+        if let Some(height) = input.image_height {
+            opts.image_height = height;
+        }
+        opts.after = input.after;
+
+        let collections = self
+            .client
+            .business()
+            .get_collections(&target, &opts)
+            .await?;
+        Ok(crate::result_types::CollectionsResult {
+            collections: collections
+                .collections
+                .iter()
+                .map(|collection| crate::result_types::CollectionResult {
+                    id: collection.id.clone(),
+                    name: collection.name.clone(),
+                    products: collection.products.iter().map(product_to_result).collect(),
+                    review_status: collection.review_status.clone(),
+                    can_appeal: collection.can_appeal,
+                    reject_reason: collection.reject_reason.clone(),
+                    commerce_url: collection.commerce_url.clone(),
+                })
+                .collect(),
+            after_cursor: collections.after_cursor.clone(),
+        })
+    }
+
+    /// Look up an order's line items and totals.
+    ///
+    /// Both `orderId` and `token` come from the order message itself; the token
+    /// is a per-order capability, so an order cannot be read without it.
+    #[wasm_bindgen(js_name = getOrder)]
+    pub async fn get_order(
+        &self,
+        jid: &str,
+        order_id: &str,
+        token: &str,
+    ) -> Result<crate::result_types::OrderResult, crate::errors::BridgeError> {
+        let target = parse_jid(jid)?;
+        let order = self
+            .client
+            .business()
+            .get_order(&target, order_id, token)
+            .await?;
+
+        Ok(crate::result_types::OrderResult {
+            products: order
+                .products
+                .iter()
+                .map(|product| crate::result_types::OrderProductResult {
+                    id: product.id.clone(),
+                    name: product.name.clone(),
+                    price: product.price.as_ref().map(price_to_result),
+                    quantity: product.quantity.map(|q| q as f64),
+                    images: product.images.iter().map(product_image_to_result).collect(),
+                    variant_properties: product
+                        .variant_properties
+                        .iter()
+                        .map(|v| crate::result_types::VariantPropertyResult {
+                            name: v.name.clone(),
+                            value: v.value.clone(),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            price_details: order.price_details.as_ref().map(|details| {
+                crate::result_types::OrderPriceDetailsResult {
+                    currency: details.currency.clone(),
+                    subtotal: details.subtotal.as_ref().map(price_to_result),
+                    total: details.total.as_ref().map(price_to_result),
+                }
+            }),
+            creation_timestamp: order.creation_timestamp.map(|t| t as f64),
+        })
+    }
+
+    /// Apply a delta to the account's own business profile.
+    ///
+    /// Omitted fields are left untouched; an empty value clears one. The core
+    /// rejects a delta with nothing set.
+    #[wasm_bindgen(js_name = updateBusinessProfile)]
+    pub async fn update_business_profile(
+        &self,
+        update: crate::result_types::BusinessProfileUpdateInput,
+    ) -> Result<(), crate::errors::BridgeError> {
+        use wacore::iq::business::{
+            BusinessHoursConfig, BusinessHoursUpdate, BusinessProfileUpdate,
+        };
+
+        let business_hours = update.business_hours.map(|hours| BusinessHoursUpdate {
+            timezone: hours.timezone,
+            note: hours.note,
+            config: hours
+                .config
+                .into_iter()
+                .map(|entry| {
+                    let day = entry.day_of_week.as_str().into();
+                    let mode = entry.mode.as_str().into();
+                    // Times and mode go together on the wire, and the core
+                    // rejects a half-set range, so pass a range only when both
+                    // ends came in.
+                    match (entry.open_time, entry.close_time) {
+                        (Some(open), Some(close)) => {
+                            BusinessHoursConfig::with_hours(day, mode, open, close)
+                        }
+                        _ => BusinessHoursConfig::new(day, mode),
+                    }
+                })
+                .collect(),
+        });
+
+        let delta = BusinessProfileUpdate {
+            address: update.address,
+            latitude: update.latitude,
+            longitude: update.longitude,
+            description: update.description,
+            email: update.email,
+            websites: update.websites,
+            categories: update.categories,
+            business_hours,
+        };
+
+        self.client
+            .business()
+            .update_profile(&delta)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Point the business profile at an already-uploaded cover photo.
+    ///
+    /// Takes the `biz-cover-photo` upload receipt, not image bytes. **No
+    /// consumer can produce that receipt today**: the core's upload pipeline
+    /// requires `url` + `direct_path`, and the cover-photo endpoint returns
+    /// `fbid`/`meta_hmac`/`ts` instead, so the upload leg does not exist. The
+    /// protocol side is complete, and this is here for when it does.
+    #[wasm_bindgen(js_name = setBusinessCoverPhoto)]
+    pub async fn set_business_cover_photo(
+        &self,
+        upload: crate::result_types::CoverPhotoUploadInput,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let timestamp = upload.timestamp.parse::<i64>().map_err(|e| {
+            crate::errors::BridgeError::InvalidArgument {
+                field: "timestamp".into(),
+                reason: format!("must be the upload's ts: {e}"),
+            }
+        })?;
+
+        self.client
+            .business()
+            .set_cover_photo(wacore::iq::business::CoverPhotoUpload {
+                id: upload.id,
+                token: upload.token,
+                timestamp,
+            })
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove the business profile's cover photo, by the `fbid` it was set with.
+    #[wasm_bindgen(js_name = removeBusinessCoverPhoto)]
+    pub async fn remove_business_cover_photo(
+        &self,
+        id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .business()
+            .remove_cover_photo(id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
     // ── Message history ──────────────────────────────────────────────────
 
     /// Request on-demand message history from the primary phone.
@@ -5906,6 +6142,77 @@ fn newsletter_metadata_to_result(
         invite_code: meta.invite_code.clone(),
         role: meta.role.as_ref().map(|r| format!("{:?}", r)),
         creation_time: meta.creation_time.map(|v| v as f64),
+    }
+}
+
+/// Money crosses as a string: `amount_1000` is an i64 and a JS number is exact
+/// only below 2^53, so a large order would come out silently wrong.
+fn price_to_result(price: &whatsapp_rust::features::Price) -> crate::result_types::PriceResult {
+    crate::result_types::PriceResult {
+        amount_1000: price.amount_1000.to_string(),
+        currency: price.currency.clone(),
+    }
+}
+
+fn product_image_to_result(
+    image: &whatsapp_rust::features::ProductImage,
+) -> crate::result_types::ProductImageResult {
+    crate::result_types::ProductImageResult {
+        id: image.id.clone(),
+        request_image_url: image.request_image_url.clone(),
+        original_image_url: image.original_image_url.clone(),
+    }
+}
+
+fn product_to_result(
+    product: &whatsapp_rust::features::Product,
+) -> crate::result_types::ProductResult {
+    crate::result_types::ProductResult {
+        id: product.id.clone(),
+        retailer_id: product.retailer_id.clone(),
+        name: product.name.clone(),
+        description: product.description.clone(),
+        url: product.url.clone(),
+        shimmed_url: product.shimmed_url.clone(),
+        price: product.price.as_ref().map(price_to_result),
+        sale_price: product
+            .sale_price
+            .as_ref()
+            .map(|sale| crate::result_types::SalePriceResult {
+                price: price_to_result(&sale.price),
+                start_date: sale.start_date.clone(),
+                end_date: sale.end_date.clone(),
+            }),
+        is_hidden: product.is_hidden,
+        is_sanctioned: product.is_sanctioned,
+        max_available: product.max_available.map(|v| v as f64),
+        availability: product.availability.as_ref().map(|a| a.as_str().to_owned()),
+        review_status: product.review_status.clone(),
+        can_appeal: product.can_appeal,
+        belongs_to: product.belongs_to,
+        images: product.images.iter().map(product_image_to_result).collect(),
+        videos: product
+            .videos
+            .iter()
+            .map(|video| crate::result_types::ProductVideoResult {
+                id: video.id.clone(),
+                original_video_url: video.original_video_url.clone(),
+                thumbnail_url: video.thumbnail_url.clone(),
+            })
+            .collect(),
+        compliance_category: product.compliance_category.clone(),
+        country_code_origin: product.country_code_origin.clone(),
+        importer_name: product.importer_name.clone(),
+        importer_address: product.importer_address.as_ref().map(|address| {
+            crate::result_types::ImporterAddressResult {
+                street1: address.street1.clone(),
+                street2: address.street2.clone(),
+                city: address.city.clone(),
+                region: address.region.clone(),
+                postal_code: address.postal_code.clone(),
+                country_code: address.country_code.clone(),
+            }
+        }),
     }
 }
 

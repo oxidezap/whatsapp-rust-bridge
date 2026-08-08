@@ -482,6 +482,7 @@ impl_from_error_chain!(
     whatsapp_rust::SendError,
     whatsapp_rust::features::AppStateError,
     whatsapp_rust::features::BlockingError,
+    whatsapp_rust::features::BusinessError,
     whatsapp_rust::features::ChatStateError,
     whatsapp_rust::features::CommunityError,
     whatsapp_rust::features::ContactError,
