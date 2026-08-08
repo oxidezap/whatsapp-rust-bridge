@@ -2813,8 +2813,10 @@ impl WasmWhatsAppClient {
         &self,
         chat_jid: &str,
         bytes: &[u8],
-        input: crate::result_types::MessageRetransmissionInput,
+        #[wasm_bindgen(unchecked_param_type = "MessageRetransmissionInput")] input: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let input =
+            from_js_input::<crate::result_types::MessageRetransmissionInput>("input", input)?;
         let (chat, msg) = parse_jid_and_msg_bytes(chat_jid, bytes)?;
         let requester = parse_jid(&input.requester_jid)?;
         let retry_count = u8::try_from(input.retry_count)
@@ -3002,8 +3004,10 @@ impl WasmWhatsAppClient {
         &self,
         jid: &str,
         participants: Vec<String>,
-        action: crate::result_types::GroupParticipantAction,
+        #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+        let action =
+            from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         participants_update(&self.client, jid, participants, action, false).await
     }
 
@@ -3041,9 +3045,10 @@ impl WasmWhatsAppClient {
     pub async fn group_setting_update(
         &self,
         jid: &str,
-        setting: crate::result_types::GroupSetting,
+        #[wasm_bindgen(unchecked_param_type = "GroupSetting")] setting: JsValue,
         value: bool,
     ) -> Result<(), crate::errors::BridgeError> {
+        let setting = from_js_input::<crate::result_types::GroupSetting>("setting", setting)?;
         use crate::result_types::GroupSetting;
         let group_jid = parse_jid(jid)?;
 
@@ -3235,8 +3240,10 @@ impl WasmWhatsAppClient {
         &self,
         jid: &str,
         participants: Vec<String>,
-        action: crate::result_types::GroupParticipantAction,
+        #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+        let action =
+            from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         participants_update(&self.client, jid, participants, action, true).await
     }
 
@@ -3302,9 +3309,11 @@ impl WasmWhatsAppClient {
     pub async fn profile_picture_url(
         &self,
         jid: &str,
-        picture_type: crate::result_types::PictureType,
+        #[wasm_bindgen(unchecked_param_type = "PictureType")] picture_type: JsValue,
         timeout_ms: Option<f64>,
     ) -> Result<Option<crate::result_types::ProfilePictureInfo>, crate::errors::BridgeError> {
+        let picture_type =
+            from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
         use crate::result_types::PictureType;
         let target = parse_jid(jid)?;
         let preview = match picture_type {
@@ -3462,8 +3471,9 @@ impl WasmWhatsAppClient {
     pub async fn update_block_status(
         &self,
         jid: &str,
-        action: crate::result_types::BlockAction,
+        #[wasm_bindgen(unchecked_param_type = "BlockAction")] action: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let action = from_js_input::<crate::result_types::BlockAction>("action", action)?;
         use crate::result_types::BlockAction;
         let target = parse_jid(jid)?;
 
@@ -3611,9 +3621,10 @@ impl WasmWhatsAppClient {
     pub async fn send_reaction(
         &self,
         jid: &str,
-        key: crate::result_types::TargetMessageKey,
+        #[wasm_bindgen(unchecked_param_type = "TargetMessageKey")] key: JsValue,
         emoji: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
+        let key = from_js_input::<crate::result_types::TargetMessageKey>("key", key)?;
         let chat = parse_jid(jid)?;
         let target_key = waproto::whatsapp::MessageKey {
             remote_jid: Some(chat.to_string()),
@@ -3640,9 +3651,11 @@ impl WasmWhatsAppClient {
     pub async fn send_comment_bytes(
         &self,
         jid: &str,
-        parent_key: crate::result_types::TargetMessageKey,
+        #[wasm_bindgen(unchecked_param_type = "TargetMessageKey")] parent_key: JsValue,
         bytes: &[u8],
     ) -> Result<String, crate::errors::BridgeError> {
+        let parent_key =
+            from_js_input::<crate::result_types::TargetMessageKey>("parent_key", parent_key)?;
         // Without either, the core would fall back to the chat JID as the
         // author and fail the secret lookup the slow way — reject up front.
         if parent_key.participant.is_none() && !parent_key.from_me {
@@ -3994,8 +4007,9 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = readMessages)]
     pub async fn read_messages(
         &self,
-        keys: Vec<crate::result_types::ReadMessageKey>,
+        #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let keys = from_js_input::<Vec<crate::result_types::ReadMessageKey>>("keys", keys)?;
         let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
 
         for key in keys {
@@ -4027,8 +4041,9 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = markPlayed)]
     pub async fn mark_played(
         &self,
-        keys: Vec<crate::result_types::ReadMessageKey>,
+        #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let keys = from_js_input::<Vec<crate::result_types::ReadMessageKey>>("keys", keys)?;
         let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
 
         for key in keys {
@@ -4138,8 +4153,9 @@ impl WasmWhatsAppClient {
         &self,
         jid: &str,
         participants: Vec<String>,
-        action: crate::result_types::GroupRequestAction,
+        #[wasm_bindgen(unchecked_param_type = "GroupRequestAction")] action: JsValue,
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+        let action = from_js_input::<crate::result_types::GroupRequestAction>("action", action)?;
         use crate::result_types::GroupRequestAction;
         let group_jid = parse_jid(jid)?;
         let participant_jids: Vec<Jid> = participants
@@ -4268,12 +4284,15 @@ impl WasmWhatsAppClient {
     pub async fn get_catalog(
         &self,
         jid: &str,
-        options: Option<crate::result_types::CatalogOptionsInput>,
+        #[wasm_bindgen(unchecked_optional_param_type = "CatalogOptionsInput | null")]
+        options: JsValue,
     ) -> Result<crate::result_types::CatalogResult, crate::errors::BridgeError> {
         use whatsapp_rust::features::CatalogOptions;
 
         let target = parse_jid(jid)?;
-        let input = options.unwrap_or_default();
+        let input =
+            from_js_input::<Option<crate::result_types::CatalogOptionsInput>>("options", options)?
+                .unwrap_or_default();
         // Start from the core's defaults and override only what was supplied,
         // so an omitted field takes the core's value and not a second one.
         let mut opts = CatalogOptions::default();
@@ -4305,8 +4324,12 @@ impl WasmWhatsAppClient {
     pub async fn get_collections(
         &self,
         jid: &str,
-        options: Option<crate::result_types::CollectionOptionsInput>,
+        #[wasm_bindgen(unchecked_optional_param_type = "CollectionOptionsInput | null")]
+        options: JsValue,
     ) -> Result<crate::result_types::CollectionsResult, crate::errors::BridgeError> {
+        let options = from_js_input::<Option<crate::result_types::CollectionOptionsInput>>(
+            "options", options,
+        )?;
         use whatsapp_rust::features::CollectionOptions;
 
         let target = parse_jid(jid)?;
@@ -4405,8 +4428,10 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = updateBusinessProfile)]
     pub async fn update_business_profile(
         &self,
-        update: crate::result_types::BusinessProfileUpdateInput,
+        #[wasm_bindgen(unchecked_param_type = "BusinessProfileUpdateInput")] update: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let update =
+            from_js_input::<crate::result_types::BusinessProfileUpdateInput>("update", update)?;
         use wacore::iq::business::{
             BusinessHoursConfig, BusinessHoursUpdate, BusinessProfileUpdate,
         };
@@ -4482,8 +4507,9 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = setBusinessCoverPhoto)]
     pub async fn set_business_cover_photo(
         &self,
-        upload: crate::result_types::CoverPhotoUploadInput,
+        #[wasm_bindgen(unchecked_param_type = "CoverPhotoUploadInput")] upload: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let upload = from_js_input::<crate::result_types::CoverPhotoUploadInput>("upload", upload)?;
         let timestamp = upload.timestamp.parse::<i64>().map_err(|e| {
             crate::errors::BridgeError::InvalidArgument {
                 field: "timestamp".into(),
@@ -4550,8 +4576,9 @@ impl WasmWhatsAppClient {
     pub async fn group_member_add_mode(
         &self,
         jid: &str,
-        mode: crate::result_types::MemberAddMode,
+        #[wasm_bindgen(unchecked_param_type = "MemberAddMode")] mode: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let mode = from_js_input::<crate::result_types::MemberAddMode>("mode", mode)?;
         use crate::result_types::MemberAddMode;
         let group_jid = parse_jid(jid)?;
         let add_mode = match mode {
@@ -4571,8 +4598,9 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = sendPresence)]
     pub async fn send_presence(
         &self,
-        status: crate::result_types::PresenceStatus,
+        #[wasm_bindgen(unchecked_param_type = "PresenceStatus")] status: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let status = from_js_input::<crate::result_types::PresenceStatus>("status", status)?;
         use crate::result_types::PresenceStatus;
         let presence_status = match status {
             PresenceStatus::Available => whatsapp_rust::features::PresenceStatus::Available,
@@ -5037,8 +5065,9 @@ impl WasmWhatsAppClient {
     pub async fn send_chat_state(
         &self,
         jid: &str,
-        state: crate::result_types::ChatState,
+        #[wasm_bindgen(unchecked_param_type = "ChatState")] state: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let state = from_js_input::<crate::result_types::ChatState>("state", state)?;
         use crate::result_types::ChatState;
         let to = parse_jid(jid)?;
 
@@ -5092,8 +5121,9 @@ impl WasmWhatsAppClient {
         file_sha256: &[u8],
         file_enc_sha256: &[u8],
         file_length: f64,
-        media_type: crate::result_types::MediaType,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let data = self
             .client
@@ -5121,8 +5151,9 @@ impl WasmWhatsAppClient {
         file_sha256: &[u8],
         file_enc_sha256: &[u8],
         file_length: f64,
-        media_type: crate::result_types::MediaType,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<web_sys::ReadableStream, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let client = self.client.clone();
         let direct_path = direct_path.to_string();
@@ -5179,8 +5210,9 @@ impl WasmWhatsAppClient {
     pub async fn upload_media(
         &self,
         data: &[u8],
-        media_type: crate::result_types::MediaType,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<crate::result_types::UploadMediaResult, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let resp = self
             .client
@@ -5205,8 +5237,9 @@ impl WasmWhatsAppClient {
         &self,
         input: web_sys::ReadableStream,
         output: web_sys::WritableStream,
-        media_type: crate::result_types::MediaType,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<crate::result_types::EncryptMediaResult, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         use futures::SinkExt;
         use futures::StreamExt;
         use wacore::upload::MediaEncryptor;
@@ -5285,8 +5318,9 @@ impl WasmWhatsAppClient {
         file_sha256: &[u8],
         file_enc_sha256: &[u8],
         file_length: f64,
-        media_type: crate::result_types::MediaType,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
     ) -> Result<crate::result_types::UploadMediaResult, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let file_length = file_length as u64;
         let token = base64_url_encode(file_enc_sha256);
@@ -5794,8 +5828,9 @@ impl WasmWhatsAppClient {
     pub async fn signal_install_prekey_bundle(
         &self,
         jid: &str,
-        input: crate::result_types::SignalSessionBundleInput,
+        #[wasm_bindgen(unchecked_param_type = "SignalSessionBundleInput")] input: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let input = from_js_input::<crate::result_types::SignalSessionBundleInput>("input", input)?;
         use wacore::libsignal::protocol::{IdentityKey, PreKeyBundle, PublicKey};
 
         let parsed = parse_jid(jid)?;
@@ -5957,8 +5992,10 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = addLidPnMappings)]
     pub async fn add_lid_pn_mappings(
         &self,
-        mappings: Vec<crate::result_types::LidPnMappingInput>,
+        #[wasm_bindgen(unchecked_param_type = "LidPnMappingInput[]")] mappings: JsValue,
     ) -> Result<u32, crate::errors::BridgeError> {
+        let mappings =
+            from_js_input::<Vec<crate::result_types::LidPnMappingInput>>("mappings", mappings)?;
         let mut pairs = Vec::with_capacity(mappings.len());
         for (index, mapping) in mappings.into_iter().enumerate() {
             let lid = parse_jid(&mapping.lid)?;
@@ -6433,6 +6470,23 @@ pub fn decrypt_poll_vote(
 /// Parse a JID string, returning a JS error on failure.
 fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
     jid.parse().map_err(crate::errors::BridgeError::from)
+}
+
+/// Deserialize a typed parameter, naming the field when the shape is wrong.
+///
+/// Taking these as `JsValue` rather than through `#[tsify(from_wasm_abi)]` is
+/// what makes a bad argument a rejection: tsify's generated `FromWasmAbi`
+/// throws from inside the async shim, where the throw escapes as an uncaught
+/// exception and leaves the promise pending for good. The declared TypeScript
+/// type is preserved by `unchecked_param_type` on the parameter.
+fn from_js_input<T: serde::de::DeserializeOwned>(
+    field: &'static str,
+    value: JsValue,
+) -> Result<T, crate::errors::BridgeError> {
+    serde_wasm_bindgen::from_value(value).map_err(|e| crate::errors::BridgeError::InvalidArgument {
+        field: field.into(),
+        reason: e.to_string(),
+    })
 }
 
 /// Carry the bot directory across as the core grouped it: every section, with
