@@ -6,6 +6,42 @@
 
 use super::*;
 
+/// One receipt's worth of keys: the chat it addresses, the participant it
+/// names when the chat has one, and the message ids it covers.
+type ReceiptBatch = (Jid, Option<Jid>, Vec<String>);
+
+/// Message keys grouped into the batches a receipt is sent per: one per
+/// chat-and-participant pair, since that pair is what addresses the stanza.
+///
+/// Shared by the read and played receipts, which differ only in the call they
+/// end with — grouping the same keys two different ways is a bug waiting for
+/// one copy to be edited.
+fn group_receipt_keys(
+    field: &'static str,
+    keys: JsValue,
+) -> Result<Vec<ReceiptBatch>, crate::errors::BridgeError> {
+    let keys = from_js_input::<Vec<crate::result_types::ReadMessageKey>>(field, keys)?;
+
+    let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
+    for key in keys {
+        grouped
+            .entry((key.remote_jid, key.participant))
+            .or_default()
+            .push(key.id);
+    }
+
+    grouped
+        .into_iter()
+        .map(|((chat, participant), ids)| {
+            Ok((
+                parse_jid(&chat)?,
+                participant.as_deref().map(parse_jid).transpose()?,
+                ids,
+            ))
+        })
+        .collect()
+}
+
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
     // ── Sending messages ─────────────────────────────────────────────────
@@ -172,24 +208,11 @@ impl WasmWhatsAppClient {
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
-        let keys = from_js_input::<Vec<crate::result_types::ReadMessageKey>>("keys", keys)?;
-        let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
-
-        for key in keys {
-            grouped
-                .entry((key.remote_jid, key.participant))
-                .or_default()
-                .push(key.id);
-        }
-
-        for ((chat_jid_str, participant_str), ids) in grouped {
-            let chat_jid = parse_jid(&chat_jid_str)?;
-            let participant_jid = participant_str.as_deref().map(parse_jid).transpose()?;
-
+        for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_read now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             self.client
-                .mark_as_read(&chat_jid, participant_jid.as_ref(), &id_refs)
+                .mark_as_read(&chat, participant.as_ref(), &id_refs)
                 .await?;
         }
 
@@ -206,24 +229,11 @@ impl WasmWhatsAppClient {
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
-        let keys = from_js_input::<Vec<crate::result_types::ReadMessageKey>>("keys", keys)?;
-        let mut grouped: HashMap<(String, Option<String>), Vec<String>> = HashMap::new();
-
-        for key in keys {
-            grouped
-                .entry((key.remote_jid, key.participant))
-                .or_default()
-                .push(key.id);
-        }
-
-        for ((chat_jid_str, participant_str), ids) in grouped {
-            let chat_jid = parse_jid(&chat_jid_str)?;
-            let participant_jid = participant_str.as_deref().map(parse_jid).transpose()?;
-
+        for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_played now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             self.client
-                .mark_as_played(&chat_jid, participant_jid.as_ref(), &id_refs)
+                .mark_as_played(&chat, participant.as_ref(), &id_refs)
                 .await?;
         }
 

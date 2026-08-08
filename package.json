@@ -45,6 +45,7 @@
         "bump:wacore": "cargo update -p whatsapp-rust && bun run build",
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
         "test:rust": "wasm-pack test --node",
+        "check:size": "bun run scripts/check-size.ts",
         "prepack": "bun run scripts/check-pack.ts",
         "prepublishOnly": "bun run build"
     },
