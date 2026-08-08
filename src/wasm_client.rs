@@ -5712,6 +5712,69 @@ fn js_to_node(val: &JsValue) -> Result<wacore_binary::node::Node, crate::errors:
     Ok(Node::new(Cow::Owned(tag), attrs, content))
 }
 
+#[cfg(test)]
+mod node_roundtrip_tests {
+    use super::*;
+
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    /// A `{ tag, attrs, content }` node with `count` attributes, the shape a
+    /// host hands `sendNode`. Values carry no `@` so none is read as a JID.
+    fn js_node(count: usize) -> JsValue {
+        const KEYS: [&str; 5] = ["to", "id", "type", "t", "edit"];
+        let attrs = js_sys::Object::new();
+        for (i, key) in KEYS.iter().take(count).enumerate() {
+            js_sys::Reflect::set(&attrs, &(*key).into(), &format!("v{i}").into())
+                .expect("the attribute object accepts a key");
+        }
+        let node = js_sys::Object::new();
+        js_sys::Reflect::set(&node, &"tag".into(), &"message".into()).expect("tag is settable");
+        js_sys::Reflect::set(&node, &"attrs".into(), &attrs.into()).expect("attrs is settable");
+        js_sys::Reflect::set(&node, &"content".into(), &"body".into())
+            .expect("content is settable");
+        node.into()
+    }
+
+    fn attrs_of(node: &JsValue) -> Vec<(String, String)> {
+        let attrs = js_sys::Reflect::get(node, &"attrs".into()).expect("the node carries attrs");
+        let keys = js_sys::Object::keys(&js_sys::Object::from(attrs.clone()));
+        (0..keys.length())
+            .map(|i| {
+                let key = keys.get(i).as_string().expect("attribute keys are strings");
+                let value = js_sys::Reflect::get(&attrs, &key.as_str().into())
+                    .expect("the key was just listed")
+                    .as_string()
+                    .expect("attribute values cross as strings");
+                (key, value)
+            })
+            .collect()
+    }
+
+    /// Attribute storage is inline up to three and spills at four
+    /// (whatsapp-rust #1253). Both sides of that boundary have to survive the
+    /// bridge's own conversions, so exercise the encode and the zero-copy
+    /// decode path at three and at four.
+    #[test]
+    fn attributes_survive_the_inline_and_the_spilled_layout() {
+        for count in [3, 4] {
+            let sent = js_node(count);
+            let node = js_to_node(&sent).expect("the JS node converts");
+            let packed = wacore_binary::marshal::marshal(&node).expect("the node marshals");
+            let decoded = wacore_binary::marshal::unmarshal_packed_ref(&packed)
+                .expect("marshal output unmarshals");
+            let back = node_ref_to_js(&decoded).expect("the decoded node crosses back");
+
+            assert_eq!(attrs_of(&back), attrs_of(&sent), "{count} attributes");
+            assert_eq!(
+                js_sys::Reflect::get(&back, &"tag".into())
+                    .expect("the node carries a tag")
+                    .as_string(),
+                Some("message".to_owned()),
+            );
+        }
+    }
+}
+
 /// Convert an array of wacore Nodes to JS BinaryNode array.
 fn nodes_to_js_array(nodes: &[wacore_binary::node::Node]) -> Result<JsValue, JsValue> {
     let arr = js_sys::Array::new_with_length(nodes.len() as u32);
