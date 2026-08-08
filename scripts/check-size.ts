@@ -10,10 +10,7 @@
  * entries below and decide, then either trim or raise the constant in the same
  * commit that earned the bytes.
  */
-import { execSync } from "node:child_process";
-import { join } from "node:path";
-
-const ROOT = join(import.meta.dir, "..");
+import { packedContents } from "./pack";
 
 /**
  * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
@@ -22,13 +19,7 @@ const ROOT = join(import.meta.dir, "..");
  */
 const MAX_UNPACKED_BYTES = 7_500_000;
 
-type PackedFile = { path: string; size: number };
-
-const packed = JSON.parse(
-  execSync("npm pack --dry-run --json --ignore-scripts", { cwd: ROOT, encoding: "utf8" })
-);
-const files: PackedFile[] = packed[0].files;
-const total: number = packed[0].unpackedSize;
+const { files, unpackedSize: total } = packedContents();
 
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 

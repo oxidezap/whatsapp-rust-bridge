@@ -16,6 +16,12 @@ type ReceiptBatch = (Jid, Option<Jid>, Vec<String>);
 /// Shared by the read and played receipts, which differ only in the call they
 /// end with — grouping the same keys two different ways is a bug waiting for
 /// one copy to be edited.
+///
+/// Every JID is parsed before any receipt is sent, so one unparseable key
+/// costs the whole call. That is a change: parsing used to happen inside the
+/// send loop, so a bad key left whatever batches `HashMap` iteration had
+/// already reached delivered. Which ones those were was not something a caller
+/// could predict, let alone repeat.
 fn group_receipt_keys(
     field: &'static str,
     keys: JsValue,

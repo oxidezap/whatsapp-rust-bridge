@@ -341,8 +341,9 @@ jobs:
       - name: Check the tarball contents
         run: bun run scripts/check-pack.ts
 
-      # And its size, for the same reason: this job rebuilds, so the artifact
-      # CI measured is not the one being published.
+      # And its size. CI measures the artifact its own build produced; this
+      # step measures the one about to be published, which is the only
+      # measurement that can stop an oversized release.
       - name: Check the tarball size
         run: bun run check:size
 
