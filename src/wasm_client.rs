@@ -2060,19 +2060,47 @@ fn parse_optional_count(
     Ok(Some(n as usize))
 }
 
+/// Whether `value` is a millisecond count that survives the cast to `u64`.
+///
+/// The upper bound is not pedantry: `as u64` saturates, so a caller asking for
+/// `2 ** 64` ms would otherwise get `u64::MAX` — around 584 million years —
+/// instead of an error.
+fn is_representable_millis(value: f64) -> bool {
+    value.is_finite() && value >= 0.0 && value < u64::MAX as f64
+}
+
+const MILLIS_RANGE: &str = "must be a non-negative number of milliseconds below 2^64";
+
 fn parse_optional_timeout_ms(
     field: &'static str,
     value: Option<f64>,
 ) -> Result<Option<std::time::Duration>, crate::errors::BridgeError> {
     match value {
-        Some(value) if value.is_finite() && value >= 0.0 => {
+        Some(value) if is_representable_millis(value) => {
             Ok(Some(std::time::Duration::from_millis(value as u64)))
         }
         Some(_) => Err(crate::errors::BridgeError::InvalidArgument {
             field: field.into(),
-            reason: "must be a finite non-negative number".into(),
+            reason: MILLIS_RANGE.into(),
         }),
         None => Ok(None),
+    }
+}
+
+/// Same validation as [`parse_optional_timeout_ms`], for the calls where the
+/// core takes a timeout rather than an option and there is no default to fall
+/// back to.
+fn parse_timeout_ms(
+    field: &'static str,
+    value: f64,
+) -> Result<std::time::Duration, crate::errors::BridgeError> {
+    if is_representable_millis(value) {
+        Ok(std::time::Duration::from_millis(value as u64))
+    } else {
+        Err(crate::errors::BridgeError::InvalidArgument {
+            field: field.into(),
+            reason: MILLIS_RANGE.into(),
+        })
     }
 }
 
@@ -2542,6 +2570,114 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = isLoggedIn)]
     pub fn is_logged_in(&self) -> bool {
         self.client.is_logged_in()
+    }
+
+    /// Wait until the socket is connected, or the timeout elapses.
+    ///
+    /// Resolves as soon as the socket is up — login may still be pending. The
+    /// core rejects on expiry rather than reporting it, so this rejects with
+    /// `kind === 'timeout'`.
+    #[wasm_bindgen(js_name = waitForSocket)]
+    pub async fn wait_for_socket(&self, timeout_ms: f64) -> Result<(), crate::errors::BridgeError> {
+        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+        self.client
+            .wait_for_socket(timeout)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Wait until the client is connected and logged in, or the timeout elapses.
+    ///
+    /// Stricter than `waitForSocket`: the core resolves this only once the
+    /// connection is fully ready. Rejects with `kind === 'timeout'` on expiry.
+    #[wasm_bindgen(js_name = waitForConnected)]
+    pub async fn wait_for_connected(
+        &self,
+        timeout_ms: f64,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+        self.client
+            .wait_for_connected(timeout)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Acknowledge a server dirty bit so the server stops re-announcing it.
+    ///
+    /// `dirtyType` is the wire string (`account_sync`, `groups`,
+    /// `syncd_app_state`, `newsletter_metadata`); an unrecognized one is
+    /// forwarded as-is, matching the core's fallback.
+    #[wasm_bindgen(js_name = cleanDirtyBits)]
+    pub async fn clean_dirty_bits(
+        &self,
+        dirty_type: &str,
+        timestamp: Option<f64>,
+    ) -> Result<(), crate::errors::BridgeError> {
+        use wacore::iq::dirty::{DirtyBit, DirtyType};
+
+        if dirty_type.is_empty() {
+            return Err(crate::errors::BridgeError::InvalidArgument {
+                field: "dirtyType".into(),
+                reason: "must not be empty".into(),
+            });
+        }
+
+        let kind = DirtyType::from(dirty_type);
+        let bit = match timestamp {
+            Some(value) if is_representable_millis(value) => {
+                DirtyBit::with_timestamp(kind, value as u64)
+            }
+            Some(_) => {
+                return Err(crate::errors::BridgeError::InvalidArgument {
+                    field: "timestamp".into(),
+                    reason: MILLIS_RANGE.into(),
+                });
+            }
+            None => DirtyBit::new(kind),
+        };
+
+        self.client
+            .clean_dirty_bits(bit)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Fetch the bot directory the server offers this account.
+    ///
+    /// There is no server push for it, so a caller that wants fresh data calls
+    /// this again.
+    #[wasm_bindgen(js_name = getBotList)]
+    pub async fn get_bot_list(
+        &self,
+    ) -> Result<crate::result_types::BotListResult, crate::errors::BridgeError> {
+        let list = self.client.bots().list().await?;
+        Ok(bot_list_to_result(&list))
+    }
+
+    /// Fetch how many new chats this account may still start this cycle.
+    #[wasm_bindgen(js_name = fetchNewChatMessageCappingInfo)]
+    pub async fn fetch_new_chat_message_capping_info(
+        &self,
+    ) -> Result<crate::result_types::NewChatMessageCappingResult, crate::errors::BridgeError> {
+        let capping = self
+            .client
+            .mex()
+            .fetch_new_chat_message_capping_info()
+            .await?;
+        Ok(crate::result_types::NewChatMessageCappingResult {
+            capping_status: capping
+                .capping_status
+                .as_ref()
+                .map(|s| s.as_str().to_owned()),
+            ote_status: capping.ote_status.as_ref().map(|s| s.as_str().to_owned()),
+            mv_status: capping.mv_status.as_ref().map(|s| s.as_str().to_owned()),
+            total_quota: capping.total_quota.map(|v| v as f64),
+            used_quota: capping.used_quota.map(|v| v as f64),
+            cycle_start_timestamp: capping.cycle_start_timestamp.map(|v| v as f64),
+            cycle_end_timestamp: capping.cycle_end_timestamp.map(|v| v as f64),
+            server_sent_timestamp: capping.server_sent_timestamp.map(|v| v as f64),
+            remaining_quota: capping.remaining_quota().map(|v| v as f64),
+        })
     }
 
     // ── Device props ─────────────────────────────────────────────────────
@@ -3589,6 +3725,183 @@ impl WasmWhatsAppClient {
         self.client
             .chat_actions()
             .delete_message_for_me(&chat_jid, None, message_id, from_me, true, None)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Mute or unmute a contact's status updates.
+    #[wasm_bindgen(js_name = setUserStatusMute)]
+    pub async fn set_user_status_mute(
+        &self,
+        jid: &str,
+        muted: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let user_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .set_user_status_mute(&user_jid, muted)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a contact from the address book on every linked device.
+    ///
+    /// Separate from `saveContact` rather than `saveContact(null)`: this is the
+    /// one contact mutation the core sends as a syncd `Remove`, and a `Set`
+    /// carrying an empty action would be applied as a rename to the empty
+    /// string. `jid` must be a bare phone-number JID.
+    #[wasm_bindgen(js_name = removeContact)]
+    pub async fn remove_contact(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
+        let contact_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .remove_contact(&contact_jid)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── Labels ────────────────────────────────────────────────────────────
+
+    /// Create or rename a label. App state is an upsert keyed by `labelId`, so
+    /// this both creates a label and edits an existing one. `color` is a
+    /// WhatsApp color index.
+    #[wasm_bindgen(js_name = createLabel)]
+    pub async fn create_label(
+        &self,
+        label_id: &str,
+        name: &str,
+        color: i32,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .labels()
+            .create_label(label_id, name, color)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Delete a label.
+    #[wasm_bindgen(js_name = deleteLabel)]
+    pub async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .labels()
+            .delete_label(label_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Associate a label with a chat.
+    #[wasm_bindgen(js_name = addChatLabel)]
+    pub async fn add_chat_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .add_chat_label(label_id, &chat)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a label association from a chat.
+    #[wasm_bindgen(js_name = removeChatLabel)]
+    pub async fn remove_chat_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .remove_chat_label(label_id, &chat)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Associate a label with a single message.
+    ///
+    /// Keyed by the message as well as the chat, under a different action than
+    /// the chat association. One message per call, mirroring the wire.
+    #[wasm_bindgen(js_name = addMessageLabel)]
+    pub async fn add_message_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+        message_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .add_message_label(label_id, &chat, message_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a label association from a single message.
+    #[wasm_bindgen(js_name = removeMessageLabel)]
+    pub async fn remove_message_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+        message_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .remove_message_label(label_id, &chat, message_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── Quick replies ─────────────────────────────────────────────────────
+
+    /// Create or edit a quick reply. App state is an upsert keyed by `id`.
+    ///
+    /// `shortcut` is the `/`-typed trigger and `message` the expanded text;
+    /// `keywords` are extra search terms and `count` the usage tally (`0` for a
+    /// new one).
+    #[wasm_bindgen(js_name = setQuickReply)]
+    pub async fn set_quick_reply(
+        &self,
+        id: &str,
+        shortcut: &str,
+        message: &str,
+        keywords: Vec<String>,
+        count: i32,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .quick_replies()
+            .set_quick_reply(id, shortcut, message, keywords, count)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Delete a quick reply.
+    #[wasm_bindgen(js_name = deleteQuickReply)]
+    pub async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .quick_replies()
+            .delete_quick_reply(id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── App state settings ────────────────────────────────────────────────
+
+    /// Turn outgoing link previews off or on for the whole account.
+    ///
+    /// The account's stored preference, replicated to the linked devices. It
+    /// does not stop this client from attaching a preview it was explicitly
+    /// asked to send.
+    #[wasm_bindgen(js_name = setLinkPreviewsDisabled)]
+    pub async fn set_link_previews_disabled(
+        &self,
+        disabled: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .app_state_settings()
+            .set_link_previews_disabled(disabled)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -5863,6 +6176,58 @@ pub fn decrypt_poll_vote(
 /// Parse a JID string, returning a JS error on failure.
 fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
     jid.parse().map_err(crate::errors::BridgeError::from)
+}
+
+/// Carry the bot directory across as the core grouped it: every section, with
+/// its presentation metadata. `BotList::flatten` is the core's own collapse and
+/// stays a consumer's call.
+fn bot_list_to_result(
+    list: &whatsapp_rust::features::BotList,
+) -> crate::result_types::BotListResult {
+    use crate::result_types::{
+        BotDefaultResult, BotListEntryResult, BotListSectionResult, BotThemeResult,
+    };
+
+    crate::result_types::BotListResult {
+        version: list.version.as_str().to_owned(),
+        bhash: list.bhash.clone(),
+        default_bot: list.default_bot.as_ref().map(|bot| BotDefaultResult {
+            jid: bot.jid.to_string(),
+            persona_id: bot.persona_id.clone(),
+        }),
+        sections: list
+            .sections
+            .iter()
+            .map(|section| BotListSectionResult {
+                name: section.name.clone(),
+                section_type: section.section_type.as_str().to_owned(),
+                display_type: section
+                    .display_type
+                    .as_ref()
+                    .map(|kind| kind.as_str().to_owned()),
+                bots: section
+                    .bots
+                    .iter()
+                    .map(|bot| BotListEntryResult {
+                        jid: bot.jid.to_string(),
+                        persona_id: bot.persona_id.clone(),
+                        card_title: bot.card_title.clone(),
+                        count: bot.count.map(|value| value as f64),
+                        themes: bot
+                            .themes
+                            .iter()
+                            .map(|theme| BotThemeResult {
+                                mode: theme.mode.as_str().to_owned(),
+                                background: theme.background.clone(),
+                                primary_text: theme.primary_text.clone(),
+                                secondary_text: theme.secondary_text.clone(),
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }
 }
 
 // ---------------------------------------------------------------------------

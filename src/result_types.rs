@@ -822,3 +822,107 @@ pub struct NewsletterMessageResult {
     pub message: Option<serde_bytes::ByteBuf>,
     pub reactions: Vec<NewsletterReactionCountResult>,
 }
+
+// ---------------------------------------------------------------------------
+// Bot directory
+// ---------------------------------------------------------------------------
+
+/// Result from `getBotList`.
+///
+/// Sections arrive as the server grouped them. The core keeps every section
+/// because a bot can be carried by a `category` or `featured` section and by no
+/// other, so flattening is a consumer's decision, not the bridge's.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListResult {
+    pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bhash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_bot: Option<BotDefaultResult>,
+    pub sections: Vec<BotListSectionResult>,
+}
+
+/// The bot the server marks as the one to offer by default.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BotDefaultResult {
+    pub jid: String,
+    pub persona_id: String,
+}
+
+/// One section of the bot directory.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListSectionResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub section_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_type: Option<String>,
+    pub bots: Vec<BotListEntryResult>,
+}
+
+/// One bot in the directory.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListEntryResult {
+    pub jid: String,
+    pub persona_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<f64>,
+    pub themes: Vec<BotThemeResult>,
+}
+
+/// Per-mode colours for a bot's card.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BotThemeResult {
+    pub mode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secondary_text: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// New-chat message capping
+// ---------------------------------------------------------------------------
+
+/// Result from `fetchNewChatMessageCappingInfo`.
+///
+/// Every field is optional because the server omits the ones that do not apply
+/// to an account's tier. `remainingQuota` is the core's own derivation, present
+/// only when both quota fields are.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NewChatMessageCappingResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capping_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ote_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mv_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_quota: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub used_quota: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cycle_start_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cycle_end_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_sent_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_quota: Option<f64>,
+}
