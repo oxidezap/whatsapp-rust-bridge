@@ -341,6 +341,11 @@ jobs:
       - name: Check the tarball contents
         run: bun run scripts/check-pack.ts
 
+      # And its size, for the same reason: this job rebuilds, so the artifact
+      # CI measured is not the one being published.
+      - name: Check the tarball size
+        run: bun run check:size
+
       # No NODE_AUTH_TOKEN and no --provenance: trusted publishing authenticates
       # over OIDC and attaches provenance on its own.
       - run: npm publish --ignore-scripts

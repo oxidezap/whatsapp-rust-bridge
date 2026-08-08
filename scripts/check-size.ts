@@ -32,6 +32,20 @@ const total: number = packed[0].unpackedSize;
 
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 
+// Without a build, `npm pack` still succeeds — it ships the always-included
+// metadata and nothing else, and a near-zero total would clear the budget by
+// the whole budget. A gate that reports 7.5 MB of headroom because it measured
+// no package is worse than no gate, so require what has to be there.
+const REQUIRED = ["dist/index.js", "dist/whatsapp_rust_bridge_bg.wasm"];
+const missing = REQUIRED.filter((path) => !files.some((f) => f.path === path));
+if (missing.length > 0) {
+  console.error(
+    `check-size: nothing to measure — ${missing.join(", ")} absent from the tarball.\n` +
+      `check-size: run 'bun run build' first.`
+  );
+  process.exit(1);
+}
+
 for (const file of [...files].sort((a, b) => b.size - a.size).slice(0, 5)) {
   console.log(`check-size:   ${mb(file.size).padStart(8)}  ${file.path}`);
 }
