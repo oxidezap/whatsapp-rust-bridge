@@ -2076,6 +2076,23 @@ fn parse_optional_timeout_ms(
     }
 }
 
+/// Same validation as [`parse_optional_timeout_ms`], for the calls where the
+/// core takes a timeout rather than an option and there is no default to fall
+/// back to.
+fn parse_timeout_ms(
+    field: &'static str,
+    value: f64,
+) -> Result<std::time::Duration, crate::errors::BridgeError> {
+    if value.is_finite() && value >= 0.0 {
+        Ok(std::time::Duration::from_millis(value as u64))
+    } else {
+        Err(crate::errors::BridgeError::InvalidArgument {
+            field: field.into(),
+            reason: "must be a finite non-negative number".into(),
+        })
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
@@ -2542,6 +2559,114 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = isLoggedIn)]
     pub fn is_logged_in(&self) -> bool {
         self.client.is_logged_in()
+    }
+
+    /// Wait until the socket is connected, or the timeout elapses.
+    ///
+    /// Resolves as soon as the socket is up — login may still be pending. The
+    /// core rejects on expiry rather than reporting it, so this rejects with
+    /// `kind === 'timeout'`.
+    #[wasm_bindgen(js_name = waitForSocket)]
+    pub async fn wait_for_socket(&self, timeout_ms: f64) -> Result<(), crate::errors::BridgeError> {
+        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+        self.client
+            .wait_for_socket(timeout)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Wait until the client is connected and logged in, or the timeout elapses.
+    ///
+    /// Stricter than `waitForSocket`: the core resolves this only once the
+    /// connection is fully ready. Rejects with `kind === 'timeout'` on expiry.
+    #[wasm_bindgen(js_name = waitForConnected)]
+    pub async fn wait_for_connected(
+        &self,
+        timeout_ms: f64,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+        self.client
+            .wait_for_connected(timeout)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Acknowledge a server dirty bit so the server stops re-announcing it.
+    ///
+    /// `dirtyType` is the wire string (`account_sync`, `groups`,
+    /// `syncd_app_state`, `newsletter_metadata`); an unrecognized one is
+    /// forwarded as-is, matching the core's fallback.
+    #[wasm_bindgen(js_name = cleanDirtyBits)]
+    pub async fn clean_dirty_bits(
+        &self,
+        dirty_type: &str,
+        timestamp: Option<f64>,
+    ) -> Result<(), crate::errors::BridgeError> {
+        use wacore::iq::dirty::{DirtyBit, DirtyType};
+
+        if dirty_type.is_empty() {
+            return Err(crate::errors::BridgeError::InvalidArgument {
+                field: "dirtyType".into(),
+                reason: "must not be empty".into(),
+            });
+        }
+
+        let kind = DirtyType::from(dirty_type);
+        let bit = match timestamp {
+            Some(value) if value.is_finite() && value >= 0.0 => {
+                DirtyBit::with_timestamp(kind, value as u64)
+            }
+            Some(_) => {
+                return Err(crate::errors::BridgeError::InvalidArgument {
+                    field: "timestamp".into(),
+                    reason: "must be a finite non-negative number".into(),
+                });
+            }
+            None => DirtyBit::new(kind),
+        };
+
+        self.client
+            .clean_dirty_bits(bit)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Fetch the bot directory the server offers this account.
+    ///
+    /// There is no server push for it, so a caller that wants fresh data calls
+    /// this again.
+    #[wasm_bindgen(js_name = getBotList)]
+    pub async fn get_bot_list(
+        &self,
+    ) -> Result<crate::result_types::BotListResult, crate::errors::BridgeError> {
+        let list = self.client.bots().list().await?;
+        Ok(bot_list_to_result(&list))
+    }
+
+    /// Fetch how many new chats this account may still start this cycle.
+    #[wasm_bindgen(js_name = fetchNewChatMessageCappingInfo)]
+    pub async fn fetch_new_chat_message_capping_info(
+        &self,
+    ) -> Result<crate::result_types::NewChatMessageCappingResult, crate::errors::BridgeError> {
+        let capping = self
+            .client
+            .mex()
+            .fetch_new_chat_message_capping_info()
+            .await?;
+        Ok(crate::result_types::NewChatMessageCappingResult {
+            capping_status: capping
+                .capping_status
+                .as_ref()
+                .map(|s| s.as_str().to_owned()),
+            ote_status: capping.ote_status.as_ref().map(|s| s.as_str().to_owned()),
+            mv_status: capping.mv_status.as_ref().map(|s| s.as_str().to_owned()),
+            total_quota: capping.total_quota.map(|v| v as f64),
+            used_quota: capping.used_quota.map(|v| v as f64),
+            cycle_start_timestamp: capping.cycle_start_timestamp.map(|v| v as f64),
+            cycle_end_timestamp: capping.cycle_end_timestamp.map(|v| v as f64),
+            server_sent_timestamp: capping.server_sent_timestamp.map(|v| v as f64),
+            remaining_quota: capping.remaining_quota().map(|v| v as f64),
+        })
     }
 
     // ── Device props ─────────────────────────────────────────────────────
@@ -5573,6 +5698,58 @@ pub fn decrypt_poll_vote(
 /// Parse a JID string, returning a JS error on failure.
 fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
     jid.parse().map_err(crate::errors::BridgeError::from)
+}
+
+/// Carry the bot directory across as the core grouped it: every section, with
+/// its presentation metadata. `BotList::flatten` is the core's own collapse and
+/// stays a consumer's call.
+fn bot_list_to_result(
+    list: &whatsapp_rust::features::BotList,
+) -> crate::result_types::BotListResult {
+    use crate::result_types::{
+        BotDefaultResult, BotListEntryResult, BotListSectionResult, BotThemeResult,
+    };
+
+    crate::result_types::BotListResult {
+        version: list.version.as_str().to_owned(),
+        bhash: list.bhash.clone(),
+        default_bot: list.default_bot.as_ref().map(|bot| BotDefaultResult {
+            jid: bot.jid.to_string(),
+            persona_id: bot.persona_id.clone(),
+        }),
+        sections: list
+            .sections
+            .iter()
+            .map(|section| BotListSectionResult {
+                name: section.name.clone(),
+                section_type: section.section_type.as_str().to_owned(),
+                display_type: section
+                    .display_type
+                    .as_ref()
+                    .map(|kind| kind.as_str().to_owned()),
+                bots: section
+                    .bots
+                    .iter()
+                    .map(|bot| BotListEntryResult {
+                        jid: bot.jid.to_string(),
+                        persona_id: bot.persona_id.clone(),
+                        card_title: bot.card_title.clone(),
+                        count: bot.count.map(|value| value as f64),
+                        themes: bot
+                            .themes
+                            .iter()
+                            .map(|theme| BotThemeResult {
+                                mode: theme.mode.as_str().to_owned(),
+                                background: theme.background.clone(),
+                                primary_text: theme.primary_text.clone(),
+                                secondary_text: theme.secondary_text.clone(),
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }
 }
 
 // ---------------------------------------------------------------------------
