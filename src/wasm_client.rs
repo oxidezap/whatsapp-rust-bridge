@@ -3593,6 +3593,183 @@ impl WasmWhatsAppClient {
             .map_err(crate::errors::BridgeError::from)
     }
 
+    /// Mute or unmute a contact's status updates.
+    #[wasm_bindgen(js_name = setUserStatusMute)]
+    pub async fn set_user_status_mute(
+        &self,
+        jid: &str,
+        muted: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let user_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .set_user_status_mute(&user_jid, muted)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a contact from the address book on every linked device.
+    ///
+    /// Separate from `saveContact` rather than `saveContact(null)`: this is the
+    /// one contact mutation the core sends as a syncd `Remove`, and a `Set`
+    /// carrying an empty action would be applied as a rename to the empty
+    /// string. `jid` must be a bare phone-number JID.
+    #[wasm_bindgen(js_name = removeContact)]
+    pub async fn remove_contact(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
+        let contact_jid = parse_jid(jid)?;
+        self.client
+            .chat_actions()
+            .remove_contact(&contact_jid)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── Labels ────────────────────────────────────────────────────────────
+
+    /// Create or rename a label. App state is an upsert keyed by `labelId`, so
+    /// this both creates a label and edits an existing one. `color` is a
+    /// WhatsApp color index.
+    #[wasm_bindgen(js_name = createLabel)]
+    pub async fn create_label(
+        &self,
+        label_id: &str,
+        name: &str,
+        color: i32,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .labels()
+            .create_label(label_id, name, color)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Delete a label.
+    #[wasm_bindgen(js_name = deleteLabel)]
+    pub async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .labels()
+            .delete_label(label_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Associate a label with a chat.
+    #[wasm_bindgen(js_name = addChatLabel)]
+    pub async fn add_chat_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .add_chat_label(label_id, &chat)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a label association from a chat.
+    #[wasm_bindgen(js_name = removeChatLabel)]
+    pub async fn remove_chat_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .remove_chat_label(label_id, &chat)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Associate a label with a single message.
+    ///
+    /// Keyed by the message as well as the chat, under a different action than
+    /// the chat association. One message per call, mirroring the wire.
+    #[wasm_bindgen(js_name = addMessageLabel)]
+    pub async fn add_message_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+        message_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .add_message_label(label_id, &chat, message_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Remove a label association from a single message.
+    #[wasm_bindgen(js_name = removeMessageLabel)]
+    pub async fn remove_message_label(
+        &self,
+        label_id: &str,
+        chat_jid: &str,
+        message_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        self.client
+            .labels()
+            .remove_message_label(label_id, &chat, message_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── Quick replies ─────────────────────────────────────────────────────
+
+    /// Create or edit a quick reply. App state is an upsert keyed by `id`.
+    ///
+    /// `shortcut` is the `/`-typed trigger and `message` the expanded text;
+    /// `keywords` are extra search terms and `count` the usage tally (`0` for a
+    /// new one).
+    #[wasm_bindgen(js_name = setQuickReply)]
+    pub async fn set_quick_reply(
+        &self,
+        id: &str,
+        shortcut: &str,
+        message: &str,
+        keywords: Vec<String>,
+        count: i32,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .quick_replies()
+            .set_quick_reply(id, shortcut, message, keywords, count)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Delete a quick reply.
+    #[wasm_bindgen(js_name = deleteQuickReply)]
+    pub async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .quick_replies()
+            .delete_quick_reply(id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    // ── App state settings ────────────────────────────────────────────────
+
+    /// Turn outgoing link previews off or on for the whole account.
+    ///
+    /// The account's stored preference, replicated to the linked devices. It
+    /// does not stop this client from attaching a preview it was explicitly
+    /// asked to send.
+    #[wasm_bindgen(js_name = setLinkPreviewsDisabled)]
+    pub async fn set_link_previews_disabled(
+        &self,
+        disabled: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.client
+            .app_state_settings()
+            .set_link_previews_disabled(disabled)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
     // ── Polls ─────────────────────────────────────────────────────────
 
     /// Create and send a poll. Returns `{ messageId, messageSecret }`.
