@@ -27,24 +27,42 @@ const DTS = new URL("../dist/whatsapp_rust_bridge.d.ts", import.meta.url);
 
 type Method = { name: string; params: string[] };
 
-/** The methods declared on the exported client class, with their parameter types. */
+/** The body of a declaration block, by its opening line. */
+function block(dts: string, opening: string): string {
+  const start = dts.indexOf(opening);
+  if (start < 0) throw new Error(`${opening} is missing from the emitted .d.ts`);
+  return dts.slice(start, dts.indexOf("\n}", start));
+}
+
+/** The methods declared on the exported client, with their parameter types. */
 function readSurface(): { methods: Method[]; unions: Map<string, string> } {
   const dts = readFileSync(DTS, "utf8");
 
-  const start = dts.indexOf("export class WasmWhatsAppClient {");
-  if (start < 0) throw new Error("WasmWhatsAppClient is missing from the emitted .d.ts");
-  const body = dts.slice(start, dts.indexOf("\n}", start));
-
+  // Two blocks, not one. `skip_typescript` keeps a method out of the class and
+  // hand-writes it into a merged `interface` instead, so reading only the class
+  // would leave those methods unswept while the sweep still reported a pass.
   const methods: Method[] = [];
-  for (const m of body.matchAll(/^ {4}([a-zA-Z_][A-Za-z0-9_]*)\(([^)]*)\): [^;]+;$/gm)) {
-    const list = m[2].trim();
-    // Splitting on "," is only safe while no parameter type carries one of its
-    // own. A generic would, so fail loudly rather than synthesise nonsense.
-    if (list.includes("<")) throw new Error(`generic parameter in ${m[1]}: ${list}`);
-    methods.push({
-      name: m[1],
-      params: list ? list.split(",").map((p) => p.slice(p.indexOf(":") + 1).trim()) : [],
-    });
+  for (const opening of [
+    "export class WasmWhatsAppClient {",
+    "interface WasmWhatsAppClient {",
+  ]) {
+    const before = methods.length;
+    for (const m of block(dts, opening).matchAll(
+      /^ {4}([a-zA-Z_][A-Za-z0-9_]*)\(([^)]*)\): [^;]+;$/gm
+    )) {
+      const list = m[2].trim();
+      // Splitting on "," is only safe while no parameter type carries one of
+      // its own. A generic would, so fail loudly rather than synthesise
+      // nonsense.
+      if (list.includes("<")) throw new Error(`generic parameter in ${m[1]}: ${list}`);
+      methods.push({
+        name: m[1],
+        params: list ? list.split(",").map((p) => p.slice(p.indexOf(":") + 1).trim()) : [],
+      });
+    }
+    // A block that parses to nothing is the failure this loop exists to
+    // prevent, and it would otherwise be invisible.
+    if (methods.length === before) throw new Error(`no methods parsed from ${opening}`);
   }
 
   const unions = new Map<string, string>();
