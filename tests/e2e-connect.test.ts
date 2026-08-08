@@ -57,11 +57,16 @@ describe("WASM Client E2E", () => {
       createHttp()
     );
 
-    await expect(client.connect()).rejects.toThrow();
-    expect(client.isConnected()).toBe(false);
-
-    await client.disconnect();
-    client.free();
+    // A client left alive holds background tasks and a slice of the shared
+    // WASM heap that the next `createWhatsAppClient` waits on, so a failing
+    // assertion here must not become a failure in the test after it.
+    try {
+      await expect(client.connect()).rejects.toThrow();
+      expect(client.isConnected()).toBe(false);
+    } finally {
+      await client.disconnect();
+      client.free();
+    }
   }, 20000);
 
   // The cycle `connect()` now owns: handshake, then a reader that turns frames
@@ -78,16 +83,21 @@ describe("WASM Client E2E", () => {
       (event) => events.push(event)
     );
 
-    await client.connect();
-    expect(client.isConnected()).toBe(true);
+    try {
+      await client.connect();
+      expect(client.isConnected()).toBe(true);
 
-    // A `qr` only reaches the host if the reader decoded the server's first
-    // stanzas, so it is the cheapest proof that the connection is being read.
-    await waitForEvent(events, "qr", 15000);
+      // A `qr` only reaches the host if the reader decoded the server's first
+      // stanzas, so it is the cheapest proof that the connection is being read.
+      await waitForEvent(events, "qr", 15000);
 
-    await client.disconnect();
-    expect(client.isConnected()).toBe(false);
-    client.free();
+      await client.disconnect();
+      expect(client.isConnected()).toBe(false);
+    } finally {
+      // `free()` signals shutdown and disconnects on its own, so it covers the
+      // paths that never reached the disconnect above.
+      client.free();
+    }
   }, 25000);
 
   test.skipIf(!hasMockServer)("connects and pairs with mock server", async () => {
