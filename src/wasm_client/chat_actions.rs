@@ -38,7 +38,7 @@ impl WasmWhatsAppClient {
             Some(ts) => {
                 self.client
                     .chat_actions()
-                    .mute_chat_until(&chat_jid, ts as i64)
+                    .mute_chat_until(&chat_jid, parse_timestamp_ms("muteUntil", ts)?)
                     .await
             }
             None => self.client.chat_actions().unmute_chat(&chat_jid).await,
@@ -167,8 +167,11 @@ impl WasmWhatsAppClient {
         // Without either, the core would fall back to the chat JID as the
         // author and fail the secret lookup the slow way — reject up front.
         if parent_key.participant.is_none() && !parent_key.from_me {
-            return Err(crate::errors::internal(
-                "parent_key needs participant (the post author) or fromMe: true",
+            // Same `field` the deserialization failure above uses: one argument
+            // should not answer to two names depending on how it was wrong.
+            return Err(crate::errors::invalid_arg(
+                "parent_key",
+                "needs participant (the post author) or fromMe: true",
             ));
         }
         let (chat, body) = parse_jid_and_msg_bytes(jid, bytes)?;

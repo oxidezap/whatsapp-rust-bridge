@@ -2108,6 +2108,29 @@ fn parse_timeout_ms(
     }
 }
 
+const TIMESTAMP_RANGE: &str = "must be a finite number of milliseconds inside the i64 range";
+
+/// A millisecond instant the core takes as `i64`.
+///
+/// Not [`parse_timeout_ms`]: that is a duration, so it is unsigned and its own
+/// range check applies. This is a point in time, and which instants are
+/// meaningful is the core's rule to enforce — `mute_chat_until` already
+/// rejects anything at or before the epoch. What the core cannot catch is the
+/// cast: `as i64` saturates, so `Infinity` arrives as `i64::MAX` and passes
+/// every check downstream of it.
+fn parse_timestamp_ms(field: &'static str, value: f64) -> Result<i64, crate::errors::BridgeError> {
+    // `i64::MIN as f64` and `i64::MAX as f64` are both exactly ±2^63, so the
+    // upper comparison has to be strict where the lower one does not.
+    if value.is_finite() && value >= i64::MIN as f64 && value < i64::MAX as f64 {
+        Ok(value as i64)
+    } else {
+        Err(crate::errors::BridgeError::InvalidArgument {
+            field: field.into(),
+            reason: TIMESTAMP_RANGE.into(),
+        })
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------

@@ -177,8 +177,9 @@ impl WasmWhatsAppClient {
         use wacore_binary::JidExt;
         let target = parse_jid(group_jid)?;
         if !target.is_group() {
-            return Err(crate::errors::internal(
-                "setGroupProfilePicture: target jid must be a group jid",
+            return Err(crate::errors::invalid_arg(
+                "groupJid",
+                "must be a group jid",
             ));
         }
         let result = self
@@ -199,8 +200,9 @@ impl WasmWhatsAppClient {
         use wacore_binary::JidExt;
         let target = parse_jid(group_jid)?;
         if !target.is_group() {
-            return Err(crate::errors::internal(
-                "removeGroupProfilePicture: target jid must be a group jid",
+            return Err(crate::errors::invalid_arg(
+                "groupJid",
+                "must be a group jid",
             ));
         }
         let result = self

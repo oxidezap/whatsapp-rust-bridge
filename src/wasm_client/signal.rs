@@ -220,7 +220,7 @@ impl WasmWhatsAppClient {
     ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
         let parsed = parse_jid(jid)?;
         let enc_type = wacore::message_processing::EncType::from_wire(msg_type)
-            .ok_or_else(|| crate::errors::internal(format!("invalid msg_type: {msg_type}")))?;
+            .ok_or_else(|| crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}")))?;
         let plaintext = self
             .client
             .signal()
