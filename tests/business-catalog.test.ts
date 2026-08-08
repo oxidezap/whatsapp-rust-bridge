@@ -118,9 +118,11 @@ describe("profile delta", () => {
     try {
       // Reaching these proves the delta crossed: they are the core's own
       // pre-flight checks, which run before any I/O.
+      // The delta is caller input, so its validation failures classify as
+      // invalid arguments rather than as internal faults.
       const empty = await rejection(client.updateBusinessProfile({}));
       expect(empty.message).toContain("empty");
-      expect(empty.kind).not.toBe("not-connected");
+      expect(empty.kind).toBe("invalid-argument");
 
       const tooMany = await rejection(
         client.updateBusinessProfile({
@@ -128,7 +130,7 @@ describe("profile delta", () => {
         })
       );
       expect(tooMany.message).toContain("websites");
-      expect(tooMany.kind).not.toBe("not-connected");
+      expect(tooMany.kind).toBe("invalid-argument");
     } finally {
       client.free();
     }
@@ -148,6 +150,7 @@ describe("profile delta", () => {
           },
         })
       );
+      expect(error.kind).toBe("invalid-argument");
       expect(error.message).toContain("tue");
       expect(error.message).toContain("minute of the day");
     } finally {
