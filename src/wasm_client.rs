@@ -4098,27 +4098,48 @@ impl WasmWhatsAppClient {
             BusinessHoursConfig, BusinessHoursUpdate, BusinessProfileUpdate,
         };
 
-        let business_hours = update.business_hours.map(|hours| BusinessHoursUpdate {
-            timezone: hours.timezone,
-            note: hours.note,
-            config: hours
-                .config
-                .into_iter()
-                .map(|entry| {
-                    let day = entry.day_of_week.as_str().into();
-                    let mode = entry.mode.as_str().into();
-                    // Times and mode go together on the wire, and the core
-                    // rejects a half-set range, so pass a range only when both
-                    // ends came in.
-                    match (entry.open_time, entry.close_time) {
-                        (Some(open), Some(close)) => {
-                            BusinessHoursConfig::with_hours(day, mode, open, close)
+        let business_hours = update
+            .business_hours
+            .map(|hours| {
+                let config = hours
+                    .config
+                    .into_iter()
+                    .map(|entry| {
+                        let day = entry.day_of_week.as_str().into();
+                        let mode = entry.mode.as_str().into();
+                        // A range is set at both ends or neither: the core's
+                        // constructors admit no half-set config, so a lone
+                        // endpoint has to be refused here rather than dropped.
+                        match (entry.open_time, entry.close_time) {
+                            (Some(open), Some(close)) => {
+                                Ok(BusinessHoursConfig::with_hours(day, mode, open, close))
+                            }
+                            (None, None) => Ok(BusinessHoursConfig::new(day, mode)),
+                            (open, _) => {
+                                let missing = if open.is_some() {
+                                    "closeTime"
+                                } else {
+                                    "openTime"
+                                };
+                                Err(crate::errors::BridgeError::InvalidArgument {
+                                    field: "businessHours.config".into(),
+                                    reason: format!(
+                                        "{} is missing {missing}: an opening range needs both ends",
+                                        entry.day_of_week
+                                    ),
+                                })
+                            }
                         }
-                        _ => BusinessHoursConfig::new(day, mode),
-                    }
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                Ok::<_, crate::errors::BridgeError>(BusinessHoursUpdate {
+                    timezone: hours.timezone,
+                    note: hours.note,
+                    config,
                 })
-                .collect(),
-        });
+            })
+            .transpose()?;
 
         let delta = BusinessProfileUpdate {
             address: update.address,

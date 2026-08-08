@@ -154,6 +154,38 @@ describe("profile delta", () => {
       client.free();
     }
   }, 20000);
+
+  test("a half-specified opening range is refused, not quietly completed", async () => {
+    const client = await offlineClient();
+    try {
+      // The core's constructors admit no half-set range, so the endpoint would
+      // otherwise be dropped and the day applied with hours the caller never
+      // asked for.
+      const openOnly = await rejection(
+        client.updateBusinessProfile({
+          businessHours: {
+            config: [{ dayOfWeek: "wed", mode: "specific_hours", openTime: 540 }],
+          },
+        })
+      );
+      expect(openOnly.kind).toBe("invalid-argument");
+      expect(openOnly.message).toContain("wed");
+      expect(openOnly.message).toContain("closeTime");
+
+      const closeOnly = await rejection(
+        client.updateBusinessProfile({
+          businessHours: {
+            config: [{ dayOfWeek: "thu", mode: "specific_hours", closeTime: 1080 }],
+          },
+        })
+      );
+      expect(closeOnly.kind).toBe("invalid-argument");
+      expect(closeOnly.message).toContain("thu");
+      expect(closeOnly.message).toContain("openTime");
+    } finally {
+      client.free();
+    }
+  }, 20000);
 });
 
 describe("cover photo", () => {
