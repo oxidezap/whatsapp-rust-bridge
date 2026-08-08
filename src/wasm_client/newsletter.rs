@@ -289,7 +289,7 @@ impl WasmWhatsAppClient {
                 phone_jid: follower.phone_jid.as_ref().map(|j| j.to_string()),
                 display_name: follower.display_name.clone(),
                 username: follower.username.clone(),
-                role: follower.role.as_ref().map(|r| format!("{r:?}")),
+                role: follower.role.as_ref().map(newsletter_role_str),
                 follow_time: follower.follow_time.map(|v| v as f64),
                 admin_profile: follower.admin_profile.as_ref().map(admin_profile_to_result),
             })
