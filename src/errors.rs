@@ -592,6 +592,21 @@ mod tests {
     // `wasm-pack test --node` (the crate has no native test target).
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
+    /// The rejection stanza `IqError::ServerError` carries since whatsapp-rust
+    /// #1257. The mapping reads only `code`/`text`, so any well-formed `<iq>`
+    /// stands in for the one the server would have sent.
+    fn rejection_stanza() -> whatsapp_rust::RejectionStanza {
+        use whatsapp_rust::wacore_binary::node::{Attrs, Node, OwnedNodeRef};
+
+        let packed =
+            whatsapp_rust::wacore_binary::marshal::marshal(&Node::new("iq", Attrs::new(), None))
+                .expect("the stanza marshals");
+        let node_bytes = whatsapp_rust::wacore_binary::util::unpack(&packed)
+            .expect("marshal output unpacks")
+            .into_owned();
+        std::sync::Arc::new(OwnedNodeRef::new(node_bytes).expect("the node bytes decode")).into()
+    }
+
     #[test]
     fn iq_server_error_extracts_code_and_text() {
         let iq = IqError::ServerError {
@@ -599,6 +614,7 @@ mod tests {
             text: "bad-request".into(),
             error_type: None,
             backoff: None,
+            response: rejection_stanza(),
         };
         let be: BridgeError = iq.into();
         match be {
@@ -620,6 +636,7 @@ mod tests {
             text: "bad-request".into(),
             error_type: None,
             backoff: None,
+            response: rejection_stanza(),
         };
         let pe: PairError = PairError::RequestFailed(iq);
         let be: BridgeError = pe.into();
@@ -656,6 +673,7 @@ mod tests {
             text: "forbidden".into(),
             error_type: None,
             backoff: None,
+            response: rejection_stanza(),
         }
     }
 
