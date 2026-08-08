@@ -2696,25 +2696,51 @@ fn from_js_input<T: serde::de::DeserializeOwned>(
 /// asks the wrong question. A stream from an iframe, a worker, or a WHATWG
 /// ponyfill is a working stream carrying a different realm's constructor, and
 /// brand-checking would start rejecting arguments that used to run fine.
+///
+/// And it *calls* the method rather than merely finding it, because a plain
+/// object can borrow `ReadableStream.prototype.getReader` and satisfy any
+/// check short of running it. Through `Reflect` the throw is a `Result`;
+/// through the stream machinery it would be the uncaught exception again.
 fn from_js_class<T: JsCast>(
     field: &'static str,
     expected: &str,
     method: &str,
     value: JsValue,
 ) -> Result<T, crate::errors::BridgeError> {
-    // `Reflect::get` walks the prototype chain, and errors on a primitive or
-    // on null rather than panicking — all three answer "not a stream".
-    let usable = js_sys::Reflect::get(&value, &JsValue::from_str(method))
-        .is_ok_and(|member| member.is_function());
+    let refuse = |detail: String| crate::errors::BridgeError::InvalidArgument {
+        field: field.into(),
+        reason: format!("must be a usable {expected}: {detail}"),
+    };
 
-    if usable {
-        Ok(value.unchecked_into())
-    } else {
-        Err(crate::errors::BridgeError::InvalidArgument {
-            field: field.into(),
-            reason: format!("must be a {expected} (nothing callable at .{method}())"),
+    let lock = call_no_args(&value, method).map_err(&refuse)?;
+    // Hand it straight back. The stream has to reach `wasm_streams` unlocked,
+    // and one whose lock will not release is no more usable than one that
+    // could not produce it.
+    call_no_args(&lock, "releaseLock").map_err(&refuse)?;
+
+    Ok(value.unchecked_into())
+}
+
+/// Call `target[method]()`, describing rather than raising anything that goes
+/// wrong. Both halves are catchable: `Reflect::get` errors on a primitive or on
+/// `null` instead of panicking, and `call0` is a `catch` binding, so a throw
+/// comes back as a value instead of unwinding out of the shim.
+fn call_no_args(target: &JsValue, method: &str) -> Result<JsValue, String> {
+    let member = js_sys::Reflect::get(target, &JsValue::from_str(method))
+        .ok()
+        .filter(JsValue::is_function)
+        .ok_or_else(|| format!("nothing callable at .{method}()"))?;
+
+    member
+        .unchecked_into::<js_sys::Function<fn() -> JsValue>>()
+        .call0(target)
+        .map_err(|thrown| {
+            let detail = thrown
+                .dyn_ref::<js_sys::Error>()
+                .map(|error| String::from(error.message()))
+                .unwrap_or_else(|| format!("{thrown:?}"));
+            format!(".{method}() threw {detail}")
         })
-    }
 }
 
 /// Carry the bot directory across as the core grouped it: every section, with

@@ -64,6 +64,26 @@ describe("encryptMediaStream", () => {
     }
   }, 20000);
 
+  test("an object that only borrows getReader rejects", async () => {
+    const client = await offlineClient();
+    try {
+      // The case a shape check cannot see: this has a real, callable
+      // `getReader` — the genuine one — and satisfies any test short of
+      // running it. Calling it throws, and before that throw was caught the
+      // call was lost rather than refused.
+      const impostor = { getReader: ReadableStream.prototype.getReader };
+
+      const error = await rejection(
+        (client as any).encryptMediaStream(impostor, writable(), "image")
+      );
+      expect(error.kind).toBe("invalid-argument");
+      expect(error.field).toBe("input");
+      expect(error.message).toContain("getReader");
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
   test("a stream from another realm still crosses", async () => {
     const client = await offlineClient();
     try {
