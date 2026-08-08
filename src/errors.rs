@@ -494,6 +494,28 @@ impl_from_error_chain!(
     whatsapp_rust::features::StanzaResponseError,
 );
 
+/// Business operations split three ways rather than going through the shared
+/// walk wholesale. `InvalidUpdate` is the caller's own delta failing the core's
+/// pre-flight checks — an empty update, too many websites, an hour outside the
+/// day — and those variants carry no source, so the walk would land them on
+/// `Internal` and leave a consumer unable to tell a typo from a fault. A
+/// malformed response is the server's doing, not the caller's.
+impl From<whatsapp_rust::features::BusinessError> for BridgeError {
+    fn from(e: whatsapp_rust::features::BusinessError) -> Self {
+        use whatsapp_rust::features::BusinessError;
+        match &e {
+            BusinessError::InvalidUpdate(detail) => Self::InvalidArgument {
+                field: "update".into(),
+                reason: detail.to_string(),
+            },
+            BusinessError::MalformedResponse { operation, detail } => Self::ProtocolViolation {
+                reason: format!("malformed {operation} response: {detail}"),
+            },
+            _ => Self::from_error_chain(&e),
+        }
+    }
+}
+
 // Deliberate non-impl: `From<serde_json::Error>`. The right `kind` depends on
 // where the JSON came from — caller-supplied input is `InvalidArgument`,
 // remote/CDN responses are `ProtocolViolation`, internal serialization is

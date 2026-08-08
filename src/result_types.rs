@@ -739,6 +739,327 @@ pub struct BusinessHoursConfigResult {
 }
 
 // ---------------------------------------------------------------------------
+// Business catalog
+// ---------------------------------------------------------------------------
+
+/// A price, in thousandths of the currency's main unit.
+///
+/// WhatsApp scales money by 1000, not 100, and the protobuf field is an
+/// `int64`. `amount1000` therefore crosses as a **string**: a `number` is exact
+/// only below 2^53, and a large order would be silently wrong rather than
+/// rejected. Dividing by 1000 for display is the consumer's decision.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct PriceResult {
+    /// Thousandths of one currency unit: `"1990"` is 1.99 in `currency`.
+    pub amount_1000: String,
+    /// ISO 4217 code. Absent when the server sends a price without one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<String>,
+}
+
+/// A sale price and the window it applies to.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SalePriceResult {
+    pub price: PriceResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductImageResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_image_url: Option<String>,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductVideoResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_video_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail_url: Option<String>,
+}
+
+/// A postal address, as sent for a product's importer of record.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ImporterAddressResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub street1: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub street2: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_code: Option<String>,
+}
+
+/// A catalog product. Only `id` is guaranteed; the server omits rather than
+/// blanks, so an absent name is absent, not `""`.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductResult {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retailer_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// The link-shimmed form of `url`, carried alongside it rather than
+    /// instead. Which to open is a consumer's call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shimmed_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price: Option<PriceResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sale_price: Option<SalePriceResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_hidden: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_sanctioned: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_available: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub availability: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub can_appeal: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub belongs_to: Option<bool>,
+    pub images: Vec<ProductImageResult>,
+    pub videos: Vec<ProductVideoResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compliance_category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_code_origin: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub importer_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub importer_address: Option<ImporterAddressResult>,
+}
+
+/// One page of a business catalog.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogResult {
+    pub products: Vec<ProductResult>,
+    /// Feed back as `after` for the next page; absent on the last one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after_cursor: Option<String>,
+    /// Carried by the response, though the catalog query takes only `after`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before_cursor: Option<String>,
+}
+
+/// A named group of products within a catalog.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// A prefix, and it says so only by its length: the collections query
+    /// carries no per-collection cursor, so `products.length === itemLimit`
+    /// means more may exist.
+    pub products: Vec<ProductResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub can_appeal: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reject_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commerce_url: Option<String>,
+}
+
+/// One page of a business's collections.
+///
+/// Forward cursor only — the collections paging object has no `before`, and
+/// the asymmetry with the catalog is the wire's, not an oversight.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionsResult {
+    pub collections: Vec<CollectionResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after_cursor: Option<String>,
+}
+
+/// One dimension of a chosen product variant, e.g. `Size` / `Large`.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct VariantPropertyResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// A line item on an order: a snapshot, so the price is what was quoted when
+/// the order was placed.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderProductResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price: Option<PriceResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quantity: Option<f64>,
+    pub images: Vec<ProductImageResult>,
+    /// Empty for a product with no variants. Without it a variant order cannot
+    /// be fulfilled: id, name and price are shared across one listing's
+    /// variants.
+    pub variant_properties: Vec<VariantPropertyResult>,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderPriceDetailsResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtotal: Option<PriceResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<PriceResult>,
+}
+
+/// Result from `getOrder`.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderResult {
+    pub products: Vec<OrderProductResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price_details: Option<OrderPriceDetailsResult>,
+    /// Unix seconds, as sent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creation_timestamp: Option<f64>,
+}
+
+/// Options for `getCatalog`. Omitted fields take the core's own defaults; no
+/// second default is applied here.
+#[derive(Default, Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CatalogOptionsInput {
+    pub limit: Option<u32>,
+    /// Cursor from a previous page's `afterCursor`.
+    pub after: Option<String>,
+    pub image_width: Option<u32>,
+    pub image_height: Option<u32>,
+    pub allow_shop_source: Option<bool>,
+}
+
+/// Options for `getCollections`.
+///
+/// No `before`: the collections query has no backward cursor, so one accepted
+/// here would go nowhere.
+#[derive(Default, Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CollectionOptionsInput {
+    pub collection_limit: Option<u32>,
+    /// Products returned inline per collection.
+    pub item_limit: Option<u32>,
+    pub after: Option<String>,
+    pub image_width: Option<u32>,
+    pub image_height: Option<u32>,
+}
+
+/// One opening range for a day of the week.
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct BusinessHoursConfigInput {
+    /// `mon`, `tue`, … as the wire spells them.
+    pub day_of_week: String,
+    /// `open_24h`, `specific_hours` or `appointment_only`.
+    pub mode: String,
+    /// Minutes past local midnight. Required by `specific_hours` and rejected
+    /// for the other modes, by the core.
+    pub open_time: Option<u32>,
+    pub close_time: Option<u32>,
+}
+
+/// Opening hours for `updateBusinessProfile`.
+#[derive(Default, Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase", default)]
+pub struct BusinessHoursUpdateInput {
+    /// IANA zone name, e.g. `America/Araguaina`.
+    pub timezone: Option<String>,
+    pub note: Option<String>,
+    pub config: Vec<BusinessHoursConfigInput>,
+}
+
+/// A delta on the account's own business profile.
+///
+/// Absent means "leave alone"; an empty value means "clear" (`""` for text,
+/// `[]` for `websites`). The core rejects a delta with nothing set.
+#[derive(Default, Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase", default)]
+pub struct BusinessProfileUpdateInput {
+    pub address: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub description: Option<String>,
+    pub email: Option<String>,
+    /// At most two URLs. `[]` clears the list.
+    pub websites: Option<Vec<String>>,
+    /// Category *ids* from the directory, not names.
+    pub categories: Option<Vec<String>>,
+    pub business_hours: Option<BusinessHoursUpdateInput>,
+}
+
+/// The receipt a `biz-cover-photo` upload returns.
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverPhotoUploadInput {
+    /// `fbid` from the upload response.
+    pub id: String,
+    /// `meta_hmac` from the upload response.
+    pub token: String,
+    /// `ts` from the upload response, as a string: it is an i64.
+    pub timestamp: String,
+}
+
+// ---------------------------------------------------------------------------
 // Newsletter
 // ---------------------------------------------------------------------------
 
