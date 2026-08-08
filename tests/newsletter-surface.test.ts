@@ -230,7 +230,7 @@ describe("emitted types", () => {
 
   test("admin count is optional, never defaulted to zero", () => {
     const info = declarations.match(
-      /export interface NewsletterAdminInfoResult \{[^}]*\}/
+      /export interface NewsletterAdminInfoResult \{[\s\S]*?\n\}/
     )?.[0];
     expect(info).toBeTruthy();
     expect(info).toContain("adminCount?");
@@ -238,7 +238,7 @@ describe("emitted types", () => {
 
   test("a message keeps both of its ids, as strings", () => {
     const message = declarations.match(
-      /export interface NewsletterMessageResult \{[^}]*\}/
+      /export interface NewsletterMessageResult \{[\s\S]*?\n\}/
     )?.[0];
     expect(message).toBeTruthy();
     // serverId is a u64 — a number would lose it.
