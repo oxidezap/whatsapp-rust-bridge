@@ -2291,6 +2291,7 @@ pub async fn create_whatsapp_client(
         sync_rx: Some(sync_rx),
         saver_handle: Mutex::new(Some(saver_handle)),
         run_handle: Mutex::new(None),
+        connection_handle: Mutex::new(None),
         sync_worker_handle: Mutex::new(None),
         _event_subscription: event_subscription,
         raw_node_lease: Mutex::new(None),
@@ -2317,6 +2318,9 @@ pub struct WasmWhatsAppClient {
     /// `disconnect()` doesn't leave the loop polling against the dropped
     /// wrapper.
     run_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
+    /// Spawned by `connect()` to read the single connection it established.
+    /// Aborted on `Drop` for the same reason as `run_handle`.
+    connection_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
     sync_worker_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
     /// Ownership token for the JS event sink. Dropping the wrapper removes the
     /// handler from the core event bus.
@@ -2374,11 +2378,50 @@ impl WasmWhatsAppClient {
     }
 
     /// Connect to WhatsApp servers (single connection, no auto-reconnect).
+    ///
+    /// Resolves once the handshake is done, then a background task reads the
+    /// connection until it ends. The core hands `connect()` back a `Connection`
+    /// that decodes nothing until it is driven, so without that reader no event
+    /// would ever fire and every request would time out.
     pub async fn connect(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client
-            .connect()
-            .await
-            .map_err(crate::errors::BridgeError::from)
+        let client = self.client.clone();
+        let (handshake_tx, handshake_rx) = async_channel::bounded(1);
+
+        // Connecting and reading live in one task because `Connection` borrows
+        // the client it came from: the borrow cannot outlive this call, so the
+        // handshake result travels back over the channel instead.
+        let handle = self.runtime.spawn(Box::pin(async move {
+            match client.connect().await {
+                Err(e) => {
+                    let _ = handshake_tx.send(Err(e)).await;
+                }
+                Ok(connection) => {
+                    let _ = handshake_tx.send(Ok(())).await;
+                    let _ = connection.read_until_disconnected().await;
+                    info!("Client connection reader exited.");
+                }
+            }
+        }));
+
+        let handshake = handshake_rx.recv().await.map_err(|_| {
+            crate::errors::internal("connect task ended without reporting a handshake result")
+        })?;
+
+        match handshake {
+            Ok(()) => {
+                *self
+                    .connection_handle
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some(handle);
+                Ok(())
+            }
+            // The task is already finished; keep the slot pointing at whatever
+            // reader is still live rather than at this failed attempt.
+            Err(e) => {
+                handle.abort();
+                Err(crate::errors::BridgeError::from(e))
+            }
+        }
     }
 
     /// Fetch the account's reachout-timelock state.
@@ -5265,6 +5308,7 @@ impl Drop for WasmWhatsAppClient {
         for slot in [
             &self.saver_handle,
             &self.run_handle,
+            &self.connection_handle,
             &self.sync_worker_handle,
         ] {
             if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
