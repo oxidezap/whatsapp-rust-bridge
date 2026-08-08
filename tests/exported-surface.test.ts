@@ -105,11 +105,10 @@ function synthesise(type: string, unions: Map<string, string>): unknown {
       return new Uint8Array(32);
     case "Function":
       return () => {};
-    // Real streams, because a non-stream here is a second, separate instance
-    // of the same trap: wasm-bindgen casts an imported type unchecked, so the
-    // failure surfaces as an uncaught exception and the promise never settles.
-    // Feeding garbage would make this sweep fail on a defect it is not the
-    // place to fix; it is reported and fixed on its own.
+    // Real streams rather than the empty object every other class gets: they
+    // take the method through its own work instead of stopping at the
+    // argument check. A non-stream is covered in `stream-arguments.test.ts`,
+    // where the rejection can be attributed to one parameter.
     case "ReadableStream":
       return new ReadableStream({
         start(c) {

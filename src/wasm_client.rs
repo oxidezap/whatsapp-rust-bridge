@@ -2706,6 +2706,66 @@ fn from_js_input<T: serde::de::DeserializeOwned>(
     })
 }
 
+/// Take a parameter declared as an imported JS class, naming the field when it
+/// cannot do what this code is about to ask of it.
+///
+/// The same trap [`from_js_input`] exists for, reached the other way:
+/// wasm-bindgen casts an imported type *unchecked*, so a plain object is
+/// accepted at the boundary and fails much deeper, where the throw escapes the
+/// async shim as an uncaught exception and the promise stays pending for good.
+/// `unchecked_param_type` keeps the declared TypeScript type.
+///
+/// The test is for `method` rather than for `instanceof`, because `instanceof`
+/// asks the wrong question. A stream from an iframe, a worker, or a WHATWG
+/// ponyfill is a working stream carrying a different realm's constructor, and
+/// brand-checking would start rejecting arguments that used to run fine.
+///
+/// And it *calls* the method rather than merely finding it, because a plain
+/// object can borrow `ReadableStream.prototype.getReader` and satisfy any
+/// check short of running it. Through `Reflect` the throw is a `Result`;
+/// through the stream machinery it would be the uncaught exception again.
+fn from_js_class<T: JsCast>(
+    field: &'static str,
+    expected: &str,
+    method: &str,
+    value: JsValue,
+) -> Result<T, crate::errors::BridgeError> {
+    let refuse = |detail: String| crate::errors::BridgeError::InvalidArgument {
+        field: field.into(),
+        reason: format!("must be a usable {expected}: {detail}"),
+    };
+
+    let lock = call_no_args(&value, method).map_err(&refuse)?;
+    // Hand it straight back. The stream has to reach `wasm_streams` unlocked,
+    // and one whose lock will not release is no more usable than one that
+    // could not produce it.
+    call_no_args(&lock, "releaseLock").map_err(&refuse)?;
+
+    Ok(value.unchecked_into())
+}
+
+/// Call `target[method]()`, describing rather than raising anything that goes
+/// wrong. Both halves are catchable: `Reflect::get` errors on a primitive or on
+/// `null` instead of panicking, and `call0` is a `catch` binding, so a throw
+/// comes back as a value instead of unwinding out of the shim.
+fn call_no_args(target: &JsValue, method: &str) -> Result<JsValue, String> {
+    let member = js_sys::Reflect::get(target, &JsValue::from_str(method))
+        .ok()
+        .filter(JsValue::is_function)
+        .ok_or_else(|| format!("nothing callable at .{method}()"))?;
+
+    member
+        .unchecked_into::<js_sys::Function<fn() -> JsValue>>()
+        .call0(target)
+        .map_err(|thrown| {
+            let detail = thrown
+                .dyn_ref::<js_sys::Error>()
+                .map(|error| String::from(error.message()))
+                .unwrap_or_else(|| format!("{thrown:?}"));
+            format!(".{method}() threw {detail}")
+        })
+}
+
 /// Carry the bot directory across as the core grouped it: every section, with
 /// its presentation metadata. `BotList::flatten` is the core's own collapse and
 /// stays a consumer's call.
