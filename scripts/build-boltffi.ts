@@ -42,6 +42,11 @@ const HOST_TARGET =
  */
 const REQUIRED_CLI_VERSION = "0.29.3";
 
+// Cleared before anything can bail out. A skipped or rejected build that left
+// the previous `dist/boltffi` behind would hand the tests and `check-pack` an
+// artifact built from older Rust sources, with nothing to say it was stale.
+rmSync(OUT, { recursive: true, force: true });
+
 const available = Bun.spawnSync({
   cmd: ["boltffi", "--version"],
   stdout: "pipe",
@@ -61,8 +66,6 @@ if (version !== REQUIRED_CLI_VERSION) {
       `Install it with: cargo install boltffi_cli --version ${REQUIRED_CLI_VERSION} --locked`,
   );
 }
-
-rmSync(OUT, { recursive: true, force: true });
 
 const packed = Bun.spawnSync({
   cmd: ["boltffi", "pack", "wasm", "--release"],
