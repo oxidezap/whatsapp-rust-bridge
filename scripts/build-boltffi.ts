@@ -18,7 +18,8 @@
  * Skipped when `boltffi` is absent, so the default build still works for a
  * contributor who does not have it installed.
  */
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
@@ -39,12 +40,15 @@ const HOST_TARGET =
  * a revision. Mixing them produces a module whose exports the emitted
  * JavaScript looks for and does not find — at runtime, not at build time.
  *
- * The crate is pinned to a git revision (see `crates/bridge-boltffi/Cargo.toml`),
- * and `boltffi --version` reports the crate version rather than that revision,
- * so this can only catch a wholly different version. Keeping the CLI on the
- * same `--rev` is the workflows' job, and a reviewer's when the pin moves.
+ * `boltffi --version` reports the crate version, which is the same string on
+ * either side of the pin, so the version alone cannot catch the case that
+ * matters. What can is cargo's own install record: a `cargo install --git …
+ * --rev X` writes that revision into `$CARGO_HOME/.crates.toml`.
  */
 const REQUIRED_CLI_VERSION = "0.29.3";
+const PINNED_REV = readFileSync(join(CRATE, "Cargo.toml"), "utf8").match(
+  /rev\s*=\s*"([0-9a-f]{7,40})"/,
+)?.[1];
 
 // Cleared before anything can bail out. A skipped or rejected build that left
 // the previous `dist/boltffi` behind would hand the tests and `check-pack` an
@@ -72,8 +76,51 @@ if (version !== REQUIRED_CLI_VERSION) {
   );
 }
 
+// The record exists only for a `cargo install`. A CLI put on PATH some other
+// way leaves nothing to compare against, so that stays a warning — CI installs
+// with `--git --rev`, which is the case this has to catch.
+const installedRev = (() => {
+  const record = join(process.env.CARGO_HOME ?? join(homedir(), ".cargo"), ".crates.toml");
+  if (!existsSync(record)) return null;
+  const entry = readFileSync(record, "utf8").match(/^"boltffi_cli [^"]*"/m)?.[0];
+  if (entry === undefined) return null;
+  // `?rev=` is what was asked for; the `#` fragment is the commit cargo
+  // resolved it to. Either identifies the revision.
+  return {
+    git: /\bgit\+/.test(entry),
+    rev: (entry.match(/[?&]rev=([0-9a-f]{7,40})/) ?? entry.match(/#([0-9a-f]{7,40})"/))?.[1],
+  };
+})();
+// Cargo may record a short revision where the manifest pins a full one, or the
+// reverse, so they agree when one is a prefix of the other.
+const sameRevision = (a: string, b: string) =>
+  a.startsWith(b.slice(0, Math.min(a.length, b.length)));
+if (PINNED_REV === undefined) {
+  console.warn(
+    "no `rev` in crates/bridge-boltffi/Cargo.toml — the installed CLI cannot be " +
+      "checked against the pin.",
+  );
+} else if (installedRev === null || !installedRev.git) {
+  console.warn(
+    `boltffi was not installed by \`cargo install --git\`, so its revision is ` +
+      `unknown. This backend compiles against ${PINNED_REV}; a CLI from any ` +
+      `other revision emits JavaScript for wasm exports the module lacks.`,
+  );
+} else if (installedRev.rev === undefined || !sameRevision(PINNED_REV, installedRev.rev)) {
+  throw new Error(
+    `boltffi was installed from revision ${installedRev.rev ?? "(unrecorded)"}, ` +
+      `but this backend compiles against ${PINNED_REV}. Reinstall with ` +
+      `\`cargo install --git https://github.com/boltffi/boltffi --rev ${PINNED_REV} ` +
+      `boltffi_cli --locked\`.`,
+  );
+}
+
+// `--deny-skipped` makes the generator exit non-zero on a declaration it
+// cannot render. Without it `pack` prints the skips as a table and still exits
+// 0, and a surface that quietly loses an operation is the failure mode this
+// backend is most exposed to.
 const packed = Bun.spawnSync({
-  cmd: ["boltffi", "pack", "wasm", "--release"],
+  cmd: ["boltffi", "pack", "wasm", "--release", "--deny-skipped"],
   cwd: CRATE,
   stdout: "pipe",
   stderr: "pipe",
@@ -83,24 +130,9 @@ const packed = Bun.spawnSync({
     PATH: `${join(ROOT, "scripts", "boltffi-tsc-shim")}:${process.env.PATH}`,
   },
 });
-const packOutput = `${packed.stdout.toString()}${packed.stderr.toString()}`;
-process.stdout.write(packOutput);
+process.stdout.write(`${packed.stdout.toString()}${packed.stderr.toString()}`);
 if (packed.exitCode !== 0) {
   throw new Error(`boltffi pack wasm failed with ${packed.exitCode}`);
-}
-
-// `boltffi` drops declarations it cannot render and still exits 0, printing
-// them as a table. A surface that quietly loses an operation is the failure
-// mode this backend is most exposed to, so any skip fails the build.
-//
-// `--deny-skipped` does this upstream, but only on `generate`; `pack` does not
-// accept it, and `pack` is what builds the artifact. Reading the output is the
-// available equivalent until the flag reaches `pack`.
-if (/skipped unsupported declarations/i.test(packOutput)) {
-  throw new Error(
-    "boltffi skipped declarations it could not render — the generated surface " +
-      "is incomplete. See the table above.",
-  );
 }
 
 // The emitted `.ts` are inputs to the `.js`/`.d.ts` beside them; shipping both
