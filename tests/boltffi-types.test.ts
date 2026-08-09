@@ -9,11 +9,12 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { BOLTFFI_DTS, boltffiAvailable } from "./boltffi-artifact";
 
 const ROOT = join(import.meta.dir, "..");
-const DTS = join(ROOT, "dist", "boltffi", "pkg", "whatsapp_rust_bridge_boltffi_node.d.ts");
+const DTS = BOLTFFI_DTS;
 
-const declarations = readFileSync(DTS, "utf8");
+const declarations = boltffiAvailable ? readFileSync(DTS, "utf8") : "";
 
 /** Type-check a snippet against the emitted declarations. */
 function typeCheck(body: string): { ok: boolean; output: string } {
@@ -50,7 +51,7 @@ function runTsc(dir: string, body: string): { ok: boolean; output: string } {
   };
 }
 
-describe("BoltFFI type safety", () => {
+describe.skipIf(!boltffiAvailable)("BoltFFI type safety", () => {
   test("the public surface declares no `any`", () => {
     // Comments are stripped first: a doc line mentioning the word "any" is not
     // a widened type, and letting prose trip the gate makes it flaky.

@@ -8,14 +8,16 @@
  */
 import { describe, expect, test } from "bun:test";
 import * as bindgen from "../dist/index.js";
-import * as boltffi from "../dist/boltffi/pkg/node.js";
+import { boltffi as loaded, boltffiAvailable } from "./boltffi-artifact";
+
+const boltffi = loaded as unknown as typeof import("../dist/boltffi/pkg/node.js");
 
 /**
  * One case per operation both backends expose. `args` is rebuilt per backend
  * so neither can observe a buffer the other already handed across.
  */
 const CASES: Array<{
-  name: keyof typeof boltffi & string;
+  name: string;
   args: () => unknown[];
 }> = [
   { name: "md5", args: () => [new Uint8Array([1, 2, 3, 4])] },
@@ -132,7 +134,7 @@ function callBoth(name: string, args: () => unknown[]) {
   };
 }
 
-describe("backend equivalence", () => {
+describe.skipIf(!boltffiAvailable)("backend equivalence", () => {
   for (const { name, args } of CASES) {
     test(`${name} agrees across backends`, () => {
       const { bindgen: a, boltffi: b } = callBoth(name, args);

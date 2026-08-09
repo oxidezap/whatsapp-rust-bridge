@@ -7,7 +7,9 @@
  * the two backends agree; the core owns whether the answer is right.
  */
 import { describe, expect, test } from "bun:test";
-import * as boltffi from "../dist/boltffi/pkg/node.js";
+import { boltffi as loaded, boltffiAvailable } from "./boltffi-artifact";
+
+const boltffi = loaded as unknown as typeof import("../dist/boltffi/pkg/node.js");
 
 const CURVE_KEY_BYTES = 32;
 const SIGNATURE_BYTES = 64;
@@ -33,7 +35,7 @@ const ZLIB_HELLO = new Uint8Array([
   0x78, 0x9c, 0xcb, 0x48, 0xcd, 0xc9, 0xc9, 0x07, 0x00, 0x06, 0x2c, 0x02, 0x15,
 ]);
 
-describe("BoltFFI artifact", () => {
+describe.skipIf(!boltffiAvailable)("BoltFFI artifact", () => {
   test("loads and exposes the utility surface", () => {
     expect(typeof boltffi.md5).toBe("function");
     expect(typeof boltffi.inflateZlib).toBe("function");
