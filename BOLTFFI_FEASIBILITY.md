@@ -3,22 +3,46 @@
 Measured against `boltffi` at `b9272fb7` (workspace version `0.29.3`, the version
 published on crates.io) and this repository at `v0.7.0`.
 
-> **Update — re-measured at `659515e0` (main).** The maintainer fixed most of
-> what this document reports. Gap B is closed: a fallible callback returning
-> bytes now crosses and returns correctly. Gap A renders — `Result<(), E>` is
-> no longer skipped — but **one shape still traps at runtime**: a fallible
-> callback returning nothing whose parameters carry no byte payload, which is
-> `delete(store, key)`. `set(store, key, value: Vec<u8>)` works; the only
-> difference is the byte parameter.
+> **Update — re-measured at `0f5d7421` (main), which this PR pins.** Both gaps
+> below are closed, and **no callback shape aborts the module any more**. A
+> fallible callback returning bytes crosses and returns correctly; `Result<(),
+> E>` renders rather than being skipped; and a callback that throws, or whose
+> handle is gone, now arrives as the declared error through
+> `From<UnexpectedFfiCallbackError>` instead of a `RuntimeError: unreachable`.
+>
+> One defect remains, and it is a naming defect rather than a shape one. An
+> earlier revision of this note blamed `delete(store, key)` on "a fallible
+> callback with no byte payload in its parameters". That was wrong: a `remove`
+> method of the identical shape works. The TypeScript renderer escapes JS
+> keywords at the call site but not in the interface declaration, so it emits
+>
+> ```ts
+> export interface AsyncStore { delete(store: string, key: string): …; }
+> …
+> .then(() => callback._delete(store, key))
+> ```
+>
+> `callback._delete` is `undefined`. It applies to every name in the renderer's
+> keyword list, and at `0f5d7421` it surfaces as a catchable typed error rather
+> than an abort — so it constrains what a trait method may be *called*, and no
+> longer blocks the client surface. Reported upstream with a patch;
+> `Expression::call` at `render/callback.rs:206` and `:469` takes
+> `Name::identifier()`, which escapes, where the declaration takes
+> `Name::member()`, which does not.
+>
+> Two things this batch changes for the build. `--deny-skipped` now exists on
+> `pack`, so `scripts/build-boltffi.ts` uses the flag instead of scanning
+> output. And the thrown-callback fix lives in `@boltffi/runtime`
+> (`writeUnexpectedCallbackError`), which is not in the published `0.29.3` —
+> this artifact is unaffected because it declares no callbacks, so the import is
+> not emitted, but **the client surface cannot land until that runtime is
+> published**.
 >
 > A caveat that cost two false reports here: the generated JavaScript and the
-> `@boltffi/runtime` npm package must come from the same revision. Linking the
-> published `0.29.3` runtime against bindings generated from main reproduces
-> the *old* trap exactly, so a stale runtime is indistinguishable from the bug
-> unless you check.
->
-> `--deny-skipped` from the same batch is not adopted: it exists on `generate`,
-> but `pack` rejects it, and `pack` is what builds the artifact.
+> `@boltffi/runtime` package must come from the same revision. Linking the
+> published runtime against bindings generated from main reproduces the *old*
+> trap exactly, so a stale runtime is indistinguishable from the bug unless you
+> check.
 >
 > The sections below are left as originally measured against `b9272fb7`.
 
@@ -27,6 +51,9 @@ documentation. Where the BoltFFI source and its public docs disagree, the source
 is what is reported here.
 
 ## Verdict
+
+*(As measured at `b9272fb7`. The update above supersedes it: at `0f5d7421` the
+client's callback shapes all render and none abort.)*
 
 BoltFFI can carry the bridge's **free-standing utility functions**. It cannot
 carry the **client**, because the client's inbound boundary needs a callback
@@ -192,6 +219,12 @@ wasm-bindgen figures they should be read against.
 | A | fallible callback returning `()` is skipped (sync) | `boltffi_backend/src/target/typescript/render/callback.rs:322` | add a `ReturnPlan::Void` arm |
 | B | fallible callback returning bytes traps at runtime | encoder/decoder disagreement on the fallible callback-return path | make the TypeScript writer and the Rust reader agree for byte payloads |
 | C | skipped declarations do not fail the command | `boltffi generate` | a `--deny-skipped` (or non-zero exit) so CI cannot ship a silently truncated binding |
+
+All four are fixed at `0f5d7421`. One found afterwards is still open:
+
+| # | limit | file | fix |
+|---|---|---|---|
+| D | a callback method named with a JS keyword is uncallable — declared `delete`, invoked `_delete` | `boltffi_backend/src/target/typescript/render/callback.rs:206`, `:469` | call through `Name::member()`, as the declaration does; a keyword is legal after a dot |
 
 C is the one worth fixing first: A and B are recoverable once seen, but a build
 that reports success while dropping a trait is how a gap reaches production.
