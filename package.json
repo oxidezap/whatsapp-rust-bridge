@@ -19,16 +19,16 @@
     ],
     "exports": {
         ".": {
-            "import": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
         },
         "./proto-types": {
-            "import": "./dist/proto-types.js",
-            "types": "./dist/proto-types.d.ts"
+            "types": "./dist/proto-types.d.ts",
+            "import": "./dist/proto-types.js"
         },
         "./boltffi": {
-            "import": "./dist/boltffi/pkg/node.js",
-            "types": "./dist/boltffi/pkg/whatsapp_rust_bridge_boltffi_node.d.ts"
+            "types": "./dist/boltffi/pkg/whatsapp_rust_bridge_boltffi_node.d.ts",
+            "import": "./dist/boltffi/pkg/node.js"
         }
     },
     "scripts": {

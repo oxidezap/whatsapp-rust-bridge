@@ -6,7 +6,7 @@
  * compile. The second is what catches a surface that silently widened.
  */
 import { describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BOLTFFI_DTS, boltffiAvailable } from "./boltffi-artifact";
@@ -96,5 +96,48 @@ describe.skipIf(!boltffiAvailable)("BoltFFI type safety", () => {
 
   test("a missing required argument fails to compile", () => {
     expect(typeCheck(`boltffi.calculateAgreement(new Uint8Array(33));`).ok).toBe(false);
+  });
+
+  // The checks above import the declaration file by path, which is not how a
+  // consumer reaches it. Resolving `@oxidezap/whatsapp-rust-bridge/boltffi`
+  // goes through `exports`, so this is what fails if the generated `.d.ts` is
+  // renamed or the subpath's `types` condition stops pointing at it — the
+  // artifact would still be there and every other test would still pass.
+  test("the published subpath resolves to the declarations", () => {
+    const dir = mkdtempSync(join(tmpdir(), "boltffi-subpath-"));
+    try {
+      const scope = join(dir, "node_modules", "@oxidezap");
+      mkdirSync(scope, { recursive: true });
+      symlinkSync(ROOT, join(scope, "whatsapp-rust-bridge"), "dir");
+      writeFileSync(join(dir, "package.json"), `{"type":"module"}`);
+      writeFileSync(
+        join(dir, "case.ts"),
+        `import { md5 } from "@oxidezap/whatsapp-rust-bridge/boltffi";\n` +
+          // Assigning to the wrong type: resolving to `any` would compile, and
+          // compiling is the failure this is looking for.
+          `const wrong: string = md5(new Uint8Array([1]));\nvoid wrong;\n`,
+      );
+      const result = Bun.spawnSync({
+        cmd: [
+          join(ROOT, "node_modules", ".bin", "tsc"),
+          "--ignoreConfig",
+          "--noEmit",
+          "--strict",
+          "--skipLibCheck",
+          "--module", "nodenext",
+          "--moduleResolution", "nodenext",
+          "--target", "es2022",
+          "--types", "node",
+          join(dir, "case.ts"),
+        ],
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const output = `${result.stdout.toString()}${result.stderr.toString()}`;
+      expect(output).toContain("is not assignable to type 'string'");
+      expect(result.exitCode).not.toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

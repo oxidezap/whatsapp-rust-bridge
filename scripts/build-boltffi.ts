@@ -55,8 +55,32 @@ const PINNED_REV = readFileSync(join(CRATE, "Cargo.toml"), "utf8").match(
 // artifact built from older Rust sources, with nothing to say it was stale.
 rmSync(OUT, { recursive: true, force: true });
 
+// The record exists only for a `cargo install`. A CLI put on PATH some other
+// way leaves nothing to compare against, so that stays a warning — CI installs
+// with `--git --rev`, which is the case this has to catch.
+const CARGO_HOME = process.env.CARGO_HOME ?? join(homedir(), ".cargo");
+const installedRev = (() => {
+  const record = join(CARGO_HOME, ".crates.toml");
+  if (!existsSync(record)) return null;
+  const entry = readFileSync(record, "utf8").match(/^"boltffi_cli [^"]*"/m)?.[0];
+  if (entry === undefined) return null;
+  // `?rev=` is what was asked for; the `#` fragment is the commit cargo
+  // resolved it to. Either identifies the revision.
+  return {
+    git: /\bgit\+/.test(entry),
+    rev: (entry.match(/[?&]rev=([0-9a-f]{7,40})/) ?? entry.match(/#([0-9a-f]{7,40})"/))?.[1],
+  };
+})();
+
+// The record describes the binary cargo installed, not whatever `boltffi`
+// happens to resolve to first on PATH. Checking one and running the other
+// would pass while packing with an unrelated build, so when the record vouches
+// for a binary, that binary is the one invoked.
+const CARGO_BIN = join(CARGO_HOME, "bin", "boltffi");
+const CLI = installedRev !== null && existsSync(CARGO_BIN) ? CARGO_BIN : "boltffi";
+
 const available = Bun.spawnSync({
-  cmd: ["boltffi", "--version"],
+  cmd: [CLI, "--version"],
   stdout: "pipe",
   stderr: "pipe",
 });
@@ -75,22 +99,6 @@ if (version !== REQUIRED_CLI_VERSION) {
       `\`boltffi\` dependency in crates/bridge-boltffi/Cargo.toml.`,
   );
 }
-
-// The record exists only for a `cargo install`. A CLI put on PATH some other
-// way leaves nothing to compare against, so that stays a warning — CI installs
-// with `--git --rev`, which is the case this has to catch.
-const installedRev = (() => {
-  const record = join(process.env.CARGO_HOME ?? join(homedir(), ".cargo"), ".crates.toml");
-  if (!existsSync(record)) return null;
-  const entry = readFileSync(record, "utf8").match(/^"boltffi_cli [^"]*"/m)?.[0];
-  if (entry === undefined) return null;
-  // `?rev=` is what was asked for; the `#` fragment is the commit cargo
-  // resolved it to. Either identifies the revision.
-  return {
-    git: /\bgit\+/.test(entry),
-    rev: (entry.match(/[?&]rev=([0-9a-f]{7,40})/) ?? entry.match(/#([0-9a-f]{7,40})"/))?.[1],
-  };
-})();
 // Cargo may record a short revision where the manifest pins a full one, or the
 // reverse, so they agree when one is a prefix of the other.
 const sameRevision = (a: string, b: string) =>
@@ -120,7 +128,7 @@ if (PINNED_REV === undefined) {
 // 0, and a surface that quietly loses an operation is the failure mode this
 // backend is most exposed to.
 const packed = Bun.spawnSync({
-  cmd: ["boltffi", "pack", "wasm", "--release", "--deny-skipped"],
+  cmd: [CLI, "pack", "wasm", "--release", "--deny-skipped"],
   cwd: CRATE,
   stdout: "pipe",
   stderr: "pipe",
