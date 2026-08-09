@@ -10,7 +10,7 @@
  * CI and the release runners install the CLI, so the artifact is present there
  * and none of these suites skip.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
@@ -27,9 +27,16 @@ export const BOLTFFI_DTS = join(
 export const boltffiAvailable = existsSync(BOLTFFI_ENTRY) && existsSync(BOLTFFI_DTS);
 
 if (!boltffiAvailable) {
+  // The revision is read from the pin rather than repeated here: the CLI and
+  // the macro agree on wasm symbol names only within a revision, and a hint
+  // naming a stale one sends a contributor to a build whose exports the
+  // generated JavaScript cannot find.
+  const pin = join(ROOT, "crates", "bridge-boltffi", "Cargo.toml");
+  const rev = readFileSync(pin, "utf8").match(/rev\s*=\s*"([0-9a-f]+)"/)?.[1];
   console.warn(
-    "dist/boltffi is absent — BoltFFI suites skipped. Install the CLI " +
-      "(cargo install boltffi_cli --version 0.29.3 --locked) and rebuild to run them.",
+    "dist/boltffi is absent — BoltFFI suites skipped. Install the CLI with " +
+      `\`cargo install --git https://github.com/boltffi/boltffi${rev ? ` --rev ${rev}` : ""} boltffi_cli --locked\`` +
+      " and rebuild to run them.",
   );
 }
 
