@@ -220,6 +220,14 @@ fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
     invalid_arg("request", detail.to_string())
 }
 
+/// The two IQ types spell the same condition, so the wording lives once.
+fn unexpected_response(got: Option<&str>) -> BridgeError {
+    protocol_violation(match got {
+        Some(kind) => format!("unexpected IQ response type: {kind}"),
+        None => "IQ response carried no type attribute".into(),
+    })
+}
+
 /// The stanza is the caller's own argument to `acknowledgeStanza`,
 /// `rejectStanza` and `requestMessageRetry`, and the bridge cannot prove the
 /// node it was handed is the one the wire delivered — so a missing attribute is
@@ -247,12 +255,7 @@ fn iq_to_bridge(e: &IqError) -> Option<BridgeError> {
         IqError::Disconnected(node) => BridgeError::Disconnected {
             reason: format!("{node:?}"),
         },
-        IqError::UnexpectedResponseType { got } => BridgeError::ProtocolViolation {
-            reason: match got {
-                Some(kind) => format!("unexpected IQ response type: {kind}"),
-                None => "IQ response carried no type attribute".into(),
-            },
-        },
+        IqError::UnexpectedResponseType { got } => unexpected_response(got.as_deref()),
         // `InternalChannelClosed` names the mechanism, not what the host should
         // do: the request pipeline is gone and a reconnect is what fixes it,
         // which is why the core files it under `is_transport_unavailable`. Left
@@ -309,12 +312,7 @@ fn wacore_iq_to_bridge(e: &wacore::request::IqError) -> Option<BridgeError> {
             reason: format!("{node:?}"),
         },
         wacore::request::IqError::UnexpectedResponseType { got } => {
-            BridgeError::ProtocolViolation {
-                reason: match got {
-                    Some(kind) => format!("unexpected IQ response type: {kind}"),
-                    None => "IQ response carried no type attribute".into(),
-                },
-            }
+            unexpected_response(got.as_deref())
         }
         // Transport gone, same as its high-level twin above.
         wacore::request::IqError::InternalChannelClosed => return None,
@@ -637,14 +635,13 @@ classify! {
         StanzaResponseError::MissingLocalIdentity => BridgeError::NotConnected,
     }
 
-    // `Unsupported` is one variant over two conditions: two of its three sites
-    // are `signalDecryptMessage` being handed an `msgType` that belongs to
-    // another method, and one is an encrypt-path invariant the caller cannot
-    // reach. Only the detail string tells them apart, which is not something to
-    // match on, so the caller-reachable reading wins.
+    // `Unsupported` is one variant over two conditions — an `msgType` that
+    // belongs to another method, and an encrypt-path invariant — and only the
+    // detail string tells them apart. It gets no arm here: the two enter
+    // through different bridge methods, so `signalDecryptMessage` names the
+    // argument itself and everything else keeps `internal`.
     SignalError {
-        SignalError::InvalidInput(detail) | SignalError::Unsupported(detail) =>
-            invalid_request(detail),
+        SignalError::InvalidInput(detail) => invalid_request(detail),
     }
 
     // `PayloadParsing` is the server's own answer failing to parse.
@@ -1261,9 +1258,12 @@ mod tests {
                 "not-connected",
             ),
             (
+                // Only `signalDecryptMessage` can name the argument behind
+                // this one, and it does so itself; reached any other way it is
+                // an invariant the caller cannot act on.
                 "SignalError::Unsupported",
-                SignalError::Unsupported("group sender key export".into()).into(),
-                "invalid-argument:request",
+                SignalError::Unsupported("unexpected ciphertext variant".into()).into(),
+                "internal",
             ),
             (
                 "SignalError::InvalidInput",

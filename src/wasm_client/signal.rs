@@ -230,7 +230,17 @@ impl WasmWhatsAppClient {
             .client
             .signal()
             .decrypt_message(&parsed, enc_type, ciphertext)
-            .await?;
+            .await
+            .map_err(|e| match e {
+                // The core spells "that msgType belongs to another method" as
+                // `Unsupported`, which it also uses for an encrypt-path
+                // invariant. Reached from here it can only be the argument
+                // parsed above, so this is where it gets named.
+                whatsapp_rust::features::SignalError::Unsupported(detail) => {
+                    crate::errors::invalid_arg("msgType", detail)
+                }
+                other => other.into(),
+            })?;
         Ok(js_sys::Uint8Array::from(plaintext.as_slice()))
     }
 
