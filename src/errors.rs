@@ -220,10 +220,13 @@ fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
     invalid_arg("request", detail.to_string())
 }
 
-/// A stanza the *server* sent is missing an attribute the response path needs,
-/// so it is the wire that was malformed, not the caller's argument.
+/// The stanza is the caller's own argument to `acknowledgeStanza`,
+/// `rejectStanza` and `requestMessageRetry`, and the bridge cannot prove the
+/// node it was handed is the one the wire delivered — so a missing attribute is
+/// reported against that argument, the same as `UnsupportedStanzaClass` on the
+/// same parameter.
 fn missing_attribute(attr: &str) -> BridgeError {
-    protocol_violation(format!("stanza is missing the '{attr}' attribute"))
+    invalid_arg("stanza", format!("missing the '{attr}' attribute"))
 }
 
 /// Match a high-level `IqError` against variants whose fields are themselves
@@ -511,13 +514,13 @@ classify! {
     ChatStateError {}
 
     // `Timeout` needs no arm: the core reports it, including the handshake
-    // timeout nested under `Handshake` that this list could not reach. The
-    // three below are all the caller reaching for a client that cannot connect
-    // — already up, never built, or shut down — so they name the operation the
-    // way `connect()` already does.
+    // timeout nested under `Handshake` that this list could not reach. The two
+    // below are the caller reaching for a client that cannot connect — already
+    // up, or shut down — so they name the operation the way `connect()` already
+    // does. `NotActivated` is not among them: construction never completing is
+    // an invariant no argument of ours reaches, so it keeps `internal`.
     ConnectError {
         ConnectError::AlreadyConnected => invalid_arg("connect", "client is already connected"),
-        ConnectError::NotActivated => invalid_arg("connect", "client construction did not activate"),
         ConnectError::Shutdown => invalid_arg("connect", "client has been shut down; build a new one"),
     }
 
@@ -539,9 +542,12 @@ classify! {
         ClientError::NotLoggedIn => BridgeError::NotConnected,
     }
 
-    // `setPushName` is the call that fixes it, so it names the field.
+    // `sendPresence` is the only call that reaches this, and its own argument
+    // is fine — so the field names the operation, and the reason names the call
+    // that repairs the state.
     PresenceError {
-        PresenceError::PushNameEmpty => invalid_arg("pushName", "must be set before sending presence"),
+        PresenceError::PushNameEmpty =>
+            invalid_arg("sendPresence", "push name is not set; call setPushName first"),
     }
 
     // `DescriptionConflict` is the core's typed form of `<error code="409"
@@ -1083,9 +1089,11 @@ mod tests {
                 "invalid-argument",
             ),
             (
+                // Construction never completing is an invariant no argument
+                // of ours reaches; `internal` is what that is.
                 "ConnectError::NotActivated",
                 ConnectError::NotActivated.into(),
-                "invalid-argument",
+                "internal",
             ),
             (
                 "ConnectError::Shutdown",
@@ -1248,7 +1256,7 @@ mod tests {
             (
                 "RetryRequestError::MissingAttribute",
                 RetryRequestError::MissingAttribute("from").into(),
-                "protocol-violation",
+                "invalid-argument",
             ),
             (
                 "RetryRequestError::MissingLocalIdentity",
@@ -1268,7 +1276,7 @@ mod tests {
             (
                 "StanzaResponseError::MissingAttribute",
                 StanzaResponseError::MissingAttribute("id").into(),
-                "protocol-violation",
+                "invalid-argument",
             ),
             (
                 "StanzaResponseError::MissingLocalIdentity",
