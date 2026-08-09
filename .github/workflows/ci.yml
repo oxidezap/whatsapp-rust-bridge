@@ -74,12 +74,12 @@ jobs:
           # and the point is for it to fail here rather than there.
           tool: wasm-pack,protoc@3.35.1
 
-      # Pinned to the same version as the `boltffi` crate the backend compiles
+      # Pinned to the same revision as the `boltffi` crate the backend compiles
       # against. The generator and the macro agree on wasm symbol names only
-      # within a version, so a drift here produces an artifact whose exports
+      # within a revision, so a drift here produces an artifact whose exports
       # the emitted JavaScript cannot find.
       - name: Install boltffi
-        run: cargo install boltffi_cli --version 0.29.3 --locked
+        run: cargo install --git https://github.com/boltffi/boltffi --rev 659515e0499c4a46f7f29f4143f74d3d64569588 boltffi_cli --locked
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0

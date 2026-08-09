@@ -36,9 +36,13 @@ const HOST_TARGET =
 
 /**
  * The generator and the `boltffi` macro agree on wasm symbol names only within
- * a version. Mixing them produces a module whose exports the emitted JavaScript
- * looks for and does not find — at runtime, not at build time. Pinned to the
- * crate version in `crates/bridge-boltffi/Cargo.toml`.
+ * a revision. Mixing them produces a module whose exports the emitted
+ * JavaScript looks for and does not find — at runtime, not at build time.
+ *
+ * The crate is pinned to a git revision (see `crates/bridge-boltffi/Cargo.toml`),
+ * and `boltffi --version` reports the crate version rather than that revision,
+ * so this can only catch a wholly different version. Keeping the CLI on the
+ * same `--rev` is the workflows' job, and a reviewer's when the pin moves.
  */
 const REQUIRED_CLI_VERSION = "0.29.3";
 
@@ -63,7 +67,8 @@ if (version !== REQUIRED_CLI_VERSION) {
     `boltffi ${version} is installed, but this backend compiles against ` +
       `${REQUIRED_CLI_VERSION}. Mismatched versions emit JavaScript that looks ` +
       `for wasm exports the module does not have. ` +
-      `Install it with: cargo install boltffi_cli --version ${REQUIRED_CLI_VERSION} --locked`,
+      `Install it from the revision the workflows pin — see the ` +
+      `\`boltffi\` dependency in crates/bridge-boltffi/Cargo.toml.`,
   );
 }
 
@@ -84,9 +89,13 @@ if (packed.exitCode !== 0) {
   throw new Error(`boltffi pack wasm failed with ${packed.exitCode}`);
 }
 
-// `boltffi` exits 0 while dropping declarations it cannot render, printing them
-// as a table. A surface that quietly loses an operation is the failure mode this
-// backend is most exposed to, so treat any skip as a build failure.
+// `boltffi` drops declarations it cannot render and still exits 0, printing
+// them as a table. A surface that quietly loses an operation is the failure
+// mode this backend is most exposed to, so any skip fails the build.
+//
+// `--deny-skipped` does this upstream, but only on `generate`; `pack` does not
+// accept it, and `pack` is what builds the artifact. Reading the output is the
+// available equivalent until the flag reaches `pack`.
 if (/skipped unsupported declarations/i.test(packOutput)) {
   throw new Error(
     "boltffi skipped declarations it could not render — the generated surface " +

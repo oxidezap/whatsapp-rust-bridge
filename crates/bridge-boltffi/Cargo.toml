@@ -8,7 +8,18 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# Pinned to a main revision, not a release: 0.29.3 cannot render a fallible
+# callback that returns nothing, and traps at runtime on one that returns
+# bytes — between them the whole storage boundary. Both are fixed on main
+# (b15022da, cba21bfb, 246b6f6b, 3c12948f, 05944e44). Move back to a version
+# once a release carries them.
+#
+# The CLI must be built from this same revision: the generator and the macro
+# agree on wasm symbol names only within a revision, and `boltffi --version`
+# reports the crate version for both, so a mismatch is not detectable at
+# runtime. The workflows install it with the same `--rev`.
+#
 # Default features add `uuid` and `url`; neither is on this surface, and `url`
 # drags in a dependency that refuses to compile for wasm32-unknown-unknown.
-boltffi = { version = "0.29.3", default-features = false }
+boltffi = { git = "https://github.com/boltffi/boltffi", rev = "659515e0499c4a46f7f29f4143f74d3d64569588", default-features = false }
 whatsapp-rust-bridge-core = { workspace = true }
