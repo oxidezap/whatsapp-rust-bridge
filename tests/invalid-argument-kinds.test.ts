@@ -78,6 +78,24 @@ describe("the bridge's own checks name the argument", () => {
     }
   }, 20000);
 
+  // The wire knows "skmsg", so it gets past the bridge's own parse and the
+  // core refuses it as `SignalError::Unsupported` — the same variant it uses
+  // for an encrypt-path invariant no caller can reach. Answering the two the
+  // same way would file this one under `internal`, next to the test above
+  // where the very same argument already answers `invalid-argument`.
+  test("an encryption type that belongs to another method", async () => {
+    const client = await offlineClient();
+    try {
+      const error = await rejection(
+        client.signalDecryptMessage(USER, "skmsg", new Uint8Array(16))
+      );
+      expect(error.kind).toBe("invalid-argument");
+      expect(error.field).toBe("msgType");
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
   test("a comment with no way to identify the post's author", async () => {
     const client = await offlineClient();
     try {
