@@ -19,9 +19,19 @@ use tsify::Tsify;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
 
+use whatsapp_rust::client::ClientError;
+use whatsapp_rust::features::{
+    AppStateError, BlockingError, BusinessError, ChatStateError, CommunityError, ContactError,
+    GroupError, MediaReuploadError, NewsletterError, PollError, PresenceError, ProfileError,
+    RetryRequestError, SignalError, StanzaResponseError,
+};
+use whatsapp_rust::handshake::HandshakeError;
 use whatsapp_rust::pair_code::{PairCodeError, PairError};
 use whatsapp_rust::request::IqError;
-use whatsapp_rust::{wacore, wacore_binary};
+use whatsapp_rust::socket::error::SocketError;
+use whatsapp_rust::{
+    CallError, ConnectError, MexError, SendError, SignalMaintenanceError, wacore, wacore_binary,
+};
 
 /// Public error shape that crosses the WASM→JS boundary.
 ///
@@ -106,15 +116,26 @@ impl BridgeError {
     ///    `None` and the loop continues down `source()` to find the real
     ///    leaf below.
     ///
-    /// 2. **Generic wrappers** (remembered as fallback): `StoreError` is
+    /// 2. **What the core says about the whole chain**: `ErrorChainExt` is
+    ///    the core's own answer to "did this run out of time?" and "was the
+    ///    transport gone?", across every type that can carry the fact. A
+    ///    variant with no `source()` — `ClientError::NotConnected` — stops
+    ///    the loop above dead, and asking closes that class for the types
+    ///    the core teaches rather than one downcast at a time.
+    ///
+    /// 3. **Generic wrappers** (remembered as fallback): `StoreError` is
     ///    useful when nothing more specific is found below it, but a JS
     ///    callback or JSON-deserialize source nested inside it is even
     ///    more actionable. We capture the first wrapper hit and only
     ///    surface it if the deeper walk turns up nothing typed.
     ///
     /// Falls back to `Internal { message }` carrying the full chain
-    /// `Display` if neither tier matched.
+    /// `Display` if no tier matched.
     pub fn from_error_chain(err: &(dyn Error + 'static)) -> Self {
+        // Scoped to this body: at module scope the trait's `as_dyn_error`
+        // collides with the one thiserror's `#[source]` expansion resolves.
+        use whatsapp_rust::ErrorChainExt;
+
         let mut storage_fallback: Option<BridgeError> = None;
         let mut cur: Option<&(dyn Error + 'static)> = Some(err);
 
@@ -147,6 +168,14 @@ impl BridgeError {
                 return BridgeError::Storage {
                     operation: js.to_string(),
                 };
+            } else if let Some(sock) = c.downcast_ref::<SocketError>() {
+                if let Some(b) = socket_to_bridge(sock) {
+                    return b;
+                }
+            } else if let Some(hs) = c.downcast_ref::<HandshakeError>() {
+                if let Some(b) = handshake_to_bridge(hs) {
+                    return b;
+                }
             }
             // ── Generic wrapper: remember first hit, keep walking ────────
             else if storage_fallback.is_none()
@@ -160,6 +189,17 @@ impl BridgeError {
             cur = c.source();
         }
 
+        // ── Ask the core, rather than recognising discriminants ─────────
+        // Runs after the walk so a leaf carrying more detail keeps it: an
+        // `IqError::Disconnected` is transport-unavailable too, and reaches
+        // `Disconnected { reason }` above instead of collapsing to here.
+        if err.is_timeout() {
+            return BridgeError::Timeout;
+        }
+        if err.is_transport_unavailable() {
+            return BridgeError::NotConnected;
+        }
+
         if let Some(b) = storage_fallback {
             return b;
         }
@@ -167,6 +207,23 @@ impl BridgeError {
             message: display_chain(err),
         }
     }
+}
+
+/// The core spells "the caller's own request was rejected before it went out"
+/// as a per-domain `InvalidRequest(String)`-shaped variant carrying no source,
+/// and `ErrorChainExt` deliberately models no such question — the domains share
+/// no representation of it, so it would be invented there rather than
+/// recovered. That leaves each one to be named here, on the #29 precedent:
+/// the core names no argument and the arguments differ per call, so the detail
+/// is the reason and `field` stays the request.
+fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
+    invalid_arg("request", detail.to_string())
+}
+
+/// A stanza the *server* sent is missing an attribute the response path needs,
+/// so it is the wire that was malformed, not the caller's argument.
+fn missing_attribute(attr: &str) -> BridgeError {
+    protocol_violation(format!("stanza is missing the '{attr}' attribute"))
 }
 
 /// Match a high-level `IqError` against variants whose fields are themselves
@@ -187,9 +244,18 @@ fn iq_to_bridge(e: &IqError) -> Option<BridgeError> {
         IqError::Disconnected(node) => BridgeError::Disconnected {
             reason: format!("{node:?}"),
         },
-        IqError::InternalChannelClosed => BridgeError::Internal {
-            message: e.to_string(),
+        IqError::UnexpectedResponseType { got } => BridgeError::ProtocolViolation {
+            reason: match got {
+                Some(kind) => format!("unexpected IQ response type: {kind}"),
+                None => "IQ response carried no type attribute".into(),
+            },
         },
+        // `InternalChannelClosed` names the mechanism, not what the host should
+        // do: the request pipeline is gone and a reconnect is what fixes it,
+        // which is why the core files it under `is_transport_unavailable`. Left
+        // to the chain walk's core question so that judgement is read, not
+        // restated.
+        IqError::InternalChannelClosed => return None,
         // Wrappers — let the walker drill into `.source()`.
         IqError::Socket(_)
         | IqError::EncryptSend(_)
@@ -199,6 +265,31 @@ fn iq_to_bridge(e: &IqError) -> Option<BridgeError> {
         // `IqError` is #[non_exhaustive] upstream (whatsapp-rust #735): an unknown
         // future variant has no actionable mapping here, so defer to the chain
         // walk — it falls back to `Internal` carrying the full Display chain.
+        _ => return None,
+    })
+}
+
+/// Neither of the two leaves below is an entry point — both are only ever
+/// reached through `.source()`, under an `IqError` or a `ConnectError` — and
+/// neither is covered by the core's transport answer, so their source-less
+/// variants would otherwise end a walk on `Internal` mid-reconnect.
+fn socket_to_bridge(e: &SocketError) -> Option<BridgeError> {
+    Some(match e {
+        SocketError::SocketClosed => BridgeError::NotConnected,
+        SocketError::Cipher(_) => BridgeError::Crypto {
+            operation: "noise cipher".into(),
+        },
+        _ => return None,
+    })
+}
+
+fn handshake_to_bridge(e: &HandshakeError) -> Option<BridgeError> {
+    Some(match e {
+        HandshakeError::Disconnected | HandshakeError::StreamClosed => BridgeError::NotConnected,
+        HandshakeError::UnexpectedEvent(detail) => BridgeError::ProtocolViolation {
+            reason: format!("during handshake: {detail}"),
+        },
+        // `Timeout` is the core's own answer, asked at the end of the walk.
         _ => return None,
     })
 }
@@ -214,9 +305,16 @@ fn wacore_iq_to_bridge(e: &wacore::request::IqError) -> Option<BridgeError> {
         wacore::request::IqError::Disconnected(node) => BridgeError::Disconnected {
             reason: format!("{node:?}"),
         },
-        wacore::request::IqError::InternalChannelClosed => BridgeError::Internal {
-            message: e.to_string(),
-        },
+        wacore::request::IqError::UnexpectedResponseType { got } => {
+            BridgeError::ProtocolViolation {
+                reason: match got {
+                    Some(kind) => format!("unexpected IQ response type: {kind}"),
+                    None => "IQ response carried no type attribute".into(),
+                },
+            }
+        }
+        // Transport gone, same as its high-level twin above.
+        wacore::request::IqError::InternalChannelClosed => return None,
         // `wacore::request::IqError` is #[non_exhaustive] upstream (whatsapp-rust
         // #735): defer unknown future variants to the chain walk (Internal fallback).
         _ => return None,
@@ -331,40 +429,6 @@ impl From<PairError> for BridgeError {
     }
 }
 
-/// `connect()` is typed since whatsapp-rust #1090. The variants whose
-/// discriminant the host can act on are mapped directly; the ones that only
-/// wrap a lower-level failure fall through to the chain walk, which finds the
-/// typed leaf (transport, handshake, storage) below them.
-impl From<whatsapp_rust::ConnectError> for BridgeError {
-    fn from(e: whatsapp_rust::ConnectError) -> Self {
-        use whatsapp_rust::ConnectError;
-        match &e {
-            ConnectError::AlreadyConnected => Self::InvalidArgument {
-                field: "connect".into(),
-                reason: "client is already connected".into(),
-            },
-            ConnectError::Timeout { .. } => Self::Timeout,
-            _ => Self::from_error_chain(&e),
-        }
-    }
-}
-
-/// Signal maintenance (signed pre-key rotation, inbound drain) is typed since
-/// whatsapp-rust #1090. `CorruptKey` is the one variant a retry cannot fix, so
-/// it surfaces as a protocol violation; the rest carry a typed source that the
-/// chain walk resolves (IQ, storage, Signal primitives).
-impl From<whatsapp_rust::SignalMaintenanceError> for BridgeError {
-    fn from(e: whatsapp_rust::SignalMaintenanceError) -> Self {
-        use whatsapp_rust::SignalMaintenanceError;
-        match &e {
-            SignalMaintenanceError::CorruptKey(detail) => Self::ProtocolViolation {
-                reason: detail.clone(),
-            },
-            _ => Self::from_error_chain(&e),
-        }
-    }
-}
-
 impl From<IqError> for BridgeError {
     fn from(e: IqError) -> Self {
         Self::from_error_chain(&e)
@@ -422,51 +486,19 @@ impl From<JsValue> for BridgeError {
     }
 }
 
-/// MEX (GraphQL-over-IQ) errors. The most common variant carries an `IqError`
-/// source — the chain walk picks it up — so this is just the entry impl.
-impl From<whatsapp_rust::MexError> for BridgeError {
-    fn from(e: whatsapp_rust::MexError) -> Self {
-        Self::from_error_chain(&e)
-    }
-}
-
-/// `ClientError` (top-level connection / send pipeline error) and
-/// `PresenceError` (presence subscription / status update). Both wrap
-/// typed sources (Socket, IqError, etc.) — the chain walk extracts them.
-impl From<whatsapp_rust::client::ClientError> for BridgeError {
-    fn from(e: whatsapp_rust::client::ClientError) -> Self {
-        Self::from_error_chain(&e)
-    }
-}
-
-impl From<whatsapp_rust::features::PresenceError> for BridgeError {
-    fn from(e: whatsapp_rust::features::PresenceError) -> Self {
-        Self::from_error_chain(&e)
-    }
-}
-
-/// `GroupError::DescriptionConflict` is the core's typed form of `<error
-/// code="409" text="conflict"/>` on a description update: a domain variant that
-/// carries no source, so the chain walk has nothing to find. It is mapped back
-/// to the server error it stands for. Every other variant reaches its typed
-/// leaf through `source()` like any other domain error.
-impl From<whatsapp_rust::features::GroupError> for BridgeError {
-    fn from(e: whatsapp_rust::features::GroupError) -> Self {
-        match e {
-            whatsapp_rust::features::GroupError::DescriptionConflict => BridgeError::Server {
-                server_code: 409,
-                server_text: "conflict".into(),
-            },
-            other => Self::from_error_chain(&other),
-        }
-    }
-}
-
-macro_rules! impl_from_error_chain {
-    ($($error:ty),+ $(,)?) => {
+/// One entry per core error type: the source-less variants of that type, and
+/// the kind each has to reach. A variant carrying no `source()` stops the walk
+/// dead, so anything not listed here that the walk cannot classify lands on
+/// `Internal` — which tells the host the bridge broke.
+///
+/// Everything else goes to `from_error_chain`: it finds the typed leaf, then
+/// asks the core whether the transport was gone or time ran out.
+macro_rules! classify {
+    ($( $error:ty { $( $variant:pat => $kind:expr ),* $(,)? } )+) => {
         $(
             impl From<$error> for BridgeError {
                 fn from(e: $error) -> Self {
+                    $( if let $variant = &e { return $kind; } )*
                     Self::from_error_chain(&e)
                 }
             }
@@ -474,64 +506,145 @@ macro_rules! impl_from_error_chain {
     };
 }
 
-// Domain facades now return their own typed errors instead of routing every
-// failure through ClientError/anyhow. Keep the JS error classification stable
-// by feeding each new entry point through the same source-chain walker.
-impl_from_error_chain!(
-    whatsapp_rust::CallError,
-    whatsapp_rust::SendError,
-    whatsapp_rust::features::BlockingError,
-    whatsapp_rust::features::ChatStateError,
-    whatsapp_rust::features::CommunityError,
-    whatsapp_rust::features::ContactError,
-    whatsapp_rust::features::MediaReuploadError,
-    whatsapp_rust::features::NewsletterError,
-    whatsapp_rust::features::PollError,
-    whatsapp_rust::features::ProfileError,
-    whatsapp_rust::features::RetryRequestError,
-    whatsapp_rust::features::SignalError,
-    whatsapp_rust::features::StanzaResponseError,
-);
+classify! {
+    // Every variant carries a source; the walk and the core's answers cover it.
+    ChatStateError {}
 
-/// App-state mutations split for the same reason as `BusinessError` below:
-/// `InvalidRequest` is the caller's own arguments failing the core's pre-flight
-/// — a past mute timestamp, a non-phone contact id, an empty label id — and it
-/// carries no source, so the walk lands it on `Internal` and the host cannot
-/// tell its own bad argument from a bridge fault.
-impl From<whatsapp_rust::features::AppStateError> for BridgeError {
-    fn from(e: whatsapp_rust::features::AppStateError) -> Self {
-        use whatsapp_rust::features::AppStateError;
-        match &e {
-            // The core names no field, and the arguments differ per call, so
-            // the reason carries the detail and `field` stays the request.
-            AppStateError::InvalidRequest(detail) => Self::InvalidArgument {
-                field: "request".into(),
-                reason: detail.to_string(),
-            },
-            _ => Self::from_error_chain(&e),
-        }
+    // `Timeout` needs no arm: the core reports it, including the handshake
+    // timeout nested under `Handshake` that this list could not reach. The
+    // three below are all the caller reaching for a client that cannot connect
+    // — already up, never built, or shut down — so they name the operation the
+    // way `connect()` already does.
+    ConnectError {
+        ConnectError::AlreadyConnected => invalid_arg("connect", "client is already connected"),
+        ConnectError::NotActivated => invalid_arg("connect", "client construction did not activate"),
+        ConnectError::Shutdown => invalid_arg("connect", "client has been shut down; build a new one"),
     }
-}
 
-/// Business operations split three ways rather than going through the shared
-/// walk wholesale. `InvalidUpdate` is the caller's own delta failing the core's
-/// pre-flight checks — an empty update, too many websites, an hour outside the
-/// day — and those variants carry no source, so the walk would land them on
-/// `Internal` and leave a consumer unable to tell a typo from a fault. A
-/// malformed response is the server's doing, not the caller's.
-impl From<whatsapp_rust::features::BusinessError> for BridgeError {
-    fn from(e: whatsapp_rust::features::BusinessError) -> Self {
-        use whatsapp_rust::features::BusinessError;
-        match &e {
-            BusinessError::InvalidUpdate(detail) => Self::InvalidArgument {
-                field: "update".into(),
-                reason: detail.to_string(),
-            },
-            BusinessError::MalformedResponse { operation, detail } => Self::ProtocolViolation {
-                reason: format!("malformed {operation} response: {detail}"),
-            },
-            _ => Self::from_error_chain(&e),
-        }
+    // `CorruptKey` is the one variant a retry cannot fix. A drain commit that
+    // failed is the store refusing the batch; a drain cut short by shutdown
+    // leaves nothing for the host to fix except a live client.
+    SignalMaintenanceError {
+        SignalMaintenanceError::CorruptKey(detail) => protocol_violation(detail.clone()),
+        SignalMaintenanceError::DrainCommitFailed => BridgeError::Storage {
+            operation: "commit inbound drain batch".into(),
+        },
+        SignalMaintenanceError::DrainShuttingDown => BridgeError::NotConnected,
+    }
+
+    // `NotConnected` needs no arm — the core calls it transport unavailable and
+    // the walk asks. `NotLoggedIn` sits outside that answer (the socket may be
+    // up), but `not-connected` covers it by contract.
+    ClientError {
+        ClientError::NotLoggedIn => BridgeError::NotConnected,
+    }
+
+    // `setPushName` is the call that fixes it, so it names the field.
+    PresenceError {
+        PresenceError::PushNameEmpty => invalid_arg("pushName", "must be set before sending presence"),
+    }
+
+    // `DescriptionConflict` is the core's typed form of `<error code="409"
+    // text="conflict"/>` on a description update, mapped back to the server
+    // error it stands for.
+    GroupError {
+        GroupError::DescriptionConflict => BridgeError::Server {
+            server_code: 409,
+            server_text: "conflict".into(),
+        },
+        GroupError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    AppStateError {
+        AppStateError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    // `InvalidUpdate` is the caller's own delta failing the core's pre-flight.
+    // It does carry a source, but `BusinessProfileUpdateError` is a leaf the
+    // walk does not know, so without this arm it lands on `Internal` too. A
+    // malformed response is the server's doing, not the caller's.
+    BusinessError {
+        BusinessError::InvalidUpdate(detail) => invalid_arg("update", detail.to_string()),
+        BusinessError::MalformedResponse { operation, detail } =>
+            protocol_violation(format!("malformed {operation} response: {detail}")),
+    }
+
+    CallError {
+        CallError::EmptyCallId => invalid_arg("callId", "required"),
+    }
+
+    SendError {
+        SendError::NotLoggedIn => BridgeError::NotConnected,
+        SendError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    BlockingError {
+        BlockingError::InvalidJid(detail) => invalid_arg("jid", detail),
+    }
+
+    CommunityError {
+        CommunityError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    ContactError {
+        ContactError::InvalidJid(detail) => invalid_arg("jid", detail),
+    }
+
+    // `Timeout` here is the media retry *notification* never arriving, which
+    // the core models on this type rather than as an `IqError`, so its own
+    // timeout answer does not report it.
+    MediaReuploadError {
+        MediaReuploadError::NotLoggedIn => BridgeError::NotConnected,
+        MediaReuploadError::Timeout => BridgeError::Timeout,
+        MediaReuploadError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    NewsletterError {
+        NewsletterError::InvalidRequest(detail) => invalid_request(detail),
+    }
+
+    PollError {
+        PollError::NotLoggedIn => BridgeError::NotConnected,
+        PollError::InvalidPoll(detail) => invalid_arg("poll", detail),
+    }
+
+    ProfileError {
+        ProfileError::InvalidArgument(detail) => invalid_request(detail),
+    }
+
+    // The two stanza surfaces split the same three ways: a missing attribute is
+    // the *received* stanza being unusable, so it is the wire's fault; an
+    // unsupported class is the caller handing over the wrong stanza; and a
+    // missing local identity means the device has no own-JID yet, which
+    // `not-connected` already covers.
+    RetryRequestError {
+        RetryRequestError::MissingAttribute(attr) => missing_attribute(attr),
+        RetryRequestError::UnsupportedStanzaClass =>
+            invalid_arg("stanza", "retry requests require a message stanza"),
+        RetryRequestError::MissingLocalIdentity => BridgeError::NotConnected,
+    }
+
+    StanzaResponseError {
+        StanzaResponseError::MissingAttribute(attr) => missing_attribute(attr),
+        StanzaResponseError::UnsupportedStanzaClass =>
+            invalid_arg("stanza", "the stanza class does not support this response"),
+        StanzaResponseError::MissingLocalIdentity => BridgeError::NotConnected,
+    }
+
+    SignalError {
+        SignalError::InvalidInput(detail) | SignalError::Unsupported(detail) =>
+            invalid_request(detail),
+    }
+
+    // `PayloadParsing` is the server's own answer failing to parse.
+    //
+    // `ExtensionError` is left on the `Internal` fallback on purpose: it is a
+    // GraphQL-layer rejection whose `code` comes from a different space than the
+    // IQ `code` attribute — the core refuses to merge the two in
+    // `ErrorChainExt::server_rejection`, and putting it on `serverCode` here
+    // would undo that. No current kind stands for it.
+    MexError {
+        MexError::PayloadParsing(detail) => protocol_violation(format!("MEX payload: {detail}")),
     }
 }
 
@@ -629,15 +742,6 @@ pub fn to_js_error(e: &BridgeError) -> JsValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use whatsapp_rust::client::ClientError;
-    use whatsapp_rust::features::{
-        AppStateError, BlockingError, BusinessError, CommunityError, ContactError, GroupError,
-        MediaReuploadError, NewsletterError, PollError, PresenceError, ProfileError,
-        RetryRequestError, SignalError, StanzaResponseError,
-    };
-    use whatsapp_rust::handshake::HandshakeError;
-    use whatsapp_rust::socket::error::SocketError;
-    use whatsapp_rust::{CallError, ConnectError, MexError, SendError, SignalMaintenanceError};
     // Alias `#[test]` -> wasm_bindgen_test so these run on wasm32 via
     // `wasm-pack test --node` (the crate has no native test target).
     use wasm_bindgen_test::wasm_bindgen_test as test;
