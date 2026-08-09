@@ -1,0 +1,14 @@
+[package]
+name = "whatsapp-rust-bridge-boltffi"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Default features add `uuid` and `url`; neither is on this surface, and `url`
+# drags in a dependency that refuses to compile for wasm32-unknown-unknown.
+boltffi = { version = "0.29.3", default-features = false }
+whatsapp-rust-bridge-core = { workspace = true }

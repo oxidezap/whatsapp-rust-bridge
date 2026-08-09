@@ -16,8 +16,13 @@ import { packedContents } from "./pack";
  * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
  * drift above — enough that ordinary work does not trip it, tight enough that
  * a jump does.
+ *
+ * Raised once, deliberately: the package now ships a second WASM artifact
+ * (the BoltFFI backend under `dist/boltffi/`), which is bytes the budget was
+ * never sized for. The wasm-bindgen artifact's own drift is still measured
+ * against the same slope.
  */
-const MAX_UNPACKED_BYTES = 7_500_000;
+const MAX_UNPACKED_BYTES = 8_000_000;
 
 const { files, unpackedSize: total } = packedContents();
 
