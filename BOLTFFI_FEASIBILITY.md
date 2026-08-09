@@ -24,11 +24,20 @@ published on crates.io) and this repository at `v0.7.0`.
 >
 > `callback._delete` is `undefined`. It applies to every name in the renderer's
 > keyword list, and at `0f5d7421` it surfaces as a catchable typed error rather
-> than an abort — so it constrains what a trait method may be *called*, and no
-> longer blocks the client surface. Reported upstream with a patch;
-> `Expression::call` at `render/callback.rs:206` and `:469` takes
-> `Name::identifier()`, which escapes, where the declaration takes
-> `Name::member()`, which does not.
+> than an abort. Reported upstream with a patch; `Expression::call` at
+> `render/callback.rs:206` and `:469` takes `Name::identifier()`, which escapes,
+> where the declaration takes `Name::member()`, which does not.
+>
+> What it costs until that lands: the Rust trait method has to be named
+> something outside the keyword list, and the JS member is named after it.
+> Counted against this repository's inbound surface, one member collides —
+> `cacheStore.delete` (`src/js_cache_store.rs:33`). `JsStoreCallbacks` is safe:
+> its deletions are `deleteIdentity`, `deleteSession`, `deleteSenderKey` and so
+> on, none of which is a keyword. So a BoltFFI client would ask consumers for
+> `cacheStore.remove` where the wasm-bindgen client asks for `cacheStore.delete`
+> — a divergence between the two backends' consumer contracts, not an operation
+> that cannot cross, and it disappears the moment the renderer stops escaping
+> the call site.
 >
 > Two things this batch changes for the build. `--deny-skipped` now exists on
 > `pack`, so `scripts/build-boltffi.ts` uses the flag instead of scanning
