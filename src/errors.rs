@@ -609,7 +609,11 @@ classify! {
 
     PollError {
         PollError::NotLoggedIn => BridgeError::NotConnected,
-        PollError::InvalidPoll(detail) => invalid_arg("poll", detail),
+        // The core rejects `options`, `selectableCount` or `correctIndex`
+        // through this one variant and names which only in its text, so it
+        // joins the rest of the unnameable rejections rather than inventing a
+        // `poll` argument no method takes.
+        PollError::InvalidPoll(detail) => invalid_request(detail),
     }
 
     ProfileError {
@@ -1230,7 +1234,7 @@ mod tests {
             (
                 "PollError::InvalidPoll",
                 PollError::InvalidPoll("fewer than two options".into()).into(),
-                "invalid-argument:poll",
+                "invalid-argument:request",
             ),
             (
                 "PollError::NotLoggedIn",
