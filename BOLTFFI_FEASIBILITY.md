@@ -3,6 +3,25 @@
 Measured against `boltffi` at `b9272fb7` (workspace version `0.29.3`, the version
 published on crates.io) and this repository at `v0.7.0`.
 
+> **Update — re-measured at `659515e0` (main).** The maintainer fixed most of
+> what this document reports. Gap B is closed: a fallible callback returning
+> bytes now crosses and returns correctly. Gap A renders — `Result<(), E>` is
+> no longer skipped — but **one shape still traps at runtime**: a fallible
+> callback returning nothing whose parameters carry no byte payload, which is
+> `delete(store, key)`. `set(store, key, value: Vec<u8>)` works; the only
+> difference is the byte parameter.
+>
+> A caveat that cost two false reports here: the generated JavaScript and the
+> `@boltffi/runtime` npm package must come from the same revision. Linking the
+> published `0.29.3` runtime against bindings generated from main reproduces
+> the *old* trap exactly, so a stale runtime is indistinguishable from the bug
+> unless you check.
+>
+> `--deny-skipped` from the same batch is not adopted: it exists on `generate`,
+> but `pack` rejects it, and `pack` is what builds the artifact.
+>
+> The sections below are left as originally measured against `b9272fb7`.
+
 Every claim below was produced by generating and running code, not by reading
 documentation. Where the BoltFFI source and its public docs disagree, the source
 is what is reported here.
