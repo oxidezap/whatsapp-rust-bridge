@@ -1016,13 +1016,10 @@ mod tests {
         }
     }
 
-    /// The kind as JS reads it — the serde discriminant, so the sweep below
-    /// checks the contract rather than a restatement of the arms under test.
-    fn kind_of(e: &BridgeError) -> String {
-        serde_json::to_value(e).expect("BridgeError serializes")["kind"]
-            .as_str()
-            .expect("the tag is a string")
-            .to_owned()
+    /// The payload as JS reads it, so the sweep below checks the contract
+    /// rather than a restatement of the arms under test.
+    fn payload_of(e: &BridgeError) -> serde_json::Value {
+        serde_json::to_value(e).expect("BridgeError serializes")
     }
 
     /// Every source-less variant of every core error the bridge maps, with the
@@ -1086,7 +1083,7 @@ mod tests {
             (
                 "ConnectError::AlreadyConnected",
                 ConnectError::AlreadyConnected.into(),
-                "invalid-argument",
+                "invalid-argument:connect",
             ),
             (
                 // Construction never completing is an invariant no argument
@@ -1098,7 +1095,7 @@ mod tests {
             (
                 "ConnectError::Shutdown",
                 ConnectError::Shutdown.into(),
-                "invalid-argument",
+                "invalid-argument:connect",
             ),
             (
                 "ConnectError::Timeout",
@@ -1149,12 +1146,12 @@ mod tests {
             (
                 "PresenceError::PushNameEmpty",
                 PresenceError::PushNameEmpty.into(),
-                "invalid-argument",
+                "invalid-argument:sendPresence",
             ),
             (
                 "GroupError::InvalidRequest",
                 GroupError::InvalidRequest("no participants".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "GroupError::DescriptionConflict",
@@ -1164,7 +1161,7 @@ mod tests {
             (
                 "AppStateError::InvalidRequest",
                 AppStateError::InvalidRequest("mute timestamp is in the past".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "BusinessError::InvalidUpdate",
@@ -1172,7 +1169,7 @@ mod tests {
                     whatsapp_rust::BusinessProfileUpdateError::TooManyWebsites { count: 9 },
                 )
                 .into(),
-                "invalid-argument",
+                "invalid-argument:update",
             ),
             (
                 "BusinessError::MalformedResponse",
@@ -1186,7 +1183,7 @@ mod tests {
             (
                 "CallError::EmptyCallId",
                 CallError::EmptyCallId.into(),
-                "invalid-argument",
+                "invalid-argument:callId",
             ),
             (
                 "SendError::NotLoggedIn",
@@ -1196,22 +1193,22 @@ mod tests {
             (
                 "SendError::InvalidRequest",
                 SendError::InvalidRequest("empty recipient list".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "BlockingError::InvalidJid",
                 BlockingError::InvalidJid("g.us".into()).into(),
-                "invalid-argument",
+                "invalid-argument:jid",
             ),
             (
                 "CommunityError::InvalidRequest",
                 CommunityError::InvalidRequest("not a community".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "ContactError::InvalidJid",
                 ContactError::InvalidJid("broadcast".into()).into(),
-                "invalid-argument",
+                "invalid-argument:jid",
             ),
             (
                 "MediaReuploadError::NotLoggedIn",
@@ -1221,7 +1218,7 @@ mod tests {
             (
                 "MediaReuploadError::InvalidRequest",
                 MediaReuploadError::InvalidRequest("no media key".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "MediaReuploadError::Timeout",
@@ -1231,12 +1228,12 @@ mod tests {
             (
                 "NewsletterError::InvalidRequest",
                 NewsletterError::InvalidRequest("not a newsletter jid".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "PollError::InvalidPoll",
                 PollError::InvalidPoll("fewer than two options".into()).into(),
-                "invalid-argument",
+                "invalid-argument:poll",
             ),
             (
                 "PollError::NotLoggedIn",
@@ -1246,17 +1243,17 @@ mod tests {
             (
                 "ProfileError::InvalidArgument",
                 ProfileError::InvalidArgument("picture is not JPEG".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "RetryRequestError::UnsupportedStanzaClass",
                 RetryRequestError::UnsupportedStanzaClass.into(),
-                "invalid-argument",
+                "invalid-argument:stanza",
             ),
             (
                 "RetryRequestError::MissingAttribute",
                 RetryRequestError::MissingAttribute("from").into(),
-                "invalid-argument",
+                "invalid-argument:stanza",
             ),
             (
                 "RetryRequestError::MissingLocalIdentity",
@@ -1266,17 +1263,17 @@ mod tests {
             (
                 "SignalError::Unsupported",
                 SignalError::Unsupported("group sender key export".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "SignalError::InvalidInput",
                 SignalError::InvalidInput("key is 31 bytes".into()).into(),
-                "invalid-argument",
+                "invalid-argument:request",
             ),
             (
                 "StanzaResponseError::MissingAttribute",
                 StanzaResponseError::MissingAttribute("id").into(),
-                "invalid-argument",
+                "invalid-argument:stanza",
             ),
             (
                 "StanzaResponseError::MissingLocalIdentity",
@@ -1286,7 +1283,7 @@ mod tests {
             (
                 "StanzaResponseError::UnsupportedStanzaClass",
                 StanzaResponseError::UnsupportedStanzaClass.into(),
-                "invalid-argument",
+                "invalid-argument:stanza",
             ),
             (
                 "MexError::PayloadParsing",
@@ -1310,9 +1307,29 @@ mod tests {
 
         let mut wrong = Vec::new();
         for (name, bridge, expected) in cases {
-            let got = kind_of(&bridge);
-            if got != expected {
-                wrong.push(format!("  {name}: expected {expected:?}, got {got:?}"));
+            // An expectation pins the `field` too where the kind carries one:
+            // "invalid-argument:stanza". `field` is as much of the contract as
+            // the kind — the same argument has to answer with the same name
+            // wherever it can be wrong.
+            let (want_kind, want_field) = match expected.split_once(':') {
+                Some((kind, field)) => (kind, Some(field)),
+                None => (expected, None),
+            };
+            let payload = payload_of(&bridge);
+            let got_kind = payload["kind"].as_str().unwrap_or("<not a string>");
+            if got_kind != want_kind {
+                wrong.push(format!(
+                    "  {name}: expected {want_kind:?}, got {got_kind:?}"
+                ));
+                continue;
+            }
+            if let Some(want_field) = want_field {
+                let got_field = payload["field"].as_str().unwrap_or("<absent>");
+                if got_field != want_field {
+                    wrong.push(format!(
+                        "  {name}: expected field {want_field:?}, got {got_field:?}"
+                    ));
+                }
             }
         }
         assert!(
