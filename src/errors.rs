@@ -631,6 +631,11 @@ classify! {
         StanzaResponseError::MissingLocalIdentity => BridgeError::NotConnected,
     }
 
+    // `Unsupported` is one variant over two conditions: two of its three sites
+    // are `signalDecryptMessage` being handed an `msgType` that belongs to
+    // another method, and one is an encrypt-path invariant the caller cannot
+    // reach. Only the detail string tells them apart, which is not something to
+    // match on, so the caller-reachable reading wins.
     SignalError {
         SignalError::InvalidInput(detail) | SignalError::Unsupported(detail) =>
             invalid_request(detail),
