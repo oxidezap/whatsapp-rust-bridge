@@ -98,7 +98,7 @@ dependencies = [
 [[package]]
 name = "boltffi"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "boltffi_core",
  "boltffi_macros",
@@ -107,7 +107,7 @@ dependencies = [
 [[package]]
 name = "boltffi_ast"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "serde",
 ]
@@ -115,7 +115,7 @@ dependencies = [
 [[package]]
 name = "boltffi_binding"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "boltffi_ast",
  "serde",
@@ -125,7 +125,7 @@ dependencies = [
 [[package]]
 name = "boltffi_core"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "boltffi_macros",
  "url",
@@ -135,7 +135,7 @@ dependencies = [
 [[package]]
 name = "boltffi_ffi_rules"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "serde",
  "serde_json",
@@ -146,7 +146,7 @@ dependencies = [
 [[package]]
 name = "boltffi_macros"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "boltffi_ast",
  "boltffi_binding",
@@ -161,7 +161,7 @@ dependencies = [
 [[package]]
 name = "boltffi_scan"
 version = "0.29.3"
-source = "git+https://github.com/boltffi/boltffi?rev=659515e0499c4a46f7f29f4143f74d3d64569588#659515e0499c4a46f7f29f4143f74d3d64569588"
+source = "git+https://github.com/boltffi/boltffi?rev=0f5d7421a22572a4639c89043f36f854ae5ad141#0f5d7421a22572a4639c89043f36f854ae5ad141"
 dependencies = [
  "boltffi_ast",
  "proc-macro2",

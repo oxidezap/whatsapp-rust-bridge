@@ -21,5 +21,5 @@ crate-type = ["cdylib", "rlib"]
 #
 # Default features add `uuid` and `url`; neither is on this surface, and `url`
 # drags in a dependency that refuses to compile for wasm32-unknown-unknown.
-boltffi = { git = "https://github.com/boltffi/boltffi", rev = "659515e0499c4a46f7f29f4143f74d3d64569588", default-features = false }
+boltffi = { git = "https://github.com/boltffi/boltffi", rev = "0f5d7421a22572a4639c89043f36f854ae5ad141", default-features = false }
 whatsapp-rust-bridge-core = { workspace = true }
