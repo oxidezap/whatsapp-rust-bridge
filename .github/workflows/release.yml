@@ -307,6 +307,12 @@ jobs:
           # would generate one codec for the tests and another for the tarball.
           tool: wasm-pack,protoc@3.35.1
 
+      # This job builds the tarball on its own runner, so it needs the CLI as
+      # much as verify does. Without it `build:boltffi` skips, and `check-pack`
+      # then refuses to publish a package whose `./boltffi` export is missing.
+      - name: Install boltffi
+        run: cargo install boltffi_cli --version 0.29.3 --locked
+
       # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
       # npm, so a floating version would change the published bytes without a
       # change to this repository.

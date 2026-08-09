@@ -34,6 +34,14 @@ const HOST_TARGET =
     .match(/^host:\s*(\S+)$/m)?.[1] ??
   "x86_64-unknown-linux-gnu";
 
+/**
+ * The generator and the `boltffi` macro agree on wasm symbol names only within
+ * a version. Mixing them produces a module whose exports the emitted JavaScript
+ * looks for and does not find — at runtime, not at build time. Pinned to the
+ * crate version in `crates/bridge-boltffi/Cargo.toml`.
+ */
+const REQUIRED_CLI_VERSION = "0.29.3";
+
 const available = Bun.spawnSync({
   cmd: ["boltffi", "--version"],
   stdout: "pipe",
@@ -42,6 +50,16 @@ const available = Bun.spawnSync({
 if (available.exitCode !== 0) {
   console.log("boltffi not installed — skipping the BoltFFI artifact");
   process.exit(0);
+}
+
+const version = available.stdout.toString().trim().split(/\s+/).pop();
+if (version !== REQUIRED_CLI_VERSION) {
+  throw new Error(
+    `boltffi ${version} is installed, but this backend compiles against ` +
+      `${REQUIRED_CLI_VERSION}. Mismatched versions emit JavaScript that looks ` +
+      `for wasm exports the module does not have. ` +
+      `Install it with: cargo install boltffi_cli --version ${REQUIRED_CLI_VERSION} --locked`,
+  );
 }
 
 rmSync(OUT, { recursive: true, force: true });
