@@ -102,10 +102,12 @@ describe("BoltFFI artifact", () => {
       }
       expect(caught).toBeInstanceOf(Error);
       // BoltFFI throws a typed exception; the core's rendered message is the
-      // payload, not the `Error` message (which names the error type).
-      expect((caught as { value: { value0: string } }).value.value0).toContain(
-        "maxOutputBytes",
-      );
+      // payload, not the `Error` message (which names the error type). Read it
+      // defensively so a change in the wrapper shape names itself rather than
+      // failing as an opaque TypeError.
+      const payload = (caught as { value?: { value0?: unknown } })?.value;
+      expect(typeof payload?.value0).toBe("string");
+      expect(payload?.value0).toContain("maxOutputBytes");
     });
 
     test("input that is not a zlib stream throws rather than returning empty", () => {

@@ -70,16 +70,28 @@ if (version !== REQUIRED_CLI_VERSION) {
 const packed = Bun.spawnSync({
   cmd: ["boltffi", "pack", "wasm", "--release"],
   cwd: CRATE,
-  stdout: "inherit",
-  stderr: "inherit",
+  stdout: "pipe",
+  stderr: "pipe",
   env: {
     ...process.env,
     CARGO_BUILD_TARGET: HOST_TARGET,
     PATH: `${join(ROOT, "scripts", "boltffi-tsc-shim")}:${process.env.PATH}`,
   },
 });
+const packOutput = `${packed.stdout.toString()}${packed.stderr.toString()}`;
+process.stdout.write(packOutput);
 if (packed.exitCode !== 0) {
   throw new Error(`boltffi pack wasm failed with ${packed.exitCode}`);
+}
+
+// `boltffi` exits 0 while dropping declarations it cannot render, printing them
+// as a table. A surface that quietly loses an operation is the failure mode this
+// backend is most exposed to, so treat any skip as a build failure.
+if (/skipped unsupported declarations/i.test(packOutput)) {
+  throw new Error(
+    "boltffi skipped declarations it could not render — the generated surface " +
+      "is incomplete. See the table above.",
+  );
 }
 
 // The emitted `.ts` are inputs to the `.js`/`.d.ts` beside them; shipping both

@@ -35,7 +35,8 @@ Confirmed as stated: there are **zero** `async fn (&mut self, …)` methods, so 
 renderer's `asynchronous mutable receiver` limit is never reached.
 
 The real `unsafe` in this repository is `Uint8Array::view` over linear memory in
-`src/js_crypto.rs` (19 occurrences), the `wasm_send_sync!` macro in `src/lib.rs`,
+`src/js_crypto.rs` (11 `Uint8Array::view` calls among 19 `unsafe` occurrences in
+that file), the `wasm_send_sync!` macro in `src/lib.rs`,
 and the counting allocator in `src/memory_profile.rs`. None of it moved in this
 change.
 

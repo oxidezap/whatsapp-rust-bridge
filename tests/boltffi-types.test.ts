@@ -6,7 +6,7 @@
  * compile. The second is what catches a surface that silently widened.
  */
 import { describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,6 +18,14 @@ const declarations = readFileSync(DTS, "utf8");
 /** Type-check a snippet against the emitted declarations. */
 function typeCheck(body: string): { ok: boolean; output: string } {
   const dir = mkdtempSync(join(tmpdir(), "boltffi-types-"));
+  try {
+    return runTsc(dir, body);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function runTsc(dir: string, body: string): { ok: boolean; output: string } {
   const file = join(dir, "case.ts");
   writeFileSync(file, `import * as boltffi from ${JSON.stringify(DTS.replace(/\.d\.ts$/, ""))};\n${body}\n`);
   const result = Bun.spawnSync({
@@ -44,9 +52,13 @@ function typeCheck(body: string): { ok: boolean; output: string } {
 
 describe("BoltFFI type safety", () => {
   test("the public surface declares no `any`", () => {
+    // Comments are stripped first: a doc line mentioning the word "any" is not
+    // a widened type, and letting prose trip the gate makes it flaky.
     const offenders = declarations
+      .replace(/\/\*[\s\S]*?\*\//g, "")
       .split("\n")
-      .filter((line) => /\bany\b/.test(line) && !line.trimStart().startsWith("//"));
+      .map((line) => line.replace(/\/\/.*$/, ""))
+      .filter((line) => /\bany\b/.test(line));
     expect(offenders).toEqual([]);
   });
 
