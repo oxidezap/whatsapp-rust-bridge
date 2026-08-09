@@ -33,10 +33,16 @@ if (!boltffiAvailable) {
   // generated JavaScript cannot find.
   const pin = join(ROOT, "crates", "bridge-boltffi", "Cargo.toml");
   const rev = readFileSync(pin, "utf8").match(/rev\s*=\s*"([0-9a-f]+)"/)?.[1];
+  // Falling back to an install without `--rev` would name the one command that
+  // cannot work — it resolves to whatever main happens to be. Say so instead.
+  // Reachable without anything being broken: once the pin moves back to a
+  // published version, there is no `rev` to read.
+  const install = rev
+    ? `\`cargo install --git https://github.com/boltffi/boltffi --rev ${rev} boltffi_cli --locked\``
+    : "the CLI built from whatever `crates/bridge-boltffi/Cargo.toml` pins — " +
+      "no `rev` was found there, so read the pin rather than installing latest";
   console.warn(
-    "dist/boltffi is absent — BoltFFI suites skipped. Install the CLI with " +
-      `\`cargo install --git https://github.com/boltffi/boltffi${rev ? ` --rev ${rev}` : ""} boltffi_cli --locked\`` +
-      " and rebuild to run them.",
+    `dist/boltffi is absent — BoltFFI suites skipped. Install ${install} and rebuild to run them.`,
   );
 }
 
