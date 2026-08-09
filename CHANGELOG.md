@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.0...v0.7.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **errors:** report a dropped connection as not-connected, not internal ([#34](https://github.com/oxidezap/whatsapp-rust-bridge/issues/34)) ([5c95d9b](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5c95d9b29ee0a9ab1d9eab8add66f80e99cb1e1e))
+
 ## [0.7.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.6.5...v0.7.0) (2026-08-08)
 
 
