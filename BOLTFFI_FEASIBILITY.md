@@ -58,6 +58,19 @@ published on crates.io) and this repository at `v0.7.0`.
 > not emitted, but **the client surface cannot land until that runtime is
 > published**.
 >
+> **Why the pin stops at `0f5d7421`.** `c7f92e80` is newer and drops the length
+> prefix from byte returns, but it also raises the wasm ABI from 2 to 3, and the
+> published runtime is still on 2. Built against it, the module refuses to
+> instantiate:
+>
+> ```
+> BoltFFI ABI version mismatch: expected 2, got 3
+> ```
+>
+> That is the whole artifact, not one operation, so the pin moves when
+> `@boltffi/runtime` is published at ABI 3 and the dependency in `package.json`
+> moves with it.
+>
 > A caveat that cost two false reports here: the generated JavaScript and the
 > `@boltffi/runtime` package must come from the same revision. Linking the
 > published runtime against bindings generated from main reproduces the *old*
