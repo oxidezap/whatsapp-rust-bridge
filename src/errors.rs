@@ -629,6 +629,15 @@ pub fn to_js_error(e: &BridgeError) -> JsValue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use whatsapp_rust::client::ClientError;
+    use whatsapp_rust::features::{
+        AppStateError, BlockingError, BusinessError, CommunityError, ContactError, GroupError,
+        MediaReuploadError, NewsletterError, PollError, PresenceError, ProfileError,
+        RetryRequestError, SignalError, StanzaResponseError,
+    };
+    use whatsapp_rust::handshake::HandshakeError;
+    use whatsapp_rust::socket::error::SocketError;
+    use whatsapp_rust::{CallError, ConnectError, MexError, SendError, SignalMaintenanceError};
     // Alias `#[test]` -> wasm_bindgen_test so these run on wasm32 via
     // `wasm-pack test --node` (the crate has no native test target).
     use wasm_bindgen_test::wasm_bindgen_test as test;
@@ -841,6 +850,360 @@ mod tests {
     fn iq_not_connected_maps_to_not_connected_kind() {
         let be: BridgeError = IqError::NotConnected.into();
         assert!(matches!(be, BridgeError::NotConnected));
+    }
+
+    /// The reported failure. A send that lands in a disconnect window fails as
+    /// `ClientError::NotConnected` instead of `IqError::NotConnected`, and the
+    /// core files both under `is_transport_unavailable`. Sits next to the
+    /// `IqError` test above: same condition, and until this passes the two
+    /// answer differently.
+    #[test]
+    fn client_not_connected_maps_to_not_connected_kind() {
+        let be: BridgeError = whatsapp_rust::client::ClientError::NotConnected.into();
+        assert!(matches!(be, BridgeError::NotConnected), "got {be:?}");
+    }
+
+    /// Classifying a source-less variant must not shadow the walk: an error
+    /// that wraps a typed leaf still has to reach the leaf.
+    #[test]
+    fn client_error_wrapping_a_typed_leaf_still_reaches_it() {
+        let be: BridgeError = ClientError::Iq(rejected(403)).into();
+        match be {
+            BridgeError::Server { server_code, .. } => assert_eq!(server_code, 403),
+            other => panic!("expected Server via chain walk, got {other:?}"),
+        }
+
+        // Two hops, through a variant that is itself transport-unavailable-shaped.
+        let be: BridgeError = ClientError::Iq(IqError::ClientState(Box::new(ClientError::Iq(
+            rejected(401),
+        ))))
+        .into();
+        match be {
+            BridgeError::Server { server_code, .. } => assert_eq!(server_code, 401),
+            other => panic!("expected Server via chain walk, got {other:?}"),
+        }
+    }
+
+    /// The fallback has to survive the sweep: an error nothing classifies is
+    /// still `internal`, so "transient" does not become the default answer.
+    #[test]
+    fn an_error_no_one_classifies_still_lands_in_internal() {
+        #[derive(Debug, thiserror::Error)]
+        #[error("a failure this bridge has never seen")]
+        struct Foreign;
+
+        let be = BridgeError::from_error_chain(&Foreign);
+        match be {
+            BridgeError::Internal { message } => {
+                assert_eq!(message, "a failure this bridge has never seen");
+            }
+            other => panic!("expected Internal, got {other:?}"),
+        }
+    }
+
+    /// The kind as JS reads it — the serde discriminant, so the sweep below
+    /// checks the contract rather than a restatement of the arms under test.
+    fn kind_of(e: &BridgeError) -> String {
+        serde_json::to_value(e).expect("BridgeError serializes")["kind"]
+            .as_str()
+            .expect("the tag is a string")
+            .to_owned()
+    }
+
+    /// Every source-less variant of every core error the bridge maps, with the
+    /// kind it has to reach.
+    ///
+    /// A variant carrying no `source()` gives the chain walk nothing to find,
+    /// so it lands in `internal` unless something classifies it — the defect
+    /// this table exists to catch, and the reason a variant the core adds
+    /// later belongs here. `internal` is an answer only for a failure the host
+    /// genuinely cannot act on, and each such row says why.
+    #[test]
+    fn source_less_variants_reach_an_actionable_kind() {
+        let cases: Vec<(&str, BridgeError, &str)> = vec![
+            // The core calls all three transport-gone.
+            (
+                "ClientError::NotConnected",
+                ClientError::NotConnected.into(),
+                "not-connected",
+            ),
+            (
+                "ClientError::NotLoggedIn",
+                ClientError::NotLoggedIn.into(),
+                "not-connected",
+            ),
+            (
+                "IqError::InternalChannelClosed",
+                IqError::InternalChannelClosed.into(),
+                "not-connected",
+            ),
+            (
+                "wacore::IqError::InternalChannelClosed",
+                BridgeError::from_error_chain(&wacore::request::IqError::InternalChannelClosed),
+                "not-connected",
+            ),
+            (
+                "SocketError::SocketClosed",
+                BridgeError::from_error_chain(&IqError::Socket(SocketError::SocketClosed)),
+                "not-connected",
+            ),
+            (
+                "HandshakeError::Disconnected",
+                ConnectError::Handshake(HandshakeError::Disconnected).into(),
+                "not-connected",
+            ),
+            (
+                "HandshakeError::StreamClosed",
+                ConnectError::Handshake(HandshakeError::StreamClosed).into(),
+                "not-connected",
+            ),
+            (
+                "HandshakeError::Timeout",
+                ConnectError::Handshake(HandshakeError::Timeout).into(),
+                "timeout",
+            ),
+            (
+                "HandshakeError::UnexpectedEvent",
+                ConnectError::Handshake(HandshakeError::UnexpectedEvent("stream end".into()))
+                    .into(),
+                "protocol-violation",
+            ),
+            (
+                "ConnectError::AlreadyConnected",
+                ConnectError::AlreadyConnected.into(),
+                "invalid-argument",
+            ),
+            (
+                "ConnectError::NotActivated",
+                ConnectError::NotActivated.into(),
+                "invalid-argument",
+            ),
+            (
+                "ConnectError::Shutdown",
+                ConnectError::Shutdown.into(),
+                "invalid-argument",
+            ),
+            (
+                "ConnectError::Timeout",
+                ConnectError::Timeout {
+                    stage: whatsapp_rust::client::ConnectStage::Socket,
+                    timeout: core::time::Duration::from_secs(20),
+                }
+                .into(),
+                "timeout",
+            ),
+            (
+                "SignalMaintenanceError::CorruptKey",
+                SignalMaintenanceError::CorruptKey("bad length".into()).into(),
+                "protocol-violation",
+            ),
+            (
+                "SignalMaintenanceError::DrainCommitFailed",
+                SignalMaintenanceError::DrainCommitFailed.into(),
+                "storage",
+            ),
+            (
+                "SignalMaintenanceError::DrainShuttingDown",
+                SignalMaintenanceError::DrainShuttingDown.into(),
+                "not-connected",
+            ),
+            (
+                "IqError::UnexpectedResponseType",
+                IqError::UnexpectedResponseType {
+                    got: Some("get".into()),
+                }
+                .into(),
+                "protocol-violation",
+            ),
+            (
+                "wacore::IqError::UnexpectedResponseType",
+                BridgeError::from_error_chain(&wacore::request::IqError::UnexpectedResponseType {
+                    got: Some("get".into()),
+                }),
+                "protocol-violation",
+            ),
+            // Our own request-id bookkeeping collided: the host supplies no id
+            // and can do nothing about it. `internal` is the honest answer.
+            (
+                "IqError::DuplicateRequestId",
+                IqError::DuplicateRequestId("42".into()).into(),
+                "internal",
+            ),
+            (
+                "PresenceError::PushNameEmpty",
+                PresenceError::PushNameEmpty.into(),
+                "invalid-argument",
+            ),
+            (
+                "GroupError::InvalidRequest",
+                GroupError::InvalidRequest("no participants".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "GroupError::DescriptionConflict",
+                GroupError::DescriptionConflict.into(),
+                "server",
+            ),
+            (
+                "AppStateError::InvalidRequest",
+                AppStateError::InvalidRequest("mute timestamp is in the past".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "BusinessError::InvalidUpdate",
+                BusinessError::InvalidUpdate(
+                    whatsapp_rust::BusinessProfileUpdateError::TooManyWebsites { count: 9 },
+                )
+                .into(),
+                "invalid-argument",
+            ),
+            (
+                "BusinessError::MalformedResponse",
+                BusinessError::MalformedResponse {
+                    operation: "profile",
+                    detail: "missing hours".into(),
+                }
+                .into(),
+                "protocol-violation",
+            ),
+            (
+                "CallError::EmptyCallId",
+                CallError::EmptyCallId.into(),
+                "invalid-argument",
+            ),
+            (
+                "SendError::NotLoggedIn",
+                SendError::NotLoggedIn.into(),
+                "not-connected",
+            ),
+            (
+                "SendError::InvalidRequest",
+                SendError::InvalidRequest("empty recipient list".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "BlockingError::InvalidJid",
+                BlockingError::InvalidJid("g.us".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "CommunityError::InvalidRequest",
+                CommunityError::InvalidRequest("not a community".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "ContactError::InvalidJid",
+                ContactError::InvalidJid("broadcast".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "MediaReuploadError::NotLoggedIn",
+                MediaReuploadError::NotLoggedIn.into(),
+                "not-connected",
+            ),
+            (
+                "MediaReuploadError::InvalidRequest",
+                MediaReuploadError::InvalidRequest("no media key".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "MediaReuploadError::Timeout",
+                MediaReuploadError::Timeout.into(),
+                "timeout",
+            ),
+            (
+                "NewsletterError::InvalidRequest",
+                NewsletterError::InvalidRequest("not a newsletter jid".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "PollError::InvalidPoll",
+                PollError::InvalidPoll("fewer than two options".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "PollError::NotLoggedIn",
+                PollError::NotLoggedIn.into(),
+                "not-connected",
+            ),
+            (
+                "ProfileError::InvalidArgument",
+                ProfileError::InvalidArgument("picture is not JPEG".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "RetryRequestError::UnsupportedStanzaClass",
+                RetryRequestError::UnsupportedStanzaClass.into(),
+                "invalid-argument",
+            ),
+            (
+                "RetryRequestError::MissingAttribute",
+                RetryRequestError::MissingAttribute("from").into(),
+                "protocol-violation",
+            ),
+            (
+                "RetryRequestError::MissingLocalIdentity",
+                RetryRequestError::MissingLocalIdentity.into(),
+                "not-connected",
+            ),
+            (
+                "SignalError::Unsupported",
+                SignalError::Unsupported("group sender key export".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "SignalError::InvalidInput",
+                SignalError::InvalidInput("key is 31 bytes".into()).into(),
+                "invalid-argument",
+            ),
+            (
+                "StanzaResponseError::MissingAttribute",
+                StanzaResponseError::MissingAttribute("id").into(),
+                "protocol-violation",
+            ),
+            (
+                "StanzaResponseError::MissingLocalIdentity",
+                StanzaResponseError::MissingLocalIdentity.into(),
+                "not-connected",
+            ),
+            (
+                "StanzaResponseError::UnsupportedStanzaClass",
+                StanzaResponseError::UnsupportedStanzaClass.into(),
+                "invalid-argument",
+            ),
+            (
+                "MexError::PayloadParsing",
+                MexError::PayloadParsing("missing data".into()).into(),
+                "protocol-violation",
+            ),
+            // A GraphQL-layer rejection. `code` lives in a different space from
+            // the IQ `code` attribute — the core refuses to merge the two, and
+            // so does `server` here — and no kind stands for it. Left where it
+            // is until the surface grows one.
+            (
+                "MexError::ExtensionError",
+                MexError::ExtensionError {
+                    code: 1675247,
+                    message: "not authorized".into(),
+                }
+                .into(),
+                "internal",
+            ),
+        ];
+
+        let mut wrong = Vec::new();
+        for (name, bridge, expected) in cases {
+            let got = kind_of(&bridge);
+            if got != expected {
+                wrong.push(format!("  {name}: expected {expected:?}, got {got:?}"));
+            }
+        }
+        assert!(
+            wrong.is_empty(),
+            "{} source-less variant(s) misclassified:\n{}",
+            wrong.len(),
+            wrong.join("\n")
+        );
     }
 
     #[test]
