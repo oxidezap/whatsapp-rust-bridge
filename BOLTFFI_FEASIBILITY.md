@@ -30,14 +30,25 @@ published on crates.io) and this repository at `v0.7.0`.
 >
 > What it costs until that lands: the Rust trait method has to be named
 > something outside the keyword list, and the JS member is named after it.
-> Counted against this repository's inbound surface, one member collides —
-> `cacheStore.delete` (`src/js_cache_store.rs:33`). `JsStoreCallbacks` is safe:
-> its deletions are `deleteIdentity`, `deleteSession`, `deleteSenderKey` and so
-> on, none of which is a keyword. So a BoltFFI client would ask consumers for
-> `cacheStore.remove` where the wasm-bindgen client asks for `cacheStore.delete`
-> — a divergence between the two backends' consumer contracts, not an operation
-> that cannot cross, and it disappears the moment the renderer stops escaping
-> the call site.
+> Matching every member name declared on an inbound interface in `src/` against
+> the renderer's keyword list gives **two** collisions, both spelled `delete`:
+>
+> - `JsStoreCallbacks.delete(store, key)` — `src/wasm_client.rs:396`, one of the
+>   three mandatory storage callbacks
+> - `JsCacheStore.delete(namespace, key)` — `src/wasm_client.rs:483`, read back
+>   by `Reflect::get` at `src/js_cache_store.rs:33`
+>
+> Nothing else collides. `deleteMany`, `deletePrefix`, `deleteIdentity`,
+> `deleteSession` and the rest are not keywords — only the bare word is. So a
+> BoltFFI client would ask consumers for `remove` on both interfaces where the
+> wasm-bindgen client asks for `delete`: a divergence between the two backends'
+> consumer contracts, not an operation that cannot cross, and it disappears the
+> moment the renderer stops escaping the call site.
+>
+> One further keyword member exists — `ServerAck.class`
+> (`src/generated_types.rs:1187`) — but it is an outbound record field, and
+> record fields render through `PropertyKey`, not through the callback
+> invocation path this defect lives on.
 >
 > Two things this batch changes for the build. `--deny-skipped` now exists on
 > `pack`, so `scripts/build-boltffi.ts` uses the flag instead of scanning
