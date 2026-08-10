@@ -193,6 +193,21 @@ const CASES: Case[] = [
     outcomes: rejectedEverywhere("object"),
   },
   { label: "'0e100'", input: "0e100", outcomes: spread(TYPES, accepted(0)) },
+  // A padded string names the same value as an unpadded one, for NaN as much as
+  // for the infinities and for the digits.
+  {
+    label: "' NaN '",
+    input: " NaN ",
+    outcomes: {
+      ...spread(INTS, { kind: "throws", message: 'invalid @: " NaN "' }),
+      ...spread(FLOATS, accepted(NaN)),
+    },
+  },
+  {
+    label: "' 12 '",
+    input: " 12 ",
+    outcomes: spread(TYPES, accepted(12)),
+  },
 
   // Fractions: a value an integer field cannot hold, a value a float field can.
   {

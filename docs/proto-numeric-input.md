@@ -51,6 +51,8 @@ only the exception's wording changed are not marked.
 | `{ low, high }` without `unsigned` | throws | throws | throws † | throws † | throws | throws † |
 | a `Long` with a fractional word | throws | throws | throws † | throws † | throws | throws † |
 | `'0e100'` | `0` | `0` | `0` | `0` | `0` | `0` |
+| `' 12 '` | `12` | `12` | `12` | `12` | `12` | `12` |
+| `' NaN '` | throws | throws | throws | throws | `NaN` | `NaN` |
 | a decoded `Long` | throws | throws | its value | its value | its value | its value |
 | `12n` | `12` † | `12` † | `12` | `12` | `12` † | `12` † |
 | `1.5` / `-1.5` | throws | throws | throws | throws | `1.5` / `-1.5` | `1.5` / `-1.5` |

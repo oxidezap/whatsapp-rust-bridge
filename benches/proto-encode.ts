@@ -162,6 +162,9 @@ function measure(mode: Mode): Result[] {
       const cpuUsed = process.cpuUsage(cpuBefore);
       ops.push((ITERATIONS * 1e9) / elapsedNs);
       cpu.push((cpuUsed.user + cpuUsed.system) / ITERATIONS);
+      // Collect before sampling, outside the timed region: without it the
+      // reading is whatever garbage happened to survive, not what is retained.
+      Bun.gc(true);
       heap.push((process.memoryUsage().heapUsed - heapBefore) / ITERATIONS);
     }
 

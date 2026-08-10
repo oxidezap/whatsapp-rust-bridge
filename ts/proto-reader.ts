@@ -107,6 +107,7 @@ function numericInput(value: unknown, type: string): number | bigint | string {
 }
 
 const SPELLS_INFINITY = /^\s*[+-]?Infinity\s*$/;
+const SPELLS_NAN = /^\s*NaN\s*$/;
 
 /** Narrow to the one JS number the floating-point writers take. */
 function asNumber(value: unknown, type: string): number {
@@ -115,7 +116,9 @@ function asNumber(value: unknown, type: string): number {
   if (typeof input === "number") return input;
   const parsed = Number(input);
   if (Number.isNaN(parsed)) {
-    if (input !== "NaN") throw invalid(type, value);
+    // Whitespace is tolerated everywhere else a string is read, including the
+    // infinity check below; `' NaN '` names the same value as `'NaN'`.
+    if (!SPELLS_NAN.test(String(input))) throw invalid(type, value);
   } else if (!Number.isFinite(parsed) && !SPELLS_INFINITY.test(String(input))) {
     // A finite input that only reaches infinity by overflowing the conversion
     // is a value the type cannot hold, not the infinity the caller asked for.
