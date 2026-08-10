@@ -72,6 +72,13 @@ for (const line of readFileSync(SURFACE_FILE, "utf8").split("\n")) {
 
 const isRepeated = (field: Field): boolean => field.label.startsWith("repeated");
 
+/** The declared enum numbers the manifest kept: the first, and a second if any. */
+const enumProbes = (ref: string): number[] =>
+  ref
+    .slice(ref.lastIndexOf("=") + 1)
+    .split(",")
+    .map(Number);
+
 /**
  * The zero value for the field's type. Zero is deliberate: a proto2 `optional`
  * field has explicit presence, so an encoder that writes only truthy values
@@ -103,8 +110,8 @@ const zeroOf = (type: string, ref: string): unknown => {
       return {};
     case "enum":
       // Not necessarily 0: a proto2 enum need not declare a zero value, so the
-      // manifest carries the first value it does declare.
-      return Number(ref.slice(ref.lastIndexOf("=") + 1));
+      // manifest carries the values it does declare.
+      return enumProbes(ref)[0];
     default:
       throw new Error(`no sample for type ${type}`);
   }
@@ -216,6 +223,14 @@ const nestedSampleOf = (
       const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
       sample[keyOf(child)] = isRepeated(child) ? [value].flat() : value;
     }
+    // Message children as empty submessages: their *presence* is what separates
+    // two types that agree on scalars, and ContactsArrayMessage exists in two
+    // versions differing only by a message field. An empty payload keeps the
+    // sample flat — expanding them would walk a cyclic schema.
+    for (const child of children) {
+      if (child.label === "map" || child.type !== "message") continue;
+      sample[keyOf(child)] = isRepeated(child) ? [{}] : {};
+    }
     return sample;
   }
   // No scalar to carry: a message like AIMetadataOperation declares only
@@ -239,10 +254,13 @@ const samplesOf = (field: Field): unknown[] => {
   const samples = [sampleOf(field)];
   if (field.label === "map") return samples;
   const nested = field.type === "message" ? nestedSampleOf(field.ref) : undefined;
+  const declared = field.type === "enum" ? enumProbes(field.ref) : [];
   const probes =
     nested !== undefined
       ? (Object.keys(nested).length > 0 ? [nested] : [])
-      : (PROBE_VALUES[field.type] ?? []);
+      : field.type === "enum"
+        ? [declared[declared.length - 1]]
+        : (PROBE_VALUES[field.type] ?? []);
   if (!isRepeated(field)) {
     samples.push(...probes);
     return samples;
@@ -561,9 +579,10 @@ describe("generated codec vs whatsapp.proto", () => {
       if (field.label === "map") {
         cases = [[]];
       } else {
+        const declared = enumProbes(field.ref);
         const probes =
           field.type === "enum"
-            ? ([zeroOf("enum", field.ref), zeroOf("enum", field.ref)] as [unknown, unknown])
+            ? ([declared[0], declared[declared.length - 1]] as [unknown, unknown])
             : PROBE_VALUES[field.type];
         if (probes === undefined) {
           failures.push(`${field.message}.${field.name}: no wire sample for ${field.type}`);
