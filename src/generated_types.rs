@@ -508,7 +508,7 @@ export interface EncDecryptFailed {
   /** Which `<enc>` of the stanza this was, counting from zero in the order the client enumerates them — the same numbering as [`DecryptedPayload::enc_index`], produced by the same enumeration, so the two events index one stanza and not two.  That order is the stanza's direct `<enc>` children first, then the ones under `<participants><to>` addressed to this device. It is *not* a child index. */
   enc_index: number;
   /** The `type` attribute the `<enc>` carried: `msg`, `pkmsg`, `skmsg`, …  `None` only when the node carried no `type` at all, which is also the one thing [`MalformedNode`](EncDecryptFailureReason::MalformedNode) can mean here that a present type does not. Borrowed for the types this build knows, owned for a `type` it does not. */
-  enc_type?: Cow<string> | null;
+  enc_type?: string | null;
   /** Where the client stopped. */
   reason: EncDecryptFailureReason;
 }

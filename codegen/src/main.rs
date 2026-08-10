@@ -1260,10 +1260,17 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                     ("any[]".to_string(), false)
                 }
 
-                // Box<T>, Arc<T>, Rc<T> → unwrap inner
-                "Box" | "Arc" | "Rc" => {
+                // Box<T>, Arc<T>, Rc<T>, Cow<'a, T> → unwrap inner. Serde writes
+                // the pointee, so the wrapper has no wire form to name. The first
+                // *type* argument is taken rather than the first argument: `Cow`
+                // leads with a lifetime, and reading position zero would miss it
+                // and leave the Rust name in the emitted TypeScript.
+                "Box" | "Arc" | "Rc" | "Cow" => {
                     if let PathArguments::AngleBracketed(args) = &last.arguments
-                        && let Some(GenericArgument::Type(inner)) = args.args.first()
+                        && let Some(inner) = args.args.iter().find_map(|arg| match arg {
+                            GenericArgument::Type(inner) => Some(inner),
+                            _ => None
+                        })
                     {
                         return rust_type_to_ts(inner);
                     }
