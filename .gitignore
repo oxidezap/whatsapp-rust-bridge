@@ -4,5 +4,4 @@ node_modules
 pkg
 *.tgz
 *.xml
-docs
 codegen/target/

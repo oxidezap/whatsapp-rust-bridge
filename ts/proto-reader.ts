@@ -69,6 +69,9 @@ export interface Long {
  */
 export type Int64 = number | Long;
 
+/** Everything a numeric field accepts. `Int64` is the decode-side subset. */
+export type NumericInput = number | bigint | string | Long;
+
 const toLong = (low: number, high: number, unsigned: boolean): Long => ({
   low: low >>> 0,
   high: high | 0,
@@ -93,13 +96,152 @@ export const longToBigInt = (value: Long): bigint => {
   return high * BigInt(PROTO_WORD_BASE) + low;
 };
 
-const int64ToWire = (value: Int64 | bigint | string): number | bigint | string =>
-  typeof value === "object" ? longToBigInt(value) : value;
+/** Either half of a Long, as a signed or unsigned 32-bit word. */
+const isWord = (value: unknown): boolean =>
+  typeof value === "number" && Number.isInteger(value) && value >= -0x80000000 && value <= 0xffffffff;
 
 /**
- * BinaryWriter that accepts back what the reader below produces. Buf's own
+ * `unsigned` (a boolean) is the discriminant: it short-circuits virtually every
+ * non-Long object in one comparison, and matches the guard in
+ * `camel_serializer.rs`. A plain `{ low, high }` data object is NOT a Long, and
+ * neither is one whose words are not words — `longToBigInt` would truncate
+ * `low: 1.5` to `1` and write a value nobody sent.
+ */
+export const isLong = (value: unknown): value is Long =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as Long).unsigned === "boolean" &&
+  isWord((value as Long).low) &&
+  isWord((value as Long).high);
+
+/**
+ * The numeric input contract, in one sentence: a numeric field takes a
+ * `number`, a `bigint`, a `Long` the reader produced, or a string that parses
+ * in full as a number — never `''`, `true`, `[]` or anything else JavaScript
+ * would silently turn into a number — and the value must be one the declared
+ * type can hold. See `docs/proto-numeric-input.md` for the per-type matrix.
+ *
+ * Buf's writer enforces part of that (`assertInt32`, `assertFloat32`) and none
+ * of it on `double` and the 64-bit methods, so the same caller mistake threw in
+ * one field and wrote a wrong value in its neighbour.
+ */
+const describe = (value: unknown): string =>
+  typeof value === "string"
+    ? JSON.stringify(value)
+    : typeof value === "number" || typeof value === "bigint"
+      ? String(value)
+      : typeof value;
+
+const invalid = (type: string, value: unknown): Error =>
+  new Error(`invalid ${type}: ${describe(value)}`);
+
+/** A number, a bigint, or a string with something in it. Nothing else is a number. */
+function numericInput(value: unknown, type: string): number | bigint | string {
+  const kind = typeof value;
+  if (kind === "number" || kind === "bigint") return value as number | bigint;
+  if (kind === "string" && (value as string).trim() !== "") return value as string;
+  throw invalid(type, value);
+}
+
+const SPELLS_INFINITY = /^\s*[+-]?Infinity\s*$/;
+const SPELLS_NAN = /^\s*NaN\s*$/;
+
+/** Narrow to the one JS number the floating-point writers take. */
+function asNumber(value: unknown, type: string): number {
+  if (isLong(value)) return Number(longToBigInt(value));
+  const input = numericInput(value, type);
+  if (typeof input === "number") return input;
+  const parsed = Number(input);
+  if (Number.isNaN(parsed)) {
+    // Whitespace is tolerated everywhere else a string is read, including the
+    // infinity check below; `' NaN '` names the same value as `'NaN'`.
+    if (!SPELLS_NAN.test(String(input))) throw invalid(type, value);
+  } else if (!Number.isFinite(parsed) && !SPELLS_INFINITY.test(String(input))) {
+    // A finite input that only reaches infinity by overflowing the conversion
+    // is a value the type cannot hold, not the infinity the caller asked for.
+    throw invalid(type, value);
+  }
+  return parsed;
+}
+
+const DECIMAL_TEXT = /^\s*([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?\s*$/;
+/** No protobuf integer type reaches twenty digits; the cap bounds the padding. */
+const MAX_INTEGRAL_DIGITS = 40;
+
+/**
+ * The exact integer a decimal string names, or `undefined` when it names
+ * something else. Reading the digits rather than `Number(text)` is what keeps
+ * `'1.0000000000000000001'` and `'1e-400'` from arriving as `1` and `0`, and
+ * what lets `'9007199254740992.0'` through: it is exact, it just is not a
+ * *safe* integer.
+ */
+function exactIntegerFromText(text: string): bigint | undefined {
+  const parsed = DECIMAL_TEXT.exec(text);
+  if (!parsed) return undefined;
+  const [, sign, whole = "", fraction = "", exponent] = parsed;
+  if (whole === "" && fraction === "") return undefined;
+
+  const written = whole + fraction;
+  // Zero is zero at any exponent, and answering it here keeps `'0e100'` from
+  // being turned away by a cap that only exists to bound the padding below.
+  if (/^0*$/.test(written)) return 0n;
+
+  // Leading zeros are notation, not magnitude, and dropping one moves the
+  // decimal point with it. Stripping them across the whole significand — not
+  // just the part before the point — is what keeps the cap about how large the
+  // value is rather than how it was spelled.
+  const leadingZeros = written.length - written.replace(/^0+/, "").length;
+  const digits = written.slice(leadingZeros);
+  const pointAt = whole.length + (exponent ? Number(exponent) : 0) - leadingZeros;
+  if (pointAt <= 0 || pointAt > MAX_INTEGRAL_DIGITS) return undefined;
+
+  let integral: string;
+  if (pointAt >= digits.length) {
+    integral = digits + "0".repeat(pointAt - digits.length);
+  } else {
+    if (!/^0*$/.test(digits.slice(pointAt))) return undefined;
+    integral = digits.slice(0, pointAt);
+  }
+  const value = BigInt(integral);
+  return sign === "-" ? -value : value;
+}
+
+/** An integer field's input, exact: never rounded on the way in. */
+function asInteger(value: unknown, type: string): number | bigint {
+  // A Long is what the reader hands back for a value past 2^53, so it is a
+  // number here — but only a real one: `typeof value === "object"` alone would
+  // read `{}` and `[]` as zero.
+  if (isLong(value)) return longToBigInt(value);
+  const input = numericInput(value, type);
+  if (typeof input === "bigint") return input;
+  if (typeof input === "number") {
+    // Integrality is checked here so the message reads like every other
+    // rejection; BigInt(1.5) throws with an engine-specific wording.
+    if (!Number.isInteger(input)) throw invalid(type, value);
+    return input;
+  }
+  try {
+    // Integer-literal syntax first: it keeps plain digits past 2^53 exact and
+    // covers the 0x/0o/0b forms `Number` also accepts.
+    return BigInt(input);
+  } catch {
+    const exact = exactIntegerFromText(input);
+    if (exact === undefined) throw invalid(type, value);
+    return exact;
+  }
+}
+
+/** The 32-bit writers take a JS number; the width check downstream is Buf's. */
+function asInteger32(value: unknown, type: string): number {
+  const exact = asInteger(value, type);
+  return typeof exact === "bigint" ? Number(exact) : exact;
+}
+
+/**
+ * BinaryWriter that accepts back what the reader below produces — Buf's own
  * 64-bit setters take `number | bigint | string`, so a decoded `Long` would
- * reach `BigInt(object)` and throw.
+ * reach `BigInt(object)` and throw — and that holds every numeric field to the
+ * input contract above.
  *
  * It also refuses an unpaired surrogate rather than letting `TextEncoder`
  * substitute U+FFFD for it, which would send the server text the caller never
@@ -114,24 +256,52 @@ export class BinaryWriter extends BaseBinaryWriter {
     return super.string(value);
   }
 
-  override int64(value: Int64 | bigint | string): this {
-    return super.int64(int64ToWire(value));
+  override uint32(value: NumericInput): this {
+    return super.uint32(typeof value === "number" ? value : asInteger32(value, "uint32"));
   }
 
-  override uint64(value: Int64 | bigint | string): this {
-    return super.uint64(int64ToWire(value));
+  override int32(value: NumericInput): this {
+    return super.int32(typeof value === "number" ? value : asInteger32(value, "int32"));
   }
 
-  override sint64(value: Int64 | bigint | string): this {
-    return super.sint64(int64ToWire(value));
+  override sint32(value: NumericInput): this {
+    return super.sint32(typeof value === "number" ? value : asInteger32(value, "sint32"));
   }
 
-  override fixed64(value: Int64 | bigint | string): this {
-    return super.fixed64(int64ToWire(value));
+  override fixed32(value: NumericInput): this {
+    return super.fixed32(typeof value === "number" ? value : asInteger32(value, "fixed32"));
   }
 
-  override sfixed64(value: Int64 | bigint | string): this {
-    return super.sfixed64(int64ToWire(value));
+  override sfixed32(value: NumericInput): this {
+    return super.sfixed32(typeof value === "number" ? value : asInteger32(value, "sfixed32"));
+  }
+
+  override float(value: NumericInput): this {
+    return super.float(typeof value === "number" ? value : asNumber(value, "float"));
+  }
+
+  override double(value: NumericInput): this {
+    return super.double(typeof value === "number" ? value : asNumber(value, "double"));
+  }
+
+  override int64(value: NumericInput): this {
+    return super.int64(asInteger(value, "int64"));
+  }
+
+  override uint64(value: NumericInput): this {
+    return super.uint64(asInteger(value, "uint64"));
+  }
+
+  override sint64(value: NumericInput): this {
+    return super.sint64(asInteger(value, "sint64"));
+  }
+
+  override fixed64(value: NumericInput): this {
+    return super.fixed64(asInteger(value, "fixed64"));
+  }
+
+  override sfixed64(value: NumericInput): this {
+    return super.sfixed64(asInteger(value, "sfixed64"));
   }
 }
 

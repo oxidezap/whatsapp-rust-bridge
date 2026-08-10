@@ -81,9 +81,9 @@ import {
   BinaryReader,
   InvalidUtf8CountingReader,
   UnpairedSurrogateError,
+  isLong,
   longToBigInt,
   unpairedSurrogateIndex,
-  type Long as LongObject,
 } from "./proto-reader";
 
 export { UnpairedSurrogateError };
@@ -115,20 +115,7 @@ function resolve(typeName: string): MessageFns<any> {
 // `contextInfo.quotedMessage` from a quoted reply (`sendMessage(..., { quoted })`).
 // Normalize to precision-safe BigInt before encoding. `unsigned` is the
 // discriminant (matches the serializer's own Long detection), so plain
-// `{ low, high }` data objects are left untouched.
-function isLongObject(v: unknown): v is LongObject {
-  // `unsigned` (a boolean) is the discriminant: testing it first short-circuits
-  // virtually every non-Long object in one comparison, and matches the guard in
-  // camel_serializer.rs — a plain `{ low, high }` data object without `unsigned`
-  // is NOT a Long and is left untouched.
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as LongObject).unsigned === "boolean" &&
-    typeof (v as LongObject).low === "number" &&
-    typeof (v as LongObject).high === "number"
-  );
-}
+// `{ low, high }` data objects are left untouched (see `isLong`).
 
 // Normalize the two protobufjs inputs that ts-proto cannot encode directly:
 // `Long` objects become BigInts and explicit null fields become absent fields.
@@ -142,7 +129,7 @@ function isLongObject(v: unknown): v is LongObject {
 // Runs once per `encodeProto` — the outgoing-message path, not a hot receive loop.
 function normalizeProtoInput(value: unknown): unknown {
   if (value === null) return undefined;
-  if (isLongObject(value)) return longToBigInt(value);
+  if (isLong(value)) return longToBigInt(value);
   if (typeof value !== "object") return value;
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
   if (Array.isArray(value)) {
@@ -255,6 +242,18 @@ function unpairedSurrogatePath(
   return paths.size === 1 ? matches[0]!.path : undefined;
 }
 
+/**
+ * Encode `obj` as `typeName`.
+ *
+ * A numeric field takes a `number`, a `bigint`, a `Long` — the `{ low, high,
+ * unsigned }` shape `decodeProto` hands back for a 64-bit value past 2^53, so a
+ * decoded message re-encodes unchanged — or a string that parses in full as a
+ * number. Never `''`, `true`, `[]` or anything else JavaScript would silently
+ * turn into a number, and the value must be one the declared type can hold;
+ * anything else throws `invalid <type>: <value>`. To leave a field unset, omit
+ * it or pass `undefined`/`null`; `''` is not a zero.
+ * See `docs/proto-numeric-input.md` for the per-type matrix.
+ */
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   const fns = resolve(typeName);
   // ts-proto's encoder accepts partial objects directly. Calling fromPartial
