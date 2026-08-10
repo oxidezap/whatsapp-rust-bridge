@@ -115,6 +115,36 @@ describe("encoding a string the caller cannot represent in UTF-8", () => {
     expect(thrown!.message).toContain("U+D800");
   });
 
+  test("names the field the writer rejected, not an earlier key the codec ignores", () => {
+    // `bogus` is not a Message field, so the writer never sees it — but it is
+    // first in insertion order, which is the order this lookup walks.
+    let thrown: UnpairedSurrogateError | undefined;
+    try {
+      encodeProto("Message", { bogus: "\ud800", conversation: "\udfff" });
+    } catch (error) {
+      thrown = error as UnpairedSurrogateError;
+    }
+
+    expect(thrown!.codeUnit).toBe(0xdfff);
+    expect(thrown!.path).toBe("conversation");
+  });
+
+  test("names no field when two of them could equally be the one that failed", () => {
+    let thrown: UnpairedSurrogateError | undefined;
+    try {
+      encodeProto("Message", {
+        conversation: "\udfff",
+        extendedTextMessage: { text: "\udfff" },
+      });
+    } catch (error) {
+      thrown = error as UnpairedSurrogateError;
+    }
+
+    expect(thrown).toBeInstanceOf(UnpairedSurrogateError);
+    expect(thrown!.path).toBeUndefined();
+    expect(thrown!.message).toBe("unpaired surrogate U+DFFF at index 0 in a protobuf string field");
+  });
+
   test.each([
     ["lone high surrogate", "\ud800"],
     ["lone low surrogate", "\udfff"],

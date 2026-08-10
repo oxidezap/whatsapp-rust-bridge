@@ -77,7 +77,7 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
-import { BinaryReader, UnpairedSurrogateError } from "./proto-reader";
+import { BinaryReader, UnpairedSurrogateError, unpairedSurrogateIndex } from "./proto-reader";
 
 export { UnpairedSurrogateError };
 
@@ -182,24 +182,53 @@ function normalizeProtoInput(value: unknown): unknown {
   return copy ?? value;
 }
 
+interface SurrogateCandidate {
+  path: string;
+  index: number;
+  codeUnit: number;
+}
+
 // Only walked once the writer has already rejected the message, so the cost of
 // finding the field name is paid by the failing encode alone.
-function unpairedSurrogatePath(value: unknown, path: string): string | undefined {
-  if (typeof value === "string") return value.isWellFormed() ? undefined : path;
-  if (typeof value !== "object" || value === null) return undefined;
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return undefined;
+function collectUnpairedSurrogates(
+  value: unknown,
+  path: string,
+  found: SurrogateCandidate[],
+): void {
+  if (typeof value === "string") {
+    const index = unpairedSurrogateIndex(value);
+    if (index >= 0) found.push({ path, index, codeUnit: value.charCodeAt(index) });
+    return;
+  }
+  if (typeof value !== "object" || value === null) return;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return;
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index++) {
-      const found = unpairedSurrogatePath(value[index], `${path}[${index}]`);
-      if (found !== undefined) return found;
+      collectUnpairedSurrogates(value[index], `${path}[${index}]`, found);
     }
-    return undefined;
+    return;
   }
   for (const [key, entry] of Object.entries(value)) {
-    const found = unpairedSurrogatePath(entry, path === "" ? key : `${path}.${key}`);
-    if (found !== undefined) return found;
+    collectUnpairedSurrogates(entry, path === "" ? key : `${path}.${key}`, found);
   }
-  return undefined;
+}
+
+/**
+ * The writer rejects in schema order and skips keys the message does not
+ * declare; this walk sees insertion order and every key. Naming a field is only
+ * honest when exactly one candidate matches what the writer reported — anything
+ * else would point the caller at a value that is not the one that failed.
+ */
+function unpairedSurrogatePath(
+  value: unknown,
+  error: UnpairedSurrogateError,
+): string | undefined {
+  const found: SurrogateCandidate[] = [];
+  collectUnpairedSurrogates(value, "", found);
+  const matches = found.filter(
+    (candidate) => candidate.index === error.index && candidate.codeUnit === error.codeUnit,
+  );
+  return matches.length === 1 ? matches[0]!.path : undefined;
 }
 
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
@@ -212,7 +241,7 @@ export function encodeProto(typeName: string, obj: unknown): Uint8Array {
     return fns.encode(normalized).finish();
   } catch (error) {
     if (error instanceof UnpairedSurrogateError && error.path === undefined) {
-      const path = unpairedSurrogatePath(normalized, "");
+      const path = unpairedSurrogatePath(normalized, error);
       if (path !== undefined) {
         throw new UnpairedSurrogateError(error.index, error.codeUnit, path);
       }

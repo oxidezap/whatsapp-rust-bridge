@@ -19,7 +19,7 @@ const MAX_SAFE_VARINT_SHIFT =
   Math.floor(Math.log2(Number.MAX_SAFE_INTEGER) / PROTO_VARINT_DATA_BITS) * PROTO_VARINT_DATA_BITS;
 
 /** Index of the first UTF-16 code unit with no partner, or -1 when well-formed. */
-function unpairedSurrogateIndex(value: string): number {
+export function unpairedSurrogateIndex(value: string): number {
   for (let index = 0; index < value.length; index++) {
     const unit = value.charCodeAt(index);
     if (unit < SURROGATE_MIN || unit > SURROGATE_MAX) continue;
