@@ -129,6 +129,19 @@ describe("encoding a string the caller cannot represent in UTF-8", () => {
     expect(thrown!.path).toBe("conversation");
   });
 
+  test("still names the field when an ignored key carries the identical surrogate", () => {
+    // Same code unit at the same index, so index/code-unit matching cannot
+    // separate them — only the codec's own view of its fields can.
+    let thrown: UnpairedSurrogateError | undefined;
+    try {
+      encodeProto("Message", { bogus: "\udfff", conversation: "\udfff" });
+    } catch (error) {
+      thrown = error as UnpairedSurrogateError;
+    }
+
+    expect(thrown!.path).toBe("conversation");
+  });
+
   test("names the map field when the unpaired surrogate is in a map key", () => {
     let thrown: UnpairedSurrogateError | undefined;
     try {

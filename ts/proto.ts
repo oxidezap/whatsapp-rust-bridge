@@ -220,10 +220,25 @@ function collectUnpairedSurrogates(
 }
 
 /**
- * The writer rejects in schema order and skips keys the message does not
- * declare; this walk sees insertion order and every key. Naming a field is only
- * honest when exactly one candidate matches what the writer reported — anything
- * else would point the caller at a value that is not the one that failed.
+ * Only the codec knows which keys it encodes, and `fromPartial` is where that
+ * knowledge is reachable: it drops the rest, so a property the message does not
+ * declare cannot make a declared field look ambiguous. Cold path — reached only
+ * after an encode has already failed.
+ */
+function declaredFieldsOf(fns: MessageFns<unknown>, normalized: unknown): unknown {
+  try {
+    return fns.fromPartial(normalized);
+  } catch {
+    return normalized;
+  }
+}
+
+/**
+ * The writer rejects in schema order; this walk sees insertion order. Naming a
+ * field is only honest when exactly one candidate matches what the writer
+ * reported — two declared fields carrying the same bad code unit at the same
+ * index are genuinely indistinguishable from here, and guessing between them
+ * would point the caller at a value that may not be the one that failed.
  */
 function unpairedSurrogatePath(
   value: unknown,
@@ -247,7 +262,7 @@ export function encodeProto(typeName: string, obj: unknown): Uint8Array {
     return fns.encode(normalized).finish();
   } catch (error) {
     if (error instanceof UnpairedSurrogateError && error.path === undefined) {
-      const path = unpairedSurrogatePath(normalized, error);
+      const path = unpairedSurrogatePath(declaredFieldsOf(fns, normalized), error);
       if (path !== undefined) {
         throw new UnpairedSurrogateError(error.index, error.codeUnit, path);
       }
