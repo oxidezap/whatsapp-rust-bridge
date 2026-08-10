@@ -129,6 +129,20 @@ describe("encoding a string the caller cannot represent in UTF-8", () => {
     expect(thrown!.path).toBe("conversation");
   });
 
+  test("names the map field when the unpaired surrogate is in a map key", () => {
+    let thrown: UnpairedSurrogateError | undefined;
+    try {
+      encodeProto("SyncActionValue", {
+        musicUserIdAction: { musicUserIdMap: { "\ud800": "an-id" } },
+      });
+    } catch (error) {
+      thrown = error as UnpairedSurrogateError;
+    }
+
+    expect(thrown).toBeInstanceOf(UnpairedSurrogateError);
+    expect(thrown!.path).toBe("musicUserIdAction.musicUserIdMap (map key)");
+  });
+
   test("names no field when two of them could equally be the one that failed", () => {
     let thrown: UnpairedSurrogateError | undefined;
     try {

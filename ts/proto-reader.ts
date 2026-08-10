@@ -91,23 +91,14 @@ const signedWordsToNumber = (low: number, high: number): number =>
 
 /** BinaryReader specialized for ts-proto's safe-number output contract. */
 export class BinaryReader extends BaseBinaryReader {
-  /**
-   * `string` fields whose bytes were not valid UTF-8 and were handed back with
-   * U+FFFD in place of them. Only counted when the reader was built with
-   * `trackInvalidUtf8`; otherwise it stays at zero.
-   */
-  invalidUtf8Fields = 0;
+  protected readonly utf8Buffer: Buffer;
 
-  private readonly utf8Buffer: Buffer;
-  private readonly trackInvalidUtf8: boolean;
-
-  constructor(buf: Uint8Array, trackInvalidUtf8 = false) {
+  constructor(buf: Uint8Array) {
     super(buf);
     // Buffer.from(ArrayBuffer, offset, length) is a view, not a copy. Keeping
     // one per reader lets every ordinary string decode use byte offsets
     // directly instead of allocating a temporary Uint8Array subarray.
     this.utf8Buffer = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
-    this.trackInvalidUtf8 = trackInvalidUtf8;
   }
 
   /**
@@ -122,21 +113,7 @@ export class BinaryReader extends BaseBinaryReader {
     const start = this.pos;
     this.pos += byteLength;
     this.assertBounds();
-    const text = this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
-    if (
-      this.trackInvalidUtf8 &&
-      text.includes(REPLACEMENT_CHARACTER) &&
-      !this.decodedExactly(text, start, this.pos)
-    ) {
-      this.invalidUtf8Fields++;
-    }
-    return text;
-  }
-
-  /** A U+FFFD the peer actually sent re-encodes to the same bytes; a substituted one does not. */
-  private decodedExactly(text: string, start: number, end: number): boolean {
-    const reencoded = Buffer.from(text, UTF8_ENCODING);
-    return this.utf8Buffer.compare(reencoded, 0, reencoded.length, start, end) === 0;
+    return this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
   }
 
   override bool(): boolean {
@@ -203,5 +180,34 @@ export class BinaryReader extends BaseBinaryReader {
 
   sfixed64Number(): number {
     return signedWordsToNumber(this.sfixed32(), this.sfixed32());
+  }
+}
+
+/**
+ * Counts the substitutions `BinaryReader` makes silently. It is a separate
+ * class so the ordinary decode path carries neither the flag nor the branch:
+ * a consumer who never asks for the count pays nothing for it existing.
+ */
+export class InvalidUtf8CountingReader extends BinaryReader {
+  invalidUtf8Fields = 0;
+
+  override string(strict?: boolean): string {
+    if (strict) return super.string(true);
+
+    const byteLength = this.uint32();
+    const start = this.pos;
+    this.pos += byteLength;
+    this.assertBounds();
+    const text = this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
+    if (text.includes(REPLACEMENT_CHARACTER) && !this.decodedExactly(text, start, this.pos)) {
+      this.invalidUtf8Fields++;
+    }
+    return text;
+  }
+
+  /** A U+FFFD the peer actually sent re-encodes to the bytes it arrived as; a substituted one does not. */
+  private decodedExactly(text: string, start: number, end: number): boolean {
+    const reencoded = Buffer.from(text, UTF8_ENCODING);
+    return this.utf8Buffer.compare(reencoded, 0, reencoded.length, start, end) === 0;
   }
 }

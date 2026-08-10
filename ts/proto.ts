@@ -77,7 +77,12 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
-import { BinaryReader, UnpairedSurrogateError, unpairedSurrogateIndex } from "./proto-reader";
+import {
+  BinaryReader,
+  InvalidUtf8CountingReader,
+  UnpairedSurrogateError,
+  unpairedSurrogateIndex,
+} from "./proto-reader";
 
 export { UnpairedSurrogateError };
 
@@ -209,6 +214,14 @@ function collectUnpairedSurrogates(
     return;
   }
   for (const [key, entry] of Object.entries(value)) {
+    // A `map<string, _>` field encodes its keys, so they can fail too. The
+    // top-level object is always the message itself, never a map.
+    if (path !== "") {
+      const keyIndex = unpairedSurrogateIndex(key);
+      if (keyIndex >= 0) {
+        found.push({ path: `${path} (map key)`, index: keyIndex, codeUnit: key.charCodeAt(keyIndex) });
+      }
+    }
     collectUnpairedSurrogates(entry, path === "" ? key : `${path}.${key}`, found);
   }
 }
@@ -268,7 +281,7 @@ export function decodeProto(
   const fns = resolve(typeName);
   if (report === undefined) return fns.decode(data);
 
-  const reader = new BinaryReader(data, true);
+  const reader = new InvalidUtf8CountingReader(data);
   const decoded = fns.decode(reader, data.length);
   report.invalidUtf8Fields = reader.invalidUtf8Fields;
   return decoded;
@@ -305,7 +318,7 @@ export function decodeProtoBatch(
   }
 
   const codec = resolve(typeName);
-  const reader = new BinaryReader(data, report !== undefined);
+  const reader = report === undefined ? new BinaryReader(data) : new InvalidUtf8CountingReader(data);
   const decoded = new Array<unknown>(entryCount);
   for (let index = 0; index < entryCount; index++) {
     const start = offsets[index]!;
@@ -319,6 +332,8 @@ export function decodeProtoBatch(
       throw new RangeError("protobuf decoder did not consume the delimited entry");
     }
   }
-  if (report !== undefined) report.invalidUtf8Fields = reader.invalidUtf8Fields;
+  if (report !== undefined) {
+    report.invalidUtf8Fields = (reader as InvalidUtf8CountingReader).invalidUtf8Fields;
+  }
   return decoded;
 }
