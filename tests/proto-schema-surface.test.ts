@@ -191,20 +191,24 @@ const sampleOf = (field: Field): unknown => {
 };
 
 /**
- * One declared child field of a referenced message. An empty `{}` proves a
- * submessage was written but not *which* codec wrote it — two message types
- * both encode `{}` as a zero-length payload — so the payload sample carries a
- * field only the right codec knows. A scalar child keeps this to one level:
- * `Field.subfield` is a `map<uint32, Field>`, so descending into messages would
- * not terminate.
+ * Every scalar child of a referenced message. An empty `{}` proves a submessage
+ * was written but not *which* codec wrote it — two message types both encode
+ * `{}` as a zero-length payload — and one child is not enough either, since
+ * ImageMessage and VideoMessage both declare `url` at 1. The whole scalar set
+ * is what separates them: the wrong codec drops the fields it does not declare.
+ * Scalars only, which keeps this to one level — `Field.subfield` is a
+ * `map<uint32, Field>`, so descending into messages would not terminate.
  */
 const nestedSampleOf = (ref: string, alternate = false): Record<string, unknown> => {
-  const child = BY_MESSAGE.get(ref)?.find(
+  const children = (BY_MESSAGE.get(ref) ?? []).filter(
     (candidate) => candidate.label !== "map" && candidate.type !== "message",
   );
-  if (!child) return {};
-  const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
-  return { [keyOf(child)]: isRepeated(child) ? [value].flat() : value };
+  const sample: Record<string, unknown> = {};
+  for (const child of children) {
+    const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
+    sample[keyOf(child)] = isRepeated(child) ? [value].flat() : value;
+  }
+  return sample;
 };
 
 /** The zero sample, plus a payload-bearing one where the type allows it. */
@@ -346,15 +350,17 @@ const mapEntryBytes = (field: Field, key: string, value: unknown): number[] => {
   ];
 };
 
-/** The declared encoding of a one-scalar-child nested sample. */
-const nestedMessageBytes = (ref: string, sample: Record<string, unknown>): number[] => {
-  const [entry] = Object.entries(sample);
-  if (entry === undefined) return [];
-  const [childKey, childValue] = entry;
-  const child = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
-  if (child === undefined) throw new Error(`${ref} does not declare ${childKey}`);
-  return [...tagBytes(child.number, wireTypeOf(child)), ...payloadBytes(child.type, childValue)];
-};
+/** The declared encoding of a nested sample, child by child. */
+const nestedMessageBytes = (ref: string, sample: Record<string, unknown>): number[] =>
+  Object.entries(sample).flatMap(([childKey, childValue]) => {
+    const child = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
+    if (child === undefined) throw new Error(`${ref} does not declare ${childKey}`);
+    const values = isRepeated(child) ? (childValue as unknown[]) : [childValue];
+    return values.flatMap((value) => [
+      ...tagBytes(child.number, wireTypeOf(child)),
+      ...payloadBytes(child.type, value),
+    ]);
+  });
 
 const expectedEncoding = (field: Field, values: unknown[]): number[] => {
   const tag = (wire: number): number[] => tagBytes(field.number, wire);
@@ -387,11 +393,13 @@ const sameValue = (type: string, ref: string, expected: unknown, actual: unknown
     if (typeof actual !== "object" || actual === null) return false;
     // An empty submessage carries nothing to compare; that it decoded to an
     // object at all is the difference between written and dropped.
-    const [child] = Object.entries(expected as Record<string, unknown>);
-    if (child === undefined) return true;
-    const [childKey, childValue] = child;
-    const childField = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
-    return childField !== undefined && readsBack(childField, childValue, (actual as Record<string, unknown>)[childKey]);
+    return Object.entries(expected as Record<string, unknown>).every(([childKey, childValue]) => {
+      const childField = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
+      return (
+        childField !== undefined &&
+        readsBack(childField, childValue, (actual as Record<string, unknown>)[childKey])
+      );
+    });
   }
   return actual === expected;
 };
