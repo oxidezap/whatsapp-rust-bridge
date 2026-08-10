@@ -85,17 +85,27 @@ describe.skipIf(!boltffiAvailable)("BoltFFI type safety", () => {
     expect(result.ok).toBe(true);
   });
 
+  // Each of these asserts the diagnostic, not just a non-zero exit. A renamed
+  // declaration file, an unresolvable import or a rejected `tsc` flag also
+  // exits non-zero, and would leave all three passing while proving nothing
+  // about the type surface.
   test("passing a string where bytes are required fails to compile", () => {
     // If this ever compiles, the surface has widened to `any` somewhere.
-    expect(typeCheck(`boltffi.md5("not bytes");`).ok).toBe(false);
+    const result = typeCheck(`boltffi.md5("not bytes");`);
+    expect(result.output).toContain("is not assignable to parameter of type 'Uint8Array");
+    expect(result.ok).toBe(false);
   });
 
   test("treating a byte return as a string fails to compile", () => {
-    expect(typeCheck(`const wrong: string = boltffi.md5(new Uint8Array([1]));`).ok).toBe(false);
+    const result = typeCheck(`const wrong: string = boltffi.md5(new Uint8Array([1]));`);
+    expect(result.output).toContain("is not assignable to type 'string'");
+    expect(result.ok).toBe(false);
   });
 
   test("a missing required argument fails to compile", () => {
-    expect(typeCheck(`boltffi.calculateAgreement(new Uint8Array(33));`).ok).toBe(false);
+    const result = typeCheck(`boltffi.calculateAgreement(new Uint8Array(33));`);
+    expect(result.output).toContain("Expected 2 arguments, but got 1");
+    expect(result.ok).toBe(false);
   });
 
   // The checks above import the declaration file by path, which is not how a

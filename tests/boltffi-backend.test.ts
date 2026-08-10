@@ -90,7 +90,12 @@ describe.skipIf(!boltffiAvailable)("BoltFFI artifact", () => {
     expect(Buffer.from(boltffi.inflateZlib(ZLIB_HELLO, null)).toString()).toBe("hello");
   });
 
-  test("inflateZlib honours an explicit limit", () => {
+  test("inflateZlib enforces an explicit limit", () => {
+    // A limit large enough to pass proves nothing on its own — the test would
+    // read the same if the argument were ignored. The output is five bytes, so
+    // four must be refused and five must not.
+    expect(() => boltffi.inflateZlib(ZLIB_HELLO, 4)).toThrow();
+    expect(Buffer.from(boltffi.inflateZlib(ZLIB_HELLO, 5)).toString()).toBe("hello");
     expect(Buffer.from(boltffi.inflateZlib(ZLIB_HELLO, 1024)).toString()).toBe("hello");
   });
 

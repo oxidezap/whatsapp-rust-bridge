@@ -28,11 +28,20 @@ const OUT = join(ROOT, "dist", "boltffi");
 const PKG = join(OUT, "pkg");
 const MODULE = "whatsapp_rust_bridge_boltffi";
 
+// `Bun.spawnSync` throws rather than reporting a non-zero exit when the
+// executable is not on PATH, so every command this script probes for goes
+// through `Bun.which` first. Reaching `exitCode` on a missing binary never
+// happens — the throw comes first, and it turns a supported skip into a crash.
+const resolve = (command: string) => Bun.which(command);
+
+const RUSTC = resolve("rustc");
 const HOST_TARGET =
   process.env.BOLTFFI_HOST_TARGET ??
-  Bun.spawnSync({ cmd: ["rustc", "-vV"] })
-    .stdout.toString()
-    .match(/^host:\s*(\S+)$/m)?.[1] ??
+  (RUSTC === null
+    ? undefined
+    : Bun.spawnSync({ cmd: [RUSTC, "-vV"] })
+        .stdout.toString()
+        .match(/^host:\s*(\S+)$/m)?.[1]) ??
   "x86_64-unknown-linux-gnu";
 
 /**
@@ -77,7 +86,12 @@ const installedRev = (() => {
 // would pass while packing with an unrelated build, so when the record vouches
 // for a binary, that binary is the one invoked.
 const CARGO_BIN = join(CARGO_HOME, "bin", "boltffi");
-const CLI = installedRev !== null && existsSync(CARGO_BIN) ? CARGO_BIN : "boltffi";
+const CLI =
+  installedRev !== null && existsSync(CARGO_BIN) ? CARGO_BIN : resolve("boltffi");
+if (CLI === null) {
+  console.log("boltffi not installed — skipping the BoltFFI artifact");
+  process.exit(0);
+}
 
 const available = Bun.spawnSync({
   cmd: [CLI, "--version"],

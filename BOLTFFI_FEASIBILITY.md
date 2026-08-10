@@ -63,7 +63,7 @@ published on crates.io) and this repository at `v0.7.0`.
 > published runtime is still on 2. Built against it, the module refuses to
 > instantiate:
 >
-> ```
+> ```text
 > BoltFFI ABI version mismatch: expected 2, got 3
 > ```
 >
@@ -79,14 +79,18 @@ published on crates.io) and this repository at `v0.7.0`.
 >
 > The sections below are left as originally measured against `b9272fb7`.
 
+# Historical measurement at `b9272fb7`
+
+**Everything from here down describes `b9272fb7` and has been superseded.** It
+is kept because the reasoning and the line references are what the upstream
+fixes were built from, and because a report that quietly rewrites itself is
+worth less than one you can check. For what is true now, read the update above.
+
 Every claim below was produced by generating and running code, not by reading
 documentation. Where the BoltFFI source and its public docs disagree, the source
 is what is reported here.
 
-## Verdict
-
-*(As measured at `b9272fb7`. The update above supersedes it: at `0f5d7421` the
-client's callback shapes all render and none abort.)*
+## Verdict (superseded)
 
 BoltFFI can carry the bridge's **free-standing utility functions**. It cannot
 carry the **client**, because the client's inbound boundary needs a callback
@@ -119,7 +123,7 @@ that file), the `wasm_send_sync!` macro in `src/lib.rs`,
 and the counting allocator in `src/memory_profile.rs`. None of it moved in this
 change.
 
-## 1. Callbacks (Rust → JS)
+## 1. Callbacks (Rust → JS) — superseded
 
 The bridge does not merely export; it receives storage, transport, crypto, HTTP,
 time and cache implementations *from* JavaScript and calls back into them.
@@ -244,7 +248,7 @@ wasm-bindgen figures they should be read against.
   `unsupported(...)` reasons are only discoverable by reading
   `boltffi_backend/src/target/typescript/`.
 
-## Upstream summary
+## Upstream summary — all fixed
 
 | # | limit | file | fix |
 |---|---|---|---|
