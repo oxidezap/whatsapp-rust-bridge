@@ -133,24 +133,54 @@ const distinctOf = (type: string): unknown => {
   }
 };
 
-// A map sample needs a key that survives the declared key type, and a value
-// distinguishable from a dropped one, so these are not zero values.
-const MAP_KEY_SAMPLE: Record<string, string> = { string: "k", bool: "false", int32: "7", int64: "7", uint32: "7", uint64: "7", sint32: "7", sint64: "7" };
-const MAP_VALUE_SAMPLE: Record<string, unknown> = { string: "v", bytes: new Uint8Array([1]), bool: true };
+// Two entries, not one: a single-entry map cannot tell an encoder that writes
+// only the first property, or a decoder that replaces the map per wire entry,
+// from a correct one. Integer-like keys iterate ascending in JS, so these are
+// ordered to match the order they are written in.
+const MAP_KEY_SAMPLES: Record<string, [string, string]> = {
+  string: ["k", "m"],
+  bool: ["false", "true"],
+  int32: ["7", "9"],
+  int64: ["7", "9"],
+  uint32: ["7", "9"],
+  uint64: ["7", "9"],
+  sint32: ["7", "9"],
+  sint64: ["7", "9"],
+};
+const MAP_VALUE_SAMPLES: Record<string, [unknown, unknown]> = {
+  string: ["v", "w"],
+  bytes: [new Uint8Array([1]), new Uint8Array([2, 3])],
+  bool: [true, false],
+};
 
 const mapTypes = (field: Field): [string, string] => {
   const [key, value] = field.type.slice("map<".length, -1).split(",");
   return [key!, value!];
 };
 
+const mapEntriesOf = (field: Field): Array<[string, unknown]> => {
+  const [keyType, valueType] = mapTypes(field);
+  const keys = MAP_KEY_SAMPLES[keyType];
+  if (keys === undefined) throw new Error(`no sample for map key ${keyType}`);
+  const values: [unknown, unknown] =
+    valueType === "message"
+      ? [nestedSampleOf(field.ref), nestedSampleOf(field.ref)]
+      : (MAP_VALUE_SAMPLES[valueType] ?? [7, 9]);
+  return [
+    [keys[0], values[0]],
+    [keys[1], values[1]],
+  ];
+};
+
+/** A map key travels as its declared scalar type, not as the JS object key. */
+const mapKeyValue = (keyType: string, key: string): unknown => {
+  if (keyType === "string") return key;
+  if (keyType === "bool") return key === "true";
+  return Number(key);
+};
+
 const sampleOf = (field: Field): unknown => {
-  if (field.label === "map") {
-    const [key, value] = mapTypes(field);
-    const mapKey = MAP_KEY_SAMPLE[key];
-    if (mapKey === undefined) throw new Error(`no sample for map key ${key}`);
-    const mapValue = value === "message" ? nestedSampleOf(field.ref) : (MAP_VALUE_SAMPLE[value] ?? 7);
-    return { [mapKey]: mapValue };
-  }
+  if (field.label === "map") return Object.fromEntries(mapEntriesOf(field));
   const value = zeroOf(field.type, field.ref);
   return isRepeated(field) ? [value] : value;
 };
@@ -176,16 +206,18 @@ const samplesOf = (field: Field): unknown[] => {
   if (field.label === "map") return samples;
   const distinct =
     field.type === "message" ? nestedSampleOf(field.ref) : distinctOf(field.type);
-  if (distinct === undefined) return samples;
-  if (field.type === "message" && Object.keys(distinct).length === 0) return samples;
+  const usable =
+    distinct !== undefined && !(field.type === "message" && Object.keys(distinct).length === 0);
   if (!isRepeated(field)) {
-    samples.push(distinct);
+    if (usable) samples.push(distinct);
     return samples;
   }
   // Two elements, not one: a one-element array cannot tell an encoder that
   // emits only the head, or a decoder that resets the array per occurrence,
-  // from a correct one. `readsBack` compares length and order.
-  samples.push([distinct, sampleOf(field)].flat());
+  // from a correct one. An enum or a childless message has no second value to
+  // offer, so it repeats the first — that still pins the count.
+  const element = usable ? distinct : zeroOf(field.type, field.ref);
+  samples.push([element, zeroOf(field.type, field.ref)]);
   return samples;
 };
 
@@ -303,8 +335,45 @@ const payloadBytes = (type: string, value: unknown): number[] => {
   }
 };
 
+const tagBytes = (number: number, wire: number): number[] => varintBytes(BigInt(number * 8 + wire));
+
+/**
+ * A map entry is a submessage of key at 1 and value at 2, so its key and value
+ * types have wire encodings of their own. Encoding a `uint32` key as `sint32`
+ * on both sides round-trips here and is read as a different key by anyone else.
+ */
+const mapEntryBytes = (field: Field, key: string, value: unknown): number[] => {
+  const [keyType, valueType] = mapTypes(field);
+  const valuePayload =
+    valueType === "message"
+      ? lengthPrefixed(nestedMessageBytes(field.ref, value as Record<string, unknown>))
+      : payloadBytes(valueType, value);
+  return [
+    ...tagBytes(1, WIRE_TYPE[keyType] ?? 0),
+    ...payloadBytes(keyType, mapKeyValue(keyType, key)),
+    ...tagBytes(2, WIRE_TYPE[valueType] ?? 0),
+    ...valuePayload,
+  ];
+};
+
+/** The declared encoding of a one-scalar-child nested sample. */
+const nestedMessageBytes = (ref: string, sample: Record<string, unknown>): number[] => {
+  const [entry] = Object.entries(sample);
+  if (entry === undefined) return [];
+  const [childKey, childValue] = entry;
+  const child = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
+  if (child === undefined) throw new Error(`${ref} does not declare ${childKey}`);
+  return [...tagBytes(child.number, wireTypeOf(child)), ...payloadBytes(child.type, childValue)];
+};
+
 const expectedEncoding = (field: Field, values: unknown[]): number[] => {
-  const tag = (wire: number): number[] => varintBytes(BigInt(field.number * 8 + wire));
+  const tag = (wire: number): number[] => tagBytes(field.number, wire);
+  if (field.label === "map") {
+    return mapEntriesOf(field).flatMap(([key, value]) => [
+      ...tag(2),
+      ...lengthPrefixed(mapEntryBytes(field, key, value)),
+    ]);
+  }
   if (field.label === "repeated packed") {
     const payload = values.flatMap((value) => payloadBytes(field.type, value));
     return [...tag(2), ...lengthPrefixed(payload)];
@@ -453,17 +522,24 @@ describe("generated codec vs whatsapp.proto", () => {
   test("every scalar field puts on the wire exactly the bytes its declared type implies", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
-      if (field.label === "map" || field.type === "message") continue;
-      const samples =
-        field.type === "enum"
-          ? ([zeroOf("enum", field.ref), zeroOf("enum", field.ref)] as [unknown, unknown])
-          : WIRE_SAMPLES[field.type];
-      if (samples === undefined) {
-        failures.push(`${field.message}.${field.name}: no wire sample for ${field.type}`);
-        continue;
+      if (field.type === "message" && field.label !== "map") continue;
+      let values: unknown[];
+      let input: unknown;
+      if (field.label === "map") {
+        values = [];
+        input = sampleOf(field);
+      } else {
+        const samples =
+          field.type === "enum"
+            ? ([zeroOf("enum", field.ref), zeroOf("enum", field.ref)] as [unknown, unknown])
+            : WIRE_SAMPLES[field.type];
+        if (samples === undefined) {
+          failures.push(`${field.message}.${field.name}: no wire sample for ${field.type}`);
+          continue;
+        }
+        values = isRepeated(field) ? [samples[0], samples[1]] : [samples[0]];
+        input = isRepeated(field) ? values : values[0];
       }
-      const values = isRepeated(field) ? [samples[0], samples[1]] : [samples[0]];
-      const input = isRepeated(field) ? values : values[0];
       const written = hex(encodeProto(field.message, { [keyOf(field)]: input }));
       const implied = hex(expectedEncoding(field, values));
       if (written !== implied) {
