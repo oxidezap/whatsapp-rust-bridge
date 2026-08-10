@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.1...v0.7.2) (2026-08-10)
+
+
+### Bug Fixes
+
+* **codegen:** unwrap Cow so the Rust name stops reaching TypeScript ([d55964c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d55964c3f68c34470e12a72b1dc80c9a4f890340))
+
 ## [0.7.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.0...v0.7.1) (2026-08-09)
 
 
