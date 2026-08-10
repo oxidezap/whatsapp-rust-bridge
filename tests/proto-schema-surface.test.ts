@@ -128,6 +128,18 @@ const distinctOf = (type: string): unknown => {
     case "message":
     case "enum":
       return undefined;
+    // Negative where the type is signed: a decoder quietly swapped for its
+    // unsigned counterpart round-trips every non-negative sample and only
+    // misreads what a peer sends below zero.
+    case "int32":
+    case "int64":
+    case "sint32":
+    case "sint64":
+    case "sfixed32":
+    case "sfixed64":
+    case "float":
+    case "double":
+      return -1;
     default:
       return 1;
   }
@@ -164,7 +176,7 @@ const mapEntriesOf = (field: Field): Array<[string, unknown]> => {
   if (keys === undefined) throw new Error(`no sample for map key ${keyType}`);
   const values: [unknown, unknown] =
     valueType === "message"
-      ? [nestedSampleOf(field.ref), nestedSampleOf(field.ref)]
+      ? [nestedSampleOf(field.ref), nestedSampleOf(field.ref, true)]
       : (MAP_VALUE_SAMPLES[valueType] ?? [7, 9]);
   return [
     [keys[0], values[0]],
@@ -193,11 +205,13 @@ const sampleOf = (field: Field): unknown => {
  * `Field.subfield` is a `map<uint32, Field>`, so descending into messages would
  * not terminate.
  */
-const nestedSampleOf = (ref: string): Record<string, unknown> => {
+const nestedSampleOf = (ref: string, alternate = false): Record<string, unknown> => {
   const child = BY_MESSAGE.get(ref)?.find(
     (candidate) => candidate.label !== "map" && candidate.type !== "message",
   );
-  return child ? { [keyOf(child)]: sampleOf(child) } : {};
+  if (!child) return {};
+  const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
+  return { [keyOf(child)]: isRepeated(child) ? [value].flat() : value };
 };
 
 /** The zero sample, plus a payload-bearing one where the type allows it. */
