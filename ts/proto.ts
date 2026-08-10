@@ -77,7 +77,7 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
-import { BinaryReader } from "./proto-reader";
+import { BinaryReader, isLong, longToBigInt } from "./proto-reader";
 
 const GENERATED_MODULE = gen as unknown as Record<string, unknown>;
 
@@ -99,36 +99,14 @@ function resolve(typeName: string): MessageFns<any> {
 
 // The bridge serializes protobuf 64-bit fields (int64/uint64/sfixed64/…) as
 // protobufjs-style `Long` objects `{ low, high, unsigned }` (see
-// `src/camel_serializer.rs`) so consumers can `JSON.stringify` events without
-// the BigInt serialization error. But the ts-proto encoder (`@bufbuild/protobuf`)
-// only accepts `number | bigint | string` for those fields — handed a `Long`
-// *object* it does `BigInt(obj)`, which throws. This bites when re-encoding a
-// message that embeds a decoded message, e.g. `contextInfo.quotedMessage` from a
-// quoted reply (`sendMessage(..., { quoted })`), whose nested i64 fields are
-// still `Long` objects. Normalize them to precision-safe BigInt before encoding.
-// `unsigned` is the discriminant (matches the serializer's own Long detection),
-// so plain `{ low, high }` data objects are left untouched.
-type LongObject = { low: number; high: number; unsigned: boolean };
-
-function isLongObject(v: unknown): v is LongObject {
-  // `unsigned` (a boolean) is the discriminant: testing it first short-circuits
-  // virtually every non-Long object in one comparison, and matches the guard in
-  // camel_serializer.rs — a plain `{ low, high }` data object without `unsigned`
-  // is NOT a Long and is left untouched.
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    typeof (v as LongObject).unsigned === "boolean" &&
-    typeof (v as LongObject).low === "number" &&
-    typeof (v as LongObject).high === "number"
-  );
-}
-
-function longToBigInt(l: LongObject): bigint {
-  const lo = BigInt(l.low >>> 0);
-  const hi = l.unsigned ? BigInt(l.high >>> 0) : BigInt(l.high | 0);
-  return hi * 4294967296n + lo;
-}
+// `src/camel_serializer.rs`, and `decodeProto` for a value past 2^53) so
+// consumers can `JSON.stringify` events without the BigInt serialization error.
+// The writer in `proto-reader` takes those back on the 64-bit fields, but a
+// `Long` also reaches here inside a message that embeds a decoded one — e.g.
+// `contextInfo.quotedMessage` from a quoted reply (`sendMessage(..., { quoted })`).
+// Normalize to precision-safe BigInt before encoding. `unsigned` is the
+// discriminant (matches the serializer's own Long detection), so plain
+// `{ low, high }` data objects are left untouched (see `isLong`).
 
 // Normalize the two protobufjs inputs that ts-proto cannot encode directly:
 // `Long` objects become BigInts and explicit null fields become absent fields.
@@ -142,7 +120,7 @@ function longToBigInt(l: LongObject): bigint {
 // Runs once per `encodeProto` — the outgoing-message path, not a hot receive loop.
 function normalizeProtoInput(value: unknown): unknown {
   if (value === null) return undefined;
-  if (isLongObject(value)) return longToBigInt(value);
+  if (isLong(value)) return longToBigInt(value);
   if (typeof value !== "object") return value;
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
   if (Array.isArray(value)) {

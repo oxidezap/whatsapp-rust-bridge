@@ -72,13 +72,18 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 **No `Debug` for a value you can name.** `format!("{:?}", …)` makes a trait impl in another repo into this one's contract, so every variant the core declares gets its string written down here instead. The one place `Debug` stays is the wildcard an upstream `#[non_exhaustive]` enum forces: a variant added later has no string of ours, and rendering its name beats collapsing it into a neighbour's. See `newsletter_role_str` and friends.
 
-**Numbers, into the proto codec.** `encodeProto` takes a `number`, a `bigint`, or a
-string that parses in full as a number, and the value has to be one the declared type
-can hold. `''` is not a zero and does not become one — omit the field instead. The rule
-lives in `ts/proto-writer.ts` and the per-type matrix is `docs/proto-numeric-input.md`;
-a new numeric write method needs an entry in both.
+**Numbers, into the proto codec.** `encodeProto` takes a `number`, a `bigint`, a `Long`,
+or a string that parses in full as a number, and the value has to be one the declared
+type can hold. `''` is not a zero and does not become one — omit the field instead. An
+integer field reads a string digit-wise rather than through `Number`, so `'1e-400'` is
+not `0`. The rule lives beside the writer in `ts/proto-reader.ts` and the per-type matrix
+is `docs/proto-numeric-input.md`; a new numeric write method needs an entry in both.
 
-**Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
+**Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec, where a 64-bit field is `Int64` (`ts/proto-reader.ts`): a `number` while the value is exact as a double, and the protobufjs `Long` split `{ low, high, unsigned }` beyond that — the same shape `camel_serializer` emits, and the shape `encodeProto` takes back. So `amount1000` is not a string there. Don't unify them.
+
+Widening rather than throwing is the point: one out-of-range field used to fail the whole `decodeProto` call, and the consumer lost every other field with it. `BigInt` is not an option on this path — `JSON.stringify` refuses it.
+
+**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 

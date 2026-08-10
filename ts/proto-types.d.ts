@@ -2,7 +2,10 @@
 // Source: ts/generated/whatsapp.ts (ts-proto output, regenerated when the
 // wacore proto schema changes).
 
-type Long = number;
+/** A 64-bit field: a `number` while the value is exact as a double, the
+ * protobufjs `{ low, high, unsigned }` split beyond that. */
+type Long = number | { low: number; high: number; unsigned: boolean };
+
 declare namespace $protobuf {
 	interface Writer { finish(): Uint8Array; }
 	type Reader = import("./index.js").BinaryReader;
@@ -72,7 +75,7 @@ export namespace proto {
 
 	interface IADVDeviceIdentity {
 		rawId?: (number|null);
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 		keyIndex?: (number|null);
 		accountType?: (proto.ADVEncryptionType|null);
 		deviceType?: (proto.ADVEncryptionType|null);
@@ -81,7 +84,7 @@ export namespace proto {
 	class ADVDeviceIdentity implements IADVDeviceIdentity {
 		constructor(p?: IADVDeviceIdentity);
 		public rawId?: (number|null);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public keyIndex?: (number|null);
 		public accountType?: (proto.ADVEncryptionType|null);
 		public deviceType?: (proto.ADVEncryptionType|null);
@@ -101,7 +104,7 @@ export namespace proto {
 
 	interface IADVKeyIndexList {
 		rawId?: (number|null);
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 		currentIndex?: (number|null);
 		validIndexes?: number[];
 		accountType?: (proto.ADVEncryptionType|null);
@@ -110,7 +113,7 @@ export namespace proto {
 	class ADVKeyIndexList implements IADVKeyIndexList {
 		constructor(p?: IADVKeyIndexList);
 		public rawId?: (number|null);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public currentIndex?: (number|null);
 		public validIndexes?: number[];
 		public accountType?: (proto.ADVEncryptionType|null);
@@ -182,14 +185,14 @@ export namespace proto {
 	}
 
 	interface IAIHomeState {
-		lastFetchTime?: (number|null);
+		lastFetchTime?: (Long|null);
 		capabilityOptions?: proto.AIHomeState.IAIHomeOption[];
 		conversationOptions?: proto.AIHomeState.IAIHomeOption[];
 	}
 
 	class AIHomeState implements IAIHomeState {
 		constructor(p?: IAIHomeState);
-		public lastFetchTime?: (number|null);
+		public lastFetchTime?: (Long|null);
 		public capabilityOptions?: proto.AIHomeState.IAIHomeOption[];
 		public conversationOptions?: proto.AIHomeState.IAIHomeOption[];
 		public static create(p?: IAIHomeState): AIHomeState;
@@ -298,14 +301,14 @@ export namespace proto {
 	interface IAIQueryFanout {
 		messageKey?: (proto.IMessageKey|null);
 		message?: (proto.IMessage|null);
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 	}
 
 	class AIQueryFanout implements IAIQueryFanout {
 		constructor(p?: IAIQueryFanout);
 		public messageKey?: (proto.IMessageKey|null);
 		public message?: (proto.IMessage|null);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public static create(p?: IAIQueryFanout): AIQueryFanout;
 		public static fromObject(d: { [k: string]: any }): AIQueryFanout;
 		public static toObject(m: AIQueryFanout, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -316,13 +319,13 @@ export namespace proto {
 
 	interface IAIRegenerateMetadata {
 		messageKey?: (proto.IMessageKey|null);
-		responseTimestampMs?: (number|null);
+		responseTimestampMs?: (Long|null);
 	}
 
 	class AIRegenerateMetadata implements IAIRegenerateMetadata {
 		constructor(p?: IAIRegenerateMetadata);
 		public messageKey?: (proto.IMessageKey|null);
-		public responseTimestampMs?: (number|null);
+		public responseTimestampMs?: (Long|null);
 		public static create(p?: IAIRegenerateMetadata): AIRegenerateMetadata;
 		public static fromObject(d: { [k: string]: any }): AIRegenerateMetadata;
 		public static toObject(m: AIRegenerateMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -440,7 +443,7 @@ export namespace proto {
 
 	interface IAIRichResponseDynamicMetadata {
 		type?: (proto.AIRichResponseDynamicMetadata.AIRichResponseDynamicMetadataType|null);
-		version?: (number|null);
+		version?: (Long|null);
 		url?: (string|null);
 		loopCount?: (number|null);
 	}
@@ -448,7 +451,7 @@ export namespace proto {
 	class AIRichResponseDynamicMetadata implements IAIRichResponseDynamicMetadata {
 		constructor(p?: IAIRichResponseDynamicMetadata);
 		public type?: (proto.AIRichResponseDynamicMetadata.AIRichResponseDynamicMetadataType|null);
-		public version?: (number|null);
+		public version?: (Long|null);
 		public url?: (string|null);
 		public loopCount?: (number|null);
 		public static create(p?: IAIRichResponseDynamicMetadata): AIRichResponseDynamicMetadata;
@@ -883,18 +886,18 @@ export namespace proto {
 	}
 
 	interface IBizAccountLinkInfo {
-		whatsappBizAcctFbid?: (number|null);
+		whatsappBizAcctFbid?: (Long|null);
 		whatsappAcctNumber?: (string|null);
-		issueTime?: (number|null);
+		issueTime?: (Long|null);
 		hostStorage?: (proto.BizAccountLinkInfo.HostStorageType|null);
 		accountType?: (proto.BizAccountLinkInfo.AccountType|null);
 	}
 
 	class BizAccountLinkInfo implements IBizAccountLinkInfo {
 		constructor(p?: IBizAccountLinkInfo);
-		public whatsappBizAcctFbid?: (number|null);
+		public whatsappBizAcctFbid?: (Long|null);
 		public whatsappAcctNumber?: (string|null);
-		public issueTime?: (number|null);
+		public issueTime?: (Long|null);
 		public hostStorage?: (proto.BizAccountLinkInfo.HostStorageType|null);
 		public accountType?: (proto.BizAccountLinkInfo.AccountType|null);
 		public static create(p?: IBizAccountLinkInfo): BizAccountLinkInfo;
@@ -941,8 +944,8 @@ export namespace proto {
 		revoked?: (boolean|null);
 		hostStorage?: (proto.BizIdentityInfo.HostStorageType|null);
 		actualActors?: (proto.BizIdentityInfo.ActualActorsType|null);
-		privacyModeTs?: (number|null);
-		featureControls?: (number|null);
+		privacyModeTs?: (Long|null);
+		featureControls?: (Long|null);
 	}
 
 	class BizIdentityInfo implements IBizIdentityInfo {
@@ -953,8 +956,8 @@ export namespace proto {
 		public revoked?: (boolean|null);
 		public hostStorage?: (proto.BizIdentityInfo.HostStorageType|null);
 		public actualActors?: (proto.BizIdentityInfo.ActualActorsType|null);
-		public privacyModeTs?: (number|null);
-		public featureControls?: (number|null);
+		public privacyModeTs?: (Long|null);
+		public featureControls?: (Long|null);
 		public static create(p?: IBizIdentityInfo): BizIdentityInfo;
 		public static fromObject(d: { [k: string]: any }): BizIdentityInfo;
 		public static toObject(m: BizIdentityInfo, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -1172,8 +1175,8 @@ export namespace proto {
 		messageKey?: (proto.IMessageKey|null);
 		kind?: (proto.BotFeedbackMessage.BotFeedbackKind|null);
 		text?: (string|null);
-		kindNegative?: (number|null);
-		kindPositive?: (number|null);
+		kindNegative?: (Long|null);
+		kindPositive?: (Long|null);
 		kindReport?: (proto.BotFeedbackMessage.ReportKind|null);
 		sideBySideSurveyMetadata?: (proto.BotFeedbackMessage.ISideBySideSurveyMetadata|null);
 	}
@@ -1183,8 +1186,8 @@ export namespace proto {
 		public messageKey?: (proto.IMessageKey|null);
 		public kind?: (proto.BotFeedbackMessage.BotFeedbackKind|null);
 		public text?: (string|null);
-		public kindNegative?: (number|null);
-		public kindPositive?: (number|null);
+		public kindNegative?: (Long|null);
+		public kindPositive?: (Long|null);
 		public kindReport?: (proto.BotFeedbackMessage.ReportKind|null);
 		public sideBySideSurveyMetadata?: (proto.BotFeedbackMessage.ISideBySideSurveyMetadata|null);
 		public static create(p?: IBotFeedbackMessage): BotFeedbackMessage;
@@ -1532,7 +1535,7 @@ export namespace proto {
 		mediaKey?: (string|null);
 		fileEncSha256?: (string|null);
 		directPath?: (string|null);
-		mediaKeyTimestamp?: (number|null);
+		mediaKeyTimestamp?: (Long|null);
 		mimetype?: (string|null);
 		orientationType?: (proto.BotMediaMetadata.OrientationType|null);
 	}
@@ -1543,7 +1546,7 @@ export namespace proto {
 		public mediaKey?: (string|null);
 		public fileEncSha256?: (string|null);
 		public directPath?: (string|null);
-		public mediaKeyTimestamp?: (number|null);
+		public mediaKeyTimestamp?: (Long|null);
 		public mimetype?: (string|null);
 		public orientationType?: (proto.BotMediaMetadata.OrientationType|null);
 		public static create(p?: IBotMediaMetadata): BotMediaMetadata;
@@ -1958,14 +1961,14 @@ export namespace proto {
 	interface IBotProgressIndicatorMetadata {
 		progressDescription?: (string|null);
 		stepsMetadata?: proto.BotProgressIndicatorMetadata.IBotPlanningStepMetadata[];
-		estimatedCompletionTime?: (number|null);
+		estimatedCompletionTime?: (Long|null);
 	}
 
 	class BotProgressIndicatorMetadata implements IBotProgressIndicatorMetadata {
 		constructor(p?: IBotProgressIndicatorMetadata);
 		public progressDescription?: (string|null);
 		public stepsMetadata?: proto.BotProgressIndicatorMetadata.IBotPlanningStepMetadata[];
-		public estimatedCompletionTime?: (number|null);
+		public estimatedCompletionTime?: (Long|null);
 		public static create(p?: IBotProgressIndicatorMetadata): BotProgressIndicatorMetadata;
 		public static fromObject(d: { [k: string]: any }): BotProgressIndicatorMetadata;
 		public static toObject(m: BotProgressIndicatorMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -2183,14 +2186,14 @@ export namespace proto {
 		interface IBotFeatureQuotaMetadata {
 			featureType?: (proto.BotQuotaMetadata.BotFeatureQuotaMetadata.BotFeatureType|null);
 			remainingQuota?: (number|null);
-			expirationTimestamp?: (number|null);
+			expirationTimestamp?: (Long|null);
 		}
 
 		class BotFeatureQuotaMetadata implements IBotFeatureQuotaMetadata {
 			constructor(p?: IBotFeatureQuotaMetadata);
 			public featureType?: (proto.BotQuotaMetadata.BotFeatureQuotaMetadata.BotFeatureType|null);
 			public remainingQuota?: (number|null);
-			public expirationTimestamp?: (number|null);
+			public expirationTimestamp?: (Long|null);
 			public static create(p?: IBotFeatureQuotaMetadata): BotFeatureQuotaMetadata;
 			public static fromObject(d: { [k: string]: any }): BotFeatureQuotaMetadata;
 			public static toObject(m: BotFeatureQuotaMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -2212,7 +2215,7 @@ export namespace proto {
 		requestMessageKey?: (proto.IMessageKey|null);
 		action?: (proto.BotReminderMetadata.ReminderAction|null);
 		name?: (string|null);
-		nextTriggerTimestamp?: (number|null);
+		nextTriggerTimestamp?: (Long|null);
 		frequency?: (proto.BotReminderMetadata.ReminderFrequency|null);
 	}
 
@@ -2221,7 +2224,7 @@ export namespace proto {
 		public requestMessageKey?: (proto.IMessageKey|null);
 		public action?: (proto.BotReminderMetadata.ReminderAction|null);
 		public name?: (string|null);
-		public nextTriggerTimestamp?: (number|null);
+		public nextTriggerTimestamp?: (Long|null);
 		public frequency?: (proto.BotReminderMetadata.ReminderFrequency|null);
 		public static create(p?: IBotReminderMetadata): BotReminderMetadata;
 		public static fromObject(d: { [k: string]: any }): BotReminderMetadata;
@@ -2529,8 +2532,8 @@ export namespace proto {
 		callResult?: (proto.CallLogRecord.CallResult|null);
 		isDndMode?: (boolean|null);
 		silenceReason?: (proto.CallLogRecord.SilenceReason|null);
-		duration?: (number|null);
-		startTime?: (number|null);
+		duration?: (Long|null);
+		startTime?: (Long|null);
 		isIncoming?: (boolean|null);
 		isVideo?: (boolean|null);
 		isCallLink?: (boolean|null);
@@ -2548,8 +2551,8 @@ export namespace proto {
 		public callResult?: (proto.CallLogRecord.CallResult|null);
 		public isDndMode?: (boolean|null);
 		public silenceReason?: (proto.CallLogRecord.SilenceReason|null);
-		public duration?: (number|null);
-		public startTime?: (number|null);
+		public duration?: (Long|null);
+		public startTime?: (Long|null);
 		public isIncoming?: (boolean|null);
 		public isVideo?: (boolean|null);
 		public isCallLink?: (boolean|null);
@@ -2657,8 +2660,8 @@ export namespace proto {
 				serial?: (number|null);
 				issuerSerial?: (number|null);
 				key?: (Uint8Array|null);
-				notBefore?: (number|null);
-				notAfter?: (number|null);
+				notBefore?: (Long|null);
+				notAfter?: (Long|null);
 			}
 
 			class Details implements IDetails {
@@ -2666,8 +2669,8 @@ export namespace proto {
 				public serial?: (number|null);
 				public issuerSerial?: (number|null);
 				public key?: (Uint8Array|null);
-				public notBefore?: (number|null);
-				public notAfter?: (number|null);
+				public notBefore?: (Long|null);
+				public notAfter?: (Long|null);
 				public static create(p?: IDetails): Details;
 				public static fromObject(d: { [k: string]: any }): Details;
 				public static toObject(m: Details, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -2717,7 +2720,7 @@ export namespace proto {
 			omittedUrl?: (string|null);
 			ctwaContextLinkData?: (proto.ChatRowOpaqueData.DraftMessage.ICtwaContextLinkData|null);
 			ctwaContext?: (proto.ChatRowOpaqueData.DraftMessage.ICtwaContextData|null);
-			timestamp?: (number|null);
+			timestamp?: (Long|null);
 		}
 
 		class DraftMessage implements IDraftMessage {
@@ -2726,7 +2729,7 @@ export namespace proto {
 			public omittedUrl?: (string|null);
 			public ctwaContextLinkData?: (proto.ChatRowOpaqueData.DraftMessage.ICtwaContextLinkData|null);
 			public ctwaContext?: (proto.ChatRowOpaqueData.DraftMessage.ICtwaContextData|null);
-			public timestamp?: (number|null);
+			public timestamp?: (Long|null);
 			public static create(p?: IDraftMessage): DraftMessage;
 			public static fromObject(d: { [k: string]: any }): DraftMessage;
 			public static toObject(m: DraftMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -2851,7 +2854,7 @@ export namespace proto {
 	}
 
 	interface IClientPayload {
-		username?: (number|null);
+		username?: (Long|null);
 		passive?: (boolean|null);
 		userAgent?: (proto.ClientPayload.IUserAgent|null);
 		webInfo?: (proto.ClientPayload.IWebInfo|null);
@@ -2871,7 +2874,7 @@ export namespace proto {
 		oc?: (boolean|null);
 		lc?: (number|null);
 		iosAppExtension?: (proto.ClientPayload.IOSAppExtension|null);
-		fbAppId?: (number|null);
+		fbAppId?: (Long|null);
 		fbDeviceId?: (Uint8Array|null);
 		pull?: (boolean|null);
 		paddingBytes?: (Uint8Array|null);
@@ -2891,7 +2894,7 @@ export namespace proto {
 
 	class ClientPayload implements IClientPayload {
 		constructor(p?: IClientPayload);
-		public username?: (number|null);
+		public username?: (Long|null);
 		public passive?: (boolean|null);
 		public userAgent?: (proto.ClientPayload.IUserAgent|null);
 		public webInfo?: (proto.ClientPayload.IWebInfo|null);
@@ -2911,7 +2914,7 @@ export namespace proto {
 		public oc?: (boolean|null);
 		public lc?: (number|null);
 		public iosAppExtension?: (proto.ClientPayload.IOSAppExtension|null);
-		public fbAppId?: (number|null);
+		public fbAppId?: (Long|null);
 		public fbDeviceId?: (Uint8Array|null);
 		public pull?: (boolean|null);
 		public paddingBytes?: (Uint8Array|null);
@@ -3031,14 +3034,14 @@ export namespace proto {
 		}
 
 		interface IInteropData {
-			accountId?: (number|null);
+			accountId?: (Long|null);
 			token?: (Uint8Array|null);
 			enableReadReceipts?: (boolean|null);
 		}
 
 		class InteropData implements IInteropData {
 			constructor(p?: IInteropData);
-			public accountId?: (number|null);
+			public accountId?: (Long|null);
 			public token?: (Uint8Array|null);
 			public enableReadReceipts?: (boolean|null);
 			public static create(p?: IInteropData): InteropData;
@@ -3578,14 +3581,14 @@ export namespace proto {
 		interface IEditMessage {
 			key?: (proto.IMessageKey|null);
 			message?: (proto.IMessageText|null);
-			timestampMs?: (number|null);
+			timestampMs?: (Long|null);
 		}
 
 		class EditMessage implements IEditMessage {
 			constructor(p?: IEditMessage);
 			public key?: (proto.IMessageKey|null);
 			public message?: (proto.IMessageText|null);
-			public timestampMs?: (number|null);
+			public timestampMs?: (Long|null);
 			public static create(p?: IEditMessage): EditMessage;
 			public static fromObject(d: { [k: string]: any }): EditMessage;
 			public static toObject(m: EditMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -3624,7 +3627,7 @@ export namespace proto {
 		interface IGroupInviteMessage {
 			groupJid?: (string|null);
 			inviteCode?: (string|null);
-			inviteExpiration?: (number|null);
+			inviteExpiration?: (Long|null);
 			groupName?: (string|null);
 			jpegThumbnail?: (Uint8Array|null);
 			caption?: (proto.IMessageText|null);
@@ -3634,7 +3637,7 @@ export namespace proto {
 			constructor(p?: IGroupInviteMessage);
 			public groupJid?: (string|null);
 			public inviteCode?: (string|null);
-			public inviteExpiration?: (number|null);
+			public inviteExpiration?: (Long|null);
 			public groupName?: (string|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public caption?: (proto.IMessageText|null);
@@ -3686,7 +3689,7 @@ export namespace proto {
 			speedInMps?: (number|null);
 			degreesClockwiseFromMagneticNorth?: (number|null);
 			caption?: (proto.IMessageText|null);
-			sequenceNumber?: (number|null);
+			sequenceNumber?: (Long|null);
 			timeOffset?: (number|null);
 		}
 
@@ -3697,7 +3700,7 @@ export namespace proto {
 			public speedInMps?: (number|null);
 			public degreesClockwiseFromMagneticNorth?: (number|null);
 			public caption?: (proto.IMessageText|null);
-			public sequenceNumber?: (number|null);
+			public sequenceNumber?: (Long|null);
 			public timeOffset?: (number|null);
 			public static create(p?: ILiveLocationMessage): LiveLocationMessage;
 			public static fromObject(d: { [k: string]: any }): LiveLocationMessage;
@@ -3900,13 +3903,13 @@ export namespace proto {
 
 		interface IPollVoteMessage {
 			selectedOptions?: Uint8Array[];
-			senderTimestampMs?: (number|null);
+			senderTimestampMs?: (Long|null);
 		}
 
 		class PollVoteMessage implements IPollVoteMessage {
 			constructor(p?: IPollVoteMessage);
 			public selectedOptions?: Uint8Array[];
-			public senderTimestampMs?: (number|null);
+			public senderTimestampMs?: (Long|null);
 			public static create(p?: IPollVoteMessage): PollVoteMessage;
 			public static fromObject(d: { [k: string]: any }): PollVoteMessage;
 			public static toObject(m: PollVoteMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -3919,7 +3922,7 @@ export namespace proto {
 			key?: (proto.IMessageKey|null);
 			text?: (string|null);
 			groupingKey?: (string|null);
-			senderTimestampMs?: (number|null);
+			senderTimestampMs?: (Long|null);
 			reactionMetadataDataclassData?: (string|null);
 			style?: (number|null);
 		}
@@ -3929,7 +3932,7 @@ export namespace proto {
 			public key?: (proto.IMessageKey|null);
 			public text?: (string|null);
 			public groupingKey?: (string|null);
-			public senderTimestampMs?: (number|null);
+			public senderTimestampMs?: (Long|null);
 			public reactionMetadataDataclassData?: (string|null);
 			public style?: (number|null);
 			public static create(p?: IReactionMessage): ReactionMessage;
@@ -4083,7 +4086,7 @@ export namespace proto {
 		quotedAd?: (proto.ContextInfo.IAdReplyInfo|null);
 		placeholderKey?: (proto.IMessageKey|null);
 		expiration?: (number|null);
-		ephemeralSettingTimestamp?: (number|null);
+		ephemeralSettingTimestamp?: (Long|null);
 		ephemeralSharedSecret?: (Uint8Array|null);
 		externalAdReply?: (proto.ContextInfo.IExternalAdReplyInfo|null);
 		entryPointConversionSource?: (string|null);
@@ -4149,7 +4152,7 @@ export namespace proto {
 		public quotedAd?: (proto.ContextInfo.IAdReplyInfo|null);
 		public placeholderKey?: (proto.IMessageKey|null);
 		public expiration?: (number|null);
-		public ephemeralSettingTimestamp?: (number|null);
+		public ephemeralSettingTimestamp?: (Long|null);
 		public ephemeralSharedSecret?: (Uint8Array|null);
 		public externalAdReply?: (proto.ContextInfo.IExternalAdReplyInfo|null);
 		public entryPointConversionSource?: (string|null);
@@ -4375,7 +4378,7 @@ export namespace proto {
 			interface IParameters {
 				key?: (string|null);
 				stringData?: (string|null);
-				intData?: (number|null);
+				intData?: (Long|null);
 				floatData?: (number|null);
 				contents?: (proto.ContextInfo.DataSharingContext.IParameters|null);
 			}
@@ -4384,7 +4387,7 @@ export namespace proto {
 				constructor(p?: IParameters);
 				public key?: (string|null);
 				public stringData?: (string|null);
-				public intData?: (number|null);
+				public intData?: (Long|null);
 				public floatData?: (number|null);
 				public contents?: (proto.ContextInfo.DataSharingContext.IParameters|null);
 				public static create(p?: IParameters): Parameters;
@@ -4671,14 +4674,14 @@ export namespace proto {
 		messages?: proto.IHistorySyncMsg[];
 		newJid?: (string|null);
 		oldJid?: (string|null);
-		lastMsgTimestamp?: (number|null);
+		lastMsgTimestamp?: (Long|null);
 		unreadCount?: (number|null);
 		readOnly?: (boolean|null);
 		endOfHistoryTransfer?: (boolean|null);
 		ephemeralExpiration?: (number|null);
-		ephemeralSettingTimestamp?: (number|null);
+		ephemeralSettingTimestamp?: (Long|null);
 		endOfHistoryTransferType?: (proto.Conversation.EndOfHistoryTransferType|null);
-		conversationTimestamp?: (number|null);
+		conversationTimestamp?: (Long|null);
 		name?: (string|null);
 		pHash?: (string|null);
 		notSpam?: (boolean|null);
@@ -4688,16 +4691,16 @@ export namespace proto {
 		markedAsUnread?: (boolean|null);
 		participant?: proto.IGroupParticipant[];
 		tcToken?: (Uint8Array|null);
-		tcTokenTimestamp?: (number|null);
+		tcTokenTimestamp?: (Long|null);
 		contactPrimaryIdentityKey?: (Uint8Array|null);
 		pinned?: (number|null);
-		muteEndTime?: (number|null);
+		muteEndTime?: (Long|null);
 		wallpaper?: (proto.IWallpaperSettings|null);
 		mediaVisibility?: (proto.MediaVisibility|null);
-		tcTokenSenderTimestamp?: (number|null);
+		tcTokenSenderTimestamp?: (Long|null);
 		suspended?: (boolean|null);
 		terminated?: (boolean|null);
-		createdAt?: (number|null);
+		createdAt?: (Long|null);
 		createdBy?: (string|null);
 		description?: (string|null);
 		support?: (boolean|null);
@@ -4717,7 +4720,7 @@ export namespace proto {
 		capiCreatedGroup?: (boolean|null);
 		accountLid?: (string|null);
 		limitSharing?: (boolean|null);
-		limitSharingSettingTimestamp?: (number|null);
+		limitSharingSettingTimestamp?: (Long|null);
 		limitSharingTrigger?: (proto.LimitSharing.TriggerType|null);
 		limitSharingInitiatedByMe?: (boolean|null);
 		maibaAiThreadEnabled?: (boolean|null);
@@ -4726,7 +4729,7 @@ export namespace proto {
 		afterReadDuration?: (number|null);
 		isSenderSuspicious?: (boolean|null);
 		appealStatus?: (proto.Conversation.GroupAppealStatus|null);
-		appealUpdateTime?: (number|null);
+		appealUpdateTime?: (Long|null);
 		authAgentParentCompanyName?: (string|null);
 		authAgentObaPhoneNumber?: (string|null);
 	}
@@ -4737,14 +4740,14 @@ export namespace proto {
 		public messages?: proto.IHistorySyncMsg[];
 		public newJid?: (string|null);
 		public oldJid?: (string|null);
-		public lastMsgTimestamp?: (number|null);
+		public lastMsgTimestamp?: (Long|null);
 		public unreadCount?: (number|null);
 		public readOnly?: (boolean|null);
 		public endOfHistoryTransfer?: (boolean|null);
 		public ephemeralExpiration?: (number|null);
-		public ephemeralSettingTimestamp?: (number|null);
+		public ephemeralSettingTimestamp?: (Long|null);
 		public endOfHistoryTransferType?: (proto.Conversation.EndOfHistoryTransferType|null);
-		public conversationTimestamp?: (number|null);
+		public conversationTimestamp?: (Long|null);
 		public name?: (string|null);
 		public pHash?: (string|null);
 		public notSpam?: (boolean|null);
@@ -4754,16 +4757,16 @@ export namespace proto {
 		public markedAsUnread?: (boolean|null);
 		public participant?: proto.IGroupParticipant[];
 		public tcToken?: (Uint8Array|null);
-		public tcTokenTimestamp?: (number|null);
+		public tcTokenTimestamp?: (Long|null);
 		public contactPrimaryIdentityKey?: (Uint8Array|null);
 		public pinned?: (number|null);
-		public muteEndTime?: (number|null);
+		public muteEndTime?: (Long|null);
 		public wallpaper?: (proto.IWallpaperSettings|null);
 		public mediaVisibility?: (proto.MediaVisibility|null);
-		public tcTokenSenderTimestamp?: (number|null);
+		public tcTokenSenderTimestamp?: (Long|null);
 		public suspended?: (boolean|null);
 		public terminated?: (boolean|null);
-		public createdAt?: (number|null);
+		public createdAt?: (Long|null);
 		public createdBy?: (string|null);
 		public description?: (string|null);
 		public support?: (boolean|null);
@@ -4783,7 +4786,7 @@ export namespace proto {
 		public capiCreatedGroup?: (boolean|null);
 		public accountLid?: (string|null);
 		public limitSharing?: (boolean|null);
-		public limitSharingSettingTimestamp?: (number|null);
+		public limitSharingSettingTimestamp?: (Long|null);
 		public limitSharingTrigger?: (proto.LimitSharing.TriggerType|null);
 		public limitSharingInitiatedByMe?: (boolean|null);
 		public maibaAiThreadEnabled?: (boolean|null);
@@ -4792,7 +4795,7 @@ export namespace proto {
 		public afterReadDuration?: (number|null);
 		public isSenderSuspicious?: (boolean|null);
 		public appealStatus?: (proto.Conversation.GroupAppealStatus|null);
-		public appealUpdateTime?: (number|null);
+		public appealUpdateTime?: (Long|null);
 		public authAgentParentCompanyName?: (string|null);
 		public authAgentObaPhoneNumber?: (string|null);
 		public static create(p?: IConversation): Conversation;
@@ -4822,13 +4825,13 @@ export namespace proto {
 
 	interface ICreateBackupInput {
 		recoveryCode?: (string|null);
-		userId?: (number|null);
+		userId?: (Long|null);
 	}
 
 	class CreateBackupInput implements ICreateBackupInput {
 		constructor(p?: ICreateBackupInput);
 		public recoveryCode?: (string|null);
-		public userId?: (number|null);
+		public userId?: (Long|null);
 		public static create(p?: ICreateBackupInput): CreateBackupInput;
 		public static fromObject(d: { [k: string]: any }): CreateBackupInput;
 		public static toObject(m: CreateBackupInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -4981,12 +4984,12 @@ export namespace proto {
 		}
 
 		interface ILIDMigration {
-			chatDbMigrationTimestamp?: (number|null);
+			chatDbMigrationTimestamp?: (Long|null);
 		}
 
 		class LIDMigration implements ILIDMigration {
 			constructor(p?: ILIDMigration);
-			public chatDbMigrationTimestamp?: (number|null);
+			public chatDbMigrationTimestamp?: (Long|null);
 			public static create(p?: ILIDMigration): LIDMigration;
 			public static fromObject(d: { [k: string]: any }): LIDMigration;
 			public static toObject(m: LIDMigration, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5036,24 +5039,24 @@ export namespace proto {
 
 	interface IDeviceListMetadata {
 		senderKeyHash?: (Uint8Array|null);
-		senderTimestamp?: (number|null);
+		senderTimestamp?: (Long|null);
 		senderKeyIndexes?: number[];
 		senderAccountType?: (proto.ADVEncryptionType|null);
 		receiverAccountType?: (proto.ADVEncryptionType|null);
 		recipientKeyHash?: (Uint8Array|null);
-		recipientTimestamp?: (number|null);
+		recipientTimestamp?: (Long|null);
 		recipientKeyIndexes?: number[];
 	}
 
 	class DeviceListMetadata implements IDeviceListMetadata {
 		constructor(p?: IDeviceListMetadata);
 		public senderKeyHash?: (Uint8Array|null);
-		public senderTimestamp?: (number|null);
+		public senderTimestamp?: (Long|null);
 		public senderKeyIndexes?: number[];
 		public senderAccountType?: (proto.ADVEncryptionType|null);
 		public receiverAccountType?: (proto.ADVEncryptionType|null);
 		public recipientKeyHash?: (Uint8Array|null);
-		public recipientTimestamp?: (number|null);
+		public recipientTimestamp?: (Long|null);
 		public recipientKeyIndexes?: number[];
 		public static create(p?: IDeviceListMetadata): DeviceListMetadata;
 		public static fromObject(d: { [k: string]: any }): DeviceListMetadata;
@@ -5318,9 +5321,9 @@ export namespace proto {
 		countryBlocklist?: (Uint8Array|null);
 		isExplicit?: (boolean|null);
 		artworkMediaKey?: (Uint8Array|null);
-		musicSongStartTimeInMs?: (number|null);
-		derivedContentStartTimeInMs?: (number|null);
-		overlapDurationInMs?: (number|null);
+		musicSongStartTimeInMs?: (Long|null);
+		derivedContentStartTimeInMs?: (Long|null);
+		overlapDurationInMs?: (Long|null);
 	}
 
 	class EmbeddedMusic implements IEmbeddedMusic {
@@ -5336,9 +5339,9 @@ export namespace proto {
 		public countryBlocklist?: (Uint8Array|null);
 		public isExplicit?: (boolean|null);
 		public artworkMediaKey?: (Uint8Array|null);
-		public musicSongStartTimeInMs?: (number|null);
-		public derivedContentStartTimeInMs?: (number|null);
-		public overlapDurationInMs?: (number|null);
+		public musicSongStartTimeInMs?: (Long|null);
+		public derivedContentStartTimeInMs?: (Long|null);
+		public overlapDurationInMs?: (Long|null);
 		public static create(p?: IEmbeddedMusic): EmbeddedMusic;
 		public static fromObject(d: { [k: string]: any }): EmbeddedMusic;
 		public static toObject(m: EmbeddedMusic, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5398,11 +5401,11 @@ export namespace proto {
 		mailboxRootKey?: (Uint8Array|null);
 		orfClientState?: (Uint8Array|null);
 		epochAnonId?: (Uint8Array|null);
-		epochId?: (number|null);
+		epochId?: (Long|null);
 		threadId?: (string|null);
-		waCanonicalUserFbid?: (number|null);
-		timestampMs?: (number|null);
-		backupId?: (number|null);
+		waCanonicalUserFbid?: (Long|null);
+		timestampMs?: (Long|null);
+		backupId?: (Long|null);
 		plaintextPayload?: (Uint8Array|null);
 		stanzaId?: (string|null);
 	}
@@ -5413,11 +5416,11 @@ export namespace proto {
 		public mailboxRootKey?: (Uint8Array|null);
 		public orfClientState?: (Uint8Array|null);
 		public epochAnonId?: (Uint8Array|null);
-		public epochId?: (number|null);
+		public epochId?: (Long|null);
 		public threadId?: (string|null);
-		public waCanonicalUserFbid?: (number|null);
-		public timestampMs?: (number|null);
-		public backupId?: (number|null);
+		public waCanonicalUserFbid?: (Long|null);
+		public timestampMs?: (Long|null);
+		public backupId?: (Long|null);
 		public plaintextPayload?: (Uint8Array|null);
 		public stanzaId?: (string|null);
 		public static create(p?: IEncryptMessageInput): EncryptMessageInput;
@@ -5432,8 +5435,8 @@ export namespace proto {
 		encryptedProtobuf?: (Uint8Array|null);
 		orfThreadId?: (Uint8Array|null);
 		valueSecretRef?: (string|null);
-		offlineThreadingId?: (number|null);
-		timestampMs?: (number|null);
+		offlineThreadingId?: (Long|null);
+		timestampMs?: (Long|null);
 		messageKey?: (Uint8Array|null);
 		error?: (string|null);
 	}
@@ -5443,8 +5446,8 @@ export namespace proto {
 		public encryptedProtobuf?: (Uint8Array|null);
 		public orfThreadId?: (Uint8Array|null);
 		public valueSecretRef?: (string|null);
-		public offlineThreadingId?: (number|null);
-		public timestampMs?: (number|null);
+		public offlineThreadingId?: (Long|null);
+		public timestampMs?: (Long|null);
 		public messageKey?: (Uint8Array|null);
 		public error?: (string|null);
 		public static create(p?: IEncryptMessageOutput): EncryptMessageOutput;
@@ -5457,13 +5460,13 @@ export namespace proto {
 
 	interface IEphemeralSetting {
 		duration?: (number|null);
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 	}
 
 	class EphemeralSetting implements IEphemeralSetting {
 		constructor(p?: IEphemeralSetting);
 		public duration?: (number|null);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public static create(p?: IEphemeralSetting): EphemeralSetting;
 		public static fromObject(d: { [k: string]: any }): EphemeralSetting;
 		public static toObject(m: EphemeralSetting, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5473,7 +5476,7 @@ export namespace proto {
 	}
 
 	interface IEpoch0Output {
-		epochFbid?: (number|null);
+		epochFbid?: (Long|null);
 		epochAnonId?: (Uint8Array|null);
 		epochData?: (Uint8Array|null);
 		wrappedRootKeyForSelf?: (Uint8Array|null);
@@ -5484,7 +5487,7 @@ export namespace proto {
 
 	class Epoch0Output implements IEpoch0Output {
 		constructor(p?: IEpoch0Output);
-		public epochFbid?: (number|null);
+		public epochFbid?: (Long|null);
 		public epochAnonId?: (Uint8Array|null);
 		public epochData?: (Uint8Array|null);
 		public wrappedRootKeyForSelf?: (Uint8Array|null);
@@ -5516,7 +5519,7 @@ export namespace proto {
 
 	interface IEventResponse {
 		eventResponseMessageKey?: (proto.IMessageKey|null);
-		timestampMs?: (number|null);
+		timestampMs?: (Long|null);
 		eventResponseMessage?: (proto.Message.IEventResponseMessage|null);
 		unread?: (boolean|null);
 	}
@@ -5524,7 +5527,7 @@ export namespace proto {
 	class EventResponse implements IEventResponse {
 		constructor(p?: IEventResponse);
 		public eventResponseMessageKey?: (proto.IMessageKey|null);
-		public timestampMs?: (number|null);
+		public timestampMs?: (Long|null);
 		public eventResponseMessage?: (proto.Message.IEventResponseMessage|null);
 		public unread?: (boolean|null);
 		public static create(p?: IEventResponse): EventResponse;
@@ -5536,13 +5539,13 @@ export namespace proto {
 	}
 
 	interface IExitCode {
-		code?: (number|null);
+		code?: (Long|null);
 		text?: (string|null);
 	}
 
 	class ExitCode implements IExitCode {
 		constructor(p?: IExitCode);
-		public code?: (number|null);
+		public code?: (Long|null);
 		public text?: (string|null);
 		public static create(p?: IExitCode): ExitCode;
 		public static fromObject(d: { [k: string]: any }): ExitCode;
@@ -5556,7 +5559,7 @@ export namespace proto {
 		mediaKey?: (Uint8Array|null);
 		directPath?: (string|null);
 		handle?: (string|null);
-		fileSizeBytes?: (number|null);
+		fileSizeBytes?: (Long|null);
 		fileSha256?: (Uint8Array|null);
 		fileEncSha256?: (Uint8Array|null);
 	}
@@ -5566,7 +5569,7 @@ export namespace proto {
 		public mediaKey?: (Uint8Array|null);
 		public directPath?: (string|null);
 		public handle?: (string|null);
-		public fileSizeBytes?: (number|null);
+		public fileSizeBytes?: (Long|null);
 		public fileSha256?: (Uint8Array|null);
 		public fileEncSha256?: (Uint8Array|null);
 		public static create(p?: IExternalBlobReference): ExternalBlobReference;
@@ -5688,7 +5691,7 @@ export namespace proto {
 		showIndividualNotificationsPreview?: (boolean|null);
 		showGroupNotificationsPreview?: (boolean|null);
 		disappearingModeDuration?: (number|null);
-		disappearingModeTimestamp?: (number|null);
+		disappearingModeTimestamp?: (Long|null);
 		avatarUserSettings?: (proto.IAvatarUserSettings|null);
 		fontSize?: (number|null);
 		securityNotifications?: (boolean|null);
@@ -5698,7 +5701,7 @@ export namespace proto {
 		individualNotificationSettings?: (proto.INotificationSettings|null);
 		groupNotificationSettings?: (proto.INotificationSettings|null);
 		chatLockSettings?: (proto.IChatLockSettings|null);
-		chatDbLidMigrationTimestamp?: (number|null);
+		chatDbLidMigrationTimestamp?: (Long|null);
 	}
 
 	class GlobalSettings implements IGlobalSettings {
@@ -5712,7 +5715,7 @@ export namespace proto {
 		public showIndividualNotificationsPreview?: (boolean|null);
 		public showGroupNotificationsPreview?: (boolean|null);
 		public disappearingModeDuration?: (number|null);
-		public disappearingModeTimestamp?: (number|null);
+		public disappearingModeTimestamp?: (Long|null);
 		public avatarUserSettings?: (proto.IAvatarUserSettings|null);
 		public fontSize?: (number|null);
 		public securityNotifications?: (boolean|null);
@@ -5722,7 +5725,7 @@ export namespace proto {
 		public individualNotificationSettings?: (proto.INotificationSettings|null);
 		public groupNotificationSettings?: (proto.INotificationSettings|null);
 		public chatLockSettings?: (proto.IChatLockSettings|null);
-		public chatDbLidMigrationTimestamp?: (number|null);
+		public chatDbLidMigrationTimestamp?: (Long|null);
 		public static create(p?: IGlobalSettings): GlobalSettings;
 		public static fromObject(d: { [k: string]: any }): GlobalSettings;
 		public static toObject(m: GlobalSettings, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5882,16 +5885,16 @@ export namespace proto {
 	interface IGroupRootKeyShareEntry {
 		groupRootKey?: (Uint8Array|null);
 		keyId?: (string|null);
-		expiryTimestampMs?: (number|null);
-		createdTimestampMs?: (number|null);
+		expiryTimestampMs?: (Long|null);
+		createdTimestampMs?: (Long|null);
 	}
 
 	class GroupRootKeyShareEntry implements IGroupRootKeyShareEntry {
 		constructor(p?: IGroupRootKeyShareEntry);
 		public groupRootKey?: (Uint8Array|null);
 		public keyId?: (string|null);
-		public expiryTimestampMs?: (number|null);
-		public createdTimestampMs?: (number|null);
+		public expiryTimestampMs?: (Long|null);
+		public createdTimestampMs?: (Long|null);
 		public static create(p?: IGroupRootKeyShareEntry): GroupRootKeyShareEntry;
 		public static fromObject(d: { [k: string]: any }): GroupRootKeyShareEntry;
 		public static toObject(m: GroupRootKeyShareEntry, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6017,14 +6020,14 @@ export namespace proto {
 
 	interface IHatchMetadataSync {
 		data?: (Uint8Array|null);
-		timestampMs?: (number|null);
+		timestampMs?: (Long|null);
 		requestId?: (string|null);
 	}
 
 	class HatchMetadataSync implements IHatchMetadataSync {
 		constructor(p?: IHatchMetadataSync);
 		public data?: (Uint8Array|null);
-		public timestampMs?: (number|null);
+		public timestampMs?: (Long|null);
 		public requestId?: (string|null);
 		public static create(p?: IHatchMetadataSync): HatchMetadataSync;
 		public static fromObject(d: { [k: string]: any }): HatchMetadataSync;
@@ -6107,13 +6110,13 @@ export namespace proto {
 
 	interface IHistorySyncMsg {
 		message?: (proto.IWebMessageInfo|null);
-		msgOrderId?: (number|null);
+		msgOrderId?: (Long|null);
 	}
 
 	class HistorySyncMsg implements IHistorySyncMsg {
 		constructor(p?: IHistorySyncMsg);
 		public message?: (proto.IWebMessageInfo|null);
-		public msgOrderId?: (number|null);
+		public msgOrderId?: (Long|null);
 		public static create(p?: IHistorySyncMsg): HistorySyncMsg;
 		public static fromObject(d: { [k: string]: any }): HistorySyncMsg;
 		public static toObject(m: HistorySyncMsg, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6412,21 +6415,21 @@ export namespace proto {
 
 	interface IKeepInChat {
 		keepType?: (proto.KeepType|null);
-		serverTimestamp?: (number|null);
+		serverTimestamp?: (Long|null);
 		key?: (proto.IMessageKey|null);
 		deviceJid?: (string|null);
-		clientTimestampMs?: (number|null);
-		serverTimestampMs?: (number|null);
+		clientTimestampMs?: (Long|null);
+		serverTimestampMs?: (Long|null);
 	}
 
 	class KeepInChat implements IKeepInChat {
 		constructor(p?: IKeepInChat);
 		public keepType?: (proto.KeepType|null);
-		public serverTimestamp?: (number|null);
+		public serverTimestamp?: (Long|null);
 		public key?: (proto.IMessageKey|null);
 		public deviceJid?: (string|null);
-		public clientTimestampMs?: (number|null);
-		public serverTimestampMs?: (number|null);
+		public clientTimestampMs?: (Long|null);
+		public serverTimestampMs?: (Long|null);
 		public static create(p?: IKeepInChat): KeepInChat;
 		public static fromObject(d: { [k: string]: any }): KeepInChat;
 		public static toObject(m: KeepInChat, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6518,16 +6521,16 @@ export namespace proto {
 	}
 
 	interface ILIDMigrationMapping {
-		pn?: (number|null);
-		assignedLid?: (number|null);
-		latestLid?: (number|null);
+		pn?: (Long|null);
+		assignedLid?: (Long|null);
+		latestLid?: (Long|null);
 	}
 
 	class LIDMigrationMapping implements ILIDMigrationMapping {
 		constructor(p?: ILIDMigrationMapping);
-		public pn?: (number|null);
-		public assignedLid?: (number|null);
-		public latestLid?: (number|null);
+		public pn?: (Long|null);
+		public assignedLid?: (Long|null);
+		public latestLid?: (Long|null);
 		public static create(p?: ILIDMigrationMapping): LIDMigrationMapping;
 		public static fromObject(d: { [k: string]: any }): LIDMigrationMapping;
 		public static toObject(m: LIDMigrationMapping, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6553,13 +6556,13 @@ export namespace proto {
 
 	interface ILIDMigrationMappingSyncPayload {
 		pnToLidMappings?: proto.ILIDMigrationMapping[];
-		chatDbMigrationTimestamp?: (number|null);
+		chatDbMigrationTimestamp?: (Long|null);
 	}
 
 	class LIDMigrationMappingSyncPayload implements ILIDMigrationMappingSyncPayload {
 		constructor(p?: ILIDMigrationMappingSyncPayload);
 		public pnToLidMappings?: proto.ILIDMigrationMapping[];
-		public chatDbMigrationTimestamp?: (number|null);
+		public chatDbMigrationTimestamp?: (Long|null);
 		public static create(p?: ILIDMigrationMappingSyncPayload): LIDMigrationMappingSyncPayload;
 		public static fromObject(d: { [k: string]: any }): LIDMigrationMappingSyncPayload;
 		public static toObject(m: LIDMigrationMappingSyncPayload, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6571,7 +6574,7 @@ export namespace proto {
 	interface ILimitSharing {
 		sharingLimited?: (boolean|null);
 		trigger?: (proto.LimitSharing.TriggerType|null);
-		limitSharingSettingTimestamp?: (number|null);
+		limitSharingSettingTimestamp?: (Long|null);
 		initiatedByMe?: (boolean|null);
 	}
 
@@ -6579,7 +6582,7 @@ export namespace proto {
 		constructor(p?: ILimitSharing);
 		public sharingLimited?: (boolean|null);
 		public trigger?: (proto.LimitSharing.TriggerType|null);
-		public limitSharingSettingTimestamp?: (number|null);
+		public limitSharingSettingTimestamp?: (Long|null);
 		public initiatedByMe?: (boolean|null);
 		public static create(p?: ILimitSharing): LimitSharing;
 		public static fromObject(d: { [k: string]: any }): LimitSharing;
@@ -6674,7 +6677,7 @@ export namespace proto {
 		mediaKey?: (Uint8Array|null);
 		fileEncSha256?: (Uint8Array|null);
 		directPath?: (string|null);
-		mediaKeyTimestamp?: (number|null);
+		mediaKeyTimestamp?: (Long|null);
 		serverMediaType?: (string|null);
 		uploadToken?: (Uint8Array|null);
 		validatedTimestamp?: (Uint8Array|null);
@@ -6685,8 +6688,8 @@ export namespace proto {
 		handle?: (string|null);
 		filename?: (string|null);
 		progressiveJpegDetails?: (proto.MediaEntry.IProgressiveJpegDetails|null);
-		size?: (number|null);
-		lastDownloadAttemptTimestamp?: (number|null);
+		size?: (Long|null);
+		lastDownloadAttemptTimestamp?: (Long|null);
 	}
 
 	class MediaEntry implements IMediaEntry {
@@ -6695,7 +6698,7 @@ export namespace proto {
 		public mediaKey?: (Uint8Array|null);
 		public fileEncSha256?: (Uint8Array|null);
 		public directPath?: (string|null);
-		public mediaKeyTimestamp?: (number|null);
+		public mediaKeyTimestamp?: (Long|null);
 		public serverMediaType?: (string|null);
 		public uploadToken?: (Uint8Array|null);
 		public validatedTimestamp?: (Uint8Array|null);
@@ -6706,8 +6709,8 @@ export namespace proto {
 		public handle?: (string|null);
 		public filename?: (string|null);
 		public progressiveJpegDetails?: (proto.MediaEntry.IProgressiveJpegDetails|null);
-		public size?: (number|null);
-		public lastDownloadAttemptTimestamp?: (number|null);
+		public size?: (Long|null);
+		public lastDownloadAttemptTimestamp?: (Long|null);
 		public static create(p?: IMediaEntry): MediaEntry;
 		public static fromObject(d: { [k: string]: any }): MediaEntry;
 		public static toObject(m: MediaEntry, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6723,7 +6726,7 @@ export namespace proto {
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
 			mediaKey?: (Uint8Array|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			objectId?: (string|null);
 		}
 
@@ -6733,7 +6736,7 @@ export namespace proto {
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
 			public mediaKey?: (Uint8Array|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public objectId?: (string|null);
 			public static create(p?: IDownloadableThumbnail): DownloadableThumbnail;
 			public static fromObject(d: { [k: string]: any }): DownloadableThumbnail;
@@ -6770,14 +6773,14 @@ export namespace proto {
 	interface IMediaNotifyMessage {
 		expressPathUrl?: (string|null);
 		fileEncSha256?: (Uint8Array|null);
-		fileLength?: (number|null);
+		fileLength?: (Long|null);
 	}
 
 	class MediaNotifyMessage implements IMediaNotifyMessage {
 		constructor(p?: IMediaNotifyMessage);
 		public expressPathUrl?: (string|null);
 		public fileEncSha256?: (Uint8Array|null);
-		public fileLength?: (number|null);
+		public fileLength?: (Long|null);
 		public static create(p?: IMediaNotifyMessage): MediaNotifyMessage;
 		public static fromObject(d: { [k: string]: any }): MediaNotifyMessage;
 		public static toObject(m: MediaNotifyMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -6825,13 +6828,13 @@ export namespace proto {
 
 	interface IMemberLabel {
 		label?: (string|null);
-		labelTimestamp?: (number|null);
+		labelTimestamp?: (Long|null);
 	}
 
 	class MemberLabel implements IMemberLabel {
 		constructor(p?: IMemberLabel);
 		public label?: (string|null);
-		public labelTimestamp?: (number|null);
+		public labelTimestamp?: (Long|null);
 		public static create(p?: IMemberLabel): MemberLabel;
 		public static fromObject(d: { [k: string]: any }): MemberLabel;
 		public static toObject(m: MemberLabel, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -7115,13 +7118,13 @@ export namespace proto {
 
 		interface IAppStateFatalExceptionNotification {
 			collectionNames?: string[];
-			timestamp?: (number|null);
+			timestamp?: (Long|null);
 		}
 
 		class AppStateFatalExceptionNotification implements IAppStateFatalExceptionNotification {
 			constructor(p?: IAppStateFatalExceptionNotification);
 			public collectionNames?: string[];
-			public timestamp?: (number|null);
+			public timestamp?: (Long|null);
 			public static create(p?: IAppStateFatalExceptionNotification): AppStateFatalExceptionNotification;
 			public static fromObject(d: { [k: string]: any }): AppStateFatalExceptionNotification;
 			public static toObject(m: AppStateFatalExceptionNotification, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -7150,14 +7153,14 @@ export namespace proto {
 		interface IAppStateSyncKeyData {
 			keyData?: (Uint8Array|null);
 			fingerprint?: (proto.Message.IAppStateSyncKeyFingerprint|null);
-			timestamp?: (number|null);
+			timestamp?: (Long|null);
 		}
 
 		class AppStateSyncKeyData implements IAppStateSyncKeyData {
 			constructor(p?: IAppStateSyncKeyData);
 			public keyData?: (Uint8Array|null);
 			public fingerprint?: (proto.Message.IAppStateSyncKeyFingerprint|null);
-			public timestamp?: (number|null);
+			public timestamp?: (Long|null);
 			public static create(p?: IAppStateSyncKeyData): AppStateSyncKeyData;
 			public static fromObject(d: { [k: string]: any }): AppStateSyncKeyData;
 			public static toObject(m: AppStateSyncKeyData, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -7234,13 +7237,13 @@ export namespace proto {
 			url?: (string|null);
 			mimetype?: (string|null);
 			fileSha256?: (Uint8Array|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			seconds?: (number|null);
 			ptt?: (boolean|null);
 			mediaKey?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			contextInfo?: (proto.IContextInfo|null);
 			streamingSidecar?: (Uint8Array|null);
 			waveform?: (Uint8Array|null);
@@ -7254,13 +7257,13 @@ export namespace proto {
 			public url?: (string|null);
 			public mimetype?: (string|null);
 			public fileSha256?: (Uint8Array|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public seconds?: (number|null);
 			public ptt?: (boolean|null);
 			public mediaKey?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public streamingSidecar?: (Uint8Array|null);
 			public waveform?: (Uint8Array|null);
@@ -7480,7 +7483,7 @@ export namespace proto {
 		interface ICallLogMessage {
 			isVideo?: (boolean|null);
 			callOutcome?: (proto.Message.CallLogMessage.CallOutcome|null);
-			durationSecs?: (number|null);
+			durationSecs?: (Long|null);
 			callType?: (proto.Message.CallLogMessage.CallType|null);
 			participants?: proto.Message.CallLogMessage.ICallParticipant[];
 		}
@@ -7489,7 +7492,7 @@ export namespace proto {
 			constructor(p?: ICallLogMessage);
 			public isVideo?: (boolean|null);
 			public callOutcome?: (proto.Message.CallLogMessage.CallOutcome|null);
-			public durationSecs?: (number|null);
+			public durationSecs?: (Long|null);
 			public callType?: (proto.Message.CallLogMessage.CallType|null);
 			public participants?: proto.Message.CallLogMessage.ICallParticipant[];
 			public static create(p?: ICallLogMessage): CallLogMessage;
@@ -7644,7 +7647,7 @@ export namespace proto {
 		}
 
 		interface IChatThemeSetting {
-			settingTimestampMs?: (number|null);
+			settingTimestampMs?: (Long|null);
 			clearTheme?: (boolean|null);
 			colorSchemeId?: (string|null);
 			defaultWallpaper?: (proto.Message.IChatDefaultWallpaper|null);
@@ -7655,7 +7658,7 @@ export namespace proto {
 
 		class ChatThemeSetting implements IChatThemeSetting {
 			constructor(p?: IChatThemeSetting);
-			public settingTimestampMs?: (number|null);
+			public settingTimestampMs?: (Long|null);
 			public clearTheme?: (boolean|null);
 			public colorSchemeId?: (string|null);
 			public defaultWallpaper?: (proto.Message.IChatDefaultWallpaper|null);
@@ -7672,7 +7675,7 @@ export namespace proto {
 
 		interface ICloudAPIThreadControlNotification {
 			status?: (proto.Message.CloudAPIThreadControlNotification.CloudAPIThreadControl|null);
-			senderNotificationTimestampMs?: (number|null);
+			senderNotificationTimestampMs?: (Long|null);
 			consumerLid?: (string|null);
 			consumerPhoneNumber?: (string|null);
 			notificationContent?: (proto.Message.CloudAPIThreadControlNotification.ICloudAPIThreadControlNotificationContent|null);
@@ -7682,7 +7685,7 @@ export namespace proto {
 		class CloudAPIThreadControlNotification implements ICloudAPIThreadControlNotification {
 			constructor(p?: ICloudAPIThreadControlNotification);
 			public status?: (proto.Message.CloudAPIThreadControlNotification.CloudAPIThreadControl|null);
-			public senderNotificationTimestampMs?: (number|null);
+			public senderNotificationTimestampMs?: (Long|null);
 			public consumerLid?: (string|null);
 			public consumerPhoneNumber?: (string|null);
 			public notificationContent?: (proto.Message.CloudAPIThreadControlNotification.ICloudAPIThreadControlNotificationContent|null);
@@ -7847,13 +7850,13 @@ export namespace proto {
 			mimetype?: (string|null);
 			title?: (string|null);
 			fileSha256?: (Uint8Array|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			pageCount?: (number|null);
 			mediaKey?: (Uint8Array|null);
 			fileName?: (string|null);
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			contactVcard?: (boolean|null);
 			thumbnailDirectPath?: (string|null);
 			thumbnailSha256?: (Uint8Array|null);
@@ -7872,13 +7875,13 @@ export namespace proto {
 			public mimetype?: (string|null);
 			public title?: (string|null);
 			public fileSha256?: (Uint8Array|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public pageCount?: (number|null);
 			public mediaKey?: (Uint8Array|null);
 			public fileName?: (string|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public contactVcard?: (boolean|null);
 			public thumbnailDirectPath?: (string|null);
 			public thumbnailSha256?: (Uint8Array|null);
@@ -7959,10 +7962,10 @@ export namespace proto {
 			eventId?: (string|null);
 			eventTitle?: (string|null);
 			jpegThumbnail?: (Uint8Array|null);
-			startTime?: (number|null);
+			startTime?: (Long|null);
 			caption?: (string|null);
 			isCanceled?: (boolean|null);
-			endTime?: (number|null);
+			endTime?: (Long|null);
 			callLink?: (string|null);
 		}
 
@@ -7972,10 +7975,10 @@ export namespace proto {
 			public eventId?: (string|null);
 			public eventTitle?: (string|null);
 			public jpegThumbnail?: (Uint8Array|null);
-			public startTime?: (number|null);
+			public startTime?: (Long|null);
 			public caption?: (string|null);
 			public isCanceled?: (boolean|null);
-			public endTime?: (number|null);
+			public endTime?: (Long|null);
 			public callLink?: (string|null);
 			public static create(p?: IEventInviteMessage): EventInviteMessage;
 			public static fromObject(d: { [k: string]: any }): EventInviteMessage;
@@ -7992,12 +7995,12 @@ export namespace proto {
 			description?: (string|null);
 			location?: (proto.Message.ILocationMessage|null);
 			joinLink?: (string|null);
-			startTime?: (number|null);
-			endTime?: (number|null);
+			startTime?: (Long|null);
+			endTime?: (Long|null);
 			extraGuestsAllowed?: (boolean|null);
 			isScheduleCall?: (boolean|null);
 			hasReminder?: (boolean|null);
-			reminderOffsetSec?: (number|null);
+			reminderOffsetSec?: (Long|null);
 		}
 
 		class EventMessage implements IEventMessage {
@@ -8008,12 +8011,12 @@ export namespace proto {
 			public description?: (string|null);
 			public location?: (proto.Message.ILocationMessage|null);
 			public joinLink?: (string|null);
-			public startTime?: (number|null);
-			public endTime?: (number|null);
+			public startTime?: (Long|null);
+			public endTime?: (Long|null);
 			public extraGuestsAllowed?: (boolean|null);
 			public isScheduleCall?: (boolean|null);
 			public hasReminder?: (boolean|null);
-			public reminderOffsetSec?: (number|null);
+			public reminderOffsetSec?: (Long|null);
 			public static create(p?: IEventMessage): EventMessage;
 			public static fromObject(d: { [k: string]: any }): EventMessage;
 			public static toObject(m: EventMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -8024,14 +8027,14 @@ export namespace proto {
 
 		interface IEventResponseMessage {
 			response?: (proto.Message.EventResponseMessage.EventResponseType|null);
-			timestampMs?: (number|null);
+			timestampMs?: (Long|null);
 			extraGuestCount?: (number|null);
 		}
 
 		class EventResponseMessage implements IEventResponseMessage {
 			constructor(p?: IEventResponseMessage);
 			public response?: (proto.Message.EventResponseMessage.EventResponseType|null);
-			public timestampMs?: (number|null);
+			public timestampMs?: (Long|null);
 			public extraGuestCount?: (number|null);
 			public static create(p?: IEventResponseMessage): EventResponseMessage;
 			public static fromObject(d: { [k: string]: any }): EventResponseMessage;
@@ -8067,7 +8070,7 @@ export namespace proto {
 			thumbnailSha256?: (Uint8Array|null);
 			thumbnailEncSha256?: (Uint8Array|null);
 			mediaKey?: (Uint8Array|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			thumbnailHeight?: (number|null);
 			thumbnailWidth?: (number|null);
 			inviteLinkGroupType?: (proto.Message.ExtendedTextMessage.InviteLinkGroupType|null);
@@ -8103,7 +8106,7 @@ export namespace proto {
 			public thumbnailSha256?: (Uint8Array|null);
 			public thumbnailEncSha256?: (Uint8Array|null);
 			public mediaKey?: (Uint8Array|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public thumbnailHeight?: (number|null);
 			public thumbnailWidth?: (number|null);
 			public inviteLinkGroupType?: (proto.Message.ExtendedTextMessage.InviteLinkGroupType|null);
@@ -8159,13 +8162,13 @@ export namespace proto {
 		}
 
 		interface IFullHistorySyncOnDemandConfig {
-			historyFromTimestamp?: (number|null);
+			historyFromTimestamp?: (Long|null);
 			historyDurationDays?: (number|null);
 		}
 
 		class FullHistorySyncOnDemandConfig implements IFullHistorySyncOnDemandConfig {
 			constructor(p?: IFullHistorySyncOnDemandConfig);
-			public historyFromTimestamp?: (number|null);
+			public historyFromTimestamp?: (Long|null);
 			public historyDurationDays?: (number|null);
 			public static create(p?: IFullHistorySyncOnDemandConfig): FullHistorySyncOnDemandConfig;
 			public static fromObject(d: { [k: string]: any }): FullHistorySyncOnDemandConfig;
@@ -8212,7 +8215,7 @@ export namespace proto {
 		interface IGroupInviteMessage {
 			groupJid?: (string|null);
 			inviteCode?: (string|null);
-			inviteExpiration?: (number|null);
+			inviteExpiration?: (Long|null);
 			groupName?: (string|null);
 			jpegThumbnail?: (Uint8Array|null);
 			caption?: (string|null);
@@ -8224,7 +8227,7 @@ export namespace proto {
 			constructor(p?: IGroupInviteMessage);
 			public groupJid?: (string|null);
 			public inviteCode?: (string|null);
-			public inviteExpiration?: (number|null);
+			public inviteExpiration?: (Long|null);
 			public groupName?: (string|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public caption?: (string|null);
@@ -8302,13 +8305,13 @@ export namespace proto {
 
 				interface IHSMCurrency {
 					currencyCode?: (string|null);
-					amount1000?: (number|null);
+					amount1000?: (Long|null);
 				}
 
 				class HSMCurrency implements IHSMCurrency {
 					constructor(p?: IHSMCurrency);
 					public currencyCode?: (string|null);
-					public amount1000?: (number|null);
+					public amount1000?: (Long|null);
 					public static create(p?: IHSMCurrency): HSMCurrency;
 					public static fromObject(d: { [k: string]: any }): HSMCurrency;
 					public static toObject(m: HSMCurrency, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -8382,12 +8385,12 @@ export namespace proto {
 					}
 
 					interface IHSMDateTimeUnixEpoch {
-						timestamp?: (number|null);
+						timestamp?: (Long|null);
 					}
 
 					class HSMDateTimeUnixEpoch implements IHSMDateTimeUnixEpoch {
 						constructor(p?: IHSMDateTimeUnixEpoch);
-						public timestamp?: (number|null);
+						public timestamp?: (Long|null);
 						public static create(p?: IHSMDateTimeUnixEpoch): HSMDateTimeUnixEpoch;
 						public static fromObject(d: { [k: string]: any }): HSMDateTimeUnixEpoch;
 						public static toObject(m: HSMDateTimeUnixEpoch, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -8416,7 +8419,7 @@ export namespace proto {
 
 		interface IHistorySyncNotification {
 			fileSha256?: (Uint8Array|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			mediaKey?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
@@ -8424,7 +8427,7 @@ export namespace proto {
 			chunkOrder?: (number|null);
 			originalMessageId?: (string|null);
 			progress?: (number|null);
-			oldestMsgInChunkTimestampSec?: (number|null);
+			oldestMsgInChunkTimestampSec?: (Long|null);
 			initialHistBootstrapInlinePayload?: (Uint8Array|null);
 			peerDataRequestSessionId?: (string|null);
 			fullHistorySyncOnDemandRequestMetadata?: (proto.Message.IFullHistorySyncOnDemandRequestMetadata|null);
@@ -8435,7 +8438,7 @@ export namespace proto {
 		class HistorySyncNotification implements IHistorySyncNotification {
 			constructor(p?: IHistorySyncNotification);
 			public fileSha256?: (Uint8Array|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public mediaKey?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
@@ -8443,7 +8446,7 @@ export namespace proto {
 			public chunkOrder?: (number|null);
 			public originalMessageId?: (string|null);
 			public progress?: (number|null);
-			public oldestMsgInChunkTimestampSec?: (number|null);
+			public oldestMsgInChunkTimestampSec?: (Long|null);
 			public initialHistBootstrapInlinePayload?: (Uint8Array|null);
 			public peerDataRequestSessionId?: (string|null);
 			public fullHistorySyncOnDemandRequestMetadata?: (proto.Message.IFullHistorySyncOnDemandRequestMetadata|null);
@@ -8474,14 +8477,14 @@ export namespace proto {
 			mimetype?: (string|null);
 			caption?: (string|null);
 			fileSha256?: (Uint8Array|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			height?: (number|null);
 			width?: (number|null);
 			mediaKey?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			interactiveAnnotations?: proto.IInteractiveAnnotation[];
 			directPath?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			jpegThumbnail?: (Uint8Array|null);
 			contextInfo?: (proto.IContextInfo|null);
 			firstScanSidecar?: (Uint8Array|null);
@@ -8508,14 +8511,14 @@ export namespace proto {
 			public mimetype?: (string|null);
 			public caption?: (string|null);
 			public fileSha256?: (Uint8Array|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public height?: (number|null);
 			public width?: (number|null);
 			public mediaKey?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public interactiveAnnotations?: proto.IInteractiveAnnotation[];
 			public directPath?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public firstScanSidecar?: (Uint8Array|null);
@@ -8886,7 +8889,7 @@ export namespace proto {
 			attachmentType?: (proto.Message.InvoiceMessage.AttachmentType|null);
 			attachmentMimetype?: (string|null);
 			attachmentMediaKey?: (Uint8Array|null);
-			attachmentMediaKeyTimestamp?: (number|null);
+			attachmentMediaKeyTimestamp?: (Long|null);
 			attachmentFileSha256?: (Uint8Array|null);
 			attachmentFileEncSha256?: (Uint8Array|null);
 			attachmentDirectPath?: (string|null);
@@ -8900,7 +8903,7 @@ export namespace proto {
 			public attachmentType?: (proto.Message.InvoiceMessage.AttachmentType|null);
 			public attachmentMimetype?: (string|null);
 			public attachmentMediaKey?: (Uint8Array|null);
-			public attachmentMediaKeyTimestamp?: (number|null);
+			public attachmentMediaKeyTimestamp?: (Long|null);
 			public attachmentFileSha256?: (Uint8Array|null);
 			public attachmentFileEncSha256?: (Uint8Array|null);
 			public attachmentDirectPath?: (string|null);
@@ -8924,14 +8927,14 @@ export namespace proto {
 		interface IKeepInChatMessage {
 			key?: (proto.IMessageKey|null);
 			keepType?: (proto.KeepType|null);
-			timestampMs?: (number|null);
+			timestampMs?: (Long|null);
 		}
 
 		class KeepInChatMessage implements IKeepInChatMessage {
 			constructor(p?: IKeepInChatMessage);
 			public key?: (proto.IMessageKey|null);
 			public keepType?: (proto.KeepType|null);
-			public timestampMs?: (number|null);
+			public timestampMs?: (Long|null);
 			public static create(p?: IKeepInChatMessage): KeepInChatMessage;
 			public static fromObject(d: { [k: string]: any }): KeepInChatMessage;
 			public static toObject(m: KeepInChatMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -9178,7 +9181,7 @@ export namespace proto {
 			speedInMps?: (number|null);
 			degreesClockwiseFromMagneticNorth?: (number|null);
 			caption?: (string|null);
-			sequenceNumber?: (number|null);
+			sequenceNumber?: (Long|null);
 			timeOffset?: (number|null);
 			jpegThumbnail?: (Uint8Array|null);
 			contextInfo?: (proto.IContextInfo|null);
@@ -9192,7 +9195,7 @@ export namespace proto {
 			public speedInMps?: (number|null);
 			public degreesClockwiseFromMagneticNorth?: (number|null);
 			public caption?: (string|null);
-			public sequenceNumber?: (number|null);
+			public sequenceNumber?: (Long|null);
 			public timeOffset?: (number|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public contextInfo?: (proto.IContextInfo|null);
@@ -9247,7 +9250,7 @@ export namespace proto {
 			mediaKey?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			contextInfo?: (proto.IContextInfo|null);
 			messageHistoryMetadata?: (proto.Message.IMessageHistoryMetadata|null);
 		}
@@ -9259,7 +9262,7 @@ export namespace proto {
 			public mediaKey?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public messageHistoryMetadata?: (proto.Message.IMessageHistoryMetadata|null);
 			public static create(p?: IMessageHistoryBundle): MessageHistoryBundle;
@@ -9272,19 +9275,19 @@ export namespace proto {
 
 		interface IMessageHistoryMetadata {
 			historyReceivers?: string[];
-			oldestMessageTimestampInWindow?: (number|null);
-			messageCount?: (number|null);
+			oldestMessageTimestampInWindow?: (Long|null);
+			messageCount?: (Long|null);
 			nonHistoryReceivers?: string[];
-			oldestMessageTimestampInBundle?: (number|null);
+			oldestMessageTimestampInBundle?: (Long|null);
 		}
 
 		class MessageHistoryMetadata implements IMessageHistoryMetadata {
 			constructor(p?: IMessageHistoryMetadata);
 			public historyReceivers?: string[];
-			public oldestMessageTimestampInWindow?: (number|null);
-			public messageCount?: (number|null);
+			public oldestMessageTimestampInWindow?: (Long|null);
+			public messageCount?: (Long|null);
 			public nonHistoryReceivers?: string[];
-			public oldestMessageTimestampInBundle?: (number|null);
+			public oldestMessageTimestampInBundle?: (Long|null);
 			public static create(p?: IMessageHistoryMetadata): MessageHistoryMetadata;
 			public static fromObject(d: { [k: string]: any }): MessageHistoryMetadata;
 			public static toObject(m: MessageHistoryMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -9315,7 +9318,7 @@ export namespace proto {
 			thumbnailSha256?: (Uint8Array|null);
 			thumbnailEncSha256?: (Uint8Array|null);
 			mediaKey?: (Uint8Array|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			thumbnailHeight?: (number|null);
 			thumbnailWidth?: (number|null);
 		}
@@ -9326,7 +9329,7 @@ export namespace proto {
 			public thumbnailSha256?: (Uint8Array|null);
 			public thumbnailEncSha256?: (Uint8Array|null);
 			public mediaKey?: (Uint8Array|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public thumbnailHeight?: (number|null);
 			public thumbnailWidth?: (number|null);
 			public static create(p?: IMMSThumbnailMetadata): MMSThumbnailMetadata;
@@ -9342,7 +9345,7 @@ export namespace proto {
 			newsletterName?: (string|null);
 			jpegThumbnail?: (Uint8Array|null);
 			caption?: (string|null);
-			inviteExpiration?: (number|null);
+			inviteExpiration?: (Long|null);
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
@@ -9352,7 +9355,7 @@ export namespace proto {
 			public newsletterName?: (string|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public caption?: (string|null);
-			public inviteExpiration?: (number|null);
+			public inviteExpiration?: (Long|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public static create(p?: INewsletterAdminInviteMessage): NewsletterAdminInviteMessage;
 			public static fromObject(d: { [k: string]: any }): NewsletterAdminInviteMessage;
@@ -9395,7 +9398,7 @@ export namespace proto {
 			orderTitle?: (string|null);
 			sellerJid?: (string|null);
 			token?: (string|null);
-			totalAmount1000?: (number|null);
+			totalAmount1000?: (Long|null);
 			totalCurrencyCode?: (string|null);
 			contextInfo?: (proto.IContextInfo|null);
 			messageVersion?: (number|null);
@@ -9414,7 +9417,7 @@ export namespace proto {
 			public orderTitle?: (string|null);
 			public sellerJid?: (string|null);
 			public token?: (string|null);
-			public totalAmount1000?: (number|null);
+			public totalAmount1000?: (Long|null);
 			public totalCurrencyCode?: (string|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public messageVersion?: (number|null);
@@ -9460,7 +9463,7 @@ export namespace proto {
 
 		interface IPaymentInviteMessage {
 			serviceType?: (proto.Message.PaymentInviteMessage.ServiceType|null);
-			expiryTimestamp?: (number|null);
+			expiryTimestamp?: (Long|null);
 			incentiveEligible?: (boolean|null);
 			referralId?: (string|null);
 			inviteType?: (proto.Message.PaymentInviteMessage.InviteType|null);
@@ -9469,7 +9472,7 @@ export namespace proto {
 		class PaymentInviteMessage implements IPaymentInviteMessage {
 			constructor(p?: IPaymentInviteMessage);
 			public serviceType?: (proto.Message.PaymentInviteMessage.ServiceType|null);
-			public expiryTimestamp?: (number|null);
+			public expiryTimestamp?: (Long|null);
 			public incentiveEligible?: (boolean|null);
 			public referralId?: (string|null);
 			public inviteType?: (proto.Message.PaymentInviteMessage.InviteType|null);
@@ -9782,7 +9785,7 @@ export namespace proto {
 				oldestMsgId?: (string|null);
 				oldestMsgFromMe?: (boolean|null);
 				onDemandMsgCount?: (number|null);
-				oldestMsgTimestampMs?: (number|null);
+				oldestMsgTimestampMs?: (Long|null);
 				accountLid?: (string|null);
 				supportInlineResponse?: (boolean|null);
 			}
@@ -9793,7 +9796,7 @@ export namespace proto {
 				public oldestMsgId?: (string|null);
 				public oldestMsgFromMe?: (boolean|null);
 				public onDemandMsgCount?: (number|null);
-				public oldestMsgTimestampMs?: (number|null);
+				public oldestMsgTimestampMs?: (Long|null);
 				public accountLid?: (string|null);
 				public supportInlineResponse?: (boolean|null);
 				public static create(p?: IHistorySyncOnDemandRequest): HistorySyncOnDemandRequest;
@@ -9853,13 +9856,13 @@ export namespace proto {
 
 			interface ISyncDCollectionFatalRecoveryRequest {
 				collectionName?: (string|null);
-				timestamp?: (number|null);
+				timestamp?: (Long|null);
 			}
 
 			class SyncDCollectionFatalRecoveryRequest implements ISyncDCollectionFatalRecoveryRequest {
 				constructor(p?: ISyncDCollectionFatalRecoveryRequest);
 				public collectionName?: (string|null);
-				public timestamp?: (number|null);
+				public timestamp?: (Long|null);
 				public static create(p?: ISyncDCollectionFatalRecoveryRequest): SyncDCollectionFatalRecoveryRequest;
 				public static fromObject(d: { [k: string]: any }): SyncDCollectionFatalRecoveryRequest;
 				public static toObject(m: SyncDCollectionFatalRecoveryRequest, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -9931,14 +9934,14 @@ export namespace proto {
 
 				interface IBizBroadcastInsightsContactListResponse {
 					campaignId?: (string|null);
-					timestampMs?: (number|null);
+					timestampMs?: (Long|null);
 					contacts?: proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.IBizBroadcastInsightsContactState[];
 				}
 
 				class BizBroadcastInsightsContactListResponse implements IBizBroadcastInsightsContactListResponse {
 					constructor(p?: IBizBroadcastInsightsContactListResponse);
 					public campaignId?: (string|null);
-					public timestampMs?: (number|null);
+					public timestampMs?: (Long|null);
 					public contacts?: proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.IBizBroadcastInsightsContactState[];
 					public static create(p?: IBizBroadcastInsightsContactListResponse): BizBroadcastInsightsContactListResponse;
 					public static fromObject(d: { [k: string]: any }): BizBroadcastInsightsContactListResponse;
@@ -10008,8 +10011,8 @@ export namespace proto {
 					mediaKey?: (Uint8Array|null);
 					fileEncSha256?: (Uint8Array|null);
 					directPath?: (string|null);
-					mediaKeyTimestamp?: (number|null);
-					fileLength?: (number|null);
+					mediaKeyTimestamp?: (Long|null);
+					fileLength?: (Long|null);
 				}
 
 				class FlowResponsesCsvBundle implements IFlowResponsesCsvBundle {
@@ -10022,8 +10025,8 @@ export namespace proto {
 					public mediaKey?: (Uint8Array|null);
 					public fileEncSha256?: (Uint8Array|null);
 					public directPath?: (string|null);
-					public mediaKeyTimestamp?: (number|null);
-					public fileLength?: (number|null);
+					public mediaKeyTimestamp?: (Long|null);
+					public fileLength?: (Long|null);
 					public static create(p?: IFlowResponsesCsvBundle): FlowResponsesCsvBundle;
 					public static fromObject(d: { [k: string]: any }): FlowResponsesCsvBundle;
 					public static toObject(m: FlowResponsesCsvBundle, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -10128,7 +10131,7 @@ export namespace proto {
 						thumbHash?: (string|null);
 						encThumbHash?: (string|null);
 						mediaKey?: (Uint8Array|null);
-						mediaKeyTimestampMs?: (number|null);
+						mediaKeyTimestampMs?: (Long|null);
 						thumbWidth?: (number|null);
 						thumbHeight?: (number|null);
 					}
@@ -10139,7 +10142,7 @@ export namespace proto {
 						public thumbHash?: (string|null);
 						public encThumbHash?: (string|null);
 						public mediaKey?: (Uint8Array|null);
-						public mediaKeyTimestampMs?: (number|null);
+						public mediaKeyTimestampMs?: (Long|null);
 						public thumbWidth?: (number|null);
 						public thumbHeight?: (number|null);
 						public static create(p?: ILinkPreviewHighQualityThumbnail): LinkPreviewHighQualityThumbnail;
@@ -10245,14 +10248,14 @@ export namespace proto {
 		interface IPinInChatMessage {
 			key?: (proto.IMessageKey|null);
 			type?: (proto.Message.PinInChatMessage.Type|null);
-			senderTimestampMs?: (number|null);
+			senderTimestampMs?: (Long|null);
 		}
 
 		class PinInChatMessage implements IPinInChatMessage {
 			constructor(p?: IPinInChatMessage);
 			public key?: (proto.IMessageKey|null);
 			public type?: (proto.Message.PinInChatMessage.Type|null);
-			public senderTimestampMs?: (number|null);
+			public senderTimestampMs?: (Long|null);
 			public static create(p?: IPinInChatMessage): PinInChatMessage;
 			public static fromObject(d: { [k: string]: any }): PinInChatMessage;
 			public static toObject(m: PinInChatMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -10326,7 +10329,7 @@ export namespace proto {
 			pollContentType?: (proto.Message.PollContentType|null);
 			pollType?: (proto.Message.PollType|null);
 			correctAnswer?: (proto.Message.PollCreationMessage.IOption|null);
-			endTime?: (number|null);
+			endTime?: (Long|null);
 			hideParticipantName?: (boolean|null);
 			allowAddOption?: (boolean|null);
 		}
@@ -10341,7 +10344,7 @@ export namespace proto {
 			public pollContentType?: (proto.Message.PollContentType|null);
 			public pollType?: (proto.Message.PollType|null);
 			public correctAnswer?: (proto.Message.PollCreationMessage.IOption|null);
-			public endTime?: (number|null);
+			public endTime?: (Long|null);
 			public hideParticipantName?: (boolean|null);
 			public allowAddOption?: (boolean|null);
 			public static create(p?: IPollCreationMessage): PollCreationMessage;
@@ -10414,13 +10417,13 @@ export namespace proto {
 
 			interface IPollVote {
 				optionName?: (string|null);
-				optionVoteCount?: (number|null);
+				optionVoteCount?: (Long|null);
 			}
 
 			class PollVote implements IPollVote {
 				constructor(p?: IPollVote);
 				public optionName?: (string|null);
-				public optionVoteCount?: (number|null);
+				public optionVoteCount?: (Long|null);
 				public static create(p?: IPollVote): PollVote;
 				public static fromObject(d: { [k: string]: any }): PollVote;
 				public static toObject(m: PollVote, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -10439,7 +10442,7 @@ export namespace proto {
 			pollCreationMessageKey?: (proto.IMessageKey|null);
 			vote?: (proto.Message.IPollEncValue|null);
 			metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
-			senderTimestampMs?: (number|null);
+			senderTimestampMs?: (Long|null);
 		}
 
 		class PollUpdateMessage implements IPollUpdateMessage {
@@ -10447,7 +10450,7 @@ export namespace proto {
 			public pollCreationMessageKey?: (proto.IMessageKey|null);
 			public vote?: (proto.Message.IPollEncValue|null);
 			public metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
-			public senderTimestampMs?: (number|null);
+			public senderTimestampMs?: (Long|null);
 			public static create(p?: IPollUpdateMessage): PollUpdateMessage;
 			public static fromObject(d: { [k: string]: any }): PollUpdateMessage;
 			public static toObject(m: PollUpdateMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -10540,12 +10543,12 @@ export namespace proto {
 				title?: (string|null);
 				description?: (string|null);
 				currencyCode?: (string|null);
-				priceAmount1000?: (number|null);
+				priceAmount1000?: (Long|null);
 				retailerId?: (string|null);
 				url?: (string|null);
 				productImageCount?: (number|null);
 				firstImageId?: (string|null);
-				salePriceAmount1000?: (number|null);
+				salePriceAmount1000?: (Long|null);
 				signedUrl?: (string|null);
 			}
 
@@ -10556,12 +10559,12 @@ export namespace proto {
 				public title?: (string|null);
 				public description?: (string|null);
 				public currencyCode?: (string|null);
-				public priceAmount1000?: (number|null);
+				public priceAmount1000?: (Long|null);
 				public retailerId?: (string|null);
 				public url?: (string|null);
 				public productImageCount?: (number|null);
 				public firstImageId?: (string|null);
-				public salePriceAmount1000?: (number|null);
+				public salePriceAmount1000?: (Long|null);
 				public signedUrl?: (string|null);
 				public static create(p?: IProductSnapshot): ProductSnapshot;
 				public static fromObject(d: { [k: string]: any }): ProductSnapshot;
@@ -10576,7 +10579,7 @@ export namespace proto {
 			key?: (proto.IMessageKey|null);
 			type?: (proto.Message.ProtocolMessage.Type|null);
 			ephemeralExpiration?: (number|null);
-			ephemeralSettingTimestamp?: (number|null);
+			ephemeralSettingTimestamp?: (Long|null);
 			historySyncNotification?: (proto.Message.IHistorySyncNotification|null);
 			appStateSyncKeyShare?: (proto.Message.IAppStateSyncKeyShare|null);
 			appStateSyncKeyRequest?: (proto.Message.IAppStateSyncKeyRequest|null);
@@ -10584,7 +10587,7 @@ export namespace proto {
 			appStateFatalExceptionNotification?: (proto.Message.IAppStateFatalExceptionNotification|null);
 			disappearingMode?: (proto.IDisappearingMode|null);
 			editedMessage?: (proto.IMessage|null);
-			timestampMs?: (number|null);
+			timestampMs?: (Long|null);
 			peerDataOperationRequestMessage?: (proto.Message.IPeerDataOperationRequestMessage|null);
 			peerDataOperationRequestResponseMessage?: (proto.Message.IPeerDataOperationRequestResponseMessage|null);
 			botFeedbackMessage?: (proto.IBotFeedbackMessage|null);
@@ -10608,7 +10611,7 @@ export namespace proto {
 			public key?: (proto.IMessageKey|null);
 			public type?: (proto.Message.ProtocolMessage.Type|null);
 			public ephemeralExpiration?: (number|null);
-			public ephemeralSettingTimestamp?: (number|null);
+			public ephemeralSettingTimestamp?: (Long|null);
 			public historySyncNotification?: (proto.Message.IHistorySyncNotification|null);
 			public appStateSyncKeyShare?: (proto.Message.IAppStateSyncKeyShare|null);
 			public appStateSyncKeyRequest?: (proto.Message.IAppStateSyncKeyRequest|null);
@@ -10616,7 +10619,7 @@ export namespace proto {
 			public appStateFatalExceptionNotification?: (proto.Message.IAppStateFatalExceptionNotification|null);
 			public disappearingMode?: (proto.IDisappearingMode|null);
 			public editedMessage?: (proto.IMessage|null);
-			public timestampMs?: (number|null);
+			public timestampMs?: (Long|null);
 			public peerDataOperationRequestMessage?: (proto.Message.IPeerDataOperationRequestMessage|null);
 			public peerDataOperationRequestResponseMessage?: (proto.Message.IPeerDataOperationRequestResponseMessage|null);
 			public botFeedbackMessage?: (proto.IBotFeedbackMessage|null);
@@ -10698,7 +10701,7 @@ export namespace proto {
 			key?: (proto.IMessageKey|null);
 			text?: (string|null);
 			groupingKey?: (string|null);
-			senderTimestampMs?: (number|null);
+			senderTimestampMs?: (Long|null);
 		}
 
 		class ReactionMessage implements IReactionMessage {
@@ -10706,7 +10709,7 @@ export namespace proto {
 			public key?: (proto.IMessageKey|null);
 			public text?: (string|null);
 			public groupingKey?: (string|null);
-			public senderTimestampMs?: (number|null);
+			public senderTimestampMs?: (Long|null);
 			public static create(p?: IReactionMessage): ReactionMessage;
 			public static fromObject(d: { [k: string]: any }): ReactionMessage;
 			public static toObject(m: ReactionMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -10718,9 +10721,9 @@ export namespace proto {
 		interface IRequestPaymentMessage {
 			noteMessage?: (proto.IMessage|null);
 			currencyCodeIso4217?: (string|null);
-			amount1000?: (number|null);
+			amount1000?: (Long|null);
 			requestFrom?: (string|null);
-			expiryTimestamp?: (number|null);
+			expiryTimestamp?: (Long|null);
 			amount?: (proto.IMoney|null);
 			background?: (proto.IPaymentBackground|null);
 		}
@@ -10729,9 +10732,9 @@ export namespace proto {
 			constructor(p?: IRequestPaymentMessage);
 			public noteMessage?: (proto.IMessage|null);
 			public currencyCodeIso4217?: (string|null);
-			public amount1000?: (number|null);
+			public amount1000?: (Long|null);
 			public requestFrom?: (string|null);
-			public expiryTimestamp?: (number|null);
+			public expiryTimestamp?: (Long|null);
 			public amount?: (proto.IMoney|null);
 			public background?: (proto.IPaymentBackground|null);
 			public static create(p?: IRequestPaymentMessage): RequestPaymentMessage;
@@ -10805,14 +10808,14 @@ export namespace proto {
 		}
 
 		interface IScheduledCallCreationMessage {
-			scheduledTimestampMs?: (number|null);
+			scheduledTimestampMs?: (Long|null);
 			callType?: (proto.Message.ScheduledCallCreationMessage.CallType|null);
 			title?: (string|null);
 		}
 
 		class ScheduledCallCreationMessage implements IScheduledCallCreationMessage {
 			constructor(p?: IScheduledCallCreationMessage);
-			public scheduledTimestampMs?: (number|null);
+			public scheduledTimestampMs?: (Long|null);
 			public callType?: (proto.Message.ScheduledCallCreationMessage.CallType|null);
 			public title?: (string|null);
 			public static create(p?: IScheduledCallCreationMessage): ScheduledCallCreationMessage;
@@ -10936,7 +10939,7 @@ export namespace proto {
 			description?: (string|null);
 			requesterJid?: (string|null);
 			participants?: proto.Message.ISplitPaymentParticipant[];
-			createdAtMs?: (number|null);
+			createdAtMs?: (Long|null);
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
@@ -10947,7 +10950,7 @@ export namespace proto {
 			public description?: (string|null);
 			public requesterJid?: (string|null);
 			public participants?: proto.Message.ISplitPaymentParticipant[];
-			public createdAtMs?: (number|null);
+			public createdAtMs?: (Long|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public static create(p?: ISplitPaymentMessage): SplitPaymentMessage;
 			public static fromObject(d: { [k: string]: any }): SplitPaymentMessage;
@@ -11094,14 +11097,14 @@ export namespace proto {
 			height?: (number|null);
 			width?: (number|null);
 			directPath?: (string|null);
-			fileLength?: (number|null);
-			mediaKeyTimestamp?: (number|null);
+			fileLength?: (Long|null);
+			mediaKeyTimestamp?: (Long|null);
 			firstFrameLength?: (number|null);
 			firstFrameSidecar?: (Uint8Array|null);
 			isAnimated?: (boolean|null);
 			pngThumbnail?: (Uint8Array|null);
 			contextInfo?: (proto.IContextInfo|null);
-			stickerSentTs?: (number|null);
+			stickerSentTs?: (Long|null);
 			isAvatar?: (boolean|null);
 			isAiSticker?: (boolean|null);
 			isLottie?: (boolean|null);
@@ -11120,14 +11123,14 @@ export namespace proto {
 			public height?: (number|null);
 			public width?: (number|null);
 			public directPath?: (string|null);
-			public fileLength?: (number|null);
-			public mediaKeyTimestamp?: (number|null);
+			public fileLength?: (Long|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public firstFrameLength?: (number|null);
 			public firstFrameSidecar?: (Uint8Array|null);
 			public isAnimated?: (boolean|null);
 			public pngThumbnail?: (Uint8Array|null);
 			public contextInfo?: (proto.IContextInfo|null);
-			public stickerSentTs?: (number|null);
+			public stickerSentTs?: (Long|null);
 			public isAvatar?: (boolean|null);
 			public isAiSticker?: (boolean|null);
 			public isLottie?: (boolean|null);
@@ -11147,7 +11150,7 @@ export namespace proto {
 			name?: (string|null);
 			publisher?: (string|null);
 			stickers?: proto.Message.StickerPackMessage.ISticker[];
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			fileSha256?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			mediaKey?: (Uint8Array|null);
@@ -11155,7 +11158,7 @@ export namespace proto {
 			caption?: (string|null);
 			contextInfo?: (proto.IContextInfo|null);
 			packDescription?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			trayIconFileName?: (string|null);
 			thumbnailDirectPath?: (string|null);
 			thumbnailSha256?: (Uint8Array|null);
@@ -11163,7 +11166,7 @@ export namespace proto {
 			thumbnailHeight?: (number|null);
 			thumbnailWidth?: (number|null);
 			imageDataHash?: (string|null);
-			stickerPackSize?: (number|null);
+			stickerPackSize?: (Long|null);
 			stickerPackOrigin?: (proto.Message.StickerPackMessage.StickerPackOrigin|null);
 		}
 
@@ -11173,7 +11176,7 @@ export namespace proto {
 			public name?: (string|null);
 			public publisher?: (string|null);
 			public stickers?: proto.Message.StickerPackMessage.ISticker[];
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public fileSha256?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public mediaKey?: (Uint8Array|null);
@@ -11181,7 +11184,7 @@ export namespace proto {
 			public caption?: (string|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public packDescription?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public trayIconFileName?: (string|null);
 			public thumbnailDirectPath?: (string|null);
 			public thumbnailSha256?: (Uint8Array|null);
@@ -11189,7 +11192,7 @@ export namespace proto {
 			public thumbnailHeight?: (number|null);
 			public thumbnailWidth?: (number|null);
 			public imageDataHash?: (string|null);
-			public stickerPackSize?: (number|null);
+			public stickerPackSize?: (Long|null);
 			public stickerPackOrigin?: (proto.Message.StickerPackMessage.StickerPackOrigin|null);
 			public static create(p?: IStickerPackMessage): StickerPackMessage;
 			public static fromObject(d: { [k: string]: any }): StickerPackMessage;
@@ -11238,14 +11241,14 @@ export namespace proto {
 		interface IStickerSyncRMRMessage {
 			filehash?: string[];
 			rmrSource?: (string|null);
-			requestTimestamp?: (number|null);
+			requestTimestamp?: (Long|null);
 		}
 
 		class StickerSyncRMRMessage implements IStickerSyncRMRMessage {
 			constructor(p?: IStickerSyncRMRMessage);
 			public filehash?: string[];
 			public rmrSource?: (string|null);
-			public requestTimestamp?: (number|null);
+			public requestTimestamp?: (Long|null);
 			public static create(p?: IStickerSyncRMRMessage): StickerSyncRMRMessage;
 			public static fromObject(d: { [k: string]: any }): StickerSyncRMRMessage;
 			public static toObject(m: StickerSyncRMRMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -11407,7 +11410,7 @@ export namespace proto {
 			url?: (string|null);
 			mimetype?: (string|null);
 			fileSha256?: (Uint8Array|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			seconds?: (number|null);
 			mediaKey?: (Uint8Array|null);
 			caption?: (string|null);
@@ -11417,7 +11420,7 @@ export namespace proto {
 			fileEncSha256?: (Uint8Array|null);
 			interactiveAnnotations?: proto.IInteractiveAnnotation[];
 			directPath?: (string|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			jpegThumbnail?: (Uint8Array|null);
 			contextInfo?: (proto.IContextInfo|null);
 			streamingSidecar?: (Uint8Array|null);
@@ -11431,7 +11434,7 @@ export namespace proto {
 			accessibilityLabel?: (string|null);
 			processedVideos?: proto.IProcessedVideo[];
 			externalShareFullVideoDurationInSeconds?: (number|null);
-			motionPhotoPresentationOffsetMs?: (number|null);
+			motionPhotoPresentationOffsetMs?: (Long|null);
 			metadataUrl?: (string|null);
 			videoSourceType?: (proto.Message.VideoMessage.VideoSourceType|null);
 		}
@@ -11441,7 +11444,7 @@ export namespace proto {
 			public url?: (string|null);
 			public mimetype?: (string|null);
 			public fileSha256?: (Uint8Array|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public seconds?: (number|null);
 			public mediaKey?: (Uint8Array|null);
 			public caption?: (string|null);
@@ -11451,7 +11454,7 @@ export namespace proto {
 			public fileEncSha256?: (Uint8Array|null);
 			public interactiveAnnotations?: proto.IInteractiveAnnotation[];
 			public directPath?: (string|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public jpegThumbnail?: (Uint8Array|null);
 			public contextInfo?: (proto.IContextInfo|null);
 			public streamingSidecar?: (Uint8Array|null);
@@ -11465,7 +11468,7 @@ export namespace proto {
 			public accessibilityLabel?: (string|null);
 			public processedVideos?: proto.IProcessedVideo[];
 			public externalShareFullVideoDurationInSeconds?: (number|null);
-			public motionPhotoPresentationOffsetMs?: (number|null);
+			public motionPhotoPresentationOffsetMs?: (Long|null);
 			public metadataUrl?: (string|null);
 			public videoSourceType?: (proto.Message.VideoMessage.VideoSourceType|null);
 			public static create(p?: IVideoMessage): VideoMessage;
@@ -11495,8 +11498,8 @@ export namespace proto {
 	interface IMessageAddOn {
 		messageAddOnType?: (proto.MessageAddOn.MessageAddOnType|null);
 		messageAddOn?: (proto.IMessage|null);
-		senderTimestampMs?: (number|null);
-		serverTimestampMs?: (number|null);
+		senderTimestampMs?: (Long|null);
+		serverTimestampMs?: (Long|null);
 		status?: (proto.WebMessageInfo.Status|null);
 		addOnContextInfo?: (proto.IMessageAddOnContextInfo|null);
 		messageAddOnKey?: (proto.IMessageKey|null);
@@ -11507,8 +11510,8 @@ export namespace proto {
 		constructor(p?: IMessageAddOn);
 		public messageAddOnType?: (proto.MessageAddOn.MessageAddOnType|null);
 		public messageAddOn?: (proto.IMessage|null);
-		public senderTimestampMs?: (number|null);
-		public serverTimestampMs?: (number|null);
+		public senderTimestampMs?: (Long|null);
+		public serverTimestampMs?: (Long|null);
 		public status?: (proto.WebMessageInfo.Status|null);
 		public addOnContextInfo?: (proto.IMessageAddOnContextInfo|null);
 		public messageAddOnKey?: (proto.IMessageKey|null);
@@ -11712,14 +11715,14 @@ export namespace proto {
 	}
 
 	interface IMoney {
-		value?: (number|null);
+		value?: (Long|null);
 		offset?: (number|null);
 		currencyCode?: (string|null);
 	}
 
 	class Money implements IMoney {
 		constructor(p?: IMoney);
-		public value?: (number|null);
+		public value?: (Long|null);
 		public offset?: (number|null);
 		public currencyCode?: (string|null);
 		public static create(p?: IMoney): Money;
@@ -11749,7 +11752,7 @@ export namespace proto {
 		pollSelectableOptionsCount?: (number|null);
 		messageSecret?: (Uint8Array|null);
 		originalSelfAuthor?: (string|null);
-		senderTimestampMs?: (number|null);
+		senderTimestampMs?: (Long|null);
 		pollUpdateParentKey?: (string|null);
 		encPollVote?: (proto.IPollEncValue|null);
 		isSentCagPollCreation?: (boolean|null);
@@ -11768,20 +11771,20 @@ export namespace proto {
 		isEventCanceled?: (boolean|null);
 		eventDescription?: (string|null);
 		eventJoinLink?: (string|null);
-		eventStartTime?: (number|null);
+		eventStartTime?: (Long|null);
 		eventLocation?: (proto.MsgOpaqueData.IEventLocation|null);
-		eventEndTime?: (number|null);
+		eventEndTime?: (Long|null);
 		eventIsScheduledCall?: (boolean|null);
 		eventExtraGuestsAllowed?: (boolean|null);
 		plainProtobufBytes?: (Uint8Array|null);
 		quarantineExtractedText?: (string|null);
-		pollEndTime?: (number|null);
+		pollEndTime?: (Long|null);
 		pollHideVoterNames?: (boolean|null);
 		pollAllowAddOption?: (boolean|null);
 		sharableEventInviteId?: (string|null);
 		sharableEventInviteTitle?: (string|null);
-		sharableEventInviteStartTime?: (number|null);
-		sharableEventInviteEndTime?: (number|null);
+		sharableEventInviteStartTime?: (Long|null);
+		sharableEventInviteEndTime?: (Long|null);
 		sharableEventInviteCaption?: (string|null);
 		sharableEventInviteIsCanceled?: (boolean|null);
 		sharableEventInviteJpegThumbnail?: (Uint8Array|null);
@@ -11808,7 +11811,7 @@ export namespace proto {
 		public pollSelectableOptionsCount?: (number|null);
 		public messageSecret?: (Uint8Array|null);
 		public originalSelfAuthor?: (string|null);
-		public senderTimestampMs?: (number|null);
+		public senderTimestampMs?: (Long|null);
 		public pollUpdateParentKey?: (string|null);
 		public encPollVote?: (proto.IPollEncValue|null);
 		public isSentCagPollCreation?: (boolean|null);
@@ -11827,20 +11830,20 @@ export namespace proto {
 		public isEventCanceled?: (boolean|null);
 		public eventDescription?: (string|null);
 		public eventJoinLink?: (string|null);
-		public eventStartTime?: (number|null);
+		public eventStartTime?: (Long|null);
 		public eventLocation?: (proto.MsgOpaqueData.IEventLocation|null);
-		public eventEndTime?: (number|null);
+		public eventEndTime?: (Long|null);
 		public eventIsScheduledCall?: (boolean|null);
 		public eventExtraGuestsAllowed?: (boolean|null);
 		public plainProtobufBytes?: (Uint8Array|null);
 		public quarantineExtractedText?: (string|null);
-		public pollEndTime?: (number|null);
+		public pollEndTime?: (Long|null);
 		public pollHideVoterNames?: (boolean|null);
 		public pollAllowAddOption?: (boolean|null);
 		public sharableEventInviteId?: (string|null);
 		public sharableEventInviteTitle?: (string|null);
-		public sharableEventInviteStartTime?: (number|null);
-		public sharableEventInviteEndTime?: (number|null);
+		public sharableEventInviteStartTime?: (Long|null);
+		public sharableEventInviteEndTime?: (Long|null);
 		public sharableEventInviteCaption?: (string|null);
 		public sharableEventInviteIsCanceled?: (boolean|null);
 		public sharableEventInviteJpegThumbnail?: (Uint8Array|null);
@@ -12069,7 +12072,7 @@ export namespace proto {
 		interface IDetails {
 			serial?: (number|null);
 			issuer?: (string|null);
-			expires?: (number|null);
+			expires?: (Long|null);
 			subject?: (string|null);
 			key?: (Uint8Array|null);
 		}
@@ -12078,7 +12081,7 @@ export namespace proto {
 			constructor(p?: IDetails);
 			public serial?: (number|null);
 			public issuer?: (string|null);
-			public expires?: (number|null);
+			public expires?: (Long|null);
 			public subject?: (string|null);
 			public key?: (Uint8Array|null);
 			public static create(p?: IDetails): Details;
@@ -12093,7 +12096,7 @@ export namespace proto {
 	interface INotificationMessageInfo {
 		key?: (proto.IMessageKey|null);
 		message?: (proto.IMessage|null);
-		messageTimestamp?: (number|null);
+		messageTimestamp?: (Long|null);
 		participant?: (string|null);
 	}
 
@@ -12101,7 +12104,7 @@ export namespace proto {
 		constructor(p?: INotificationMessageInfo);
 		public key?: (proto.IMessageKey|null);
 		public message?: (proto.IMessage|null);
-		public messageTimestamp?: (number|null);
+		public messageTimestamp?: (Long|null);
 		public participant?: (string|null);
 		public static create(p?: INotificationMessageInfo): NotificationMessageInfo;
 		public static fromObject(d: { [k: string]: any }): NotificationMessageInfo;
@@ -12192,14 +12195,14 @@ export namespace proto {
 	interface IPastParticipant {
 		userJid?: (string|null);
 		leaveReason?: (proto.PastParticipant.LeaveReason|null);
-		leaveTs?: (number|null);
+		leaveTs?: (Long|null);
 	}
 
 	class PastParticipant implements IPastParticipant {
 		constructor(p?: IPastParticipant);
 		public userJid?: (string|null);
 		public leaveReason?: (proto.PastParticipant.LeaveReason|null);
-		public leaveTs?: (number|null);
+		public leaveTs?: (Long|null);
 		public static create(p?: IPastParticipant): PastParticipant;
 		public static fromObject(d: { [k: string]: any }): PastParticipant;
 		public static toObject(m: PastParticipant, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -12288,7 +12291,7 @@ export namespace proto {
 
 	interface IPaymentBackground {
 		id?: (string|null);
-		fileLength?: (number|null);
+		fileLength?: (Long|null);
 		width?: (number|null);
 		height?: (number|null);
 		mimetype?: (string|null);
@@ -12302,7 +12305,7 @@ export namespace proto {
 	class PaymentBackground implements IPaymentBackground {
 		constructor(p?: IPaymentBackground);
 		public id?: (string|null);
-		public fileLength?: (number|null);
+		public fileLength?: (Long|null);
 		public width?: (number|null);
 		public height?: (number|null);
 		public mimetype?: (string|null);
@@ -12323,7 +12326,7 @@ export namespace proto {
 
 		interface IMediaData {
 			mediaKey?: (Uint8Array|null);
-			mediaKeyTimestamp?: (number|null);
+			mediaKeyTimestamp?: (Long|null);
 			fileSha256?: (Uint8Array|null);
 			fileEncSha256?: (Uint8Array|null);
 			directPath?: (string|null);
@@ -12332,7 +12335,7 @@ export namespace proto {
 		class MediaData implements IMediaData {
 			constructor(p?: IMediaData);
 			public mediaKey?: (Uint8Array|null);
-			public mediaKeyTimestamp?: (number|null);
+			public mediaKeyTimestamp?: (Long|null);
 			public fileSha256?: (Uint8Array|null);
 			public fileEncSha256?: (Uint8Array|null);
 			public directPath?: (string|null);
@@ -12352,12 +12355,12 @@ export namespace proto {
 
 	interface IPaymentInfo {
 		currencyDeprecated?: (proto.PaymentInfo.Currency|null);
-		amount1000?: (number|null);
+		amount1000?: (Long|null);
 		receiverJid?: (string|null);
 		status?: (proto.PaymentInfo.Status|null);
-		transactionTimestamp?: (number|null);
+		transactionTimestamp?: (Long|null);
 		requestMessageKey?: (proto.IMessageKey|null);
-		expiryTimestamp?: (number|null);
+		expiryTimestamp?: (Long|null);
 		futureproofed?: (boolean|null);
 		currency?: (string|null);
 		txnStatus?: (proto.PaymentInfo.TxnStatus|null);
@@ -12369,12 +12372,12 @@ export namespace proto {
 	class PaymentInfo implements IPaymentInfo {
 		constructor(p?: IPaymentInfo);
 		public currencyDeprecated?: (proto.PaymentInfo.Currency|null);
-		public amount1000?: (number|null);
+		public amount1000?: (Long|null);
 		public receiverJid?: (string|null);
 		public status?: (proto.PaymentInfo.Status|null);
-		public transactionTimestamp?: (number|null);
+		public transactionTimestamp?: (Long|null);
 		public requestMessageKey?: (proto.IMessageKey|null);
-		public expiryTimestamp?: (number|null);
+		public expiryTimestamp?: (Long|null);
 		public futureproofed?: (boolean|null);
 		public currency?: (string|null);
 		public txnStatus?: (proto.PaymentInfo.TxnStatus|null);
@@ -12486,8 +12489,8 @@ export namespace proto {
 	interface IPinInChat {
 		type?: (proto.PinInChat.Type|null);
 		key?: (proto.IMessageKey|null);
-		senderTimestampMs?: (number|null);
-		serverTimestampMs?: (number|null);
+		senderTimestampMs?: (Long|null);
+		serverTimestampMs?: (Long|null);
 		messageAddOnContextInfo?: (proto.IMessageAddOnContextInfo|null);
 	}
 
@@ -12495,8 +12498,8 @@ export namespace proto {
 		constructor(p?: IPinInChat);
 		public type?: (proto.PinInChat.Type|null);
 		public key?: (proto.IMessageKey|null);
-		public senderTimestampMs?: (number|null);
-		public serverTimestampMs?: (number|null);
+		public senderTimestampMs?: (Long|null);
+		public serverTimestampMs?: (Long|null);
 		public messageAddOnContextInfo?: (proto.IMessageAddOnContextInfo|null);
 		public static create(p?: IPinInChat): PinInChat;
 		public static fromObject(d: { [k: string]: any }): PinInChat;
@@ -12593,8 +12596,8 @@ export namespace proto {
 	interface IPollUpdate {
 		pollUpdateMessageKey?: (proto.IMessageKey|null);
 		vote?: (proto.Message.IPollVoteMessage|null);
-		senderTimestampMs?: (number|null);
-		serverTimestampMs?: (number|null);
+		senderTimestampMs?: (Long|null);
+		serverTimestampMs?: (Long|null);
 		unread?: (boolean|null);
 		metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
 	}
@@ -12603,8 +12606,8 @@ export namespace proto {
 		constructor(p?: IPollUpdate);
 		public pollUpdateMessageKey?: (proto.IMessageKey|null);
 		public vote?: (proto.Message.IPollVoteMessage|null);
-		public senderTimestampMs?: (number|null);
-		public serverTimestampMs?: (number|null);
+		public senderTimestampMs?: (Long|null);
+		public serverTimestampMs?: (Long|null);
 		public unread?: (boolean|null);
 		public metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
 		public static create(p?: IPollUpdate): PollUpdate;
@@ -12706,7 +12709,7 @@ export namespace proto {
 		fileSha256?: (Uint8Array|null);
 		height?: (number|null);
 		width?: (number|null);
-		fileLength?: (number|null);
+		fileLength?: (Long|null);
 		bitrate?: (number|null);
 		quality?: (proto.ProcessedVideo.VideoQuality|null);
 		capabilities?: string[];
@@ -12718,7 +12721,7 @@ export namespace proto {
 		public fileSha256?: (Uint8Array|null);
 		public height?: (number|null);
 		public width?: (number|null);
-		public fileLength?: (number|null);
+		public fileLength?: (Long|null);
 		public bitrate?: (number|null);
 		public quality?: (proto.ProcessedVideo.VideoQuality|null);
 		public capabilities?: string[];
@@ -12885,7 +12888,7 @@ export namespace proto {
 		key?: (proto.IMessageKey|null);
 		text?: (string|null);
 		groupingKey?: (string|null);
-		senderTimestampMs?: (number|null);
+		senderTimestampMs?: (Long|null);
 		unread?: (boolean|null);
 	}
 
@@ -12894,7 +12897,7 @@ export namespace proto {
 		public key?: (proto.IMessageKey|null);
 		public text?: (string|null);
 		public groupingKey?: (string|null);
-		public senderTimestampMs?: (number|null);
+		public senderTimestampMs?: (Long|null);
 		public unread?: (boolean|null);
 		public static create(p?: IReaction): Reaction;
 		public static fromObject(d: { [k: string]: any }): Reaction;
@@ -13002,14 +13005,14 @@ export namespace proto {
 	interface IScheduledMessageMetadata {
 		revealKeyId?: (string|null);
 		revealKey?: (Uint8Array|null);
-		scheduledTime?: (number|null);
+		scheduledTime?: (Long|null);
 	}
 
 	class ScheduledMessageMetadata implements IScheduledMessageMetadata {
 		constructor(p?: IScheduledMessageMetadata);
 		public revealKeyId?: (string|null);
 		public revealKey?: (Uint8Array|null);
-		public scheduledTime?: (number|null);
+		public scheduledTime?: (Long|null);
 		public static create(p?: IScheduledMessageMetadata): ScheduledMessageMetadata;
 		public static fromObject(d: { [k: string]: any }): ScheduledMessageMetadata;
 		public static toObject(m: ScheduledMessageMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -13367,7 +13370,7 @@ export namespace proto {
 		publicKey?: (Uint8Array|null);
 		privateKey?: (Uint8Array|null);
 		signature?: (Uint8Array|null);
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 	}
 
 	class SignedPreKeyRecordStructure implements ISignedPreKeyRecordStructure {
@@ -13376,7 +13379,7 @@ export namespace proto {
 		public publicKey?: (Uint8Array|null);
 		public privateKey?: (Uint8Array|null);
 		public signature?: (Uint8Array|null);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public static create(p?: ISignedPreKeyRecordStructure): SignedPreKeyRecordStructure;
 		public static fromObject(d: { [k: string]: any }): SignedPreKeyRecordStructure;
 		public static toObject(m: SignedPreKeyRecordStructure, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -13625,14 +13628,14 @@ export namespace proto {
 	}
 
 	interface IStatusPSA {
-		campaignId?: (number|null);
-		campaignExpirationTimestamp?: (number|null);
+		campaignId?: (Long|null);
+		campaignExpirationTimestamp?: (Long|null);
 	}
 
 	class StatusPSA implements IStatusPSA {
 		constructor(p?: IStatusPSA);
-		public campaignId?: (number|null);
-		public campaignExpirationTimestamp?: (number|null);
+		public campaignId?: (Long|null);
+		public campaignExpirationTimestamp?: (Long|null);
 		public static create(p?: IStatusPSA): StatusPSA;
 		public static fromObject(d: { [k: string]: any }): StatusPSA;
 		public static toObject(m: StatusPSA, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -13650,9 +13653,9 @@ export namespace proto {
 		height?: (number|null);
 		width?: (number|null);
 		directPath?: (string|null);
-		fileLength?: (number|null);
+		fileLength?: (Long|null);
 		weight?: (number|null);
-		lastStickerSentTs?: (number|null);
+		lastStickerSentTs?: (Long|null);
 		isLottie?: (boolean|null);
 		imageHash?: (string|null);
 		isAvatarSticker?: (boolean|null);
@@ -13668,9 +13671,9 @@ export namespace proto {
 		public height?: (number|null);
 		public width?: (number|null);
 		public directPath?: (string|null);
-		public fileLength?: (number|null);
+		public fileLength?: (Long|null);
 		public weight?: (number|null);
-		public lastStickerSentTs?: (number|null);
+		public lastStickerSentTs?: (Long|null);
 		public isLottie?: (boolean|null);
 		public imageHash?: (string|null);
 		public isAvatarSticker?: (boolean|null);
@@ -13721,7 +13724,7 @@ export namespace proto {
 	}
 
 	interface ISyncActionValue {
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 		starAction?: (proto.SyncActionValue.IStarAction|null);
 		contactAction?: (proto.SyncActionValue.IContactAction|null);
 		muteAction?: (proto.SyncActionValue.IMuteAction|null);
@@ -13805,7 +13808,7 @@ export namespace proto {
 
 	class SyncActionValue implements ISyncActionValue {
 		constructor(p?: ISyncActionValue);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public starAction?: (proto.SyncActionValue.IStarAction|null);
 		public contactAction?: (proto.SyncActionValue.IContactAction|null);
 		public muteAction?: (proto.SyncActionValue.IMuteAction|null);
@@ -14004,15 +14007,15 @@ export namespace proto {
 
 		interface IBizAISettingsNudgeAction {
 			category?: (proto.SyncActionValue.BizAISettingsNudgeAction.BizAISettingsCategory|null);
-			version?: (number|null);
-			updatedAtMs?: (number|null);
+			version?: (Long|null);
+			updatedAtMs?: (Long|null);
 		}
 
 		class BizAISettingsNudgeAction implements IBizAISettingsNudgeAction {
 			constructor(p?: IBizAISettingsNudgeAction);
 			public category?: (proto.SyncActionValue.BizAISettingsNudgeAction.BizAISettingsCategory|null);
-			public version?: (number|null);
-			public updatedAtMs?: (number|null);
+			public version?: (Long|null);
+			public updatedAtMs?: (Long|null);
 			public static create(p?: IBizAISettingsNudgeAction): BizAISettingsNudgeAction;
 			public static fromObject(d: { [k: string]: any }): BizAISettingsNudgeAction;
 			public static toObject(m: BizAISettingsNudgeAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14087,8 +14090,8 @@ export namespace proto {
 			msgId?: (string|null);
 			broadcastJid?: (string|null);
 			reservedQuota?: (number|null);
-			scheduledTimestamp?: (number|null);
-			createTimestamp?: (number|null);
+			scheduledTimestamp?: (Long|null);
+			createTimestamp?: (Long|null);
 			status?: (proto.SyncActionValue.BusinessBroadcastCampaignStatus|null);
 		}
 
@@ -14100,8 +14103,8 @@ export namespace proto {
 			public msgId?: (string|null);
 			public broadcastJid?: (string|null);
 			public reservedQuota?: (number|null);
-			public scheduledTimestamp?: (number|null);
-			public createTimestamp?: (number|null);
+			public scheduledTimestamp?: (Long|null);
+			public createTimestamp?: (Long|null);
 			public status?: (proto.SyncActionValue.BusinessBroadcastCampaignStatus|null);
 			public static create(p?: IBusinessBroadcastCampaignAction): BusinessBroadcastCampaignAction;
 			public static fromObject(d: { [k: string]: any }): BusinessBroadcastCampaignAction;
@@ -14226,12 +14229,12 @@ export namespace proto {
 		}
 
 		interface ICoexV2VersionAction {
-			version?: (number|null);
+			version?: (Long|null);
 		}
 
 		class CoexV2VersionAction implements ICoexV2VersionAction {
 			constructor(p?: ICoexV2VersionAction);
-			public version?: (number|null);
+			public version?: (Long|null);
 			public static create(p?: ICoexV2VersionAction): CoexV2VersionAction;
 			public static fromObject(d: { [k: string]: any }): CoexV2VersionAction;
 			public static toObject(m: CoexV2VersionAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14285,13 +14288,13 @@ export namespace proto {
 			contactType?: (number|null);
 			email?: (string|null);
 			altPhoneNumbers?: (string|null);
-			birthday?: (number|null);
+			birthday?: (Long|null);
 			address?: (string|null);
 			acquisitionSource?: (number|null);
 			leadStage?: (number|null);
-			lastOrder?: (number|null);
-			createdAt?: (number|null);
-			modifiedAt?: (number|null);
+			lastOrder?: (Long|null);
+			createdAt?: (Long|null);
+			modifiedAt?: (Long|null);
 		}
 
 		class CustomerDataAction implements ICustomerDataAction {
@@ -14300,13 +14303,13 @@ export namespace proto {
 			public contactType?: (number|null);
 			public email?: (string|null);
 			public altPhoneNumbers?: (string|null);
-			public birthday?: (number|null);
+			public birthday?: (Long|null);
 			public address?: (string|null);
 			public acquisitionSource?: (number|null);
 			public leadStage?: (number|null);
-			public lastOrder?: (number|null);
-			public createdAt?: (number|null);
-			public modifiedAt?: (number|null);
+			public lastOrder?: (Long|null);
+			public createdAt?: (Long|null);
+			public modifiedAt?: (Long|null);
 			public static create(p?: ICustomerDataAction): CustomerDataAction;
 			public static fromObject(d: { [k: string]: any }): CustomerDataAction;
 			public static toObject(m: CustomerDataAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14402,13 +14405,13 @@ export namespace proto {
 
 		interface IDeleteMessageForMeAction {
 			deleteMedia?: (boolean|null);
-			messageTimestamp?: (number|null);
+			messageTimestamp?: (Long|null);
 		}
 
 		class DeleteMessageForMeAction implements IDeleteMessageForMeAction {
 			constructor(p?: IDeleteMessageForMeAction);
 			public deleteMedia?: (boolean|null);
-			public messageTimestamp?: (number|null);
+			public messageTimestamp?: (Long|null);
 			public static create(p?: IDeleteMessageForMeAction): DeleteMessageForMeAction;
 			public static fromObject(d: { [k: string]: any }): DeleteMessageForMeAction;
 			public static toObject(m: DeleteMessageForMeAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14545,7 +14548,7 @@ export namespace proto {
 			isActive?: (boolean|null);
 			type?: (proto.SyncActionValue.LabelEditAction.ListType|null);
 			isImmutable?: (boolean|null);
-			muteEndTimeMs?: (number|null);
+			muteEndTimeMs?: (Long|null);
 		}
 
 		class LabelEditAction implements ILabelEditAction {
@@ -14558,7 +14561,7 @@ export namespace proto {
 			public isActive?: (boolean|null);
 			public type?: (proto.SyncActionValue.LabelEditAction.ListType|null);
 			public isImmutable?: (boolean|null);
-			public muteEndTimeMs?: (number|null);
+			public muteEndTimeMs?: (Long|null);
 			public static create(p?: ILabelEditAction): LabelEditAction;
 			public static fromObject(d: { [k: string]: any }): LabelEditAction;
 			public static toObject(m: LabelEditAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14706,8 +14709,8 @@ export namespace proto {
 			name?: (string|null);
 			message?: (string|null);
 			type?: (proto.SyncActionValue.MarketingMessageAction.MarketingMessagePrototypeType|null);
-			createdAt?: (number|null);
-			lastSentAt?: (number|null);
+			createdAt?: (Long|null);
+			lastSentAt?: (Long|null);
 			isDeleted?: (boolean|null);
 			mediaId?: (string|null);
 		}
@@ -14717,8 +14720,8 @@ export namespace proto {
 			public name?: (string|null);
 			public message?: (string|null);
 			public type?: (proto.SyncActionValue.MarketingMessageAction.MarketingMessagePrototypeType|null);
-			public createdAt?: (number|null);
-			public lastSentAt?: (number|null);
+			public createdAt?: (Long|null);
+			public lastSentAt?: (Long|null);
 			public isDeleted?: (boolean|null);
 			public mediaId?: (string|null);
 			public static create(p?: IMarketingMessageAction): MarketingMessageAction;
@@ -14819,17 +14822,17 @@ export namespace proto {
 
 		interface IMuteAction {
 			muted?: (boolean|null);
-			muteEndTimestamp?: (number|null);
+			muteEndTimestamp?: (Long|null);
 			autoMuted?: (boolean|null);
-			muteEveryoneMentionEndTimestamp?: (number|null);
+			muteEveryoneMentionEndTimestamp?: (Long|null);
 		}
 
 		class MuteAction implements IMuteAction {
 			constructor(p?: IMuteAction);
 			public muted?: (boolean|null);
-			public muteEndTimestamp?: (number|null);
+			public muteEndTimestamp?: (Long|null);
 			public autoMuted?: (boolean|null);
-			public muteEveryoneMentionEndTimestamp?: (number|null);
+			public muteEveryoneMentionEndTimestamp?: (Long|null);
 			public static create(p?: IMuteAction): MuteAction;
 			public static fromObject(d: { [k: string]: any }): MuteAction;
 			public static toObject(m: MuteAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14871,7 +14874,7 @@ export namespace proto {
 		interface INoteEditAction {
 			type?: (proto.SyncActionValue.NoteEditAction.NoteType|null);
 			chatJid?: (string|null);
-			createdAt?: (number|null);
+			createdAt?: (Long|null);
 			deleted?: (boolean|null);
 			unstructuredContent?: (string|null);
 		}
@@ -14880,7 +14883,7 @@ export namespace proto {
 			constructor(p?: INoteEditAction);
 			public type?: (proto.SyncActionValue.NoteEditAction.NoteType|null);
 			public chatJid?: (string|null);
-			public createdAt?: (number|null);
+			public createdAt?: (Long|null);
 			public deleted?: (boolean|null);
 			public unstructuredContent?: (string|null);
 			public static create(p?: INoteEditAction): NoteEditAction;
@@ -15180,12 +15183,12 @@ export namespace proto {
 		}
 
 		interface IRemoveRecentStickerAction {
-			lastStickerSentTs?: (number|null);
+			lastStickerSentTs?: (Long|null);
 		}
 
 		class RemoveRecentStickerAction implements IRemoveRecentStickerAction {
 			constructor(p?: IRemoveRecentStickerAction);
-			public lastStickerSentTs?: (number|null);
+			public lastStickerSentTs?: (Long|null);
 			public static create(p?: IRemoveRecentStickerAction): RemoveRecentStickerAction;
 			public static fromObject(d: { [k: string]: any }): RemoveRecentStickerAction;
 			public static toObject(m: RemoveRecentStickerAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15431,7 +15434,7 @@ export namespace proto {
 			height?: (number|null);
 			width?: (number|null);
 			directPath?: (string|null);
-			fileLength?: (number|null);
+			fileLength?: (Long|null);
 			isFavorite?: (boolean|null);
 			deviceIdHint?: (number|null);
 			isLottie?: (boolean|null);
@@ -15448,7 +15451,7 @@ export namespace proto {
 			public height?: (number|null);
 			public width?: (number|null);
 			public directPath?: (string|null);
-			public fileLength?: (number|null);
+			public fileLength?: (Long|null);
 			public isFavorite?: (boolean|null);
 			public deviceIdHint?: (number|null);
 			public isLottie?: (boolean|null);
@@ -15465,14 +15468,14 @@ export namespace proto {
 		interface ISubscriptionAction {
 			isDeactivated?: (boolean|null);
 			isAutoRenewing?: (boolean|null);
-			expirationDate?: (number|null);
+			expirationDate?: (Long|null);
 		}
 
 		class SubscriptionAction implements ISubscriptionAction {
 			constructor(p?: ISubscriptionAction);
 			public isDeactivated?: (boolean|null);
 			public isAutoRenewing?: (boolean|null);
-			public expirationDate?: (number|null);
+			public expirationDate?: (Long|null);
 			public static create(p?: ISubscriptionAction): SubscriptionAction;
 			public static fromObject(d: { [k: string]: any }): SubscriptionAction;
 			public static toObject(m: SubscriptionAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15504,7 +15507,7 @@ export namespace proto {
 				name?: (string|null);
 				enabled?: (boolean|null);
 				limit?: (number|null);
-				expirationTime?: (number|null);
+				expirationTime?: (Long|null);
 			}
 
 			class PaidFeature implements IPaidFeature {
@@ -15512,7 +15515,7 @@ export namespace proto {
 				public name?: (string|null);
 				public enabled?: (boolean|null);
 				public limit?: (number|null);
-				public expirationTime?: (number|null);
+				public expirationTime?: (Long|null);
 				public static create(p?: IPaidFeature): PaidFeature;
 				public static fromObject(d: { [k: string]: any }): PaidFeature;
 				public static toObject(m: PaidFeature, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15525,11 +15528,11 @@ export namespace proto {
 				id?: (string|null);
 				tier?: (number|null);
 				status?: (string|null);
-				startTime?: (number|null);
-				endTime?: (number|null);
+				startTime?: (Long|null);
+				endTime?: (Long|null);
 				isPlatformChanged?: (boolean|null);
 				source?: (string|null);
-				creationTime?: (number|null);
+				creationTime?: (Long|null);
 			}
 
 			class SubscriptionInfo implements ISubscriptionInfo {
@@ -15537,11 +15540,11 @@ export namespace proto {
 				public id?: (string|null);
 				public tier?: (number|null);
 				public status?: (string|null);
-				public startTime?: (number|null);
-				public endTime?: (number|null);
+				public startTime?: (Long|null);
+				public endTime?: (Long|null);
 				public isPlatformChanged?: (boolean|null);
 				public source?: (string|null);
-				public creationTime?: (number|null);
+				public creationTime?: (Long|null);
 				public static create(p?: ISubscriptionInfo): SubscriptionInfo;
 				public static fromObject(d: { [k: string]: any }): SubscriptionInfo;
 				public static toObject(m: SubscriptionInfo, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15553,13 +15556,13 @@ export namespace proto {
 
 		interface ISyncActionMessage {
 			key?: (proto.IMessageKey|null);
-			timestamp?: (number|null);
+			timestamp?: (Long|null);
 		}
 
 		class SyncActionMessage implements ISyncActionMessage {
 			constructor(p?: ISyncActionMessage);
 			public key?: (proto.IMessageKey|null);
-			public timestamp?: (number|null);
+			public timestamp?: (Long|null);
 			public static create(p?: ISyncActionMessage): SyncActionMessage;
 			public static fromObject(d: { [k: string]: any }): SyncActionMessage;
 			public static toObject(m: SyncActionMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15569,15 +15572,15 @@ export namespace proto {
 		}
 
 		interface ISyncActionMessageRange {
-			lastMessageTimestamp?: (number|null);
-			lastSystemMessageTimestamp?: (number|null);
+			lastMessageTimestamp?: (Long|null);
+			lastSystemMessageTimestamp?: (Long|null);
 			messages?: proto.SyncActionValue.ISyncActionMessage[];
 		}
 
 		class SyncActionMessageRange implements ISyncActionMessageRange {
 			constructor(p?: ISyncActionMessageRange);
-			public lastMessageTimestamp?: (number|null);
-			public lastSystemMessageTimestamp?: (number|null);
+			public lastMessageTimestamp?: (Long|null);
+			public lastSystemMessageTimestamp?: (Long|null);
 			public messages?: proto.SyncActionValue.ISyncActionMessage[];
 			public static create(p?: ISyncActionMessageRange): SyncActionMessageRange;
 			public static fromObject(d: { [k: string]: any }): SyncActionMessageRange;
@@ -15744,14 +15747,14 @@ export namespace proto {
 			interface IRootSecretEntry {
 				id?: (string|null);
 				rootSecret?: (Uint8Array|null);
-				epoch?: (number|null);
+				epoch?: (Long|null);
 			}
 
 			class RootSecretEntry implements IRootSecretEntry {
 				constructor(p?: IRootSecretEntry);
 				public id?: (string|null);
 				public rootSecret?: (Uint8Array|null);
-				public epoch?: (number|null);
+				public epoch?: (Long|null);
 				public static create(p?: IRootSecretEntry): RootSecretEntry;
 				public static fromObject(d: { [k: string]: any }): RootSecretEntry;
 				public static toObject(m: RootSecretEntry, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -15944,12 +15947,12 @@ export namespace proto {
 	}
 
 	interface ISyncdVersion {
-		version?: (number|null);
+		version?: (Long|null);
 	}
 
 	class SyncdVersion implements ISyncdVersion {
 		constructor(p?: ISyncdVersion);
-		public version?: (number|null);
+		public version?: (Long|null);
 		public static create(p?: ISyncdVersion): SyncdVersion;
 		public static fromObject(d: { [k: string]: any }): SyncdVersion;
 		public static toObject(m: SyncdVersion, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -16225,9 +16228,9 @@ export namespace proto {
 
 	interface IUserReceipt {
 		userJid?: (string|null);
-		receiptTimestamp?: (number|null);
-		readTimestamp?: (number|null);
-		playedTimestamp?: (number|null);
+		receiptTimestamp?: (Long|null);
+		readTimestamp?: (Long|null);
+		playedTimestamp?: (Long|null);
 		pendingDeviceJid?: string[];
 		deliveredDeviceJid?: string[];
 	}
@@ -16235,9 +16238,9 @@ export namespace proto {
 	class UserReceipt implements IUserReceipt {
 		constructor(p?: IUserReceipt);
 		public userJid?: (string|null);
-		public receiptTimestamp?: (number|null);
-		public readTimestamp?: (number|null);
-		public playedTimestamp?: (number|null);
+		public receiptTimestamp?: (Long|null);
+		public readTimestamp?: (Long|null);
+		public playedTimestamp?: (Long|null);
 		public pendingDeviceJid?: string[];
 		public deliveredDeviceJid?: string[];
 		public static create(p?: IUserReceipt): UserReceipt;
@@ -16270,20 +16273,20 @@ export namespace proto {
 	namespace VerifiedNameCertificate {
 
 		interface IDetails {
-			serial?: (number|null);
+			serial?: (Long|null);
 			issuer?: (string|null);
 			verifiedName?: (string|null);
 			localizedNames?: proto.ILocalizedName[];
-			issueTime?: (number|null);
+			issueTime?: (Long|null);
 		}
 
 		class Details implements IDetails {
 			constructor(p?: IDetails);
-			public serial?: (number|null);
+			public serial?: (Long|null);
 			public issuer?: (string|null);
 			public verifiedName?: (string|null);
 			public localizedNames?: proto.ILocalizedName[];
-			public issueTime?: (number|null);
+			public issueTime?: (Long|null);
 			public static create(p?: IDetails): Details;
 			public static fromObject(d: { [k: string]: any }): Details;
 			public static toObject(m: Details, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -16460,10 +16463,10 @@ export namespace proto {
 	interface IWebMessageInfo {
 		key?: (proto.IMessageKey|null);
 		message?: (proto.IMessage|null);
-		messageTimestamp?: (number|null);
+		messageTimestamp?: (Long|null);
 		status?: (proto.WebMessageInfo.Status|null);
 		participant?: (string|null);
-		messageC2STimestamp?: (number|null);
+		messageC2STimestamp?: (Long|null);
 		ignore?: (boolean|null);
 		starred?: (boolean|null);
 		broadcast?: (boolean|null);
@@ -16480,7 +16483,7 @@ export namespace proto {
 		paymentInfo?: (proto.IPaymentInfo|null);
 		finalLiveLocation?: (proto.Message.ILiveLocationMessage|null);
 		quotedPaymentInfo?: (proto.IPaymentInfo|null);
-		ephemeralStartTimestamp?: (number|null);
+		ephemeralStartTimestamp?: (Long|null);
 		ephemeralDuration?: (number|null);
 		ephemeralOffToOn?: (boolean|null);
 		ephemeralOutOfSync?: (boolean|null);
@@ -16500,7 +16503,7 @@ export namespace proto {
 		messageSecret?: (Uint8Array|null);
 		keepInChat?: (proto.IKeepInChat|null);
 		originalSelfAuthorUserJidString?: (string|null);
-		revokeMessageTimestamp?: (number|null);
+		revokeMessageTimestamp?: (Long|null);
 		pinInChat?: (proto.IPinInChat|null);
 		premiumMessageInfo?: (proto.IPremiumMessageInfo|null);
 		is1PBizBotMessage?: (boolean|null);
@@ -16509,7 +16512,7 @@ export namespace proto {
 		commentMetadata?: (proto.ICommentMetadata|null);
 		eventResponses?: proto.IEventResponse[];
 		reportingTokenInfo?: (proto.IReportingTokenInfo|null);
-		newsletterServerId?: (number|null);
+		newsletterServerId?: (Long|null);
 		eventAdditionalMetadata?: (proto.IEventAdditionalMetadata|null);
 		isMentionedInStatus?: (boolean|null);
 		statusMentions?: string[];
@@ -16526,7 +16529,7 @@ export namespace proto {
 		quarantinedMessage?: (proto.IQuarantinedMessage|null);
 		nonJidMentions?: (number|null);
 		hsmTag?: (string|null);
-		ephemeralExpirationTimestamp?: (number|null);
+		ephemeralExpirationTimestamp?: (Long|null);
 		scheduledMessageMetadata?: (proto.IScheduledMessageMetadata|null);
 		decisionId?: (string|null);
 		decisionSources?: string[];
@@ -16536,10 +16539,10 @@ export namespace proto {
 		constructor(p?: IWebMessageInfo);
 		public key?: (proto.IMessageKey|null);
 		public message?: (proto.IMessage|null);
-		public messageTimestamp?: (number|null);
+		public messageTimestamp?: (Long|null);
 		public status?: (proto.WebMessageInfo.Status|null);
 		public participant?: (string|null);
-		public messageC2STimestamp?: (number|null);
+		public messageC2STimestamp?: (Long|null);
 		public ignore?: (boolean|null);
 		public starred?: (boolean|null);
 		public broadcast?: (boolean|null);
@@ -16556,7 +16559,7 @@ export namespace proto {
 		public paymentInfo?: (proto.IPaymentInfo|null);
 		public finalLiveLocation?: (proto.Message.ILiveLocationMessage|null);
 		public quotedPaymentInfo?: (proto.IPaymentInfo|null);
-		public ephemeralStartTimestamp?: (number|null);
+		public ephemeralStartTimestamp?: (Long|null);
 		public ephemeralDuration?: (number|null);
 		public ephemeralOffToOn?: (boolean|null);
 		public ephemeralOutOfSync?: (boolean|null);
@@ -16576,7 +16579,7 @@ export namespace proto {
 		public messageSecret?: (Uint8Array|null);
 		public keepInChat?: (proto.IKeepInChat|null);
 		public originalSelfAuthorUserJidString?: (string|null);
-		public revokeMessageTimestamp?: (number|null);
+		public revokeMessageTimestamp?: (Long|null);
 		public pinInChat?: (proto.IPinInChat|null);
 		public premiumMessageInfo?: (proto.IPremiumMessageInfo|null);
 		public is1PBizBotMessage?: (boolean|null);
@@ -16585,7 +16588,7 @@ export namespace proto {
 		public commentMetadata?: (proto.ICommentMetadata|null);
 		public eventResponses?: proto.IEventResponse[];
 		public reportingTokenInfo?: (proto.IReportingTokenInfo|null);
-		public newsletterServerId?: (number|null);
+		public newsletterServerId?: (Long|null);
 		public eventAdditionalMetadata?: (proto.IEventAdditionalMetadata|null);
 		public isMentionedInStatus?: (boolean|null);
 		public statusMentions?: string[];
@@ -16602,7 +16605,7 @@ export namespace proto {
 		public quarantinedMessage?: (proto.IQuarantinedMessage|null);
 		public nonJidMentions?: (number|null);
 		public hsmTag?: (string|null);
-		public ephemeralExpirationTimestamp?: (number|null);
+		public ephemeralExpirationTimestamp?: (Long|null);
 		public scheduledMessageMetadata?: (proto.IScheduledMessageMetadata|null);
 		public decisionId?: (string|null);
 		public decisionSources?: string[];
@@ -16884,7 +16887,7 @@ export namespace proto {
 	}
 
 	interface IWebNotificationsInfo {
-		timestamp?: (number|null);
+		timestamp?: (Long|null);
 		unreadChats?: (number|null);
 		notifyMessageCount?: (number|null);
 		notifyMessages?: proto.IWebMessageInfo[];
@@ -16892,7 +16895,7 @@ export namespace proto {
 
 	class WebNotificationsInfo implements IWebNotificationsInfo {
 		constructor(p?: IWebNotificationsInfo);
-		public timestamp?: (number|null);
+		public timestamp?: (Long|null);
 		public unreadChats?: (number|null);
 		public notifyMessageCount?: (number|null);
 		public notifyMessages?: proto.IWebMessageInfo[];

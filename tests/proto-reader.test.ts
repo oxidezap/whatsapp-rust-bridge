@@ -2,18 +2,27 @@ import { describe, expect, test } from "bun:test";
 import { BinaryWriter as BufBinaryWriter } from "@bufbuild/protobuf/wire";
 import { WebMessageInfo } from "../ts/generated/whatsapp";
 import { decodeProtoBatch, encodeProto } from "../ts/proto";
-import { BinaryReader } from "../ts/proto-reader";
+import { BinaryReader, type Int64 } from "../ts/proto-reader";
 
 type Int64WriteMethod = "uint64" | "int64" | "sint64" | "fixed64" | "sfixed64";
 
-const decode = (method: Int64WriteMethod, value: bigint): number => {
+const decode = (method: Int64WriteMethod, value: bigint): Int64 => {
   const writer = new BufBinaryWriter();
   writer[method](value);
   const reader = new BinaryReader(writer.finish());
-  return reader[`${method}Number`]();
+  return reader[`${method}Value`]();
 };
 
-describe("safe-number protobuf reader", () => {
+const longOf = (value: bigint, unsigned: boolean) => {
+  const bits = value < 0n ? (1n << 64n) + value : value;
+  return {
+    low: Number(bits & 0xffffffffn),
+    high: Number(BigInt.asIntN(32, bits >> 32n)),
+    unsigned,
+  };
+};
+
+describe("64-bit protobuf reader", () => {
   test.each([
     ["uint64", 0n],
     ["uint64", BigInt(Number.MAX_SAFE_INTEGER)],
@@ -29,16 +38,18 @@ describe("safe-number protobuf reader", () => {
   });
 
   test.each([
-    ["uint64", BigInt(Number.MAX_SAFE_INTEGER) + 1n],
-    ["int64", BigInt(Number.MAX_SAFE_INTEGER) + 1n],
-    ["int64", BigInt(Number.MIN_SAFE_INTEGER) - 1n],
-    ["sint64", BigInt(Number.MAX_SAFE_INTEGER) + 1n],
-    ["sint64", BigInt(Number.MIN_SAFE_INTEGER) - 1n],
-    ["fixed64", BigInt(Number.MAX_SAFE_INTEGER) + 1n],
-    ["sfixed64", BigInt(Number.MAX_SAFE_INTEGER) + 1n],
-    ["sfixed64", BigInt(Number.MIN_SAFE_INTEGER) - 1n],
-  ] as const)("rejects an unsafe %s value", (method, value) => {
-    expect(() => decode(method, value)).toThrow(/Number\.(?:MAX|MIN)_SAFE_INTEGER/);
+    ["uint64", BigInt(Number.MAX_SAFE_INTEGER) + 1n, true],
+    ["uint64", 2n ** 64n - 1n, true],
+    ["int64", BigInt(Number.MAX_SAFE_INTEGER) + 1n, false],
+    ["int64", BigInt(Number.MIN_SAFE_INTEGER) - 1n, false],
+    ["int64", -(2n ** 63n), false],
+    ["sint64", BigInt(Number.MAX_SAFE_INTEGER) + 1n, false],
+    ["sint64", BigInt(Number.MIN_SAFE_INTEGER) - 1n, false],
+    ["fixed64", BigInt(Number.MAX_SAFE_INTEGER) + 1n, true],
+    ["sfixed64", BigInt(Number.MAX_SAFE_INTEGER) + 1n, false],
+    ["sfixed64", BigInt(Number.MIN_SAFE_INTEGER) - 1n, false],
+  ] as const)("widens an unsafe %s value to a Long", (method, value, unsigned) => {
+    expect(decode(method, value)).toEqual(longOf(value, unsigned));
   });
 
   test("feeds safe numbers directly into generated codecs", () => {
@@ -46,9 +57,10 @@ describe("safe-number protobuf reader", () => {
     expect(WebMessageInfo.decode(writer.finish()).messageTimestamp).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  test("keeps generated codecs strict at the safe-number boundary", () => {
-    const writer = new BufBinaryWriter().uint32(24).uint64(BigInt(Number.MAX_SAFE_INTEGER) + 1n);
-    expect(() => WebMessageInfo.decode(writer.finish())).toThrow("Number.MAX_SAFE_INTEGER");
+  test("hands generated codecs a Long past the safe-number boundary", () => {
+    const value = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
+    const writer = new BufBinaryWriter().uint32(24).uint64(value);
+    expect(WebMessageInfo.decode(writer.finish()).messageTimestamp).toEqual(longOf(value, true));
   });
 
   test("decodes UTF-8 directly from a reader with a non-zero byte offset", () => {

@@ -1,7 +1,7 @@
 /**
  * What the numeric input contract costs on the encode path.
  *
- * `contract` is the writer in `ts/proto-writer.ts`, `baseline` is
+ * `contract` is the writer in `ts/proto-reader.ts`, `baseline` is
  * `@bufbuild/protobuf`'s writer with no checks, and `empty` is a bare subclass
  * of it — the third arm separates the price of subclassing from the price of
  * the guard. The generated `encode(message, writer?)` takes the writer, so all
@@ -16,7 +16,7 @@
 import { heapStats } from "bun:jsc";
 import { BinaryWriter as BaselineWriter } from "@bufbuild/protobuf/wire";
 import { ClientPayload, Message } from "../ts/generated/whatsapp";
-import { BinaryWriter as ContractWriter } from "../ts/proto-writer";
+import { BinaryWriter as ContractWriter } from "../ts/proto-reader";
 
 const ITERATIONS = 150_000;
 const WARMUP = 400_000;

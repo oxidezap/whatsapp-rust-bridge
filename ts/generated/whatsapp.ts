@@ -5,7 +5,7 @@
 // source: whatsapp.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "../proto-reader";
+import { BinaryReader, BinaryWriter, type Int64, type Long } from "../proto-reader";
 
 export const protobufPackage = "whatsapp";
 
@@ -296,7 +296,7 @@ export enum WebLinkRenderConfig {
 
 export interface ADVDeviceIdentity {
   rawId?: number | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
   keyIndex?: number | undefined;
   accountType?: ADVEncryptionType | undefined;
   deviceType?: ADVEncryptionType | undefined;
@@ -304,7 +304,7 @@ export interface ADVDeviceIdentity {
 
 export interface ADVKeyIndexList {
   rawId?: number | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
   currentIndex?: number | undefined;
   validIndexes?: number[] | undefined;
   accountType?: ADVEncryptionType | undefined;
@@ -330,7 +330,7 @@ export interface ADVSignedKeyIndexList {
 }
 
 export interface AIHomeState {
-  lastFetchTime?: number | undefined;
+  lastFetchTime?: Int64 | undefined;
   capabilityOptions?: AIHomeState_AIHomeOption[] | undefined;
   conversationOptions?: AIHomeState_AIHomeOption[] | undefined;
 }
@@ -374,12 +374,12 @@ export interface AIMetadataOperation {
 export interface AIQueryFanout {
   messageKey?: MessageKey | undefined;
   message?: Message | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface AIRegenerateMetadata {
   messageKey?: MessageKey | undefined;
-  responseTimestampMs?: number | undefined;
+  responseTimestampMs?: Int64 | undefined;
 }
 
 export interface AIRichResponseCodeMetadata {
@@ -426,7 +426,7 @@ export interface AIRichResponseContentItemsMetadata_AIRichResponseReelItem {
 
 export interface AIRichResponseDynamicMetadata {
   type?: AIRichResponseDynamicMetadata_AIRichResponseDynamicMetadataType | undefined;
-  version?: number | undefined;
+  version?: Int64 | undefined;
   url?: string | undefined;
   loopCount?: number | undefined;
 }
@@ -589,9 +589,9 @@ export interface AvatarUserSettings {
 }
 
 export interface BizAccountLinkInfo {
-  whatsappBizAcctFbid?: number | undefined;
+  whatsappBizAcctFbid?: Int64 | undefined;
   whatsappAcctNumber?: string | undefined;
-  issueTime?: number | undefined;
+  issueTime?: Int64 | undefined;
   hostStorage?: BizAccountLinkInfo_HostStorageType | undefined;
   accountType?: BizAccountLinkInfo_AccountType | undefined;
 }
@@ -619,8 +619,8 @@ export interface BizIdentityInfo {
   revoked?: boolean | undefined;
   hostStorage?: BizIdentityInfo_HostStorageType | undefined;
   actualActors?: BizIdentityInfo_ActualActorsType | undefined;
-  privacyModeTs?: number | undefined;
-  featureControls?: number | undefined;
+  privacyModeTs?: Int64 | undefined;
+  featureControls?: Int64 | undefined;
 }
 
 export enum BizIdentityInfo_ActualActorsType {
@@ -756,8 +756,8 @@ export interface BotFeedbackMessage {
   messageKey?: MessageKey | undefined;
   kind?: BotFeedbackMessage_BotFeedbackKind | undefined;
   text?: string | undefined;
-  kindNegative?: number | undefined;
-  kindPositive?: number | undefined;
+  kindNegative?: Int64 | undefined;
+  kindPositive?: Int64 | undefined;
   kindReport?: BotFeedbackMessage_ReportKind | undefined;
   sideBySideSurveyMetadata?: BotFeedbackMessage_SideBySideSurveyMetadata | undefined;
 }
@@ -920,7 +920,7 @@ export interface BotMediaMetadata {
   mediaKey?: string | undefined;
   fileEncSha256?: string | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   mimetype?: string | undefined;
   orientationType?: BotMediaMetadata_OrientationType | undefined;
 }
@@ -1080,7 +1080,7 @@ export enum BotPluginMetadata_SearchProvider {
 export interface BotProgressIndicatorMetadata {
   progressDescription?: string | undefined;
   stepsMetadata?: BotProgressIndicatorMetadata_BotPlanningStepMetadata[] | undefined;
-  estimatedCompletionTime?: number | undefined;
+  estimatedCompletionTime?: Int64 | undefined;
 }
 
 export interface BotProgressIndicatorMetadata_BotPlanningStepMetadata {
@@ -1170,7 +1170,7 @@ export interface BotQuotaMetadata {
 export interface BotQuotaMetadata_BotFeatureQuotaMetadata {
   featureType?: BotQuotaMetadata_BotFeatureQuotaMetadata_BotFeatureType | undefined;
   remainingQuota?: number | undefined;
-  expirationTimestamp?: number | undefined;
+  expirationTimestamp?: Int64 | undefined;
 }
 
 export enum BotQuotaMetadata_BotFeatureQuotaMetadata_BotFeatureType {
@@ -1183,7 +1183,7 @@ export interface BotReminderMetadata {
   requestMessageKey?: MessageKey | undefined;
   action?: BotReminderMetadata_ReminderAction | undefined;
   name?: string | undefined;
-  nextTriggerTimestamp?: number | undefined;
+  nextTriggerTimestamp?: Int64 | undefined;
   frequency?: BotReminderMetadata_ReminderFrequency | undefined;
 }
 
@@ -1297,8 +1297,8 @@ export interface CallLogRecord {
   callResult?: CallLogRecord_CallResult | undefined;
   isDndMode?: boolean | undefined;
   silenceReason?: CallLogRecord_SilenceReason | undefined;
-  duration?: number | undefined;
-  startTime?: number | undefined;
+  duration?: Int64 | undefined;
+  startTime?: Int64 | undefined;
   isIncoming?: boolean | undefined;
   isVideo?: boolean | undefined;
   isCallLink?: boolean | undefined;
@@ -1360,8 +1360,8 @@ export interface CertChain_NoiseCertificate_Details {
   serial?: number | undefined;
   issuerSerial?: number | undefined;
   key?: Uint8Array | undefined;
-  notBefore?: number | undefined;
-  notAfter?: number | undefined;
+  notBefore?: Int64 | undefined;
+  notAfter?: Int64 | undefined;
 }
 
 export interface ChatLockSettings {
@@ -1378,7 +1378,7 @@ export interface ChatRowOpaqueData_DraftMessage {
   omittedUrl?: string | undefined;
   ctwaContextLinkData?: ChatRowOpaqueData_DraftMessage_CtwaContextLinkData | undefined;
   ctwaContext?: ChatRowOpaqueData_DraftMessage_CtwaContextData | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface ChatRowOpaqueData_DraftMessage_CtwaContextData {
@@ -1426,7 +1426,7 @@ export interface ClientPairingProps {
 }
 
 export interface ClientPayload {
-  username?: number | undefined;
+  username?: Int64 | undefined;
   passive?: boolean | undefined;
   userAgent?: ClientPayload_UserAgent | undefined;
   webInfo?: ClientPayload_WebInfo | undefined;
@@ -1446,7 +1446,7 @@ export interface ClientPayload {
   oc?: boolean | undefined;
   lc?: number | undefined;
   iosAppExtension?: ClientPayload_IOSAppExtension | undefined;
-  fbAppId?: number | undefined;
+  fbAppId?: Int64 | undefined;
   fbDeviceId?: Uint8Array | undefined;
   pull?: boolean | undefined;
   paddingBytes?: Uint8Array | undefined;
@@ -1551,7 +1551,7 @@ export interface ClientPayload_DevicePairingRegistrationData {
 }
 
 export interface ClientPayload_InteropData {
-  accountId?: number | undefined;
+  accountId?: Int64 | undefined;
   token?: Uint8Array | undefined;
   enableReadReceipts?: boolean | undefined;
 }
@@ -1780,7 +1780,7 @@ export interface ConsumerApplication_DocumentMessage {
 export interface ConsumerApplication_EditMessage {
   key?: MessageKey | undefined;
   message?: MessageText | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
 }
 
 export interface ConsumerApplication_ExtendedTextMessage {
@@ -1796,7 +1796,7 @@ export interface ConsumerApplication_ExtendedTextMessage {
 export interface ConsumerApplication_GroupInviteMessage {
   groupJid?: string | undefined;
   inviteCode?: string | undefined;
-  inviteExpiration?: number | undefined;
+  inviteExpiration?: Int64 | undefined;
   groupName?: string | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   caption?: MessageText | undefined;
@@ -1818,7 +1818,7 @@ export interface ConsumerApplication_LiveLocationMessage {
   speedInMps?: number | undefined;
   degreesClockwiseFromMagneticNorth?: number | undefined;
   caption?: MessageText | undefined;
-  sequenceNumber?: number | undefined;
+  sequenceNumber?: Int64 | undefined;
   timeOffset?: number | undefined;
 }
 
@@ -1881,14 +1881,14 @@ export interface ConsumerApplication_PollUpdateMessage {
 
 export interface ConsumerApplication_PollVoteMessage {
   selectedOptions?: Uint8Array[] | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
 }
 
 export interface ConsumerApplication_ReactionMessage {
   key?: MessageKey | undefined;
   text?: string | undefined;
   groupingKey?: string | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
   reactionMetadataDataclassData?: string | undefined;
   style?: number | undefined;
 }
@@ -1939,7 +1939,7 @@ export interface ContextInfo {
   quotedAd?: ContextInfo_AdReplyInfo | undefined;
   placeholderKey?: MessageKey | undefined;
   expiration?: number | undefined;
-  ephemeralSettingTimestamp?: number | undefined;
+  ephemeralSettingTimestamp?: Int64 | undefined;
   ephemeralSharedSecret?: Uint8Array | undefined;
   externalAdReply?: ContextInfo_ExternalAdReplyInfo | undefined;
   entryPointConversionSource?: string | undefined;
@@ -2124,7 +2124,7 @@ export enum ContextInfo_DataSharingContext_DataSharingFlags {
 export interface ContextInfo_DataSharingContext_Parameters {
   key?: string | undefined;
   stringData?: string | undefined;
-  intData?: number | undefined;
+  intData?: Int64 | undefined;
   floatData?: number | undefined;
   contents?: ContextInfo_DataSharingContext_Parameters | undefined;
 }
@@ -2233,14 +2233,14 @@ export interface Conversation {
   messages?: HistorySyncMsg[] | undefined;
   newJid?: string | undefined;
   oldJid?: string | undefined;
-  lastMsgTimestamp?: number | undefined;
+  lastMsgTimestamp?: Int64 | undefined;
   unreadCount?: number | undefined;
   readOnly?: boolean | undefined;
   endOfHistoryTransfer?: boolean | undefined;
   ephemeralExpiration?: number | undefined;
-  ephemeralSettingTimestamp?: number | undefined;
+  ephemeralSettingTimestamp?: Int64 | undefined;
   endOfHistoryTransferType?: Conversation_EndOfHistoryTransferType | undefined;
-  conversationTimestamp?: number | undefined;
+  conversationTimestamp?: Int64 | undefined;
   name?: string | undefined;
   pHash?: string | undefined;
   notSpam?: boolean | undefined;
@@ -2250,16 +2250,16 @@ export interface Conversation {
   markedAsUnread?: boolean | undefined;
   participant?: GroupParticipant[] | undefined;
   tcToken?: Uint8Array | undefined;
-  tcTokenTimestamp?: number | undefined;
+  tcTokenTimestamp?: Int64 | undefined;
   contactPrimaryIdentityKey?: Uint8Array | undefined;
   pinned?: number | undefined;
-  muteEndTime?: number | undefined;
+  muteEndTime?: Int64 | undefined;
   wallpaper?: WallpaperSettings | undefined;
   mediaVisibility?: MediaVisibility | undefined;
-  tcTokenSenderTimestamp?: number | undefined;
+  tcTokenSenderTimestamp?: Int64 | undefined;
   suspended?: boolean | undefined;
   terminated?: boolean | undefined;
-  createdAt?: number | undefined;
+  createdAt?: Int64 | undefined;
   createdBy?: string | undefined;
   description?: string | undefined;
   support?: boolean | undefined;
@@ -2279,7 +2279,7 @@ export interface Conversation {
   capiCreatedGroup?: boolean | undefined;
   accountLid?: string | undefined;
   limitSharing?: boolean | undefined;
-  limitSharingSettingTimestamp?: number | undefined;
+  limitSharingSettingTimestamp?: Int64 | undefined;
   limitSharingTrigger?: LimitSharing_TriggerType | undefined;
   limitSharingInitiatedByMe?: boolean | undefined;
   maibaAiThreadEnabled?: boolean | undefined;
@@ -2288,7 +2288,7 @@ export interface Conversation {
   afterReadDuration?: number | undefined;
   isSenderSuspicious?: boolean | undefined;
   appealStatus?: Conversation_GroupAppealStatus | undefined;
-  appealUpdateTime?: number | undefined;
+  appealUpdateTime?: Int64 | undefined;
   authAgentParentCompanyName?: string | undefined;
   authAgentObaPhoneNumber?: string | undefined;
 }
@@ -2311,7 +2311,7 @@ export enum Conversation_GroupAppealStatus {
 
 export interface CreateBackupInput {
   recoveryCode?: string | undefined;
-  userId?: number | undefined;
+  userId?: Int64 | undefined;
 }
 
 export interface CreateBackupOutput {
@@ -2378,7 +2378,7 @@ export interface DeviceCapabilities_BusinessBroadcast {
 }
 
 export interface DeviceCapabilities_LIDMigration {
-  chatDbMigrationTimestamp?: number | undefined;
+  chatDbMigrationTimestamp?: Int64 | undefined;
 }
 
 export interface DeviceCapabilities_UserHasAvatar {
@@ -2392,12 +2392,12 @@ export interface DeviceConsistencyCodeMessage {
 
 export interface DeviceListMetadata {
   senderKeyHash?: Uint8Array | undefined;
-  senderTimestamp?: number | undefined;
+  senderTimestamp?: Int64 | undefined;
   senderKeyIndexes?: number[] | undefined;
   senderAccountType?: ADVEncryptionType | undefined;
   receiverAccountType?: ADVEncryptionType | undefined;
   recipientKeyHash?: Uint8Array | undefined;
-  recipientTimestamp?: number | undefined;
+  recipientTimestamp?: Int64 | undefined;
   recipientKeyIndexes?: number[] | undefined;
 }
 
@@ -2532,9 +2532,9 @@ export interface EmbeddedMusic {
   countryBlocklist?: Uint8Array | undefined;
   isExplicit?: boolean | undefined;
   artworkMediaKey?: Uint8Array | undefined;
-  musicSongStartTimeInMs?: number | undefined;
-  derivedContentStartTimeInMs?: number | undefined;
-  overlapDurationInMs?: number | undefined;
+  musicSongStartTimeInMs?: Int64 | undefined;
+  derivedContentStartTimeInMs?: Int64 | undefined;
+  overlapDurationInMs?: Int64 | undefined;
 }
 
 export interface EncryptMessageInput {
@@ -2542,11 +2542,11 @@ export interface EncryptMessageInput {
   mailboxRootKey?: Uint8Array | undefined;
   orfClientState?: Uint8Array | undefined;
   epochAnonId?: Uint8Array | undefined;
-  epochId?: number | undefined;
+  epochId?: Int64 | undefined;
   threadId?: string | undefined;
-  waCanonicalUserFbid?: number | undefined;
-  timestampMs?: number | undefined;
-  backupId?: number | undefined;
+  waCanonicalUserFbid?: Int64 | undefined;
+  timestampMs?: Int64 | undefined;
+  backupId?: Int64 | undefined;
   plaintextPayload?: Uint8Array | undefined;
   stanzaId?: string | undefined;
 }
@@ -2555,8 +2555,8 @@ export interface EncryptMessageOutput {
   encryptedProtobuf?: Uint8Array | undefined;
   orfThreadId?: Uint8Array | undefined;
   valueSecretRef?: string | undefined;
-  offlineThreadingId?: number | undefined;
-  timestampMs?: number | undefined;
+  offlineThreadingId?: Int64 | undefined;
+  timestampMs?: Int64 | undefined;
   messageKey?: Uint8Array | undefined;
   error?: string | undefined;
 }
@@ -2579,11 +2579,11 @@ export interface EncryptedSecretValuesOutput {
 
 export interface EphemeralSetting {
   duration?: number | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface Epoch0Output {
-  epochFbid?: number | undefined;
+  epochFbid?: Int64 | undefined;
   epochAnonId?: Uint8Array | undefined;
   epochData?: Uint8Array | undefined;
   wrappedRootKeyForSelf?: Uint8Array | undefined;
@@ -2598,13 +2598,13 @@ export interface EventAdditionalMetadata {
 
 export interface EventResponse {
   eventResponseMessageKey?: MessageKey | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
   eventResponseMessage?: Message_EventResponseMessage | undefined;
   unread?: boolean | undefined;
 }
 
 export interface ExitCode {
-  code?: number | undefined;
+  code?: Int64 | undefined;
   text?: string | undefined;
 }
 
@@ -2612,7 +2612,7 @@ export interface ExternalBlobReference {
   mediaKey?: Uint8Array | undefined;
   directPath?: string | undefined;
   handle?: string | undefined;
-  fileSizeBytes?: number | undefined;
+  fileSizeBytes?: Int64 | undefined;
   fileSha256?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
 }
@@ -2661,7 +2661,7 @@ export interface GlobalSettings {
   showIndividualNotificationsPreview?: boolean | undefined;
   showGroupNotificationsPreview?: boolean | undefined;
   disappearingModeDuration?: number | undefined;
-  disappearingModeTimestamp?: number | undefined;
+  disappearingModeTimestamp?: Int64 | undefined;
   avatarUserSettings?: AvatarUserSettings | undefined;
   fontSize?: number | undefined;
   securityNotifications?: boolean | undefined;
@@ -2671,7 +2671,7 @@ export interface GlobalSettings {
   individualNotificationSettings?: NotificationSettings | undefined;
   groupNotificationSettings?: NotificationSettings | undefined;
   chatLockSettings?: ChatLockSettings | undefined;
-  chatDbLidMigrationTimestamp?: number | undefined;
+  chatDbLidMigrationTimestamp?: Int64 | undefined;
 }
 
 export interface GroupHistory {
@@ -2733,8 +2733,8 @@ export interface GroupRootKeyShare {
 export interface GroupRootKeyShareEntry {
   groupRootKey?: Uint8Array | undefined;
   keyId?: string | undefined;
-  expiryTimestampMs?: number | undefined;
-  createdTimestampMs?: number | undefined;
+  expiryTimestampMs?: Int64 | undefined;
+  createdTimestampMs?: Int64 | undefined;
 }
 
 export interface HandshakeMessage {
@@ -2788,7 +2788,7 @@ export interface HandshakeMessage_ServerHello {
 
 export interface HatchMetadataSync {
   data?: Uint8Array | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
   requestId?: string | undefined;
 }
 
@@ -2834,7 +2834,7 @@ export enum HistorySync_HistorySyncType {
 
 export interface HistorySyncMsg {
   message?: WebMessageInfo | undefined;
-  msgOrderId?: number | undefined;
+  msgOrderId?: Int64 | undefined;
 }
 
 export interface HydratedTemplateButton {
@@ -2943,11 +2943,11 @@ export interface InteractiveMessageAdditionalMetadata {
 
 export interface KeepInChat {
   keepType?: KeepType | undefined;
-  serverTimestamp?: number | undefined;
+  serverTimestamp?: Int64 | undefined;
   key?: MessageKey | undefined;
   deviceJid?: string | undefined;
-  clientTimestampMs?: number | undefined;
-  serverTimestampMs?: number | undefined;
+  clientTimestampMs?: Int64 | undefined;
+  serverTimestampMs?: Int64 | undefined;
 }
 
 export interface KeyExchangeMessage {
@@ -2971,14 +2971,14 @@ export interface LIDMigrationMappingSyncMessage {
  * still carries them as the protobuf-encoded `encodedMappingPayload` above.
  */
 export interface LIDMigrationMapping {
-  pn?: number | undefined;
-  assignedLid?: number | undefined;
-  latestLid?: number | undefined;
+  pn?: Int64 | undefined;
+  assignedLid?: Int64 | undefined;
+  latestLid?: Int64 | undefined;
 }
 
 export interface LIDMigrationMappingSyncPayload {
   pnToLidMappings?: LIDMigrationMapping[] | undefined;
-  chatDbMigrationTimestamp?: number | undefined;
+  chatDbMigrationTimestamp?: Int64 | undefined;
 }
 
 export interface LabyrinthWaCommand {
@@ -2996,7 +2996,7 @@ export interface LegacyMessage {
 export interface LimitSharing {
   sharingLimited?: boolean | undefined;
   trigger?: LimitSharing_TriggerType | undefined;
-  limitSharingSettingTimestamp?: number | undefined;
+  limitSharingSettingTimestamp?: Int64 | undefined;
   initiatedByMe?: boolean | undefined;
 }
 
@@ -3034,7 +3034,7 @@ export interface MediaEntry {
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   serverMediaType?: string | undefined;
   uploadToken?: Uint8Array | undefined;
   validatedTimestamp?: Uint8Array | undefined;
@@ -3045,8 +3045,8 @@ export interface MediaEntry {
   handle?: string | undefined;
   filename?: string | undefined;
   progressiveJpegDetails?: MediaEntry_ProgressiveJpegDetails | undefined;
-  size?: number | undefined;
-  lastDownloadAttemptTimestamp?: number | undefined;
+  size?: Int64 | undefined;
+  lastDownloadAttemptTimestamp?: Int64 | undefined;
 }
 
 export interface MediaEntry_DownloadableThumbnail {
@@ -3054,7 +3054,7 @@ export interface MediaEntry_DownloadableThumbnail {
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
   mediaKey?: Uint8Array | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   objectId?: string | undefined;
 }
 
@@ -3066,7 +3066,7 @@ export interface MediaEntry_ProgressiveJpegDetails {
 export interface MediaNotifyMessage {
   expressPathUrl?: string | undefined;
   fileEncSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
 }
 
 export interface MediaRetryNotification {
@@ -3086,7 +3086,7 @@ export enum MediaRetryNotification_ResultType {
 
 export interface MemberLabel {
   label?: string | undefined;
-  labelTimestamp?: number | undefined;
+  labelTimestamp?: Int64 | undefined;
 }
 
 export interface Mention {
@@ -3267,7 +3267,7 @@ export interface Message_AlbumMessage {
 
 export interface Message_AppStateFatalExceptionNotification {
   collectionNames?: string[] | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface Message_AppStateSyncKey {
@@ -3278,7 +3278,7 @@ export interface Message_AppStateSyncKey {
 export interface Message_AppStateSyncKeyData {
   keyData?: Uint8Array | undefined;
   fingerprint?: Message_AppStateSyncKeyFingerprint | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface Message_AppStateSyncKeyFingerprint {
@@ -3303,13 +3303,13 @@ export interface Message_AudioMessage {
   url?: string | undefined;
   mimetype?: string | undefined;
   fileSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   seconds?: number | undefined;
   ptt?: boolean | undefined;
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   contextInfo?: ContextInfo | undefined;
   streamingSidecar?: Uint8Array | undefined;
   waveform?: Uint8Array | undefined;
@@ -3409,7 +3409,7 @@ export interface Message_Call {
 export interface Message_CallLogMessage {
   isVideo?: boolean | undefined;
   callOutcome?: Message_CallLogMessage_CallOutcome | undefined;
-  durationSecs?: number | undefined;
+  durationSecs?: Int64 | undefined;
   callType?: Message_CallLogMessage_CallType | undefined;
   participants?: Message_CallLogMessage_CallParticipant[] | undefined;
 }
@@ -3471,7 +3471,7 @@ export interface Message_ChatStockImageWallpaper {
 }
 
 export interface Message_ChatThemeSetting {
-  settingTimestampMs?: number | undefined;
+  settingTimestampMs?: Int64 | undefined;
   clearTheme?: boolean | undefined;
   colorSchemeId?: string | undefined;
   defaultWallpaper?: Message_ChatDefaultWallpaper | undefined;
@@ -3482,7 +3482,7 @@ export interface Message_ChatThemeSetting {
 
 export interface Message_CloudAPIThreadControlNotification {
   status?: Message_CloudAPIThreadControlNotification_CloudAPIThreadControl | undefined;
-  senderNotificationTimestampMs?: number | undefined;
+  senderNotificationTimestampMs?: Int64 | undefined;
   consumerLid?: string | undefined;
   consumerPhoneNumber?: string | undefined;
   notificationContent?: Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent | undefined;
@@ -3548,13 +3548,13 @@ export interface Message_DocumentMessage {
   mimetype?: string | undefined;
   title?: string | undefined;
   fileSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   pageCount?: number | undefined;
   mediaKey?: Uint8Array | undefined;
   fileName?: string | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   contactVcard?: boolean | undefined;
   thumbnailDirectPath?: string | undefined;
   thumbnailSha256?: Uint8Array | undefined;
@@ -3590,10 +3590,10 @@ export interface Message_EventInviteMessage {
   eventId?: string | undefined;
   eventTitle?: string | undefined;
   jpegThumbnail?: Uint8Array | undefined;
-  startTime?: number | undefined;
+  startTime?: Int64 | undefined;
   caption?: string | undefined;
   isCanceled?: boolean | undefined;
-  endTime?: number | undefined;
+  endTime?: Int64 | undefined;
   callLink?: string | undefined;
 }
 
@@ -3604,17 +3604,17 @@ export interface Message_EventMessage {
   description?: string | undefined;
   location?: Message_LocationMessage | undefined;
   joinLink?: string | undefined;
-  startTime?: number | undefined;
-  endTime?: number | undefined;
+  startTime?: Int64 | undefined;
+  endTime?: Int64 | undefined;
   extraGuestsAllowed?: boolean | undefined;
   isScheduleCall?: boolean | undefined;
   hasReminder?: boolean | undefined;
-  reminderOffsetSec?: number | undefined;
+  reminderOffsetSec?: Int64 | undefined;
 }
 
 export interface Message_EventResponseMessage {
   response?: Message_EventResponseMessage_EventResponseType | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
   extraGuestCount?: number | undefined;
 }
 
@@ -3642,7 +3642,7 @@ export interface Message_ExtendedTextMessage {
   thumbnailSha256?: Uint8Array | undefined;
   thumbnailEncSha256?: Uint8Array | undefined;
   mediaKey?: Uint8Array | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   thumbnailHeight?: number | undefined;
   thumbnailWidth?: number | undefined;
   inviteLinkGroupType?: Message_ExtendedTextMessage_InviteLinkGroupType | undefined;
@@ -3692,7 +3692,7 @@ export enum Message_ExtendedTextMessage_PreviewType {
 }
 
 export interface Message_FullHistorySyncOnDemandConfig {
-  historyFromTimestamp?: number | undefined;
+  historyFromTimestamp?: Int64 | undefined;
   historyDurationDays?: number | undefined;
 }
 
@@ -3709,7 +3709,7 @@ export interface Message_FutureProofMessage {
 export interface Message_GroupInviteMessage {
   groupJid?: string | undefined;
   inviteCode?: string | undefined;
-  inviteExpiration?: number | undefined;
+  inviteExpiration?: Int64 | undefined;
   groupName?: string | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   caption?: string | undefined;
@@ -3743,7 +3743,7 @@ export interface Message_HighlyStructuredMessage_HSMLocalizableParameter {
 
 export interface Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
   currencyCode?: string | undefined;
-  amount1000?: number | undefined;
+  amount1000?: Int64 | undefined;
 }
 
 export interface Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime {
@@ -3783,7 +3783,7 @@ export enum Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_
 }
 
 export interface Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch {
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface Message_HistorySyncMessageAccessStatus {
@@ -3792,7 +3792,7 @@ export interface Message_HistorySyncMessageAccessStatus {
 
 export interface Message_HistorySyncNotification {
   fileSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
@@ -3800,7 +3800,7 @@ export interface Message_HistorySyncNotification {
   chunkOrder?: number | undefined;
   originalMessageId?: string | undefined;
   progress?: number | undefined;
-  oldestMsgInChunkTimestampSec?: number | undefined;
+  oldestMsgInChunkTimestampSec?: Int64 | undefined;
   initialHistBootstrapInlinePayload?: Uint8Array | undefined;
   peerDataRequestSessionId?: string | undefined;
   fullHistorySyncOnDemandRequestMetadata?: Message_FullHistorySyncOnDemandRequestMetadata | undefined;
@@ -3813,14 +3813,14 @@ export interface Message_ImageMessage {
   mimetype?: string | undefined;
   caption?: string | undefined;
   fileSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   height?: number | undefined;
   width?: number | undefined;
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   interactiveAnnotations?: InteractiveAnnotation[] | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   contextInfo?: ContextInfo | undefined;
   firstScanSidecar?: Uint8Array | undefined;
@@ -3969,7 +3969,7 @@ export interface Message_InvoiceMessage {
   attachmentType?: Message_InvoiceMessage_AttachmentType | undefined;
   attachmentMimetype?: string | undefined;
   attachmentMediaKey?: Uint8Array | undefined;
-  attachmentMediaKeyTimestamp?: number | undefined;
+  attachmentMediaKeyTimestamp?: Int64 | undefined;
   attachmentFileSha256?: Uint8Array | undefined;
   attachmentFileEncSha256?: Uint8Array | undefined;
   attachmentDirectPath?: string | undefined;
@@ -3985,7 +3985,7 @@ export enum Message_InvoiceMessage_AttachmentType {
 export interface Message_KeepInChatMessage {
   key?: MessageKey | undefined;
   keepType?: KeepType | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
 }
 
 export interface Message_LinkPreviewMetadata {
@@ -4084,7 +4084,7 @@ export interface Message_LiveLocationMessage {
   speedInMps?: number | undefined;
   degreesClockwiseFromMagneticNorth?: number | undefined;
   caption?: string | undefined;
-  sequenceNumber?: number | undefined;
+  sequenceNumber?: Int64 | undefined;
   timeOffset?: number | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   contextInfo?: ContextInfo | undefined;
@@ -4110,7 +4110,7 @@ export interface Message_MMSThumbnailMetadata {
   thumbnailSha256?: Uint8Array | undefined;
   thumbnailEncSha256?: Uint8Array | undefined;
   mediaKey?: Uint8Array | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   thumbnailHeight?: number | undefined;
   thumbnailWidth?: number | undefined;
 }
@@ -4121,17 +4121,17 @@ export interface Message_MessageHistoryBundle {
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   contextInfo?: ContextInfo | undefined;
   messageHistoryMetadata?: Message_MessageHistoryMetadata | undefined;
 }
 
 export interface Message_MessageHistoryMetadata {
   historyReceivers?: string[] | undefined;
-  oldestMessageTimestampInWindow?: number | undefined;
-  messageCount?: number | undefined;
+  oldestMessageTimestampInWindow?: Int64 | undefined;
+  messageCount?: Int64 | undefined;
   nonHistoryReceivers?: string[] | undefined;
-  oldestMessageTimestampInBundle?: number | undefined;
+  oldestMessageTimestampInBundle?: Int64 | undefined;
 }
 
 export interface Message_MessageHistoryNotice {
@@ -4144,7 +4144,7 @@ export interface Message_NewsletterAdminInviteMessage {
   newsletterName?: string | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   caption?: string | undefined;
-  inviteExpiration?: number | undefined;
+  inviteExpiration?: Int64 | undefined;
   contextInfo?: ContextInfo | undefined;
 }
 
@@ -4166,7 +4166,7 @@ export interface Message_OrderMessage {
   orderTitle?: string | undefined;
   sellerJid?: string | undefined;
   token?: string | undefined;
-  totalAmount1000?: number | undefined;
+  totalAmount1000?: Int64 | undefined;
   totalCurrencyCode?: string | undefined;
   contextInfo?: ContextInfo | undefined;
   messageVersion?: number | undefined;
@@ -4193,7 +4193,7 @@ export interface Message_PaymentExtendedMetadata {
 
 export interface Message_PaymentInviteMessage {
   serviceType?: Message_PaymentInviteMessage_ServiceType | undefined;
-  expiryTimestamp?: number | undefined;
+  expiryTimestamp?: Int64 | undefined;
   incentiveEligible?: boolean | undefined;
   referralId?: string | undefined;
   inviteType?: Message_PaymentInviteMessage_InviteType | undefined;
@@ -4337,7 +4337,7 @@ export interface Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequ
   oldestMsgId?: string | undefined;
   oldestMsgFromMe?: boolean | undefined;
   onDemandMsgCount?: number | undefined;
-  oldestMsgTimestampMs?: number | undefined;
+  oldestMsgTimestampMs?: Int64 | undefined;
   accountLid?: string | undefined;
   supportInlineResponse?: boolean | undefined;
 }
@@ -4357,7 +4357,7 @@ export interface Message_PeerDataOperationRequestMessage_RequestUrlPreview {
 
 export interface Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
   collectionName?: string | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface Message_PeerDataOperationRequestResponseMessage {
@@ -4425,7 +4425,7 @@ export enum Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRes
 
 export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
   campaignId?: string | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
   contacts?:
     | Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState[]
     | undefined;
@@ -4455,8 +4455,8 @@ export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperati
   mediaKey?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
-  fileLength?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
+  fileLength?: Int64 | undefined;
 }
 
 export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse {
@@ -4496,7 +4496,7 @@ export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperati
   thumbHash?: string | undefined;
   encThumbHash?: string | undefined;
   mediaKey?: Uint8Array | undefined;
-  mediaKeyTimestampMs?: number | undefined;
+  mediaKeyTimestampMs?: Int64 | undefined;
   thumbWidth?: number | undefined;
   thumbHeight?: number | undefined;
 }
@@ -4526,7 +4526,7 @@ export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperati
 export interface Message_PinInChatMessage {
   key?: MessageKey | undefined;
   type?: Message_PinInChatMessage_Type | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
 }
 
 export enum Message_PinInChatMessage_Type {
@@ -4560,7 +4560,7 @@ export interface Message_PollCreationMessage {
   pollContentType?: Message_PollContentType | undefined;
   pollType?: Message_PollType | undefined;
   correctAnswer?: Message_PollCreationMessage_Option | undefined;
-  endTime?: number | undefined;
+  endTime?: Int64 | undefined;
   hideParticipantName?: boolean | undefined;
   allowAddOption?: boolean | undefined;
 }
@@ -4584,14 +4584,14 @@ export interface Message_PollResultSnapshotMessage {
 
 export interface Message_PollResultSnapshotMessage_PollVote {
   optionName?: string | undefined;
-  optionVoteCount?: number | undefined;
+  optionVoteCount?: Int64 | undefined;
 }
 
 export interface Message_PollUpdateMessage {
   pollCreationMessageKey?: MessageKey | undefined;
   vote?: Message_PollEncValue | undefined;
   metadata?: Message_PollUpdateMessageMetadata | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
 }
 
 export interface Message_PollUpdateMessageMetadata {
@@ -4624,12 +4624,12 @@ export interface Message_ProductMessage_ProductSnapshot {
   title?: string | undefined;
   description?: string | undefined;
   currencyCode?: string | undefined;
-  priceAmount1000?: number | undefined;
+  priceAmount1000?: Int64 | undefined;
   retailerId?: string | undefined;
   url?: string | undefined;
   productImageCount?: number | undefined;
   firstImageId?: string | undefined;
-  salePriceAmount1000?: number | undefined;
+  salePriceAmount1000?: Int64 | undefined;
   signedUrl?: string | undefined;
 }
 
@@ -4637,7 +4637,7 @@ export interface Message_ProtocolMessage {
   key?: MessageKey | undefined;
   type?: Message_ProtocolMessage_Type | undefined;
   ephemeralExpiration?: number | undefined;
-  ephemeralSettingTimestamp?: number | undefined;
+  ephemeralSettingTimestamp?: Int64 | undefined;
   historySyncNotification?: Message_HistorySyncNotification | undefined;
   appStateSyncKeyShare?: Message_AppStateSyncKeyShare | undefined;
   appStateSyncKeyRequest?: Message_AppStateSyncKeyRequest | undefined;
@@ -4645,7 +4645,7 @@ export interface Message_ProtocolMessage {
   appStateFatalExceptionNotification?: Message_AppStateFatalExceptionNotification | undefined;
   disappearingMode?: DisappearingMode | undefined;
   editedMessage?: Message | undefined;
-  timestampMs?: number | undefined;
+  timestampMs?: Int64 | undefined;
   peerDataOperationRequestMessage?: Message_PeerDataOperationRequestMessage | undefined;
   peerDataOperationRequestResponseMessage?: Message_PeerDataOperationRequestResponseMessage | undefined;
   botFeedbackMessage?: BotFeedbackMessage | undefined;
@@ -4707,15 +4707,15 @@ export interface Message_ReactionMessage {
   key?: MessageKey | undefined;
   text?: string | undefined;
   groupingKey?: string | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
 }
 
 export interface Message_RequestPaymentMessage {
   noteMessage?: Message | undefined;
   currencyCodeIso4217?: string | undefined;
-  amount1000?: number | undefined;
+  amount1000?: Int64 | undefined;
   requestFrom?: string | undefined;
-  expiryTimestamp?: number | undefined;
+  expiryTimestamp?: Int64 | undefined;
   amount?: Money | undefined;
   background?: PaymentBackground | undefined;
 }
@@ -4747,7 +4747,7 @@ export interface Message_RootSecretDistributeMessage {
 }
 
 export interface Message_ScheduledCallCreationMessage {
-  scheduledTimestampMs?: number | undefined;
+  scheduledTimestampMs?: Int64 | undefined;
   callType?: Message_ScheduledCallCreationMessage_CallType | undefined;
   title?: string | undefined;
 }
@@ -4806,7 +4806,7 @@ export interface Message_SplitPaymentMessage {
   description?: string | undefined;
   requesterJid?: string | undefined;
   participants?: Message_SplitPaymentParticipant[] | undefined;
-  createdAtMs?: number | undefined;
+  createdAtMs?: Int64 | undefined;
   contextInfo?: ContextInfo | undefined;
 }
 
@@ -4874,14 +4874,14 @@ export interface Message_StickerMessage {
   height?: number | undefined;
   width?: number | undefined;
   directPath?: string | undefined;
-  fileLength?: number | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  fileLength?: Int64 | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   firstFrameLength?: number | undefined;
   firstFrameSidecar?: Uint8Array | undefined;
   isAnimated?: boolean | undefined;
   pngThumbnail?: Uint8Array | undefined;
   contextInfo?: ContextInfo | undefined;
-  stickerSentTs?: number | undefined;
+  stickerSentTs?: Int64 | undefined;
   isAvatar?: boolean | undefined;
   isAiSticker?: boolean | undefined;
   isLottie?: boolean | undefined;
@@ -4895,7 +4895,7 @@ export interface Message_StickerPackMessage {
   name?: string | undefined;
   publisher?: string | undefined;
   stickers?: Message_StickerPackMessage_Sticker[] | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   fileSha256?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   mediaKey?: Uint8Array | undefined;
@@ -4903,7 +4903,7 @@ export interface Message_StickerPackMessage {
   caption?: string | undefined;
   contextInfo?: ContextInfo | undefined;
   packDescription?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   trayIconFileName?: string | undefined;
   thumbnailDirectPath?: string | undefined;
   thumbnailSha256?: Uint8Array | undefined;
@@ -4911,7 +4911,7 @@ export interface Message_StickerPackMessage {
   thumbnailHeight?: number | undefined;
   thumbnailWidth?: number | undefined;
   imageDataHash?: string | undefined;
-  stickerPackSize?: number | undefined;
+  stickerPackSize?: Int64 | undefined;
   stickerPackOrigin?: Message_StickerPackMessage_StickerPackOrigin | undefined;
 }
 
@@ -4935,7 +4935,7 @@ export interface Message_StickerPackMessage_Sticker {
 export interface Message_StickerSyncRMRMessage {
   filehash?: string[] | undefined;
   rmrSource?: string | undefined;
-  requestTimestamp?: number | undefined;
+  requestTimestamp?: Int64 | undefined;
 }
 
 export interface Message_TemplateButtonReplyMessage {
@@ -4994,7 +4994,7 @@ export interface Message_VideoMessage {
   url?: string | undefined;
   mimetype?: string | undefined;
   fileSha256?: Uint8Array | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   seconds?: number | undefined;
   mediaKey?: Uint8Array | undefined;
   caption?: string | undefined;
@@ -5004,7 +5004,7 @@ export interface Message_VideoMessage {
   fileEncSha256?: Uint8Array | undefined;
   interactiveAnnotations?: InteractiveAnnotation[] | undefined;
   directPath?: string | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   jpegThumbnail?: Uint8Array | undefined;
   contextInfo?: ContextInfo | undefined;
   streamingSidecar?: Uint8Array | undefined;
@@ -5018,7 +5018,7 @@ export interface Message_VideoMessage {
   accessibilityLabel?: string | undefined;
   processedVideos?: ProcessedVideo[] | undefined;
   externalShareFullVideoDurationInSeconds?: number | undefined;
-  motionPhotoPresentationOffsetMs?: number | undefined;
+  motionPhotoPresentationOffsetMs?: Int64 | undefined;
   metadataUrl?: string | undefined;
   videoSourceType?: Message_VideoMessage_VideoSourceType | undefined;
 }
@@ -5040,8 +5040,8 @@ export enum Message_VideoMessage_VideoSourceType {
 export interface MessageAddOn {
   messageAddOnType?: MessageAddOn_MessageAddOnType | undefined;
   messageAddOn?: Message | undefined;
-  senderTimestampMs?: number | undefined;
-  serverTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
+  serverTimestampMs?: Int64 | undefined;
   status?: WebMessageInfo_Status | undefined;
   addOnContextInfo?: MessageAddOnContextInfo | undefined;
   messageAddOnKey?: MessageKey | undefined;
@@ -5140,7 +5140,7 @@ export interface MessageText {
 }
 
 export interface Money {
-  value?: number | undefined;
+  value?: Int64 | undefined;
   offset?: number | undefined;
   currencyCode?: string | undefined;
 }
@@ -5164,7 +5164,7 @@ export interface MsgOpaqueData {
   pollSelectableOptionsCount?: number | undefined;
   messageSecret?: Uint8Array | undefined;
   originalSelfAuthor?: string | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
   pollUpdateParentKey?: string | undefined;
   encPollVote?: PollEncValue | undefined;
   isSentCagPollCreation?: boolean | undefined;
@@ -5183,20 +5183,20 @@ export interface MsgOpaqueData {
   isEventCanceled?: boolean | undefined;
   eventDescription?: string | undefined;
   eventJoinLink?: string | undefined;
-  eventStartTime?: number | undefined;
+  eventStartTime?: Int64 | undefined;
   eventLocation?: MsgOpaqueData_EventLocation | undefined;
-  eventEndTime?: number | undefined;
+  eventEndTime?: Int64 | undefined;
   eventIsScheduledCall?: boolean | undefined;
   eventExtraGuestsAllowed?: boolean | undefined;
   plainProtobufBytes?: Uint8Array | undefined;
   quarantineExtractedText?: string | undefined;
-  pollEndTime?: number | undefined;
+  pollEndTime?: Int64 | undefined;
   pollHideVoterNames?: boolean | undefined;
   pollAllowAddOption?: boolean | undefined;
   sharableEventInviteId?: string | undefined;
   sharableEventInviteTitle?: string | undefined;
-  sharableEventInviteStartTime?: number | undefined;
-  sharableEventInviteEndTime?: number | undefined;
+  sharableEventInviteStartTime?: Int64 | undefined;
+  sharableEventInviteEndTime?: Int64 | undefined;
   sharableEventInviteCaption?: string | undefined;
   sharableEventInviteIsCanceled?: boolean | undefined;
   sharableEventInviteJpegThumbnail?: Uint8Array | undefined;
@@ -5252,7 +5252,7 @@ export interface NoiseCertificate {
 export interface NoiseCertificate_Details {
   serial?: number | undefined;
   issuer?: string | undefined;
-  expires?: number | undefined;
+  expires?: Int64 | undefined;
   subject?: string | undefined;
   key?: Uint8Array | undefined;
 }
@@ -5260,7 +5260,7 @@ export interface NoiseCertificate_Details {
 export interface NotificationMessageInfo {
   key?: MessageKey | undefined;
   message?: Message | undefined;
-  messageTimestamp?: number | undefined;
+  messageTimestamp?: Int64 | undefined;
   participant?: string | undefined;
 }
 
@@ -5292,7 +5292,7 @@ export interface PairingRequest {
 export interface PastParticipant {
   userJid?: string | undefined;
   leaveReason?: PastParticipant_LeaveReason | undefined;
-  leaveTs?: number | undefined;
+  leaveTs?: Int64 | undefined;
 }
 
 export enum PastParticipant_LeaveReason {
@@ -5338,7 +5338,7 @@ export enum PatchDebugData_Platform {
 
 export interface PaymentBackground {
   id?: string | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   width?: number | undefined;
   height?: number | undefined;
   mimetype?: string | undefined;
@@ -5357,7 +5357,7 @@ export enum PaymentBackground_Type {
 
 export interface PaymentBackground_MediaData {
   mediaKey?: Uint8Array | undefined;
-  mediaKeyTimestamp?: number | undefined;
+  mediaKeyTimestamp?: Int64 | undefined;
   fileSha256?: Uint8Array | undefined;
   fileEncSha256?: Uint8Array | undefined;
   directPath?: string | undefined;
@@ -5365,12 +5365,12 @@ export interface PaymentBackground_MediaData {
 
 export interface PaymentInfo {
   currencyDeprecated?: PaymentInfo_Currency | undefined;
-  amount1000?: number | undefined;
+  amount1000?: Int64 | undefined;
   receiverJid?: string | undefined;
   status?: PaymentInfo_Status | undefined;
-  transactionTimestamp?: number | undefined;
+  transactionTimestamp?: Int64 | undefined;
   requestMessageKey?: MessageKey | undefined;
-  expiryTimestamp?: number | undefined;
+  expiryTimestamp?: Int64 | undefined;
   futureproofed?: boolean | undefined;
   currency?: string | undefined;
   txnStatus?: PaymentInfo_TxnStatus | undefined;
@@ -5451,8 +5451,8 @@ export interface PhotoChange {
 export interface PinInChat {
   type?: PinInChat_Type | undefined;
   key?: MessageKey | undefined;
-  senderTimestampMs?: number | undefined;
-  serverTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
+  serverTimestampMs?: Int64 | undefined;
   messageAddOnContextInfo?: MessageAddOnContextInfo | undefined;
 }
 
@@ -5488,8 +5488,8 @@ export interface PollEncValue {
 export interface PollUpdate {
   pollUpdateMessageKey?: MessageKey | undefined;
   vote?: Message_PollVoteMessage | undefined;
-  senderTimestampMs?: number | undefined;
-  serverTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
+  serverTimestampMs?: Int64 | undefined;
   unread?: boolean | undefined;
   metadata?: Message_PollUpdateMessageMetadata | undefined;
 }
@@ -5525,7 +5525,7 @@ export interface ProcessedVideo {
   fileSha256?: Uint8Array | undefined;
   height?: number | undefined;
   width?: number | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   bitrate?: number | undefined;
   quality?: ProcessedVideo_VideoQuality | undefined;
   capabilities?: string[] | undefined;
@@ -5599,7 +5599,7 @@ export interface Reaction {
   key?: MessageKey | undefined;
   text?: string | undefined;
   groupingKey?: string | undefined;
-  senderTimestampMs?: number | undefined;
+  senderTimestampMs?: Int64 | undefined;
   unread?: boolean | undefined;
 }
 
@@ -5636,7 +5636,7 @@ export interface RoutingInfo {
 export interface ScheduledMessageMetadata {
   revealKeyId?: string | undefined;
   revealKey?: Uint8Array | undefined;
-  scheduledTime?: number | undefined;
+  scheduledTime?: Int64 | undefined;
 }
 
 export interface SenderKeyDistributionMessage {
@@ -5753,7 +5753,7 @@ export interface SignedPreKeyRecordStructure {
   publicKey?: Uint8Array | undefined;
   privateKey?: Uint8Array | undefined;
   signature?: Uint8Array | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface StatusAttribution {
@@ -5868,8 +5868,8 @@ export interface StatusMentionMessage {
 }
 
 export interface StatusPSA {
-  campaignId?: number | undefined;
-  campaignExpirationTimestamp?: number | undefined;
+  campaignId?: Int64 | undefined;
+  campaignExpirationTimestamp?: Int64 | undefined;
 }
 
 export interface StickerMetadata {
@@ -5881,9 +5881,9 @@ export interface StickerMetadata {
   height?: number | undefined;
   width?: number | undefined;
   directPath?: string | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   weight?: number | undefined;
-  lastStickerSentTs?: number | undefined;
+  lastStickerSentTs?: Int64 | undefined;
   isLottie?: boolean | undefined;
   imageHash?: string | undefined;
   isAvatarSticker?: boolean | undefined;
@@ -5902,7 +5902,7 @@ export interface SyncActionData {
 }
 
 export interface SyncActionValue {
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
   starAction?: SyncActionValue_StarAction | undefined;
   contactAction?: SyncActionValue_ContactAction | undefined;
   muteAction?: SyncActionValue_MuteAction | undefined;
@@ -6034,8 +6034,8 @@ export enum SyncActionValue_AvatarUpdatedAction_AvatarEventType {
 
 export interface SyncActionValue_BizAISettingsNudgeAction {
   category?: SyncActionValue_BizAISettingsNudgeAction_BizAISettingsCategory | undefined;
-  version?: number | undefined;
-  updatedAtMs?: number | undefined;
+  version?: Int64 | undefined;
+  updatedAtMs?: Int64 | undefined;
 }
 
 export enum SyncActionValue_BizAISettingsNudgeAction_BizAISettingsCategory {
@@ -6068,8 +6068,8 @@ export interface SyncActionValue_BusinessBroadcastCampaignAction {
   msgId?: string | undefined;
   broadcastJid?: string | undefined;
   reservedQuota?: number | undefined;
-  scheduledTimestamp?: number | undefined;
-  createTimestamp?: number | undefined;
+  scheduledTimestamp?: Int64 | undefined;
+  createTimestamp?: Int64 | undefined;
   status?: SyncActionValue_BusinessBroadcastCampaignStatus | undefined;
 }
 
@@ -6106,7 +6106,7 @@ export interface SyncActionValue_ClearChatAction {
 }
 
 export interface SyncActionValue_CoexV2VersionAction {
-  version?: number | undefined;
+  version?: Int64 | undefined;
 }
 
 export interface SyncActionValue_ContactAction {
@@ -6143,13 +6143,13 @@ export interface SyncActionValue_CustomerDataAction {
   contactType?: number | undefined;
   email?: string | undefined;
   altPhoneNumbers?: string | undefined;
-  birthday?: number | undefined;
+  birthday?: Int64 | undefined;
   address?: string | undefined;
   acquisitionSource?: number | undefined;
   leadStage?: number | undefined;
-  lastOrder?: number | undefined;
-  createdAt?: number | undefined;
-  modifiedAt?: number | undefined;
+  lastOrder?: Int64 | undefined;
+  createdAt?: Int64 | undefined;
+  modifiedAt?: Int64 | undefined;
 }
 
 export interface SyncActionValue_DeleteChatAction {
@@ -6163,7 +6163,7 @@ export interface SyncActionValue_DeleteIndividualCallLogAction {
 
 export interface SyncActionValue_DeleteMessageForMeAction {
   deleteMedia?: boolean | undefined;
-  messageTimestamp?: number | undefined;
+  messageTimestamp?: Int64 | undefined;
 }
 
 export interface SyncActionValue_DetectedOutcomesStatusAction {
@@ -6210,7 +6210,7 @@ export interface SyncActionValue_LabelEditAction {
   isActive?: boolean | undefined;
   type?: SyncActionValue_LabelEditAction_ListType | undefined;
   isImmutable?: boolean | undefined;
-  muteEndTimeMs?: number | undefined;
+  muteEndTimeMs?: Int64 | undefined;
 }
 
 export enum SyncActionValue_LabelEditAction_ListType {
@@ -6279,8 +6279,8 @@ export interface SyncActionValue_MarketingMessageAction {
   name?: string | undefined;
   message?: string | undefined;
   type?: SyncActionValue_MarketingMessageAction_MarketingMessagePrototypeType | undefined;
-  createdAt?: number | undefined;
-  lastSentAt?: number | undefined;
+  createdAt?: Int64 | undefined;
+  lastSentAt?: Int64 | undefined;
   isDeleted?: boolean | undefined;
   mediaId?: string | undefined;
 }
@@ -6319,9 +6319,9 @@ export interface SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
 
 export interface SyncActionValue_MuteAction {
   muted?: boolean | undefined;
-  muteEndTimestamp?: number | undefined;
+  muteEndTimestamp?: Int64 | undefined;
   autoMuted?: boolean | undefined;
-  muteEveryoneMentionEndTimestamp?: number | undefined;
+  muteEveryoneMentionEndTimestamp?: Int64 | undefined;
 }
 
 export interface SyncActionValue_NctSaltSyncAction {
@@ -6335,7 +6335,7 @@ export interface SyncActionValue_NewsletterSavedInterestsAction {
 export interface SyncActionValue_NoteEditAction {
   type?: SyncActionValue_NoteEditAction_NoteType | undefined;
   chatJid?: string | undefined;
-  createdAt?: number | undefined;
+  createdAt?: Int64 | undefined;
   deleted?: boolean | undefined;
   unstructuredContent?: string | undefined;
 }
@@ -6440,7 +6440,7 @@ export interface SyncActionValue_RecentEmojiWeightsAction {
 }
 
 export interface SyncActionValue_RemoveRecentStickerAction {
-  lastStickerSentTs?: number | undefined;
+  lastStickerSentTs?: Int64 | undefined;
 }
 
 export interface SyncActionValue_SettingsSyncAction {
@@ -6583,7 +6583,7 @@ export interface SyncActionValue_StickerAction {
   height?: number | undefined;
   width?: number | undefined;
   directPath?: string | undefined;
-  fileLength?: number | undefined;
+  fileLength?: Int64 | undefined;
   isFavorite?: boolean | undefined;
   deviceIdHint?: number | undefined;
   isLottie?: boolean | undefined;
@@ -6594,7 +6594,7 @@ export interface SyncActionValue_StickerAction {
 export interface SyncActionValue_SubscriptionAction {
   isDeactivated?: boolean | undefined;
   isAutoRenewing?: boolean | undefined;
-  expirationDate?: number | undefined;
+  expirationDate?: Int64 | undefined;
 }
 
 export interface SyncActionValue_SubscriptionsSyncV2Action {
@@ -6606,28 +6606,28 @@ export interface SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
   name?: string | undefined;
   enabled?: boolean | undefined;
   limit?: number | undefined;
-  expirationTime?: number | undefined;
+  expirationTime?: Int64 | undefined;
 }
 
 export interface SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
   id?: string | undefined;
   tier?: number | undefined;
   status?: string | undefined;
-  startTime?: number | undefined;
-  endTime?: number | undefined;
+  startTime?: Int64 | undefined;
+  endTime?: Int64 | undefined;
   isPlatformChanged?: boolean | undefined;
   source?: string | undefined;
-  creationTime?: number | undefined;
+  creationTime?: Int64 | undefined;
 }
 
 export interface SyncActionValue_SyncActionMessage {
   key?: MessageKey | undefined;
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
 }
 
 export interface SyncActionValue_SyncActionMessageRange {
-  lastMessageTimestamp?: number | undefined;
-  lastSystemMessageTimestamp?: number | undefined;
+  lastMessageTimestamp?: Int64 | undefined;
+  lastSystemMessageTimestamp?: Int64 | undefined;
   messages?: SyncActionValue_SyncActionMessage[] | undefined;
 }
 
@@ -6668,7 +6668,7 @@ export interface SyncActionValue_WASARootSecretAction {
 export interface SyncActionValue_WASARootSecretAction_RootSecretEntry {
   id?: string | undefined;
   rootSecret?: Uint8Array | undefined;
-  epoch?: number | undefined;
+  epoch?: Int64 | undefined;
 }
 
 export interface SyncActionValue_WaffleAccountLinkStateAction {
@@ -6748,7 +6748,7 @@ export interface SyncdValue {
 }
 
 export interface SyncdVersion {
-  version?: number | undefined;
+  version?: Int64 | undefined;
 }
 
 export interface TapLinkAction {
@@ -6844,9 +6844,9 @@ export interface UserPassword_TransformerArg_Value {
 
 export interface UserReceipt {
   userJid?: string | undefined;
-  receiptTimestamp?: number | undefined;
-  readTimestamp?: number | undefined;
-  playedTimestamp?: number | undefined;
+  receiptTimestamp?: Int64 | undefined;
+  readTimestamp?: Int64 | undefined;
+  playedTimestamp?: Int64 | undefined;
   pendingDeviceJid?: string[] | undefined;
   deliveredDeviceJid?: string[] | undefined;
 }
@@ -6858,11 +6858,11 @@ export interface VerifiedNameCertificate {
 }
 
 export interface VerifiedNameCertificate_Details {
-  serial?: number | undefined;
+  serial?: Int64 | undefined;
   issuer?: string | undefined;
   verifiedName?: string | undefined;
   localizedNames?: LocalizedName[] | undefined;
-  issueTime?: number | undefined;
+  issueTime?: Int64 | undefined;
 }
 
 export interface VirtualDeviceOutput {
@@ -6940,10 +6940,10 @@ export enum WebFeatures_Flag {
 export interface WebMessageInfo {
   key?: MessageKey | undefined;
   message?: Message | undefined;
-  messageTimestamp?: number | undefined;
+  messageTimestamp?: Int64 | undefined;
   status?: WebMessageInfo_Status | undefined;
   participant?: string | undefined;
-  messageC2STimestamp?: number | undefined;
+  messageC2STimestamp?: Int64 | undefined;
   ignore?: boolean | undefined;
   starred?: boolean | undefined;
   broadcast?: boolean | undefined;
@@ -6960,7 +6960,7 @@ export interface WebMessageInfo {
   paymentInfo?: PaymentInfo | undefined;
   finalLiveLocation?: Message_LiveLocationMessage | undefined;
   quotedPaymentInfo?: PaymentInfo | undefined;
-  ephemeralStartTimestamp?: number | undefined;
+  ephemeralStartTimestamp?: Int64 | undefined;
   ephemeralDuration?: number | undefined;
   ephemeralOffToOn?: boolean | undefined;
   ephemeralOutOfSync?: boolean | undefined;
@@ -6980,7 +6980,7 @@ export interface WebMessageInfo {
   messageSecret?: Uint8Array | undefined;
   keepInChat?: KeepInChat | undefined;
   originalSelfAuthorUserJidString?: string | undefined;
-  revokeMessageTimestamp?: number | undefined;
+  revokeMessageTimestamp?: Int64 | undefined;
   pinInChat?: PinInChat | undefined;
   premiumMessageInfo?: PremiumMessageInfo | undefined;
   is1PBizBotMessage?: boolean | undefined;
@@ -6989,7 +6989,7 @@ export interface WebMessageInfo {
   commentMetadata?: CommentMetadata | undefined;
   eventResponses?: EventResponse[] | undefined;
   reportingTokenInfo?: ReportingTokenInfo | undefined;
-  newsletterServerId?: number | undefined;
+  newsletterServerId?: Int64 | undefined;
   eventAdditionalMetadata?: EventAdditionalMetadata | undefined;
   isMentionedInStatus?: boolean | undefined;
   statusMentions?: string[] | undefined;
@@ -7006,7 +7006,7 @@ export interface WebMessageInfo {
   quarantinedMessage?: QuarantinedMessage | undefined;
   nonJidMentions?: number | undefined;
   hsmTag?: string | undefined;
-  ephemeralExpirationTimestamp?: number | undefined;
+  ephemeralExpirationTimestamp?: Int64 | undefined;
   scheduledMessageMetadata?: ScheduledMessageMetadata | undefined;
   decisionId?: string | undefined;
   decisionSources?: string[] | undefined;
@@ -7270,7 +7270,7 @@ export interface WebMessageInfoWithMessageBytes {
 }
 
 export interface WebNotificationsInfo {
-  timestamp?: number | undefined;
+  timestamp?: Int64 | undefined;
   unreadChats?: number | undefined;
   notifyMessageCount?: number | undefined;
   notifyMessages?: WebMessageInfo[] | undefined;
@@ -7320,7 +7320,7 @@ export const ADVDeviceIdentity: MessageFns<ADVDeviceIdentity> = {
             break;
           }
 
-          message.timestamp = reader.uint64Number();
+          message.timestamp = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -7418,7 +7418,7 @@ export const ADVKeyIndexList: MessageFns<ADVKeyIndexList> = {
             break;
           }
 
-          message.timestamp = reader.uint64Number();
+          message.timestamp = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -7740,7 +7740,7 @@ export const AIHomeState: MessageFns<AIHomeState> = {
             break;
           }
 
-          message.lastFetchTime = reader.int64Number();
+          message.lastFetchTime = reader.int64Value();
           continue;
         }
         case 2: {
@@ -8146,7 +8146,7 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -8209,7 +8209,7 @@ export const AIRegenerateMetadata: MessageFns<AIRegenerateMetadata> = {
             break;
           }
 
-          message.responseTimestampMs = reader.int64Number();
+          message.responseTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -8634,7 +8634,7 @@ export const AIRichResponseDynamicMetadata: MessageFns<AIRichResponseDynamicMeta
             break;
           }
 
-          message.version = reader.uint64Number();
+          message.version = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -10396,7 +10396,7 @@ export const BizAccountLinkInfo: MessageFns<BizAccountLinkInfo> = {
             break;
           }
 
-          message.whatsappBizAcctFbid = reader.uint64Number();
+          message.whatsappBizAcctFbid = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -10412,7 +10412,7 @@ export const BizAccountLinkInfo: MessageFns<BizAccountLinkInfo> = {
             break;
           }
 
-          message.issueTime = reader.uint64Number();
+          message.issueTime = reader.uint64Value();
           continue;
         }
         case 4: {
@@ -10607,7 +10607,7 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
             break;
           }
 
-          message.privacyModeTs = reader.uint64Number();
+          message.privacyModeTs = reader.uint64Value();
           continue;
         }
         case 8: {
@@ -10615,7 +10615,7 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
             break;
           }
 
-          message.featureControls = reader.uint64Number();
+          message.featureControls = reader.uint64Value();
           continue;
         }
       }
@@ -11057,7 +11057,7 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
             break;
           }
 
-          message.kindNegative = reader.uint64Number();
+          message.kindNegative = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -11065,7 +11065,7 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
             break;
           }
 
-          message.kindPositive = reader.uint64Number();
+          message.kindPositive = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -12327,7 +12327,7 @@ export const BotMediaMetadata: MessageFns<BotMediaMetadata> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -13819,7 +13819,7 @@ export const BotProgressIndicatorMetadata: MessageFns<BotProgressIndicatorMetada
             break;
           }
 
-          message.estimatedCompletionTime = reader.int64Number();
+          message.estimatedCompletionTime = reader.int64Value();
           continue;
         }
       }
@@ -14600,7 +14600,7 @@ export const BotQuotaMetadata_BotFeatureQuotaMetadata: MessageFns<BotQuotaMetada
             break;
           }
 
-          message.expirationTimestamp = reader.uint64Number();
+          message.expirationTimestamp = reader.uint64Value();
           continue;
         }
       }
@@ -14684,7 +14684,7 @@ export const BotReminderMetadata: MessageFns<BotReminderMetadata> = {
             break;
           }
 
-          message.nextTriggerTimestamp = reader.uint64Number();
+          message.nextTriggerTimestamp = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -15733,7 +15733,7 @@ export const CallLogRecord: MessageFns<CallLogRecord> = {
             break;
           }
 
-          message.duration = reader.int64Number();
+          message.duration = reader.int64Value();
           continue;
         }
         case 5: {
@@ -15741,7 +15741,7 @@ export const CallLogRecord: MessageFns<CallLogRecord> = {
             break;
           }
 
-          message.startTime = reader.int64Number();
+          message.startTime = reader.int64Value();
           continue;
         }
         case 6: {
@@ -16101,7 +16101,7 @@ export const CertChain_NoiseCertificate_Details: MessageFns<CertChain_NoiseCerti
             break;
           }
 
-          message.notBefore = reader.uint64Number();
+          message.notBefore = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -16109,7 +16109,7 @@ export const CertChain_NoiseCertificate_Details: MessageFns<CertChain_NoiseCerti
             break;
           }
 
-          message.notAfter = reader.uint64Number();
+          message.notAfter = reader.uint64Value();
           continue;
         }
       }
@@ -16315,7 +16315,7 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -16932,7 +16932,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.username = reader.uint64Number();
+          message.username = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -17108,7 +17108,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.fbAppId = reader.uint64Number();
+          message.fbAppId = reader.uint64Value();
           continue;
         }
         case 32: {
@@ -17524,7 +17524,7 @@ export const ClientPayload_InteropData: MessageFns<ClientPayload_InteropData> = 
             break;
           }
 
-          message.accountId = reader.uint64Number();
+          message.accountId = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -19312,7 +19312,7 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
       }
@@ -19515,7 +19515,7 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
             break;
           }
 
-          message.inviteExpiration = reader.int64Number();
+          message.inviteExpiration = reader.int64Value();
           continue;
         }
         case 4: {
@@ -19782,7 +19782,7 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
             break;
           }
 
-          message.sequenceNumber = reader.int64Number();
+          message.sequenceNumber = reader.int64Value();
           continue;
         }
         case 7: {
@@ -20562,7 +20562,7 @@ export const ConsumerApplication_PollVoteMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -20648,7 +20648,7 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 5: {
@@ -21401,7 +21401,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.ephemeralSettingTimestamp = reader.int64Number();
+          message.ephemeralSettingTimestamp = reader.int64Value();
           continue;
         }
         case 27: {
@@ -22441,7 +22441,7 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
             break;
           }
 
-          message.intData = reader.int64Number();
+          message.intData = reader.int64Value();
           continue;
         }
         case 4: {
@@ -23604,7 +23604,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.lastMsgTimestamp = reader.uint64Number();
+          message.lastMsgTimestamp = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -23644,7 +23644,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.ephemeralSettingTimestamp = reader.int64Number();
+          message.ephemeralSettingTimestamp = reader.int64Value();
           continue;
         }
         case 11: {
@@ -23660,7 +23660,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.conversationTimestamp = reader.uint64Number();
+          message.conversationTimestamp = reader.uint64Value();
           continue;
         }
         case 13: {
@@ -23746,7 +23746,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.tcTokenTimestamp = reader.uint64Number();
+          message.tcTokenTimestamp = reader.uint64Value();
           continue;
         }
         case 23: {
@@ -23770,7 +23770,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.muteEndTime = reader.uint64Number();
+          message.muteEndTime = reader.uint64Value();
           continue;
         }
         case 26: {
@@ -23794,7 +23794,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.tcTokenSenderTimestamp = reader.uint64Number();
+          message.tcTokenSenderTimestamp = reader.uint64Value();
           continue;
         }
         case 29: {
@@ -23818,7 +23818,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.createdAt = reader.uint64Number();
+          message.createdAt = reader.uint64Value();
           continue;
         }
         case 32: {
@@ -23978,7 +23978,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.limitSharingSettingTimestamp = reader.int64Number();
+          message.limitSharingSettingTimestamp = reader.int64Value();
           continue;
         }
         case 52: {
@@ -24050,7 +24050,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.appealUpdateTime = reader.uint64Number();
+          message.appealUpdateTime = reader.uint64Value();
           continue;
         }
         case 61: {
@@ -24188,7 +24188,7 @@ export const CreateBackupInput: MessageFns<CreateBackupInput> = {
             break;
           }
 
-          message.userId = reader.uint64Number();
+          message.userId = reader.uint64Value();
           continue;
         }
       }
@@ -24741,7 +24741,7 @@ export const DeviceCapabilities_LIDMigration: MessageFns<DeviceCapabilities_LIDM
             break;
           }
 
-          message.chatDbMigrationTimestamp = reader.uint64Number();
+          message.chatDbMigrationTimestamp = reader.uint64Value();
           continue;
         }
       }
@@ -24928,7 +24928,7 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
             break;
           }
 
-          message.senderTimestamp = reader.uint64Number();
+          message.senderTimestamp = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -24984,7 +24984,7 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
             break;
           }
 
-          message.recipientTimestamp = reader.uint64Number();
+          message.recipientTimestamp = reader.uint64Value();
           continue;
         }
         case 10: {
@@ -26074,7 +26074,7 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
             break;
           }
 
-          message.musicSongStartTimeInMs = reader.int64Number();
+          message.musicSongStartTimeInMs = reader.int64Value();
           continue;
         }
         case 13: {
@@ -26082,7 +26082,7 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
             break;
           }
 
-          message.derivedContentStartTimeInMs = reader.int64Number();
+          message.derivedContentStartTimeInMs = reader.int64Value();
           continue;
         }
         case 14: {
@@ -26090,7 +26090,7 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
             break;
           }
 
-          message.overlapDurationInMs = reader.int64Number();
+          message.overlapDurationInMs = reader.int64Value();
           continue;
         }
       }
@@ -26211,7 +26211,7 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
             break;
           }
 
-          message.epochId = reader.uint64Number();
+          message.epochId = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -26227,7 +26227,7 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
             break;
           }
 
-          message.waCanonicalUserFbid = reader.uint64Number();
+          message.waCanonicalUserFbid = reader.uint64Value();
           continue;
         }
         case 8: {
@@ -26235,7 +26235,7 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
             break;
           }
 
-          message.timestampMs = reader.uint64Number();
+          message.timestampMs = reader.uint64Value();
           continue;
         }
         case 9: {
@@ -26243,7 +26243,7 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
             break;
           }
 
-          message.backupId = reader.uint64Number();
+          message.backupId = reader.uint64Value();
           continue;
         }
         case 10: {
@@ -26357,7 +26357,7 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
             break;
           }
 
-          message.offlineThreadingId = reader.uint64Number();
+          message.offlineThreadingId = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -26365,7 +26365,7 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
             break;
           }
 
-          message.timestampMs = reader.uint64Number();
+          message.timestampMs = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -26632,7 +26632,7 @@ export const EphemeralSetting: MessageFns<EphemeralSetting> = {
             break;
           }
 
-          message.timestamp = reader.sfixed64Number();
+          message.timestamp = reader.sfixed64Value();
           continue;
         }
       }
@@ -26697,7 +26697,7 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
             break;
           }
 
-          message.epochFbid = reader.uint64Number();
+          message.epochFbid = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -26860,7 +26860,7 @@ export const EventResponse: MessageFns<EventResponse> = {
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
         case 3: {
@@ -26933,7 +26933,7 @@ export const ExitCode: MessageFns<ExitCode> = {
             break;
           }
 
-          message.code = reader.uint64Number();
+          message.code = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -27027,7 +27027,7 @@ export const ExternalBlobReference: MessageFns<ExternalBlobReference> = {
             break;
           }
 
-          message.fileSizeBytes = reader.uint64Number();
+          message.fileSizeBytes = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -27567,7 +27567,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.disappearingModeTimestamp = reader.int64Number();
+          message.disappearingModeTimestamp = reader.int64Value();
           continue;
         }
         case 11: {
@@ -27647,7 +27647,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.chatDbLidMigrationTimestamp = reader.int64Number();
+          message.chatDbLidMigrationTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -28297,7 +28297,7 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
             break;
           }
 
-          message.expiryTimestampMs = reader.int64Number();
+          message.expiryTimestampMs = reader.int64Value();
           continue;
         }
         case 4: {
@@ -28305,7 +28305,7 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
             break;
           }
 
-          message.createdTimestampMs = reader.int64Number();
+          message.createdTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -28798,7 +28798,7 @@ export const HatchMetadataSync: MessageFns<HatchMetadataSync> = {
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
         case 3: {
@@ -29214,7 +29214,7 @@ export const HistorySyncMsg: MessageFns<HistorySyncMsg> = {
             break;
           }
 
-          message.msgOrderId = reader.uint64Number();
+          message.msgOrderId = reader.uint64Value();
           continue;
         }
       }
@@ -30426,7 +30426,7 @@ export const KeepInChat: MessageFns<KeepInChat> = {
             break;
           }
 
-          message.serverTimestamp = reader.int64Number();
+          message.serverTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -30450,7 +30450,7 @@ export const KeepInChat: MessageFns<KeepInChat> = {
             break;
           }
 
-          message.clientTimestampMs = reader.int64Number();
+          message.clientTimestampMs = reader.int64Value();
           continue;
         }
         case 6: {
@@ -30458,7 +30458,7 @@ export const KeepInChat: MessageFns<KeepInChat> = {
             break;
           }
 
-          message.serverTimestampMs = reader.int64Number();
+          message.serverTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -30701,7 +30701,7 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
             break;
           }
 
-          message.pn = reader.uint64Number();
+          message.pn = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -30709,7 +30709,7 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
             break;
           }
 
-          message.assignedLid = reader.uint64Number();
+          message.assignedLid = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -30717,7 +30717,7 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
             break;
           }
 
-          message.latestLid = reader.uint64Number();
+          message.latestLid = reader.uint64Value();
           continue;
         }
       }
@@ -30784,7 +30784,7 @@ export const LIDMigrationMappingSyncPayload: MessageFns<LIDMigrationMappingSyncP
             break;
           }
 
-          message.chatDbMigrationTimestamp = reader.uint64Number();
+          message.chatDbMigrationTimestamp = reader.uint64Value();
           continue;
         }
       }
@@ -31008,7 +31008,7 @@ export const LimitSharing: MessageFns<LimitSharing> = {
             break;
           }
 
-          message.limitSharingSettingTimestamp = reader.int64Number();
+          message.limitSharingSettingTimestamp = reader.int64Value();
           continue;
         }
         case 4: {
@@ -31389,7 +31389,7 @@ export const MediaEntry: MessageFns<MediaEntry> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -31477,7 +31477,7 @@ export const MediaEntry: MessageFns<MediaEntry> = {
             break;
           }
 
-          message.size = reader.int64Number();
+          message.size = reader.int64Value();
           continue;
         }
         case 17: {
@@ -31485,7 +31485,7 @@ export const MediaEntry: MessageFns<MediaEntry> = {
             break;
           }
 
-          message.lastDownloadAttemptTimestamp = reader.int64Number();
+          message.lastDownloadAttemptTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -31600,7 +31600,7 @@ export const MediaEntry_DownloadableThumbnail: MessageFns<MediaEntry_Downloadabl
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -31757,7 +31757,7 @@ export const MediaNotifyMessage: MessageFns<MediaNotifyMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
       }
@@ -31898,7 +31898,7 @@ export const MemberLabel: MessageFns<MemberLabel> = {
             break;
           }
 
-          message.labelTimestamp = reader.int64Number();
+          message.labelTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -33710,7 +33710,7 @@ export const Message_AppStateFatalExceptionNotification: MessageFns<Message_AppS
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -33843,7 +33843,7 @@ export const Message_AppStateSyncKeyData: MessageFns<Message_AppStateSyncKeyData
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -34206,7 +34206,7 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -34254,7 +34254,7 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 17: {
@@ -35100,7 +35100,7 @@ export const Message_CallLogMessage: MessageFns<Message_CallLogMessage> = {
             break;
           }
 
-          message.durationSecs = reader.int64Number();
+          message.durationSecs = reader.int64Value();
           continue;
         }
         case 4: {
@@ -35621,7 +35621,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
             break;
           }
 
-          message.settingTimestampMs = reader.int64Number();
+          message.settingTimestampMs = reader.int64Value();
           continue;
         }
         case 2: {
@@ -35755,7 +35755,7 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
             break;
           }
 
-          message.senderNotificationTimestampMs = reader.int64Number();
+          message.senderNotificationTimestampMs = reader.int64Value();
           continue;
         }
         case 3: {
@@ -36436,7 +36436,7 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -36484,7 +36484,7 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 12: {
@@ -36905,7 +36905,7 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
             break;
           }
 
-          message.startTime = reader.int64Number();
+          message.startTime = reader.int64Value();
           continue;
         }
         case 6: {
@@ -36929,7 +36929,7 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
             break;
           }
 
-          message.endTime = reader.int64Number();
+          message.endTime = reader.int64Value();
           continue;
         }
         case 9: {
@@ -37074,7 +37074,7 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
             break;
           }
 
-          message.startTime = reader.int64Number();
+          message.startTime = reader.int64Value();
           continue;
         }
         case 8: {
@@ -37082,7 +37082,7 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
             break;
           }
 
-          message.endTime = reader.int64Number();
+          message.endTime = reader.int64Value();
           continue;
         }
         case 9: {
@@ -37114,7 +37114,7 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
             break;
           }
 
-          message.reminderOffsetSec = reader.int64Number();
+          message.reminderOffsetSec = reader.int64Value();
           continue;
         }
       }
@@ -37189,7 +37189,7 @@ export const Message_EventResponseMessage: MessageFns<Message_EventResponseMessa
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
         case 3: {
@@ -37460,7 +37460,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 24: {
@@ -37687,7 +37687,7 @@ export const Message_FullHistorySyncOnDemandConfig: MessageFns<Message_FullHisto
             break;
           }
 
-          message.historyFromTimestamp = reader.uint64Number();
+          message.historyFromTimestamp = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -37906,7 +37906,7 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
             break;
           }
 
-          message.inviteExpiration = reader.int64Number();
+          message.inviteExpiration = reader.int64Value();
           continue;
         }
         case 4: {
@@ -38277,7 +38277,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
             break;
           }
 
-          message.amount1000 = reader.int64Number();
+          message.amount1000 = reader.int64Value();
           continue;
         }
       }
@@ -38557,7 +38557,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -38709,7 +38709,7 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -38773,7 +38773,7 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
             break;
           }
 
-          message.oldestMsgInChunkTimestampSec = reader.int64Number();
+          message.oldestMsgInChunkTimestampSec = reader.int64Value();
           continue;
         }
         case 11: {
@@ -39007,7 +39007,7 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -39069,7 +39069,7 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 16: {
@@ -40583,7 +40583,7 @@ export const Message_InvoiceMessage: MessageFns<Message_InvoiceMessage> = {
             break;
           }
 
-          message.attachmentMediaKeyTimestamp = reader.int64Number();
+          message.attachmentMediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 7: {
@@ -40692,7 +40692,7 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
       }
@@ -41646,7 +41646,7 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
             break;
           }
 
-          message.sequenceNumber = reader.int64Number();
+          message.sequenceNumber = reader.int64Value();
           continue;
         }
         case 8: {
@@ -41957,7 +41957,7 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -42086,7 +42086,7 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 7: {
@@ -42190,7 +42190,7 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
             break;
           }
 
-          message.oldestMessageTimestampInWindow = reader.int64Number();
+          message.oldestMessageTimestampInWindow = reader.int64Value();
           continue;
         }
         case 3: {
@@ -42198,7 +42198,7 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
             break;
           }
 
-          message.messageCount = reader.int64Number();
+          message.messageCount = reader.int64Value();
           continue;
         }
         case 4: {
@@ -42220,7 +42220,7 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
             break;
           }
 
-          message.oldestMessageTimestampInBundle = reader.int64Number();
+          message.oldestMessageTimestampInBundle = reader.int64Value();
           continue;
         }
       }
@@ -42380,7 +42380,7 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
             break;
           }
 
-          message.inviteExpiration = reader.int64Number();
+          message.inviteExpiration = reader.int64Value();
           continue;
         }
         case 6: {
@@ -42651,7 +42651,7 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
             break;
           }
 
-          message.totalAmount1000 = reader.int64Number();
+          message.totalAmount1000 = reader.int64Value();
           continue;
         }
         case 11: {
@@ -42834,7 +42834,7 @@ export const Message_PaymentInviteMessage: MessageFns<Message_PaymentInviteMessa
             break;
           }
 
-          message.expiryTimestamp = reader.int64Number();
+          message.expiryTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -44103,7 +44103,7 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
             break;
           }
 
-          message.oldestMsgTimestampMs = reader.int64Number();
+          message.oldestMsgTimestampMs = reader.int64Value();
           continue;
         }
         case 6: {
@@ -44379,7 +44379,7 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -44840,7 +44840,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               break;
             }
 
-            message.timestampMs = reader.int64Number();
+            message.timestampMs = reader.int64Value();
             continue;
           }
           case 3: {
@@ -45252,7 +45252,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 10: {
@@ -45260,7 +45260,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
       }
@@ -45734,7 +45734,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               break;
             }
 
-            message.mediaKeyTimestampMs = reader.int64Number();
+            message.mediaKeyTimestampMs = reader.int64Value();
             continue;
           }
           case 6: {
@@ -46170,7 +46170,7 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -46443,7 +46443,7 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
             break;
           }
 
-          message.endTime = reader.int64Number();
+          message.endTime = reader.int64Value();
           continue;
         }
         case 10: {
@@ -46739,7 +46739,7 @@ export const Message_PollResultSnapshotMessage_PollVote: MessageFns<Message_Poll
             break;
           }
 
-          message.optionVoteCount = reader.int64Number();
+          message.optionVoteCount = reader.int64Value();
           continue;
         }
       }
@@ -46821,7 +46821,7 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -47246,7 +47246,7 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
             break;
           }
 
-          message.priceAmount1000 = reader.int64Number();
+          message.priceAmount1000 = reader.int64Value();
           continue;
         }
         case 7: {
@@ -47286,7 +47286,7 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
             break;
           }
 
-          message.salePriceAmount1000 = reader.int64Number();
+          message.salePriceAmount1000 = reader.int64Value();
           continue;
         }
         case 13: {
@@ -47472,7 +47472,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.ephemeralSettingTimestamp = reader.int64Number();
+          message.ephemeralSettingTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -47542,7 +47542,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.timestampMs = reader.int64Number();
+          message.timestampMs = reader.int64Value();
           continue;
         }
         case 16: {
@@ -47895,7 +47895,7 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
       }
@@ -47978,7 +47978,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
             break;
           }
 
-          message.amount1000 = reader.uint64Number();
+          message.amount1000 = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -47994,7 +47994,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
             break;
           }
 
-          message.expiryTimestamp = reader.int64Number();
+          message.expiryTimestamp = reader.int64Value();
           continue;
         }
         case 6: {
@@ -48240,7 +48240,7 @@ export const Message_ScheduledCallCreationMessage: MessageFns<Message_ScheduledC
             break;
           }
 
-          message.scheduledTimestampMs = reader.int64Number();
+          message.scheduledTimestampMs = reader.int64Value();
           continue;
         }
         case 2: {
@@ -48670,7 +48670,7 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
             break;
           }
 
-          message.createdAtMs = reader.int64Number();
+          message.createdAtMs = reader.int64Value();
           continue;
         }
         case 17: {
@@ -49219,7 +49219,7 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 10: {
@@ -49227,7 +49227,7 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 11: {
@@ -49275,7 +49275,7 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
             break;
           }
 
-          message.stickerSentTs = reader.int64Number();
+          message.stickerSentTs = reader.int64Value();
           continue;
         }
         case 19: {
@@ -49495,7 +49495,7 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -49559,7 +49559,7 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 14: {
@@ -49623,7 +49623,7 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
             break;
           }
 
-          message.stickerPackSize = reader.uint64Number();
+          message.stickerPackSize = reader.uint64Value();
           continue;
         }
         case 22: {
@@ -49856,7 +49856,7 @@ export const Message_StickerSyncRMRMessage: MessageFns<Message_StickerSyncRMRMes
             break;
           }
 
-          message.requestTimestamp = reader.int64Number();
+          message.requestTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -50699,7 +50699,7 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 5: {
@@ -50785,7 +50785,7 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 16: {
@@ -50909,7 +50909,7 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
             break;
           }
 
-          message.motionPhotoPresentationOffsetMs = reader.uint64Number();
+          message.motionPhotoPresentationOffsetMs = reader.uint64Value();
           continue;
         }
         case 30: {
@@ -51040,7 +51040,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 4: {
@@ -51048,7 +51048,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.serverTimestampMs = reader.int64Number();
+          message.serverTimestampMs = reader.int64Value();
           continue;
         }
         case 5: {
@@ -51791,7 +51791,7 @@ export const Money: MessageFns<Money> = {
             break;
           }
 
-          message.value = reader.int64Number();
+          message.value = reader.int64Value();
           continue;
         }
         case 2: {
@@ -52169,7 +52169,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 23: {
@@ -52321,7 +52321,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.eventStartTime = reader.int64Number();
+          message.eventStartTime = reader.int64Value();
           continue;
         }
         case 38: {
@@ -52337,7 +52337,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.eventEndTime = reader.int64Number();
+          message.eventEndTime = reader.int64Value();
           continue;
         }
         case 44: {
@@ -52377,7 +52377,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.pollEndTime = reader.int64Number();
+          message.pollEndTime = reader.int64Value();
           continue;
         }
         case 50: {
@@ -52417,7 +52417,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.sharableEventInviteStartTime = reader.int64Number();
+          message.sharableEventInviteStartTime = reader.int64Value();
           continue;
         }
         case 56: {
@@ -52425,7 +52425,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.sharableEventInviteEndTime = reader.int64Number();
+          message.sharableEventInviteEndTime = reader.int64Value();
           continue;
         }
         case 57: {
@@ -52989,7 +52989,7 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
             break;
           }
 
-          message.expires = reader.uint64Number();
+          message.expires = reader.uint64Value();
           continue;
         }
         case 4: {
@@ -53080,7 +53080,7 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
             break;
           }
 
-          message.messageTimestamp = reader.uint64Number();
+          message.messageTimestamp = reader.uint64Value();
           continue;
         }
         case 4: {
@@ -53453,7 +53453,7 @@ export const PastParticipant: MessageFns<PastParticipant> = {
             break;
           }
 
-          message.leaveTs = reader.uint64Number();
+          message.leaveTs = reader.uint64Value();
           continue;
         }
       }
@@ -53768,7 +53768,7 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -53909,7 +53909,7 @@ export const PaymentBackground_MediaData: MessageFns<PaymentBackground_MediaData
             break;
           }
 
-          message.mediaKeyTimestamp = reader.int64Number();
+          message.mediaKeyTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -54027,7 +54027,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.amount1000 = reader.uint64Number();
+          message.amount1000 = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -54051,7 +54051,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.transactionTimestamp = reader.uint64Number();
+          message.transactionTimestamp = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -54067,7 +54067,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.expiryTimestamp = reader.uint64Number();
+          message.expiryTimestamp = reader.uint64Value();
           continue;
         }
         case 8: {
@@ -54335,7 +54335,7 @@ export const PinInChat: MessageFns<PinInChat> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 4: {
@@ -54343,7 +54343,7 @@ export const PinInChat: MessageFns<PinInChat> = {
             break;
           }
 
-          message.serverTimestampMs = reader.int64Number();
+          message.serverTimestampMs = reader.int64Value();
           continue;
         }
         case 5: {
@@ -54710,7 +54710,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 4: {
@@ -54718,7 +54718,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
             break;
           }
 
-          message.serverTimestampMs = reader.int64Number();
+          message.serverTimestampMs = reader.int64Value();
           continue;
         }
         case 5: {
@@ -55150,7 +55150,7 @@ export const ProcessedVideo: MessageFns<ProcessedVideo> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 6: {
@@ -55713,7 +55713,7 @@ export const Reaction: MessageFns<Reaction> = {
             break;
           }
 
-          message.senderTimestampMs = reader.int64Number();
+          message.senderTimestampMs = reader.int64Value();
           continue;
         }
         case 5: {
@@ -56189,7 +56189,7 @@ export const ScheduledMessageMetadata: MessageFns<ScheduledMessageMetadata> = {
             break;
           }
 
-          message.scheduledTime = reader.uint64Number();
+          message.scheduledTime = reader.uint64Value();
           continue;
         }
       }
@@ -57602,7 +57602,7 @@ export const SignedPreKeyRecordStructure: MessageFns<SignedPreKeyRecordStructure
             break;
           }
 
-          message.timestamp = reader.fixed64Number();
+          message.timestamp = reader.fixed64Value();
           continue;
         }
       }
@@ -58313,7 +58313,7 @@ export const StatusPSA: MessageFns<StatusPSA> = {
             break;
           }
 
-          message.campaignId = reader.uint64Number();
+          message.campaignId = reader.uint64Value();
           continue;
         }
         case 45: {
@@ -58321,7 +58321,7 @@ export const StatusPSA: MessageFns<StatusPSA> = {
             break;
           }
 
-          message.campaignExpirationTimestamp = reader.uint64Number();
+          message.campaignExpirationTimestamp = reader.uint64Value();
           continue;
         }
       }
@@ -58471,7 +58471,7 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 10: {
@@ -58487,7 +58487,7 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
             break;
           }
 
-          message.lastStickerSentTs = reader.int64Number();
+          message.lastStickerSentTs = reader.int64Value();
           continue;
         }
         case 12: {
@@ -59010,7 +59010,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
         case 2: {
@@ -60383,7 +60383,7 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
             break;
           }
 
-          message.version = reader.int64Number();
+          message.version = reader.int64Value();
           continue;
         }
         case 3: {
@@ -60391,7 +60391,7 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
             break;
           }
 
-          message.updatedAtMs = reader.int64Number();
+          message.updatedAtMs = reader.int64Value();
           continue;
         }
       }
@@ -60675,7 +60675,7 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
             break;
           }
 
-          message.scheduledTimestamp = reader.int64Number();
+          message.scheduledTimestamp = reader.int64Value();
           continue;
         }
         case 8: {
@@ -60683,7 +60683,7 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
             break;
           }
 
-          message.createTimestamp = reader.int64Number();
+          message.createTimestamp = reader.int64Value();
           continue;
         }
         case 9: {
@@ -61165,7 +61165,7 @@ export const SyncActionValue_CoexV2VersionAction: MessageFns<SyncActionValue_Coe
             break;
           }
 
-          message.version = reader.uint64Number();
+          message.version = reader.uint64Value();
           continue;
         }
       }
@@ -61645,7 +61645,7 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
             break;
           }
 
-          message.birthday = reader.int64Number();
+          message.birthday = reader.int64Value();
           continue;
         }
         case 6: {
@@ -61677,7 +61677,7 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
             break;
           }
 
-          message.lastOrder = reader.int64Number();
+          message.lastOrder = reader.int64Value();
           continue;
         }
         case 10: {
@@ -61685,7 +61685,7 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
             break;
           }
 
-          message.createdAt = reader.int64Number();
+          message.createdAt = reader.int64Value();
           continue;
         }
         case 11: {
@@ -61693,7 +61693,7 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
             break;
           }
 
-          message.modifiedAt = reader.int64Number();
+          message.modifiedAt = reader.int64Value();
           continue;
         }
       }
@@ -61874,7 +61874,7 @@ export const SyncActionValue_DeleteMessageForMeAction: MessageFns<SyncActionValu
             break;
           }
 
-          message.messageTimestamp = reader.int64Number();
+          message.messageTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -62371,7 +62371,7 @@ export const SyncActionValue_LabelEditAction: MessageFns<SyncActionValue_LabelEd
             break;
           }
 
-          message.muteEndTimeMs = reader.int64Number();
+          message.muteEndTimeMs = reader.int64Value();
           continue;
         }
       }
@@ -62818,7 +62818,7 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
             break;
           }
 
-          message.createdAt = reader.int64Number();
+          message.createdAt = reader.int64Value();
           continue;
         }
         case 5: {
@@ -62826,7 +62826,7 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
             break;
           }
 
-          message.lastSentAt = reader.int64Number();
+          message.lastSentAt = reader.int64Value();
           continue;
         }
         case 6: {
@@ -63197,7 +63197,7 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
             break;
           }
 
-          message.muteEndTimestamp = reader.int64Number();
+          message.muteEndTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -63213,7 +63213,7 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
             break;
           }
 
-          message.muteEveryoneMentionEndTimestamp = reader.int64Number();
+          message.muteEveryoneMentionEndTimestamp = reader.int64Value();
           continue;
         }
       }
@@ -63391,7 +63391,7 @@ export const SyncActionValue_NoteEditAction: MessageFns<SyncActionValue_NoteEdit
             break;
           }
 
-          message.createdAt = reader.int64Number();
+          message.createdAt = reader.int64Value();
           continue;
         }
         case 4: {
@@ -64353,7 +64353,7 @@ export const SyncActionValue_RemoveRecentStickerAction: MessageFns<SyncActionVal
             break;
           }
 
-          message.lastStickerSentTs = reader.int64Number();
+          message.lastStickerSentTs = reader.int64Value();
           continue;
         }
       }
@@ -65279,7 +65279,7 @@ export const SyncActionValue_StickerAction: MessageFns<SyncActionValue_StickerAc
             break;
           }
 
-          message.fileLength = reader.uint64Number();
+          message.fileLength = reader.uint64Value();
           continue;
         }
         case 9: {
@@ -65399,7 +65399,7 @@ export const SyncActionValue_SubscriptionAction: MessageFns<SyncActionValue_Subs
             break;
           }
 
-          message.expirationDate = reader.int64Number();
+          message.expirationDate = reader.int64Value();
           continue;
         }
       }
@@ -65564,7 +65564,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
             break;
           }
 
-          message.expirationTime = reader.int64Number();
+          message.expirationTime = reader.int64Value();
           continue;
         }
       }
@@ -65670,7 +65670,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
             break;
           }
 
-          message.startTime = reader.int64Number();
+          message.startTime = reader.int64Value();
           continue;
         }
         case 5: {
@@ -65678,7 +65678,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
             break;
           }
 
-          message.endTime = reader.int64Number();
+          message.endTime = reader.int64Value();
           continue;
         }
         case 6: {
@@ -65702,7 +65702,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
             break;
           }
 
-          message.creationTime = reader.int64Number();
+          message.creationTime = reader.int64Value();
           continue;
         }
       }
@@ -65770,7 +65770,7 @@ export const SyncActionValue_SyncActionMessage: MessageFns<SyncActionValue_SyncA
             break;
           }
 
-          message.timestamp = reader.int64Number();
+          message.timestamp = reader.int64Value();
           continue;
         }
       }
@@ -65825,7 +65825,7 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
             break;
           }
 
-          message.lastMessageTimestamp = reader.int64Number();
+          message.lastMessageTimestamp = reader.int64Value();
           continue;
         }
         case 2: {
@@ -65833,7 +65833,7 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
             break;
           }
 
-          message.lastSystemMessageTimestamp = reader.int64Number();
+          message.lastSystemMessageTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -66258,7 +66258,7 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
             break;
           }
 
-          message.epoch = reader.int64Number();
+          message.epoch = reader.int64Value();
           continue;
         }
       }
@@ -67101,7 +67101,7 @@ export const SyncdVersion: MessageFns<SyncdVersion> = {
             break;
           }
 
-          message.version = reader.uint64Number();
+          message.version = reader.uint64Value();
           continue;
         }
       }
@@ -68066,7 +68066,7 @@ export const UserReceipt: MessageFns<UserReceipt> = {
             break;
           }
 
-          message.receiptTimestamp = reader.int64Number();
+          message.receiptTimestamp = reader.int64Value();
           continue;
         }
         case 3: {
@@ -68074,7 +68074,7 @@ export const UserReceipt: MessageFns<UserReceipt> = {
             break;
           }
 
-          message.readTimestamp = reader.int64Number();
+          message.readTimestamp = reader.int64Value();
           continue;
         }
         case 4: {
@@ -68082,7 +68082,7 @@ export const UserReceipt: MessageFns<UserReceipt> = {
             break;
           }
 
-          message.playedTimestamp = reader.int64Number();
+          message.playedTimestamp = reader.int64Value();
           continue;
         }
         case 5: {
@@ -68245,7 +68245,7 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
             break;
           }
 
-          message.serial = reader.uint64Number();
+          message.serial = reader.uint64Value();
           continue;
         }
         case 2: {
@@ -68283,7 +68283,7 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
             break;
           }
 
-          message.issueTime = reader.uint64Number();
+          message.issueTime = reader.uint64Value();
           continue;
         }
       }
@@ -69353,7 +69353,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.messageTimestamp = reader.uint64Number();
+          message.messageTimestamp = reader.uint64Value();
           continue;
         }
         case 4: {
@@ -69377,7 +69377,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.messageC2STimestamp = reader.uint64Number();
+          message.messageC2STimestamp = reader.uint64Value();
           continue;
         }
         case 16: {
@@ -69525,7 +69525,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.ephemeralStartTimestamp = reader.uint64Number();
+          message.ephemeralStartTimestamp = reader.uint64Value();
           continue;
         }
         case 33: {
@@ -69703,7 +69703,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.revokeMessageTimestamp = reader.uint64Number();
+          message.revokeMessageTimestamp = reader.uint64Value();
           continue;
         }
         case 54: {
@@ -69781,7 +69781,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.newsletterServerId = reader.uint64Number();
+          message.newsletterServerId = reader.uint64Value();
           continue;
         }
         case 64: {
@@ -69944,7 +69944,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.ephemeralExpirationTimestamp = reader.uint64Number();
+          message.ephemeralExpirationTimestamp = reader.uint64Value();
           continue;
         }
         case 81: {
@@ -70212,7 +70212,7 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
             break;
           }
 
-          message.timestamp = reader.uint64Number();
+          message.timestamp = reader.uint64Value();
           continue;
         }
         case 3: {
@@ -70267,24 +70267,13 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined | Long;
 
 export type DeepPartial<T> = T extends Builtin ? T
   : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
-
-function longToNumber(int64: number | { toString(): string }): number {
-  const num = typeof int64 === "number" ? int64 : globalThis.Number(int64.toString());
-  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
-  }
-  return num;
-}
 
 export interface MessageFns<T> {
   encode(message: T, writer?: BinaryWriter): BinaryWriter;

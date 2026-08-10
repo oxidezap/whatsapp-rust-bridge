@@ -1,8 +1,9 @@
 # The numeric input contract of `encodeProto`
 
-> A numeric field takes a `number`, a `bigint`, or a string that parses in full as a
-> number — never `''`, `true`, `[]` or anything else JavaScript would silently turn
-> into a number — and the value must be one the declared type can hold.
+> A numeric field takes a `number`, a `bigint`, a `Long` the decoder produced, or a
+> string that parses in full as a number — never `''`, `true`, `[]` or anything else
+> JavaScript would silently turn into a number — and the value must be one the declared
+> type can hold.
 
 Two clarifications the sentence leans on:
 
@@ -35,7 +36,10 @@ only the exception's wording changed are not marked.
 | `'12'` | `12` | `12` | `12` | `12` | `12` | `12` |
 | `'0x10'` | `16` | `16` | `16` | `16` | `16` | `16` |
 | `'1e2'` | `100` | `100` | `100` | `100` | `100` | `100` |
-| `'12.0'` | `12` | `12` | `12` | `12` | `12` | `12` |
+| `'12.0'` / `'+12'` | `12` | `12` | `12` | `12` | `12` | `12` |
+| `'9007199254740992.0'` | throws | throws | exact on the wire | exact on the wire | `2**53` | `2**53` |
+| `'1.0000000000000000001'` | throws | throws | throws | throws | `1` | `1` |
+| `'1e-400'` | throws | throws | throws | throws | `0` | `0` |
 | `'12.5'` | throws | throws | throws | throws | `12.5` | `12.5` |
 | `'abc'` | throws | throws | throws | throws | throws | throws † |
 | `'9007199254740993'` | throws | throws | exact on the wire | exact on the wire | `9007199254740992` | `9007199254740992` |
@@ -44,6 +48,8 @@ only the exception's wording changed are not marked.
 | `true` / `false` | throws | throws | throws † | throws † | throws | throws † |
 | `[]` / `[5]` | throws | throws | throws † | throws † | throws | throws † |
 | `{}` | throws | throws | throws | throws | throws | throws † |
+| `{ low, high }` without `unsigned` | throws | throws | throws † | throws † | throws | throws † |
+| a decoded `Long` | throws | throws | its value | its value | its value | its value |
 | `12n` | `12` † | `12` † | `12` | `12` | `12` † | `12` † |
 | `1.5` / `-1.5` | throws | throws | throws | throws | `1.5` / `-1.5` | `1.5` / `-1.5` |
 | `NaN` | throws | throws | throws | throws | `NaN` | `NaN` |
@@ -59,20 +65,28 @@ only the exception's wording changed are not marked.
 | just above `FLT_MAX` | throws | throws | throws | throws | throws | that double |
 
 *exact on the wire* means the encoder writes the value with full 64-bit precision. The
-**decoder** exposes every 64-bit field as a JavaScript `number` and refuses anything
-past `Number.MAX_SAFE_INTEGER`, so such a message does not read back here. That ceiling
-belongs to the read path and is not part of this contract.
+decoder hands such a value back as a protobufjs `Long` (`{ low, high, unsigned }`)
+rather than a `number`, so the round trip is exact but not `===` to the input; those
+cells are pinned on the bytes. What the reader does with a wide value is the read path's
+contract, not this one.
+
+A `Long` is also *input*: the writer takes one back on a 64-bit field, which is how a
+decoded message re-encodes. Only a real one — `unsigned` must be a boolean, `low` and
+`high` numbers. A plain `{ low, high }` data object is not a Long and is rejected like
+any other object, which is what keeps `{}` and `[]` from encoding as zero.
 
 `'1e400'` and `10n ** 400n` are finite and no double can hold either. Converting them
 reaches `Infinity`, which would put an infinity on the wire that the caller never wrote —
 the same silent substitution the contract exists to stop, so they throw. The literal
 string `'Infinity'` is not that case: it names the value, and a float field holds it.
 
-**Precision of a parsed string.** A 64-bit field reads a string with `BigInt`, so plain
-digits past 2^53 stay exact. A string `BigInt` cannot read — `'1e2'`, `'12.0'` — falls
-back to `Number` and is kept only if it lands on a safe integer, because past 2^53 the
-digits *are* the value and a rounded double is not what the caller wrote. For an exact
-value above 2^53, pass a `bigint` or plain digits.
+**An integer field reads a string digit-wise, never through `Number`.** Integer-literal
+syntax goes to `BigInt`, which keeps plain digits past 2^53 exact and covers `0x`/`0o`/`0b`.
+Anything else — `'1e2'`, `'12.0'`, `'+12'`, `'9.007199254740992e15'` — is expanded from
+its own digits and accepted only if it names a whole number exactly. That is why
+`'1.0000000000000000001'` and `'1e-400'` throw instead of arriving as `1` and `0`:
+`Number` would round them to integers the caller never wrote. `float` and `double` do go
+through `Number`, because rounding to the declared width is what those types mean.
 
 An **enum** field is written as `int32` and follows that column: `{ accountType: '' }`
 now throws rather than encoding `E2EE`, the zero variant.
@@ -109,8 +123,7 @@ Every rejection is an `Error` reading `invalid <type>: <value>`.
 
 ## Where it lives
 
-`ts/proto-writer.ts` holds the contract, as a `BinaryWriter` subclass overriding the
-twelve numeric write methods. `ts/proto-reader.ts` re-exports it, and
-`scripts/gen-ts-proto.ts` points the generated codec's `BinaryWriter` import at that
-module — so every generated `encode()` gets the contract without a per-field change to
-generated code.
+`ts/proto-reader.ts` holds the contract, on the `BinaryWriter` that already lives there
+to take a decoded `Long` back. `scripts/gen-ts-proto.ts` points the generated codec's
+`BinaryWriter` import at that module, so every generated `encode()` gets the contract
+without a per-field change to generated code.

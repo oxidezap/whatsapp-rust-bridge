@@ -64,12 +64,14 @@ describe("encodeProto with protobufjs Long objects (quoted reply path)", () => {
     expect(decoded.extendedTextMessage.contextInfo.ephemeralSettingTimestamp).toBe(-2);
   });
 
-  test("beyond-2^53 Long encodes without precision loss (encode path)", () => {
-    // decode throws longToNumber MAX_SAFE_INTEGER (pre-existing ts-proto limit),
-    // so verify the encoded bytes against a known-good encode from a bigint.
+  test("beyond-2^53 Long encodes without precision loss and decodes back", () => {
     const bytes = encodeProto("Message", quotedReplyMsg(longOf(TS_BIG, false), undefined));
     const ref = encodeProto("Message", quotedReplyMsg(TS_BIG, undefined));
     expect(Buffer.from(bytes).toString("hex")).toBe(Buffer.from(ref).toString("hex"));
+
+    const decoded: any = decodeProto("Message", bytes);
+    expect(decoded.extendedTextMessage.contextInfo.quotedMessage.videoMessage.mediaKeyTimestamp)
+      .toEqual(longOf(TS_BIG, false));
   });
 
   test("input object is not mutated (Long objects survive on the original)", () => {

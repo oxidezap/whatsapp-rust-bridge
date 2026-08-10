@@ -139,14 +139,59 @@ const CASES: Case[] = [
   { label: "12n", input: 12n, outcomes: spread(TYPES, accepted(12)) },
   { label: "'1e2'", input: "1e2", outcomes: spread(TYPES, accepted(100)) },
   { label: "'12.0'", input: "12.0", outcomes: spread(TYPES, accepted(12)) },
+  { label: "'+12'", input: "+12", outcomes: spread(TYPES, accepted(12)) },
+
+  // An integer field reads the digits, not `Number(text)`, so a fraction below
+  // double precision cannot arrive rounded to a whole number.
+  {
+    label: "'1.0000000000000000001'",
+    input: "1.0000000000000000001",
+    outcomes: {
+      ...spread(INTS, { kind: "throws", message: 'invalid @: "1.0000000000000000001"' }),
+      ...spread(FLOATS, accepted(1)),
+    },
+  },
+  {
+    label: "'1e-400'",
+    input: "1e-400",
+    outcomes: {
+      ...spread(INTS, { kind: "throws", message: 'invalid @: "1e-400"' }),
+      ...spread(FLOATS, accepted(0)),
+    },
+  },
+  // Exact but not *safe*: 2^53 written in two syntaxes BigInt cannot read.
+  {
+    label: "'9007199254740992.0'",
+    input: "9007199254740992.0",
+    outcomes: {
+      ...outOfRange(INTS_32, "9007199254740992"),
+      ...spread(INTS_64, { kind: "wire", same: 9007199254740992n }),
+      ...spread(FLOATS, accepted(TWO_53)),
+    },
+  },
+  {
+    label: "'9.007199254740992e15'",
+    input: "9.007199254740992e15",
+    outcomes: {
+      ...outOfRange(INTS_32, "9007199254740992"),
+      ...spread(INTS_64, { kind: "wire", same: 9007199254740992n }),
+      ...spread(FLOATS, accepted(TWO_53)),
+    },
+  },
+  // A `{ low, high }` object without the `unsigned` discriminant is data, not a
+  // Long; reading it as one is how `{}` and `[]` used to encode as zero.
+  {
+    label: "{ low, high } without unsigned",
+    input: { low: 1, high: 2 },
+    outcomes: rejectedEverywhere("object"),
+  },
 
   // Fractions: a value an integer field cannot hold, a value a float field can.
   {
     label: "'12.5'",
     input: "12.5",
     outcomes: {
-      ...spread(INTS_64, { kind: "throws", message: 'invalid @: "12.5"' }),
-      ...outOfRange(INTS_32, "12.5"),
+      ...spread(INTS, { kind: "throws", message: 'invalid @: "12.5"' }),
       ...spread(FLOATS, accepted(12.5)),
     },
   },
@@ -250,7 +295,8 @@ const CASES: Case[] = [
     label: "10n ** 400n",
     input: HUGE,
     outcomes: {
-      ...spread([...INTS_32, ...FLOATS], { kind: "throws", message: `invalid @: ${HUGE}` }),
+      ...outOfRange(INTS_32, "Infinity"),
+      ...spread(FLOATS, { kind: "throws", message: `invalid @: ${HUGE}` }),
       ...outOfRange(INTS_64, String(HUGE)),
     },
   },
@@ -258,8 +304,7 @@ const CASES: Case[] = [
     label: "'Infinity'",
     input: "Infinity",
     outcomes: {
-      ...outOfRange(INTS_32, "Infinity"),
-      ...spread(INTS_64, { kind: "throws", message: 'invalid @: "Infinity"' }),
+      ...spread(INTS, { kind: "throws", message: 'invalid @: "Infinity"' }),
       ...spread(FLOATS, accepted(Infinity)),
     },
   },
@@ -427,6 +472,6 @@ describe("sint32 and sint64 hold the same contract", () => {
     expect(write("sint64", "-9007199254740991")).toEqual(expected);
     expect(write("sint64", -9007199254740991n)).toEqual(expected);
     expect(write("sint64", "1e2")).toEqual(write("sint64", 100n));
-    expect(new BinaryReader(expected).sint64Number()).toBe(-9007199254740991);
+    expect(new BinaryReader(expected).sint64Value()).toBe(-9007199254740991);
   });
 });

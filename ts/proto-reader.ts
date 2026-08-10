@@ -1,9 +1,8 @@
-import { BinaryReader as BaseBinaryReader } from "@bufbuild/protobuf/wire";
+import {
+  BinaryReader as BaseBinaryReader,
+  BinaryWriter as BaseBinaryWriter,
+} from "@bufbuild/protobuf/wire";
 import { Buffer } from "node:buffer";
-
-// The generated codec imports both halves from here (see scripts/gen-ts-proto.ts),
-// which is what puts the numeric input contract on every encode.
-export { BinaryWriter } from "./proto-writer";
 
 const PROTO_WORD_BITS = 32;
 const PROTO_WORD_BASE = 2 ** PROTO_WORD_BITS;
@@ -15,30 +14,239 @@ const MAX_SAFE_VARINT_SHIFT =
   Math.floor(Math.log2(Number.MAX_SAFE_INTEGER) / PROTO_VARINT_DATA_BITS) * PROTO_VARINT_DATA_BITS;
 
 /**
- * ts-proto is configured to expose every 64-bit field as a JavaScript number.
- * Its generated `longToNumber()` rejects values outside the safe-integer range,
- * but Buf's default reader first materializes a BigInt and then a decimal string
- * for that conversion. Generated codecs call the `*Number()` methods below,
- * avoiding both intermediates while the inherited methods retain Buf's public
- * BigInt/string behavior for direct users.
+ * protobufjs-style 64-bit value, `high * 2^32 + low`, with `low` unsigned and
+ * `high` the signed 32-bit field protobufjs uses. Same shape `camel_serializer.rs`
+ * emits on the event path, and `JSON.stringify`-safe where a BigInt is not.
  */
-const assertSafeInteger = (value: number): number => {
-  if (value > Number.MAX_SAFE_INTEGER) {
-    throw new Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  if (value < Number.MIN_SAFE_INTEGER) {
-    throw new Error("Value is smaller than Number.MIN_SAFE_INTEGER");
-  }
-  return value;
+export interface Long {
+  low: number;
+  high: number;
+  unsigned: boolean;
+}
+
+/**
+ * What a 64-bit field crosses as: a plain `number` while the value is exact as
+ * a double, a `Long` beyond that. Rejecting the wide value instead — which is
+ * what ts-proto's generated `longToNumber()` does — fails the whole message
+ * over one field, and truncating it to a double would lose the value silently.
+ */
+export type Int64 = number | Long;
+
+const toLong = (low: number, high: number, unsigned: boolean): Long => ({
+  low: low >>> 0,
+  high: high | 0,
+  unsigned,
+});
+
+const unsignedWordsToInt64 = (low: number, high: number): Int64 => {
+  const value = (high >>> 0) * PROTO_WORD_BASE + (low >>> 0);
+  return value <= Number.MAX_SAFE_INTEGER ? value : toLong(low, high, true);
 };
 
-const unsignedWordsToNumber = (low: number, high: number): number =>
-  assertSafeInteger((high >>> 0) * PROTO_WORD_BASE + (low >>> 0));
+const signedWordsToInt64 = (low: number, high: number): Int64 => {
+  const value = (high | 0) * PROTO_WORD_BASE + (low >>> 0);
+  return value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
+    ? value
+    : toLong(low, high, false);
+};
 
-const signedWordsToNumber = (low: number, high: number): number =>
-  assertSafeInteger((high | 0) * PROTO_WORD_BASE + (low >>> 0));
+export const longToBigInt = (value: Long): bigint => {
+  const low = BigInt(value.low >>> 0);
+  const high = value.unsigned ? BigInt(value.high >>> 0) : BigInt(value.high | 0);
+  return high * BigInt(PROTO_WORD_BASE) + low;
+};
 
-/** BinaryReader specialized for ts-proto's safe-number output contract. */
+/**
+ * `unsigned` (a boolean) is the discriminant: it short-circuits virtually every
+ * non-Long object in one comparison, and matches the guard in
+ * `camel_serializer.rs`. A plain `{ low, high }` data object is NOT a Long.
+ */
+export const isLong = (value: unknown): value is Long =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as Long).unsigned === "boolean" &&
+  typeof (value as Long).low === "number" &&
+  typeof (value as Long).high === "number";
+
+/**
+ * The numeric input contract, in one sentence: a numeric field takes a
+ * `number`, a `bigint`, a `Long` the reader produced, or a string that parses
+ * in full as a number — never `''`, `true`, `[]` or anything else JavaScript
+ * would silently turn into a number — and the value must be one the declared
+ * type can hold. See `docs/proto-numeric-input.md` for the per-type matrix.
+ *
+ * Buf's writer enforces part of that (`assertInt32`, `assertFloat32`) and none
+ * of it on `double` and the 64-bit methods, so the same caller mistake threw in
+ * one field and wrote a wrong value in its neighbour.
+ */
+const describe = (value: unknown): string =>
+  typeof value === "string"
+    ? JSON.stringify(value)
+    : typeof value === "number" || typeof value === "bigint"
+      ? String(value)
+      : typeof value;
+
+const invalid = (type: string, value: unknown): Error =>
+  new Error(`invalid ${type}: ${describe(value)}`);
+
+/** A number, a bigint, or a string with something in it. Nothing else is a number. */
+function numericInput(value: unknown, type: string): number | bigint | string {
+  const kind = typeof value;
+  if (kind === "number" || kind === "bigint") return value as number | bigint;
+  if (kind === "string" && (value as string).trim() !== "") return value as string;
+  throw invalid(type, value);
+}
+
+const SPELLS_INFINITY = /^\s*[+-]?Infinity\s*$/;
+
+/** Narrow to the one JS number the 32-bit and floating-point writers take. */
+function asNumber(value: unknown, type: string): number {
+  const input = numericInput(value, type);
+  if (typeof input === "number") return input;
+  const parsed = Number(input);
+  if (Number.isNaN(parsed)) {
+    if (input !== "NaN") throw invalid(type, value);
+  } else if (!Number.isFinite(parsed) && !SPELLS_INFINITY.test(String(input))) {
+    // A finite input that only reaches infinity by overflowing the conversion
+    // is a value the type cannot hold, not the infinity the caller asked for.
+    throw invalid(type, value);
+  }
+  return parsed;
+}
+
+const DECIMAL_TEXT = /^\s*([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?\s*$/;
+/** No protobuf integer type reaches twenty digits; the cap bounds the padding. */
+const MAX_INTEGRAL_DIGITS = 40;
+
+/**
+ * The exact integer a decimal string names, or `undefined` when it names
+ * something else. Reading the digits rather than `Number(text)` is what keeps
+ * `'1.0000000000000000001'` and `'1e-400'` from arriving as `1` and `0`, and
+ * what lets `'9007199254740992.0'` through: it is exact, it just is not a
+ * *safe* integer.
+ */
+function exactIntegerFromText(text: string): bigint | undefined {
+  const parsed = DECIMAL_TEXT.exec(text);
+  if (!parsed) return undefined;
+  const [, sign, whole = "", fraction = "", exponent] = parsed;
+  if (whole === "" && fraction === "") return undefined;
+
+  const digits = whole + fraction;
+  const pointAt = whole.length + (exponent ? Number(exponent) : 0);
+  if (pointAt <= 0) return /^0*$/.test(digits) ? 0n : undefined;
+  if (pointAt > MAX_INTEGRAL_DIGITS) return undefined;
+
+  let integral: string;
+  if (pointAt >= digits.length) {
+    integral = digits + "0".repeat(pointAt - digits.length);
+  } else {
+    if (!/^0*$/.test(digits.slice(pointAt))) return undefined;
+    integral = digits.slice(0, pointAt);
+  }
+  const value = BigInt(integral);
+  return sign === "-" ? -value : value;
+}
+
+/** An integer field's input, exact: never rounded on the way in. */
+function asInteger(value: unknown, type: string): number | bigint {
+  // A Long is what the reader hands back for a value past 2^53, so it is a
+  // number here — but only a real one: `typeof value === "object"` alone would
+  // read `{}` and `[]` as zero.
+  if (isLong(value)) return longToBigInt(value);
+  const input = numericInput(value, type);
+  if (typeof input === "bigint") return input;
+  if (typeof input === "number") {
+    // Integrality is checked here so the message reads like every other
+    // rejection; BigInt(1.5) throws with an engine-specific wording.
+    if (!Number.isInteger(input)) throw invalid(type, value);
+    return input;
+  }
+  try {
+    // Integer-literal syntax first: it keeps plain digits past 2^53 exact and
+    // covers the 0x/0o/0b forms `Number` also accepts.
+    return BigInt(input);
+  } catch {
+    const exact = exactIntegerFromText(input);
+    if (exact === undefined) throw invalid(type, value);
+    return exact;
+  }
+}
+
+/** The 32-bit writers take a JS number; the width check downstream is Buf's. */
+function asInteger32(value: unknown, type: string): number {
+  const exact = asInteger(value, type);
+  return typeof exact === "bigint" ? Number(exact) : exact;
+}
+
+/**
+ * BinaryWriter that accepts back what the reader below produces — Buf's own
+ * 64-bit setters take `number | bigint | string`, so a decoded `Long` would
+ * reach `BigInt(object)` and throw — and that holds every numeric field to the
+ * input contract above.
+ */
+export class BinaryWriter extends BaseBinaryWriter {
+  override uint32(value: number): this {
+    if (typeof value !== "number") value = asInteger32(value, "uint32");
+    return super.uint32(value);
+  }
+
+  override int32(value: number): this {
+    if (typeof value !== "number") value = asInteger32(value, "int32");
+    return super.int32(value);
+  }
+
+  override sint32(value: number): this {
+    if (typeof value !== "number") value = asInteger32(value, "sint32");
+    return super.sint32(value);
+  }
+
+  override fixed32(value: number): this {
+    if (typeof value !== "number") value = asInteger32(value, "fixed32");
+    return super.fixed32(value);
+  }
+
+  override sfixed32(value: number): this {
+    if (typeof value !== "number") value = asInteger32(value, "sfixed32");
+    return super.sfixed32(value);
+  }
+
+  override float(value: number): this {
+    if (typeof value !== "number") value = asNumber(value, "float");
+    return super.float(value);
+  }
+
+  override double(value: number): this {
+    if (typeof value !== "number") value = asNumber(value, "double");
+    return super.double(value);
+  }
+
+  override int64(value: Int64 | bigint | string): this {
+    return super.int64(asInteger(value, "int64"));
+  }
+
+  override uint64(value: Int64 | bigint | string): this {
+    return super.uint64(asInteger(value, "uint64"));
+  }
+
+  override sint64(value: Int64 | bigint | string): this {
+    return super.sint64(asInteger(value, "sint64"));
+  }
+
+  override fixed64(value: Int64 | bigint | string): this {
+    return super.fixed64(asInteger(value, "fixed64"));
+  }
+
+  override sfixed64(value: Int64 | bigint | string): this {
+    return super.sfixed64(asInteger(value, "sfixed64"));
+  }
+}
+
+/**
+ * BinaryReader specialized for ts-proto's 64-bit output contract. Buf's own
+ * 64-bit methods materialize a BigInt and then a decimal string; the `*Value()`
+ * methods below avoid both intermediates, while the inherited methods retain
+ * Buf's public BigInt/string behavior for direct users.
+ */
 export class BinaryReader extends BaseBinaryReader {
   private readonly utf8Buffer: Buffer;
 
@@ -77,7 +285,8 @@ export class BinaryReader extends BaseBinaryReader {
   /**
    * Decode the overwhelmingly common positive/safe varint without allocating
    * Buf's `[low, high]` tuple. Returning `undefined` rewinds for the full signed
-   * two-word path (negative int64 values always use ten wire bytes).
+   * two-word path (negative int64 values always use ten wire bytes, and eight
+   * data bytes can carry more than a double holds exactly).
    */
   private positiveSafeVarint(): number | undefined {
     const start = this.pos;
@@ -88,7 +297,8 @@ export class BinaryReader extends BaseBinaryReader {
       value += (byte & PROTO_VARINT_DATA_MASK) * factor;
       if ((byte & PROTO_VARINT_CONTINUATION_BIT) === 0) {
         this.assertBounds();
-        return assertSafeInteger(value);
+        if (value <= Number.MAX_SAFE_INTEGER) return value;
+        break;
       }
       factor *= PROTO_VARINT_CONTINUATION_BIT;
     }
@@ -96,33 +306,33 @@ export class BinaryReader extends BaseBinaryReader {
     return undefined;
   }
 
-  uint64Number(): number {
+  uint64Value(): Int64 {
     const fast = this.positiveSafeVarint();
     if (fast !== undefined) return fast;
     const [low, high] = this.varint64();
-    return unsignedWordsToNumber(low, high);
+    return unsignedWordsToInt64(low, high);
   }
 
-  int64Number(): number {
+  int64Value(): Int64 {
     const fast = this.positiveSafeVarint();
     if (fast !== undefined) return fast;
     const [low, high] = this.varint64();
-    return signedWordsToNumber(low, high);
+    return signedWordsToInt64(low, high);
   }
 
-  sint64Number(): number {
+  sint64Value(): Int64 {
     let [low, high] = this.varint64();
     const sign = -(low & 1);
     low = ((low >>> 1) | ((high & 1) << (PROTO_WORD_BITS - 1))) ^ sign;
     high = (high >>> 1) ^ sign;
-    return signedWordsToNumber(low, high);
+    return signedWordsToInt64(low, high);
   }
 
-  fixed64Number(): number {
-    return unsignedWordsToNumber(this.sfixed32(), this.sfixed32());
+  fixed64Value(): Int64 {
+    return unsignedWordsToInt64(this.sfixed32(), this.sfixed32());
   }
 
-  sfixed64Number(): number {
-    return signedWordsToNumber(this.sfixed32(), this.sfixed32());
+  sfixed64Value(): Int64 {
+    return signedWordsToInt64(this.sfixed32(), this.sfixed32());
   }
 }
