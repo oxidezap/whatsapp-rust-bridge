@@ -44,7 +44,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   build-and-test:
     # The benchmark step that used to run here invoked `bench:node`, whose
@@ -73,13 +73,6 @@ jobs:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
           tool: wasm-pack,protoc@3.35.1
-
-      # Pinned to the same revision as the `boltffi` crate the backend compiles
-      # against. The generator and the macro agree on wasm symbol names only
-      # within a revision, so a drift here produces an artifact whose exports
-      # the emitted JavaScript cannot find.
-      - name: Install boltffi
-        run: cargo install --git https://github.com/boltffi/boltffi --rev 0f5d7421a22572a4639c89043f36f854ae5ad141 boltffi_cli --locked
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0

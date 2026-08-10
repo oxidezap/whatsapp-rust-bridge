@@ -4,12 +4,6 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
-# The bridge became a workspace, and `gen:bridge-types` runs cargo from inside
-# this directory. Listing `codegen` in the root's `workspace.exclude` does not
-# cover that invocation — cargo still walks up, finds the root manifest and
-# rejects the package as a non-member. Its own workspace root settles it.
-[workspace]
-
 [[bin]]
 name = "gen-types"
 path = "src/main.rs"

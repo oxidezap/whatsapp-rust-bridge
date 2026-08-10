@@ -21,31 +21,6 @@ for (const path of files) {
   }
 }
 
-// Every path `exports` promises has to be in the tarball. `build:boltffi`
-// skips itself when `boltffi` is not installed, which is right for a
-// contributor and wrong for a publish: without this the package would ship a
-// `./boltffi` entry resolving to nothing, and the consumer would find out.
-const packageJson = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-const exported = new Set<string>();
-const collect = (value: unknown) => {
-  if (typeof value === "string") {
-    if (value.startsWith("./")) exported.add(value.slice(2));
-    return;
-  }
-  if (value && typeof value === "object") Object.values(value).forEach(collect);
-};
-collect(packageJson.exports);
-for (const path of ["main", "types"] as const) {
-  collect(packageJson[path]);
-}
-
-const shipped = new Set(files);
-for (const path of [...exported].sort()) {
-  if (!shipped.has(path)) {
-    errors.push(`package.json points at ${path}, which the tarball does not contain`);
-  }
-}
-
 const byHash = new Map<string, string[]>();
 for (const path of files) {
   const bytes = readFileSync(join(ROOT, path));

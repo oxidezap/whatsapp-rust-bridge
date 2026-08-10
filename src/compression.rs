@@ -3,9 +3,13 @@
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
-use whatsapp_rust_bridge_core::compression as bridge_core;
+use whatsapp_rust::wacore_binary::zlib_pool::decompress_zlib_pooled;
 
 use crate::wasm_utils::{byte_array, error_value};
+
+/// Matches the ceiling the core applies to its own inflate paths, so a caller
+/// that omits a limit is bounded rather than unprotected.
+const DEFAULT_MAX_OUTPUT_BYTES: f64 = 64.0 * 1024.0 * 1024.0;
 
 /// Inflate a zlib stream.
 ///
@@ -15,7 +19,13 @@ use crate::wasm_utils::{byte_array, error_value};
 /// compression bomb from exhausting linear memory; it defaults to 64 MiB.
 #[wasm_bindgen(js_name = inflateZlib)]
 pub fn inflate_zlib(data: &[u8], max_output_bytes: Option<f64>) -> Result<Uint8Array, JsValue> {
-    let output = bridge_core::inflate_zlib(data, max_output_bytes).map_err(error_value)?;
+    let limit = max_output_bytes.unwrap_or(DEFAULT_MAX_OUTPUT_BYTES);
+    if !(limit.is_finite() && limit >= 1.0) {
+        return Err(error_value(
+            "maxOutputBytes must be a positive finite number",
+        ));
+    }
+    let output = decompress_zlib_pooled(data, limit as u64).map_err(error_value)?;
     Ok(byte_array(&output))
 }
 
