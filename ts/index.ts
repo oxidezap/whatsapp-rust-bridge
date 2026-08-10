@@ -11,8 +11,20 @@ initSync({ module: wasmBytes });
 export * from "../pkg/whatsapp_rust_bridge.js";
 
 // Pure-JS proto codec (bundled at build time, zero runtime deps for consumers)
-export { encodeProto, decodeProto, decodeProtoBatch } from "./proto";
-export { BinaryReader, longToBigInt, type Int64, type Long } from "./proto-reader";
+export {
+  encodeProto,
+  decodeProto,
+  decodeProtoBatch,
+  UnpairedSurrogateError,
+  type ProtoDecodeReport,
+} from "./proto";
+export {
+  BinaryReader,
+  InvalidUtf8CountingReader,
+  longToBigInt,
+  type Int64,
+  type Long,
+} from "./proto-reader";
 
 // Packed wire-batch codecs (message metadata, receipts, server acks).
 export {
