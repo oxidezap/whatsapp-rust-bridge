@@ -161,11 +161,13 @@ function normalizeProtoInput(value: unknown): unknown {
 /**
  * Encode `obj` as `typeName`.
  *
- * A numeric field takes a `number`, a `bigint`, or a string that parses in full
- * as a number — never `''`, `true`, `[]` or anything else JavaScript would
- * silently turn into a number — and the value must be one the declared type can
- * hold. Anything else throws `invalid <type>: <value>`. To leave a field unset,
- * omit it or pass `undefined`/`null`; `''` is not a zero.
+ * A numeric field takes a `number`, a `bigint`, a `Long` — the `{ low, high,
+ * unsigned }` shape `decodeProto` hands back for a 64-bit value past 2^53, so a
+ * decoded message re-encodes unchanged — or a string that parses in full as a
+ * number. Never `''`, `true`, `[]` or anything else JavaScript would silently
+ * turn into a number, and the value must be one the declared type can hold;
+ * anything else throws `invalid <type>: <value>`. To leave a field unset, omit
+ * it or pass `undefined`/`null`; `''` is not a zero.
  * See `docs/proto-numeric-input.md` for the per-type matrix.
  */
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
