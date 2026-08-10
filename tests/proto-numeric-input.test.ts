@@ -185,6 +185,14 @@ const CASES: Case[] = [
     input: { low: 1, high: 2 },
     outcomes: rejectedEverywhere("object"),
   },
+  // A Long whose words are not words is not a Long: `low >>> 0` would truncate
+  // it to a whole number the caller never wrote.
+  {
+    label: "Long with a fractional low",
+    input: { low: 1.5, high: 0, unsigned: true },
+    outcomes: rejectedEverywhere("object"),
+  },
+  { label: "'0e100'", input: "0e100", outcomes: spread(TYPES, accepted(0)) },
 
   // Fractions: a value an integer field cannot hold, a value a float field can.
   {
@@ -444,7 +452,7 @@ describe("sint32 and sint64 hold the same contract", () => {
   const write = (method: "sint32" | "sint64", value: unknown): Uint8Array =>
     (new BinaryWriter()[method] as (v: unknown) => BinaryWriter)(value).finish();
 
-  test("sint32 rejects the inputs that are not numbers", () => {
+  test("sint32 rejects non-numbers and non-integers", () => {
     expect(() => write("sint32", "")).toThrow('invalid sint32: ""');
     expect(() => write("sint32", true)).toThrow("invalid sint32: boolean");
     expect(() => write("sint32", [])).toThrow("invalid sint32: object");
@@ -452,7 +460,7 @@ describe("sint32 and sint64 hold the same contract", () => {
     expect(() => write("sint32", 1.5)).toThrow("invalid int32: 1.5");
   });
 
-  test("sint64 rejects the inputs that are not numbers", () => {
+  test("sint64 rejects non-numbers and non-integers", () => {
     expect(() => write("sint64", "")).toThrow('invalid sint64: ""');
     expect(() => write("sint64", true)).toThrow("invalid sint64: boolean");
     expect(() => write("sint64", [])).toThrow("invalid sint64: object");

@@ -49,6 +49,8 @@ only the exception's wording changed are not marked.
 | `[]` / `[5]` | throws | throws | throws † | throws † | throws | throws † |
 | `{}` | throws | throws | throws | throws | throws | throws † |
 | `{ low, high }` without `unsigned` | throws | throws | throws † | throws † | throws | throws † |
+| a `Long` with a fractional word | throws | throws | throws † | throws † | throws | throws † |
+| `'0e100'` | `0` | `0` | `0` | `0` | `0` | `0` |
 | a decoded `Long` | throws | throws | its value | its value | its value | its value |
 | `12n` | `12` † | `12` † | `12` | `12` | `12` † | `12` † |
 | `1.5` / `-1.5` | throws | throws | throws | throws | `1.5` / `-1.5` | `1.5` / `-1.5` |
@@ -71,8 +73,9 @@ cells are pinned on the bytes. What the reader does with a wide value is the rea
 contract, not this one.
 
 A `Long` is also *input*: the writer takes one back on a 64-bit field, which is how a
-decoded message re-encodes. Only a real one — `unsigned` must be a boolean, `low` and
-`high` numbers. A plain `{ low, high }` data object is not a Long and is rejected like
+decoded message re-encodes. Only a real one — `unsigned` must be a boolean and both
+words 32-bit integers. A plain `{ low, high }` data object is not a Long, and neither is
+`{ low: 1.5, … }`, whose `low >>> 0` would silently become `1`. Both are rejected like
 any other object, which is what keeps `{}` and `[]` from encoding as zero.
 
 `'1e400'` and `10n ** 400n` are finite and no double can hold either. Converting them

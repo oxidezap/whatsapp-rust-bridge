@@ -38,6 +38,9 @@ interface Codec {
   encode(message: unknown, writer?: unknown): { finish(): Uint8Array };
 }
 
+const hex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
 const media = {
   url: `https://mmg.whatsapp.net/d/f/${"x".repeat(40)}`,
   mimetype: "image/jpeg",
@@ -126,10 +129,10 @@ const CASES: { name: string; codec: Codec; value: unknown }[] = [
 
 interface Result {
   name: string;
-  bytes: number;
+  wire: string;
   opsPerSec: number;
   cpuUsPerOp: number;
-  heapBytesPerOp: number;
+  netHeapBytesPerOp: number;
   liveObjectsPerOp: number;
   rssMb: number;
 }
@@ -143,7 +146,7 @@ function measure(mode: Mode): Result[] {
   };
 
   return CASES.map(({ name, codec, value }) => {
-    const bytes = codec.encode(value, new Writer()).finish().length;
+    const wire = hex(codec.encode(value, new Writer()).finish());
     encodeAll(codec, value, WARMUP);
 
     const ops: number[] = [];
@@ -162,8 +165,10 @@ function measure(mode: Mode): Result[] {
       heap.push((process.memoryUsage().heapUsed - heapBefore) / ITERATIONS);
     }
 
-    // Objects still alive after a full GC around a fixed run. The guard builds
-    // no object of its own, so this must not move between the arms.
+    // Both memory figures are *retained*, not allocated: a temporary the loop
+    // creates and drops is collected before either sample. They show the guard
+    // holds nothing on to, which is the claim being made — measuring total
+    // allocation would need a profiler this does not run.
     Bun.gc(true);
     const objectsBefore = heapStats().objectCount;
     encodeAll(codec, value, ITERATIONS);
@@ -171,10 +176,10 @@ function measure(mode: Mode): Result[] {
 
     return {
       name,
-      bytes,
+      wire,
       opsPerSec: median(ops),
       cpuUsPerOp: median(cpu),
-      heapBytesPerOp: median(heap),
+      netHeapBytesPerOp: median(heap),
       liveObjectsPerOp: (heapStats().objectCount - objectsBefore) / ITERATIONS,
       rssMb: process.memoryUsage().rss / 1e6,
     };
@@ -187,7 +192,10 @@ if (requestedMode) {
 } else {
   const rounds: Record<Mode, Result[][]> = { contract: [], empty: [], baseline: [] };
   for (let round = 0; round < ROUNDS; round++) {
-    for (const mode of MODES) {
+    // Rotate the order so no arm always runs first: thermal and background-load
+    // drift within a round would otherwise land on the same arm every time.
+    const order = [...MODES.slice(round % MODES.length), ...MODES.slice(0, round % MODES.length)];
+    for (const mode of order) {
       const child = Bun.spawnSync({
         cmd: ["bun", "run", import.meta.path, mode],
         stdout: "pipe",
@@ -207,9 +215,9 @@ if (requestedMode) {
     `bun ${Bun.version} — ${ROUNDS} interleaved rounds x ${REPS} reps x ${ITERATIONS} encodes, median of medians\n`,
   );
   CASES.forEach((_, index) => {
-    const bytes = MODES.map((mode) => pick(mode, index, "bytes"));
-    if (new Set(bytes).size !== 1) throw new Error("arms disagree on the encoded bytes");
-    console.log(`${CASES[index]!.name}  —  ${bytes[0]} bytes, identical across arms`);
+    const wire = MODES.map((mode) => rounds[mode][0]![index]!.wire);
+    if (new Set(wire).size !== 1) throw new Error("arms disagree on the encoded bytes");
+    console.log(`${CASES[index]!.name}  —  ${wire[0]!.length / 2} bytes, byte-identical across arms`);
     const baseOps = pick("baseline", index, "opsPerSec");
     const baseCpu = pick("baseline", index, "cpuUsPerOp");
     for (const mode of MODES) {
@@ -220,7 +228,7 @@ if (requestedMode) {
       console.log(
         `  ${mode.padEnd(9)}${ops.toFixed(0).padStart(9)} ops/s  [${lo.toFixed(0)}..${hi.toFixed(0)}]  ${delta(ops, baseOps).padStart(8)}` +
           `   cpu ${cpu.toFixed(4)} us/op ${delta(cpu, baseCpu).padStart(8)}` +
-          `   heap ${pick(mode, index, "heapBytesPerOp").toFixed(2)} B/op` +
+          `   net heap ${pick(mode, index, "netHeapBytesPerOp").toFixed(2)} B/op` +
           `   live ${pick(mode, index, "liveObjectsPerOp").toFixed(3)} obj/op`,
       );
     }

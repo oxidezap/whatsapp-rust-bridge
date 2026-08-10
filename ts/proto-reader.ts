@@ -32,6 +32,9 @@ export interface Long {
  */
 export type Int64 = number | Long;
 
+/** Everything a numeric field accepts. `Int64` is the decode-side subset. */
+export type NumericInput = number | bigint | string | Long;
+
 const toLong = (low: number, high: number, unsigned: boolean): Long => ({
   low: low >>> 0,
   high: high | 0,
@@ -56,17 +59,23 @@ export const longToBigInt = (value: Long): bigint => {
   return high * BigInt(PROTO_WORD_BASE) + low;
 };
 
+/** Either half of a Long, as a signed or unsigned 32-bit word. */
+const isWord = (value: unknown): boolean =>
+  typeof value === "number" && Number.isInteger(value) && value >= -0x80000000 && value <= 0xffffffff;
+
 /**
  * `unsigned` (a boolean) is the discriminant: it short-circuits virtually every
  * non-Long object in one comparison, and matches the guard in
- * `camel_serializer.rs`. A plain `{ low, high }` data object is NOT a Long.
+ * `camel_serializer.rs`. A plain `{ low, high }` data object is NOT a Long, and
+ * neither is one whose words are not words — `longToBigInt` would truncate
+ * `low: 1.5` to `1` and write a value nobody sent.
  */
 export const isLong = (value: unknown): value is Long =>
   typeof value === "object" &&
   value !== null &&
   typeof (value as Long).unsigned === "boolean" &&
-  typeof (value as Long).low === "number" &&
-  typeof (value as Long).high === "number";
+  isWord((value as Long).low) &&
+  isWord((value as Long).high);
 
 /**
  * The numeric input contract, in one sentence: a numeric field takes a
@@ -99,8 +108,9 @@ function numericInput(value: unknown, type: string): number | bigint | string {
 
 const SPELLS_INFINITY = /^\s*[+-]?Infinity\s*$/;
 
-/** Narrow to the one JS number the 32-bit and floating-point writers take. */
+/** Narrow to the one JS number the floating-point writers take. */
 function asNumber(value: unknown, type: string): number {
+  if (isLong(value)) return Number(longToBigInt(value));
   const input = numericInput(value, type);
   if (typeof input === "number") return input;
   const parsed = Number(input);
@@ -132,9 +142,12 @@ function exactIntegerFromText(text: string): bigint | undefined {
   if (whole === "" && fraction === "") return undefined;
 
   const digits = whole + fraction;
+  // Zero is zero at any exponent, and answering it here keeps `'0e100'` from
+  // being turned away by a cap that exists only to bound the padding below.
+  if (/^0*$/.test(digits)) return 0n;
+
   const pointAt = whole.length + (exponent ? Number(exponent) : 0);
-  if (pointAt <= 0) return /^0*$/.test(digits) ? 0n : undefined;
-  if (pointAt > MAX_INTEGRAL_DIGITS) return undefined;
+  if (pointAt <= 0 || pointAt > MAX_INTEGRAL_DIGITS) return undefined;
 
   let integral: string;
   if (pointAt >= digits.length) {
@@ -185,58 +198,51 @@ function asInteger32(value: unknown, type: string): number {
  * input contract above.
  */
 export class BinaryWriter extends BaseBinaryWriter {
-  override uint32(value: number): this {
-    if (typeof value !== "number") value = asInteger32(value, "uint32");
-    return super.uint32(value);
+  override uint32(value: NumericInput): this {
+    return super.uint32(typeof value === "number" ? value : asInteger32(value, "uint32"));
   }
 
-  override int32(value: number): this {
-    if (typeof value !== "number") value = asInteger32(value, "int32");
-    return super.int32(value);
+  override int32(value: NumericInput): this {
+    return super.int32(typeof value === "number" ? value : asInteger32(value, "int32"));
   }
 
-  override sint32(value: number): this {
-    if (typeof value !== "number") value = asInteger32(value, "sint32");
-    return super.sint32(value);
+  override sint32(value: NumericInput): this {
+    return super.sint32(typeof value === "number" ? value : asInteger32(value, "sint32"));
   }
 
-  override fixed32(value: number): this {
-    if (typeof value !== "number") value = asInteger32(value, "fixed32");
-    return super.fixed32(value);
+  override fixed32(value: NumericInput): this {
+    return super.fixed32(typeof value === "number" ? value : asInteger32(value, "fixed32"));
   }
 
-  override sfixed32(value: number): this {
-    if (typeof value !== "number") value = asInteger32(value, "sfixed32");
-    return super.sfixed32(value);
+  override sfixed32(value: NumericInput): this {
+    return super.sfixed32(typeof value === "number" ? value : asInteger32(value, "sfixed32"));
   }
 
-  override float(value: number): this {
-    if (typeof value !== "number") value = asNumber(value, "float");
-    return super.float(value);
+  override float(value: NumericInput): this {
+    return super.float(typeof value === "number" ? value : asNumber(value, "float"));
   }
 
-  override double(value: number): this {
-    if (typeof value !== "number") value = asNumber(value, "double");
-    return super.double(value);
+  override double(value: NumericInput): this {
+    return super.double(typeof value === "number" ? value : asNumber(value, "double"));
   }
 
-  override int64(value: Int64 | bigint | string): this {
+  override int64(value: NumericInput): this {
     return super.int64(asInteger(value, "int64"));
   }
 
-  override uint64(value: Int64 | bigint | string): this {
+  override uint64(value: NumericInput): this {
     return super.uint64(asInteger(value, "uint64"));
   }
 
-  override sint64(value: Int64 | bigint | string): this {
+  override sint64(value: NumericInput): this {
     return super.sint64(asInteger(value, "sint64"));
   }
 
-  override fixed64(value: Int64 | bigint | string): this {
+  override fixed64(value: NumericInput): this {
     return super.fixed64(asInteger(value, "fixed64"));
   }
 
-  override sfixed64(value: Int64 | bigint | string): this {
+  override sfixed64(value: NumericInput): this {
     return super.sfixed64(asInteger(value, "sfixed64"));
   }
 }

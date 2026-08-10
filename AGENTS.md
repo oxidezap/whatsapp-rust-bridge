@@ -74,7 +74,8 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 **Numbers, into the proto codec.** `encodeProto` takes a `number`, a `bigint`, a `Long`,
 or a string that parses in full as a number, and the value has to be one the declared
-type can hold. `''` is not a zero and does not become one — omit the field instead. An
+type can hold. `''` throws rather than becoming a zero; absence is an omitted key,
+`undefined` or `null`. An
 integer field reads a string digit-wise rather than through `Number`, so `'1e-400'` is
 not `0`. The rule lives beside the writer in `ts/proto-reader.ts` and the per-type matrix
 is `docs/proto-numeric-input.md`; a new numeric write method needs an entry in both.
