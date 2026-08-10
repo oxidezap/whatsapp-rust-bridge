@@ -193,6 +193,19 @@ const CASES: Case[] = [
     outcomes: rejectedEverywhere("object"),
   },
   { label: "'0e100'", input: "0e100", outcomes: spread(TYPES, accepted(0)) },
+  // Leading zeros are notation, not magnitude: past the digit cap in count,
+  // still the integer 1.
+  {
+    label: "'0'.repeat(41) + '1e0'",
+    input: `${"0".repeat(41)}1e0`,
+    outcomes: spread(TYPES, accepted(1)),
+  },
+  { label: "'-0000012.000'", input: "-0000012.000", outcomes: {
+      ...spread(SIGNED_INTS, accepted(-12)),
+      ...outOfRange(UNSIGNED_INTS, "-12"),
+      ...spread(FLOATS, accepted(-12)),
+    },
+  },
   // A padded string names the same value as an unpadded one, for NaN as much as
   // for the infinities and for the digits.
   {
