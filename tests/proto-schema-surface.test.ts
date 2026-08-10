@@ -199,16 +199,31 @@ const sampleOf = (field: Field): unknown => {
  * Scalars only, which keeps this to one level — `Field.subfield` is a
  * `map<uint32, Field>`, so descending into messages would not terminate.
  */
-const nestedSampleOf = (ref: string, alternate = false): Record<string, unknown> => {
-  const children = (BY_MESSAGE.get(ref) ?? []).filter(
+const nestedSampleOf = (
+  ref: string,
+  alternate = false,
+  seen: ReadonlySet<string> = new Set(),
+): Record<string, unknown> => {
+  if (seen.has(ref)) return {};
+  const children = BY_MESSAGE.get(ref) ?? [];
+  const scalars = children.filter(
     (candidate) => candidate.label !== "map" && candidate.type !== "message",
   );
-  const sample: Record<string, unknown> = {};
-  for (const child of children) {
-    const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
-    sample[keyOf(child)] = isRepeated(child) ? [value].flat() : value;
+  if (scalars.length > 0) {
+    const sample: Record<string, unknown> = {};
+    for (const child of scalars) {
+      const value = alternate ? (distinctOf(child.type) ?? sampleOf(child)) : sampleOf(child);
+      sample[keyOf(child)] = isRepeated(child) ? [value].flat() : value;
+    }
+    return sample;
   }
-  return sample;
+  // No scalar to carry: a message like AIMetadataOperation declares only
+  // message fields, so descend until one turns up. `seen` bounds it — the
+  // schema is recursive (a Message quotes a Message).
+  const child = children.find((candidate) => candidate.label !== "map");
+  if (child === undefined) return {};
+  const inner = nestedSampleOf(child.ref, alternate, new Set(seen).add(ref));
+  return { [keyOf(child)]: isRepeated(child) ? [inner] : inner };
 };
 
 /** The zero sample, plus a payload-bearing one where the type allows it. */
@@ -358,7 +373,9 @@ const nestedMessageBytes = (ref: string, sample: Record<string, unknown>): numbe
     const values = isRepeated(child) ? (childValue as unknown[]) : [childValue];
     return values.flatMap((value) => [
       ...tagBytes(child.number, wireTypeOf(child)),
-      ...payloadBytes(child.type, value),
+      ...(child.type === "message"
+        ? lengthPrefixed(nestedMessageBytes(child.ref, value as Record<string, unknown>))
+        : payloadBytes(child.type, value)),
     ]);
   });
 
