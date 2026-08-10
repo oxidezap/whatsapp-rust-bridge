@@ -12,11 +12,14 @@
  */
 import { describe, expect, test } from "bun:test";
 import { decodeProto, encodeProto } from "../ts/proto";
+import { BinaryReader, BinaryWriter } from "../ts/proto-reader";
 
 const FLT_MAX = 3.4028234663852886e38;
 const ABOVE_FLT_MAX = 3.4028235677973366e38;
 const TWO_53 = 2 ** 53;
 const TWO_63 = 2 ** 63;
+/** A finite value no double can hold; converting it reaches Infinity. */
+const HUGE = 10n ** 400n;
 
 /** One field per protobuf numeric type, picked out of the real schema. */
 const FIELDS = {
@@ -134,6 +137,8 @@ const CASES: Case[] = [
   { label: "'12'", input: "12", outcomes: spread(TYPES, accepted(12)) },
   { label: "'0x10'", input: "0x10", outcomes: spread(TYPES, accepted(16)) },
   { label: "12n", input: 12n, outcomes: spread(TYPES, accepted(12)) },
+  { label: "'1e2'", input: "1e2", outcomes: spread(TYPES, accepted(100)) },
+  { label: "'12.0'", input: "12.0", outcomes: spread(TYPES, accepted(12)) },
 
   // Fractions: a value an integer field cannot hold, a value a float field can.
   {
@@ -232,6 +237,30 @@ const CASES: Case[] = [
       ...outOfRange(INTS_32, "9007199254740992"),
       ...spread(INTS_64, { kind: "wire", same: 9007199254740993n }),
       ...spread(FLOATS, accepted(9007199254740992)),
+    },
+  },
+  // A finite input that only reaches infinity by overflowing the conversion is
+  // not the infinity the caller asked for.
+  {
+    label: "'1e400'",
+    input: "1e400",
+    outcomes: rejectedEverywhere('"1e400"'),
+  },
+  {
+    label: "10n ** 400n",
+    input: HUGE,
+    outcomes: {
+      ...spread([...INTS_32, ...FLOATS], { kind: "throws", message: `invalid @: ${HUGE}` }),
+      ...outOfRange(INTS_64, String(HUGE)),
+    },
+  },
+  {
+    label: "'Infinity'",
+    input: "Infinity",
+    outcomes: {
+      ...outOfRange(INTS_32, "Infinity"),
+      ...spread(INTS_64, { kind: "throws", message: 'invalid @: "Infinity"' }),
+      ...spread(FLOATS, accepted(Infinity)),
     },
   },
   {
@@ -361,4 +390,43 @@ describe("what the encoder accepts, the decoder reads back", () => {
       expect(decode(type, encode(type, input))).toBe(expected);
     });
   }
+});
+
+describe("sint32 and sint64 hold the same contract", () => {
+  // The schema declares no zigzag field, so these two are exercised at the
+  // writer rather than through encodeProto. Without the overrides the base
+  // writer takes '' as zero, which is what these assert against.
+  const write = (method: "sint32" | "sint64", value: unknown): Uint8Array =>
+    (new BinaryWriter()[method] as (v: unknown) => BinaryWriter)(value).finish();
+
+  test("sint32 rejects the inputs that are not numbers", () => {
+    expect(() => write("sint32", "")).toThrow('invalid sint32: ""');
+    expect(() => write("sint32", true)).toThrow("invalid sint32: boolean");
+    expect(() => write("sint32", [])).toThrow("invalid sint32: object");
+    expect(() => write("sint32", "1e400")).toThrow('invalid sint32: "1e400"');
+    expect(() => write("sint32", 1.5)).toThrow("invalid int32: 1.5");
+  });
+
+  test("sint64 rejects the inputs that are not numbers", () => {
+    expect(() => write("sint64", "")).toThrow('invalid sint64: ""');
+    expect(() => write("sint64", true)).toThrow("invalid sint64: boolean");
+    expect(() => write("sint64", [])).toThrow("invalid sint64: object");
+    expect(() => write("sint64", "12.5")).toThrow('invalid sint64: "12.5"');
+    expect(() => write("sint64", 1.5)).toThrow("invalid sint64: 1.5");
+  });
+
+  test("sint32 takes a number, a bigint and a string by value", () => {
+    const expected = write("sint32", -42);
+    expect(write("sint32", "-42")).toEqual(expected);
+    expect(write("sint32", -42n)).toEqual(expected);
+    expect(new BinaryReader(expected).sint32()).toBe(-42);
+  });
+
+  test("sint64 takes a number, a bigint and a string by value", () => {
+    const expected = write("sint64", -9007199254740991);
+    expect(write("sint64", "-9007199254740991")).toEqual(expected);
+    expect(write("sint64", -9007199254740991n)).toEqual(expected);
+    expect(write("sint64", "1e2")).toEqual(write("sint64", 100n));
+    expect(new BinaryReader(expected).sint64Number()).toBe(-9007199254740991);
+  });
 });

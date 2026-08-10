@@ -34,6 +34,8 @@ only the exception's wording changed are not marked.
 | `'  '` | throws † | throws † | throws † | throws † | throws † | throws † |
 | `'12'` | `12` | `12` | `12` | `12` | `12` | `12` |
 | `'0x10'` | `16` | `16` | `16` | `16` | `16` | `16` |
+| `'1e2'` | `100` | `100` | `100` | `100` | `100` | `100` |
+| `'12.0'` | `12` | `12` | `12` | `12` | `12` | `12` |
 | `'12.5'` | throws | throws | throws | throws | `12.5` | `12.5` |
 | `'abc'` | throws | throws | throws | throws | throws | throws † |
 | `'9007199254740993'` | throws | throws | exact on the wire | exact on the wire | `9007199254740992` | `9007199254740992` |
@@ -50,6 +52,9 @@ only the exception's wording changed are not marked.
 | `2**53` | throws | throws | exact on the wire | exact on the wire | `2**53` | `2**53` |
 | `2**63` | throws | throws | throws | exact on the wire | `2**63` | `2**63` |
 | `1e300` | throws | throws | throws | throws | throws | `1e300` |
+| `'1e400'` | throws | throws | throws | throws | throws | throws |
+| `10n ** 400n` | throws | throws | throws | throws | throws | throws |
+| `'Infinity'` | throws | throws | throws | throws | `Infinity` | `Infinity` |
 | `FLT_MAX` (`3.4028234663852886e38`) | throws | throws | throws | throws | `FLT_MAX` | `FLT_MAX` |
 | just above `FLT_MAX` | throws | throws | throws | throws | throws | that double |
 
@@ -58,10 +63,22 @@ only the exception's wording changed are not marked.
 past `Number.MAX_SAFE_INTEGER`, so such a message does not read back here. That ceiling
 belongs to the read path and is not part of this contract.
 
+`'1e400'` and `10n ** 400n` are finite and no double can hold either. Converting them
+reaches `Infinity`, which would put an infinity on the wire that the caller never wrote —
+the same silent substitution the contract exists to stop, so they throw. The literal
+string `'Infinity'` is not that case: it names the value, and a float field holds it.
+
+**Precision of a parsed string.** A 64-bit field reads a string with `BigInt`, so plain
+digits past 2^53 stay exact. A string `BigInt` cannot read — `'1e2'`, `'12.0'` — falls
+back to `Number` and is kept only if it lands on a safe integer, because past 2^53 the
+digits *are* the value and a rounded double is not what the caller wrote. For an exact
+value above 2^53, pass a `bigint` or plain digits.
+
 An **enum** field is written as `int32` and follows that column: `{ accountType: '' }`
 now throws rather than encoding `E2EE`, the zero variant.
 
-`tests/proto-numeric-input.test.ts` pins every cell above.
+`tests/proto-numeric-input.test.ts` pins every cell above. `sint32` and `sint64` have no
+field in the schema, so their cells are pinned at the writer instead, in the same file.
 
 ## The empty string
 

@@ -30,12 +30,20 @@ function numericInput(value: unknown, type: string): number | bigint | string {
   throw invalid(type, value);
 }
 
+const SPELLS_INFINITY = /^\s*[+-]?Infinity\s*$/;
+
 /** Narrow to the one JS number the 32-bit and floating-point writers take. */
 function asNumber(value: unknown, type: string): number {
   const input = numericInput(value, type);
   if (typeof input === "number") return input;
   const parsed = Number(input);
-  if (Number.isNaN(parsed) && input !== "NaN") throw invalid(type, value);
+  if (Number.isNaN(parsed)) {
+    if (input !== "NaN") throw invalid(type, value);
+  } else if (!Number.isFinite(parsed) && !SPELLS_INFINITY.test(String(input))) {
+    // A finite input that only reaches infinity by overflowing the conversion
+    // is a value the type cannot hold, not the infinity the caller asked for.
+    throw invalid(type, value);
+  }
   return parsed;
 }
 
@@ -52,38 +60,50 @@ function asInt64(value: unknown, type: string): number | bigint {
   try {
     return BigInt(input);
   } catch {
-    throw invalid(type, value);
+    // BigInt reads integer literals only, so `'1e2'` and `'12.0'` — integers a
+    // 32-bit field takes — would otherwise fail on width alone. Number reads
+    // them, and only a safe integer is kept: past 2^53 the digits are the value.
+    const parsed = Number(input);
+    if (!Number.isSafeInteger(parsed)) throw invalid(type, value);
+    return parsed;
   }
 }
 
 /** BinaryWriter with the numeric input contract applied to every numeric field. */
 export class BinaryWriter extends BaseBinaryWriter {
   override uint32(value: number): this {
-    return super.uint32(typeof value === "number" ? value : asNumber(value, "uint32"));
+    if (typeof value !== "number") value = asNumber(value, "uint32");
+    return super.uint32(value);
   }
 
   override int32(value: number): this {
-    return super.int32(typeof value === "number" ? value : asNumber(value, "int32"));
+    if (typeof value !== "number") value = asNumber(value, "int32");
+    return super.int32(value);
   }
 
   override sint32(value: number): this {
-    return super.sint32(typeof value === "number" ? value : asNumber(value, "sint32"));
+    if (typeof value !== "number") value = asNumber(value, "sint32");
+    return super.sint32(value);
   }
 
   override fixed32(value: number): this {
-    return super.fixed32(typeof value === "number" ? value : asNumber(value, "fixed32"));
+    if (typeof value !== "number") value = asNumber(value, "fixed32");
+    return super.fixed32(value);
   }
 
   override sfixed32(value: number): this {
-    return super.sfixed32(typeof value === "number" ? value : asNumber(value, "sfixed32"));
+    if (typeof value !== "number") value = asNumber(value, "sfixed32");
+    return super.sfixed32(value);
   }
 
   override float(value: number): this {
-    return super.float(typeof value === "number" ? value : asNumber(value, "float"));
+    if (typeof value !== "number") value = asNumber(value, "float");
+    return super.float(value);
   }
 
   override double(value: number): this {
-    return super.double(typeof value === "number" ? value : asNumber(value, "double"));
+    if (typeof value !== "number") value = asNumber(value, "double");
+    return super.double(value);
   }
 
   override int64(value: string | number | bigint): this {
