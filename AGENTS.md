@@ -74,6 +74,8 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 **Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
 
+**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
+
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
 ## Build and test
