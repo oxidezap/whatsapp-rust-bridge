@@ -29,6 +29,12 @@ const SURFACE_FILE = join(
 // name rather than the declared one. Every other field in this schema is
 // already camelCase, so a field reaching this list means upstream introduced a
 // snake_case name and somebody has to decide what the bridge calls it.
+//
+// Not renamed back: camelCase is what the rest of the bridge already speaks for
+// this field — `src/camel_serializer.rs` hands every Rust->JS value over with
+// camelCase keys, and `ts/proto-types.d.ts` declares `musicUserIdMap`. A codec
+// keyed on `music_user_id_map` would silently drop the field when a decoded
+// event is re-encoded, which is the failure this whole file exists to catch.
 const JSON_NAME_KEYS: Record<string, string> = {
   "SyncActionValue.MusicUserIdAction.music_user_id_map": "musicUserIdMap",
 };
@@ -42,24 +48,24 @@ interface Field {
   ref: string;
 }
 
-const parseSurface = (): Field[] =>
-  readFileSync(SURFACE_FILE, "utf8")
-    .split("\n")
-    .filter((line) => line.length > 0)
-    .map((line) => {
-      const [message, name, number, label, type, ref = ""] = line.split("\t");
-      return {
-        message: message!,
-        name: name!,
-        number: Number(number),
-        label: label as Field["label"],
-        type: type!,
-        ref,
-      };
-    });
+const FIELDS: Field[] = [];
+const MESSAGES = new Set<string>();
 
-const FIELDS = parseSurface();
-const MESSAGES = [...new Set(FIELDS.map((field) => field.message))];
+for (const line of readFileSync(SURFACE_FILE, "utf8").split("\n")) {
+  if (line.length === 0 || line.startsWith("#")) continue;
+  const [message, name, number, label, type, ref = ""] = line.split("\t");
+  MESSAGES.add(message!);
+  // A message the schema declares with no fields carries only its own path.
+  if (name === undefined) continue;
+  FIELDS.push({
+    message: message!,
+    name: name!,
+    number: Number(number),
+    label: label as Field["label"],
+    type: type!,
+    ref,
+  });
+}
 
 /**
  * The zero value for the field's type. Zero is deliberate: a proto2 `optional`
@@ -91,22 +97,31 @@ const zeroOf = (type: string, ref: string): unknown => {
     case "message":
       return {};
     case "enum":
-      // Not necessarily 0: a proto2 enum need not declare a zero value, and a
-      // number outside the enum decodes back as UNRECOGNIZED.
+      // Not necessarily 0: a proto2 enum need not declare a zero value, so the
+      // manifest carries the first value it does declare.
       return Number(ref.slice(ref.lastIndexOf("=") + 1));
     default:
       throw new Error(`no sample for type ${type}`);
   }
 };
 
-const KEYED_MAP_SAMPLE: Record<string, unknown> = { string: "k", uint32: 7, int32: 7, int64: 7, uint64: 7, bool: false };
+// A map sample needs a key that survives the declared key type, and a value
+// distinguishable from a dropped one, so these are not zero values.
+const MAP_KEY_SAMPLE: Record<string, string> = { string: "k", bool: "false", int32: "7", int64: "7", uint32: "7", uint64: "7", sint32: "7", sint64: "7" };
+const MAP_VALUE_SAMPLE: Record<string, unknown> = { string: "v", bytes: new Uint8Array([1]), bool: true, message: {} };
+
+const mapTypes = (field: Field): [string, string] => {
+  const [key, value] = field.type.slice("map<".length, -1).split(",");
+  return [key!, value!];
+};
 
 const sampleOf = (field: Field): unknown => {
   if (field.label === "map") {
-    const [key, value] = field.type.slice("map<".length, -1).split(",");
-    const mapKey = KEYED_MAP_SAMPLE[key!];
+    const [key, value] = mapTypes(field);
+    const mapKey = MAP_KEY_SAMPLE[key];
+    const mapValue = MAP_VALUE_SAMPLE[value] ?? 7;
     if (mapKey === undefined) throw new Error(`no sample for map key ${key}`);
-    return { [String(mapKey)]: zeroOf(value!, field.ref) };
+    return { [mapKey]: mapValue };
   }
   const value = zeroOf(field.type, field.ref);
   return field.label === "repeated" ? [value] : value;
@@ -125,14 +140,37 @@ const firstFieldNumber = (bytes: Uint8Array): number => {
   return tag >>> 3;
 };
 
-const isPresent = (field: Field, value: unknown): boolean => {
-  if (value === undefined || value === null) return false;
-  if (field.label === "map") return Object.keys(value as object).length === 1;
-  const scalar = field.label === "repeated" ? (value as unknown[])[0] : value;
-  if (field.label === "repeated" && (value as unknown[]).length !== 1) return false;
-  if (field.type === "bytes") return scalar instanceof Uint8Array && scalar.length === 0;
-  if (field.type === "message") return typeof scalar === "object" && scalar !== null;
-  return scalar === zeroOf(field.type, field.ref);
+const sameValue = (type: string, expected: unknown, actual: unknown): boolean => {
+  if (type === "bytes") {
+    return actual instanceof Uint8Array && actual.length === (expected as Uint8Array).length;
+  }
+  // An empty submessage carries nothing to compare; that it decoded to an
+  // object at all is the difference between written and dropped.
+  if (type === "message") return typeof actual === "object" && actual !== null;
+  return actual === expected;
+};
+
+const readsBack = (field: Field, sample: unknown, actual: unknown): boolean => {
+  if (actual === undefined || actual === null) return false;
+  if (field.label === "map") {
+    const expected = Object.entries(sample as Record<string, unknown>);
+    const decoded = Object.entries(actual as Record<string, unknown>);
+    if (decoded.length !== expected.length) return false;
+    const [, valueType] = mapTypes(field);
+    return expected.every(([key, value], index) => {
+      const [decodedKey, decodedValue] = decoded[index]!;
+      return decodedKey === key && sameValue(valueType, value, decodedValue);
+    });
+  }
+  if (field.label === "repeated") {
+    const expected = sample as unknown[];
+    return (
+      Array.isArray(actual) &&
+      actual.length === expected.length &&
+      expected.every((value, index) => sameValue(field.type, value, actual[index]))
+    );
+  }
+  return sameValue(field.type, sample, actual);
 };
 
 beforeAll(() => {
@@ -142,12 +180,15 @@ beforeAll(() => {
 describe("generated codec vs whatsapp.proto", () => {
   test("the surface manifest covers the whole schema", () => {
     expect(FIELDS.length).toBeGreaterThan(3000);
-    expect(MESSAGES.length).toBeGreaterThan(600);
+    expect(MESSAGES.size).toBeGreaterThan(600);
     expect(FIELDS.filter((field) => field.label === "map").length).toBeGreaterThan(0);
+    // Fieldless messages have a generated type too, and are only in MESSAGES if
+    // the manifest gave them a line of their own.
+    expect(MESSAGES.size).toBeGreaterThan(new Set(FIELDS.map((field) => field.message)).size);
   });
 
   test("every declared message resolves to a codec", () => {
-    const missing = MESSAGES.filter((message) => {
+    const missing = [...MESSAGES].filter((message) => {
       try {
         encodeProto(message, {});
         return false;
@@ -158,7 +199,7 @@ describe("generated codec vs whatsapp.proto", () => {
     expect(missing).toEqual([]);
   });
 
-  test("every declared field is written, under its declared name, at its declared number", () => {
+  test("every declared field is written, at its declared number", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
       const key = keyOf(field);
@@ -180,26 +221,45 @@ describe("generated codec vs whatsapp.proto", () => {
     expect(failures).toEqual([]);
   });
 
-  test("every declared field reads back the zero value it was written with", () => {
+  test("the schema-declared name is the key the codec writes, bar one pinned field", () => {
+    const dropped: string[] = [];
+    for (const field of FIELDS) {
+      let bytes: Uint8Array;
+      try {
+        bytes = encodeProto(field.message, { [field.name]: sampleOf(field) });
+      } catch {
+        continue;
+      }
+      if (bytes.length === 0) dropped.push(`${field.message}.${field.name}`);
+    }
+    // Every field whose declared name the encoder ignores, enumerated. Anything
+    // beyond the pinned entry is a boundary rename the bridge must not make.
+    expect(dropped.sort()).toEqual(Object.keys(JSON_NAME_KEYS).sort());
+  });
+
+  test("every declared field reads back the value it was written with", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
       const key = keyOf(field);
+      const sample = sampleOf(field);
       let read: unknown;
       try {
-        const bytes = encodeProto(field.message, { [key]: sampleOf(field) });
+        const bytes = encodeProto(field.message, { [key]: sample });
         read = (decodeProto(field.message, bytes) as Record<string, unknown>)[key];
       } catch (error) {
         failures.push(`${field.message}.${field.name} (#${field.number}): ${error}`);
         continue;
       }
-      if (!isPresent(field, read)) {
-        failures.push(`${field.message}.${field.name} (#${field.number}): read back ${JSON.stringify(read)}`);
+      if (!readsBack(field, sample, read)) {
+        failures.push(
+          `${field.message}.${field.name} (#${field.number}): wrote ${JSON.stringify(sample)}, read back ${JSON.stringify(read)}`,
+        );
       }
     }
     expect(failures).toEqual([]);
   });
 
-  test("only snake_case fields are written under a name other than the declared one", () => {
+  test("the pinned field is the schema's only snake_case name", () => {
     const snakeCase = FIELDS.filter((field) => field.name.includes("_")).map(
       (field) => `${field.message}.${field.name}`,
     );
@@ -208,8 +268,6 @@ describe("generated codec vs whatsapp.proto", () => {
     for (const [path, jsonName] of Object.entries(JSON_NAME_KEYS)) {
       const field = FIELDS.find((candidate) => `${candidate.message}.${candidate.name}` === path)!;
       expect(field).toBeDefined();
-      // Pinned, not endorsed: the declared name is silently dropped.
-      expect(encodeProto(field.message, { [field.name]: sampleOf(field) }).length).toBe(0);
       expect(encodeProto(field.message, { [jsonName]: sampleOf(field) }).length).toBeGreaterThan(0);
     }
   });
