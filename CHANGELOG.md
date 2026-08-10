@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.0...v0.8.1) (2026-08-10)
+
+
+### Features
+
+* **build:** add a BoltFFI-generated WASM artifact alongside wasm-bindgen ([#33](https://github.com/oxidezap/whatsapp-rust-bridge/issues/33)) ([5ca9cf9](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5ca9cf94b8cc10888663de9a69eff9a897d058e9))
+
+
+### Bug Fixes
+
+* **proto:** read framed payloads the way the wire format defines them ([#44](https://github.com/oxidezap/whatsapp-rust-bridge/issues/44)) ([470d554](https://github.com/oxidezap/whatsapp-rust-bridge/commit/470d554ba23e007be0c0b26911bb49b00d8d74d1))
+
+
+### Chores
+
+* release 0.8.1 ([13e18f6](https://github.com/oxidezap/whatsapp-rust-bridge/commit/13e18f61d3975bb42eb438caa55f89ba2f4d02c8))
+
 ## [0.8.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.2...v0.8.0) (2026-08-10)
 
 
