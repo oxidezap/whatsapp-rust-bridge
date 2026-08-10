@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.2...v0.8.0) (2026-08-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **proto:** decode 64-bit fields outside the safe range instead of failing the message ([#42](https://github.com/oxidezap/whatsapp-rust-bridge/issues/42))
+
+### Bug Fixes
+
+* **proto:** decide and document what the codec does with invalid UTF-8 ([#39](https://github.com/oxidezap/whatsapp-rust-bridge/issues/39)) ([41618fa](https://github.com/oxidezap/whatsapp-rust-bridge/commit/41618fa481d737c05e98c05595fa7f911e383768))
+* **proto:** decode 64-bit fields outside the safe range instead of failing the message ([#42](https://github.com/oxidezap/whatsapp-rust-bridge/issues/42)) ([f12e8c9](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f12e8c932f916a96ae8e33264f8d72a3ad3679fe))
+* **proto:** make the numeric input contract consistent and documented ([#38](https://github.com/oxidezap/whatsapp-rust-bridge/issues/38)) ([79ca1f2](https://github.com/oxidezap/whatsapp-rust-bridge/commit/79ca1f25afff12bb8774e1d0168358a55105e03a))
+
 ## [0.7.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.1...v0.7.2) (2026-08-10)
 
 
