@@ -155,11 +155,18 @@ describe("empty and single-element lists", () => {
     );
   });
 
+  // Absent is absent: a zero-length packed payload is a field the peer sent,
+  // and must not read back the same as a field it never sent.
   test("an empty packed field decodes to an empty list, not to absent", () => {
-    const decoded = decodeProto("ADVKeyIndexList", bytes(0x22, 0x00)) as {
-      validIndexes: number[];
+    const present = decodeProto("ADVKeyIndexList", bytes(0x22, 0x00)) as {
+      validIndexes?: number[];
     };
-    expect(decoded.validIndexes).toEqual([]);
+    const absent = decodeProto("ADVKeyIndexList", bytes()) as {
+      validIndexes?: number[];
+    };
+
+    expect(present.validIndexes).toEqual([]);
+    expect(absent.validIndexes).toBeUndefined();
   });
 });
 
@@ -167,11 +174,15 @@ describe("empty and single-element lists", () => {
 // covers the rest: it fails if any *other* field starts or stops packing,
 // which is what a generator-wide setting or a schema bump would do.
 describe("the generated codec packs exactly the fields the schema declares", () => {
+  // Qualified by the message that owns the field: this schema reuses field
+  // names across messages (`scanLengths`, `selectedOptions`, `mentionedJid`
+  // each appear twice), so a bare name would let a new packed field hide
+  // behind an existing one.
   const PACKED_BY_SCHEMA = [
-    "validIndexes", // ADVKeyIndexList
-    "senderKeyIndexes", // DeviceListMetadata
-    "recipientKeyIndexes", // DeviceListMetadata
-    "deviceIndexes", // Message.AppStateSyncKeyFingerprint
+    "ADVKeyIndexList.validIndexes",
+    "DeviceListMetadata.senderKeyIndexes",
+    "DeviceListMetadata.recipientKeyIndexes",
+    "Message_AppStateSyncKeyFingerprint.deviceIndexes",
   ];
 
   test("no field packs beyond the four declared [packed = true]", () => {
@@ -181,13 +192,21 @@ describe("the generated codec packs exactly the fields the schema declares", () 
     );
     const lines = source.split("\n");
     const packed: string[] = [];
+    let owner = "<none>";
 
     for (let i = 1; i < lines.length; i++) {
+      const declaration = /^export const ([A-Za-z0-9_]+): MessageFns</.exec(lines[i]!);
+      if (declaration) {
+        owner = declaration[1]!;
+        continue;
+      }
       if (!/^\s*writer\.uint32\(\d+\)\.fork\(\);$/.test(lines[i]!)) continue;
-      const owner = /message\.([A-Za-z0-9_]+) !== undefined/.exec(lines[i - 1]!);
-      packed.push(owner ? owner[1]! : `unattributed line ${i + 1}`);
+      const field = /message\.([A-Za-z0-9_]+) !== undefined/.exec(lines[i - 1]!);
+      packed.push(`${owner}.${field ? field[1]! : `<unattributed line ${i + 1}>`}`);
     }
 
-    expect([...new Set(packed)].sort()).toEqual([...PACKED_BY_SCHEMA].sort());
+    // Compared without deduplication, so a repeat of a known name is a failure
+    // too, not something a Set quietly absorbs.
+    expect(packed.sort()).toEqual([...PACKED_BY_SCHEMA].sort());
   });
 });
