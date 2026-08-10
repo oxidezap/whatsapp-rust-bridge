@@ -180,6 +180,16 @@ function normalizeProtoInput(value: unknown): unknown {
   return copy ?? value;
 }
 
+/**
+ * Encode `obj` as `typeName`.
+ *
+ * A numeric field takes a `number`, a `bigint`, or a string that parses in full
+ * as a number — never `''`, `true`, `[]` or anything else JavaScript would
+ * silently turn into a number — and the value must be one the declared type can
+ * hold. Anything else throws `invalid <type>: <value>`. To leave a field unset,
+ * omit it or pass `undefined`/`null`; `''` is not a zero.
+ * See `docs/proto-numeric-input.md` for the per-type matrix.
+ */
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   const fns = resolve(typeName);
   // ts-proto's encoder accepts partial objects directly. Calling fromPartial

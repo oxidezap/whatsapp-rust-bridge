@@ -1,7 +1,9 @@
-import { BinaryReader as BaseBinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader as BaseBinaryReader } from "@bufbuild/protobuf/wire";
 import { Buffer } from "node:buffer";
 
-export { BinaryWriter };
+// The generated codec imports both halves from here (see scripts/gen-ts-proto.ts),
+// which is what puts the numeric input contract on every encode.
+export { BinaryWriter } from "./proto-writer";
 
 const PROTO_WORD_BITS = 32;
 const PROTO_WORD_BASE = 2 ** PROTO_WORD_BITS;

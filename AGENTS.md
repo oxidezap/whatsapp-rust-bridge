@@ -72,6 +72,12 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 **No `Debug` for a value you can name.** `format!("{:?}", …)` makes a trait impl in another repo into this one's contract, so every variant the core declares gets its string written down here instead. The one place `Debug` stays is the wildcard an upstream `#[non_exhaustive]` enum forces: a variant added later has no string of ours, and rendering its name beats collapsing it into a neighbour's. See `newsletter_role_str` and friends.
 
+**Numbers, into the proto codec.** `encodeProto` takes a `number`, a `bigint`, or a
+string that parses in full as a number, and the value has to be one the declared type
+can hold. `''` is not a zero and does not become one — omit the field instead. The rule
+lives in `ts/proto-writer.ts` and the per-type matrix is `docs/proto-numeric-input.md`;
+a new numeric write method needs an entry in both.
+
 **Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
