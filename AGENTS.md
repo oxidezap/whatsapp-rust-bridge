@@ -74,6 +74,14 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 **Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec: ts-proto is configured to expose every 64-bit field as a `number` and to reject unsafe values, so `amount1000` is a `number` there on purpose. Don't unify them.
 
+**Text on the wire.** A protobuf `string` is UTF-8; a JavaScript string is UTF-16. Neither conversion is total, and the two directions deliberately fail differently.
+
+*Decoding* substitutes U+FFFD for bytes that are not valid UTF-8 and keeps the message. Those bytes come from a peer this side does not control, so throwing would let one bad byte cost the whole message — and hand anyone who wanted it a cheap way to arrange that. The substitution is still a change to the peer's data, so it is reported rather than hidden: pass a `ProtoDecodeReport` to `decodeProto` / `decodeProtoBatch` and read `invalidUtf8Fields`. Ask for no report and nothing is measured. A caller who wants strictness rejects on that count; Buf's throwing decoder remains reachable as `BinaryReader#string(true)`, and the generated codecs never pass it.
+
+*Encoding* refuses. An unpaired UTF-16 surrogate has no UTF-8 form, and `TextEncoder` answers that by substituting U+FFFD — sending the server text the caller never wrote. `BinaryWriter#string` throws `UnpairedSurrogateError` instead, and `encodeProto` fills in the field path. The value is the caller's own, and the caller is the only one who can fix it.
+
+Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode normalization belong to the core.
+
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
 ## Build and test

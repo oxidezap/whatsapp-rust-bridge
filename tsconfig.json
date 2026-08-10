@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "esnext",
-    "lib": ["es2022", "esnext.typedarrays"],
+    // es2024.string is `String.prototype.isWellFormed`, which the proto codec
+    // uses to reject an unpaired surrogate before it reaches the wire.
+    "lib": ["es2022", "es2024.string", "esnext.typedarrays"],
     "types": ["node"],
     "strict": true,
     "rootDir": "./ts",

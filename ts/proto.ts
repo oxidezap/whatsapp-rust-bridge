@@ -77,7 +77,9 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
-import { BinaryReader } from "./proto-reader";
+import { BinaryReader, UnpairedSurrogateError } from "./proto-reader";
+
+export { UnpairedSurrogateError };
 
 const GENERATED_MODULE = gen as unknown as Record<string, unknown>;
 
@@ -180,17 +182,67 @@ function normalizeProtoInput(value: unknown): unknown {
   return copy ?? value;
 }
 
+// Only walked once the writer has already rejected the message, so the cost of
+// finding the field name is paid by the failing encode alone.
+function unpairedSurrogatePath(value: unknown, path: string): string | undefined {
+  if (typeof value === "string") return value.isWellFormed() ? undefined : path;
+  if (typeof value !== "object" || value === null) return undefined;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return undefined;
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      const found = unpairedSurrogatePath(value[index], `${path}[${index}]`);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    const found = unpairedSurrogatePath(entry, path === "" ? key : `${path}.${key}`);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   const fns = resolve(typeName);
   // ts-proto's encoder accepts partial objects directly. Calling fromPartial
   // first rebuilt the entire protobuf tree and walked every possible field
   // before the encoder immediately walked it again.
-  return fns.encode(normalizeProtoInput(obj ?? {})).finish();
+  const normalized = normalizeProtoInput(obj ?? {});
+  try {
+    return fns.encode(normalized).finish();
+  } catch (error) {
+    if (error instanceof UnpairedSurrogateError && error.path === undefined) {
+      const path = unpairedSurrogatePath(normalized, "");
+      if (path !== undefined) {
+        throw new UnpairedSurrogateError(error.index, error.codeUnit, path);
+      }
+    }
+    throw error;
+  }
 }
 
-export function decodeProto(typeName: string, data: Uint8Array): unknown {
+/**
+ * Opt-in account of what a decode had to change to hand back JavaScript
+ * strings. Requesting one turns the check on; without it the decode path is
+ * untouched.
+ */
+export interface ProtoDecodeReport {
+  /** `string` fields whose wire bytes were not valid UTF-8 and got U+FFFD instead. */
+  invalidUtf8Fields: number;
+}
+
+export function decodeProto(
+  typeName: string,
+  data: Uint8Array,
+  report?: ProtoDecodeReport,
+): unknown {
   const fns = resolve(typeName);
-  return fns.decode(data);
+  if (report === undefined) return fns.decode(data);
+
+  const reader = new BinaryReader(data, true);
+  const decoded = fns.decode(reader, data.length);
+  report.invalidUtf8Fields = reader.invalidUtf8Fields;
+  return decoded;
 }
 
 const BATCH_OFFSET_SENTINEL_COUNT = 1;
@@ -204,6 +256,7 @@ export function decodeProtoBatch(
   typeName: string,
   data: Uint8Array,
   offsets: Uint32Array,
+  report?: ProtoDecodeReport,
 ): unknown[] {
   if (offsets.length < BATCH_OFFSET_SENTINEL_COUNT) {
     throw new RangeError("protobuf batch offsets must contain the leading sentinel");
@@ -223,7 +276,7 @@ export function decodeProtoBatch(
   }
 
   const codec = resolve(typeName);
-  const reader = new BinaryReader(data);
+  const reader = new BinaryReader(data, report !== undefined);
   const decoded = new Array<unknown>(entryCount);
   for (let index = 0; index < entryCount; index++) {
     const start = offsets[index]!;
@@ -237,5 +290,6 @@ export function decodeProtoBatch(
       throw new RangeError("protobuf decoder did not consume the delimited entry");
     }
   }
+  if (report !== undefined) report.invalidUtf8Fields = reader.invalidUtf8Fields;
   return decoded;
 }
