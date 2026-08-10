@@ -76,6 +76,8 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 
 Widening rather than throwing is the point: one out-of-range field used to fail the whole `decodeProto` call, and the consumer lost every other field with it. `BigInt` is not an option on this path — `JSON.stringify` refuses it.
 
+**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
+
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
 ## Build and test
