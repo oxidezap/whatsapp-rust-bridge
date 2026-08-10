@@ -136,7 +136,7 @@ const distinctOf = (type: string): unknown => {
 // A map sample needs a key that survives the declared key type, and a value
 // distinguishable from a dropped one, so these are not zero values.
 const MAP_KEY_SAMPLE: Record<string, string> = { string: "k", bool: "false", int32: "7", int64: "7", uint32: "7", uint64: "7", sint32: "7", sint64: "7" };
-const MAP_VALUE_SAMPLE: Record<string, unknown> = { string: "v", bytes: new Uint8Array([1]), bool: true, message: {} };
+const MAP_VALUE_SAMPLE: Record<string, unknown> = { string: "v", bytes: new Uint8Array([1]), bool: true };
 
 const mapTypes = (field: Field): [string, string] => {
   const [key, value] = field.type.slice("map<".length, -1).split(",");
@@ -147,8 +147,8 @@ const sampleOf = (field: Field): unknown => {
   if (field.label === "map") {
     const [key, value] = mapTypes(field);
     const mapKey = MAP_KEY_SAMPLE[key];
-    const mapValue = MAP_VALUE_SAMPLE[value] ?? 7;
     if (mapKey === undefined) throw new Error(`no sample for map key ${key}`);
+    const mapValue = value === "message" ? nestedSampleOf(field.ref) : (MAP_VALUE_SAMPLE[value] ?? 7);
     return { [mapKey]: mapValue };
   }
   const value = zeroOf(field.type, field.ref);
@@ -159,11 +159,14 @@ const sampleOf = (field: Field): unknown => {
  * One declared child field of a referenced message. An empty `{}` proves a
  * submessage was written but not *which* codec wrote it — two message types
  * both encode `{}` as a zero-length payload — so the payload sample carries a
- * field only the right codec knows. Children use zero samples, which bounds
- * this to a single level of nesting.
+ * field only the right codec knows. A scalar child keeps this to one level:
+ * `Field.subfield` is a `map<uint32, Field>`, so descending into messages would
+ * not terminate.
  */
 const nestedSampleOf = (ref: string): Record<string, unknown> => {
-  const child = BY_MESSAGE.get(ref)?.[0];
+  const child = BY_MESSAGE.get(ref)?.find(
+    (candidate) => candidate.label !== "map" && candidate.type !== "message",
+  );
   return child ? { [keyOf(child)]: sampleOf(child) } : {};
 };
 
@@ -175,7 +178,14 @@ const samplesOf = (field: Field): unknown[] => {
     field.type === "message" ? nestedSampleOf(field.ref) : distinctOf(field.type);
   if (distinct === undefined) return samples;
   if (field.type === "message" && Object.keys(distinct).length === 0) return samples;
-  samples.push(isRepeated(field) ? [distinct] : distinct);
+  if (!isRepeated(field)) {
+    samples.push(distinct);
+    return samples;
+  }
+  // Two elements, not one: a one-element array cannot tell an encoder that
+  // emits only the head, or a decoder that resets the array per occurrence,
+  // from a correct one. `readsBack` compares length and order.
+  samples.push([distinct, sampleOf(field)].flat());
   return samples;
 };
 
@@ -211,6 +221,99 @@ const wireTypeOf = (field: Field): number => {
   if (field.label === "map" || field.label === "repeated packed") return 2;
   return WIRE_TYPE[field.type] ?? 0;
 };
+
+// An independent encoder for the declared type, so the codec is checked against
+// protobuf rather than against itself. int32 and sint32 share a wire type and a
+// self-consistent encoder/decoder pair hides the zigzag; only the bytes tell
+// them apart, so the samples are chosen to differ under every candidate
+// encoding — negative where the type is signed, multi-byte where it is not.
+const WIRE_SAMPLES: Record<string, [unknown, unknown]> = {
+  int32: [-1, 2],
+  int64: [-1, 2],
+  sint32: [-1, 2],
+  sint64: [-1, 2],
+  sfixed32: [-1, 2],
+  sfixed64: [-1, 2],
+  uint32: [300, 1],
+  uint64: [300, 1],
+  fixed32: [300, 1],
+  fixed64: [300, 1],
+  float: [-1.5, 2.5],
+  double: [-1.5, 2.5],
+  bool: [true, false],
+  string: ["ß", "z"],
+  bytes: [new Uint8Array([0x01, 0x7f, 0xff]), new Uint8Array([0x02])],
+};
+
+const varintBytes = (value: bigint): number[] => {
+  const out: number[] = [];
+  let rest = value;
+  do {
+    const byte = Number(rest & 0x7fn);
+    rest >>= 7n;
+    out.push(rest > 0n ? byte | 0x80 : byte);
+  } while (rest > 0n);
+  return out;
+};
+
+const fixedBytes = (size: number, write: (view: DataView) => void): number[] => {
+  const view = new DataView(new ArrayBuffer(size));
+  write(view);
+  return [...new Uint8Array(view.buffer)];
+};
+
+const lengthPrefixed = (raw: number[]): number[] => [...varintBytes(BigInt(raw.length)), ...raw];
+
+const payloadBytes = (type: string, value: unknown): number[] => {
+  // Only reached by the integer cases; a string or bytes sample is not a number.
+  const numeric = (): bigint => BigInt(value as number);
+  switch (type) {
+    case "int32":
+    case "int64":
+    case "enum":
+      return varintBytes(BigInt.asUintN(64, numeric()));
+    case "uint32":
+    case "uint64":
+      return varintBytes(numeric());
+    case "sint32":
+    case "sint64": {
+      const signed = numeric();
+      return varintBytes(BigInt.asUintN(64, (signed << 1n) ^ (signed >> 63n)));
+    }
+    case "bool":
+      return [value ? 1 : 0];
+    case "fixed32":
+      return fixedBytes(4, (view) => view.setUint32(0, Number(numeric()), true));
+    case "sfixed32":
+      return fixedBytes(4, (view) => view.setInt32(0, Number(numeric()), true));
+    case "fixed64":
+      return fixedBytes(8, (view) => view.setBigUint64(0, BigInt.asUintN(64, numeric()), true));
+    case "sfixed64":
+      return fixedBytes(8, (view) => view.setBigInt64(0, numeric(), true));
+    case "float":
+      return fixedBytes(4, (view) => view.setFloat32(0, value as number, true));
+    case "double":
+      return fixedBytes(8, (view) => view.setFloat64(0, value as number, true));
+    case "string":
+      return lengthPrefixed([...new TextEncoder().encode(value as string)]);
+    case "bytes":
+      return lengthPrefixed([...(value as Uint8Array)]);
+    default:
+      throw new Error(`no wire encoding for ${type}`);
+  }
+};
+
+const expectedEncoding = (field: Field, values: unknown[]): number[] => {
+  const tag = (wire: number): number[] => varintBytes(BigInt(field.number * 8 + wire));
+  if (field.label === "repeated packed") {
+    const payload = values.flatMap((value) => payloadBytes(field.type, value));
+    return [...tag(2), ...lengthPrefixed(payload)];
+  }
+  return values.flatMap((value) => [...tag(wireTypeOf(field)), ...payloadBytes(field.type, value)]);
+};
+
+const hex = (bytes: Iterable<number>): string =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 const sameValue = (type: string, ref: string, expected: unknown, actual: unknown): boolean => {
   if (type === "bytes") {
@@ -342,6 +445,31 @@ describe("generated codec vs whatsapp.proto", () => {
             `${field.message}.${field.name} (#${field.number}): wrote ${JSON.stringify(sample)}, read back ${JSON.stringify(read)}`,
           );
         }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  test("every scalar field puts on the wire exactly the bytes its declared type implies", () => {
+    const failures: string[] = [];
+    for (const field of FIELDS) {
+      if (field.label === "map" || field.type === "message") continue;
+      const samples =
+        field.type === "enum"
+          ? ([zeroOf("enum", field.ref), zeroOf("enum", field.ref)] as [unknown, unknown])
+          : WIRE_SAMPLES[field.type];
+      if (samples === undefined) {
+        failures.push(`${field.message}.${field.name}: no wire sample for ${field.type}`);
+        continue;
+      }
+      const values = isRepeated(field) ? [samples[0], samples[1]] : [samples[0]];
+      const input = isRepeated(field) ? values : values[0];
+      const written = hex(encodeProto(field.message, { [keyOf(field)]: input }));
+      const implied = hex(expectedEncoding(field, values));
+      if (written !== implied) {
+        failures.push(
+          `${field.message}.${field.name} (#${field.number}, ${field.label} ${field.type}): wrote ${written}, schema implies ${implied}`,
+        );
       }
     }
     expect(failures).toEqual([]);
