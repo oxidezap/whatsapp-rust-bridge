@@ -123,6 +123,55 @@ const retypeInt64Fields = (source: string): string => {
 	return lines.join('\n')
 }
 
+const GENERATED_DECODE_DECLARATION = '  decode(input: BinaryReader | Uint8Array, length?: number): T;'
+const MERGING_DECODE_DECLARATION =
+	'  decode(input: BinaryReader | Uint8Array, length?: number, into?: T): T;'
+
+// ts-proto wraps a long signature or a long `createBase…` call over several
+// lines, so both shapes are matched across newlines rather than per line.
+const DECODE_SIGNATURE = /decode\(\s*input: BinaryReader \| Uint8Array,\s*length\?: number,?\s*\): ([A-Za-z0-9_]+) \{/g
+const DECODE_BASE = /(const end = length === undefined \? reader\.len : reader\.pos \+ length;\s+const message =\s+)(createBase[A-Za-z0-9_]+\(\);)/g
+const SINGULAR_MESSAGE_READ =
+	/message\.([A-Za-z0-9_]+) =(\s*[A-Za-z0-9_]+\s*)\.decode\(\s*reader,\s*reader\.uint32\(\),?\s*\);/g
+const SINGULAR_MESSAGE_READ_ANY = /message\.[A-Za-z0-9_]+ =\s*[A-Za-z0-9_]+\s*\.decode\(/g
+
+/**
+ * A singular message field read twice merges, as `MergeFrom` would — that is
+ * what the wire format defines, so parsing two concatenated encodings equals
+ * parsing each and merging. ts-proto assigns instead, dropping everything the
+ * earlier instance carried, which left this codec and every other
+ * implementation reading the same well-formed bytes as different objects.
+ *
+ * Threading the value already read back through `decode` is how protobufjs does
+ * it, and it keeps the cost on the repeat path: `into` is undefined on a field's
+ * first read, which is every read in an ordinary message.
+ */
+const mergeRepeatedMessageFields = (source: string): string => {
+	let signatures = 0
+	let bases = 0
+	let reads = 0
+	let merged = source.replace(DECODE_SIGNATURE, (_match, type: string) => {
+		signatures++
+		return `decode(input: BinaryReader | Uint8Array, length?: number, into?: ${type}): ${type} {`
+	})
+	merged = merged.replace(DECODE_BASE, (_match, head: string, base: string) => {
+		bases++
+		return `${head}into ?? ${base}`
+	})
+	merged = merged.replace(SINGULAR_MESSAGE_READ, (_match, field: string, codec: string) => {
+		reads++
+		return `message.${field} =${codec}.decode(reader, reader.uint32(), message.${field});`
+	})
+	if (signatures === 0 || signatures !== bases) {
+		throw new Error(`ts-proto emitted a decode in an unhandled shape (${signatures} signatures, ${bases} bodies)`)
+	}
+	const singularReads = source.match(SINGULAR_MESSAGE_READ_ANY)?.length ?? 0
+	if (reads === 0 || reads !== singularReads) {
+		throw new Error(`ts-proto emitted a singular message read in an unhandled shape (${reads}/${singularReads})`)
+	}
+	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
+}
+
 const TS_PROTO_OPTIONS = [
 	'outputJsonMethods=false',
 	'useExactTypes=false',
@@ -325,6 +374,7 @@ try {
 		throw new Error('ts-proto added an int64 conversion without a 64-bit specialization')
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
+	generatedSource = mergeRepeatedMessageFields(generatedSource)
 	writeFileSync(generatedFile, generatedSource)
 	writeFileSync(SURFACE_FILE, buildSurface(readFileSync(descriptorFile)))
 	renameSync(generatedFile, OUTPUT_FILE)

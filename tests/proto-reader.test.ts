@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { BinaryWriter as BufBinaryWriter } from "@bufbuild/protobuf/wire";
 import { WebMessageInfo } from "../ts/generated/whatsapp";
 import { decodeProtoBatch, encodeProto } from "../ts/proto";
-import { BinaryReader, type Int64 } from "../ts/proto-reader";
+import { BinaryReader, longToBigInt, type Int64 } from "../ts/proto-reader";
 
 type Int64WriteMethod = "uint64" | "int64" | "sint64" | "fixed64" | "sfixed64";
 
@@ -61,6 +61,28 @@ describe("64-bit protobuf reader", () => {
     const value = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
     const writer = new BufBinaryWriter().uint32(24).uint64(value);
     expect(WebMessageInfo.decode(writer.finish()).messageTimestamp).toEqual(longOf(value, true));
+  });
+
+  /**
+   * A varint ends at the first byte with the continuation bit clear, and where
+   * it ends decides where the next tag is read. The safe-number fast path reads
+   * at most eight bytes and rewinds for the rest, so the boundary it reports has
+   * to be the same one the full two-word path reports — a byte of difference
+   * here moves every field after it.
+   */
+  test.each([
+    [[0x01], 1, 1n],
+    [[0x81, 0x80, 0x80, 0x80, 0x80, 0x00], 6, 1n],
+    [[0x81, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00], 10, 1n],
+    [[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f], 8, 2n ** 53n - 1n],
+    [[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x10], 8, 2n ** 53n],
+    [[0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01], 9, 2n ** 56n],
+    [[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01], 10, 2n ** 64n - 1n],
+  ] as const)("consumes %p as %i bytes", (encoded, consumed, value) => {
+    const reader = new BinaryReader(new Uint8Array([...encoded, 0xaa]));
+    const decoded = reader.uint64Value();
+    expect(reader.pos).toBe(consumed);
+    expect(typeof decoded === "number" ? BigInt(decoded) : longToBigInt(decoded)).toBe(value);
   });
 
   test("decodes UTF-8 directly from a reader with a non-zero byte offset", () => {

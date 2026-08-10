@@ -86,6 +86,18 @@ Widening rather than throwing is the point: one out-of-range field used to fail 
 
 **Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
 
+**A message field read twice merges.** Well-formed protobuf has one reading, and
+for an embedded message field the wire format says what it is: repeated instances
+of the same field merge as `MergeFrom` would — later singular scalars replace
+earlier ones, embedded messages merge recursively, repeated fields concatenate —
+so parsing two concatenated encodings equals parsing each and merging. ts-proto
+assigns instead, dropping everything the earlier instance carried, which made this
+codec and every other implementation read the same bytes as different objects.
+`scripts/gen-ts-proto.ts` threads the value already read back through `decode`,
+the way protobufjs does; `tests/proto-message-merge.test.ts` pins it. This is not
+a robustness allowance for damaged input — a length that moved a frame boundary
+still frames, and two parsers disagreeing about framed bytes is the defect.
+
 **Text on the wire.** A protobuf `string` is UTF-8; a JavaScript string is UTF-16. Neither conversion is total, and the two directions deliberately fail differently.
 
 *Decoding* substitutes U+FFFD for bytes that are not valid UTF-8 and keeps the message. Those bytes come from a peer this side does not control, so throwing would let one bad byte cost the whole message — and hand anyone who wanted it a cheap way to arrange that. The substitution is still a change to the peer's data, so it is reported rather than hidden: pass a `ProtoDecodeReport` to `decodeProto` / `decodeProtoBatch` and read `invalidUtf8Fields`. Ask for no report and nothing is measured — the counting lives in `InvalidUtf8CountingReader`, a separate class, so the ordinary decode path carries neither the flag nor the branch. A caller who wants strictness rejects on that count; Buf's throwing decoder remains reachable as `BinaryReader#string(true)`, and the generated codecs never pass it.
