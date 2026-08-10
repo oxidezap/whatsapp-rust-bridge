@@ -109,7 +109,7 @@ Build order matters: `pkg/` must exist before the TypeScript bundling that copie
 
 The release wasm build runs `wasm-opt` and is memory-hungry — it can be killed on a small machine. Building with `build:wasm:dev` locally and letting CI run the real thing is fine; say so in the PR when you do.
 
-`bun run build` regenerates `src/generated_types.rs`, and CI fails if the result differs from what is committed. Commit the regenerated file rather than reverting it.
+`bun run build` regenerates `src/generated_types.rs` and `ts/generated/` — the ts-proto codec plus `whatsapp-surface.txt`, one line per field the schema declares. CI fails if the result differs from what is committed. Commit the regenerated files rather than reverting them: the manifest is what `tests/proto-schema-surface.test.ts` checks the codec against, and it puts an upstream renumbering or rename in the diff.
 
 ## Tests
 

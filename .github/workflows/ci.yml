@@ -93,12 +93,18 @@ jobs:
       - name: Build the wasm package
         run: bun run build
 
-      # `bun run build` regenerates the type file. If what it produced differs
-      # from what is committed, the tarball's .d.ts would not be the reviewed
-      # one — which is how a build with missing sources shipped a .d.ts
-      # referencing types it no longer declared.
+      # `bun run build` regenerates these. If what it produced differs from what
+      # is committed, the tarball's .d.ts would not be the reviewed one — which
+      # is how a build with missing sources shipped a .d.ts referencing types it
+      # no longer declared. `ts/generated` covers the proto codec and the field
+      # manifest the surface test reads, so an upstream schema change has to
+      # show up in a diff rather than only in a regenerated working tree.
       - name: Fail if the generated types drifted
-        run: git diff --exit-code -- src/generated_types.rs
+        # --intent-to-add first: `git diff` only sees tracked files, so a
+        # generator that starts emitting a new file would pass unreviewed.
+        run: |
+          git add --intent-to-add -- src/generated_types.rs ts/generated
+          git diff --exit-code -- src/generated_types.rs ts/generated
 
       # Nothing measured the artifact, so it grew a little per release with
       # nobody positioned to notice. Runs here rather than at `prepack`
