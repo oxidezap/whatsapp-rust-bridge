@@ -75,16 +75,24 @@ It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a me
 **Numbers, into the proto codec.** `encodeProto` takes a `number`, a `bigint`, a `Long`,
 or a string that parses in full as a number, and the value has to be one the declared
 type can hold. `''` throws rather than becoming a zero; absence is an omitted key,
-`undefined` or `null`. An
-integer field reads a string digit-wise rather than through `Number`, so `'1e-400'` is
-not `0`. The rule lives beside the writer in `ts/proto-reader.ts` and the per-type matrix
-is `docs/proto-numeric-input.md`; a new numeric write method needs an entry in both.
+`undefined` or `null`. An integer field reads a string digit-wise rather than through
+`Number`, so `'1e-400'` is not `0`. The rule lives beside the writer in
+`ts/proto-reader.ts` and the per-type matrix is `docs/proto-numeric-input.md`; a new
+numeric write method needs an entry in both.
 
 **Money, in the client's results.** WhatsApp scales by 1000, and `amount_1000` is an `i64`, so a large enough order is not exact as a JS number — `PriceResult` and the rest of `result_types` cross it as a string. This does **not** extend to the generated protobuf codec, where a 64-bit field is `Int64` (`ts/proto-reader.ts`): a `number` while the value is exact as a double, and the protobufjs `Long` split `{ low, high, unsigned }` beyond that — the same shape `camel_serializer` emits, and the shape `encodeProto` takes back. So `amount1000` is not a string there. Don't unify them.
 
 Widening rather than throwing is the point: one out-of-range field used to fail the whole `decodeProto` call, and the consumer lost every other field with it. `BigInt` is not an option on this path — `JSON.stringify` refuses it.
 
 **Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
+
+**Text on the wire.** A protobuf `string` is UTF-8; a JavaScript string is UTF-16. Neither conversion is total, and the two directions deliberately fail differently.
+
+*Decoding* substitutes U+FFFD for bytes that are not valid UTF-8 and keeps the message. Those bytes come from a peer this side does not control, so throwing would let one bad byte cost the whole message — and hand anyone who wanted it a cheap way to arrange that. The substitution is still a change to the peer's data, so it is reported rather than hidden: pass a `ProtoDecodeReport` to `decodeProto` / `decodeProtoBatch` and read `invalidUtf8Fields`. Ask for no report and nothing is measured — the counting lives in `InvalidUtf8CountingReader`, a separate class, so the ordinary decode path carries neither the flag nor the branch. A caller who wants strictness rejects on that count; Buf's throwing decoder remains reachable as `BinaryReader#string(true)`, and the generated codecs never pass it.
+
+*Encoding* refuses. An unpaired UTF-16 surrogate has no UTF-8 form, and `TextEncoder` answers that by substituting U+FFFD — sending the server text the caller never wrote. `BinaryWriter#string` throws `UnpairedSurrogateError` instead, and `encodeProto` fills in the field path. The value is the caller's own, and the caller is the only one who can fix it.
+
+Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode normalization belong to the core.
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 

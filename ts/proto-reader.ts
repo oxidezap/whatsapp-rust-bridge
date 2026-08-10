@@ -10,8 +10,45 @@ const PROTO_VARINT_DATA_BITS = 7;
 const PROTO_VARINT_CONTINUATION_BIT = 1 << PROTO_VARINT_DATA_BITS;
 const PROTO_VARINT_DATA_MASK = PROTO_VARINT_CONTINUATION_BIT - 1;
 const UTF8_ENCODING = "utf8";
+const REPLACEMENT_CHARACTER = "\uFFFD";
+const SURROGATE_MIN = 0xd800;
+const HIGH_SURROGATE_MAX = 0xdbff;
+const SURROGATE_MAX = 0xdfff;
+const CODE_UNIT_HEX_DIGITS = 4;
 const MAX_SAFE_VARINT_SHIFT =
   Math.floor(Math.log2(Number.MAX_SAFE_INTEGER) / PROTO_VARINT_DATA_BITS) * PROTO_VARINT_DATA_BITS;
+
+/** Index of the first UTF-16 code unit with no partner, or -1 when well-formed. */
+export function unpairedSurrogateIndex(value: string): number {
+  for (let index = 0; index < value.length; index++) {
+    const unit = value.charCodeAt(index);
+    if (unit < SURROGATE_MIN || unit > SURROGATE_MAX) continue;
+    if (unit > HIGH_SURROGATE_MAX) return index;
+    const next = value.charCodeAt(index + 1);
+    if (Number.isNaN(next) || next <= HIGH_SURROGATE_MAX || next > SURROGATE_MAX) return index;
+    index++;
+  }
+  return -1;
+}
+
+/**
+ * A `string` field is UTF-8 on the wire and an unpaired UTF-16 surrogate has no
+ * UTF-8 form, so there is nothing faithful to write. `path` is filled in by
+ * `encodeProto`, which is the only layer that knows the field names.
+ */
+export class UnpairedSurrogateError extends RangeError {
+  constructor(
+    readonly index: number,
+    readonly codeUnit: number,
+    readonly path?: string,
+  ) {
+    super(
+      `unpaired surrogate U+${codeUnit.toString(16).toUpperCase().padStart(CODE_UNIT_HEX_DIGITS, "0")}` +
+        ` at index ${index} in ${path === undefined ? "a protobuf string field" : `protobuf field ${path}`}`,
+    );
+    this.name = "UnpairedSurrogateError";
+  }
+}
 
 /**
  * protobufjs-style 64-bit value, `high * 2^32 + low`, with `low` unsigned and
@@ -205,8 +242,20 @@ function asInteger32(value: unknown, type: string): number {
  * 64-bit setters take `number | bigint | string`, so a decoded `Long` would
  * reach `BigInt(object)` and throw — and that holds every numeric field to the
  * input contract above.
+ *
+ * It also refuses an unpaired surrogate rather than letting `TextEncoder`
+ * substitute U+FFFD for it, which would send the server text the caller never
+ * wrote. The value came from the caller, so the caller is the one who can fix it.
  */
 export class BinaryWriter extends BaseBinaryWriter {
+  override string(value: string): this {
+    if (!value.isWellFormed()) {
+      const index = unpairedSurrogateIndex(value);
+      throw new UnpairedSurrogateError(index, value.charCodeAt(index));
+    }
+    return super.string(value);
+  }
+
   override uint32(value: NumericInput): this {
     return super.uint32(typeof value === "number" ? value : asInteger32(value, "uint32"));
   }
@@ -263,7 +312,7 @@ export class BinaryWriter extends BaseBinaryWriter {
  * Buf's public BigInt/string behavior for direct users.
  */
 export class BinaryReader extends BaseBinaryReader {
-  private readonly utf8Buffer: Buffer;
+  protected readonly utf8Buffer: Buffer;
 
   constructor(buf: Uint8Array) {
     super(buf);
@@ -273,6 +322,11 @@ export class BinaryReader extends BaseBinaryReader {
     this.utf8Buffer = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 
+  /**
+   * Bytes come from a peer this side does not control, so a malformed one
+   * substitutes U+FFFD rather than costing the whole message. `strict` reaches
+   * Buf's throwing decoder; the generated codecs never pass it.
+   */
   override string(strict?: boolean): string {
     if (strict) return super.string(true);
 
@@ -349,5 +403,34 @@ export class BinaryReader extends BaseBinaryReader {
 
   sfixed64Value(): Int64 {
     return signedWordsToInt64(this.sfixed32(), this.sfixed32());
+  }
+}
+
+/**
+ * Counts the substitutions `BinaryReader` makes silently. It is a separate
+ * class so the ordinary decode path carries neither the flag nor the branch:
+ * a consumer who never asks for the count pays nothing for it existing.
+ */
+export class InvalidUtf8CountingReader extends BinaryReader {
+  invalidUtf8Fields = 0;
+
+  override string(strict?: boolean): string {
+    if (strict) return super.string(true);
+
+    const byteLength = this.uint32();
+    const start = this.pos;
+    this.pos += byteLength;
+    this.assertBounds();
+    const text = this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
+    if (text.includes(REPLACEMENT_CHARACTER) && !this.decodedExactly(text, start, this.pos)) {
+      this.invalidUtf8Fields++;
+    }
+    return text;
+  }
+
+  /** A U+FFFD the peer actually sent re-encodes to the bytes it arrived as; a substituted one does not. */
+  private decodedExactly(text: string, start: number, end: number): boolean {
+    const reencoded = Buffer.from(text, UTF8_ENCODING);
+    return this.utf8Buffer.compare(reencoded, 0, reencoded.length, start, end) === 0;
   }
 }

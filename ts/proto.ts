@@ -77,7 +77,16 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 // includes all imports), so the runtime cost is one extra Object.entries-style
 // lookup on the cold path.
 import * as gen from "./generated/whatsapp";
-import { BinaryReader, isLong, longToBigInt } from "./proto-reader";
+import {
+  BinaryReader,
+  InvalidUtf8CountingReader,
+  UnpairedSurrogateError,
+  isLong,
+  longToBigInt,
+  unpairedSurrogateIndex,
+} from "./proto-reader";
+
+export { UnpairedSurrogateError };
 
 const GENERATED_MODULE = gen as unknown as Record<string, unknown>;
 
@@ -158,6 +167,81 @@ function normalizeProtoInput(value: unknown): unknown {
   return copy ?? value;
 }
 
+interface SurrogateCandidate {
+  path: string;
+  index: number;
+  codeUnit: number;
+}
+
+// Only walked once the writer has already rejected the message, so the cost of
+// finding the field name is paid by the failing encode alone.
+function collectUnpairedSurrogates(
+  value: unknown,
+  path: string,
+  found: SurrogateCandidate[],
+): void {
+  if (typeof value === "string") {
+    const index = unpairedSurrogateIndex(value);
+    if (index >= 0) found.push({ path, index, codeUnit: value.charCodeAt(index) });
+    return;
+  }
+  if (typeof value !== "object" || value === null) return;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return;
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      collectUnpairedSurrogates(value[index], `${path}[${index}]`, found);
+    }
+    return;
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    // A `map<string, _>` field encodes its keys, so they can fail too. The
+    // top-level object is always the message itself, never a map.
+    if (path !== "") {
+      const keyIndex = unpairedSurrogateIndex(key);
+      if (keyIndex >= 0) {
+        found.push({ path: `${path} (map key)`, index: keyIndex, codeUnit: key.charCodeAt(keyIndex) });
+      }
+    }
+    collectUnpairedSurrogates(entry, path === "" ? key : `${path}.${key}`, found);
+  }
+}
+
+/**
+ * Only the codec knows which keys it encodes, and `fromPartial` is where that
+ * knowledge is reachable: it drops the rest, so a property the message does not
+ * declare cannot make a declared field look ambiguous. Cold path — reached only
+ * after an encode has already failed.
+ */
+function declaredFieldsOf(fns: MessageFns<unknown>, normalized: unknown): unknown {
+  try {
+    return fns.fromPartial(normalized);
+  } catch {
+    return normalized;
+  }
+}
+
+/**
+ * The writer rejects in schema order; this walk sees insertion order. Naming a
+ * field is only honest when exactly one candidate matches what the writer
+ * reported — two declared fields carrying the same bad code unit at the same
+ * index are genuinely indistinguishable from here, and guessing between them
+ * would point the caller at a value that may not be the one that failed.
+ */
+function unpairedSurrogatePath(
+  value: unknown,
+  error: UnpairedSurrogateError,
+): string | undefined {
+  const found: SurrogateCandidate[] = [];
+  collectUnpairedSurrogates(value, "", found);
+  const matches = found.filter(
+    (candidate) => candidate.index === error.index && candidate.codeUnit === error.codeUnit,
+  );
+  // Distinct paths, not distinct candidates: several bad keys in one map all
+  // name that map, and there is nothing ambiguous about saying so.
+  const paths = new Set(matches.map((candidate) => candidate.path));
+  return paths.size === 1 ? matches[0]!.path : undefined;
+}
+
 /**
  * Encode `obj` as `typeName`.
  *
@@ -175,12 +259,42 @@ export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   // ts-proto's encoder accepts partial objects directly. Calling fromPartial
   // first rebuilt the entire protobuf tree and walked every possible field
   // before the encoder immediately walked it again.
-  return fns.encode(normalizeProtoInput(obj ?? {})).finish();
+  const normalized = normalizeProtoInput(obj ?? {});
+  try {
+    return fns.encode(normalized).finish();
+  } catch (error) {
+    if (error instanceof UnpairedSurrogateError && error.path === undefined) {
+      const path = unpairedSurrogatePath(declaredFieldsOf(fns, normalized), error);
+      if (path !== undefined) {
+        throw new UnpairedSurrogateError(error.index, error.codeUnit, path);
+      }
+    }
+    throw error;
+  }
 }
 
-export function decodeProto(typeName: string, data: Uint8Array): unknown {
+/**
+ * Opt-in account of what a decode had to change to hand back JavaScript
+ * strings. Requesting one turns the check on; without it the decode path is
+ * untouched.
+ */
+export interface ProtoDecodeReport {
+  /** `string` fields whose wire bytes were not valid UTF-8 and got U+FFFD instead. */
+  invalidUtf8Fields: number;
+}
+
+export function decodeProto(
+  typeName: string,
+  data: Uint8Array,
+  report?: ProtoDecodeReport,
+): unknown {
   const fns = resolve(typeName);
-  return fns.decode(data);
+  if (report === undefined) return fns.decode(data);
+
+  const reader = new InvalidUtf8CountingReader(data);
+  const decoded = fns.decode(reader, data.length);
+  report.invalidUtf8Fields = reader.invalidUtf8Fields;
+  return decoded;
 }
 
 const BATCH_OFFSET_SENTINEL_COUNT = 1;
@@ -194,6 +308,7 @@ export function decodeProtoBatch(
   typeName: string,
   data: Uint8Array,
   offsets: Uint32Array,
+  report?: ProtoDecodeReport,
 ): unknown[] {
   if (offsets.length < BATCH_OFFSET_SENTINEL_COUNT) {
     throw new RangeError("protobuf batch offsets must contain the leading sentinel");
@@ -213,7 +328,7 @@ export function decodeProtoBatch(
   }
 
   const codec = resolve(typeName);
-  const reader = new BinaryReader(data);
+  const reader = report === undefined ? new BinaryReader(data) : new InvalidUtf8CountingReader(data);
   const decoded = new Array<unknown>(entryCount);
   for (let index = 0; index < entryCount; index++) {
     const start = offsets[index]!;
@@ -226,6 +341,9 @@ export function decodeProtoBatch(
     if (reader.pos !== end) {
       throw new RangeError("protobuf decoder did not consume the delimited entry");
     }
+  }
+  if (report !== undefined) {
+    report.invalidUtf8Fields = (reader as InvalidUtf8CountingReader).invalidUtf8Fields;
   }
   return decoded;
 }
