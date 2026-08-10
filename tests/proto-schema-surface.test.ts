@@ -105,6 +105,29 @@ const zeroOf = (type: string, ref: string): unknown => {
   }
 };
 
+/**
+ * A second sample per field, for the round trip only: a zero value proves
+ * presence but cannot prove the payload survived — an encoder that swapped the
+ * contents of an empty `bytes` still produces an empty `bytes`. Types with no
+ * value distinguishable from the schema's own (message, enum) return undefined
+ * and are covered by the zero pass alone.
+ */
+const distinctOf = (type: string): unknown => {
+  switch (type) {
+    case "bytes":
+      return new Uint8Array([0x01, 0x7f, 0xff]);
+    case "string":
+      return "surface";
+    case "bool":
+      return true;
+    case "message":
+    case "enum":
+      return undefined;
+    default:
+      return 1;
+  }
+};
+
 // A map sample needs a key that survives the declared key type, and a value
 // distinguishable from a dropped one, so these are not zero values.
 const MAP_KEY_SAMPLE: Record<string, string> = { string: "k", bool: "false", int32: "7", int64: "7", uint32: "7", uint64: "7", sint32: "7", sint64: "7" };
@@ -127,6 +150,15 @@ const sampleOf = (field: Field): unknown => {
   return field.label === "repeated" ? [value] : value;
 };
 
+/** The zero sample, plus a payload-bearing one where the type allows it. */
+const samplesOf = (field: Field): unknown[] => {
+  const samples = [sampleOf(field)];
+  if (field.label === "map") return samples;
+  const distinct = distinctOf(field.type);
+  if (distinct !== undefined) samples.push(field.label === "repeated" ? [distinct] : distinct);
+  return samples;
+};
+
 const keyOf = (field: Field): string =>
   JSON_NAME_KEYS[`${field.message}.${field.name}`] ?? field.name;
 
@@ -142,7 +174,12 @@ const firstFieldNumber = (bytes: Uint8Array): number => {
 
 const sameValue = (type: string, expected: unknown, actual: unknown): boolean => {
   if (type === "bytes") {
-    return actual instanceof Uint8Array && actual.length === (expected as Uint8Array).length;
+    const wanted = expected as Uint8Array;
+    return (
+      actual instanceof Uint8Array &&
+      actual.length === wanted.length &&
+      wanted.every((byte, index) => actual[index] === byte)
+    );
   }
   // An empty submessage carries nothing to compare; that it decoded to an
   // object at all is the difference between written and dropped.
@@ -241,19 +278,20 @@ describe("generated codec vs whatsapp.proto", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
       const key = keyOf(field);
-      const sample = sampleOf(field);
-      let read: unknown;
-      try {
-        const bytes = encodeProto(field.message, { [key]: sample });
-        read = (decodeProto(field.message, bytes) as Record<string, unknown>)[key];
-      } catch (error) {
-        failures.push(`${field.message}.${field.name} (#${field.number}): ${error}`);
-        continue;
-      }
-      if (!readsBack(field, sample, read)) {
-        failures.push(
-          `${field.message}.${field.name} (#${field.number}): wrote ${JSON.stringify(sample)}, read back ${JSON.stringify(read)}`,
-        );
+      for (const sample of samplesOf(field)) {
+        let read: unknown;
+        try {
+          const bytes = encodeProto(field.message, { [key]: sample });
+          read = (decodeProto(field.message, bytes) as Record<string, unknown>)[key];
+        } catch (error) {
+          failures.push(`${field.message}.${field.name} (#${field.number}): ${error}`);
+          continue;
+        }
+        if (!readsBack(field, sample, read)) {
+          failures.push(
+            `${field.message}.${field.name} (#${field.number}): wrote ${JSON.stringify(sample)}, read back ${JSON.stringify(read)}`,
+          );
+        }
       }
     }
     expect(failures).toEqual([]);
