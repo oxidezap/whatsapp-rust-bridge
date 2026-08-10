@@ -111,39 +111,32 @@ const zeroOf = (type: string, ref: string): unknown => {
 };
 
 /**
- * A second sample per field, for the round trip only: a zero value proves
- * presence but cannot prove the payload survived — an encoder that swapped the
- * contents of an empty `bytes` still produces an empty `bytes`. Types with no
- * value distinguishable from the schema's own (message, enum) return undefined
- * and are covered by the zero pass alone.
+ * Values that pin a field's declared type beyond what a zero can. Each is
+ * chosen so a plausible substitution changes the answer: negative for signed
+ * types (a decoder swapped for its unsigned counterpart only misreads what is
+ * below zero), past bit 31 for unsigned 32-bit ones (the same swap the other
+ * way), and past the 32-bit range for 64-bit ones (-1 encodes identically at
+ * either width, so only a large value separates int64 from int32).
  */
-const distinctOf = (type: string): unknown => {
-  switch (type) {
-    case "bytes":
-      return new Uint8Array([0x01, 0x7f, 0xff]);
-    case "string":
-      return "surface";
-    case "bool":
-      return true;
-    case "message":
-    case "enum":
-      return undefined;
-    // Negative where the type is signed: a decoder quietly swapped for its
-    // unsigned counterpart round-trips every non-negative sample and only
-    // misreads what a peer sends below zero.
-    case "int32":
-    case "int64":
-    case "sint32":
-    case "sint64":
-    case "sfixed32":
-    case "sfixed64":
-    case "float":
-    case "double":
-      return -1;
-    default:
-      return 1;
-  }
+const PROBE_VALUES: Record<string, [unknown, unknown]> = {
+  int32: [-1, 2],
+  sint32: [-1, 2],
+  sfixed32: [-1, 2],
+  int64: [-1, 2 ** 40],
+  sint64: [-1, 2 ** 40],
+  sfixed64: [-1, 2 ** 40],
+  uint32: [0x80000000, 300],
+  fixed32: [0x80000000, 300],
+  uint64: [2 ** 40, 300],
+  fixed64: [2 ** 40, 300],
+  float: [-1.5, 2.5],
+  double: [-1.5, 2 ** 40],
+  bool: [true, false],
+  string: ["\u00df", "z"],
+  bytes: [new Uint8Array([0x01, 0x7f, 0xff]), new Uint8Array([0x02])],
 };
+
+const distinctOf = (type: string): unknown => PROBE_VALUES[type]?.[0];
 
 // Two entries, not one: a single-entry map cannot tell an encoder that writes
 // only the first property, or a decoder that replaces the map per wire entry,
@@ -218,20 +211,21 @@ const nestedSampleOf = (ref: string, alternate = false): Record<string, unknown>
 const samplesOf = (field: Field): unknown[] => {
   const samples = [sampleOf(field)];
   if (field.label === "map") return samples;
-  const distinct =
-    field.type === "message" ? nestedSampleOf(field.ref) : distinctOf(field.type);
-  const usable =
-    distinct !== undefined && !(field.type === "message" && Object.keys(distinct).length === 0);
+  const nested = field.type === "message" ? nestedSampleOf(field.ref) : undefined;
+  const probes =
+    nested !== undefined
+      ? (Object.keys(nested).length > 0 ? [nested] : [])
+      : (PROBE_VALUES[field.type] ?? []);
   if (!isRepeated(field)) {
-    if (usable) samples.push(distinct);
+    samples.push(...probes);
     return samples;
   }
   // Two elements, not one: a one-element array cannot tell an encoder that
   // emits only the head, or a decoder that resets the array per occurrence,
   // from a correct one. An enum or a childless message has no second value to
-  // offer, so it repeats the first — that still pins the count.
-  const element = usable ? distinct : zeroOf(field.type, field.ref);
-  samples.push([element, zeroOf(field.type, field.ref)]);
+  // offer, so it repeats the zero — that still pins the count.
+  const zero = zeroOf(field.type, field.ref);
+  samples.push(probes.length > 0 ? [...probes, zero] : [zero, zero]);
   return samples;
 };
 
@@ -271,25 +265,7 @@ const wireTypeOf = (field: Field): number => {
 // An independent encoder for the declared type, so the codec is checked against
 // protobuf rather than against itself. int32 and sint32 share a wire type and a
 // self-consistent encoder/decoder pair hides the zigzag; only the bytes tell
-// them apart, so the samples are chosen to differ under every candidate
-// encoding — negative where the type is signed, multi-byte where it is not.
-const WIRE_SAMPLES: Record<string, [unknown, unknown]> = {
-  int32: [-1, 2],
-  int64: [-1, 2],
-  sint32: [-1, 2],
-  sint64: [-1, 2],
-  sfixed32: [-1, 2],
-  sfixed64: [-1, 2],
-  uint32: [300, 1],
-  uint64: [300, 1],
-  fixed32: [300, 1],
-  fixed64: [300, 1],
-  float: [-1.5, 2.5],
-  double: [-1.5, 2.5],
-  bool: [true, false],
-  string: ["ß", "z"],
-  bytes: [new Uint8Array([0x01, 0x7f, 0xff]), new Uint8Array([0x02])],
-};
+// them apart.
 
 const varintBytes = (value: bigint): number[] => {
   const out: number[] = [];
@@ -537,29 +513,31 @@ describe("generated codec vs whatsapp.proto", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
       if (field.type === "message" && field.label !== "map") continue;
-      let values: unknown[];
-      let input: unknown;
+      let cases: unknown[][];
       if (field.label === "map") {
-        values = [];
-        input = sampleOf(field);
+        cases = [[]];
       } else {
-        const samples =
+        const probes =
           field.type === "enum"
             ? ([zeroOf("enum", field.ref), zeroOf("enum", field.ref)] as [unknown, unknown])
-            : WIRE_SAMPLES[field.type];
-        if (samples === undefined) {
+            : PROBE_VALUES[field.type];
+        if (probes === undefined) {
           failures.push(`${field.message}.${field.name}: no wire sample for ${field.type}`);
           continue;
         }
-        values = isRepeated(field) ? [samples[0], samples[1]] : [samples[0]];
-        input = isRepeated(field) ? values : values[0];
+        // Repeated fields carry both probes at once, which also pins the
+        // framing and order; scalars take one encoding per probe.
+        cases = isRepeated(field) ? [[probes[0], probes[1]]] : [[probes[0]], [probes[1]]];
       }
-      const written = hex(encodeProto(field.message, { [keyOf(field)]: input }));
-      const implied = hex(expectedEncoding(field, values));
-      if (written !== implied) {
-        failures.push(
-          `${field.message}.${field.name} (#${field.number}, ${field.label} ${field.type}): wrote ${written}, schema implies ${implied}`,
-        );
+      for (const values of cases) {
+        const input = field.label === "map" ? sampleOf(field) : isRepeated(field) ? values : values[0];
+        const written = hex(encodeProto(field.message, { [keyOf(field)]: input }));
+        const implied = hex(expectedEncoding(field, values));
+        if (written !== implied) {
+          failures.push(
+            `${field.message}.${field.name} (#${field.number}, ${field.label} ${field.type}): wrote ${written}, schema implies ${implied}`,
+          );
+        }
       }
     }
     expect(failures).toEqual([]);
@@ -574,7 +552,6 @@ describe("generated codec vs whatsapp.proto", () => {
     for (const message of MESSAGES) {
       const decoded = decodeProto(message, empty) as Record<string, unknown>;
       for (const field of BY_MESSAGE.get(message) ?? []) {
-        if (field.label === "required") continue;
         const read = decoded[keyOf(field)];
         if (read !== undefined) {
           failures.push(`${field.message}.${field.name}: absent decoded as ${JSON.stringify(read)}`);
