@@ -7,6 +7,14 @@
  * or a second independently versioned copy of whatsapp.proto.
  */
 
+import { fromBinary } from '@bufbuild/protobuf'
+import {
+	FieldDescriptorProto_Label as Label,
+	FieldDescriptorProto_Type as Type,
+	FileDescriptorSetSchema,
+	type DescriptorProto,
+	type FieldDescriptorProto
+} from '@bufbuild/protobuf/wkt'
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +22,7 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT_DIR = join(ROOT, 'ts', 'generated')
 const OUTPUT_FILE = join(OUTPUT_DIR, 'whatsapp.ts')
+const SURFACE_FILE = join(OUTPUT_DIR, 'whatsapp-surface.txt')
 const PROTO_PACKAGE_NAME = 'waproto'
 const PROTO_SOURCE_PATH = ['src', 'whatsapp.proto'] as const
 const TS_PROTO_PLUGIN = join(ROOT, 'node_modules', '.bin', 'protoc-gen-ts_proto')
@@ -33,6 +42,34 @@ const TS_PROTO_OPTIONS = [
 	'noDefaultsForOptionals=true',
 	'initializeFieldsAsUndefined=false'
 ] as const
+
+// Protobuf keyword per descriptor type, so the manifest reads like the .proto
+// it came from rather than like a descriptor dump.
+const TYPE_KEYWORD: Partial<Record<Type, string>> = {
+	[Type.DOUBLE]: 'double',
+	[Type.FLOAT]: 'float',
+	[Type.INT64]: 'int64',
+	[Type.UINT64]: 'uint64',
+	[Type.INT32]: 'int32',
+	[Type.FIXED64]: 'fixed64',
+	[Type.FIXED32]: 'fixed32',
+	[Type.BOOL]: 'bool',
+	[Type.STRING]: 'string',
+	[Type.MESSAGE]: 'message',
+	[Type.BYTES]: 'bytes',
+	[Type.UINT32]: 'uint32',
+	[Type.ENUM]: 'enum',
+	[Type.SFIXED32]: 'sfixed32',
+	[Type.SFIXED64]: 'sfixed64',
+	[Type.SINT32]: 'sint32',
+	[Type.SINT64]: 'sint64'
+}
+
+const LABEL_KEYWORD: Partial<Record<Label, string>> = {
+	[Label.OPTIONAL]: 'optional',
+	[Label.REQUIRED]: 'required',
+	[Label.REPEATED]: 'repeated'
+}
 
 interface CargoPackage {
 	name: string
@@ -59,6 +96,76 @@ const replaceGeneratedContract = (source: string, expected: string, replacement:
 	return source.replace(expected, replacement)
 }
 
+/**
+ * Flatten the compiled schema into one tab-separated line per field:
+ *
+ *   <message path>  <declared name>  <number>  <label>  <type>  [type ref]
+ *
+ * `tests/proto-schema-surface.test.ts` replays this against the generated
+ * codec, so the schema — not the generator's own output — is what says which
+ * fields must cross, under which name, at which number. Keeping it as text
+ * rather than a descriptor blob also puts an upstream renumbering in the diff.
+ */
+const buildSurface = (descriptor: Uint8Array): string => {
+	const set = fromBinary(FileDescriptorSetSchema, descriptor)
+	const mapEntries = new Map<string, DescriptorProto>()
+	const enumHeads = new Map<string, number>()
+	const lines: string[] = []
+
+	const index = (scope: string, message: DescriptorProto): void => {
+		const path = `${scope}.${message.name}`
+		if (message.options?.mapEntry) mapEntries.set(path, message)
+		for (const declared of message.enumType) {
+			enumHeads.set(`${path}.${declared.name}`, declared.value[0]?.number ?? 0)
+		}
+		for (const nested of message.nestedType) index(path, nested)
+	}
+
+	const typeRef = (field: FieldDescriptorProto, local: (p: string) => string): string => {
+		if (field.type === Type.ENUM) return `${local(field.typeName)}=${enumHeads.get(field.typeName) ?? 0}`
+		if (field.type === Type.MESSAGE) return local(field.typeName)
+		return ''
+	}
+
+	const describe = (field: FieldDescriptorProto, local: (p: string) => string): [string, string, string] => {
+		const entry = field.type === Type.MESSAGE ? mapEntries.get(field.typeName) : undefined
+		if (!entry) {
+			const label = LABEL_KEYWORD[field.label]
+			if (!label) throw new Error(`unhandled label on ${field.name}`)
+			const keyword = TYPE_KEYWORD[field.type]
+			if (!keyword) throw new Error(`unhandled type on ${field.name}`)
+			return [label, keyword, typeRef(field, local)]
+		}
+		const key = entry.field.find(candidate => candidate.number === 1)!
+		const value = entry.field.find(candidate => candidate.number === 2)!
+		return ['map', `map<${TYPE_KEYWORD[key.type]},${TYPE_KEYWORD[value.type]}>`, typeRef(value, local)]
+	}
+
+	const emit = (scope: string, local: (p: string) => string, message: DescriptorProto): void => {
+		const path = `${scope}.${message.name}`
+		if (message.options?.mapEntry) return
+		for (const field of message.field) {
+			const [label, keyword, ref] = describe(field, local)
+			const columns = [local(path), field.name, String(field.number), label, keyword]
+			if (ref) columns.push(ref)
+			lines.push(columns.join('\t'))
+		}
+		for (const nested of message.nestedType) emit(path, local, nested)
+	}
+
+	for (const file of set.file) {
+		const root = `.${file.package}`
+		for (const message of file.messageType) index(root, message)
+	}
+	for (const file of set.file) {
+		const root = `.${file.package}`
+		const local = (path: string): string => (path.startsWith(`${root}.`) ? path.slice(root.length + 1) : path)
+		for (const message of file.messageType) emit(root, local, message)
+	}
+
+	return `${lines.join('\n')}\n`
+}
+
 const metadata = JSON.parse(
 	new TextDecoder().decode(run(['cargo', 'metadata', '--format-version', '1', '--locked'], 'pipe'))
 ) as CargoMetadata
@@ -75,12 +182,14 @@ const tempDir = join(OUTPUT_DIR, `.ts-proto-${process.pid}`)
 
 mkdirSync(tempDir, { recursive: false })
 try {
+	const descriptorFile = join(tempDir, 'whatsapp.desc')
 	run([
 		'protoc',
 		`--proto_path=${protoDir}`,
 		`--plugin=protoc-gen-ts_proto=${TS_PROTO_PLUGIN}`,
 		`--ts_proto_out=${tempDir}`,
 		`--ts_proto_opt=${TS_PROTO_OPTIONS.join(',')}`,
+		`--descriptor_set_out=${descriptorFile}`,
 		protoFile
 	])
 	const generatedFile = join(tempDir, 'whatsapp.ts')
@@ -98,9 +207,10 @@ try {
 		throw new Error('ts-proto added an int64 reader method without a safe-number specialization')
 	}
 	writeFileSync(generatedFile, generatedSource)
+	writeFileSync(SURFACE_FILE, buildSurface(readFileSync(descriptorFile)))
 	renameSync(generatedFile, OUTPUT_FILE)
 } finally {
 	rmSync(tempDir, { recursive: true, force: true })
 }
 
-console.log(`Generated ${OUTPUT_FILE} from ${protoFile}`)
+console.log(`Generated ${OUTPUT_FILE} and ${SURFACE_FILE} from ${protoFile}`)
