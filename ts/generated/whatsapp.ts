@@ -7300,10 +7300,10 @@ export const ADVDeviceIdentity: MessageFns<ADVDeviceIdentity> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ADVDeviceIdentity {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ADVDeviceIdentity): ADVDeviceIdentity {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseADVDeviceIdentity();
+    const message = into ?? createBaseADVDeviceIdentity();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7398,10 +7398,10 @@ export const ADVKeyIndexList: MessageFns<ADVKeyIndexList> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ADVKeyIndexList {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ADVKeyIndexList): ADVKeyIndexList {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseADVKeyIndexList();
+    const message = into ?? createBaseADVKeyIndexList();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7505,10 +7505,10 @@ export const ADVSignedDeviceIdentity: MessageFns<ADVSignedDeviceIdentity> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ADVSignedDeviceIdentity {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ADVSignedDeviceIdentity): ADVSignedDeviceIdentity {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseADVSignedDeviceIdentity();
+    const message = into ?? createBaseADVSignedDeviceIdentity();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7584,10 +7584,10 @@ export const ADVSignedDeviceIdentityHMAC: MessageFns<ADVSignedDeviceIdentityHMAC
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ADVSignedDeviceIdentityHMAC {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ADVSignedDeviceIdentityHMAC): ADVSignedDeviceIdentityHMAC {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseADVSignedDeviceIdentityHMAC();
+    const message = into ?? createBaseADVSignedDeviceIdentityHMAC();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7654,10 +7654,10 @@ export const ADVSignedKeyIndexList: MessageFns<ADVSignedKeyIndexList> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ADVSignedKeyIndexList {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ADVSignedKeyIndexList): ADVSignedKeyIndexList {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseADVSignedKeyIndexList();
+    const message = into ?? createBaseADVSignedKeyIndexList();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7728,10 +7728,10 @@ export const AIHomeState: MessageFns<AIHomeState> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIHomeState {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIHomeState): AIHomeState {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIHomeState();
+    const message = into ?? createBaseAIHomeState();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7827,10 +7827,10 @@ export const AIHomeState_AIHomeOption: MessageFns<AIHomeState_AIHomeOption> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIHomeState_AIHomeOption {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIHomeState_AIHomeOption): AIHomeState_AIHomeOption {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIHomeState_AIHomeOption();
+    const message = into ?? createBaseAIHomeState_AIHomeOption();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7942,10 +7942,10 @@ export const AIMediaCollectionMessage: MessageFns<AIMediaCollectionMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIMediaCollectionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIMediaCollectionMessage): AIMediaCollectionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIMediaCollectionMessage();
+    const message = into ?? createBaseAIMediaCollectionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8009,10 +8009,10 @@ export const AIMediaCollectionMetadata: MessageFns<AIMediaCollectionMetadata> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIMediaCollectionMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIMediaCollectionMetadata): AIMediaCollectionMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIMediaCollectionMetadata();
+    const message = into ?? createBaseAIMediaCollectionMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8064,10 +8064,10 @@ export const AIMetadataOperation: MessageFns<AIMetadataOperation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIMetadataOperation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIMetadataOperation): AIMetadataOperation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIMetadataOperation();
+    const message = into ?? createBaseAIMetadataOperation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8076,7 +8076,7 @@ export const AIMetadataOperation: MessageFns<AIMetadataOperation> = {
             break;
           }
 
-          message.hatchMetadataSync = HatchMetadataSync.decode(reader, reader.uint32());
+          message.hatchMetadataSync = HatchMetadataSync.decode(reader, reader.uint32(), message.hatchMetadataSync);
           continue;
         }
       }
@@ -8118,10 +8118,10 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIQueryFanout {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIQueryFanout): AIQueryFanout {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIQueryFanout();
+    const message = into ?? createBaseAIQueryFanout();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8130,7 +8130,7 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
             break;
           }
 
-          message.messageKey = MessageKey.decode(reader, reader.uint32());
+          message.messageKey = MessageKey.decode(reader, reader.uint32(), message.messageKey);
           continue;
         }
         case 2: {
@@ -8138,7 +8138,7 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 3: {
@@ -8189,10 +8189,10 @@ export const AIRegenerateMetadata: MessageFns<AIRegenerateMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRegenerateMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRegenerateMetadata): AIRegenerateMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRegenerateMetadata();
+    const message = into ?? createBaseAIRegenerateMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8201,7 +8201,7 @@ export const AIRegenerateMetadata: MessageFns<AIRegenerateMetadata> = {
             break;
           }
 
-          message.messageKey = MessageKey.decode(reader, reader.uint32());
+          message.messageKey = MessageKey.decode(reader, reader.uint32(), message.messageKey);
           continue;
         }
         case 2: {
@@ -8251,10 +8251,10 @@ export const AIRichResponseCodeMetadata: MessageFns<AIRichResponseCodeMetadata> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseCodeMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseCodeMetadata): AIRichResponseCodeMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseCodeMetadata();
+    const message = into ?? createBaseAIRichResponseCodeMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8321,10 +8321,10 @@ export const AIRichResponseCodeMetadata_AIRichResponseCodeBlock: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseCodeMetadata_AIRichResponseCodeBlock {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseCodeMetadata_AIRichResponseCodeBlock): AIRichResponseCodeMetadata_AIRichResponseCodeBlock {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseCodeMetadata_AIRichResponseCodeBlock();
+    const message = into ?? createBaseAIRichResponseCodeMetadata_AIRichResponseCodeBlock();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8386,10 +8386,10 @@ export const AIRichResponseContentItemsMetadata: MessageFns<AIRichResponseConten
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseContentItemsMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseContentItemsMetadata): AIRichResponseContentItemsMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseContentItemsMetadata();
+    const message = into ?? createBaseAIRichResponseContentItemsMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8459,13 +8459,10 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadat
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata): AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata();
+    const message = into ?? createBaseAIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8474,7 +8471,7 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadat
             break;
           }
 
-          message.reelItem = AIRichResponseContentItemsMetadata_AIRichResponseReelItem.decode(reader, reader.uint32());
+          message.reelItem = AIRichResponseContentItemsMetadata_AIRichResponseReelItem.decode(reader, reader.uint32(), message.reelItem);
           continue;
         }
       }
@@ -8528,10 +8525,10 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseReelItem: MessageF
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseContentItemsMetadata_AIRichResponseReelItem {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseContentItemsMetadata_AIRichResponseReelItem): AIRichResponseContentItemsMetadata_AIRichResponseReelItem {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseContentItemsMetadata_AIRichResponseReelItem();
+    const message = into ?? createBaseAIRichResponseContentItemsMetadata_AIRichResponseReelItem();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8614,10 +8611,10 @@ export const AIRichResponseDynamicMetadata: MessageFns<AIRichResponseDynamicMeta
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseDynamicMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseDynamicMetadata): AIRichResponseDynamicMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseDynamicMetadata();
+    const message = into ?? createBaseAIRichResponseDynamicMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8692,10 +8689,10 @@ export const AIRichResponseGridImageMetadata: MessageFns<AIRichResponseGridImage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseGridImageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseGridImageMetadata): AIRichResponseGridImageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseGridImageMetadata();
+    const message = into ?? createBaseAIRichResponseGridImageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8704,7 +8701,7 @@ export const AIRichResponseGridImageMetadata: MessageFns<AIRichResponseGridImage
             break;
           }
 
-          message.gridImageUrl = AIRichResponseImageURL.decode(reader, reader.uint32());
+          message.gridImageUrl = AIRichResponseImageURL.decode(reader, reader.uint32(), message.gridImageUrl);
           continue;
         }
         case 2: {
@@ -8761,10 +8758,10 @@ export const AIRichResponseImageURL: MessageFns<AIRichResponseImageURL> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseImageURL {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseImageURL): AIRichResponseImageURL {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseImageURL();
+    const message = into ?? createBaseAIRichResponseImageURL();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8834,10 +8831,10 @@ export const AIRichResponseInlineImageMetadata: MessageFns<AIRichResponseInlineI
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseInlineImageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseInlineImageMetadata): AIRichResponseInlineImageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseInlineImageMetadata();
+    const message = into ?? createBaseAIRichResponseInlineImageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -8846,7 +8843,7 @@ export const AIRichResponseInlineImageMetadata: MessageFns<AIRichResponseInlineI
             break;
           }
 
-          message.imageUrl = AIRichResponseImageURL.decode(reader, reader.uint32());
+          message.imageUrl = AIRichResponseImageURL.decode(reader, reader.uint32(), message.imageUrl);
           continue;
         }
         case 2: {
@@ -8914,10 +8911,10 @@ export const AIRichResponseLatexMetadata: MessageFns<AIRichResponseLatexMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseLatexMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseLatexMetadata): AIRichResponseLatexMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseLatexMetadata();
+    const message = into ?? createBaseAIRichResponseLatexMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9006,10 +9003,10 @@ export const AIRichResponseLatexMetadata_AIRichResponseLatexExpression: MessageF
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseLatexMetadata_AIRichResponseLatexExpression {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseLatexMetadata_AIRichResponseLatexExpression): AIRichResponseLatexMetadata_AIRichResponseLatexExpression {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseLatexMetadata_AIRichResponseLatexExpression();
+    const message = into ?? createBaseAIRichResponseLatexMetadata_AIRichResponseLatexExpression();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9145,10 +9142,10 @@ export const AIRichResponseMapMetadata: MessageFns<AIRichResponseMapMetadata> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseMapMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseMapMetadata): AIRichResponseMapMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseMapMetadata();
+    const message = into ?? createBaseAIRichResponseMapMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9260,10 +9257,10 @@ export const AIRichResponseMapMetadata_AIRichResponseMapAnnotation: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseMapMetadata_AIRichResponseMapAnnotation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseMapMetadata_AIRichResponseMapAnnotation): AIRichResponseMapMetadata_AIRichResponseMapAnnotation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseMapMetadata_AIRichResponseMapAnnotation();
+    const message = into ?? createBaseAIRichResponseMapMetadata_AIRichResponseMapAnnotation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9357,10 +9354,10 @@ export const AIRichResponseMessage: MessageFns<AIRichResponseMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseMessage): AIRichResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseMessage();
+    const message = into ?? createBaseAIRichResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9391,7 +9388,7 @@ export const AIRichResponseMessage: MessageFns<AIRichResponseMessage> = {
             break;
           }
 
-          message.unifiedResponse = AIRichResponseUnifiedResponse.decode(reader, reader.uint32());
+          message.unifiedResponse = AIRichResponseUnifiedResponse.decode(reader, reader.uint32(), message.unifiedResponse);
           continue;
         }
         case 4: {
@@ -9399,7 +9396,7 @@ export const AIRichResponseMessage: MessageFns<AIRichResponseMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -9467,10 +9464,10 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseSubMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseSubMessage): AIRichResponseSubMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseSubMessage();
+    const message = into ?? createBaseAIRichResponseSubMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9487,7 +9484,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.gridImageMetadata = AIRichResponseGridImageMetadata.decode(reader, reader.uint32());
+          message.gridImageMetadata = AIRichResponseGridImageMetadata.decode(reader, reader.uint32(), message.gridImageMetadata);
           continue;
         }
         case 3: {
@@ -9503,7 +9500,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.imageMetadata = AIRichResponseInlineImageMetadata.decode(reader, reader.uint32());
+          message.imageMetadata = AIRichResponseInlineImageMetadata.decode(reader, reader.uint32(), message.imageMetadata);
           continue;
         }
         case 5: {
@@ -9511,7 +9508,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.codeMetadata = AIRichResponseCodeMetadata.decode(reader, reader.uint32());
+          message.codeMetadata = AIRichResponseCodeMetadata.decode(reader, reader.uint32(), message.codeMetadata);
           continue;
         }
         case 6: {
@@ -9519,7 +9516,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.tableMetadata = AIRichResponseTableMetadata.decode(reader, reader.uint32());
+          message.tableMetadata = AIRichResponseTableMetadata.decode(reader, reader.uint32(), message.tableMetadata);
           continue;
         }
         case 7: {
@@ -9527,7 +9524,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.dynamicMetadata = AIRichResponseDynamicMetadata.decode(reader, reader.uint32());
+          message.dynamicMetadata = AIRichResponseDynamicMetadata.decode(reader, reader.uint32(), message.dynamicMetadata);
           continue;
         }
         case 8: {
@@ -9535,7 +9532,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.latexMetadata = AIRichResponseLatexMetadata.decode(reader, reader.uint32());
+          message.latexMetadata = AIRichResponseLatexMetadata.decode(reader, reader.uint32(), message.latexMetadata);
           continue;
         }
         case 9: {
@@ -9543,7 +9540,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.mapMetadata = AIRichResponseMapMetadata.decode(reader, reader.uint32());
+          message.mapMetadata = AIRichResponseMapMetadata.decode(reader, reader.uint32(), message.mapMetadata);
           continue;
         }
         case 10: {
@@ -9551,7 +9548,7 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
             break;
           }
 
-          message.contentItemsMetadata = AIRichResponseContentItemsMetadata.decode(reader, reader.uint32());
+          message.contentItemsMetadata = AIRichResponseContentItemsMetadata.decode(reader, reader.uint32(), message.contentItemsMetadata);
           continue;
         }
       }
@@ -9615,10 +9612,10 @@ export const AIRichResponseTableMetadata: MessageFns<AIRichResponseTableMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseTableMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseTableMetadata): AIRichResponseTableMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseTableMetadata();
+    const message = into ?? createBaseAIRichResponseTableMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9687,10 +9684,10 @@ export const AIRichResponseTableMetadata_AIRichResponseTableRow: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseTableMetadata_AIRichResponseTableRow {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseTableMetadata_AIRichResponseTableRow): AIRichResponseTableMetadata_AIRichResponseTableRow {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseTableMetadata_AIRichResponseTableRow();
+    const message = into ?? createBaseAIRichResponseTableMetadata_AIRichResponseTableRow();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9752,10 +9749,10 @@ export const AIRichResponseUnifiedResponse: MessageFns<AIRichResponseUnifiedResp
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIRichResponseUnifiedResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIRichResponseUnifiedResponse): AIRichResponseUnifiedResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIRichResponseUnifiedResponse();
+    const message = into ?? createBaseAIRichResponseUnifiedResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9798,10 +9795,10 @@ export const AISubscriptionUpsellMetadata: MessageFns<AISubscriptionUpsellMetada
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AISubscriptionUpsellMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AISubscriptionUpsellMetadata): AISubscriptionUpsellMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAISubscriptionUpsellMetadata();
+    const message = into ?? createBaseAISubscriptionUpsellMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9847,10 +9844,10 @@ export const AIThreadInfo: MessageFns<AIThreadInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIThreadInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIThreadInfo): AIThreadInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIThreadInfo();
+    const message = into ?? createBaseAIThreadInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9859,7 +9856,7 @@ export const AIThreadInfo: MessageFns<AIThreadInfo> = {
             break;
           }
 
-          message.serverInfo = AIThreadInfo_AIThreadServerInfo.decode(reader, reader.uint32());
+          message.serverInfo = AIThreadInfo_AIThreadServerInfo.decode(reader, reader.uint32(), message.serverInfo);
           continue;
         }
         case 2: {
@@ -9867,7 +9864,7 @@ export const AIThreadInfo: MessageFns<AIThreadInfo> = {
             break;
           }
 
-          message.clientInfo = AIThreadInfo_AIThreadClientInfo.decode(reader, reader.uint32());
+          message.clientInfo = AIThreadInfo_AIThreadClientInfo.decode(reader, reader.uint32(), message.clientInfo);
           continue;
         }
       }
@@ -9909,10 +9906,10 @@ export const AIThreadInfo_AIThreadClientInfo: MessageFns<AIThreadInfo_AIThreadCl
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIThreadInfo_AIThreadClientInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIThreadInfo_AIThreadClientInfo): AIThreadInfo_AIThreadClientInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIThreadInfo_AIThreadClientInfo();
+    const message = into ?? createBaseAIThreadInfo_AIThreadClientInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9964,10 +9961,10 @@ export const AIThreadInfo_AIThreadServerInfo: MessageFns<AIThreadInfo_AIThreadSe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AIThreadInfo_AIThreadServerInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIThreadInfo_AIThreadServerInfo): AIThreadInfo_AIThreadServerInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAIThreadInfo_AIThreadServerInfo();
+    const message = into ?? createBaseAIThreadInfo_AIThreadServerInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10019,10 +10016,10 @@ export const Account: MessageFns<Account> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Account {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Account): Account {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAccount();
+    const message = into ?? createBaseAccount();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10101,10 +10098,10 @@ export const AccountLinkingOpaqueData: MessageFns<AccountLinkingOpaqueData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AccountLinkingOpaqueData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AccountLinkingOpaqueData): AccountLinkingOpaqueData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAccountLinkingOpaqueData();
+    const message = into ?? createBaseAccountLinkingOpaqueData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10177,10 +10174,10 @@ export const ActionLink: MessageFns<ActionLink> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ActionLink {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ActionLink): ActionLink {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseActionLink();
+    const message = into ?? createBaseActionLink();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10241,10 +10238,10 @@ export const AutoDownloadSettings: MessageFns<AutoDownloadSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AutoDownloadSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AutoDownloadSettings): AutoDownloadSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAutoDownloadSettings();
+    const message = into ?? createBaseAutoDownloadSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10317,10 +10314,10 @@ export const AvatarUserSettings: MessageFns<AvatarUserSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): AvatarUserSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AvatarUserSettings): AvatarUserSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseAvatarUserSettings();
+    const message = into ?? createBaseAvatarUserSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10384,10 +10381,10 @@ export const BizAccountLinkInfo: MessageFns<BizAccountLinkInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BizAccountLinkInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BizAccountLinkInfo): BizAccountLinkInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBizAccountLinkInfo();
+    const message = into ?? createBaseBizAccountLinkInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10469,10 +10466,10 @@ export const BizAccountPayload: MessageFns<BizAccountPayload> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BizAccountPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BizAccountPayload): BizAccountPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBizAccountPayload();
+    const message = into ?? createBaseBizAccountPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10481,7 +10478,7 @@ export const BizAccountPayload: MessageFns<BizAccountPayload> = {
             break;
           }
 
-          message.vnameCert = VerifiedNameCertificate.decode(reader, reader.uint32());
+          message.vnameCert = VerifiedNameCertificate.decode(reader, reader.uint32(), message.vnameCert);
           continue;
         }
         case 2: {
@@ -10547,10 +10544,10 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BizIdentityInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BizIdentityInfo): BizIdentityInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBizIdentityInfo();
+    const message = into ?? createBaseBizIdentityInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10567,7 +10564,7 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
             break;
           }
 
-          message.vnameCert = VerifiedNameCertificate.decode(reader, reader.uint32());
+          message.vnameCert = VerifiedNameCertificate.decode(reader, reader.uint32(), message.vnameCert);
           continue;
         }
         case 3: {
@@ -10664,10 +10661,10 @@ export const BotAgeCollectionMetadata: MessageFns<BotAgeCollectionMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotAgeCollectionMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotAgeCollectionMetadata): BotAgeCollectionMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotAgeCollectionMetadata();
+    const message = into ?? createBaseBotAgeCollectionMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10728,10 +10725,10 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotAgentDeepLinkMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotAgentDeepLinkMetadata): BotAgentDeepLinkMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotAgentDeepLinkMetadata();
+    const message = into ?? createBaseBotAgentDeepLinkMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10774,10 +10771,10 @@ export const BotAgentMetadata: MessageFns<BotAgentMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotAgentMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotAgentMetadata): BotAgentMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotAgentMetadata();
+    const message = into ?? createBaseBotAgentMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10786,7 +10783,7 @@ export const BotAgentMetadata: MessageFns<BotAgentMetadata> = {
             break;
           }
 
-          message.deepLinkMetadata = BotAgentDeepLinkMetadata.decode(reader, reader.uint32());
+          message.deepLinkMetadata = BotAgentDeepLinkMetadata.decode(reader, reader.uint32(), message.deepLinkMetadata);
           continue;
         }
       }
@@ -10824,10 +10821,10 @@ export const BotCapabilityMetadata: MessageFns<BotCapabilityMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotCapabilityMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotCapabilityMetadata): BotCapabilityMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotCapabilityMetadata();
+    const message = into ?? createBaseBotCapabilityMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10892,10 +10889,10 @@ export const BotCommandMetadata: MessageFns<BotCommandMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotCommandMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotCommandMetadata): BotCommandMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotCommandMetadata();
+    const message = into ?? createBaseBotCommandMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10956,10 +10953,10 @@ export const BotDocumentMessageMetadata: MessageFns<BotDocumentMessageMetadata> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotDocumentMessageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotDocumentMessageMetadata): BotDocumentMessageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotDocumentMessageMetadata();
+    const message = into ?? createBaseBotDocumentMessageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11021,10 +11018,10 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotFeedbackMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage): BotFeedbackMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotFeedbackMessage();
+    const message = into ?? createBaseBotFeedbackMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11033,7 +11030,7 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
             break;
           }
 
-          message.messageKey = MessageKey.decode(reader, reader.uint32());
+          message.messageKey = MessageKey.decode(reader, reader.uint32(), message.messageKey);
           continue;
         }
         case 2: {
@@ -11081,10 +11078,7 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
             break;
           }
 
-          message.sideBySideSurveyMetadata = BotFeedbackMessage_SideBySideSurveyMetadata.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.sideBySideSurveyMetadata = BotFeedbackMessage_SideBySideSurveyMetadata.decode(reader, reader.uint32(), message.sideBySideSurveyMetadata);
           continue;
         }
       }
@@ -11162,10 +11156,10 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata: MessageFns<BotFeedback
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotFeedbackMessage_SideBySideSurveyMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata): BotFeedbackMessage_SideBySideSurveyMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata();
+    const message = into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11230,10 +11224,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata: MessageFns<BotFeedback
             break;
           }
 
-          message.analyticsData = BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.analyticsData = BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData.decode(reader, reader.uint32(), message.analyticsData);
           continue;
         }
         case 9: {
@@ -11242,7 +11233,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata: MessageFns<BotFeedback
           }
 
           message.metaAiAnalyticsData = BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.metaAiAnalyticsData);
           continue;
         }
       }
@@ -11303,13 +11294,10 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyti
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData): BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData();
+    const message = into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11408,13 +11396,10 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData();
+    const message = into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11457,7 +11442,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
 
           message.ctaImpressionEvent =
             BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.ctaImpressionEvent);
           continue;
         }
         case 6: {
@@ -11467,7 +11452,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
 
           message.ctaClickEvent =
             BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.ctaClickEvent);
           continue;
         }
         case 7: {
@@ -11477,7 +11462,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
 
           message.cardImpressionEvent =
             BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.cardImpressionEvent);
           continue;
         }
         case 8: {
@@ -11487,7 +11472,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
 
           message.responseEvent =
             BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.responseEvent);
           continue;
         }
         case 9: {
@@ -11497,7 +11482,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
 
           message.abandonEvent =
             BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.abandonEvent);
           continue;
         }
       }
@@ -11565,14 +11550,11 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData();
+        into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -11635,14 +11617,11 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData();
+        into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -11711,14 +11690,11 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData();
+        into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -11774,14 +11750,11 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData();
+        into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -11835,14 +11808,11 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData();
+        into ?? createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -11906,10 +11876,10 @@ export const BotGroupMetadata: MessageFns<BotGroupMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotGroupMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotGroupMetadata): BotGroupMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotGroupMetadata();
+    const message = into ?? createBaseBotGroupMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11959,10 +11929,10 @@ export const BotGroupParticipantMetadata: MessageFns<BotGroupParticipantMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotGroupParticipantMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotGroupParticipantMetadata): BotGroupParticipantMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotGroupParticipantMetadata();
+    const message = into ?? createBaseBotGroupParticipantMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12008,10 +11978,10 @@ export const BotImagineMetadata: MessageFns<BotImagineMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotImagineMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotImagineMetadata): BotImagineMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotImagineMetadata();
+    const message = into ?? createBaseBotImagineMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12071,10 +12041,10 @@ export const BotInfrastructureDiagnostics: MessageFns<BotInfrastructureDiagnosti
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotInfrastructureDiagnostics {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotInfrastructureDiagnostics): BotInfrastructureDiagnostics {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotInfrastructureDiagnostics();
+    const message = into ?? createBaseBotInfrastructureDiagnostics();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12141,10 +12111,10 @@ export const BotLinkedAccount: MessageFns<BotLinkedAccount> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotLinkedAccount {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotLinkedAccount): BotLinkedAccount {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotLinkedAccount();
+    const message = into ?? createBaseBotLinkedAccount();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12195,10 +12165,10 @@ export const BotLinkedAccountsMetadata: MessageFns<BotLinkedAccountsMetadata> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotLinkedAccountsMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotLinkedAccountsMetadata): BotLinkedAccountsMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotLinkedAccountsMetadata();
+    const message = into ?? createBaseBotLinkedAccountsMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12283,10 +12253,10 @@ export const BotMediaMetadata: MessageFns<BotMediaMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMediaMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMediaMetadata): BotMediaMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMediaMetadata();
+    const message = into ?? createBaseBotMediaMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12386,10 +12356,10 @@ export const BotMemoryFact: MessageFns<BotMemoryFact> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMemoryFact {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMemoryFact): BotMemoryFact {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMemoryFact();
+    const message = into ?? createBaseBotMemoryFact();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12451,10 +12421,10 @@ export const BotMemoryMetadata: MessageFns<BotMemoryMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMemoryMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMemoryMetadata): BotMemoryMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMemoryMetadata();
+    const message = into ?? createBaseBotMemoryMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12529,10 +12499,10 @@ export const BotMemuMetadata: MessageFns<BotMemuMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMemuMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMemuMetadata): BotMemuMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMemuMetadata();
+    const message = into ?? createBaseBotMemuMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12581,10 +12551,10 @@ export const BotMessageOrigin: MessageFns<BotMessageOrigin> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMessageOrigin {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMessageOrigin): BotMessageOrigin {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMessageOrigin();
+    const message = into ?? createBaseBotMessageOrigin();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12629,10 +12599,10 @@ export const BotMessageOriginMetadata: MessageFns<BotMessageOriginMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMessageOriginMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMessageOriginMetadata): BotMessageOriginMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMessageOriginMetadata();
+    const message = into ?? createBaseBotMessageOriginMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12684,10 +12654,10 @@ export const BotMessageSharingInfo: MessageFns<BotMessageSharingInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMessageSharingInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMessageSharingInfo): BotMessageSharingInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMessageSharingInfo();
+    const message = into ?? createBaseBotMessageSharingInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12862,10 +12832,10 @@ export const BotMetadata: MessageFns<BotMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMetadata): BotMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMetadata();
+    const message = into ?? createBaseBotMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -12882,7 +12852,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.pluginMetadata = BotPluginMetadata.decode(reader, reader.uint32());
+          message.pluginMetadata = BotPluginMetadata.decode(reader, reader.uint32(), message.pluginMetadata);
           continue;
         }
         case 4: {
@@ -12890,7 +12860,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.suggestedPromptMetadata = BotSuggestedPromptMetadata.decode(reader, reader.uint32());
+          message.suggestedPromptMetadata = BotSuggestedPromptMetadata.decode(reader, reader.uint32(), message.suggestedPromptMetadata);
           continue;
         }
         case 5: {
@@ -12906,7 +12876,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.sessionMetadata = BotSessionMetadata.decode(reader, reader.uint32());
+          message.sessionMetadata = BotSessionMetadata.decode(reader, reader.uint32(), message.sessionMetadata);
           continue;
         }
         case 7: {
@@ -12914,7 +12884,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.memuMetadata = BotMemuMetadata.decode(reader, reader.uint32());
+          message.memuMetadata = BotMemuMetadata.decode(reader, reader.uint32(), message.memuMetadata);
           continue;
         }
         case 8: {
@@ -12930,7 +12900,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.reminderMetadata = BotReminderMetadata.decode(reader, reader.uint32());
+          message.reminderMetadata = BotReminderMetadata.decode(reader, reader.uint32(), message.reminderMetadata);
           continue;
         }
         case 10: {
@@ -12938,7 +12908,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.modelMetadata = BotModelMetadata.decode(reader, reader.uint32());
+          message.modelMetadata = BotModelMetadata.decode(reader, reader.uint32(), message.modelMetadata);
           continue;
         }
         case 11: {
@@ -12954,7 +12924,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.progressIndicatorMetadata = BotProgressIndicatorMetadata.decode(reader, reader.uint32());
+          message.progressIndicatorMetadata = BotProgressIndicatorMetadata.decode(reader, reader.uint32(), message.progressIndicatorMetadata);
           continue;
         }
         case 13: {
@@ -12962,7 +12932,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.capabilityMetadata = BotCapabilityMetadata.decode(reader, reader.uint32());
+          message.capabilityMetadata = BotCapabilityMetadata.decode(reader, reader.uint32(), message.capabilityMetadata);
           continue;
         }
         case 14: {
@@ -12970,7 +12940,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.imagineMetadata = BotImagineMetadata.decode(reader, reader.uint32());
+          message.imagineMetadata = BotImagineMetadata.decode(reader, reader.uint32(), message.imagineMetadata);
           continue;
         }
         case 15: {
@@ -12978,7 +12948,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.memoryMetadata = BotMemoryMetadata.decode(reader, reader.uint32());
+          message.memoryMetadata = BotMemoryMetadata.decode(reader, reader.uint32(), message.memoryMetadata);
           continue;
         }
         case 16: {
@@ -12986,7 +12956,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.renderingMetadata = BotRenderingMetadata.decode(reader, reader.uint32());
+          message.renderingMetadata = BotRenderingMetadata.decode(reader, reader.uint32(), message.renderingMetadata);
           continue;
         }
         case 17: {
@@ -12994,7 +12964,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botMetricsMetadata = BotMetricsMetadata.decode(reader, reader.uint32());
+          message.botMetricsMetadata = BotMetricsMetadata.decode(reader, reader.uint32(), message.botMetricsMetadata);
           continue;
         }
         case 18: {
@@ -13002,7 +12972,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botLinkedAccountsMetadata = BotLinkedAccountsMetadata.decode(reader, reader.uint32());
+          message.botLinkedAccountsMetadata = BotLinkedAccountsMetadata.decode(reader, reader.uint32(), message.botLinkedAccountsMetadata);
           continue;
         }
         case 19: {
@@ -13010,7 +12980,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.richResponseSourcesMetadata = BotSourcesMetadata.decode(reader, reader.uint32());
+          message.richResponseSourcesMetadata = BotSourcesMetadata.decode(reader, reader.uint32(), message.richResponseSourcesMetadata);
           continue;
         }
         case 20: {
@@ -13026,7 +12996,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botPromotionMessageMetadata = BotPromotionMessageMetadata.decode(reader, reader.uint32());
+          message.botPromotionMessageMetadata = BotPromotionMessageMetadata.decode(reader, reader.uint32(), message.botPromotionMessageMetadata);
           continue;
         }
         case 22: {
@@ -13034,7 +13004,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botModeSelectionMetadata = BotModeSelectionMetadata.decode(reader, reader.uint32());
+          message.botModeSelectionMetadata = BotModeSelectionMetadata.decode(reader, reader.uint32(), message.botModeSelectionMetadata);
           continue;
         }
         case 23: {
@@ -13042,7 +13012,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botQuotaMetadata = BotQuotaMetadata.decode(reader, reader.uint32());
+          message.botQuotaMetadata = BotQuotaMetadata.decode(reader, reader.uint32(), message.botQuotaMetadata);
           continue;
         }
         case 24: {
@@ -13050,7 +13020,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botAgeCollectionMetadata = BotAgeCollectionMetadata.decode(reader, reader.uint32());
+          message.botAgeCollectionMetadata = BotAgeCollectionMetadata.decode(reader, reader.uint32(), message.botAgeCollectionMetadata);
           continue;
         }
         case 25: {
@@ -13074,7 +13044,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.verificationMetadata = BotSignatureVerificationMetadata.decode(reader, reader.uint32());
+          message.verificationMetadata = BotSignatureVerificationMetadata.decode(reader, reader.uint32(), message.verificationMetadata);
           continue;
         }
         case 28: {
@@ -13082,7 +13052,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.unifiedResponseMutation = BotUnifiedResponseMutation.decode(reader, reader.uint32());
+          message.unifiedResponseMutation = BotUnifiedResponseMutation.decode(reader, reader.uint32(), message.unifiedResponseMutation);
           continue;
         }
         case 29: {
@@ -13090,7 +13060,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botMessageOriginMetadata = BotMessageOriginMetadata.decode(reader, reader.uint32());
+          message.botMessageOriginMetadata = BotMessageOriginMetadata.decode(reader, reader.uint32(), message.botMessageOriginMetadata);
           continue;
         }
         case 30: {
@@ -13098,7 +13068,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.inThreadSurveyMetadata = InThreadSurveyMetadata.decode(reader, reader.uint32());
+          message.inThreadSurveyMetadata = InThreadSurveyMetadata.decode(reader, reader.uint32(), message.inThreadSurveyMetadata);
           continue;
         }
         case 31: {
@@ -13106,7 +13076,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botThreadInfo = AIThreadInfo.decode(reader, reader.uint32());
+          message.botThreadInfo = AIThreadInfo.decode(reader, reader.uint32(), message.botThreadInfo);
           continue;
         }
         case 32: {
@@ -13114,7 +13084,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.regenerateMetadata = AIRegenerateMetadata.decode(reader, reader.uint32());
+          message.regenerateMetadata = AIRegenerateMetadata.decode(reader, reader.uint32(), message.regenerateMetadata);
           continue;
         }
         case 33: {
@@ -13122,7 +13092,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.sessionTransparencyMetadata = SessionTransparencyMetadata.decode(reader, reader.uint32());
+          message.sessionTransparencyMetadata = SessionTransparencyMetadata.decode(reader, reader.uint32(), message.sessionTransparencyMetadata);
           continue;
         }
         case 34: {
@@ -13130,7 +13100,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botDocumentMessageMetadata = BotDocumentMessageMetadata.decode(reader, reader.uint32());
+          message.botDocumentMessageMetadata = BotDocumentMessageMetadata.decode(reader, reader.uint32(), message.botDocumentMessageMetadata);
           continue;
         }
         case 35: {
@@ -13138,7 +13108,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botGroupMetadata = BotGroupMetadata.decode(reader, reader.uint32());
+          message.botGroupMetadata = BotGroupMetadata.decode(reader, reader.uint32(), message.botGroupMetadata);
           continue;
         }
         case 36: {
@@ -13146,7 +13116,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botRenderingConfigMetadata = BotRenderingConfigMetadata.decode(reader, reader.uint32());
+          message.botRenderingConfigMetadata = BotRenderingConfigMetadata.decode(reader, reader.uint32(), message.botRenderingConfigMetadata);
           continue;
         }
         case 37: {
@@ -13154,7 +13124,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.botInfrastructureDiagnostics = BotInfrastructureDiagnostics.decode(reader, reader.uint32());
+          message.botInfrastructureDiagnostics = BotInfrastructureDiagnostics.decode(reader, reader.uint32(), message.botInfrastructureDiagnostics);
           continue;
         }
         case 38: {
@@ -13162,7 +13132,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.aiMediaCollectionMetadata = AIMediaCollectionMetadata.decode(reader, reader.uint32());
+          message.aiMediaCollectionMetadata = AIMediaCollectionMetadata.decode(reader, reader.uint32(), message.aiMediaCollectionMetadata);
           continue;
         }
         case 39: {
@@ -13170,7 +13140,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.commandMetadata = BotCommandMetadata.decode(reader, reader.uint32());
+          message.commandMetadata = BotCommandMetadata.decode(reader, reader.uint32(), message.commandMetadata);
           continue;
         }
         case 40: {
@@ -13178,7 +13148,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.resolvedToolCallMetadata = BotResolvedToolCallMetadata.decode(reader, reader.uint32());
+          message.resolvedToolCallMetadata = BotResolvedToolCallMetadata.decode(reader, reader.uint32(), message.resolvedToolCallMetadata);
           continue;
         }
         case 41: {
@@ -13186,7 +13156,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.subscriptionUpsellMetadata = AISubscriptionUpsellMetadata.decode(reader, reader.uint32());
+          message.subscriptionUpsellMetadata = AISubscriptionUpsellMetadata.decode(reader, reader.uint32(), message.subscriptionUpsellMetadata);
           continue;
         }
         case 42: {
@@ -13194,7 +13164,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
             break;
           }
 
-          message.pttPromptMetadata = BotPttPromptMetadata.decode(reader, reader.uint32());
+          message.pttPromptMetadata = BotPttPromptMetadata.decode(reader, reader.uint32(), message.pttPromptMetadata);
           continue;
         }
         case 999: {
@@ -13368,10 +13338,10 @@ export const BotMetricsMetadata: MessageFns<BotMetricsMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotMetricsMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotMetricsMetadata): BotMetricsMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotMetricsMetadata();
+    const message = into ?? createBaseBotMetricsMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -13439,10 +13409,10 @@ export const BotModeSelectionMetadata: MessageFns<BotModeSelectionMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotModeSelectionMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotModeSelectionMetadata): BotModeSelectionMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotModeSelectionMetadata();
+    const message = into ?? createBaseBotModeSelectionMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -13532,10 +13502,10 @@ export const BotModelMetadata: MessageFns<BotModelMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotModelMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotModelMetadata): BotModelMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotModelMetadata();
+    const message = into ?? createBaseBotModelMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -13629,10 +13599,10 @@ export const BotPluginMetadata: MessageFns<BotPluginMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotPluginMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotPluginMetadata): BotPluginMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotPluginMetadata();
+    const message = into ?? createBaseBotPluginMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -13705,7 +13675,7 @@ export const BotPluginMetadata: MessageFns<BotPluginMetadata> = {
             break;
           }
 
-          message.parentPluginMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.parentPluginMessageKey = MessageKey.decode(reader, reader.uint32(), message.parentPluginMessageKey);
           continue;
         }
         case 11: {
@@ -13785,10 +13755,10 @@ export const BotProgressIndicatorMetadata: MessageFns<BotProgressIndicatorMetada
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotProgressIndicatorMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotProgressIndicatorMetadata): BotProgressIndicatorMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotProgressIndicatorMetadata();
+    const message = into ?? createBaseBotProgressIndicatorMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -13890,10 +13860,10 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotProgressIndicatorMetadata_BotPlanningStepMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotProgressIndicatorMetadata_BotPlanningStepMetadata): BotProgressIndicatorMetadata_BotPlanningStepMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata();
+    const message = into ?? createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14032,13 +14002,10 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata();
+    const message = into ?? createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14123,13 +14090,10 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata();
+    const message = into ?? createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14212,13 +14176,10 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSte
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata();
+    const message = into ?? createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14298,10 +14259,10 @@ export const BotPromotionMessageMetadata: MessageFns<BotPromotionMessageMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotPromotionMessageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotPromotionMessageMetadata): BotPromotionMessageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotPromotionMessageMetadata();
+    const message = into ?? createBaseBotPromotionMessageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14356,10 +14317,10 @@ export const BotPromptSuggestion: MessageFns<BotPromptSuggestion> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotPromptSuggestion {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotPromptSuggestion): BotPromptSuggestion {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotPromptSuggestion();
+    const message = into ?? createBaseBotPromptSuggestion();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14413,10 +14374,10 @@ export const BotPromptSuggestions: MessageFns<BotPromptSuggestions> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotPromptSuggestions {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotPromptSuggestions): BotPromptSuggestions {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotPromptSuggestions();
+    const message = into ?? createBaseBotPromptSuggestions();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14465,10 +14426,10 @@ export const BotPttPromptMetadata: MessageFns<BotPttPromptMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotPttPromptMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotPttPromptMetadata): BotPttPromptMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotPttPromptMetadata();
+    const message = into ?? createBaseBotPttPromptMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14513,10 +14474,10 @@ export const BotQuotaMetadata: MessageFns<BotQuotaMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotQuotaMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotQuotaMetadata): BotQuotaMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotQuotaMetadata();
+    const message = into ?? createBaseBotQuotaMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14572,10 +14533,10 @@ export const BotQuotaMetadata_BotFeatureQuotaMetadata: MessageFns<BotQuotaMetada
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotQuotaMetadata_BotFeatureQuotaMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotQuotaMetadata_BotFeatureQuotaMetadata): BotQuotaMetadata_BotFeatureQuotaMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotQuotaMetadata_BotFeatureQuotaMetadata();
+    const message = into ?? createBaseBotQuotaMetadata_BotFeatureQuotaMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14648,10 +14609,10 @@ export const BotReminderMetadata: MessageFns<BotReminderMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotReminderMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotReminderMetadata): BotReminderMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotReminderMetadata();
+    const message = into ?? createBaseBotReminderMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14660,7 +14621,7 @@ export const BotReminderMetadata: MessageFns<BotReminderMetadata> = {
             break;
           }
 
-          message.requestMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.requestMessageKey = MessageKey.decode(reader, reader.uint32(), message.requestMessageKey);
           continue;
         }
         case 2: {
@@ -14735,10 +14696,10 @@ export const BotRenderingConfigMetadata: MessageFns<BotRenderingConfigMetadata> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotRenderingConfigMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotRenderingConfigMetadata): BotRenderingConfigMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotRenderingConfigMetadata();
+    const message = into ?? createBaseBotRenderingConfigMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14792,10 +14753,10 @@ export const BotRenderingMetadata: MessageFns<BotRenderingMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotRenderingMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotRenderingMetadata): BotRenderingMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotRenderingMetadata();
+    const message = into ?? createBaseBotRenderingMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14849,10 +14810,10 @@ export const BotRenderingMetadata_Keyword: MessageFns<BotRenderingMetadata_Keywo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotRenderingMetadata_Keyword {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotRenderingMetadata_Keyword): BotRenderingMetadata_Keyword {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotRenderingMetadata_Keyword();
+    const message = into ?? createBaseBotRenderingMetadata_Keyword();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14913,10 +14874,10 @@ export const BotResolvedToolCallMetadata: MessageFns<BotResolvedToolCallMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotResolvedToolCallMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotResolvedToolCallMetadata): BotResolvedToolCallMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotResolvedToolCallMetadata();
+    const message = into ?? createBaseBotResolvedToolCallMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -14971,10 +14932,10 @@ export const BotSessionMetadata: MessageFns<BotSessionMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSessionMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSessionMetadata): BotSessionMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSessionMetadata();
+    const message = into ?? createBaseBotSessionMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15028,10 +14989,10 @@ export const BotSignatureVerificationMetadata: MessageFns<BotSignatureVerificati
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSignatureVerificationMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSignatureVerificationMetadata): BotSignatureVerificationMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSignatureVerificationMetadata();
+    const message = into ?? createBaseBotSignatureVerificationMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15091,10 +15052,10 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSignatureVerificationUseCaseProof {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSignatureVerificationUseCaseProof): BotSignatureVerificationUseCaseProof {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSignatureVerificationUseCaseProof();
+    const message = into ?? createBaseBotSignatureVerificationUseCaseProof();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15172,10 +15133,10 @@ export const BotSourcesMetadata: MessageFns<BotSourcesMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSourcesMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSourcesMetadata): BotSourcesMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSourcesMetadata();
+    const message = into ?? createBaseBotSourcesMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15242,10 +15203,10 @@ export const BotSourcesMetadata_BotSourceItem: MessageFns<BotSourcesMetadata_Bot
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSourcesMetadata_BotSourceItem {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSourcesMetadata_BotSourceItem): BotSourcesMetadata_BotSourceItem {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSourcesMetadata_BotSourceItem();
+    const message = into ?? createBaseBotSourcesMetadata_BotSourceItem();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15353,10 +15314,10 @@ export const BotSuggestedPromptMetadata: MessageFns<BotSuggestedPromptMetadata> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotSuggestedPromptMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSuggestedPromptMetadata): BotSuggestedPromptMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotSuggestedPromptMetadata();
+    const message = into ?? createBaseBotSuggestedPromptMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15387,7 +15348,7 @@ export const BotSuggestedPromptMetadata: MessageFns<BotSuggestedPromptMetadata> 
             break;
           }
 
-          message.promptSuggestions = BotPromptSuggestions.decode(reader, reader.uint32());
+          message.promptSuggestions = BotPromptSuggestions.decode(reader, reader.uint32(), message.promptSuggestions);
           continue;
         }
         case 4: {
@@ -15439,10 +15400,10 @@ export const BotUnifiedResponseMutation: MessageFns<BotUnifiedResponseMutation> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotUnifiedResponseMutation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotUnifiedResponseMutation): BotUnifiedResponseMutation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotUnifiedResponseMutation();
+    const message = into ?? createBaseBotUnifiedResponseMutation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15451,7 +15412,7 @@ export const BotUnifiedResponseMutation: MessageFns<BotUnifiedResponseMutation> 
             break;
           }
 
-          message.sbsMetadata = BotUnifiedResponseMutation_SideBySideMetadata.decode(reader, reader.uint32());
+          message.sbsMetadata = BotUnifiedResponseMutation_SideBySideMetadata.decode(reader, reader.uint32(), message.sbsMetadata);
           continue;
         }
         case 2: {
@@ -15515,10 +15476,10 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): BotUnifiedResponseMutation_MediaDetailsMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotUnifiedResponseMutation_MediaDetailsMetadata): BotUnifiedResponseMutation_MediaDetailsMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseBotUnifiedResponseMutation_MediaDetailsMetadata();
+    const message = into ?? createBaseBotUnifiedResponseMutation_MediaDetailsMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15535,7 +15496,7 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
             break;
           }
 
-          message.highResMedia = BotMediaMetadata.decode(reader, reader.uint32());
+          message.highResMedia = BotMediaMetadata.decode(reader, reader.uint32(), message.highResMedia);
           continue;
         }
         case 3: {
@@ -15543,7 +15504,7 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
             break;
           }
 
-          message.previewMedia = BotMediaMetadata.decode(reader, reader.uint32());
+          message.previewMedia = BotMediaMetadata.decode(reader, reader.uint32(), message.previewMedia);
           continue;
         }
       }
@@ -15594,10 +15555,10 @@ export const BotUnifiedResponseMutation_SideBySideMetadata: MessageFns<BotUnifie
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): BotUnifiedResponseMutation_SideBySideMetadata {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: BotUnifiedResponseMutation_SideBySideMetadata): BotUnifiedResponseMutation_SideBySideMetadata {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseBotUnifiedResponseMutation_SideBySideMetadata();
+      const message = into ?? createBaseBotUnifiedResponseMutation_SideBySideMetadata();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -15697,10 +15658,10 @@ export const CallLogRecord: MessageFns<CallLogRecord> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CallLogRecord {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CallLogRecord): CallLogRecord {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCallLogRecord();
+    const message = into ?? createBaseCallLogRecord();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15878,10 +15839,10 @@ export const CallLogRecord_ParticipantInfo: MessageFns<CallLogRecord_Participant
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CallLogRecord_ParticipantInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CallLogRecord_ParticipantInfo): CallLogRecord_ParticipantInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCallLogRecord_ParticipantInfo();
+    const message = into ?? createBaseCallLogRecord_ParticipantInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15936,10 +15897,10 @@ export const CertChain: MessageFns<CertChain> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CertChain {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CertChain): CertChain {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCertChain();
+    const message = into ?? createBaseCertChain();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -15948,7 +15909,7 @@ export const CertChain: MessageFns<CertChain> = {
             break;
           }
 
-          message.leaf = CertChain_NoiseCertificate.decode(reader, reader.uint32());
+          message.leaf = CertChain_NoiseCertificate.decode(reader, reader.uint32(), message.leaf);
           continue;
         }
         case 2: {
@@ -15956,7 +15917,7 @@ export const CertChain: MessageFns<CertChain> = {
             break;
           }
 
-          message.intermediate = CertChain_NoiseCertificate.decode(reader, reader.uint32());
+          message.intermediate = CertChain_NoiseCertificate.decode(reader, reader.uint32(), message.intermediate);
           continue;
         }
       }
@@ -15998,10 +15959,10 @@ export const CertChain_NoiseCertificate: MessageFns<CertChain_NoiseCertificate> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CertChain_NoiseCertificate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CertChain_NoiseCertificate): CertChain_NoiseCertificate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCertChain_NoiseCertificate();
+    const message = into ?? createBaseCertChain_NoiseCertificate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16065,10 +16026,10 @@ export const CertChain_NoiseCertificate_Details: MessageFns<CertChain_NoiseCerti
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CertChain_NoiseCertificate_Details {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CertChain_NoiseCertificate_Details): CertChain_NoiseCertificate_Details {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCertChain_NoiseCertificate_Details();
+    const message = into ?? createBaseCertChain_NoiseCertificate_Details();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16150,10 +16111,10 @@ export const ChatLockSettings: MessageFns<ChatLockSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ChatLockSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ChatLockSettings): ChatLockSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseChatLockSettings();
+    const message = into ?? createBaseChatLockSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16170,7 +16131,7 @@ export const ChatLockSettings: MessageFns<ChatLockSettings> = {
             break;
           }
 
-          message.secretCode = UserPassword.decode(reader, reader.uint32());
+          message.secretCode = UserPassword.decode(reader, reader.uint32(), message.secretCode);
           continue;
         }
       }
@@ -16207,10 +16168,10 @@ export const ChatRowOpaqueData: MessageFns<ChatRowOpaqueData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ChatRowOpaqueData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ChatRowOpaqueData): ChatRowOpaqueData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseChatRowOpaqueData();
+    const message = into ?? createBaseChatRowOpaqueData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16219,7 +16180,7 @@ export const ChatRowOpaqueData: MessageFns<ChatRowOpaqueData> = {
             break;
           }
 
-          message.draftMessage = ChatRowOpaqueData_DraftMessage.decode(reader, reader.uint32());
+          message.draftMessage = ChatRowOpaqueData_DraftMessage.decode(reader, reader.uint32(), message.draftMessage);
           continue;
         }
       }
@@ -16268,10 +16229,10 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ChatRowOpaqueData_DraftMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ChatRowOpaqueData_DraftMessage): ChatRowOpaqueData_DraftMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseChatRowOpaqueData_DraftMessage();
+    const message = into ?? createBaseChatRowOpaqueData_DraftMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16296,10 +16257,7 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
             break;
           }
 
-          message.ctwaContextLinkData = ChatRowOpaqueData_DraftMessage_CtwaContextLinkData.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.ctwaContextLinkData = ChatRowOpaqueData_DraftMessage_CtwaContextLinkData.decode(reader, reader.uint32(), message.ctwaContextLinkData);
           continue;
         }
         case 4: {
@@ -16307,7 +16265,7 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
             break;
           }
 
-          message.ctwaContext = ChatRowOpaqueData_DraftMessage_CtwaContextData.decode(reader, reader.uint32());
+          message.ctwaContext = ChatRowOpaqueData_DraftMessage_CtwaContextData.decode(reader, reader.uint32(), message.ctwaContext);
           continue;
         }
         case 5: {
@@ -16395,10 +16353,10 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextData: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ChatRowOpaqueData_DraftMessage_CtwaContextData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ChatRowOpaqueData_DraftMessage_CtwaContextData): ChatRowOpaqueData_DraftMessage_CtwaContextData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseChatRowOpaqueData_DraftMessage_CtwaContextData();
+    const message = into ?? createBaseChatRowOpaqueData_DraftMessage_CtwaContextData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16558,10 +16516,10 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextLinkData: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ChatRowOpaqueData_DraftMessage_CtwaContextLinkData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ChatRowOpaqueData_DraftMessage_CtwaContextLinkData): ChatRowOpaqueData_DraftMessage_CtwaContextLinkData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseChatRowOpaqueData_DraftMessage_CtwaContextLinkData();
+    const message = into ?? createBaseChatRowOpaqueData_DraftMessage_CtwaContextLinkData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16644,10 +16602,10 @@ export const Citation: MessageFns<Citation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Citation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Citation): Citation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCitation();
+    const message = into ?? createBaseCitation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16729,10 +16687,10 @@ export const ClientPairingProps: MessageFns<ClientPairingProps> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPairingProps {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPairingProps): ClientPairingProps {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPairingProps();
+    const message = into ?? createBaseClientPairingProps();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16920,10 +16878,10 @@ export const ClientPayload: MessageFns<ClientPayload> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload): ClientPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload();
+    const message = into ?? createBaseClientPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -16948,7 +16906,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.userAgent = ClientPayload_UserAgent.decode(reader, reader.uint32());
+          message.userAgent = ClientPayload_UserAgent.decode(reader, reader.uint32(), message.userAgent);
           continue;
         }
         case 6: {
@@ -16956,7 +16914,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.webInfo = ClientPayload_WebInfo.decode(reader, reader.uint32());
+          message.webInfo = ClientPayload_WebInfo.decode(reader, reader.uint32(), message.webInfo);
           continue;
         }
         case 7: {
@@ -17028,7 +16986,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.dnsSource = ClientPayload_DNSSource.decode(reader, reader.uint32());
+          message.dnsSource = ClientPayload_DNSSource.decode(reader, reader.uint32(), message.dnsSource);
           continue;
         }
         case 16: {
@@ -17052,7 +17010,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.devicePairingData = ClientPayload_DevicePairingRegistrationData.decode(reader, reader.uint32());
+          message.devicePairingData = ClientPayload_DevicePairingRegistrationData.decode(reader, reader.uint32(), message.devicePairingData);
           continue;
         }
         case 20: {
@@ -17156,7 +17114,7 @@ export const ClientPayload: MessageFns<ClientPayload> = {
             break;
           }
 
-          message.interopData = ClientPayload_InteropData.decode(reader, reader.uint32());
+          message.interopData = ClientPayload_InteropData.decode(reader, reader.uint32(), message.interopData);
           continue;
         }
         case 40: {
@@ -17316,10 +17274,10 @@ export const ClientPayload_DNSSource: MessageFns<ClientPayload_DNSSource> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_DNSSource {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_DNSSource): ClientPayload_DNSSource {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_DNSSource();
+    const message = into ?? createBaseClientPayload_DNSSource();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17395,10 +17353,10 @@ export const ClientPayload_DevicePairingRegistrationData: MessageFns<ClientPaylo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_DevicePairingRegistrationData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_DevicePairingRegistrationData): ClientPayload_DevicePairingRegistrationData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_DevicePairingRegistrationData();
+    const message = into ?? createBaseClientPayload_DevicePairingRegistrationData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17512,10 +17470,10 @@ export const ClientPayload_InteropData: MessageFns<ClientPayload_InteropData> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_InteropData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_InteropData): ClientPayload_InteropData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_InteropData();
+    const message = into ?? createBaseClientPayload_InteropData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17624,10 +17582,10 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_UserAgent {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_UserAgent): ClientPayload_UserAgent {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_UserAgent();
+    const message = into ?? createBaseClientPayload_UserAgent();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17644,7 +17602,7 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
             break;
           }
 
-          message.appVersion = ClientPayload_UserAgent_AppVersion.decode(reader, reader.uint32());
+          message.appVersion = ClientPayload_UserAgent_AppVersion.decode(reader, reader.uint32(), message.appVersion);
           continue;
         }
         case 3: {
@@ -17828,10 +17786,10 @@ export const ClientPayload_UserAgent_AppVersion: MessageFns<ClientPayload_UserAg
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_UserAgent_AppVersion {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_UserAgent_AppVersion): ClientPayload_UserAgent_AppVersion {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_UserAgent_AppVersion();
+    const message = into ?? createBaseClientPayload_UserAgent_AppVersion();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17925,10 +17883,10 @@ export const ClientPayload_WebInfo: MessageFns<ClientPayload_WebInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_WebInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_WebInfo): ClientPayload_WebInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_WebInfo();
+    const message = into ?? createBaseClientPayload_WebInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -17953,7 +17911,7 @@ export const ClientPayload_WebInfo: MessageFns<ClientPayload_WebInfo> = {
             break;
           }
 
-          message.webdPayload = ClientPayload_WebInfo_WebdPayload.decode(reader, reader.uint32());
+          message.webdPayload = ClientPayload_WebInfo_WebdPayload.decode(reader, reader.uint32(), message.webdPayload);
           continue;
         }
         case 4: {
@@ -18048,10 +18006,10 @@ export const ClientPayload_WebInfo_WebdPayload: MessageFns<ClientPayload_WebInfo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ClientPayload_WebInfo_WebdPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ClientPayload_WebInfo_WebdPayload): ClientPayload_WebInfo_WebdPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseClientPayload_WebInfo_WebdPayload();
+    const message = into ?? createBaseClientPayload_WebInfo_WebdPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18190,10 +18148,10 @@ export const CombinedFingerprint: MessageFns<CombinedFingerprint> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CombinedFingerprint {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CombinedFingerprint): CombinedFingerprint {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCombinedFingerprint();
+    const message = into ?? createBaseCombinedFingerprint();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18210,7 +18168,7 @@ export const CombinedFingerprint: MessageFns<CombinedFingerprint> = {
             break;
           }
 
-          message.localFingerprint = FingerprintData.decode(reader, reader.uint32());
+          message.localFingerprint = FingerprintData.decode(reader, reader.uint32(), message.localFingerprint);
           continue;
         }
         case 3: {
@@ -18218,7 +18176,7 @@ export const CombinedFingerprint: MessageFns<CombinedFingerprint> = {
             break;
           }
 
-          message.remoteFingerprint = FingerprintData.decode(reader, reader.uint32());
+          message.remoteFingerprint = FingerprintData.decode(reader, reader.uint32(), message.remoteFingerprint);
           continue;
         }
       }
@@ -18267,10 +18225,10 @@ export const Command: MessageFns<Command> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Command {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Command): Command {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCommand();
+    const message = into ?? createBaseCommand();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18343,10 +18301,10 @@ export const CommentMetadata: MessageFns<CommentMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CommentMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CommentMetadata): CommentMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCommentMetadata();
+    const message = into ?? createBaseCommentMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18355,7 +18313,7 @@ export const CommentMetadata: MessageFns<CommentMetadata> = {
             break;
           }
 
-          message.commentParentKey = MessageKey.decode(reader, reader.uint32());
+          message.commentParentKey = MessageKey.decode(reader, reader.uint32(), message.commentParentKey);
           continue;
         }
         case 2: {
@@ -18400,10 +18358,10 @@ export const CompanionCommitment: MessageFns<CompanionCommitment> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CompanionCommitment {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CompanionCommitment): CompanionCommitment {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCompanionCommitment();
+    const message = into ?? createBaseCompanionCommitment();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18452,10 +18410,10 @@ export const CompanionEphemeralIdentity: MessageFns<CompanionEphemeralIdentity> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CompanionEphemeralIdentity {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CompanionEphemeralIdentity): CompanionEphemeralIdentity {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCompanionEphemeralIdentity();
+    const message = into ?? createBaseCompanionEphemeralIdentity();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18519,10 +18477,10 @@ export const Config: MessageFns<Config> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Config {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Config): Config {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfig();
+    const message = into ?? createBaseConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18593,10 +18551,10 @@ export const Config_FieldEntry: MessageFns<Config_FieldEntry> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Config_FieldEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Config_FieldEntry): Config_FieldEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConfig_FieldEntry();
+    const message = into ?? createBaseConfig_FieldEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18613,7 +18571,7 @@ export const Config_FieldEntry: MessageFns<Config_FieldEntry> = {
             break;
           }
 
-          message.value = Field.decode(reader, reader.uint32());
+          message.value = Field.decode(reader, reader.uint32(), message.value);
           continue;
         }
       }
@@ -18651,10 +18609,10 @@ export const ConsumerApplication: MessageFns<ConsumerApplication> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication): ConsumerApplication {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication();
+    const message = into ?? createBaseConsumerApplication();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18663,7 +18621,7 @@ export const ConsumerApplication: MessageFns<ConsumerApplication> = {
             break;
           }
 
-          message.payload = ConsumerApplication_Payload.decode(reader, reader.uint32());
+          message.payload = ConsumerApplication_Payload.decode(reader, reader.uint32(), message.payload);
           continue;
         }
         case 2: {
@@ -18671,7 +18629,7 @@ export const ConsumerApplication: MessageFns<ConsumerApplication> = {
             break;
           }
 
-          message.metadata = ConsumerApplication_Metadata.decode(reader, reader.uint32());
+          message.metadata = ConsumerApplication_Metadata.decode(reader, reader.uint32(), message.metadata);
           continue;
         }
       }
@@ -18710,10 +18668,10 @@ export const ConsumerApplication_ApplicationData: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ApplicationData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ApplicationData): ConsumerApplication_ApplicationData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ApplicationData();
+    const message = into ?? createBaseConsumerApplication_ApplicationData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18722,7 +18680,7 @@ export const ConsumerApplication_ApplicationData: MessageFns<ConsumerApplication
             break;
           }
 
-          message.revoke = ConsumerApplication_RevokeMessage.decode(reader, reader.uint32());
+          message.revoke = ConsumerApplication_RevokeMessage.decode(reader, reader.uint32(), message.revoke);
           continue;
         }
       }
@@ -18761,10 +18719,10 @@ export const ConsumerApplication_AudioMessage: MessageFns<ConsumerApplication_Au
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_AudioMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_AudioMessage): ConsumerApplication_AudioMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_AudioMessage();
+    const message = into ?? createBaseConsumerApplication_AudioMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18773,7 +18731,7 @@ export const ConsumerApplication_AudioMessage: MessageFns<ConsumerApplication_Au
             break;
           }
 
-          message.audio = SubProtocol.decode(reader, reader.uint32());
+          message.audio = SubProtocol.decode(reader, reader.uint32(), message.audio);
           continue;
         }
         case 2: {
@@ -18818,10 +18776,10 @@ export const ConsumerApplication_ContactMessage: MessageFns<ConsumerApplication_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ContactMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ContactMessage): ConsumerApplication_ContactMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ContactMessage();
+    const message = into ?? createBaseConsumerApplication_ContactMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18830,7 +18788,7 @@ export const ConsumerApplication_ContactMessage: MessageFns<ConsumerApplication_
             break;
           }
 
-          message.contact = SubProtocol.decode(reader, reader.uint32());
+          message.contact = SubProtocol.decode(reader, reader.uint32(), message.contact);
           continue;
         }
       }
@@ -18871,10 +18829,10 @@ export const ConsumerApplication_ContactsArrayMessage: MessageFns<ConsumerApplic
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ContactsArrayMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ContactsArrayMessage): ConsumerApplication_ContactsArrayMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ContactsArrayMessage();
+    const message = into ?? createBaseConsumerApplication_ContactsArrayMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18983,10 +18941,10 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Content {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Content): ConsumerApplication_Content {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Content();
+    const message = into ?? createBaseConsumerApplication_Content();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -18995,7 +18953,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.messageText = MessageText.decode(reader, reader.uint32());
+          message.messageText = MessageText.decode(reader, reader.uint32(), message.messageText);
           continue;
         }
         case 2: {
@@ -19003,7 +18961,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.imageMessage = ConsumerApplication_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = ConsumerApplication_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 3: {
@@ -19011,7 +18969,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.contactMessage = ConsumerApplication_ContactMessage.decode(reader, reader.uint32());
+          message.contactMessage = ConsumerApplication_ContactMessage.decode(reader, reader.uint32(), message.contactMessage);
           continue;
         }
         case 4: {
@@ -19019,7 +18977,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.locationMessage = ConsumerApplication_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = ConsumerApplication_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
         case 5: {
@@ -19027,7 +18985,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.extendedTextMessage = ConsumerApplication_ExtendedTextMessage.decode(reader, reader.uint32());
+          message.extendedTextMessage = ConsumerApplication_ExtendedTextMessage.decode(reader, reader.uint32(), message.extendedTextMessage);
           continue;
         }
         case 6: {
@@ -19035,7 +18993,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.statusTextMessage = ConsumerApplication_StatusTextMesage.decode(reader, reader.uint32());
+          message.statusTextMessage = ConsumerApplication_StatusTextMesage.decode(reader, reader.uint32(), message.statusTextMessage);
           continue;
         }
         case 7: {
@@ -19043,7 +19001,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.documentMessage = ConsumerApplication_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = ConsumerApplication_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 8: {
@@ -19051,7 +19009,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.audioMessage = ConsumerApplication_AudioMessage.decode(reader, reader.uint32());
+          message.audioMessage = ConsumerApplication_AudioMessage.decode(reader, reader.uint32(), message.audioMessage);
           continue;
         }
         case 9: {
@@ -19059,7 +19017,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.videoMessage = ConsumerApplication_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = ConsumerApplication_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 10: {
@@ -19067,7 +19025,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.contactsArrayMessage = ConsumerApplication_ContactsArrayMessage.decode(reader, reader.uint32());
+          message.contactsArrayMessage = ConsumerApplication_ContactsArrayMessage.decode(reader, reader.uint32(), message.contactsArrayMessage);
           continue;
         }
         case 11: {
@@ -19075,7 +19033,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.liveLocationMessage = ConsumerApplication_LiveLocationMessage.decode(reader, reader.uint32());
+          message.liveLocationMessage = ConsumerApplication_LiveLocationMessage.decode(reader, reader.uint32(), message.liveLocationMessage);
           continue;
         }
         case 12: {
@@ -19083,7 +19041,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.stickerMessage = ConsumerApplication_StickerMessage.decode(reader, reader.uint32());
+          message.stickerMessage = ConsumerApplication_StickerMessage.decode(reader, reader.uint32(), message.stickerMessage);
           continue;
         }
         case 13: {
@@ -19091,7 +19049,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.groupInviteMessage = ConsumerApplication_GroupInviteMessage.decode(reader, reader.uint32());
+          message.groupInviteMessage = ConsumerApplication_GroupInviteMessage.decode(reader, reader.uint32(), message.groupInviteMessage);
           continue;
         }
         case 14: {
@@ -19099,7 +19057,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.viewOnceMessage = ConsumerApplication_ViewOnceMessage.decode(reader, reader.uint32());
+          message.viewOnceMessage = ConsumerApplication_ViewOnceMessage.decode(reader, reader.uint32(), message.viewOnceMessage);
           continue;
         }
         case 16: {
@@ -19107,7 +19065,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.reactionMessage = ConsumerApplication_ReactionMessage.decode(reader, reader.uint32());
+          message.reactionMessage = ConsumerApplication_ReactionMessage.decode(reader, reader.uint32(), message.reactionMessage);
           continue;
         }
         case 17: {
@@ -19115,7 +19073,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.pollCreationMessage = ConsumerApplication_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessage = ConsumerApplication_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessage);
           continue;
         }
         case 18: {
@@ -19123,7 +19081,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.pollUpdateMessage = ConsumerApplication_PollUpdateMessage.decode(reader, reader.uint32());
+          message.pollUpdateMessage = ConsumerApplication_PollUpdateMessage.decode(reader, reader.uint32(), message.pollUpdateMessage);
           continue;
         }
         case 19: {
@@ -19131,7 +19089,7 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
             break;
           }
 
-          message.editMessage = ConsumerApplication_EditMessage.decode(reader, reader.uint32());
+          message.editMessage = ConsumerApplication_EditMessage.decode(reader, reader.uint32(), message.editMessage);
           continue;
         }
       }
@@ -19221,10 +19179,10 @@ export const ConsumerApplication_DocumentMessage: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_DocumentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_DocumentMessage): ConsumerApplication_DocumentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_DocumentMessage();
+    const message = into ?? createBaseConsumerApplication_DocumentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19233,7 +19191,7 @@ export const ConsumerApplication_DocumentMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.document = SubProtocol.decode(reader, reader.uint32());
+          message.document = SubProtocol.decode(reader, reader.uint32(), message.document);
           continue;
         }
         case 2: {
@@ -19284,10 +19242,10 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_EditMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_EditMessage): ConsumerApplication_EditMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_EditMessage();
+    const message = into ?? createBaseConsumerApplication_EditMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19296,7 +19254,7 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -19304,7 +19262,7 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
             break;
           }
 
-          message.message = MessageText.decode(reader, reader.uint32());
+          message.message = MessageText.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 3: {
@@ -19368,10 +19326,10 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ExtendedTextMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ExtendedTextMessage): ConsumerApplication_ExtendedTextMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ExtendedTextMessage();
+    const message = into ?? createBaseConsumerApplication_ExtendedTextMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19380,7 +19338,7 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
             break;
           }
 
-          message.text = MessageText.decode(reader, reader.uint32());
+          message.text = MessageText.decode(reader, reader.uint32(), message.text);
           continue;
         }
         case 2: {
@@ -19420,7 +19378,7 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
             break;
           }
 
-          message.thumbnail = SubProtocol.decode(reader, reader.uint32());
+          message.thumbnail = SubProtocol.decode(reader, reader.uint32(), message.thumbnail);
           continue;
         }
         case 7: {
@@ -19487,10 +19445,10 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_GroupInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_GroupInviteMessage): ConsumerApplication_GroupInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_GroupInviteMessage();
+    const message = into ?? createBaseConsumerApplication_GroupInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19539,7 +19497,7 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
             break;
           }
 
-          message.caption = MessageText.decode(reader, reader.uint32());
+          message.caption = MessageText.decode(reader, reader.uint32(), message.caption);
           continue;
         }
       }
@@ -19583,10 +19541,10 @@ export const ConsumerApplication_ImageMessage: MessageFns<ConsumerApplication_Im
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ImageMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ImageMessage): ConsumerApplication_ImageMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ImageMessage();
+    const message = into ?? createBaseConsumerApplication_ImageMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19595,7 +19553,7 @@ export const ConsumerApplication_ImageMessage: MessageFns<ConsumerApplication_Im
             break;
           }
 
-          message.image = SubProtocol.decode(reader, reader.uint32());
+          message.image = SubProtocol.decode(reader, reader.uint32(), message.image);
           continue;
         }
         case 2: {
@@ -19603,7 +19561,7 @@ export const ConsumerApplication_ImageMessage: MessageFns<ConsumerApplication_Im
             break;
           }
 
-          message.caption = MessageText.decode(reader, reader.uint32());
+          message.caption = MessageText.decode(reader, reader.uint32(), message.caption);
           continue;
         }
       }
@@ -19647,10 +19605,10 @@ export const ConsumerApplication_InteractiveAnnotation: MessageFns<ConsumerAppli
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_InteractiveAnnotation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_InteractiveAnnotation): ConsumerApplication_InteractiveAnnotation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_InteractiveAnnotation();
+    const message = into ?? createBaseConsumerApplication_InteractiveAnnotation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19673,7 +19631,7 @@ export const ConsumerApplication_InteractiveAnnotation: MessageFns<ConsumerAppli
             break;
           }
 
-          message.location = ConsumerApplication_Location.decode(reader, reader.uint32());
+          message.location = ConsumerApplication_Location.decode(reader, reader.uint32(), message.location);
           continue;
         }
       }
@@ -19730,10 +19688,10 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_LiveLocationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_LiveLocationMessage): ConsumerApplication_LiveLocationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_LiveLocationMessage();
+    const message = into ?? createBaseConsumerApplication_LiveLocationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19742,7 +19700,7 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
             break;
           }
 
-          message.location = ConsumerApplication_Location.decode(reader, reader.uint32());
+          message.location = ConsumerApplication_Location.decode(reader, reader.uint32(), message.location);
           continue;
         }
         case 2: {
@@ -19774,7 +19732,7 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
             break;
           }
 
-          message.caption = MessageText.decode(reader, reader.uint32());
+          message.caption = MessageText.decode(reader, reader.uint32(), message.caption);
           continue;
         }
         case 6: {
@@ -19840,10 +19798,10 @@ export const ConsumerApplication_Location: MessageFns<ConsumerApplication_Locati
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Location {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Location): ConsumerApplication_Location {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Location();
+    const message = into ?? createBaseConsumerApplication_Location();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19907,10 +19865,10 @@ export const ConsumerApplication_LocationMessage: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_LocationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_LocationMessage): ConsumerApplication_LocationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_LocationMessage();
+    const message = into ?? createBaseConsumerApplication_LocationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19919,7 +19877,7 @@ export const ConsumerApplication_LocationMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.location = ConsumerApplication_Location.decode(reader, reader.uint32());
+          message.location = ConsumerApplication_Location.decode(reader, reader.uint32(), message.location);
           continue;
         }
         case 2: {
@@ -19964,10 +19922,10 @@ export const ConsumerApplication_MediaPayload: MessageFns<ConsumerApplication_Me
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_MediaPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_MediaPayload): ConsumerApplication_MediaPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_MediaPayload();
+    const message = into ?? createBaseConsumerApplication_MediaPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -19976,7 +19934,7 @@ export const ConsumerApplication_MediaPayload: MessageFns<ConsumerApplication_Me
             break;
           }
 
-          message.protocol = SubProtocol.decode(reader, reader.uint32());
+          message.protocol = SubProtocol.decode(reader, reader.uint32(), message.protocol);
           continue;
         }
       }
@@ -20012,10 +19970,10 @@ export const ConsumerApplication_Metadata: MessageFns<ConsumerApplication_Metada
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Metadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Metadata): ConsumerApplication_Metadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Metadata();
+    const message = into ?? createBaseConsumerApplication_Metadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20058,10 +20016,10 @@ export const ConsumerApplication_Option: MessageFns<ConsumerApplication_Option> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Option {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Option): ConsumerApplication_Option {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Option();
+    const message = into ?? createBaseConsumerApplication_Option();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20113,10 +20071,10 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Payload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Payload): ConsumerApplication_Payload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Payload();
+    const message = into ?? createBaseConsumerApplication_Payload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20125,7 +20083,7 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
             break;
           }
 
-          message.content = ConsumerApplication_Content.decode(reader, reader.uint32());
+          message.content = ConsumerApplication_Content.decode(reader, reader.uint32(), message.content);
           continue;
         }
         case 2: {
@@ -20133,7 +20091,7 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
             break;
           }
 
-          message.applicationData = ConsumerApplication_ApplicationData.decode(reader, reader.uint32());
+          message.applicationData = ConsumerApplication_ApplicationData.decode(reader, reader.uint32(), message.applicationData);
           continue;
         }
         case 3: {
@@ -20141,7 +20099,7 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
             break;
           }
 
-          message.signal = ConsumerApplication_Signal.decode(reader, reader.uint32());
+          message.signal = ConsumerApplication_Signal.decode(reader, reader.uint32(), message.signal);
           continue;
         }
         case 4: {
@@ -20149,7 +20107,7 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
             break;
           }
 
-          message.subProtocol = ConsumerApplication_SubProtocolPayload.decode(reader, reader.uint32());
+          message.subProtocol = ConsumerApplication_SubProtocolPayload.decode(reader, reader.uint32(), message.subProtocol);
           continue;
         }
       }
@@ -20197,10 +20155,10 @@ export const ConsumerApplication_Point: MessageFns<ConsumerApplication_Point> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Point {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Point): ConsumerApplication_Point {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Point();
+    const message = into ?? createBaseConsumerApplication_Point();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20254,10 +20212,10 @@ export const ConsumerApplication_PollAddOptionMessage: MessageFns<ConsumerApplic
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_PollAddOptionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_PollAddOptionMessage): ConsumerApplication_PollAddOptionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_PollAddOptionMessage();
+    const message = into ?? createBaseConsumerApplication_PollAddOptionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20317,10 +20275,10 @@ export const ConsumerApplication_PollCreationMessage: MessageFns<ConsumerApplica
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_PollCreationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_PollCreationMessage): ConsumerApplication_PollCreationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_PollCreationMessage();
+    const message = into ?? createBaseConsumerApplication_PollCreationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20399,10 +20357,10 @@ export const ConsumerApplication_PollEncValue: MessageFns<ConsumerApplication_Po
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_PollEncValue {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_PollEncValue): ConsumerApplication_PollEncValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_PollEncValue();
+    const message = into ?? createBaseConsumerApplication_PollEncValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20460,10 +20418,10 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_PollUpdateMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_PollUpdateMessage): ConsumerApplication_PollUpdateMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_PollUpdateMessage();
+    const message = into ?? createBaseConsumerApplication_PollUpdateMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20472,7 +20430,7 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
             break;
           }
 
-          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32(), message.pollCreationMessageKey);
           continue;
         }
         case 2: {
@@ -20480,7 +20438,7 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
             break;
           }
 
-          message.vote = ConsumerApplication_PollEncValue.decode(reader, reader.uint32());
+          message.vote = ConsumerApplication_PollEncValue.decode(reader, reader.uint32(), message.vote);
           continue;
         }
         case 3: {
@@ -20488,7 +20446,7 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
             break;
           }
 
-          message.addOption = ConsumerApplication_PollEncValue.decode(reader, reader.uint32());
+          message.addOption = ConsumerApplication_PollEncValue.decode(reader, reader.uint32(), message.addOption);
           continue;
         }
       }
@@ -20536,10 +20494,10 @@ export const ConsumerApplication_PollVoteMessage: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_PollVoteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_PollVoteMessage): ConsumerApplication_PollVoteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_PollVoteMessage();
+    const message = into ?? createBaseConsumerApplication_PollVoteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20612,10 +20570,10 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ReactionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ReactionMessage): ConsumerApplication_ReactionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ReactionMessage();
+    const message = into ?? createBaseConsumerApplication_ReactionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20624,7 +20582,7 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -20703,10 +20661,10 @@ export const ConsumerApplication_RevokeMessage: MessageFns<ConsumerApplication_R
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_RevokeMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_RevokeMessage): ConsumerApplication_RevokeMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_RevokeMessage();
+    const message = into ?? createBaseConsumerApplication_RevokeMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20715,7 +20673,7 @@ export const ConsumerApplication_RevokeMessage: MessageFns<ConsumerApplication_R
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
       }
@@ -20746,10 +20704,10 @@ export const ConsumerApplication_Signal: MessageFns<ConsumerApplication_Signal> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_Signal {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_Signal): ConsumerApplication_Signal {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_Signal();
+    const message = into ?? createBaseConsumerApplication_Signal();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20792,10 +20750,10 @@ export const ConsumerApplication_StatusTextMesage: MessageFns<ConsumerApplicatio
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_StatusTextMesage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_StatusTextMesage): ConsumerApplication_StatusTextMesage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_StatusTextMesage();
+    const message = into ?? createBaseConsumerApplication_StatusTextMesage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20804,7 +20762,7 @@ export const ConsumerApplication_StatusTextMesage: MessageFns<ConsumerApplicatio
             break;
           }
 
-          message.text = ConsumerApplication_ExtendedTextMessage.decode(reader, reader.uint32());
+          message.text = ConsumerApplication_ExtendedTextMessage.decode(reader, reader.uint32(), message.text);
           continue;
         }
         case 6: {
@@ -20867,10 +20825,10 @@ export const ConsumerApplication_StickerMessage: MessageFns<ConsumerApplication_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_StickerMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_StickerMessage): ConsumerApplication_StickerMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_StickerMessage();
+    const message = into ?? createBaseConsumerApplication_StickerMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20879,7 +20837,7 @@ export const ConsumerApplication_StickerMessage: MessageFns<ConsumerApplication_
             break;
           }
 
-          message.sticker = SubProtocol.decode(reader, reader.uint32());
+          message.sticker = SubProtocol.decode(reader, reader.uint32(), message.sticker);
           continue;
         }
       }
@@ -20915,10 +20873,10 @@ export const ConsumerApplication_SubProtocolPayload: MessageFns<ConsumerApplicat
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_SubProtocolPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_SubProtocolPayload): ConsumerApplication_SubProtocolPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_SubProtocolPayload();
+    const message = into ?? createBaseConsumerApplication_SubProtocolPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20964,10 +20922,10 @@ export const ConsumerApplication_VideoMessage: MessageFns<ConsumerApplication_Vi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_VideoMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_VideoMessage): ConsumerApplication_VideoMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_VideoMessage();
+    const message = into ?? createBaseConsumerApplication_VideoMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -20976,7 +20934,7 @@ export const ConsumerApplication_VideoMessage: MessageFns<ConsumerApplication_Vi
             break;
           }
 
-          message.video = SubProtocol.decode(reader, reader.uint32());
+          message.video = SubProtocol.decode(reader, reader.uint32(), message.video);
           continue;
         }
         case 2: {
@@ -20984,7 +20942,7 @@ export const ConsumerApplication_VideoMessage: MessageFns<ConsumerApplication_Vi
             break;
           }
 
-          message.caption = MessageText.decode(reader, reader.uint32());
+          message.caption = MessageText.decode(reader, reader.uint32(), message.caption);
           continue;
         }
       }
@@ -21026,10 +20984,10 @@ export const ConsumerApplication_ViewOnceMessage: MessageFns<ConsumerApplication
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ConsumerApplication_ViewOnceMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ConsumerApplication_ViewOnceMessage): ConsumerApplication_ViewOnceMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConsumerApplication_ViewOnceMessage();
+    const message = into ?? createBaseConsumerApplication_ViewOnceMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -21038,7 +20996,7 @@ export const ConsumerApplication_ViewOnceMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.imageMessage = ConsumerApplication_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = ConsumerApplication_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 2: {
@@ -21046,7 +21004,7 @@ export const ConsumerApplication_ViewOnceMessage: MessageFns<ConsumerApplication
             break;
           }
 
-          message.videoMessage = ConsumerApplication_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = ConsumerApplication_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
       }
@@ -21279,10 +21237,10 @@ export const ContextInfo: MessageFns<ContextInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo): ContextInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo();
+    const message = into ?? createBaseContextInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -21307,7 +21265,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.quotedMessage = Message.decode(reader, reader.uint32());
+          message.quotedMessage = Message.decode(reader, reader.uint32(), message.quotedMessage);
           continue;
         }
         case 4: {
@@ -21377,7 +21335,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.quotedAd = ContextInfo_AdReplyInfo.decode(reader, reader.uint32());
+          message.quotedAd = ContextInfo_AdReplyInfo.decode(reader, reader.uint32(), message.quotedAd);
           continue;
         }
         case 24: {
@@ -21385,7 +21343,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.placeholderKey = MessageKey.decode(reader, reader.uint32());
+          message.placeholderKey = MessageKey.decode(reader, reader.uint32(), message.placeholderKey);
           continue;
         }
         case 25: {
@@ -21417,7 +21375,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.externalAdReply = ContextInfo_ExternalAdReplyInfo.decode(reader, reader.uint32());
+          message.externalAdReply = ContextInfo_ExternalAdReplyInfo.decode(reader, reader.uint32(), message.externalAdReply);
           continue;
         }
         case 29: {
@@ -21449,7 +21407,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32());
+          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32(), message.disappearingMode);
           continue;
         }
         case 33: {
@@ -21457,7 +21415,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.actionLink = ActionLink.decode(reader, reader.uint32());
+          message.actionLink = ActionLink.decode(reader, reader.uint32(), message.actionLink);
           continue;
         }
         case 34: {
@@ -21519,7 +21477,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.utm = ContextInfo_UTMInfo.decode(reader, reader.uint32());
+          message.utm = ContextInfo_UTMInfo.decode(reader, reader.uint32(), message.utm);
           continue;
         }
         case 43: {
@@ -21527,10 +21485,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.forwardedNewsletterMessageInfo = ContextInfo_ForwardedNewsletterMessageInfo.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.forwardedNewsletterMessageInfo = ContextInfo_ForwardedNewsletterMessageInfo.decode(reader, reader.uint32(), message.forwardedNewsletterMessageInfo);
           continue;
         }
         case 44: {
@@ -21538,7 +21493,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.businessMessageForwardInfo = ContextInfo_BusinessMessageForwardInfo.decode(reader, reader.uint32());
+          message.businessMessageForwardInfo = ContextInfo_BusinessMessageForwardInfo.decode(reader, reader.uint32(), message.businessMessageForwardInfo);
           continue;
         }
         case 45: {
@@ -21562,7 +21517,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.dataSharingContext = ContextInfo_DataSharingContext.decode(reader, reader.uint32());
+          message.dataSharingContext = ContextInfo_DataSharingContext.decode(reader, reader.uint32(), message.dataSharingContext);
           continue;
         }
         case 48: {
@@ -21578,7 +21533,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.featureEligibilities = ContextInfo_FeatureEligibilities.decode(reader, reader.uint32());
+          message.featureEligibilities = ContextInfo_FeatureEligibilities.decode(reader, reader.uint32(), message.featureEligibilities);
           continue;
         }
         case 50: {
@@ -21618,7 +21573,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.forwardedAiBotMessageInfo = ForwardedAIBotMessageInfo.decode(reader, reader.uint32());
+          message.forwardedAiBotMessageInfo = ForwardedAIBotMessageInfo.decode(reader, reader.uint32(), message.forwardedAiBotMessageInfo);
           continue;
         }
         case 57: {
@@ -21634,7 +21589,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.urlTrackingMap = UrlTrackingMap.decode(reader, reader.uint32());
+          message.urlTrackingMap = UrlTrackingMap.decode(reader, reader.uint32(), message.urlTrackingMap);
           continue;
         }
         case 59: {
@@ -21658,7 +21613,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.memberLabel = MemberLabel.decode(reader, reader.uint32());
+          message.memberLabel = MemberLabel.decode(reader, reader.uint32(), message.memberLabel);
           continue;
         }
         case 63: {
@@ -21712,7 +21667,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.questionReplyQuotedMessage = ContextInfo_QuestionReplyQuotedMessage.decode(reader, reader.uint32());
+          message.questionReplyQuotedMessage = ContextInfo_QuestionReplyQuotedMessage.decode(reader, reader.uint32(), message.questionReplyQuotedMessage);
           continue;
         }
         case 69: {
@@ -21720,7 +21675,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.statusAudienceMetadata = ContextInfo_StatusAudienceMetadata.decode(reader, reader.uint32());
+          message.statusAudienceMetadata = ContextInfo_StatusAudienceMetadata.decode(reader, reader.uint32(), message.statusAudienceMetadata);
           continue;
         }
         case 70: {
@@ -21744,7 +21699,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.botMessageSharingInfo = BotMessageSharingInfo.decode(reader, reader.uint32());
+          message.botMessageSharingInfo = BotMessageSharingInfo.decode(reader, reader.uint32(), message.botMessageSharingInfo);
           continue;
         }
         case 73: {
@@ -21760,7 +21715,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.mediaDomainInfo = MediaDomainInfo.decode(reader, reader.uint32());
+          message.mediaDomainInfo = MediaDomainInfo.decode(reader, reader.uint32(), message.mediaDomainInfo);
           continue;
         }
         case 75: {
@@ -21768,7 +21723,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.partiallySelectedContent = ContextInfo_PartiallySelectedContent.decode(reader, reader.uint32());
+          message.partiallySelectedContent = ContextInfo_PartiallySelectedContent.decode(reader, reader.uint32(), message.partiallySelectedContent);
           continue;
         }
         case 76: {
@@ -21792,7 +21747,7 @@ export const ContextInfo: MessageFns<ContextInfo> = {
             break;
           }
 
-          message.businessInteractionPills = ContextInfo_BusinessInteractionPills.decode(reader, reader.uint32());
+          message.businessInteractionPills = ContextInfo_BusinessInteractionPills.decode(reader, reader.uint32(), message.businessInteractionPills);
           continue;
         }
         case 79: {
@@ -21952,10 +21907,10 @@ export const ContextInfo_AdReplyInfo: MessageFns<ContextInfo_AdReplyInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_AdReplyInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_AdReplyInfo): ContextInfo_AdReplyInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_AdReplyInfo();
+    const message = into ?? createBaseContextInfo_AdReplyInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22039,10 +21994,10 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_BusinessInteractionPills {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_BusinessInteractionPills): ContextInfo_BusinessInteractionPills {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_BusinessInteractionPills();
+    const message = into ?? createBaseContextInfo_BusinessInteractionPills();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22089,7 +22044,7 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
             break;
           }
 
-          message.signatureEnvelope = BotSignatureVerificationMetadata.decode(reader, reader.uint32());
+          message.signatureEnvelope = BotSignatureVerificationMetadata.decode(reader, reader.uint32(), message.signatureEnvelope);
           continue;
         }
       }
@@ -22132,10 +22087,10 @@ export const ContextInfo_BusinessInteractionPills_Pill: MessageFns<ContextInfo_B
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_BusinessInteractionPills_Pill {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_BusinessInteractionPills_Pill): ContextInfo_BusinessInteractionPills_Pill {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_BusinessInteractionPills_Pill();
+    const message = into ?? createBaseContextInfo_BusinessInteractionPills_Pill();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22199,10 +22154,10 @@ export const ContextInfo_BusinessInteractionPills_SignedPayload: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_BusinessInteractionPills_SignedPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_BusinessInteractionPills_SignedPayload): ContextInfo_BusinessInteractionPills_SignedPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_BusinessInteractionPills_SignedPayload();
+    const message = into ?? createBaseContextInfo_BusinessInteractionPills_SignedPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22264,10 +22219,10 @@ export const ContextInfo_BusinessMessageForwardInfo: MessageFns<ContextInfo_Busi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_BusinessMessageForwardInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_BusinessMessageForwardInfo): ContextInfo_BusinessMessageForwardInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_BusinessMessageForwardInfo();
+    const message = into ?? createBaseContextInfo_BusinessMessageForwardInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22321,10 +22276,10 @@ export const ContextInfo_DataSharingContext: MessageFns<ContextInfo_DataSharingC
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_DataSharingContext {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_DataSharingContext): ContextInfo_DataSharingContext {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_DataSharingContext();
+    const message = into ?? createBaseContextInfo_DataSharingContext();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22413,10 +22368,10 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_DataSharingContext_Parameters {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_DataSharingContext_Parameters): ContextInfo_DataSharingContext_Parameters {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_DataSharingContext_Parameters();
+    const message = into ?? createBaseContextInfo_DataSharingContext_Parameters();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22457,7 +22412,7 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
             break;
           }
 
-          message.contents = ContextInfo_DataSharingContext_Parameters.decode(reader, reader.uint32());
+          message.contents = ContextInfo_DataSharingContext_Parameters.decode(reader, reader.uint32(), message.contents);
           continue;
         }
       }
@@ -22592,10 +22547,10 @@ export const ContextInfo_ExternalAdReplyInfo: MessageFns<ContextInfo_ExternalAdR
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_ExternalAdReplyInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_ExternalAdReplyInfo): ContextInfo_ExternalAdReplyInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_ExternalAdReplyInfo();
+    const message = into ?? createBaseContextInfo_ExternalAdReplyInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -22929,10 +22884,10 @@ export const ContextInfo_FeatureEligibilities: MessageFns<ContextInfo_FeatureEli
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_FeatureEligibilities {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_FeatureEligibilities): ContextInfo_FeatureEligibilities {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_FeatureEligibilities();
+    const message = into ?? createBaseContextInfo_FeatureEligibilities();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23026,10 +22981,10 @@ export const ContextInfo_ForwardedNewsletterMessageInfo: MessageFns<ContextInfo_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_ForwardedNewsletterMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_ForwardedNewsletterMessageInfo): ContextInfo_ForwardedNewsletterMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_ForwardedNewsletterMessageInfo();
+    const message = into ?? createBaseContextInfo_ForwardedNewsletterMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23119,10 +23074,10 @@ export const ContextInfo_PartiallySelectedContent: MessageFns<ContextInfo_Partia
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_PartiallySelectedContent {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_PartiallySelectedContent): ContextInfo_PartiallySelectedContent {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_PartiallySelectedContent();
+    const message = into ?? createBaseContextInfo_PartiallySelectedContent();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23171,10 +23126,10 @@ export const ContextInfo_QuestionReplyQuotedMessage: MessageFns<ContextInfo_Ques
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_QuestionReplyQuotedMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_QuestionReplyQuotedMessage): ContextInfo_QuestionReplyQuotedMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_QuestionReplyQuotedMessage();
+    const message = into ?? createBaseContextInfo_QuestionReplyQuotedMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23191,7 +23146,7 @@ export const ContextInfo_QuestionReplyQuotedMessage: MessageFns<ContextInfo_Ques
             break;
           }
 
-          message.quotedQuestion = Message.decode(reader, reader.uint32());
+          message.quotedQuestion = Message.decode(reader, reader.uint32(), message.quotedQuestion);
           continue;
         }
         case 3: {
@@ -23199,7 +23154,7 @@ export const ContextInfo_QuestionReplyQuotedMessage: MessageFns<ContextInfo_Ques
             break;
           }
 
-          message.quotedResponse = Message.decode(reader, reader.uint32());
+          message.quotedResponse = Message.decode(reader, reader.uint32(), message.quotedResponse);
           continue;
         }
       }
@@ -23245,10 +23200,10 @@ export const ContextInfo_StatusAudienceMetadata: MessageFns<ContextInfo_StatusAu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_StatusAudienceMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_StatusAudienceMetadata): ContextInfo_StatusAudienceMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_StatusAudienceMetadata();
+    const message = into ?? createBaseContextInfo_StatusAudienceMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23312,10 +23267,10 @@ export const ContextInfo_UTMInfo: MessageFns<ContextInfo_UTMInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ContextInfo_UTMInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_UTMInfo): ContextInfo_UTMInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseContextInfo_UTMInfo();
+    const message = into ?? createBaseContextInfo_UTMInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23554,10 +23509,10 @@ export const Conversation: MessageFns<Conversation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Conversation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Conversation): Conversation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseConversation();
+    const message = into ?? createBaseConversation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -23700,7 +23655,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32());
+          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32(), message.disappearingMode);
           continue;
         }
         case 18: {
@@ -23778,7 +23733,7 @@ export const Conversation: MessageFns<Conversation> = {
             break;
           }
 
-          message.wallpaper = WallpaperSettings.decode(reader, reader.uint32());
+          message.wallpaper = WallpaperSettings.decode(reader, reader.uint32(), message.wallpaper);
           continue;
         }
         case 27: {
@@ -24168,10 +24123,10 @@ export const CreateBackupInput: MessageFns<CreateBackupInput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateBackupInput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CreateBackupInput): CreateBackupInput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBackupInput();
+    const message = into ?? createBaseCreateBackupInput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24235,10 +24190,10 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): CreateBackupOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CreateBackupOutput): CreateBackupOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseCreateBackupOutput();
+    const message = into ?? createBaseCreateBackupOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24247,7 +24202,7 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
             break;
           }
 
-          message.device = DeviceOutput.decode(reader, reader.uint32());
+          message.device = DeviceOutput.decode(reader, reader.uint32(), message.device);
           continue;
         }
         case 2: {
@@ -24255,7 +24210,7 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
             break;
           }
 
-          message.virtualDevice = VirtualDeviceOutput.decode(reader, reader.uint32());
+          message.virtualDevice = VirtualDeviceOutput.decode(reader, reader.uint32(), message.virtualDevice);
           continue;
         }
         case 3: {
@@ -24263,7 +24218,7 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
             break;
           }
 
-          message.epoch0 = Epoch0Output.decode(reader, reader.uint32());
+          message.epoch0 = Epoch0Output.decode(reader, reader.uint32(), message.epoch0);
           continue;
         }
         case 4: {
@@ -24335,10 +24290,10 @@ export const DecryptMessageInput: MessageFns<DecryptMessageInput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DecryptMessageInput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMessageInput): DecryptMessageInput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDecryptMessageInput();
+    const message = into ?? createBaseDecryptMessageInput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24420,10 +24375,10 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DecryptMessageOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMessageOutput): DecryptMessageOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDecryptMessageOutput();
+    const message = into ?? createBaseDecryptMessageOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24490,10 +24445,10 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceCapabilities {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities): DeviceCapabilities {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceCapabilities();
+    const message = into ?? createBaseDeviceCapabilities();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24510,7 +24465,7 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
             break;
           }
 
-          message.lidMigration = DeviceCapabilities_LIDMigration.decode(reader, reader.uint32());
+          message.lidMigration = DeviceCapabilities_LIDMigration.decode(reader, reader.uint32(), message.lidMigration);
           continue;
         }
         case 3: {
@@ -24518,7 +24473,7 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
             break;
           }
 
-          message.businessBroadcast = DeviceCapabilities_BusinessBroadcast.decode(reader, reader.uint32());
+          message.businessBroadcast = DeviceCapabilities_BusinessBroadcast.decode(reader, reader.uint32(), message.businessBroadcast);
           continue;
         }
         case 4: {
@@ -24526,7 +24481,7 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
             break;
           }
 
-          message.userHasAvatar = DeviceCapabilities_UserHasAvatar.decode(reader, reader.uint32());
+          message.userHasAvatar = DeviceCapabilities_UserHasAvatar.decode(reader, reader.uint32(), message.userHasAvatar);
           continue;
         }
         case 5: {
@@ -24542,7 +24497,7 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
             break;
           }
 
-          message.aiThread = DeviceCapabilities_AiThread.decode(reader, reader.uint32());
+          message.aiThread = DeviceCapabilities_AiThread.decode(reader, reader.uint32(), message.aiThread);
           continue;
         }
       }
@@ -24589,10 +24544,10 @@ export const DeviceCapabilities_AiThread: MessageFns<DeviceCapabilities_AiThread
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceCapabilities_AiThread {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_AiThread): DeviceCapabilities_AiThread {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceCapabilities_AiThread();
+    const message = into ?? createBaseDeviceCapabilities_AiThread();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24647,10 +24602,10 @@ export const DeviceCapabilities_BusinessBroadcast: MessageFns<DeviceCapabilities
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceCapabilities_BusinessBroadcast {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_BusinessBroadcast): DeviceCapabilities_BusinessBroadcast {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceCapabilities_BusinessBroadcast();
+    const message = into ?? createBaseDeviceCapabilities_BusinessBroadcast();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24729,10 +24684,10 @@ export const DeviceCapabilities_LIDMigration: MessageFns<DeviceCapabilities_LIDM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceCapabilities_LIDMigration {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_LIDMigration): DeviceCapabilities_LIDMigration {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceCapabilities_LIDMigration();
+    const message = into ?? createBaseDeviceCapabilities_LIDMigration();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24775,10 +24730,10 @@ export const DeviceCapabilities_UserHasAvatar: MessageFns<DeviceCapabilities_Use
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceCapabilities_UserHasAvatar {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_UserHasAvatar): DeviceCapabilities_UserHasAvatar {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceCapabilities_UserHasAvatar();
+    const message = into ?? createBaseDeviceCapabilities_UserHasAvatar();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24824,10 +24779,10 @@ export const DeviceConsistencyCodeMessage: MessageFns<DeviceConsistencyCodeMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceConsistencyCodeMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceConsistencyCodeMessage): DeviceConsistencyCodeMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceConsistencyCodeMessage();
+    const message = into ?? createBaseDeviceConsistencyCodeMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -24908,10 +24863,10 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceListMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceListMetadata): DeviceListMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceListMetadata();
+    const message = into ?? createBaseDeviceListMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25075,10 +25030,10 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceOutput): DeviceOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceOutput();
+    const message = into ?? createBaseDeviceOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25221,10 +25176,10 @@ export const DeviceProps: MessageFns<DeviceProps> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceProps {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceProps): DeviceProps {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceProps();
+    const message = into ?? createBaseDeviceProps();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25241,7 +25196,7 @@ export const DeviceProps: MessageFns<DeviceProps> = {
             break;
           }
 
-          message.version = DeviceProps_AppVersion.decode(reader, reader.uint32());
+          message.version = DeviceProps_AppVersion.decode(reader, reader.uint32(), message.version);
           continue;
         }
         case 3: {
@@ -25265,7 +25220,7 @@ export const DeviceProps: MessageFns<DeviceProps> = {
             break;
           }
 
-          message.historySyncConfig = DeviceProps_HistorySyncConfig.decode(reader, reader.uint32());
+          message.historySyncConfig = DeviceProps_HistorySyncConfig.decode(reader, reader.uint32(), message.historySyncConfig);
           continue;
         }
       }
@@ -25319,10 +25274,10 @@ export const DeviceProps_AppVersion: MessageFns<DeviceProps_AppVersion> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceProps_AppVersion {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceProps_AppVersion): DeviceProps_AppVersion {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceProps_AppVersion();
+    const message = into ?? createBaseDeviceProps_AppVersion();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25472,10 +25427,10 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DeviceProps_HistorySyncConfig {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceProps_HistorySyncConfig): DeviceProps_HistorySyncConfig {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDeviceProps_HistorySyncConfig();
+    const message = into ?? createBaseDeviceProps_HistorySyncConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25740,10 +25695,10 @@ export const DisappearingMode: MessageFns<DisappearingMode> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): DisappearingMode {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DisappearingMode): DisappearingMode {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseDisappearingMode();
+    const message = into ?? createBaseDisappearingMode();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25816,10 +25771,10 @@ export const EmbeddedContent: MessageFns<EmbeddedContent> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EmbeddedContent {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EmbeddedContent): EmbeddedContent {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmbeddedContent();
+    const message = into ?? createBaseEmbeddedContent();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25828,7 +25783,7 @@ export const EmbeddedContent: MessageFns<EmbeddedContent> = {
             break;
           }
 
-          message.embeddedMessage = EmbeddedMessage.decode(reader, reader.uint32());
+          message.embeddedMessage = EmbeddedMessage.decode(reader, reader.uint32(), message.embeddedMessage);
           continue;
         }
         case 2: {
@@ -25836,7 +25791,7 @@ export const EmbeddedContent: MessageFns<EmbeddedContent> = {
             break;
           }
 
-          message.embeddedMusic = EmbeddedMusic.decode(reader, reader.uint32());
+          message.embeddedMusic = EmbeddedMusic.decode(reader, reader.uint32(), message.embeddedMusic);
           continue;
         }
       }
@@ -25878,10 +25833,10 @@ export const EmbeddedMessage: MessageFns<EmbeddedMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EmbeddedMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EmbeddedMessage): EmbeddedMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmbeddedMessage();
+    const message = into ?? createBaseEmbeddedMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -25898,7 +25853,7 @@ export const EmbeddedMessage: MessageFns<EmbeddedMessage> = {
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
       }
@@ -25974,10 +25929,10 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EmbeddedMusic {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EmbeddedMusic): EmbeddedMusic {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmbeddedMusic();
+    const message = into ?? createBaseEmbeddedMusic();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26167,10 +26122,10 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EncryptMessageInput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMessageInput): EncryptMessageInput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncryptMessageInput();
+    const message = into ?? createBaseEncryptMessageInput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26321,10 +26276,10 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EncryptMessageOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMessageOutput): EncryptMessageOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncryptMessageOutput();
+    const message = into ?? createBaseEncryptMessageOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26424,10 +26379,10 @@ export const EncryptedPairingRequest: MessageFns<EncryptedPairingRequest> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EncryptedPairingRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptedPairingRequest): EncryptedPairingRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncryptedPairingRequest();
+    const message = into ?? createBaseEncryptedPairingRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26500,10 +26455,10 @@ export const EncryptedSecretValuesOutput: MessageFns<EncryptedSecretValuesOutput
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EncryptedSecretValuesOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptedSecretValuesOutput): EncryptedSecretValuesOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEncryptedSecretValuesOutput();
+    const message = into ?? createBaseEncryptedSecretValuesOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26612,10 +26567,10 @@ export const EphemeralSetting: MessageFns<EphemeralSetting> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EphemeralSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EphemeralSetting): EphemeralSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEphemeralSetting();
+    const message = into ?? createBaseEphemeralSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26685,10 +26640,10 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Epoch0Output {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Epoch0Output): Epoch0Output {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEpoch0Output();
+    const message = into ?? createBaseEpoch0Output();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26785,10 +26740,10 @@ export const EventAdditionalMetadata: MessageFns<EventAdditionalMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EventAdditionalMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EventAdditionalMetadata): EventAdditionalMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEventAdditionalMetadata();
+    const message = into ?? createBaseEventAdditionalMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26840,10 +26795,10 @@ export const EventResponse: MessageFns<EventResponse> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): EventResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EventResponse): EventResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEventResponse();
+    const message = into ?? createBaseEventResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26852,7 +26807,7 @@ export const EventResponse: MessageFns<EventResponse> = {
             break;
           }
 
-          message.eventResponseMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.eventResponseMessageKey = MessageKey.decode(reader, reader.uint32(), message.eventResponseMessageKey);
           continue;
         }
         case 2: {
@@ -26868,7 +26823,7 @@ export const EventResponse: MessageFns<EventResponse> = {
             break;
           }
 
-          message.eventResponseMessage = Message_EventResponseMessage.decode(reader, reader.uint32());
+          message.eventResponseMessage = Message_EventResponseMessage.decode(reader, reader.uint32(), message.eventResponseMessage);
           continue;
         }
         case 4: {
@@ -26921,10 +26876,10 @@ export const ExitCode: MessageFns<ExitCode> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ExitCode {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ExitCode): ExitCode {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseExitCode();
+    const message = into ?? createBaseExitCode();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -26991,10 +26946,10 @@ export const ExternalBlobReference: MessageFns<ExternalBlobReference> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ExternalBlobReference {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ExternalBlobReference): ExternalBlobReference {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseExternalBlobReference();
+    const message = into ?? createBaseExternalBlobReference();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27094,10 +27049,10 @@ export const Field: MessageFns<Field> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Field {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Field): Field {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseField();
+    const message = into ?? createBaseField();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27195,10 +27150,10 @@ export const Field_SubfieldEntry: MessageFns<Field_SubfieldEntry> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Field_SubfieldEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Field_SubfieldEntry): Field_SubfieldEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseField_SubfieldEntry();
+    const message = into ?? createBaseField_SubfieldEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27215,7 +27170,7 @@ export const Field_SubfieldEntry: MessageFns<Field_SubfieldEntry> = {
             break;
           }
 
-          message.value = Field.decode(reader, reader.uint32());
+          message.value = Field.decode(reader, reader.uint32(), message.value);
           continue;
         }
       }
@@ -27265,10 +27220,10 @@ export const FingerprintData: MessageFns<FingerprintData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): FingerprintData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: FingerprintData): FingerprintData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseFingerprintData();
+    const message = into ?? createBaseFingerprintData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27362,10 +27317,10 @@ export const ForwardedAIBotMessageInfo: MessageFns<ForwardedAIBotMessageInfo> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ForwardedAIBotMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ForwardedAIBotMessageInfo): ForwardedAIBotMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseForwardedAIBotMessageInfo();
+    const message = into ?? createBaseForwardedAIBotMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27483,10 +27438,10 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GlobalSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GlobalSettings): GlobalSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGlobalSettings();
+    const message = into ?? createBaseGlobalSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27495,7 +27450,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.lightThemeWallpaper = WallpaperSettings.decode(reader, reader.uint32());
+          message.lightThemeWallpaper = WallpaperSettings.decode(reader, reader.uint32(), message.lightThemeWallpaper);
           continue;
         }
         case 2: {
@@ -27511,7 +27466,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.darkThemeWallpaper = WallpaperSettings.decode(reader, reader.uint32());
+          message.darkThemeWallpaper = WallpaperSettings.decode(reader, reader.uint32(), message.darkThemeWallpaper);
           continue;
         }
         case 4: {
@@ -27519,7 +27474,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.autoDownloadWiFi = AutoDownloadSettings.decode(reader, reader.uint32());
+          message.autoDownloadWiFi = AutoDownloadSettings.decode(reader, reader.uint32(), message.autoDownloadWiFi);
           continue;
         }
         case 5: {
@@ -27527,7 +27482,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.autoDownloadCellular = AutoDownloadSettings.decode(reader, reader.uint32());
+          message.autoDownloadCellular = AutoDownloadSettings.decode(reader, reader.uint32(), message.autoDownloadCellular);
           continue;
         }
         case 6: {
@@ -27535,7 +27490,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.autoDownloadRoaming = AutoDownloadSettings.decode(reader, reader.uint32());
+          message.autoDownloadRoaming = AutoDownloadSettings.decode(reader, reader.uint32(), message.autoDownloadRoaming);
           continue;
         }
         case 7: {
@@ -27575,7 +27530,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.avatarUserSettings = AvatarUserSettings.decode(reader, reader.uint32());
+          message.avatarUserSettings = AvatarUserSettings.decode(reader, reader.uint32(), message.avatarUserSettings);
           continue;
         }
         case 12: {
@@ -27623,7 +27578,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.individualNotificationSettings = NotificationSettings.decode(reader, reader.uint32());
+          message.individualNotificationSettings = NotificationSettings.decode(reader, reader.uint32(), message.individualNotificationSettings);
           continue;
         }
         case 18: {
@@ -27631,7 +27586,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.groupNotificationSettings = NotificationSettings.decode(reader, reader.uint32());
+          message.groupNotificationSettings = NotificationSettings.decode(reader, reader.uint32(), message.groupNotificationSettings);
           continue;
         }
         case 19: {
@@ -27639,7 +27594,7 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
             break;
           }
 
-          message.chatLockSettings = ChatLockSettings.decode(reader, reader.uint32());
+          message.chatLockSettings = ChatLockSettings.decode(reader, reader.uint32(), message.chatLockSettings);
           continue;
         }
         case 20: {
@@ -27737,10 +27692,10 @@ export const GroupHistory: MessageFns<GroupHistory> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupHistory {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupHistory): GroupHistory {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupHistory();
+    const message = into ?? createBaseGroupHistory();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27839,10 +27794,10 @@ export const GroupHistoryBundleInfo: MessageFns<GroupHistoryBundleInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupHistoryBundleInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupHistoryBundleInfo): GroupHistoryBundleInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupHistoryBundleInfo();
+    const message = into ?? createBaseGroupHistoryBundleInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27851,7 +27806,7 @@ export const GroupHistoryBundleInfo: MessageFns<GroupHistoryBundleInfo> = {
             break;
           }
 
-          message.deprecatedMessageHistoryBundle = Message_MessageHistoryBundle.decode(reader, reader.uint32());
+          message.deprecatedMessageHistoryBundle = Message_MessageHistoryBundle.decode(reader, reader.uint32(), message.deprecatedMessageHistoryBundle);
           continue;
         }
         case 2: {
@@ -27900,10 +27855,10 @@ export const GroupHistoryIndividualMessageInfo: MessageFns<GroupHistoryIndividua
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupHistoryIndividualMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupHistoryIndividualMessageInfo): GroupHistoryIndividualMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupHistoryIndividualMessageInfo();
+    const message = into ?? createBaseGroupHistoryIndividualMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -27912,7 +27867,7 @@ export const GroupHistoryIndividualMessageInfo: MessageFns<GroupHistoryIndividua
             break;
           }
 
-          message.bundleMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.bundleMessageKey = MessageKey.decode(reader, reader.uint32(), message.bundleMessageKey);
           continue;
         }
         case 2: {
@@ -27974,10 +27929,10 @@ export const GroupHistoryWithMessageBytes: MessageFns<GroupHistoryWithMessageByt
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupHistoryWithMessageBytes {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupHistoryWithMessageBytes): GroupHistoryWithMessageBytes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupHistoryWithMessageBytes();
+    const message = into ?? createBaseGroupHistoryWithMessageBytes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28079,10 +28034,10 @@ export const GroupMention: MessageFns<GroupMention> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupMention {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupMention): GroupMention {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupMention();
+    const message = into ?? createBaseGroupMention();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28140,10 +28095,10 @@ export const GroupParticipant: MessageFns<GroupParticipant> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupParticipant {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupParticipant): GroupParticipant {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupParticipant();
+    const message = into ?? createBaseGroupParticipant();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28168,7 +28123,7 @@ export const GroupParticipant: MessageFns<GroupParticipant> = {
             break;
           }
 
-          message.memberLabel = MemberLabel.decode(reader, reader.uint32());
+          message.memberLabel = MemberLabel.decode(reader, reader.uint32(), message.memberLabel);
           continue;
         }
       }
@@ -28208,10 +28163,10 @@ export const GroupRootKeyShare: MessageFns<GroupRootKeyShare> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupRootKeyShare {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupRootKeyShare): GroupRootKeyShare {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupRootKeyShare();
+    const message = into ?? createBaseGroupRootKeyShare();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28269,10 +28224,10 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): GroupRootKeyShareEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GroupRootKeyShareEntry): GroupRootKeyShareEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseGroupRootKeyShareEntry();
+    const message = into ?? createBaseGroupRootKeyShareEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28348,10 +28303,10 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HandshakeMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HandshakeMessage): HandshakeMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandshakeMessage();
+    const message = into ?? createBaseHandshakeMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28360,7 +28315,7 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
             break;
           }
 
-          message.clientHello = HandshakeMessage_ClientHello.decode(reader, reader.uint32());
+          message.clientHello = HandshakeMessage_ClientHello.decode(reader, reader.uint32(), message.clientHello);
           continue;
         }
         case 3: {
@@ -28368,7 +28323,7 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
             break;
           }
 
-          message.serverHello = HandshakeMessage_ServerHello.decode(reader, reader.uint32());
+          message.serverHello = HandshakeMessage_ServerHello.decode(reader, reader.uint32(), message.serverHello);
           continue;
         }
         case 4: {
@@ -28376,7 +28331,7 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
             break;
           }
 
-          message.clientFinish = HandshakeMessage_ClientFinish.decode(reader, reader.uint32());
+          message.clientFinish = HandshakeMessage_ClientFinish.decode(reader, reader.uint32(), message.clientFinish);
           continue;
         }
       }
@@ -28430,10 +28385,10 @@ export const HandshakeMessage_ClientFinish: MessageFns<HandshakeMessage_ClientFi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HandshakeMessage_ClientFinish {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HandshakeMessage_ClientFinish): HandshakeMessage_ClientFinish {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandshakeMessage_ClientFinish();
+    const message = into ?? createBaseHandshakeMessage_ClientFinish();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28539,10 +28494,10 @@ export const HandshakeMessage_ClientHello: MessageFns<HandshakeMessage_ClientHel
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HandshakeMessage_ClientHello {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HandshakeMessage_ClientHello): HandshakeMessage_ClientHello {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandshakeMessage_ClientHello();
+    const message = into ?? createBaseHandshakeMessage_ClientHello();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28681,10 +28636,10 @@ export const HandshakeMessage_ServerHello: MessageFns<HandshakeMessage_ServerHel
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HandshakeMessage_ServerHello {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HandshakeMessage_ServerHello): HandshakeMessage_ServerHello {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHandshakeMessage_ServerHello();
+    const message = into ?? createBaseHandshakeMessage_ServerHello();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28778,10 +28733,10 @@ export const HatchMetadataSync: MessageFns<HatchMetadataSync> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HatchMetadataSync {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HatchMetadataSync): HatchMetadataSync {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHatchMetadataSync();
+    const message = into ?? createBaseHatchMetadataSync();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28917,10 +28872,10 @@ export const HistorySync: MessageFns<HistorySync> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HistorySync {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HistorySync): HistorySync {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHistorySync();
+    const message = into ?? createBaseHistorySync();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -28995,7 +28950,7 @@ export const HistorySync: MessageFns<HistorySync> = {
             break;
           }
 
-          message.globalSettings = GlobalSettings.decode(reader, reader.uint32());
+          message.globalSettings = GlobalSettings.decode(reader, reader.uint32(), message.globalSettings);
           continue;
         }
         case 9: {
@@ -29194,10 +29149,10 @@ export const HistorySyncMsg: MessageFns<HistorySyncMsg> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HistorySyncMsg {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HistorySyncMsg): HistorySyncMsg {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHistorySyncMsg();
+    const message = into ?? createBaseHistorySyncMsg();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29206,7 +29161,7 @@ export const HistorySyncMsg: MessageFns<HistorySyncMsg> = {
             break;
           }
 
-          message.message = WebMessageInfo.decode(reader, reader.uint32());
+          message.message = WebMessageInfo.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 2: {
@@ -29260,10 +29215,10 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HydratedTemplateButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HydratedTemplateButton): HydratedTemplateButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHydratedTemplateButton();
+    const message = into ?? createBaseHydratedTemplateButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29280,7 +29235,7 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
             break;
           }
 
-          message.quickReplyButton = HydratedTemplateButton_HydratedQuickReplyButton.decode(reader, reader.uint32());
+          message.quickReplyButton = HydratedTemplateButton_HydratedQuickReplyButton.decode(reader, reader.uint32(), message.quickReplyButton);
           continue;
         }
         case 2: {
@@ -29288,7 +29243,7 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
             break;
           }
 
-          message.urlButton = HydratedTemplateButton_HydratedURLButton.decode(reader, reader.uint32());
+          message.urlButton = HydratedTemplateButton_HydratedURLButton.decode(reader, reader.uint32(), message.urlButton);
           continue;
         }
         case 3: {
@@ -29296,7 +29251,7 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
             break;
           }
 
-          message.callButton = HydratedTemplateButton_HydratedCallButton.decode(reader, reader.uint32());
+          message.callButton = HydratedTemplateButton_HydratedCallButton.decode(reader, reader.uint32(), message.callButton);
           continue;
         }
       }
@@ -29342,10 +29297,10 @@ export const HydratedTemplateButton_HydratedCallButton: MessageFns<HydratedTempl
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HydratedTemplateButton_HydratedCallButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HydratedTemplateButton_HydratedCallButton): HydratedTemplateButton_HydratedCallButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHydratedTemplateButton_HydratedCallButton();
+    const message = into ?? createBaseHydratedTemplateButton_HydratedCallButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29407,10 +29362,10 @@ export const HydratedTemplateButton_HydratedQuickReplyButton: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HydratedTemplateButton_HydratedQuickReplyButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HydratedTemplateButton_HydratedQuickReplyButton): HydratedTemplateButton_HydratedQuickReplyButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHydratedTemplateButton_HydratedQuickReplyButton();
+    const message = into ?? createBaseHydratedTemplateButton_HydratedQuickReplyButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29475,10 +29430,10 @@ export const HydratedTemplateButton_HydratedURLButton: MessageFns<HydratedTempla
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): HydratedTemplateButton_HydratedURLButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: HydratedTemplateButton_HydratedURLButton): HydratedTemplateButton_HydratedURLButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseHydratedTemplateButton_HydratedURLButton();
+    const message = into ?? createBaseHydratedTemplateButton_HydratedURLButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29551,10 +29506,10 @@ export const IdentityKeyPairStructure: MessageFns<IdentityKeyPairStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): IdentityKeyPairStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: IdentityKeyPairStructure): IdentityKeyPairStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseIdentityKeyPairStructure();
+    const message = into ?? createBaseIdentityKeyPairStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29661,10 +29616,10 @@ export const InThreadSurveyMetadata: MessageFns<InThreadSurveyMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InThreadSurveyMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InThreadSurveyMetadata): InThreadSurveyMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInThreadSurveyMetadata();
+    const message = into ?? createBaseInThreadSurveyMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29885,10 +29840,10 @@ export const InThreadSurveyMetadata_InThreadSurveyOption: MessageFns<InThreadSur
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InThreadSurveyMetadata_InThreadSurveyOption {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InThreadSurveyMetadata_InThreadSurveyOption): InThreadSurveyMetadata_InThreadSurveyOption {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInThreadSurveyMetadata_InThreadSurveyOption();
+    const message = into ?? createBaseInThreadSurveyMetadata_InThreadSurveyOption();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -29959,10 +29914,10 @@ export const InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart: MessageF
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart): InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart();
+    const message = into ?? createBaseInThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30030,10 +29985,10 @@ export const InThreadSurveyMetadata_InThreadSurveyQuestion: MessageFns<InThreadS
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): InThreadSurveyMetadata_InThreadSurveyQuestion {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: InThreadSurveyMetadata_InThreadSurveyQuestion): InThreadSurveyMetadata_InThreadSurveyQuestion {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseInThreadSurveyMetadata_InThreadSurveyQuestion();
+      const message = into ?? createBaseInThreadSurveyMetadata_InThreadSurveyQuestion();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -30117,10 +30072,10 @@ export const InlineContact: MessageFns<InlineContact> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InlineContact {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InlineContact): InlineContact {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInlineContact();
+    const message = into ?? createBaseInlineContact();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30222,10 +30177,10 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InteractiveAnnotation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InteractiveAnnotation): InteractiveAnnotation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInteractiveAnnotation();
+    const message = into ?? createBaseInteractiveAnnotation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30256,7 +30211,7 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
             break;
           }
 
-          message.embeddedContent = EmbeddedContent.decode(reader, reader.uint32());
+          message.embeddedContent = EmbeddedContent.decode(reader, reader.uint32(), message.embeddedContent);
           continue;
         }
         case 8: {
@@ -30272,7 +30227,7 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
             break;
           }
 
-          message.location = Location.decode(reader, reader.uint32());
+          message.location = Location.decode(reader, reader.uint32(), message.location);
           continue;
         }
         case 3: {
@@ -30280,7 +30235,7 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
             break;
           }
 
-          message.newsletter = ContextInfo_ForwardedNewsletterMessageInfo.decode(reader, reader.uint32());
+          message.newsletter = ContextInfo_ForwardedNewsletterMessageInfo.decode(reader, reader.uint32(), message.newsletter);
           continue;
         }
         case 6: {
@@ -30296,7 +30251,7 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
             break;
           }
 
-          message.tapAction = TapLinkAction.decode(reader, reader.uint32());
+          message.tapAction = TapLinkAction.decode(reader, reader.uint32(), message.tapAction);
           continue;
         }
       }
@@ -30345,10 +30300,10 @@ export const InteractiveMessageAdditionalMetadata: MessageFns<InteractiveMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): InteractiveMessageAdditionalMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: InteractiveMessageAdditionalMetadata): InteractiveMessageAdditionalMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseInteractiveMessageAdditionalMetadata();
+    const message = into ?? createBaseInteractiveMessageAdditionalMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30406,10 +30361,10 @@ export const KeepInChat: MessageFns<KeepInChat> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): KeepInChat {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: KeepInChat): KeepInChat {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseKeepInChat();
+    const message = into ?? createBaseKeepInChat();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30434,7 +30389,7 @@ export const KeepInChat: MessageFns<KeepInChat> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 4: {
@@ -30509,10 +30464,10 @@ export const KeyExchangeMessage: MessageFns<KeyExchangeMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): KeyExchangeMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: KeyExchangeMessage): KeyExchangeMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseKeyExchangeMessage();
+    const message = into ?? createBaseKeyExchangeMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30591,10 +30546,10 @@ export const KeyId: MessageFns<KeyId> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): KeyId {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: KeyId): KeyId {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseKeyId();
+    const message = into ?? createBaseKeyId();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30637,10 +30592,10 @@ export const LIDMigrationMappingSyncMessage: MessageFns<LIDMigrationMappingSyncM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LIDMigrationMappingSyncMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LIDMigrationMappingSyncMessage): LIDMigrationMappingSyncMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLIDMigrationMappingSyncMessage();
+    const message = into ?? createBaseLIDMigrationMappingSyncMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30689,10 +30644,10 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LIDMigrationMapping {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LIDMigrationMapping): LIDMigrationMapping {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLIDMigrationMapping();
+    const message = into ?? createBaseLIDMigrationMapping();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30758,10 +30713,10 @@ export const LIDMigrationMappingSyncPayload: MessageFns<LIDMigrationMappingSyncP
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LIDMigrationMappingSyncPayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LIDMigrationMappingSyncPayload): LIDMigrationMappingSyncPayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLIDMigrationMappingSyncPayload();
+    const message = into ?? createBaseLIDMigrationMappingSyncPayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30828,10 +30783,10 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LabyrinthWaCommand {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LabyrinthWaCommand): LabyrinthWaCommand {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLabyrinthWaCommand();
+    const message = into ?? createBaseLabyrinthWaCommand();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30840,7 +30795,7 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
             break;
           }
 
-          message.createBackupInput = CreateBackupInput.decode(reader, reader.uint32());
+          message.createBackupInput = CreateBackupInput.decode(reader, reader.uint32(), message.createBackupInput);
           continue;
         }
         case 2: {
@@ -30848,7 +30803,7 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
             break;
           }
 
-          message.encryptMessageInput = EncryptMessageInput.decode(reader, reader.uint32());
+          message.encryptMessageInput = EncryptMessageInput.decode(reader, reader.uint32(), message.encryptMessageInput);
           continue;
         }
         case 3: {
@@ -30856,7 +30811,7 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
             break;
           }
 
-          message.decryptMessageInput = DecryptMessageInput.decode(reader, reader.uint32());
+          message.decryptMessageInput = DecryptMessageInput.decode(reader, reader.uint32(), message.decryptMessageInput);
           continue;
         }
         case 4: {
@@ -30864,7 +30819,7 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
             break;
           }
 
-          message.orfThreadIdInput = OrfThreadIdInput.decode(reader, reader.uint32());
+          message.orfThreadIdInput = OrfThreadIdInput.decode(reader, reader.uint32(), message.orfThreadIdInput);
           continue;
         }
       }
@@ -30912,10 +30867,10 @@ export const LegacyMessage: MessageFns<LegacyMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LegacyMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LegacyMessage): LegacyMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLegacyMessage();
+    const message = into ?? createBaseLegacyMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -30924,7 +30879,7 @@ export const LegacyMessage: MessageFns<LegacyMessage> = {
             break;
           }
 
-          message.eventResponseMessage = Message_EventResponseMessage.decode(reader, reader.uint32());
+          message.eventResponseMessage = Message_EventResponseMessage.decode(reader, reader.uint32(), message.eventResponseMessage);
           continue;
         }
         case 2: {
@@ -30932,7 +30887,7 @@ export const LegacyMessage: MessageFns<LegacyMessage> = {
             break;
           }
 
-          message.pollVote = Message_PollVoteMessage.decode(reader, reader.uint32());
+          message.pollVote = Message_PollVoteMessage.decode(reader, reader.uint32(), message.pollVote);
           continue;
         }
       }
@@ -30980,10 +30935,10 @@ export const LimitSharing: MessageFns<LimitSharing> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LimitSharing {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LimitSharing): LimitSharing {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLimitSharing();
+    const message = into ?? createBaseLimitSharing();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31059,10 +31014,10 @@ export const LocalizedName: MessageFns<LocalizedName> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): LocalizedName {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: LocalizedName): LocalizedName {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLocalizedName();
+    const message = into ?? createBaseLocalizedName();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31129,10 +31084,10 @@ export const Location: MessageFns<Location> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Location {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Location): Location {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseLocation();
+    const message = into ?? createBaseLocation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31193,10 +31148,10 @@ export const MediaData: MessageFns<MediaData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaData): MediaData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaData();
+    const message = into ?? createBaseMediaData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31242,10 +31197,10 @@ export const MediaDomainInfo: MessageFns<MediaDomainInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaDomainInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaDomainInfo): MediaDomainInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaDomainInfo();
+    const message = into ?? createBaseMediaDomainInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31345,10 +31300,10 @@ export const MediaEntry: MessageFns<MediaEntry> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaEntry): MediaEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaEntry();
+    const message = into ?? createBaseMediaEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31445,7 +31400,7 @@ export const MediaEntry: MessageFns<MediaEntry> = {
             break;
           }
 
-          message.downloadableThumbnail = MediaEntry_DownloadableThumbnail.decode(reader, reader.uint32());
+          message.downloadableThumbnail = MediaEntry_DownloadableThumbnail.decode(reader, reader.uint32(), message.downloadableThumbnail);
           continue;
         }
         case 13: {
@@ -31469,7 +31424,7 @@ export const MediaEntry: MessageFns<MediaEntry> = {
             break;
           }
 
-          message.progressiveJpegDetails = MediaEntry_ProgressiveJpegDetails.decode(reader, reader.uint32());
+          message.progressiveJpegDetails = MediaEntry_ProgressiveJpegDetails.decode(reader, reader.uint32(), message.progressiveJpegDetails);
           continue;
         }
         case 16: {
@@ -31556,10 +31511,10 @@ export const MediaEntry_DownloadableThumbnail: MessageFns<MediaEntry_Downloadabl
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaEntry_DownloadableThumbnail {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaEntry_DownloadableThumbnail): MediaEntry_DownloadableThumbnail {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaEntry_DownloadableThumbnail();
+    const message = into ?? createBaseMediaEntry_DownloadableThumbnail();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31652,10 +31607,10 @@ export const MediaEntry_ProgressiveJpegDetails: MessageFns<MediaEntry_Progressiv
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaEntry_ProgressiveJpegDetails {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaEntry_ProgressiveJpegDetails): MediaEntry_ProgressiveJpegDetails {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaEntry_ProgressiveJpegDetails();
+    const message = into ?? createBaseMediaEntry_ProgressiveJpegDetails();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31729,10 +31684,10 @@ export const MediaNotifyMessage: MessageFns<MediaNotifyMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaNotifyMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaNotifyMessage): MediaNotifyMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaNotifyMessage();
+    const message = into ?? createBaseMediaNotifyMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31802,10 +31757,10 @@ export const MediaRetryNotification: MessageFns<MediaRetryNotification> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MediaRetryNotification {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MediaRetryNotification): MediaRetryNotification {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMediaRetryNotification();
+    const message = into ?? createBaseMediaRetryNotification();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31878,10 +31833,10 @@ export const MemberLabel: MessageFns<MemberLabel> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MemberLabel {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MemberLabel): MemberLabel {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMemberLabel();
+    const message = into ?? createBaseMemberLabel();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -31942,10 +31897,10 @@ export const Mention: MessageFns<Mention> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Mention {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Mention): Mention {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMention();
+    const message = into ?? createBaseMention();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -32345,10 +32300,10 @@ export const Message: MessageFns<Message> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message): Message {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage();
+    const message = into ?? createBaseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -32365,7 +32320,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.senderKeyDistributionMessage = Message_SenderKeyDistributionMessage.decode(reader, reader.uint32());
+          message.senderKeyDistributionMessage = Message_SenderKeyDistributionMessage.decode(reader, reader.uint32(), message.senderKeyDistributionMessage);
           continue;
         }
         case 3: {
@@ -32373,7 +32328,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 4: {
@@ -32381,7 +32336,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.contactMessage = Message_ContactMessage.decode(reader, reader.uint32());
+          message.contactMessage = Message_ContactMessage.decode(reader, reader.uint32(), message.contactMessage);
           continue;
         }
         case 5: {
@@ -32389,7 +32344,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
         case 6: {
@@ -32397,7 +32352,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.extendedTextMessage = Message_ExtendedTextMessage.decode(reader, reader.uint32());
+          message.extendedTextMessage = Message_ExtendedTextMessage.decode(reader, reader.uint32(), message.extendedTextMessage);
           continue;
         }
         case 7: {
@@ -32405,7 +32360,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 8: {
@@ -32413,7 +32368,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.audioMessage = Message_AudioMessage.decode(reader, reader.uint32());
+          message.audioMessage = Message_AudioMessage.decode(reader, reader.uint32(), message.audioMessage);
           continue;
         }
         case 9: {
@@ -32421,7 +32376,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 10: {
@@ -32429,7 +32384,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.call = Message_Call.decode(reader, reader.uint32());
+          message.call = Message_Call.decode(reader, reader.uint32(), message.call);
           continue;
         }
         case 11: {
@@ -32437,7 +32392,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.chat = Message_Chat.decode(reader, reader.uint32());
+          message.chat = Message_Chat.decode(reader, reader.uint32(), message.chat);
           continue;
         }
         case 12: {
@@ -32445,7 +32400,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.protocolMessage = Message_ProtocolMessage.decode(reader, reader.uint32());
+          message.protocolMessage = Message_ProtocolMessage.decode(reader, reader.uint32(), message.protocolMessage);
           continue;
         }
         case 13: {
@@ -32453,7 +32408,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.contactsArrayMessage = Message_ContactsArrayMessage.decode(reader, reader.uint32());
+          message.contactsArrayMessage = Message_ContactsArrayMessage.decode(reader, reader.uint32(), message.contactsArrayMessage);
           continue;
         }
         case 14: {
@@ -32461,7 +32416,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.highlyStructuredMessage = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.highlyStructuredMessage = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.highlyStructuredMessage);
           continue;
         }
         case 15: {
@@ -32469,10 +32424,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.fastRatchetKeySenderKeyDistributionMessage = Message_SenderKeyDistributionMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.fastRatchetKeySenderKeyDistributionMessage = Message_SenderKeyDistributionMessage.decode(reader, reader.uint32(), message.fastRatchetKeySenderKeyDistributionMessage);
           continue;
         }
         case 16: {
@@ -32480,7 +32432,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.sendPaymentMessage = Message_SendPaymentMessage.decode(reader, reader.uint32());
+          message.sendPaymentMessage = Message_SendPaymentMessage.decode(reader, reader.uint32(), message.sendPaymentMessage);
           continue;
         }
         case 18: {
@@ -32488,7 +32440,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.liveLocationMessage = Message_LiveLocationMessage.decode(reader, reader.uint32());
+          message.liveLocationMessage = Message_LiveLocationMessage.decode(reader, reader.uint32(), message.liveLocationMessage);
           continue;
         }
         case 22: {
@@ -32496,7 +32448,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.requestPaymentMessage = Message_RequestPaymentMessage.decode(reader, reader.uint32());
+          message.requestPaymentMessage = Message_RequestPaymentMessage.decode(reader, reader.uint32(), message.requestPaymentMessage);
           continue;
         }
         case 23: {
@@ -32504,7 +32456,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.declinePaymentRequestMessage = Message_DeclinePaymentRequestMessage.decode(reader, reader.uint32());
+          message.declinePaymentRequestMessage = Message_DeclinePaymentRequestMessage.decode(reader, reader.uint32(), message.declinePaymentRequestMessage);
           continue;
         }
         case 24: {
@@ -32512,7 +32464,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.cancelPaymentRequestMessage = Message_CancelPaymentRequestMessage.decode(reader, reader.uint32());
+          message.cancelPaymentRequestMessage = Message_CancelPaymentRequestMessage.decode(reader, reader.uint32(), message.cancelPaymentRequestMessage);
           continue;
         }
         case 25: {
@@ -32520,7 +32472,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.templateMessage = Message_TemplateMessage.decode(reader, reader.uint32());
+          message.templateMessage = Message_TemplateMessage.decode(reader, reader.uint32(), message.templateMessage);
           continue;
         }
         case 26: {
@@ -32528,7 +32480,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.stickerMessage = Message_StickerMessage.decode(reader, reader.uint32());
+          message.stickerMessage = Message_StickerMessage.decode(reader, reader.uint32(), message.stickerMessage);
           continue;
         }
         case 28: {
@@ -32536,7 +32488,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupInviteMessage = Message_GroupInviteMessage.decode(reader, reader.uint32());
+          message.groupInviteMessage = Message_GroupInviteMessage.decode(reader, reader.uint32(), message.groupInviteMessage);
           continue;
         }
         case 29: {
@@ -32544,7 +32496,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.templateButtonReplyMessage = Message_TemplateButtonReplyMessage.decode(reader, reader.uint32());
+          message.templateButtonReplyMessage = Message_TemplateButtonReplyMessage.decode(reader, reader.uint32(), message.templateButtonReplyMessage);
           continue;
         }
         case 30: {
@@ -32552,7 +32504,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.productMessage = Message_ProductMessage.decode(reader, reader.uint32());
+          message.productMessage = Message_ProductMessage.decode(reader, reader.uint32(), message.productMessage);
           continue;
         }
         case 31: {
@@ -32560,7 +32512,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.deviceSentMessage = Message_DeviceSentMessage.decode(reader, reader.uint32());
+          message.deviceSentMessage = Message_DeviceSentMessage.decode(reader, reader.uint32(), message.deviceSentMessage);
           continue;
         }
         case 35: {
@@ -32568,7 +32520,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.messageContextInfo = MessageContextInfo.decode(reader, reader.uint32());
+          message.messageContextInfo = MessageContextInfo.decode(reader, reader.uint32(), message.messageContextInfo);
           continue;
         }
         case 36: {
@@ -32576,7 +32528,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.listMessage = Message_ListMessage.decode(reader, reader.uint32());
+          message.listMessage = Message_ListMessage.decode(reader, reader.uint32(), message.listMessage);
           continue;
         }
         case 37: {
@@ -32584,7 +32536,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.viewOnceMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.viewOnceMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.viewOnceMessage);
           continue;
         }
         case 38: {
@@ -32592,7 +32544,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.orderMessage = Message_OrderMessage.decode(reader, reader.uint32());
+          message.orderMessage = Message_OrderMessage.decode(reader, reader.uint32(), message.orderMessage);
           continue;
         }
         case 39: {
@@ -32600,7 +32552,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.listResponseMessage = Message_ListResponseMessage.decode(reader, reader.uint32());
+          message.listResponseMessage = Message_ListResponseMessage.decode(reader, reader.uint32(), message.listResponseMessage);
           continue;
         }
         case 40: {
@@ -32608,7 +32560,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.ephemeralMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.ephemeralMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.ephemeralMessage);
           continue;
         }
         case 41: {
@@ -32616,7 +32568,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.invoiceMessage = Message_InvoiceMessage.decode(reader, reader.uint32());
+          message.invoiceMessage = Message_InvoiceMessage.decode(reader, reader.uint32(), message.invoiceMessage);
           continue;
         }
         case 42: {
@@ -32624,7 +32576,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.buttonsMessage = Message_ButtonsMessage.decode(reader, reader.uint32());
+          message.buttonsMessage = Message_ButtonsMessage.decode(reader, reader.uint32(), message.buttonsMessage);
           continue;
         }
         case 43: {
@@ -32632,7 +32584,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.buttonsResponseMessage = Message_ButtonsResponseMessage.decode(reader, reader.uint32());
+          message.buttonsResponseMessage = Message_ButtonsResponseMessage.decode(reader, reader.uint32(), message.buttonsResponseMessage);
           continue;
         }
         case 44: {
@@ -32640,7 +32592,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.paymentInviteMessage = Message_PaymentInviteMessage.decode(reader, reader.uint32());
+          message.paymentInviteMessage = Message_PaymentInviteMessage.decode(reader, reader.uint32(), message.paymentInviteMessage);
           continue;
         }
         case 45: {
@@ -32648,7 +32600,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.interactiveMessage = Message_InteractiveMessage.decode(reader, reader.uint32());
+          message.interactiveMessage = Message_InteractiveMessage.decode(reader, reader.uint32(), message.interactiveMessage);
           continue;
         }
         case 46: {
@@ -32656,7 +32608,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.reactionMessage = Message_ReactionMessage.decode(reader, reader.uint32());
+          message.reactionMessage = Message_ReactionMessage.decode(reader, reader.uint32(), message.reactionMessage);
           continue;
         }
         case 47: {
@@ -32664,7 +32616,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.stickerSyncRmrMessage = Message_StickerSyncRMRMessage.decode(reader, reader.uint32());
+          message.stickerSyncRmrMessage = Message_StickerSyncRMRMessage.decode(reader, reader.uint32(), message.stickerSyncRmrMessage);
           continue;
         }
         case 48: {
@@ -32672,7 +32624,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.interactiveResponseMessage = Message_InteractiveResponseMessage.decode(reader, reader.uint32());
+          message.interactiveResponseMessage = Message_InteractiveResponseMessage.decode(reader, reader.uint32(), message.interactiveResponseMessage);
           continue;
         }
         case 49: {
@@ -32680,7 +32632,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessage = Message_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessage = Message_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessage);
           continue;
         }
         case 50: {
@@ -32688,7 +32640,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollUpdateMessage = Message_PollUpdateMessage.decode(reader, reader.uint32());
+          message.pollUpdateMessage = Message_PollUpdateMessage.decode(reader, reader.uint32(), message.pollUpdateMessage);
           continue;
         }
         case 51: {
@@ -32696,7 +32648,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.keepInChatMessage = Message_KeepInChatMessage.decode(reader, reader.uint32());
+          message.keepInChatMessage = Message_KeepInChatMessage.decode(reader, reader.uint32(), message.keepInChatMessage);
           continue;
         }
         case 53: {
@@ -32704,7 +32656,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.documentWithCaptionMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.documentWithCaptionMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.documentWithCaptionMessage);
           continue;
         }
         case 54: {
@@ -32712,7 +32664,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.requestPhoneNumberMessage = Message_RequestPhoneNumberMessage.decode(reader, reader.uint32());
+          message.requestPhoneNumberMessage = Message_RequestPhoneNumberMessage.decode(reader, reader.uint32(), message.requestPhoneNumberMessage);
           continue;
         }
         case 55: {
@@ -32720,7 +32672,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.viewOnceMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.viewOnceMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32(), message.viewOnceMessageV2);
           continue;
         }
         case 56: {
@@ -32728,7 +32680,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.encReactionMessage = Message_EncReactionMessage.decode(reader, reader.uint32());
+          message.encReactionMessage = Message_EncReactionMessage.decode(reader, reader.uint32(), message.encReactionMessage);
           continue;
         }
         case 58: {
@@ -32736,7 +32688,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.editedMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.editedMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.editedMessage);
           continue;
         }
         case 59: {
@@ -32744,7 +32696,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.viewOnceMessageV2Extension = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.viewOnceMessageV2Extension = Message_FutureProofMessage.decode(reader, reader.uint32(), message.viewOnceMessageV2Extension);
           continue;
         }
         case 60: {
@@ -32752,7 +32704,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessageV2 = Message_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessageV2 = Message_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessageV2);
           continue;
         }
         case 61: {
@@ -32760,7 +32712,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.scheduledCallCreationMessage = Message_ScheduledCallCreationMessage.decode(reader, reader.uint32());
+          message.scheduledCallCreationMessage = Message_ScheduledCallCreationMessage.decode(reader, reader.uint32(), message.scheduledCallCreationMessage);
           continue;
         }
         case 62: {
@@ -32768,7 +32720,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupMentionedMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.groupMentionedMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.groupMentionedMessage);
           continue;
         }
         case 63: {
@@ -32776,7 +32728,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pinInChatMessage = Message_PinInChatMessage.decode(reader, reader.uint32());
+          message.pinInChatMessage = Message_PinInChatMessage.decode(reader, reader.uint32(), message.pinInChatMessage);
           continue;
         }
         case 64: {
@@ -32784,7 +32736,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessageV3 = Message_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessageV3 = Message_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessageV3);
           continue;
         }
         case 65: {
@@ -32792,7 +32744,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.scheduledCallEditMessage = Message_ScheduledCallEditMessage.decode(reader, reader.uint32());
+          message.scheduledCallEditMessage = Message_ScheduledCallEditMessage.decode(reader, reader.uint32(), message.scheduledCallEditMessage);
           continue;
         }
         case 66: {
@@ -32800,7 +32752,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.ptvMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.ptvMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.ptvMessage);
           continue;
         }
         case 67: {
@@ -32808,7 +32760,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.botInvokeMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.botInvokeMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.botInvokeMessage);
           continue;
         }
         case 69: {
@@ -32816,7 +32768,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.callLogMesssage = Message_CallLogMessage.decode(reader, reader.uint32());
+          message.callLogMesssage = Message_CallLogMessage.decode(reader, reader.uint32(), message.callLogMesssage);
           continue;
         }
         case 70: {
@@ -32824,7 +32776,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.messageHistoryBundle = Message_MessageHistoryBundle.decode(reader, reader.uint32());
+          message.messageHistoryBundle = Message_MessageHistoryBundle.decode(reader, reader.uint32(), message.messageHistoryBundle);
           continue;
         }
         case 71: {
@@ -32832,7 +32784,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.encCommentMessage = Message_EncCommentMessage.decode(reader, reader.uint32());
+          message.encCommentMessage = Message_EncCommentMessage.decode(reader, reader.uint32(), message.encCommentMessage);
           continue;
         }
         case 72: {
@@ -32840,7 +32792,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.bcallMessage = Message_BCallMessage.decode(reader, reader.uint32());
+          message.bcallMessage = Message_BCallMessage.decode(reader, reader.uint32(), message.bcallMessage);
           continue;
         }
         case 74: {
@@ -32848,7 +32800,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.lottieStickerMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.lottieStickerMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.lottieStickerMessage);
           continue;
         }
         case 75: {
@@ -32856,7 +32808,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.eventMessage = Message_EventMessage.decode(reader, reader.uint32());
+          message.eventMessage = Message_EventMessage.decode(reader, reader.uint32(), message.eventMessage);
           continue;
         }
         case 76: {
@@ -32864,7 +32816,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.encEventResponseMessage = Message_EncEventResponseMessage.decode(reader, reader.uint32());
+          message.encEventResponseMessage = Message_EncEventResponseMessage.decode(reader, reader.uint32(), message.encEventResponseMessage);
           continue;
         }
         case 77: {
@@ -32872,7 +32824,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.commentMessage = Message_CommentMessage.decode(reader, reader.uint32());
+          message.commentMessage = Message_CommentMessage.decode(reader, reader.uint32(), message.commentMessage);
           continue;
         }
         case 78: {
@@ -32880,7 +32832,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.newsletterAdminInviteMessage = Message_NewsletterAdminInviteMessage.decode(reader, reader.uint32());
+          message.newsletterAdminInviteMessage = Message_NewsletterAdminInviteMessage.decode(reader, reader.uint32(), message.newsletterAdminInviteMessage);
           continue;
         }
         case 80: {
@@ -32888,7 +32840,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.placeholderMessage = Message_PlaceholderMessage.decode(reader, reader.uint32());
+          message.placeholderMessage = Message_PlaceholderMessage.decode(reader, reader.uint32(), message.placeholderMessage);
           continue;
         }
         case 82: {
@@ -32896,7 +32848,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.secretEncryptedMessage = Message_SecretEncryptedMessage.decode(reader, reader.uint32());
+          message.secretEncryptedMessage = Message_SecretEncryptedMessage.decode(reader, reader.uint32(), message.secretEncryptedMessage);
           continue;
         }
         case 83: {
@@ -32904,7 +32856,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.albumMessage = Message_AlbumMessage.decode(reader, reader.uint32());
+          message.albumMessage = Message_AlbumMessage.decode(reader, reader.uint32(), message.albumMessage);
           continue;
         }
         case 85: {
@@ -32912,7 +32864,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.eventCoverImage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.eventCoverImage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.eventCoverImage);
           continue;
         }
         case 86: {
@@ -32920,7 +32872,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.stickerPackMessage = Message_StickerPackMessage.decode(reader, reader.uint32());
+          message.stickerPackMessage = Message_StickerPackMessage.decode(reader, reader.uint32(), message.stickerPackMessage);
           continue;
         }
         case 87: {
@@ -32928,7 +32880,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusMentionMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.statusMentionMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.statusMentionMessage);
           continue;
         }
         case 88: {
@@ -32936,7 +32888,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollResultSnapshotMessage = Message_PollResultSnapshotMessage.decode(reader, reader.uint32());
+          message.pollResultSnapshotMessage = Message_PollResultSnapshotMessage.decode(reader, reader.uint32(), message.pollResultSnapshotMessage);
           continue;
         }
         case 90: {
@@ -32944,7 +32896,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationOptionImageMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.pollCreationOptionImageMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.pollCreationOptionImageMessage);
           continue;
         }
         case 91: {
@@ -32952,7 +32904,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.associatedChildMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.associatedChildMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.associatedChildMessage);
           continue;
         }
         case 92: {
@@ -32960,7 +32912,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupStatusMentionMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.groupStatusMentionMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.groupStatusMentionMessage);
           continue;
         }
         case 93: {
@@ -32968,7 +32920,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessageV4 = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.pollCreationMessageV4 = Message_FutureProofMessage.decode(reader, reader.uint32(), message.pollCreationMessageV4);
           continue;
         }
         case 95: {
@@ -32976,7 +32928,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusAddYours = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.statusAddYours = Message_FutureProofMessage.decode(reader, reader.uint32(), message.statusAddYours);
           continue;
         }
         case 96: {
@@ -32984,7 +32936,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupStatusMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.groupStatusMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.groupStatusMessage);
           continue;
         }
         case 97: {
@@ -32992,7 +32944,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.richResponseMessage = AIRichResponseMessage.decode(reader, reader.uint32());
+          message.richResponseMessage = AIRichResponseMessage.decode(reader, reader.uint32(), message.richResponseMessage);
           continue;
         }
         case 98: {
@@ -33000,7 +32952,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusNotificationMessage = Message_StatusNotificationMessage.decode(reader, reader.uint32());
+          message.statusNotificationMessage = Message_StatusNotificationMessage.decode(reader, reader.uint32(), message.statusNotificationMessage);
           continue;
         }
         case 99: {
@@ -33008,7 +32960,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.limitSharingMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.limitSharingMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.limitSharingMessage);
           continue;
         }
         case 100: {
@@ -33016,7 +32968,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.botTaskMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.botTaskMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.botTaskMessage);
           continue;
         }
         case 101: {
@@ -33024,7 +32976,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.questionMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.questionMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.questionMessage);
           continue;
         }
         case 102: {
@@ -33032,7 +32984,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.messageHistoryNotice = Message_MessageHistoryNotice.decode(reader, reader.uint32());
+          message.messageHistoryNotice = Message_MessageHistoryNotice.decode(reader, reader.uint32(), message.messageHistoryNotice);
           continue;
         }
         case 103: {
@@ -33040,7 +32992,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupStatusMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.groupStatusMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32(), message.groupStatusMessageV2);
           continue;
         }
         case 104: {
@@ -33048,7 +33000,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.botForwardedMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.botForwardedMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.botForwardedMessage);
           continue;
         }
         case 105: {
@@ -33056,7 +33008,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusQuestionAnswerMessage = Message_StatusQuestionAnswerMessage.decode(reader, reader.uint32());
+          message.statusQuestionAnswerMessage = Message_StatusQuestionAnswerMessage.decode(reader, reader.uint32(), message.statusQuestionAnswerMessage);
           continue;
         }
         case 106: {
@@ -33064,7 +33016,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.questionReplyMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.questionReplyMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.questionReplyMessage);
           continue;
         }
         case 107: {
@@ -33072,7 +33024,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.questionResponseMessage = Message_QuestionResponseMessage.decode(reader, reader.uint32());
+          message.questionResponseMessage = Message_QuestionResponseMessage.decode(reader, reader.uint32(), message.questionResponseMessage);
           continue;
         }
         case 109: {
@@ -33080,7 +33032,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusQuotedMessage = Message_StatusQuotedMessage.decode(reader, reader.uint32());
+          message.statusQuotedMessage = Message_StatusQuotedMessage.decode(reader, reader.uint32(), message.statusQuotedMessage);
           continue;
         }
         case 110: {
@@ -33088,10 +33040,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.statusStickerInteractionMessage = Message_StatusStickerInteractionMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.statusStickerInteractionMessage = Message_StatusStickerInteractionMessage.decode(reader, reader.uint32(), message.statusStickerInteractionMessage);
           continue;
         }
         case 111: {
@@ -33099,7 +33048,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessageV5 = Message_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessageV5 = Message_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessageV5);
           continue;
         }
         case 113: {
@@ -33107,10 +33056,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.newsletterFollowerInviteMessageV2 = Message_NewsletterFollowerInviteMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.newsletterFollowerInviteMessageV2 = Message_NewsletterFollowerInviteMessage.decode(reader, reader.uint32(), message.newsletterFollowerInviteMessageV2);
           continue;
         }
         case 115: {
@@ -33118,7 +33064,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollResultSnapshotMessageV3 = Message_PollResultSnapshotMessage.decode(reader, reader.uint32());
+          message.pollResultSnapshotMessageV3 = Message_PollResultSnapshotMessage.decode(reader, reader.uint32(), message.pollResultSnapshotMessageV3);
           continue;
         }
         case 116: {
@@ -33126,7 +33072,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.newsletterAdminProfileMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.newsletterAdminProfileMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.newsletterAdminProfileMessage);
           continue;
         }
         case 117: {
@@ -33134,7 +33080,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.newsletterAdminProfileMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.newsletterAdminProfileMessageV2 = Message_FutureProofMessage.decode(reader, reader.uint32(), message.newsletterAdminProfileMessageV2);
           continue;
         }
         case 118: {
@@ -33142,7 +33088,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.spoilerMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.spoilerMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.spoilerMessage);
           continue;
         }
         case 119: {
@@ -33150,7 +33096,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollCreationMessageV6 = Message_PollCreationMessage.decode(reader, reader.uint32());
+          message.pollCreationMessageV6 = Message_PollCreationMessage.decode(reader, reader.uint32(), message.pollCreationMessageV6);
           continue;
         }
         case 120: {
@@ -33158,7 +33104,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.conditionalRevealMessage = Message_ConditionalRevealMessage.decode(reader, reader.uint32());
+          message.conditionalRevealMessage = Message_ConditionalRevealMessage.decode(reader, reader.uint32(), message.conditionalRevealMessage);
           continue;
         }
         case 121: {
@@ -33166,7 +33112,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.pollAddOptionMessage = Message_PollAddOptionMessage.decode(reader, reader.uint32());
+          message.pollAddOptionMessage = Message_PollAddOptionMessage.decode(reader, reader.uint32(), message.pollAddOptionMessage);
           continue;
         }
         case 122: {
@@ -33174,7 +33120,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.eventInviteMessage = Message_EventInviteMessage.decode(reader, reader.uint32());
+          message.eventInviteMessage = Message_EventInviteMessage.decode(reader, reader.uint32(), message.eventInviteMessage);
           continue;
         }
         case 123: {
@@ -33182,7 +33128,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.groupRootKeyShare = GroupRootKeyShare.decode(reader, reader.uint32());
+          message.groupRootKeyShare = GroupRootKeyShare.decode(reader, reader.uint32(), message.groupRootKeyShare);
           continue;
         }
         case 124: {
@@ -33190,7 +33136,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.paymentReminderMessage = Message_PaymentReminderMessage.decode(reader, reader.uint32());
+          message.paymentReminderMessage = Message_PaymentReminderMessage.decode(reader, reader.uint32(), message.paymentReminderMessage);
           continue;
         }
         case 125: {
@@ -33198,7 +33144,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.splitPaymentMessage = Message_SplitPaymentMessage.decode(reader, reader.uint32());
+          message.splitPaymentMessage = Message_SplitPaymentMessage.decode(reader, reader.uint32(), message.splitPaymentMessage);
           continue;
         }
         case 126: {
@@ -33206,7 +33152,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.newsletterAdminProfileStatusMessage = Message_FutureProofMessage.decode(reader, reader.uint32());
+          message.newsletterAdminProfileStatusMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.newsletterAdminProfileStatusMessage);
           continue;
         }
         case 127: {
@@ -33214,7 +33160,7 @@ export const Message: MessageFns<Message> = {
             break;
           }
 
-          message.rootSecretDistributeMessage = Message_RootSecretDistributeMessage.decode(reader, reader.uint32());
+          message.rootSecretDistributeMessage = Message_RootSecretDistributeMessage.decode(reader, reader.uint32(), message.rootSecretDistributeMessage);
           continue;
         }
       }
@@ -33613,10 +33559,10 @@ export const Message_AlbumMessage: MessageFns<Message_AlbumMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AlbumMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AlbumMessage): Message_AlbumMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AlbumMessage();
+    const message = into ?? createBaseMessage_AlbumMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -33641,7 +33587,7 @@ export const Message_AlbumMessage: MessageFns<Message_AlbumMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -33684,10 +33630,10 @@ export const Message_AppStateFatalExceptionNotification: MessageFns<Message_AppS
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateFatalExceptionNotification {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateFatalExceptionNotification): Message_AppStateFatalExceptionNotification {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateFatalExceptionNotification();
+    const message = into ?? createBaseMessage_AppStateFatalExceptionNotification();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -33750,10 +33696,10 @@ export const Message_AppStateSyncKey: MessageFns<Message_AppStateSyncKey> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKey): Message_AppStateSyncKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKey();
+    const message = into ?? createBaseMessage_AppStateSyncKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -33762,7 +33708,7 @@ export const Message_AppStateSyncKey: MessageFns<Message_AppStateSyncKey> = {
             break;
           }
 
-          message.keyId = Message_AppStateSyncKeyId.decode(reader, reader.uint32());
+          message.keyId = Message_AppStateSyncKeyId.decode(reader, reader.uint32(), message.keyId);
           continue;
         }
         case 2: {
@@ -33770,7 +33716,7 @@ export const Message_AppStateSyncKey: MessageFns<Message_AppStateSyncKey> = {
             break;
           }
 
-          message.keyData = Message_AppStateSyncKeyData.decode(reader, reader.uint32());
+          message.keyData = Message_AppStateSyncKeyData.decode(reader, reader.uint32(), message.keyData);
           continue;
         }
       }
@@ -33815,10 +33761,10 @@ export const Message_AppStateSyncKeyData: MessageFns<Message_AppStateSyncKeyData
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKeyData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKeyData): Message_AppStateSyncKeyData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKeyData();
+    const message = into ?? createBaseMessage_AppStateSyncKeyData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -33835,7 +33781,7 @@ export const Message_AppStateSyncKeyData: MessageFns<Message_AppStateSyncKeyData
             break;
           }
 
-          message.fingerprint = Message_AppStateSyncKeyFingerprint.decode(reader, reader.uint32());
+          message.fingerprint = Message_AppStateSyncKeyFingerprint.decode(reader, reader.uint32(), message.fingerprint);
           continue;
         }
         case 3: {
@@ -33891,10 +33837,10 @@ export const Message_AppStateSyncKeyFingerprint: MessageFns<Message_AppStateSync
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKeyFingerprint {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKeyFingerprint): Message_AppStateSyncKeyFingerprint {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKeyFingerprint();
+    const message = into ?? createBaseMessage_AppStateSyncKeyFingerprint();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -33971,10 +33917,10 @@ export const Message_AppStateSyncKeyId: MessageFns<Message_AppStateSyncKeyId> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKeyId {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKeyId): Message_AppStateSyncKeyId {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKeyId();
+    const message = into ?? createBaseMessage_AppStateSyncKeyId();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34019,10 +33965,10 @@ export const Message_AppStateSyncKeyRequest: MessageFns<Message_AppStateSyncKeyR
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKeyRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKeyRequest): Message_AppStateSyncKeyRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKeyRequest();
+    const message = into ?? createBaseMessage_AppStateSyncKeyRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34073,10 +34019,10 @@ export const Message_AppStateSyncKeyShare: MessageFns<Message_AppStateSyncKeySha
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AppStateSyncKeyShare {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AppStateSyncKeyShare): Message_AppStateSyncKeyShare {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AppStateSyncKeyShare();
+    const message = into ?? createBaseMessage_AppStateSyncKeyShare();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34170,10 +34116,10 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_AudioMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_AudioMessage): Message_AudioMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_AudioMessage();
+    const message = into ?? createBaseMessage_AudioMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34262,7 +34208,7 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -34362,10 +34308,10 @@ export const Message_BCallMessage: MessageFns<Message_BCallMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_BCallMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_BCallMessage): Message_BCallMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_BCallMessage();
+    const message = into ?? createBaseMessage_BCallMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34464,10 +34410,10 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ButtonsMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ButtonsMessage): Message_ButtonsMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ButtonsMessage();
+    const message = into ?? createBaseMessage_ButtonsMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34492,7 +34438,7 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 9: {
@@ -34530,7 +34476,7 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
             break;
           }
 
-          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 3: {
@@ -34538,7 +34484,7 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
             break;
           }
 
-          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 4: {
@@ -34546,7 +34492,7 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
             break;
           }
 
-          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 5: {
@@ -34554,7 +34500,7 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
             break;
           }
 
-          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
       }
@@ -34616,10 +34562,10 @@ export const Message_ButtonsMessage_Button: MessageFns<Message_ButtonsMessage_Bu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ButtonsMessage_Button {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ButtonsMessage_Button): Message_ButtonsMessage_Button {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ButtonsMessage_Button();
+    const message = into ?? createBaseMessage_ButtonsMessage_Button();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34636,7 +34582,7 @@ export const Message_ButtonsMessage_Button: MessageFns<Message_ButtonsMessage_Bu
             break;
           }
 
-          message.buttonText = Message_ButtonsMessage_Button_ButtonText.decode(reader, reader.uint32());
+          message.buttonText = Message_ButtonsMessage_Button_ButtonText.decode(reader, reader.uint32(), message.buttonText);
           continue;
         }
         case 3: {
@@ -34652,7 +34598,7 @@ export const Message_ButtonsMessage_Button: MessageFns<Message_ButtonsMessage_Bu
             break;
           }
 
-          message.nativeFlowInfo = Message_ButtonsMessage_Button_NativeFlowInfo.decode(reader, reader.uint32());
+          message.nativeFlowInfo = Message_ButtonsMessage_Button_NativeFlowInfo.decode(reader, reader.uint32(), message.nativeFlowInfo);
           continue;
         }
       }
@@ -34693,10 +34639,10 @@ export const Message_ButtonsMessage_Button_ButtonText: MessageFns<Message_Button
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ButtonsMessage_Button_ButtonText {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ButtonsMessage_Button_ButtonText): Message_ButtonsMessage_Button_ButtonText {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ButtonsMessage_Button_ButtonText();
+    const message = into ?? createBaseMessage_ButtonsMessage_Button_ButtonText();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34745,10 +34691,10 @@ export const Message_ButtonsMessage_Button_NativeFlowInfo: MessageFns<Message_Bu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ButtonsMessage_Button_NativeFlowInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ButtonsMessage_Button_NativeFlowInfo): Message_ButtonsMessage_Button_NativeFlowInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ButtonsMessage_Button_NativeFlowInfo();
+    const message = into ?? createBaseMessage_ButtonsMessage_Button_NativeFlowInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34813,10 +34759,10 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ButtonsResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ButtonsResponseMessage): Message_ButtonsResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ButtonsResponseMessage();
+    const message = into ?? createBaseMessage_ButtonsResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34833,7 +34779,7 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 4: {
@@ -34918,10 +34864,10 @@ export const Message_Call: MessageFns<Message_Call> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_Call {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_Call): Message_Call {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_Call();
+    const message = into ?? createBaseMessage_Call();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -34978,7 +34924,7 @@ export const Message_Call: MessageFns<Message_Call> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 8: {
@@ -35002,7 +34948,7 @@ export const Message_Call: MessageFns<Message_Call> = {
             break;
           }
 
-          message.messageContextInfo = MessageContextInfo.decode(reader, reader.uint32());
+          message.messageContextInfo = MessageContextInfo.decode(reader, reader.uint32(), message.messageContextInfo);
           continue;
         }
         case 11: {
@@ -35072,10 +35018,10 @@ export const Message_CallLogMessage: MessageFns<Message_CallLogMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_CallLogMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CallLogMessage): Message_CallLogMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CallLogMessage();
+    const message = into ?? createBaseMessage_CallLogMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35164,10 +35110,10 @@ export const Message_CallLogMessage_CallParticipant: MessageFns<Message_CallLogM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_CallLogMessage_CallParticipant {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CallLogMessage_CallParticipant): Message_CallLogMessage_CallParticipant {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CallLogMessage_CallParticipant();
+    const message = into ?? createBaseMessage_CallLogMessage_CallParticipant();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35219,10 +35165,10 @@ export const Message_CancelPaymentRequestMessage: MessageFns<Message_CancelPayme
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_CancelPaymentRequestMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CancelPaymentRequestMessage): Message_CancelPaymentRequestMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CancelPaymentRequestMessage();
+    const message = into ?? createBaseMessage_CancelPaymentRequestMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35231,7 +35177,7 @@ export const Message_CancelPaymentRequestMessage: MessageFns<Message_CancelPayme
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
       }
@@ -35268,10 +35214,10 @@ export const Message_Chat: MessageFns<Message_Chat> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_Chat {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_Chat): Message_Chat {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_Chat();
+    const message = into ?? createBaseMessage_Chat();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35335,10 +35281,10 @@ export const Message_ChatCustomImageWallpaper: MessageFns<Message_ChatCustomImag
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ChatCustomImageWallpaper {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ChatCustomImageWallpaper): Message_ChatCustomImageWallpaper {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ChatCustomImageWallpaper();
+    const message = into ?? createBaseMessage_ChatCustomImageWallpaper();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35417,10 +35363,10 @@ export const Message_ChatDefaultWallpaper: MessageFns<Message_ChatDefaultWallpap
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ChatDefaultWallpaper {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ChatDefaultWallpaper): Message_ChatDefaultWallpaper {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ChatDefaultWallpaper();
+    const message = into ?? createBaseMessage_ChatDefaultWallpaper();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35469,10 +35415,10 @@ export const Message_ChatSolidColorWallpaper: MessageFns<Message_ChatSolidColorW
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ChatSolidColorWallpaper {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ChatSolidColorWallpaper): Message_ChatSolidColorWallpaper {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ChatSolidColorWallpaper();
+    const message = into ?? createBaseMessage_ChatSolidColorWallpaper();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35536,10 +35482,10 @@ export const Message_ChatStockImageWallpaper: MessageFns<Message_ChatStockImageW
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ChatStockImageWallpaper {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ChatStockImageWallpaper): Message_ChatStockImageWallpaper {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ChatStockImageWallpaper();
+    const message = into ?? createBaseMessage_ChatStockImageWallpaper();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35609,10 +35555,10 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ChatThemeSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ChatThemeSetting): Message_ChatThemeSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ChatThemeSetting();
+    const message = into ?? createBaseMessage_ChatThemeSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35645,7 +35591,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
             break;
           }
 
-          message.defaultWallpaper = Message_ChatDefaultWallpaper.decode(reader, reader.uint32());
+          message.defaultWallpaper = Message_ChatDefaultWallpaper.decode(reader, reader.uint32(), message.defaultWallpaper);
           continue;
         }
         case 11: {
@@ -35653,7 +35599,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
             break;
           }
 
-          message.solidColor = Message_ChatSolidColorWallpaper.decode(reader, reader.uint32());
+          message.solidColor = Message_ChatSolidColorWallpaper.decode(reader, reader.uint32(), message.solidColor);
           continue;
         }
         case 12: {
@@ -35661,7 +35607,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
             break;
           }
 
-          message.stockImage = Message_ChatStockImageWallpaper.decode(reader, reader.uint32());
+          message.stockImage = Message_ChatStockImageWallpaper.decode(reader, reader.uint32(), message.stockImage);
           continue;
         }
         case 13: {
@@ -35669,7 +35615,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
             break;
           }
 
-          message.customImage = Message_ChatCustomImageWallpaper.decode(reader, reader.uint32());
+          message.customImage = Message_ChatCustomImageWallpaper.decode(reader, reader.uint32(), message.customImage);
           continue;
         }
       }
@@ -35735,10 +35681,10 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_CloudAPIThreadControlNotification {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CloudAPIThreadControlNotification): Message_CloudAPIThreadControlNotification {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CloudAPIThreadControlNotification();
+    const message = into ?? createBaseMessage_CloudAPIThreadControlNotification();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35780,10 +35726,7 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
           }
 
           message.notificationContent =
-            Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent.decode(reader, reader.uint32(), message.notificationContent);
           continue;
         }
         case 6: {
@@ -35844,13 +35787,10 @@ export const Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNoti
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent): Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent();
+    const message = into ?? createBaseMessage_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35909,10 +35849,10 @@ export const Message_CommentMessage: MessageFns<Message_CommentMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_CommentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_CommentMessage): Message_CommentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_CommentMessage();
+    const message = into ?? createBaseMessage_CommentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -35921,7 +35861,7 @@ export const Message_CommentMessage: MessageFns<Message_CommentMessage> = {
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 2: {
@@ -35929,7 +35869,7 @@ export const Message_CommentMessage: MessageFns<Message_CommentMessage> = {
             break;
           }
 
-          message.targetMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.targetMessageKey = MessageKey.decode(reader, reader.uint32(), message.targetMessageKey);
           continue;
         }
       }
@@ -35977,10 +35917,10 @@ export const Message_ConditionalRevealMessage: MessageFns<Message_ConditionalRev
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ConditionalRevealMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ConditionalRevealMessage): Message_ConditionalRevealMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ConditionalRevealMessage();
+    const message = into ?? createBaseMessage_ConditionalRevealMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36059,10 +35999,10 @@ export const Message_ContactMessage: MessageFns<Message_ContactMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ContactMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ContactMessage): Message_ContactMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ContactMessage();
+    const message = into ?? createBaseMessage_ContactMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36087,7 +36027,7 @@ export const Message_ContactMessage: MessageFns<Message_ContactMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -36142,10 +36082,10 @@ export const Message_ContactsArrayMessage: MessageFns<Message_ContactsArrayMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ContactsArrayMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ContactsArrayMessage): Message_ContactsArrayMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ContactsArrayMessage();
+    const message = into ?? createBaseMessage_ContactsArrayMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36176,7 +36116,7 @@ export const Message_ContactsArrayMessage: MessageFns<Message_ContactsArrayMessa
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -36214,10 +36154,10 @@ export const Message_DeclinePaymentRequestMessage: MessageFns<Message_DeclinePay
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_DeclinePaymentRequestMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_DeclinePaymentRequestMessage): Message_DeclinePaymentRequestMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_DeclinePaymentRequestMessage();
+    const message = into ?? createBaseMessage_DeclinePaymentRequestMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36226,7 +36166,7 @@ export const Message_DeclinePaymentRequestMessage: MessageFns<Message_DeclinePay
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
       }
@@ -36266,10 +36206,10 @@ export const Message_DeviceSentMessage: MessageFns<Message_DeviceSentMessage> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_DeviceSentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_DeviceSentMessage): Message_DeviceSentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_DeviceSentMessage();
+    const message = into ?? createBaseMessage_DeviceSentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36286,7 +36226,7 @@ export const Message_DeviceSentMessage: MessageFns<Message_DeviceSentMessage> = 
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 3: {
@@ -36392,10 +36332,10 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_DocumentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_DocumentMessage): Message_DocumentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_DocumentMessage();
+    const message = into ?? createBaseMessage_DocumentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36532,7 +36472,7 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -36626,10 +36566,10 @@ export const Message_EncCommentMessage: MessageFns<Message_EncCommentMessage> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EncCommentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EncCommentMessage): Message_EncCommentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EncCommentMessage();
+    const message = into ?? createBaseMessage_EncCommentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36638,7 +36578,7 @@ export const Message_EncCommentMessage: MessageFns<Message_EncCommentMessage> = 
             break;
           }
 
-          message.targetMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.targetMessageKey = MessageKey.decode(reader, reader.uint32(), message.targetMessageKey);
           continue;
         }
         case 2: {
@@ -36698,10 +36638,10 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EncEventResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EncEventResponseMessage): Message_EncEventResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EncEventResponseMessage();
+    const message = into ?? createBaseMessage_EncEventResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36710,7 +36650,7 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
             break;
           }
 
-          message.eventCreationMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.eventCreationMessageKey = MessageKey.decode(reader, reader.uint32(), message.eventCreationMessageKey);
           continue;
         }
         case 2: {
@@ -36771,10 +36711,10 @@ export const Message_EncReactionMessage: MessageFns<Message_EncReactionMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EncReactionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EncReactionMessage): Message_EncReactionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EncReactionMessage();
+    const message = into ?? createBaseMessage_EncReactionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36783,7 +36723,7 @@ export const Message_EncReactionMessage: MessageFns<Message_EncReactionMessage> 
             break;
           }
 
-          message.targetMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.targetMessageKey = MessageKey.decode(reader, reader.uint32(), message.targetMessageKey);
           continue;
         }
         case 2: {
@@ -36861,10 +36801,10 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EventInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EventInviteMessage): Message_EventInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EventInviteMessage();
+    const message = into ?? createBaseMessage_EventInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -36873,7 +36813,7 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 2: {
@@ -37014,10 +36954,10 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EventMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EventMessage): Message_EventMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EventMessage();
+    const message = into ?? createBaseMessage_EventMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37026,7 +36966,7 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 2: {
@@ -37058,7 +36998,7 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
             break;
           }
 
-          message.location = Message_LocationMessage.decode(reader, reader.uint32());
+          message.location = Message_LocationMessage.decode(reader, reader.uint32(), message.location);
           continue;
         }
         case 6: {
@@ -37169,10 +37109,10 @@ export const Message_EventResponseMessage: MessageFns<Message_EventResponseMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_EventResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_EventResponseMessage): Message_EventResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_EventResponseMessage();
+    const message = into ?? createBaseMessage_EventResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37328,10 +37268,10 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ExtendedTextMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ExtendedTextMessage): Message_ExtendedTextMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ExtendedTextMessage();
+    const message = into ?? createBaseMessage_ExtendedTextMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37412,7 +37352,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -37540,7 +37480,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.faviconMMSMetadata = Message_MMSThumbnailMetadata.decode(reader, reader.uint32());
+          message.faviconMMSMetadata = Message_MMSThumbnailMetadata.decode(reader, reader.uint32(), message.faviconMMSMetadata);
           continue;
         }
         case 34: {
@@ -37548,7 +37488,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.linkPreviewMetadata = Message_LinkPreviewMetadata.decode(reader, reader.uint32());
+          message.linkPreviewMetadata = Message_LinkPreviewMetadata.decode(reader, reader.uint32(), message.linkPreviewMetadata);
           continue;
         }
         case 35: {
@@ -37556,7 +37496,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.paymentLinkMetadata = Message_PaymentLinkMetadata.decode(reader, reader.uint32());
+          message.paymentLinkMetadata = Message_PaymentLinkMetadata.decode(reader, reader.uint32(), message.paymentLinkMetadata);
           continue;
         }
         case 36: {
@@ -37586,7 +37526,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.musicMetadata = EmbeddedMusic.decode(reader, reader.uint32());
+          message.musicMetadata = EmbeddedMusic.decode(reader, reader.uint32(), message.musicMetadata);
           continue;
         }
         case 39: {
@@ -37594,7 +37534,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.paymentExtendedMetadata = Message_PaymentExtendedMetadata.decode(reader, reader.uint32());
+          message.paymentExtendedMetadata = Message_PaymentExtendedMetadata.decode(reader, reader.uint32(), message.paymentExtendedMetadata);
           continue;
         }
       }
@@ -37675,10 +37615,10 @@ export const Message_FullHistorySyncOnDemandConfig: MessageFns<Message_FullHisto
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_FullHistorySyncOnDemandConfig {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_FullHistorySyncOnDemandConfig): Message_FullHistorySyncOnDemandConfig {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_FullHistorySyncOnDemandConfig();
+    const message = into ?? createBaseMessage_FullHistorySyncOnDemandConfig();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37741,10 +37681,10 @@ export const Message_FullHistorySyncOnDemandRequestMetadata: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_FullHistorySyncOnDemandRequestMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_FullHistorySyncOnDemandRequestMetadata): Message_FullHistorySyncOnDemandRequestMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_FullHistorySyncOnDemandRequestMetadata();
+    const message = into ?? createBaseMessage_FullHistorySyncOnDemandRequestMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37809,10 +37749,10 @@ export const Message_FutureProofMessage: MessageFns<Message_FutureProofMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_FutureProofMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_FutureProofMessage): Message_FutureProofMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_FutureProofMessage();
+    const message = into ?? createBaseMessage_FutureProofMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37821,7 +37761,7 @@ export const Message_FutureProofMessage: MessageFns<Message_FutureProofMessage> 
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
       }
@@ -37878,10 +37818,10 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_GroupInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_GroupInviteMessage): Message_GroupInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_GroupInviteMessage();
+    const message = into ?? createBaseMessage_GroupInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -37938,7 +37878,7 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 8: {
@@ -38017,10 +37957,10 @@ export const Message_HighlyStructuredMessage: MessageFns<Message_HighlyStructure
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_HighlyStructuredMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage): Message_HighlyStructuredMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HighlyStructuredMessage();
+    const message = into ?? createBaseMessage_HighlyStructuredMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38105,7 +38045,7 @@ export const Message_HighlyStructuredMessage: MessageFns<Message_HighlyStructure
             break;
           }
 
-          message.hydratedHsm = Message_TemplateMessage.decode(reader, reader.uint32());
+          message.hydratedHsm = Message_TemplateMessage.decode(reader, reader.uint32(), message.hydratedHsm);
           continue;
         }
       }
@@ -38168,10 +38108,10 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_HighlyStructuredMessage_HSMLocalizableParameter {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage_HSMLocalizableParameter): Message_HighlyStructuredMessage_HSMLocalizableParameter {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter();
+    const message = into ?? createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38188,10 +38128,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
             break;
           }
 
-          message.currency = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.currency = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency.decode(reader, reader.uint32(), message.currency);
           continue;
         }
         case 3: {
@@ -38199,10 +38136,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
             break;
           }
 
-          message.dateTime = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.dateTime = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime.decode(reader, reader.uint32(), message.dateTime);
           continue;
         }
       }
@@ -38254,13 +38188,10 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency();
+    const message = into ?? createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38330,13 +38261,10 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime();
+    const message = into ?? createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38346,7 +38274,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           }
 
           message.component = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.component);
           continue;
         }
         case 2: {
@@ -38355,7 +38283,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           }
 
           message.unixEpoch = Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.unixEpoch);
           continue;
         }
       }
@@ -38425,14 +38353,11 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message =
-      createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent();
+      into ?? createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38541,14 +38466,11 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message =
-      createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch();
+      into ?? createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38598,10 +38520,10 @@ export const Message_HistorySyncMessageAccessStatus: MessageFns<Message_HistoryS
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_HistorySyncMessageAccessStatus {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HistorySyncMessageAccessStatus): Message_HistorySyncMessageAccessStatus {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HistorySyncMessageAccessStatus();
+    const message = into ?? createBaseMessage_HistorySyncMessageAccessStatus();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38689,10 +38611,10 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_HistorySyncNotification {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HistorySyncNotification): Message_HistorySyncNotification {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_HistorySyncNotification();
+    const message = into ?? createBaseMessage_HistorySyncNotification();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -38797,10 +38719,7 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
             break;
           }
 
-          message.fullHistorySyncOnDemandRequestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.fullHistorySyncOnDemandRequestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(reader, reader.uint32(), message.fullHistorySyncOnDemandRequestMetadata);
           continue;
         }
         case 14: {
@@ -38816,7 +38735,7 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
             break;
           }
 
-          message.messageAccessStatus = Message_HistorySyncMessageAccessStatus.decode(reader, reader.uint32());
+          message.messageAccessStatus = Message_HistorySyncMessageAccessStatus.decode(reader, reader.uint32(), message.messageAccessStatus);
           continue;
         }
       }
@@ -38963,10 +38882,10 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ImageMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ImageMessage): Message_ImageMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ImageMessage();
+    const message = into ?? createBaseMessage_ImageMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39085,7 +39004,7 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -39306,10 +39225,10 @@ export const Message_InitialSecurityNotificationSettingSync: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InitialSecurityNotificationSettingSync {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InitialSecurityNotificationSettingSync): Message_InitialSecurityNotificationSettingSync {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InitialSecurityNotificationSettingSync();
+    const message = into ?? createBaseMessage_InitialSecurityNotificationSettingSync();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39383,10 +39302,10 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage): Message_InteractiveMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage();
+    const message = into ?? createBaseMessage_InteractiveMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39395,7 +39314,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.header = Message_InteractiveMessage_Header.decode(reader, reader.uint32());
+          message.header = Message_InteractiveMessage_Header.decode(reader, reader.uint32(), message.header);
           continue;
         }
         case 2: {
@@ -39403,7 +39322,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.body = Message_InteractiveMessage_Body.decode(reader, reader.uint32());
+          message.body = Message_InteractiveMessage_Body.decode(reader, reader.uint32(), message.body);
           continue;
         }
         case 3: {
@@ -39411,7 +39330,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.footer = Message_InteractiveMessage_Footer.decode(reader, reader.uint32());
+          message.footer = Message_InteractiveMessage_Footer.decode(reader, reader.uint32(), message.footer);
           continue;
         }
         case 8: {
@@ -39419,7 +39338,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.bloksWidget = Message_InteractiveMessage_BloksWidget.decode(reader, reader.uint32());
+          message.bloksWidget = Message_InteractiveMessage_BloksWidget.decode(reader, reader.uint32(), message.bloksWidget);
           continue;
         }
         case 15: {
@@ -39427,7 +39346,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 16: {
@@ -39435,7 +39354,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.urlTrackingMap = UrlTrackingMap.decode(reader, reader.uint32());
+          message.urlTrackingMap = UrlTrackingMap.decode(reader, reader.uint32(), message.urlTrackingMap);
           continue;
         }
         case 4: {
@@ -39443,7 +39362,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.shopStorefrontMessage = Message_InteractiveMessage_ShopMessage.decode(reader, reader.uint32());
+          message.shopStorefrontMessage = Message_InteractiveMessage_ShopMessage.decode(reader, reader.uint32(), message.shopStorefrontMessage);
           continue;
         }
         case 5: {
@@ -39451,7 +39370,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.collectionMessage = Message_InteractiveMessage_CollectionMessage.decode(reader, reader.uint32());
+          message.collectionMessage = Message_InteractiveMessage_CollectionMessage.decode(reader, reader.uint32(), message.collectionMessage);
           continue;
         }
         case 6: {
@@ -39459,7 +39378,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.nativeFlowMessage = Message_InteractiveMessage_NativeFlowMessage.decode(reader, reader.uint32());
+          message.nativeFlowMessage = Message_InteractiveMessage_NativeFlowMessage.decode(reader, reader.uint32(), message.nativeFlowMessage);
           continue;
         }
         case 7: {
@@ -39467,7 +39386,7 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
             break;
           }
 
-          message.carouselMessage = Message_InteractiveMessage_CarouselMessage.decode(reader, reader.uint32());
+          message.carouselMessage = Message_InteractiveMessage_CarouselMessage.decode(reader, reader.uint32(), message.carouselMessage);
           continue;
         }
       }
@@ -39540,10 +39459,10 @@ export const Message_InteractiveMessage_BloksWidget: MessageFns<Message_Interact
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_BloksWidget {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_BloksWidget): Message_InteractiveMessage_BloksWidget {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_BloksWidget();
+    const message = into ?? createBaseMessage_InteractiveMessage_BloksWidget();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39613,10 +39532,10 @@ export const Message_InteractiveMessage_Body: MessageFns<Message_InteractiveMess
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_Body {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_Body): Message_InteractiveMessage_Body {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_Body();
+    const message = into ?? createBaseMessage_InteractiveMessage_Body();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39667,10 +39586,10 @@ export const Message_InteractiveMessage_CarouselMessage: MessageFns<Message_Inte
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_CarouselMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_CarouselMessage): Message_InteractiveMessage_CarouselMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_CarouselMessage();
+    const message = into ?? createBaseMessage_InteractiveMessage_CarouselMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39748,10 +39667,10 @@ export const Message_InteractiveMessage_CollectionMessage: MessageFns<Message_In
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_CollectionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_CollectionMessage): Message_InteractiveMessage_CollectionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_CollectionMessage();
+    const message = into ?? createBaseMessage_InteractiveMessage_CollectionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39822,10 +39741,10 @@ export const Message_InteractiveMessage_Footer: MessageFns<Message_InteractiveMe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_Footer {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_Footer): Message_InteractiveMessage_Footer {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_Footer();
+    const message = into ?? createBaseMessage_InteractiveMessage_Footer();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39850,7 +39769,7 @@ export const Message_InteractiveMessage_Footer: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.audioMessage = Message_AudioMessage.decode(reader, reader.uint32());
+          message.audioMessage = Message_AudioMessage.decode(reader, reader.uint32(), message.audioMessage);
           continue;
         }
       }
@@ -39915,10 +39834,10 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_Header {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_Header): Message_InteractiveMessage_Header {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_Header();
+    const message = into ?? createBaseMessage_InteractiveMessage_Header();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -39951,7 +39870,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.bloksWidget = Message_InteractiveMessage_BloksWidget.decode(reader, reader.uint32());
+          message.bloksWidget = Message_InteractiveMessage_BloksWidget.decode(reader, reader.uint32(), message.bloksWidget);
           continue;
         }
         case 3: {
@@ -39959,7 +39878,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 4: {
@@ -39967,7 +39886,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 6: {
@@ -39983,7 +39902,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 8: {
@@ -39991,7 +39910,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
         case 9: {
@@ -39999,7 +39918,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
             break;
           }
 
-          message.productMessage = Message_ProductMessage.decode(reader, reader.uint32());
+          message.productMessage = Message_ProductMessage.decode(reader, reader.uint32(), message.productMessage);
           continue;
         }
       }
@@ -40065,10 +39984,10 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_NativeFlowMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_NativeFlowMessage): Message_InteractiveMessage_NativeFlowMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_NativeFlowMessage();
+    const message = into ?? createBaseMessage_InteractiveMessage_NativeFlowMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40149,13 +40068,10 @@ export const Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton: Mess
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton): Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_NativeFlowMessage_NativeFlowButton();
+    const message = into ?? createBaseMessage_InteractiveMessage_NativeFlowMessage_NativeFlowButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40217,10 +40133,10 @@ export const Message_InteractiveMessage_ShopMessage: MessageFns<Message_Interact
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveMessage_ShopMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveMessage_ShopMessage): Message_InteractiveMessage_ShopMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveMessage_ShopMessage();
+    const message = into ?? createBaseMessage_InteractiveMessage_ShopMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40290,10 +40206,10 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveResponseMessage): Message_InteractiveResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveResponseMessage();
+    const message = into ?? createBaseMessage_InteractiveResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40302,7 +40218,7 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
             break;
           }
 
-          message.body = Message_InteractiveResponseMessage_Body.decode(reader, reader.uint32());
+          message.body = Message_InteractiveResponseMessage_Body.decode(reader, reader.uint32(), message.body);
           continue;
         }
         case 15: {
@@ -40310,7 +40226,7 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 2: {
@@ -40318,10 +40234,7 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
             break;
           }
 
-          message.nativeFlowResponseMessage = Message_InteractiveResponseMessage_NativeFlowResponseMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.nativeFlowResponseMessage = Message_InteractiveResponseMessage_NativeFlowResponseMessage.decode(reader, reader.uint32(), message.nativeFlowResponseMessage);
           continue;
         }
       }
@@ -40367,10 +40280,10 @@ export const Message_InteractiveResponseMessage_Body: MessageFns<Message_Interac
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InteractiveResponseMessage_Body {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveResponseMessage_Body): Message_InteractiveResponseMessage_Body {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveResponseMessage_Body();
+    const message = into ?? createBaseMessage_InteractiveResponseMessage_Body();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40433,13 +40346,10 @@ export const Message_InteractiveResponseMessage_NativeFlowResponseMessage: Messa
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_InteractiveResponseMessage_NativeFlowResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InteractiveResponseMessage_NativeFlowResponseMessage): Message_InteractiveResponseMessage_NativeFlowResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InteractiveResponseMessage_NativeFlowResponseMessage();
+    const message = into ?? createBaseMessage_InteractiveResponseMessage_NativeFlowResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40531,10 +40441,10 @@ export const Message_InvoiceMessage: MessageFns<Message_InvoiceMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_InvoiceMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_InvoiceMessage): Message_InvoiceMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_InvoiceMessage();
+    const message = into ?? createBaseMessage_InvoiceMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40664,10 +40574,10 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_KeepInChatMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_KeepInChatMessage): Message_KeepInChatMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_KeepInChatMessage();
+    const message = into ?? createBaseMessage_KeepInChatMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40676,7 +40586,7 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -40752,10 +40662,10 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_LinkPreviewMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_LinkPreviewMetadata): Message_LinkPreviewMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_LinkPreviewMetadata();
+    const message = into ?? createBaseMessage_LinkPreviewMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40764,7 +40674,7 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
             break;
           }
 
-          message.paymentLinkMetadata = Message_PaymentLinkMetadata.decode(reader, reader.uint32());
+          message.paymentLinkMetadata = Message_PaymentLinkMetadata.decode(reader, reader.uint32(), message.paymentLinkMetadata);
           continue;
         }
         case 2: {
@@ -40772,7 +40682,7 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
             break;
           }
 
-          message.urlMetadata = Message_URLMetadata.decode(reader, reader.uint32());
+          message.urlMetadata = Message_URLMetadata.decode(reader, reader.uint32(), message.urlMetadata);
           continue;
         }
         case 3: {
@@ -40820,7 +40730,7 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
             break;
           }
 
-          message.musicMetadata = EmbeddedMusic.decode(reader, reader.uint32());
+          message.musicMetadata = EmbeddedMusic.decode(reader, reader.uint32(), message.musicMetadata);
           continue;
         }
         case 9: {
@@ -40899,10 +40809,10 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage): Message_ListMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage();
+    const message = into ?? createBaseMessage_ListMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -40957,7 +40867,7 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
             break;
           }
 
-          message.productListInfo = Message_ListMessage_ProductListInfo.decode(reader, reader.uint32());
+          message.productListInfo = Message_ListMessage_ProductListInfo.decode(reader, reader.uint32(), message.productListInfo);
           continue;
         }
         case 7: {
@@ -40973,7 +40883,7 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -41018,10 +40928,10 @@ export const Message_ListMessage_Product: MessageFns<Message_ListMessage_Product
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_Product {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_Product): Message_ListMessage_Product {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_Product();
+    const message = into ?? createBaseMessage_ListMessage_Product();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41067,10 +40977,10 @@ export const Message_ListMessage_ProductListHeaderImage: MessageFns<Message_List
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_ProductListHeaderImage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_ProductListHeaderImage): Message_ListMessage_ProductListHeaderImage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_ProductListHeaderImage();
+    const message = into ?? createBaseMessage_ListMessage_ProductListHeaderImage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41132,10 +41042,10 @@ export const Message_ListMessage_ProductListInfo: MessageFns<Message_ListMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_ProductListInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_ProductListInfo): Message_ListMessage_ProductListInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_ProductListInfo();
+    const message = into ?? createBaseMessage_ListMessage_ProductListInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41158,7 +41068,7 @@ export const Message_ListMessage_ProductListInfo: MessageFns<Message_ListMessage
             break;
           }
 
-          message.headerImage = Message_ListMessage_ProductListHeaderImage.decode(reader, reader.uint32());
+          message.headerImage = Message_ListMessage_ProductListHeaderImage.decode(reader, reader.uint32(), message.headerImage);
           continue;
         }
         case 3: {
@@ -41210,10 +41120,10 @@ export const Message_ListMessage_ProductSection: MessageFns<Message_ListMessage_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_ProductSection {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_ProductSection): Message_ListMessage_ProductSection {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_ProductSection();
+    const message = into ?? createBaseMessage_ListMessage_ProductSection();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41277,10 +41187,10 @@ export const Message_ListMessage_Row: MessageFns<Message_ListMessage_Row> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_Row {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_Row): Message_ListMessage_Row {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_Row();
+    const message = into ?? createBaseMessage_ListMessage_Row();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41346,10 +41256,10 @@ export const Message_ListMessage_Section: MessageFns<Message_ListMessage_Section
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListMessage_Section {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListMessage_Section): Message_ListMessage_Section {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListMessage_Section();
+    const message = into ?? createBaseMessage_ListMessage_Section();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41419,10 +41329,10 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ListResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListResponseMessage): Message_ListResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ListResponseMessage();
+    const message = into ?? createBaseMessage_ListResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41447,7 +41357,7 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
             break;
           }
 
-          message.singleSelectReply = Message_ListResponseMessage_SingleSelectReply.decode(reader, reader.uint32());
+          message.singleSelectReply = Message_ListResponseMessage_SingleSelectReply.decode(reader, reader.uint32(), message.singleSelectReply);
           continue;
         }
         case 4: {
@@ -41455,7 +41365,7 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 5: {
@@ -41509,10 +41419,10 @@ export const Message_ListResponseMessage_SingleSelectReply: MessageFns<Message_L
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): Message_ListResponseMessage_SingleSelectReply {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ListResponseMessage_SingleSelectReply): Message_ListResponseMessage_SingleSelectReply {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseMessage_ListResponseMessage_SingleSelectReply();
+      const message = into ?? createBaseMessage_ListResponseMessage_SingleSelectReply();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -41586,10 +41496,10 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_LiveLocationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_LiveLocationMessage): Message_LiveLocationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_LiveLocationMessage();
+    const message = into ?? createBaseMessage_LiveLocationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41670,7 +41580,7 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -41748,10 +41658,10 @@ export const Message_LocationMessage: MessageFns<Message_LocationMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_LocationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_LocationMessage): Message_LocationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_LocationMessage();
+    const message = into ?? createBaseMessage_LocationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -41848,7 +41758,7 @@ export const Message_LocationMessage: MessageFns<Message_LocationMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -41913,10 +41823,10 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_MMSThumbnailMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MMSThumbnailMetadata): Message_MMSThumbnailMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_MMSThumbnailMetadata();
+    const message = into ?? createBaseMessage_MMSThumbnailMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42034,10 +41944,10 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_MessageHistoryBundle {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MessageHistoryBundle): Message_MessageHistoryBundle {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_MessageHistoryBundle();
+    const message = into ?? createBaseMessage_MessageHistoryBundle();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42094,7 +42004,7 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 8: {
@@ -42102,7 +42012,7 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
             break;
           }
 
-          message.messageHistoryMetadata = Message_MessageHistoryMetadata.decode(reader, reader.uint32());
+          message.messageHistoryMetadata = Message_MessageHistoryMetadata.decode(reader, reader.uint32(), message.messageHistoryMetadata);
           continue;
         }
       }
@@ -42164,10 +42074,10 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_MessageHistoryMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MessageHistoryMetadata): Message_MessageHistoryMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_MessageHistoryMetadata();
+    const message = into ?? createBaseMessage_MessageHistoryMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42261,10 +42171,10 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_MessageHistoryNotice {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MessageHistoryNotice): Message_MessageHistoryNotice {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_MessageHistoryNotice();
+    const message = into ?? createBaseMessage_MessageHistoryNotice();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42273,7 +42183,7 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 2: {
@@ -42281,7 +42191,7 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
             break;
           }
 
-          message.messageHistoryMetadata = Message_MessageHistoryMetadata.decode(reader, reader.uint32());
+          message.messageHistoryMetadata = Message_MessageHistoryMetadata.decode(reader, reader.uint32(), message.messageHistoryMetadata);
           continue;
         }
       }
@@ -42336,10 +42246,10 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_NewsletterAdminInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_NewsletterAdminInviteMessage): Message_NewsletterAdminInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_NewsletterAdminInviteMessage();
+    const message = into ?? createBaseMessage_NewsletterAdminInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42388,7 +42298,7 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -42441,10 +42351,10 @@ export const Message_NewsletterFollowerInviteMessage: MessageFns<Message_Newslet
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_NewsletterFollowerInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_NewsletterFollowerInviteMessage): Message_NewsletterFollowerInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_NewsletterFollowerInviteMessage();
+    const message = into ?? createBaseMessage_NewsletterFollowerInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42485,7 +42395,7 @@ export const Message_NewsletterFollowerInviteMessage: MessageFns<Message_Newslet
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -42567,10 +42477,10 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_OrderMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_OrderMessage): Message_OrderMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_OrderMessage();
+    const message = into ?? createBaseMessage_OrderMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42667,7 +42577,7 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 12: {
@@ -42683,7 +42593,7 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
             break;
           }
 
-          message.orderRequestMessageId = MessageKey.decode(reader, reader.uint32());
+          message.orderRequestMessageId = MessageKey.decode(reader, reader.uint32(), message.orderRequestMessageId);
           continue;
         }
         case 15: {
@@ -42747,10 +42657,10 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentExtendedMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentExtendedMetadata): Message_PaymentExtendedMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PaymentExtendedMetadata();
+    const message = into ?? createBaseMessage_PaymentExtendedMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42814,10 +42724,10 @@ export const Message_PaymentInviteMessage: MessageFns<Message_PaymentInviteMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentInviteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentInviteMessage): Message_PaymentInviteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PaymentInviteMessage();
+    const message = into ?? createBaseMessage_PaymentInviteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42902,10 +42812,10 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentLinkMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentLinkMetadata): Message_PaymentLinkMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PaymentLinkMetadata();
+    const message = into ?? createBaseMessage_PaymentLinkMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -42914,7 +42824,7 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
             break;
           }
 
-          message.button = Message_PaymentLinkMetadata_PaymentLinkButton.decode(reader, reader.uint32());
+          message.button = Message_PaymentLinkMetadata_PaymentLinkButton.decode(reader, reader.uint32(), message.button);
           continue;
         }
         case 2: {
@@ -42922,7 +42832,7 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
             break;
           }
 
-          message.header = Message_PaymentLinkMetadata_PaymentLinkHeader.decode(reader, reader.uint32());
+          message.header = Message_PaymentLinkMetadata_PaymentLinkHeader.decode(reader, reader.uint32(), message.header);
           continue;
         }
         case 3: {
@@ -42930,7 +42840,7 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
             break;
           }
 
-          message.provider = Message_PaymentLinkMetadata_PaymentLinkProvider.decode(reader, reader.uint32());
+          message.provider = Message_PaymentLinkMetadata_PaymentLinkProvider.decode(reader, reader.uint32(), message.provider);
           continue;
         }
       }
@@ -42976,10 +42886,10 @@ export const Message_PaymentLinkMetadata_PaymentLinkButton: MessageFns<Message_P
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentLinkMetadata_PaymentLinkButton {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentLinkMetadata_PaymentLinkButton): Message_PaymentLinkMetadata_PaymentLinkButton {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseMessage_PaymentLinkMetadata_PaymentLinkButton();
+      const message = into ?? createBaseMessage_PaymentLinkMetadata_PaymentLinkButton();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -43030,10 +42940,10 @@ export const Message_PaymentLinkMetadata_PaymentLinkHeader: MessageFns<Message_P
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentLinkMetadata_PaymentLinkHeader {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentLinkMetadata_PaymentLinkHeader): Message_PaymentLinkMetadata_PaymentLinkHeader {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseMessage_PaymentLinkMetadata_PaymentLinkHeader();
+      const message = into ?? createBaseMessage_PaymentLinkMetadata_PaymentLinkHeader();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -43085,10 +42995,10 @@ export const Message_PaymentLinkMetadata_PaymentLinkProvider: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentLinkMetadata_PaymentLinkProvider {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentLinkMetadata_PaymentLinkProvider): Message_PaymentLinkMetadata_PaymentLinkProvider {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PaymentLinkMetadata_PaymentLinkProvider();
+    const message = into ?? createBaseMessage_PaymentLinkMetadata_PaymentLinkProvider();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43159,10 +43069,10 @@ export const Message_PaymentReminderMessage: MessageFns<Message_PaymentReminderM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PaymentReminderMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PaymentReminderMessage): Message_PaymentReminderMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PaymentReminderMessage();
+    const message = into ?? createBaseMessage_PaymentReminderMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43235,7 +43145,7 @@ export const Message_PaymentReminderMessage: MessageFns<Message_PaymentReminderM
             break;
           }
 
-          message.amount = Money.decode(reader, reader.uint32());
+          message.amount = Money.decode(reader, reader.uint32(), message.amount);
           continue;
         }
       }
@@ -43343,10 +43253,10 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PeerDataOperationRequestMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage): Message_PeerDataOperationRequestMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43392,7 +43302,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.historySyncOnDemandRequest = Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.historySyncOnDemandRequest);
           continue;
         }
         case 5: {
@@ -43418,7 +43328,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.fullHistorySyncOnDemandRequest =
-            Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest.decode(reader, reader.uint32());
+            Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest.decode(reader, reader.uint32(), message.fullHistorySyncOnDemandRequest);
           continue;
         }
         case 7: {
@@ -43427,7 +43337,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.syncdCollectionFatalRecoveryRequest =
-            Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest.decode(reader, reader.uint32());
+            Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest.decode(reader, reader.uint32(), message.syncdCollectionFatalRecoveryRequest);
           continue;
         }
         case 8: {
@@ -43436,7 +43346,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.historySyncChunkRetryRequest = Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.historySyncChunkRetryRequest);
           continue;
         }
         case 9: {
@@ -43444,10 +43354,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
             break;
           }
 
-          message.galaxyFlowAction = Message_PeerDataOperationRequestMessage_GalaxyFlowAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.galaxyFlowAction = Message_PeerDataOperationRequestMessage_GalaxyFlowAction.decode(reader, reader.uint32(), message.galaxyFlowAction);
           continue;
         }
         case 10: {
@@ -43456,10 +43363,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.companionCanonicalUserNonceFetchRequest =
-            Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest.decode(reader, reader.uint32(), message.companionCanonicalUserNonceFetchRequest);
           continue;
         }
         case 11: {
@@ -43468,10 +43372,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.bizBroadcastInsightsContactListRequest =
-            Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest.decode(reader, reader.uint32(), message.bizBroadcastInsightsContactListRequest);
           continue;
         }
         case 12: {
@@ -43480,7 +43381,7 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           }
 
           message.bizBroadcastInsightsRefreshRequest =
-            Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest.decode(reader, reader.uint32());
+            Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest.decode(reader, reader.uint32(), message.bizBroadcastInsightsRefreshRequest);
           continue;
         }
       }
@@ -43577,13 +43478,10 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContact
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43635,13 +43533,10 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefresh
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43693,13 +43588,10 @@ export const Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonce
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest): Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43758,13 +43650,10 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest): Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43773,7 +43662,7 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
             break;
           }
 
-          message.requestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(reader, reader.uint32());
+          message.requestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(reader, reader.uint32(), message.requestMetadata);
           continue;
         }
         case 2: {
@@ -43781,7 +43670,7 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
             break;
           }
 
-          message.historySyncConfig = DeviceProps_HistorySyncConfig.decode(reader, reader.uint32());
+          message.historySyncConfig = DeviceProps_HistorySyncConfig.decode(reader, reader.uint32(), message.historySyncConfig);
           continue;
         }
         case 3: {
@@ -43789,7 +43678,7 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
             break;
           }
 
-          message.fullHistorySyncOnDemandConfig = Message_FullHistorySyncOnDemandConfig.decode(reader, reader.uint32());
+          message.fullHistorySyncOnDemandConfig = Message_FullHistorySyncOnDemandConfig.decode(reader, reader.uint32(), message.fullHistorySyncOnDemandConfig);
           continue;
         }
       }
@@ -43853,10 +43742,10 @@ export const Message_PeerDataOperationRequestMessage_GalaxyFlowAction: MessageFn
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PeerDataOperationRequestMessage_GalaxyFlowAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_GalaxyFlowAction): Message_PeerDataOperationRequestMessage_GalaxyFlowAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_GalaxyFlowAction();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_GalaxyFlowAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -43953,13 +43842,10 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryReques
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest): Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44056,13 +43942,10 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest): Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44168,13 +44051,10 @@ export const Message_PeerDataOperationRequestMessage_PlaceholderMessageResendReq
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest): Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44183,7 +44063,7 @@ export const Message_PeerDataOperationRequestMessage_PlaceholderMessageResendReq
             break;
           }
 
-          message.messageKey = MessageKey.decode(reader, reader.uint32());
+          message.messageKey = MessageKey.decode(reader, reader.uint32(), message.messageKey);
           continue;
         }
       }
@@ -44228,13 +44108,10 @@ export const Message_PeerDataOperationRequestMessage_RequestStickerReupload: Mes
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_RequestStickerReupload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_RequestStickerReupload): Message_PeerDataOperationRequestMessage_RequestStickerReupload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_RequestStickerReupload();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_RequestStickerReupload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44289,10 +44166,10 @@ export const Message_PeerDataOperationRequestMessage_RequestUrlPreview: MessageF
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PeerDataOperationRequestMessage_RequestUrlPreview {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_RequestUrlPreview): Message_PeerDataOperationRequestMessage_RequestUrlPreview {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_RequestUrlPreview();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_RequestUrlPreview();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44356,13 +44233,10 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest): Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44432,10 +44306,10 @@ export const Message_PeerDataOperationRequestResponseMessage: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PeerDataOperationRequestResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage): Message_PeerDataOperationRequestResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestResponseMessage();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44574,13 +44448,10 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult();
+    const message = into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -44597,7 +44468,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             break;
           }
 
-          message.stickerMessage = Message_StickerMessage.decode(reader, reader.uint32());
+          message.stickerMessage = Message_StickerMessage.decode(reader, reader.uint32(), message.stickerMessage);
           continue;
         }
         case 3: {
@@ -44606,10 +44477,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           }
 
           message.linkPreviewResponse =
-            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse.decode(reader, reader.uint32(), message.linkPreviewResponse);
           continue;
         }
         case 4: {
@@ -44619,7 +44487,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.placeholderMessageResendResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.placeholderMessageResendResponse);
           continue;
         }
         case 5: {
@@ -44628,10 +44496,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           }
 
           message.waffleNonceFetchRequestResponse =
-            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse.decode(reader, reader.uint32(), message.waffleNonceFetchRequestResponse);
           continue;
         }
         case 6: {
@@ -44641,7 +44506,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.fullHistorySyncOnDemandRequestResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.fullHistorySyncOnDemandRequestResponse);
           continue;
         }
         case 7: {
@@ -44651,7 +44516,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.companionMetaNonceFetchRequestResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.companionMetaNonceFetchRequestResponse);
           continue;
         }
         case 8: {
@@ -44661,7 +44526,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.syncdSnapshotFatalRecoveryResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.syncdSnapshotFatalRecoveryResponse);
           continue;
         }
         case 9: {
@@ -44671,7 +44536,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.companionCanonicalUserNonceFetchRequestResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.companionCanonicalUserNonceFetchRequestResponse);
           continue;
         }
         case 10: {
@@ -44681,7 +44546,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.historySyncChunkRetryResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.historySyncChunkRetryResponse);
           continue;
         }
         case 11: {
@@ -44690,10 +44555,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           }
 
           message.flowResponsesCsvBundle =
-            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle.decode(
-              reader,
-              reader.uint32(),
-            );
+            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle.decode(reader, reader.uint32(), message.flowResponsesCsvBundle);
           continue;
         }
         case 12: {
@@ -44703,7 +44565,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.bizBroadcastInsightsContactListResponse =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.bizBroadcastInsightsContactListResponse);
           continue;
         }
       }
@@ -44816,14 +44678,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -44914,14 +44773,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         return writer;
       },
 
-      decode(
-        input: BinaryReader | Uint8Array,
-        length?: number,
-      ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState {
+      decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState {
         const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
         const end = length === undefined ? reader.len : reader.pos + length;
         const message =
-          createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState();
+          into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState();
         while (reader.pos < end) {
           const tag = reader.uint32();
           switch (tag >>> 3) {
@@ -44996,14 +44852,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -45080,14 +44933,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         return writer;
       },
 
-      decode(
-        input: BinaryReader | Uint8Array,
-        length?: number,
-      ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse {
+      decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse {
         const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
         const end = length === undefined ? reader.len : reader.pos + length;
         const message =
-          createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse();
+          into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse();
         while (reader.pos < end) {
           const tag = reader.uint32();
           switch (tag >>> 3) {
@@ -45172,14 +45022,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message =
-      createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle();
+      into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -45320,14 +45167,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -45336,7 +45180,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               break;
             }
 
-            message.requestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(reader, reader.uint32());
+            message.requestMetadata = Message_FullHistorySyncOnDemandRequestMetadata.decode(reader, reader.uint32(), message.requestMetadata);
             continue;
           }
           case 2: {
@@ -45407,14 +45251,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -45531,14 +45372,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
     const message =
-      createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse();
+      into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -45597,7 +45435,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.hqThumbnail =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.hqThumbnail);
           continue;
         }
         case 9: {
@@ -45607,7 +45445,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
 
           message.previewMetadata =
             Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata
-              .decode(reader, reader.uint32());
+              .decode(reader, reader.uint32(), message.previewMetadata);
           continue;
         }
       }
@@ -45686,14 +45524,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -45819,14 +45654,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -45921,14 +45753,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         return writer;
       },
 
-      decode(
-        input: BinaryReader | Uint8Array,
-        length?: number,
-      ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse {
+      decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse {
         const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
         const end = length === undefined ? reader.len : reader.pos + length;
         const message =
-          createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse();
+          into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse();
         while (reader.pos < end) {
           const tag = reader.uint32();
           switch (tag >>> 3) {
@@ -45991,14 +45820,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -46067,14 +45893,11 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       return writer;
     },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number,
-    ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
       const message =
-        createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse();
+        into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -46142,10 +45965,10 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PinInChatMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PinInChatMessage): Message_PinInChatMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PinInChatMessage();
+    const message = into ?? createBaseMessage_PinInChatMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46154,7 +45977,7 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -46206,10 +46029,10 @@ export const Message_PlaceholderMessage: MessageFns<Message_PlaceholderMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PlaceholderMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PlaceholderMessage): Message_PlaceholderMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PlaceholderMessage();
+    const message = into ?? createBaseMessage_PlaceholderMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46258,10 +46081,10 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollAddOptionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollAddOptionMessage): Message_PollAddOptionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollAddOptionMessage();
+    const message = into ?? createBaseMessage_PollAddOptionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46270,7 +46093,7 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
             break;
           }
 
-          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32(), message.pollCreationMessageKey);
           continue;
         }
         case 2: {
@@ -46278,7 +46101,7 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
             break;
           }
 
-          message.addOption = Message_PollCreationMessage_Option.decode(reader, reader.uint32());
+          message.addOption = Message_PollCreationMessage_Option.decode(reader, reader.uint32(), message.addOption);
           continue;
         }
         case 3: {
@@ -46286,7 +46109,7 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
             break;
           }
 
-          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32());
+          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32(), message.metadata);
           continue;
         }
       }
@@ -46361,10 +46184,10 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollCreationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollCreationMessage): Message_PollCreationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollCreationMessage();
+    const message = into ?? createBaseMessage_PollCreationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46411,7 +46234,7 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 6: {
@@ -46435,7 +46258,7 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
             break;
           }
 
-          message.correctAnswer = Message_PollCreationMessage_Option.decode(reader, reader.uint32());
+          message.correctAnswer = Message_PollCreationMessage_Option.decode(reader, reader.uint32(), message.correctAnswer);
           continue;
         }
         case 9: {
@@ -46510,10 +46333,10 @@ export const Message_PollCreationMessage_Option: MessageFns<Message_PollCreation
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollCreationMessage_Option {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollCreationMessage_Option): Message_PollCreationMessage_Option {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollCreationMessage_Option();
+    const message = into ?? createBaseMessage_PollCreationMessage_Option();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46568,10 +46391,10 @@ export const Message_PollEncValue: MessageFns<Message_PollEncValue> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollEncValue {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollEncValue): Message_PollEncValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollEncValue();
+    const message = into ?? createBaseMessage_PollEncValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46634,10 +46457,10 @@ export const Message_PollResultSnapshotMessage: MessageFns<Message_PollResultSna
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollResultSnapshotMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollResultSnapshotMessage): Message_PollResultSnapshotMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollResultSnapshotMessage();
+    const message = into ?? createBaseMessage_PollResultSnapshotMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46668,7 +46491,7 @@ export const Message_PollResultSnapshotMessage: MessageFns<Message_PollResultSna
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 4: {
@@ -46719,10 +46542,10 @@ export const Message_PollResultSnapshotMessage_PollVote: MessageFns<Message_Poll
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollResultSnapshotMessage_PollVote {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollResultSnapshotMessage_PollVote): Message_PollResultSnapshotMessage_PollVote {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollResultSnapshotMessage_PollVote();
+    const message = into ?? createBaseMessage_PollResultSnapshotMessage_PollVote();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46785,10 +46608,10 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollUpdateMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollUpdateMessage): Message_PollUpdateMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollUpdateMessage();
+    const message = into ?? createBaseMessage_PollUpdateMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46797,7 +46620,7 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
             break;
           }
 
-          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.pollCreationMessageKey = MessageKey.decode(reader, reader.uint32(), message.pollCreationMessageKey);
           continue;
         }
         case 2: {
@@ -46805,7 +46628,7 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
             break;
           }
 
-          message.vote = Message_PollEncValue.decode(reader, reader.uint32());
+          message.vote = Message_PollEncValue.decode(reader, reader.uint32(), message.vote);
           continue;
         }
         case 3: {
@@ -46813,7 +46636,7 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
             break;
           }
 
-          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32());
+          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32(), message.metadata);
           continue;
         }
         case 4: {
@@ -46868,10 +46691,10 @@ export const Message_PollUpdateMessageMetadata: MessageFns<Message_PollUpdateMes
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollUpdateMessageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollUpdateMessageMetadata): Message_PollUpdateMessageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollUpdateMessageMetadata();
+    const message = into ?? createBaseMessage_PollUpdateMessageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46925,10 +46748,10 @@ export const Message_PollVoteMessage: MessageFns<Message_PollVoteMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_PollVoteMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PollVoteMessage): Message_PollVoteMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_PollVoteMessage();
+    const message = into ?? createBaseMessage_PollVoteMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -46992,10 +46815,10 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ProductMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ProductMessage): Message_ProductMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ProductMessage();
+    const message = into ?? createBaseMessage_ProductMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47004,7 +46827,7 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
             break;
           }
 
-          message.product = Message_ProductMessage_ProductSnapshot.decode(reader, reader.uint32());
+          message.product = Message_ProductMessage_ProductSnapshot.decode(reader, reader.uint32(), message.product);
           continue;
         }
         case 2: {
@@ -47020,7 +46843,7 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
             break;
           }
 
-          message.catalog = Message_ProductMessage_CatalogSnapshot.decode(reader, reader.uint32());
+          message.catalog = Message_ProductMessage_CatalogSnapshot.decode(reader, reader.uint32(), message.catalog);
           continue;
         }
         case 5: {
@@ -47044,7 +46867,7 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -47095,10 +46918,10 @@ export const Message_ProductMessage_CatalogSnapshot: MessageFns<Message_ProductM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ProductMessage_CatalogSnapshot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ProductMessage_CatalogSnapshot): Message_ProductMessage_CatalogSnapshot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ProductMessage_CatalogSnapshot();
+    const message = into ?? createBaseMessage_ProductMessage_CatalogSnapshot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47107,7 +46930,7 @@ export const Message_ProductMessage_CatalogSnapshot: MessageFns<Message_ProductM
             break;
           }
 
-          message.catalogImage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.catalogImage = Message_ImageMessage.decode(reader, reader.uint32(), message.catalogImage);
           continue;
         }
         case 2: {
@@ -47194,10 +47017,10 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ProductMessage_ProductSnapshot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ProductMessage_ProductSnapshot): Message_ProductMessage_ProductSnapshot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ProductMessage_ProductSnapshot();
+    const message = into ?? createBaseMessage_ProductMessage_ProductSnapshot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47206,7 +47029,7 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
             break;
           }
 
-          message.productImage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.productImage = Message_ImageMessage.decode(reader, reader.uint32(), message.productImage);
           continue;
         }
         case 2: {
@@ -47436,10 +47259,10 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ProtocolMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ProtocolMessage): Message_ProtocolMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ProtocolMessage();
+    const message = into ?? createBaseMessage_ProtocolMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47448,7 +47271,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -47480,7 +47303,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.historySyncNotification = Message_HistorySyncNotification.decode(reader, reader.uint32());
+          message.historySyncNotification = Message_HistorySyncNotification.decode(reader, reader.uint32(), message.historySyncNotification);
           continue;
         }
         case 7: {
@@ -47488,7 +47311,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.appStateSyncKeyShare = Message_AppStateSyncKeyShare.decode(reader, reader.uint32());
+          message.appStateSyncKeyShare = Message_AppStateSyncKeyShare.decode(reader, reader.uint32(), message.appStateSyncKeyShare);
           continue;
         }
         case 8: {
@@ -47496,7 +47319,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.appStateSyncKeyRequest = Message_AppStateSyncKeyRequest.decode(reader, reader.uint32());
+          message.appStateSyncKeyRequest = Message_AppStateSyncKeyRequest.decode(reader, reader.uint32(), message.appStateSyncKeyRequest);
           continue;
         }
         case 9: {
@@ -47504,10 +47327,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.initialSecurityNotificationSettingSync = Message_InitialSecurityNotificationSettingSync.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.initialSecurityNotificationSettingSync = Message_InitialSecurityNotificationSettingSync.decode(reader, reader.uint32(), message.initialSecurityNotificationSettingSync);
           continue;
         }
         case 10: {
@@ -47515,10 +47335,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.appStateFatalExceptionNotification = Message_AppStateFatalExceptionNotification.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.appStateFatalExceptionNotification = Message_AppStateFatalExceptionNotification.decode(reader, reader.uint32(), message.appStateFatalExceptionNotification);
           continue;
         }
         case 11: {
@@ -47526,7 +47343,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32());
+          message.disappearingMode = DisappearingMode.decode(reader, reader.uint32(), message.disappearingMode);
           continue;
         }
         case 14: {
@@ -47534,7 +47351,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.editedMessage = Message.decode(reader, reader.uint32());
+          message.editedMessage = Message.decode(reader, reader.uint32(), message.editedMessage);
           continue;
         }
         case 15: {
@@ -47550,10 +47367,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.peerDataOperationRequestMessage = Message_PeerDataOperationRequestMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.peerDataOperationRequestMessage = Message_PeerDataOperationRequestMessage.decode(reader, reader.uint32(), message.peerDataOperationRequestMessage);
           continue;
         }
         case 17: {
@@ -47561,10 +47375,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.peerDataOperationRequestResponseMessage = Message_PeerDataOperationRequestResponseMessage.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.peerDataOperationRequestResponseMessage = Message_PeerDataOperationRequestResponseMessage.decode(reader, reader.uint32(), message.peerDataOperationRequestResponseMessage);
           continue;
         }
         case 18: {
@@ -47572,7 +47383,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.botFeedbackMessage = BotFeedbackMessage.decode(reader, reader.uint32());
+          message.botFeedbackMessage = BotFeedbackMessage.decode(reader, reader.uint32(), message.botFeedbackMessage);
           continue;
         }
         case 19: {
@@ -47588,7 +47399,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.requestWelcomeMessageMetadata = Message_RequestWelcomeMessageMetadata.decode(reader, reader.uint32());
+          message.requestWelcomeMessageMetadata = Message_RequestWelcomeMessageMetadata.decode(reader, reader.uint32(), message.requestWelcomeMessageMetadata);
           continue;
         }
         case 21: {
@@ -47596,7 +47407,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.mediaNotifyMessage = MediaNotifyMessage.decode(reader, reader.uint32());
+          message.mediaNotifyMessage = MediaNotifyMessage.decode(reader, reader.uint32(), message.mediaNotifyMessage);
           continue;
         }
         case 22: {
@@ -47604,10 +47415,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.cloudApiThreadControlNotification = Message_CloudAPIThreadControlNotification.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.cloudApiThreadControlNotification = Message_CloudAPIThreadControlNotification.decode(reader, reader.uint32(), message.cloudApiThreadControlNotification);
           continue;
         }
         case 23: {
@@ -47615,7 +47423,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.lidMigrationMappingSyncMessage = LIDMigrationMappingSyncMessage.decode(reader, reader.uint32());
+          message.lidMigrationMappingSyncMessage = LIDMigrationMappingSyncMessage.decode(reader, reader.uint32(), message.lidMigrationMappingSyncMessage);
           continue;
         }
         case 24: {
@@ -47623,7 +47431,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.limitSharing = LimitSharing.decode(reader, reader.uint32());
+          message.limitSharing = LimitSharing.decode(reader, reader.uint32(), message.limitSharing);
           continue;
         }
         case 25: {
@@ -47639,7 +47447,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.aiQueryFanout = AIQueryFanout.decode(reader, reader.uint32());
+          message.aiQueryFanout = AIQueryFanout.decode(reader, reader.uint32(), message.aiQueryFanout);
           continue;
         }
         case 27: {
@@ -47647,7 +47455,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.memberLabel = MemberLabel.decode(reader, reader.uint32());
+          message.memberLabel = MemberLabel.decode(reader, reader.uint32(), message.memberLabel);
           continue;
         }
         case 28: {
@@ -47655,7 +47463,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.aiMediaCollectionMessage = AIMediaCollectionMessage.decode(reader, reader.uint32());
+          message.aiMediaCollectionMessage = AIMediaCollectionMessage.decode(reader, reader.uint32(), message.aiMediaCollectionMessage);
           continue;
         }
         case 29: {
@@ -47671,7 +47479,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.chatThemeSetting = Message_ChatThemeSetting.decode(reader, reader.uint32());
+          message.chatThemeSetting = Message_ChatThemeSetting.decode(reader, reader.uint32(), message.chatThemeSetting);
           continue;
         }
         case 31: {
@@ -47679,7 +47487,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
             break;
           }
 
-          message.aiMetadataOperation = AIMetadataOperation.decode(reader, reader.uint32());
+          message.aiMetadataOperation = AIMetadataOperation.decode(reader, reader.uint32(), message.aiMetadataOperation);
           continue;
         }
       }
@@ -47795,10 +47603,10 @@ export const Message_QuestionResponseMessage: MessageFns<Message_QuestionRespons
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_QuestionResponseMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_QuestionResponseMessage): Message_QuestionResponseMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_QuestionResponseMessage();
+    const message = into ?? createBaseMessage_QuestionResponseMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47807,7 +47615,7 @@ export const Message_QuestionResponseMessage: MessageFns<Message_QuestionRespons
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -47859,10 +47667,10 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ReactionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ReactionMessage): Message_ReactionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ReactionMessage();
+    const message = into ?? createBaseMessage_ReactionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47871,7 +47679,7 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -47950,10 +47758,10 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_RequestPaymentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_RequestPaymentMessage): Message_RequestPaymentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_RequestPaymentMessage();
+    const message = into ?? createBaseMessage_RequestPaymentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -47962,7 +47770,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
             break;
           }
 
-          message.noteMessage = Message.decode(reader, reader.uint32());
+          message.noteMessage = Message.decode(reader, reader.uint32(), message.noteMessage);
           continue;
         }
         case 1: {
@@ -48002,7 +47810,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
             break;
           }
 
-          message.amount = Money.decode(reader, reader.uint32());
+          message.amount = Money.decode(reader, reader.uint32(), message.amount);
           continue;
         }
         case 7: {
@@ -48010,7 +47818,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
             break;
           }
 
-          message.background = PaymentBackground.decode(reader, reader.uint32());
+          message.background = PaymentBackground.decode(reader, reader.uint32(), message.background);
           continue;
         }
       }
@@ -48056,10 +47864,10 @@ export const Message_RequestPhoneNumberMessage: MessageFns<Message_RequestPhoneN
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_RequestPhoneNumberMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_RequestPhoneNumberMessage): Message_RequestPhoneNumberMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_RequestPhoneNumberMessage();
+    const message = into ?? createBaseMessage_RequestPhoneNumberMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48068,7 +47876,7 @@ export const Message_RequestPhoneNumberMessage: MessageFns<Message_RequestPhoneN
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -48110,10 +47918,10 @@ export const Message_RequestWelcomeMessageMetadata: MessageFns<Message_RequestWe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_RequestWelcomeMessageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_RequestWelcomeMessageMetadata): Message_RequestWelcomeMessageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_RequestWelcomeMessageMetadata();
+    const message = into ?? createBaseMessage_RequestWelcomeMessageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48138,7 +47946,7 @@ export const Message_RequestWelcomeMessageMetadata: MessageFns<Message_RequestWe
             break;
           }
 
-          message.botAgentMetadata = BotAgentMetadata.decode(reader, reader.uint32());
+          message.botAgentMetadata = BotAgentMetadata.decode(reader, reader.uint32(), message.botAgentMetadata);
           continue;
         }
       }
@@ -48176,10 +47984,10 @@ export const Message_RootSecretDistributeMessage: MessageFns<Message_RootSecretD
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_RootSecretDistributeMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_RootSecretDistributeMessage): Message_RootSecretDistributeMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_RootSecretDistributeMessage();
+    const message = into ?? createBaseMessage_RootSecretDistributeMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48228,10 +48036,10 @@ export const Message_ScheduledCallCreationMessage: MessageFns<Message_ScheduledC
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ScheduledCallCreationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ScheduledCallCreationMessage): Message_ScheduledCallCreationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ScheduledCallCreationMessage();
+    const message = into ?? createBaseMessage_ScheduledCallCreationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48295,10 +48103,10 @@ export const Message_ScheduledCallEditMessage: MessageFns<Message_ScheduledCallE
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_ScheduledCallEditMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_ScheduledCallEditMessage): Message_ScheduledCallEditMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_ScheduledCallEditMessage();
+    const message = into ?? createBaseMessage_ScheduledCallEditMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48307,7 +48115,7 @@ export const Message_ScheduledCallEditMessage: MessageFns<Message_ScheduledCallE
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -48362,10 +48170,10 @@ export const Message_SecretEncryptedMessage: MessageFns<Message_SecretEncryptedM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_SecretEncryptedMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SecretEncryptedMessage): Message_SecretEncryptedMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_SecretEncryptedMessage();
+    const message = into ?? createBaseMessage_SecretEncryptedMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48374,7 +48182,7 @@ export const Message_SecretEncryptedMessage: MessageFns<Message_SecretEncryptedM
             break;
           }
 
-          message.targetMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.targetMessageKey = MessageKey.decode(reader, reader.uint32(), message.targetMessageKey);
           continue;
         }
         case 2: {
@@ -48455,10 +48263,10 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_SendPaymentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SendPaymentMessage): Message_SendPaymentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_SendPaymentMessage();
+    const message = into ?? createBaseMessage_SendPaymentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48467,7 +48275,7 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
             break;
           }
 
-          message.noteMessage = Message.decode(reader, reader.uint32());
+          message.noteMessage = Message.decode(reader, reader.uint32(), message.noteMessage);
           continue;
         }
         case 3: {
@@ -48475,7 +48283,7 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
             break;
           }
 
-          message.requestMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.requestMessageKey = MessageKey.decode(reader, reader.uint32(), message.requestMessageKey);
           continue;
         }
         case 4: {
@@ -48483,7 +48291,7 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
             break;
           }
 
-          message.background = PaymentBackground.decode(reader, reader.uint32());
+          message.background = PaymentBackground.decode(reader, reader.uint32(), message.background);
           continue;
         }
         case 5: {
@@ -48537,10 +48345,10 @@ export const Message_SenderKeyDistributionMessage: MessageFns<Message_SenderKeyD
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_SenderKeyDistributionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SenderKeyDistributionMessage): Message_SenderKeyDistributionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_SenderKeyDistributionMessage();
+    const message = into ?? createBaseMessage_SenderKeyDistributionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48612,10 +48420,10 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_SplitPaymentMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SplitPaymentMessage): Message_SplitPaymentMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_SplitPaymentMessage();
+    const message = into ?? createBaseMessage_SplitPaymentMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48632,7 +48440,7 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
             break;
           }
 
-          message.totalAmount = Money.decode(reader, reader.uint32());
+          message.totalAmount = Money.decode(reader, reader.uint32(), message.totalAmount);
           continue;
         }
         case 3: {
@@ -48678,7 +48486,7 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
       }
@@ -48728,10 +48536,10 @@ export const Message_SplitPaymentParticipant: MessageFns<Message_SplitPaymentPar
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_SplitPaymentParticipant {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SplitPaymentParticipant): Message_SplitPaymentParticipant {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_SplitPaymentParticipant();
+    const message = into ?? createBaseMessage_SplitPaymentParticipant();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48748,7 +48556,7 @@ export const Message_SplitPaymentParticipant: MessageFns<Message_SplitPaymentPar
             break;
           }
 
-          message.amount = Money.decode(reader, reader.uint32());
+          message.amount = Money.decode(reader, reader.uint32(), message.amount);
           continue;
         }
         case 3: {
@@ -48800,10 +48608,10 @@ export const Message_StatusNotificationMessage: MessageFns<Message_StatusNotific
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StatusNotificationMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StatusNotificationMessage): Message_StatusNotificationMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StatusNotificationMessage();
+    const message = into ?? createBaseMessage_StatusNotificationMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48812,7 +48620,7 @@ export const Message_StatusNotificationMessage: MessageFns<Message_StatusNotific
             break;
           }
 
-          message.responseMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.responseMessageKey = MessageKey.decode(reader, reader.uint32(), message.responseMessageKey);
           continue;
         }
         case 2: {
@@ -48820,7 +48628,7 @@ export const Message_StatusNotificationMessage: MessageFns<Message_StatusNotific
             break;
           }
 
-          message.originalMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.originalMessageKey = MessageKey.decode(reader, reader.uint32(), message.originalMessageKey);
           continue;
         }
         case 3: {
@@ -48871,10 +48679,10 @@ export const Message_StatusQuestionAnswerMessage: MessageFns<Message_StatusQuest
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StatusQuestionAnswerMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StatusQuestionAnswerMessage): Message_StatusQuestionAnswerMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StatusQuestionAnswerMessage();
+    const message = into ?? createBaseMessage_StatusQuestionAnswerMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48883,7 +48691,7 @@ export const Message_StatusQuestionAnswerMessage: MessageFns<Message_StatusQuest
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -48935,10 +48743,10 @@ export const Message_StatusQuotedMessage: MessageFns<Message_StatusQuotedMessage
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StatusQuotedMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StatusQuotedMessage): Message_StatusQuotedMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StatusQuotedMessage();
+    const message = into ?? createBaseMessage_StatusQuotedMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -48971,7 +48779,7 @@ export const Message_StatusQuotedMessage: MessageFns<Message_StatusQuotedMessage
             break;
           }
 
-          message.originalStatusId = MessageKey.decode(reader, reader.uint32());
+          message.originalStatusId = MessageKey.decode(reader, reader.uint32(), message.originalStatusId);
           continue;
         }
       }
@@ -49016,10 +48824,10 @@ export const Message_StatusStickerInteractionMessage: MessageFns<Message_StatusS
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StatusStickerInteractionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StatusStickerInteractionMessage): Message_StatusStickerInteractionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StatusStickerInteractionMessage();
+    const message = into ?? createBaseMessage_StatusStickerInteractionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49028,7 +48836,7 @@ export const Message_StatusStickerInteractionMessage: MessageFns<Message_StatusS
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -49143,10 +48951,10 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StickerMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StickerMessage): Message_StickerMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StickerMessage();
+    const message = into ?? createBaseMessage_StickerMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49267,7 +49075,7 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -49445,10 +49253,10 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StickerPackMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StickerPackMessage): Message_StickerPackMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StickerPackMessage();
+    const message = into ?? createBaseMessage_StickerPackMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49543,7 +49351,7 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 12: {
@@ -49708,10 +49516,10 @@ export const Message_StickerPackMessage_Sticker: MessageFns<Message_StickerPackM
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StickerPackMessage_Sticker {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StickerPackMessage_Sticker): Message_StickerPackMessage_Sticker {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StickerPackMessage_Sticker();
+    const message = into ?? createBaseMessage_StickerPackMessage_Sticker();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49822,10 +49630,10 @@ export const Message_StickerSyncRMRMessage: MessageFns<Message_StickerSyncRMRMes
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_StickerSyncRMRMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StickerSyncRMRMessage): Message_StickerSyncRMRMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_StickerSyncRMRMessage();
+    const message = into ?? createBaseMessage_StickerSyncRMRMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49904,10 +49712,10 @@ export const Message_TemplateButtonReplyMessage: MessageFns<Message_TemplateButt
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_TemplateButtonReplyMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_TemplateButtonReplyMessage): Message_TemplateButtonReplyMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_TemplateButtonReplyMessage();
+    const message = into ?? createBaseMessage_TemplateButtonReplyMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -49932,7 +49740,7 @@ export const Message_TemplateButtonReplyMessage: MessageFns<Message_TemplateButt
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 4: {
@@ -50004,10 +49812,10 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_TemplateMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_TemplateMessage): Message_TemplateMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_TemplateMessage();
+    const message = into ?? createBaseMessage_TemplateMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50016,7 +49824,7 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 4: {
@@ -50024,7 +49832,7 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
             break;
           }
 
-          message.hydratedTemplate = Message_TemplateMessage_HydratedFourRowTemplate.decode(reader, reader.uint32());
+          message.hydratedTemplate = Message_TemplateMessage_HydratedFourRowTemplate.decode(reader, reader.uint32(), message.hydratedTemplate);
           continue;
         }
         case 9: {
@@ -50040,7 +49848,7 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
             break;
           }
 
-          message.fourRowTemplate = Message_TemplateMessage_FourRowTemplate.decode(reader, reader.uint32());
+          message.fourRowTemplate = Message_TemplateMessage_FourRowTemplate.decode(reader, reader.uint32(), message.fourRowTemplate);
           continue;
         }
         case 2: {
@@ -50048,10 +49856,7 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
             break;
           }
 
-          message.hydratedFourRowTemplate = Message_TemplateMessage_HydratedFourRowTemplate.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.hydratedFourRowTemplate = Message_TemplateMessage_HydratedFourRowTemplate.decode(reader, reader.uint32(), message.hydratedFourRowTemplate);
           continue;
         }
         case 5: {
@@ -50059,7 +49864,7 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
             break;
           }
 
-          message.interactiveMessageTemplate = Message_InteractiveMessage.decode(reader, reader.uint32());
+          message.interactiveMessageTemplate = Message_InteractiveMessage.decode(reader, reader.uint32(), message.interactiveMessageTemplate);
           continue;
         }
       }
@@ -50133,10 +49938,10 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_TemplateMessage_FourRowTemplate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_TemplateMessage_FourRowTemplate): Message_TemplateMessage_FourRowTemplate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_TemplateMessage_FourRowTemplate();
+    const message = into ?? createBaseMessage_TemplateMessage_FourRowTemplate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50145,7 +49950,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.content = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.content = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.content);
           continue;
         }
         case 7: {
@@ -50153,7 +49958,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.footer = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.footer = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.footer);
           continue;
         }
         case 8: {
@@ -50175,7 +49980,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 2: {
@@ -50183,7 +49988,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.highlyStructuredMessage = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.highlyStructuredMessage = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.highlyStructuredMessage);
           continue;
         }
         case 3: {
@@ -50191,7 +49996,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 4: {
@@ -50199,7 +50004,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 5: {
@@ -50207,7 +50012,7 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
             break;
           }
 
-          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
       }
@@ -50297,10 +50102,10 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_TemplateMessage_HydratedFourRowTemplate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_TemplateMessage_HydratedFourRowTemplate): Message_TemplateMessage_HydratedFourRowTemplate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_TemplateMessage_HydratedFourRowTemplate();
+    const message = into ?? createBaseMessage_TemplateMessage_HydratedFourRowTemplate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50355,7 +50160,7 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
             break;
           }
 
-          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32());
+          message.documentMessage = Message_DocumentMessage.decode(reader, reader.uint32(), message.documentMessage);
           continue;
         }
         case 2: {
@@ -50371,7 +50176,7 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
             break;
           }
 
-          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32());
+          message.imageMessage = Message_ImageMessage.decode(reader, reader.uint32(), message.imageMessage);
           continue;
         }
         case 4: {
@@ -50379,7 +50184,7 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
             break;
           }
 
-          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32());
+          message.videoMessage = Message_VideoMessage.decode(reader, reader.uint32(), message.videoMessage);
           continue;
         }
         case 5: {
@@ -50387,7 +50192,7 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
             break;
           }
 
-          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32());
+          message.locationMessage = Message_LocationMessage.decode(reader, reader.uint32(), message.locationMessage);
           continue;
         }
       }
@@ -50442,10 +50247,10 @@ export const Message_URLMetadata: MessageFns<Message_URLMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_URLMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_URLMetadata): Message_URLMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_URLMetadata();
+    const message = into ?? createBaseMessage_URLMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50497,10 +50302,10 @@ export const Message_VideoEndCard: MessageFns<Message_VideoEndCard> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_VideoEndCard {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_VideoEndCard): Message_VideoEndCard {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_VideoEndCard();
+    const message = into ?? createBaseMessage_VideoEndCard();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50663,10 +50468,10 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Message_VideoMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_VideoMessage): Message_VideoMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessage_VideoMessage();
+    const message = into ?? createBaseMessage_VideoMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -50801,7 +50606,7 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
             break;
           }
 
-          message.contextInfo = ContextInfo.decode(reader, reader.uint32());
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
           continue;
         }
         case 18: {
@@ -51012,10 +50817,10 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageAddOn {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageAddOn): MessageAddOn {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageAddOn();
+    const message = into ?? createBaseMessageAddOn();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51032,7 +50837,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.messageAddOn = Message.decode(reader, reader.uint32());
+          message.messageAddOn = Message.decode(reader, reader.uint32(), message.messageAddOn);
           continue;
         }
         case 3: {
@@ -51064,7 +50869,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.addOnContextInfo = MessageAddOnContextInfo.decode(reader, reader.uint32());
+          message.addOnContextInfo = MessageAddOnContextInfo.decode(reader, reader.uint32(), message.addOnContextInfo);
           continue;
         }
         case 7: {
@@ -51072,7 +50877,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.messageAddOnKey = MessageKey.decode(reader, reader.uint32());
+          message.messageAddOnKey = MessageKey.decode(reader, reader.uint32(), message.messageAddOnKey);
           continue;
         }
         case 8: {
@@ -51080,7 +50885,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
             break;
           }
 
-          message.legacyMessage = LegacyMessage.decode(reader, reader.uint32());
+          message.legacyMessage = LegacyMessage.decode(reader, reader.uint32(), message.legacyMessage);
           continue;
         }
       }
@@ -51132,10 +50937,10 @@ export const MessageAddOnContextInfo: MessageFns<MessageAddOnContextInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageAddOnContextInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageAddOnContextInfo): MessageAddOnContextInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageAddOnContextInfo();
+    const message = into ?? createBaseMessageAddOnContextInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51193,10 +50998,10 @@ export const MessageAssociation: MessageFns<MessageAssociation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageAssociation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageAssociation): MessageAssociation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageAssociation();
+    const message = into ?? createBaseMessageAssociation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51213,7 +51018,7 @@ export const MessageAssociation: MessageFns<MessageAssociation> = {
             break;
           }
 
-          message.parentMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.parentMessageKey = MessageKey.decode(reader, reader.uint32(), message.parentMessageKey);
           continue;
         }
         case 3: {
@@ -51309,10 +51114,10 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageContextInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageContextInfo): MessageContextInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageContextInfo();
+    const message = into ?? createBaseMessageContextInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51321,7 +51126,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
             break;
           }
 
-          message.deviceListMetadata = DeviceListMetadata.decode(reader, reader.uint32());
+          message.deviceListMetadata = DeviceListMetadata.decode(reader, reader.uint32(), message.deviceListMetadata);
           continue;
         }
         case 2: {
@@ -51369,7 +51174,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
             break;
           }
 
-          message.botMetadata = BotMetadata.decode(reader, reader.uint32());
+          message.botMetadata = BotMetadata.decode(reader, reader.uint32(), message.botMetadata);
           continue;
         }
         case 8: {
@@ -51393,7 +51198,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
             break;
           }
 
-          message.messageAssociation = MessageAssociation.decode(reader, reader.uint32());
+          message.messageAssociation = MessageAssociation.decode(reader, reader.uint32(), message.messageAssociation);
           continue;
         }
         case 11: {
@@ -51417,7 +51222,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
             break;
           }
 
-          message.limitSharing = LimitSharing.decode(reader, reader.uint32());
+          message.limitSharing = LimitSharing.decode(reader, reader.uint32(), message.limitSharing);
           continue;
         }
         case 14: {
@@ -51425,7 +51230,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
             break;
           }
 
-          message.limitSharingV2 = LimitSharing.decode(reader, reader.uint32());
+          message.limitSharingV2 = LimitSharing.decode(reader, reader.uint32(), message.limitSharingV2);
           continue;
         }
         case 15: {
@@ -51524,10 +51329,10 @@ export const MessageKey: MessageFns<MessageKey> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageKey): MessageKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageKey();
+    const message = into ?? createBaseMessageKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51603,10 +51408,10 @@ export const MessageSecretMessage: MessageFns<MessageSecretMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageSecretMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageSecretMessage): MessageSecretMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageSecretMessage();
+    const message = into ?? createBaseMessageSecretMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51682,10 +51487,10 @@ export const MessageText: MessageFns<MessageText> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MessageText {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessageText): MessageText {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMessageText();
+    const message = into ?? createBaseMessageText();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51779,10 +51584,10 @@ export const Money: MessageFns<Money> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Money {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Money): Money {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMoney();
+    const message = into ?? createBaseMoney();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52007,10 +51812,10 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgOpaqueData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgOpaqueData): MsgOpaqueData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgOpaqueData();
+    const message = into ?? createBaseMsgOpaqueData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52185,7 +51990,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.encPollVote = PollEncValue.decode(reader, reader.uint32());
+          message.encPollVote = PollEncValue.decode(reader, reader.uint32(), message.encPollVote);
           continue;
         }
         case 28: {
@@ -52225,7 +52030,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.pollVotesSnapshot = MsgOpaqueData_PollVotesSnapshot.decode(reader, reader.uint32());
+          message.pollVotesSnapshot = MsgOpaqueData_PollVotesSnapshot.decode(reader, reader.uint32(), message.pollVotesSnapshot);
           continue;
         }
         case 25: {
@@ -52329,7 +52134,7 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
             break;
           }
 
-          message.eventLocation = MsgOpaqueData_EventLocation.decode(reader, reader.uint32());
+          message.eventLocation = MsgOpaqueData_EventLocation.decode(reader, reader.uint32(), message.eventLocation);
           continue;
         }
         case 40: {
@@ -52566,10 +52371,10 @@ export const MsgOpaqueData_EventLocation: MessageFns<MsgOpaqueData_EventLocation
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgOpaqueData_EventLocation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgOpaqueData_EventLocation): MsgOpaqueData_EventLocation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgOpaqueData_EventLocation();
+    const message = into ?? createBaseMsgOpaqueData_EventLocation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52660,10 +52465,10 @@ export const MsgOpaqueData_PollOption: MessageFns<MsgOpaqueData_PollOption> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgOpaqueData_PollOption {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgOpaqueData_PollOption): MsgOpaqueData_PollOption {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgOpaqueData_PollOption();
+    const message = into ?? createBaseMsgOpaqueData_PollOption();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52718,10 +52523,10 @@ export const MsgOpaqueData_PollVoteSnapshot: MessageFns<MsgOpaqueData_PollVoteSn
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgOpaqueData_PollVoteSnapshot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgOpaqueData_PollVoteSnapshot): MsgOpaqueData_PollVoteSnapshot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgOpaqueData_PollVoteSnapshot();
+    const message = into ?? createBaseMsgOpaqueData_PollVoteSnapshot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52730,7 +52535,7 @@ export const MsgOpaqueData_PollVoteSnapshot: MessageFns<MsgOpaqueData_PollVoteSn
             break;
           }
 
-          message.option = MsgOpaqueData_PollOption.decode(reader, reader.uint32());
+          message.option = MsgOpaqueData_PollOption.decode(reader, reader.uint32(), message.option);
           continue;
         }
         case 2: {
@@ -52777,10 +52582,10 @@ export const MsgOpaqueData_PollVotesSnapshot: MessageFns<MsgOpaqueData_PollVotes
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgOpaqueData_PollVotesSnapshot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgOpaqueData_PollVotesSnapshot): MsgOpaqueData_PollVotesSnapshot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgOpaqueData_PollVotesSnapshot();
+    const message = into ?? createBaseMsgOpaqueData_PollVotesSnapshot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52832,10 +52637,10 @@ export const MsgRowOpaqueData: MessageFns<MsgRowOpaqueData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): MsgRowOpaqueData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MsgRowOpaqueData): MsgRowOpaqueData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMsgRowOpaqueData();
+    const message = into ?? createBaseMsgRowOpaqueData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52844,7 +52649,7 @@ export const MsgRowOpaqueData: MessageFns<MsgRowOpaqueData> = {
             break;
           }
 
-          message.currentMsg = MsgOpaqueData.decode(reader, reader.uint32());
+          message.currentMsg = MsgOpaqueData.decode(reader, reader.uint32(), message.currentMsg);
           continue;
         }
         case 2: {
@@ -52852,7 +52657,7 @@ export const MsgRowOpaqueData: MessageFns<MsgRowOpaqueData> = {
             break;
           }
 
-          message.quotedMsg = MsgOpaqueData.decode(reader, reader.uint32());
+          message.quotedMsg = MsgOpaqueData.decode(reader, reader.uint32(), message.quotedMsg);
           continue;
         }
       }
@@ -52894,10 +52699,10 @@ export const NoiseCertificate: MessageFns<NoiseCertificate> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): NoiseCertificate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: NoiseCertificate): NoiseCertificate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNoiseCertificate();
+    const message = into ?? createBaseNoiseCertificate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -52961,10 +52766,10 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): NoiseCertificate_Details {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: NoiseCertificate_Details): NoiseCertificate_Details {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNoiseCertificate_Details();
+    const message = into ?? createBaseNoiseCertificate_Details();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53052,10 +52857,10 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): NotificationMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: NotificationMessageInfo): NotificationMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNotificationMessageInfo();
+    const message = into ?? createBaseNotificationMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53064,7 +52869,7 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -53072,7 +52877,7 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 3: {
@@ -53142,10 +52947,10 @@ export const NotificationSettings: MessageFns<NotificationSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): NotificationSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: NotificationSettings): NotificationSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNotificationSettings();
+    const message = into ?? createBaseNotificationSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53236,10 +53041,10 @@ export const OrfThreadIdInput: MessageFns<OrfThreadIdInput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OrfThreadIdInput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: OrfThreadIdInput): OrfThreadIdInput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrfThreadIdInput();
+    const message = into ?? createBaseOrfThreadIdInput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53294,10 +53099,10 @@ export const OrfThreadIdOutput: MessageFns<OrfThreadIdOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): OrfThreadIdOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: OrfThreadIdOutput): OrfThreadIdOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOrfThreadIdOutput();
+    const message = into ?? createBaseOrfThreadIdOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53355,10 +53160,10 @@ export const PairingRequest: MessageFns<PairingRequest> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PairingRequest {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PairingRequest): PairingRequest {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePairingRequest();
+    const message = into ?? createBasePairingRequest();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53425,10 +53230,10 @@ export const PastParticipant: MessageFns<PastParticipant> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PastParticipant {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PastParticipant): PastParticipant {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePastParticipant();
+    const message = into ?? createBasePastParticipant();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53494,10 +53299,10 @@ export const PastParticipants: MessageFns<PastParticipants> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PastParticipants {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PastParticipants): PastParticipants {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePastParticipants();
+    const message = into ?? createBasePastParticipants();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53585,10 +53390,10 @@ export const PatchDebugData: MessageFns<PatchDebugData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PatchDebugData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PatchDebugData): PatchDebugData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePatchDebugData();
+    const message = into ?? createBasePatchDebugData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53748,10 +53553,10 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PaymentBackground {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PaymentBackground): PaymentBackground {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePaymentBackground();
+    const message = into ?? createBasePaymentBackground();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -53824,7 +53629,7 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
             break;
           }
 
-          message.mediaData = PaymentBackground_MediaData.decode(reader, reader.uint32());
+          message.mediaData = PaymentBackground_MediaData.decode(reader, reader.uint32(), message.mediaData);
           continue;
         }
         case 10: {
@@ -53889,10 +53694,10 @@ export const PaymentBackground_MediaData: MessageFns<PaymentBackground_MediaData
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PaymentBackground_MediaData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PaymentBackground_MediaData): PaymentBackground_MediaData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePaymentBackground_MediaData();
+    const message = into ?? createBasePaymentBackground_MediaData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54007,10 +53812,10 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PaymentInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PaymentInfo): PaymentInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePaymentInfo();
+    const message = into ?? createBasePaymentInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54059,7 +53864,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.requestMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.requestMessageKey = MessageKey.decode(reader, reader.uint32(), message.requestMessageKey);
           continue;
         }
         case 7: {
@@ -54107,7 +53912,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.primaryAmount = Money.decode(reader, reader.uint32());
+          message.primaryAmount = Money.decode(reader, reader.uint32(), message.primaryAmount);
           continue;
         }
         case 13: {
@@ -54115,7 +53920,7 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
             break;
           }
 
-          message.exchangeAmount = Money.decode(reader, reader.uint32());
+          message.exchangeAmount = Money.decode(reader, reader.uint32(), message.exchangeAmount);
           continue;
         }
       }
@@ -54170,10 +53975,10 @@ export const PhoneNumberToLIDMapping: MessageFns<PhoneNumberToLIDMapping> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PhoneNumberToLIDMapping {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PhoneNumberToLIDMapping): PhoneNumberToLIDMapping {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePhoneNumberToLIDMapping();
+    const message = into ?? createBasePhoneNumberToLIDMapping();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54231,10 +54036,10 @@ export const PhotoChange: MessageFns<PhotoChange> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PhotoChange {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PhotoChange): PhotoChange {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePhotoChange();
+    const message = into ?? createBasePhotoChange();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54307,10 +54112,10 @@ export const PinInChat: MessageFns<PinInChat> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PinInChat {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PinInChat): PinInChat {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePinInChat();
+    const message = into ?? createBasePinInChat();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54327,7 +54132,7 @@ export const PinInChat: MessageFns<PinInChat> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 3: {
@@ -54351,7 +54156,7 @@ export const PinInChat: MessageFns<PinInChat> = {
             break;
           }
 
-          message.messageAddOnContextInfo = MessageAddOnContextInfo.decode(reader, reader.uint32());
+          message.messageAddOnContextInfo = MessageAddOnContextInfo.decode(reader, reader.uint32(), message.messageAddOnContextInfo);
           continue;
         }
       }
@@ -54401,10 +54206,10 @@ export const Point: MessageFns<Point> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Point {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Point): Point {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePoint();
+    const message = into ?? createBasePoint();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54479,10 +54284,10 @@ export const PollAdditionalMetadata: MessageFns<PollAdditionalMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PollAdditionalMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PollAdditionalMetadata): PollAdditionalMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePollAdditionalMetadata();
+    const message = into ?? createBasePollAdditionalMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54550,10 +54355,10 @@ export const PollAdditionalMetadata_PollNameHashHistoryEntry: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PollAdditionalMetadata_PollNameHashHistoryEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PollAdditionalMetadata_PollNameHashHistoryEntry): PollAdditionalMetadata_PollNameHashHistoryEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePollAdditionalMetadata_PollNameHashHistoryEntry();
+    const message = into ?? createBasePollAdditionalMetadata_PollNameHashHistoryEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54612,10 +54417,10 @@ export const PollEncValue: MessageFns<PollEncValue> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PollEncValue {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PollEncValue): PollEncValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePollEncValue();
+    const message = into ?? createBasePollEncValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54682,10 +54487,10 @@ export const PollUpdate: MessageFns<PollUpdate> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PollUpdate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PollUpdate): PollUpdate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePollUpdate();
+    const message = into ?? createBasePollUpdate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54694,7 +54499,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
             break;
           }
 
-          message.pollUpdateMessageKey = MessageKey.decode(reader, reader.uint32());
+          message.pollUpdateMessageKey = MessageKey.decode(reader, reader.uint32(), message.pollUpdateMessageKey);
           continue;
         }
         case 2: {
@@ -54702,7 +54507,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
             break;
           }
 
-          message.vote = Message_PollVoteMessage.decode(reader, reader.uint32());
+          message.vote = Message_PollVoteMessage.decode(reader, reader.uint32(), message.vote);
           continue;
         }
         case 3: {
@@ -54734,7 +54539,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
             break;
           }
 
-          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32());
+          message.metadata = Message_PollUpdateMessageMetadata.decode(reader, reader.uint32(), message.metadata);
           continue;
         }
       }
@@ -54785,10 +54590,10 @@ export const PreKeyRecordStructure: MessageFns<PreKeyRecordStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PreKeyRecordStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PreKeyRecordStructure): PreKeyRecordStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePreKeyRecordStructure();
+    const message = into ?? createBasePreKeyRecordStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54870,10 +54675,10 @@ export const PreKeySignalMessage: MessageFns<PreKeySignalMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PreKeySignalMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PreKeySignalMessage): PreKeySignalMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePreKeySignalMessage();
+    const message = into ?? createBasePreKeySignalMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -54979,10 +54784,10 @@ export const PremiumMessageInfo: MessageFns<PremiumMessageInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PremiumMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PremiumMessageInfo): PremiumMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePremiumMessageInfo();
+    const message = into ?? createBasePremiumMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55028,10 +54833,10 @@ export const PrimaryEphemeralIdentity: MessageFns<PrimaryEphemeralIdentity> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): PrimaryEphemeralIdentity {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: PrimaryEphemeralIdentity): PrimaryEphemeralIdentity {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePrimaryEphemeralIdentity();
+    const message = into ?? createBasePrimaryEphemeralIdentity();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55106,10 +54911,10 @@ export const ProcessedVideo: MessageFns<ProcessedVideo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ProcessedVideo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ProcessedVideo): ProcessedVideo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProcessedVideo();
+    const message = into ?? createBaseProcessedVideo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55224,10 +55029,10 @@ export const ProloguePayload: MessageFns<ProloguePayload> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ProloguePayload {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ProloguePayload): ProloguePayload {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseProloguePayload();
+    const message = into ?? createBaseProloguePayload();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55244,7 +55049,7 @@ export const ProloguePayload: MessageFns<ProloguePayload> = {
             break;
           }
 
-          message.commitment = CompanionCommitment.decode(reader, reader.uint32());
+          message.commitment = CompanionCommitment.decode(reader, reader.uint32(), message.commitment);
           continue;
         }
       }
@@ -55284,10 +55089,10 @@ export const Pushname: MessageFns<Pushname> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Pushname {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Pushname): Pushname {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBasePushname();
+    const message = into ?? createBasePushname();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55336,10 +55141,10 @@ export const QP: MessageFns<QP> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): QP {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: QP): QP {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQP();
+    const message = into ?? createBaseQP();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55384,10 +55189,10 @@ export const QP_Filter: MessageFns<QP_Filter> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): QP_Filter {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: QP_Filter): QP_Filter {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQP_Filter();
+    const message = into ?? createBaseQP_Filter();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55473,10 +55278,10 @@ export const QP_FilterClause: MessageFns<QP_FilterClause> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): QP_FilterClause {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: QP_FilterClause): QP_FilterClause {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQP_FilterClause();
+    const message = into ?? createBaseQP_FilterClause();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55552,10 +55357,10 @@ export const QP_FilterParameters: MessageFns<QP_FilterParameters> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): QP_FilterParameters {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: QP_FilterParameters): QP_FilterParameters {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQP_FilterParameters();
+    const message = into ?? createBaseQP_FilterParameters();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55610,10 +55415,10 @@ export const QuarantinedMessage: MessageFns<QuarantinedMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): QuarantinedMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: QuarantinedMessage): QuarantinedMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseQuarantinedMessage();
+    const message = into ?? createBaseQuarantinedMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55677,10 +55482,10 @@ export const Reaction: MessageFns<Reaction> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Reaction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Reaction): Reaction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReaction();
+    const message = into ?? createBaseReaction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55689,7 +55494,7 @@ export const Reaction: MessageFns<Reaction> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -55762,10 +55567,10 @@ export const RecentEmojiWeight: MessageFns<RecentEmojiWeight> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RecentEmojiWeight {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RecentEmojiWeight): RecentEmojiWeight {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRecentEmojiWeight();
+    const message = into ?? createBaseRecentEmojiWeight();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55822,10 +55627,10 @@ export const RecordStructure: MessageFns<RecordStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RecordStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RecordStructure): RecordStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRecordStructure();
+    const message = into ?? createBaseRecordStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55834,7 +55639,7 @@ export const RecordStructure: MessageFns<RecordStructure> = {
             break;
           }
 
-          message.currentSession = SessionStructure.decode(reader, reader.uint32());
+          message.currentSession = SessionStructure.decode(reader, reader.uint32(), message.currentSession);
           continue;
         }
         case 2: {
@@ -55894,10 +55699,10 @@ export const Reportable: MessageFns<Reportable> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): Reportable {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Reportable): Reportable {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReportable();
+    const message = into ?? createBaseReportable();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -55967,10 +55772,10 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ReportingTokenInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ReportingTokenInfo): ReportingTokenInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseReportingTokenInfo();
+    const message = into ?? createBaseReportingTokenInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56032,10 +55837,10 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): RoutingInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RoutingInfo): RoutingInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseRoutingInfo();
+    const message = into ?? createBaseRoutingInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56161,10 +55966,10 @@ export const ScheduledMessageMetadata: MessageFns<ScheduledMessageMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ScheduledMessageMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ScheduledMessageMetadata): ScheduledMessageMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseScheduledMessageMetadata();
+    const message = into ?? createBaseScheduledMessageMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56234,10 +56039,10 @@ export const SenderKeyDistributionMessage: MessageFns<SenderKeyDistributionMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyDistributionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyDistributionMessage): SenderKeyDistributionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyDistributionMessage();
+    const message = into ?? createBaseSenderKeyDistributionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56313,10 +56118,10 @@ export const SenderKeyMessage: MessageFns<SenderKeyMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyMessage): SenderKeyMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyMessage();
+    const message = into ?? createBaseSenderKeyMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56379,10 +56184,10 @@ export const SenderKeyRecordStructure: MessageFns<SenderKeyRecordStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyRecordStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyRecordStructure): SenderKeyRecordStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyRecordStructure();
+    const message = into ?? createBaseSenderKeyRecordStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56442,10 +56247,10 @@ export const SenderKeyStateStructure: MessageFns<SenderKeyStateStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyStateStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyStateStructure): SenderKeyStateStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyStateStructure();
+    const message = into ?? createBaseSenderKeyStateStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56462,7 +56267,7 @@ export const SenderKeyStateStructure: MessageFns<SenderKeyStateStructure> = {
             break;
           }
 
-          message.senderChainKey = SenderKeyStateStructure_SenderChainKey.decode(reader, reader.uint32());
+          message.senderChainKey = SenderKeyStateStructure_SenderChainKey.decode(reader, reader.uint32(), message.senderChainKey);
           continue;
         }
         case 3: {
@@ -56470,7 +56275,7 @@ export const SenderKeyStateStructure: MessageFns<SenderKeyStateStructure> = {
             break;
           }
 
-          message.senderSigningKey = SenderKeyStateStructure_SenderSigningKey.decode(reader, reader.uint32());
+          message.senderSigningKey = SenderKeyStateStructure_SenderSigningKey.decode(reader, reader.uint32(), message.senderSigningKey);
           continue;
         }
         case 4: {
@@ -56529,10 +56334,10 @@ export const SenderKeyStateStructure_SenderChainKey: MessageFns<SenderKeyStateSt
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyStateStructure_SenderChainKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyStateStructure_SenderChainKey): SenderKeyStateStructure_SenderChainKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyStateStructure_SenderChainKey();
+    const message = into ?? createBaseSenderKeyStateStructure_SenderChainKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56587,10 +56392,10 @@ export const SenderKeyStateStructure_SenderMessageKey: MessageFns<SenderKeyState
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyStateStructure_SenderMessageKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyStateStructure_SenderMessageKey): SenderKeyStateStructure_SenderMessageKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyStateStructure_SenderMessageKey();
+    const message = into ?? createBaseSenderKeyStateStructure_SenderMessageKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56645,10 +56450,10 @@ export const SenderKeyStateStructure_SenderSigningKey: MessageFns<SenderKeyState
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SenderKeyStateStructure_SenderSigningKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SenderKeyStateStructure_SenderSigningKey): SenderKeyStateStructure_SenderSigningKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSenderKeyStateStructure_SenderSigningKey();
+    const message = into ?? createBaseSenderKeyStateStructure_SenderSigningKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56700,10 +56505,10 @@ export const ServerErrorReceipt: MessageFns<ServerErrorReceipt> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ServerErrorReceipt {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ServerErrorReceipt): ServerErrorReceipt {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseServerErrorReceipt();
+    const message = into ?? createBaseServerErrorReceipt();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56784,10 +56589,10 @@ export const SessionStructure: MessageFns<SessionStructure> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure): SessionStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure();
+    const message = into ?? createBaseSessionStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56836,7 +56641,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
             break;
           }
 
-          message.senderChain = SessionStructure_Chain.decode(reader, reader.uint32());
+          message.senderChain = SessionStructure_Chain.decode(reader, reader.uint32(), message.senderChain);
           continue;
         }
         case 7: {
@@ -56858,7 +56663,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
             break;
           }
 
-          message.pendingKeyExchange = SessionStructure_PendingKeyExchange.decode(reader, reader.uint32());
+          message.pendingKeyExchange = SessionStructure_PendingKeyExchange.decode(reader, reader.uint32(), message.pendingKeyExchange);
           continue;
         }
         case 9: {
@@ -56866,7 +56671,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
             break;
           }
 
-          message.pendingPreKey = SessionStructure_PendingPreKey.decode(reader, reader.uint32());
+          message.pendingPreKey = SessionStructure_PendingPreKey.decode(reader, reader.uint32(), message.pendingPreKey);
           continue;
         }
         case 10: {
@@ -56961,10 +56766,10 @@ export const SessionStructure_Chain: MessageFns<SessionStructure_Chain> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure_Chain {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure_Chain): SessionStructure_Chain {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure_Chain();
+    const message = into ?? createBaseSessionStructure_Chain();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -56989,7 +56794,7 @@ export const SessionStructure_Chain: MessageFns<SessionStructure_Chain> = {
             break;
           }
 
-          message.chainKey = SessionStructure_Chain_ChainKey.decode(reader, reader.uint32());
+          message.chainKey = SessionStructure_Chain_ChainKey.decode(reader, reader.uint32(), message.chainKey);
           continue;
         }
         case 4: {
@@ -57045,10 +56850,10 @@ export const SessionStructure_Chain_ChainKey: MessageFns<SessionStructure_Chain_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure_Chain_ChainKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure_Chain_ChainKey): SessionStructure_Chain_ChainKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure_Chain_ChainKey();
+    const message = into ?? createBaseSessionStructure_Chain_ChainKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57109,10 +56914,10 @@ export const SessionStructure_Chain_MessageKey: MessageFns<SessionStructure_Chai
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure_Chain_MessageKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure_Chain_MessageKey): SessionStructure_Chain_MessageKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure_Chain_MessageKey();
+    const message = into ?? createBaseSessionStructure_Chain_MessageKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57200,10 +57005,10 @@ export const SessionStructure_PendingKeyExchange: MessageFns<SessionStructure_Pe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure_PendingKeyExchange {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure_PendingKeyExchange): SessionStructure_PendingKeyExchange {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure_PendingKeyExchange();
+    const message = into ?? createBaseSessionStructure_PendingKeyExchange();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57312,10 +57117,10 @@ export const SessionStructure_PendingPreKey: MessageFns<SessionStructure_Pending
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionStructure_PendingPreKey {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionStructure_PendingPreKey): SessionStructure_PendingPreKey {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionStructure_PendingPreKey();
+    const message = into ?? createBaseSessionStructure_PendingPreKey();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57400,10 +57205,10 @@ export const SessionTransparencyMetadata: MessageFns<SessionTransparencyMetadata
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SessionTransparencyMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SessionTransparencyMetadata): SessionTransparencyMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSessionTransparencyMetadata();
+    const message = into ?? createBaseSessionTransparencyMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57473,10 +57278,10 @@ export const SignalMessage: MessageFns<SignalMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SignalMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SignalMessage): SignalMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSignalMessage();
+    const message = into ?? createBaseSignalMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57558,10 +57363,10 @@ export const SignedPreKeyRecordStructure: MessageFns<SignedPreKeyRecordStructure
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SignedPreKeyRecordStructure {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SignedPreKeyRecordStructure): SignedPreKeyRecordStructure {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSignedPreKeyRecordStructure();
+    const message = into ?? createBaseSignedPreKeyRecordStructure();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57661,10 +57466,10 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution): StatusAttribution {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution();
+    const message = into ?? createBaseStatusAttribution();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57689,7 +57494,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.statusReshare = StatusAttribution_StatusReshare.decode(reader, reader.uint32());
+          message.statusReshare = StatusAttribution_StatusReshare.decode(reader, reader.uint32(), message.statusReshare);
           continue;
         }
         case 4: {
@@ -57697,7 +57502,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.externalShare = StatusAttribution_ExternalShare.decode(reader, reader.uint32());
+          message.externalShare = StatusAttribution_ExternalShare.decode(reader, reader.uint32(), message.externalShare);
           continue;
         }
         case 5: {
@@ -57705,7 +57510,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.music = StatusAttribution_Music.decode(reader, reader.uint32());
+          message.music = StatusAttribution_Music.decode(reader, reader.uint32(), message.music);
           continue;
         }
         case 6: {
@@ -57713,7 +57518,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.groupStatus = StatusAttribution_GroupStatus.decode(reader, reader.uint32());
+          message.groupStatus = StatusAttribution_GroupStatus.decode(reader, reader.uint32(), message.groupStatus);
           continue;
         }
         case 7: {
@@ -57721,7 +57526,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.rlAttribution = StatusAttribution_RLAttribution.decode(reader, reader.uint32());
+          message.rlAttribution = StatusAttribution_RLAttribution.decode(reader, reader.uint32(), message.rlAttribution);
           continue;
         }
         case 8: {
@@ -57729,7 +57534,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
             break;
           }
 
-          message.aiCreatedAttribution = StatusAttribution_AiCreatedAttribution.decode(reader, reader.uint32());
+          message.aiCreatedAttribution = StatusAttribution_AiCreatedAttribution.decode(reader, reader.uint32(), message.aiCreatedAttribution);
           continue;
         }
       }
@@ -57782,10 +57587,10 @@ export const StatusAttribution_AiCreatedAttribution: MessageFns<StatusAttributio
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_AiCreatedAttribution {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_AiCreatedAttribution): StatusAttribution_AiCreatedAttribution {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_AiCreatedAttribution();
+    const message = into ?? createBaseStatusAttribution_AiCreatedAttribution();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57837,10 +57642,10 @@ export const StatusAttribution_ExternalShare: MessageFns<StatusAttribution_Exter
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_ExternalShare {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_ExternalShare): StatusAttribution_ExternalShare {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_ExternalShare();
+    const message = into ?? createBaseStatusAttribution_ExternalShare();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57910,10 +57715,10 @@ export const StatusAttribution_GroupStatus: MessageFns<StatusAttribution_GroupSt
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_GroupStatus {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_GroupStatus): StatusAttribution_GroupStatus {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_GroupStatus();
+    const message = into ?? createBaseStatusAttribution_GroupStatus();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -57971,10 +57776,10 @@ export const StatusAttribution_Music: MessageFns<StatusAttribution_Music> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_Music {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_Music): StatusAttribution_Music {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_Music();
+    const message = into ?? createBaseStatusAttribution_Music();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58062,10 +57867,10 @@ export const StatusAttribution_RLAttribution: MessageFns<StatusAttribution_RLAtt
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_RLAttribution {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_RLAttribution): StatusAttribution_RLAttribution {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_RLAttribution();
+    const message = into ?? createBaseStatusAttribution_RLAttribution();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58111,10 +57916,10 @@ export const StatusAttribution_StatusReshare: MessageFns<StatusAttribution_Statu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_StatusReshare {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_StatusReshare): StatusAttribution_StatusReshare {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_StatusReshare();
+    const message = into ?? createBaseStatusAttribution_StatusReshare();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58131,7 +57936,7 @@ export const StatusAttribution_StatusReshare: MessageFns<StatusAttribution_Statu
             break;
           }
 
-          message.metadata = StatusAttribution_StatusReshare_Metadata.decode(reader, reader.uint32());
+          message.metadata = StatusAttribution_StatusReshare_Metadata.decode(reader, reader.uint32(), message.metadata);
           continue;
         }
       }
@@ -58177,10 +57982,10 @@ export const StatusAttribution_StatusReshare_Metadata: MessageFns<StatusAttribut
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusAttribution_StatusReshare_Metadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusAttribution_StatusReshare_Metadata): StatusAttribution_StatusReshare_Metadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusAttribution_StatusReshare_Metadata();
+    const message = into ?? createBaseStatusAttribution_StatusReshare_Metadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58250,10 +58055,10 @@ export const StatusMentionMessage: MessageFns<StatusMentionMessage> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusMentionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusMentionMessage): StatusMentionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusMentionMessage();
+    const message = into ?? createBaseStatusMentionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58262,7 +58067,7 @@ export const StatusMentionMessage: MessageFns<StatusMentionMessage> = {
             break;
           }
 
-          message.quotedStatus = Message.decode(reader, reader.uint32());
+          message.quotedStatus = Message.decode(reader, reader.uint32(), message.quotedStatus);
           continue;
         }
       }
@@ -58301,10 +58106,10 @@ export const StatusPSA: MessageFns<StatusPSA> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StatusPSA {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StatusPSA): StatusPSA {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStatusPSA();
+    const message = into ?? createBaseStatusPSA();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58395,10 +58200,10 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): StickerMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: StickerMetadata): StickerMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseStickerMetadata();
+    const message = into ?? createBaseStickerMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58561,10 +58366,10 @@ export const SubProtocol: MessageFns<SubProtocol> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SubProtocol {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SubProtocol): SubProtocol {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSubProtocol();
+    const message = into ?? createBaseSubProtocol();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58625,10 +58430,10 @@ export const SyncActionData: MessageFns<SyncActionData> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionData {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionData): SyncActionData {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionData();
+    const message = into ?? createBaseSyncActionData();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -58645,7 +58450,7 @@ export const SyncActionData: MessageFns<SyncActionData> = {
             break;
           }
 
-          message.value = SyncActionValue.decode(reader, reader.uint32());
+          message.value = SyncActionValue.decode(reader, reader.uint32(), message.value);
           continue;
         }
         case 3: {
@@ -58998,10 +58803,10 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue): SyncActionValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue();
+    const message = into ?? createBaseSyncActionValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -59018,7 +58823,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.starAction = SyncActionValue_StarAction.decode(reader, reader.uint32());
+          message.starAction = SyncActionValue_StarAction.decode(reader, reader.uint32(), message.starAction);
           continue;
         }
         case 3: {
@@ -59026,7 +58831,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.contactAction = SyncActionValue_ContactAction.decode(reader, reader.uint32());
+          message.contactAction = SyncActionValue_ContactAction.decode(reader, reader.uint32(), message.contactAction);
           continue;
         }
         case 4: {
@@ -59034,7 +58839,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.muteAction = SyncActionValue_MuteAction.decode(reader, reader.uint32());
+          message.muteAction = SyncActionValue_MuteAction.decode(reader, reader.uint32(), message.muteAction);
           continue;
         }
         case 5: {
@@ -59042,7 +58847,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.pinAction = SyncActionValue_PinAction.decode(reader, reader.uint32());
+          message.pinAction = SyncActionValue_PinAction.decode(reader, reader.uint32(), message.pinAction);
           continue;
         }
         case 7: {
@@ -59050,7 +58855,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.pushNameSetting = SyncActionValue_PushNameSetting.decode(reader, reader.uint32());
+          message.pushNameSetting = SyncActionValue_PushNameSetting.decode(reader, reader.uint32(), message.pushNameSetting);
           continue;
         }
         case 8: {
@@ -59058,7 +58863,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.quickReplyAction = SyncActionValue_QuickReplyAction.decode(reader, reader.uint32());
+          message.quickReplyAction = SyncActionValue_QuickReplyAction.decode(reader, reader.uint32(), message.quickReplyAction);
           continue;
         }
         case 11: {
@@ -59066,7 +58871,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.recentEmojiWeightsAction = SyncActionValue_RecentEmojiWeightsAction.decode(reader, reader.uint32());
+          message.recentEmojiWeightsAction = SyncActionValue_RecentEmojiWeightsAction.decode(reader, reader.uint32(), message.recentEmojiWeightsAction);
           continue;
         }
         case 14: {
@@ -59074,7 +58879,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.labelEditAction = SyncActionValue_LabelEditAction.decode(reader, reader.uint32());
+          message.labelEditAction = SyncActionValue_LabelEditAction.decode(reader, reader.uint32(), message.labelEditAction);
           continue;
         }
         case 15: {
@@ -59082,7 +58887,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.labelAssociationAction = SyncActionValue_LabelAssociationAction.decode(reader, reader.uint32());
+          message.labelAssociationAction = SyncActionValue_LabelAssociationAction.decode(reader, reader.uint32(), message.labelAssociationAction);
           continue;
         }
         case 16: {
@@ -59090,7 +58895,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.localeSetting = SyncActionValue_LocaleSetting.decode(reader, reader.uint32());
+          message.localeSetting = SyncActionValue_LocaleSetting.decode(reader, reader.uint32(), message.localeSetting);
           continue;
         }
         case 17: {
@@ -59098,7 +58903,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.archiveChatAction = SyncActionValue_ArchiveChatAction.decode(reader, reader.uint32());
+          message.archiveChatAction = SyncActionValue_ArchiveChatAction.decode(reader, reader.uint32(), message.archiveChatAction);
           continue;
         }
         case 18: {
@@ -59106,7 +58911,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.deleteMessageForMeAction = SyncActionValue_DeleteMessageForMeAction.decode(reader, reader.uint32());
+          message.deleteMessageForMeAction = SyncActionValue_DeleteMessageForMeAction.decode(reader, reader.uint32(), message.deleteMessageForMeAction);
           continue;
         }
         case 19: {
@@ -59114,7 +58919,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.keyExpiration = SyncActionValue_KeyExpiration.decode(reader, reader.uint32());
+          message.keyExpiration = SyncActionValue_KeyExpiration.decode(reader, reader.uint32(), message.keyExpiration);
           continue;
         }
         case 20: {
@@ -59122,7 +58927,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.markChatAsReadAction = SyncActionValue_MarkChatAsReadAction.decode(reader, reader.uint32());
+          message.markChatAsReadAction = SyncActionValue_MarkChatAsReadAction.decode(reader, reader.uint32(), message.markChatAsReadAction);
           continue;
         }
         case 21: {
@@ -59130,7 +58935,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.clearChatAction = SyncActionValue_ClearChatAction.decode(reader, reader.uint32());
+          message.clearChatAction = SyncActionValue_ClearChatAction.decode(reader, reader.uint32(), message.clearChatAction);
           continue;
         }
         case 22: {
@@ -59138,7 +58943,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.deleteChatAction = SyncActionValue_DeleteChatAction.decode(reader, reader.uint32());
+          message.deleteChatAction = SyncActionValue_DeleteChatAction.decode(reader, reader.uint32(), message.deleteChatAction);
           continue;
         }
         case 23: {
@@ -59146,7 +58951,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.unarchiveChatsSetting = SyncActionValue_UnarchiveChatsSetting.decode(reader, reader.uint32());
+          message.unarchiveChatsSetting = SyncActionValue_UnarchiveChatsSetting.decode(reader, reader.uint32(), message.unarchiveChatsSetting);
           continue;
         }
         case 24: {
@@ -59154,7 +58959,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.primaryFeature = SyncActionValue_PrimaryFeature.decode(reader, reader.uint32());
+          message.primaryFeature = SyncActionValue_PrimaryFeature.decode(reader, reader.uint32(), message.primaryFeature);
           continue;
         }
         case 26: {
@@ -59162,7 +58967,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.androidUnsupportedActions = SyncActionValue_AndroidUnsupportedActions.decode(reader, reader.uint32());
+          message.androidUnsupportedActions = SyncActionValue_AndroidUnsupportedActions.decode(reader, reader.uint32(), message.androidUnsupportedActions);
           continue;
         }
         case 27: {
@@ -59170,7 +58975,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.agentAction = SyncActionValue_AgentAction.decode(reader, reader.uint32());
+          message.agentAction = SyncActionValue_AgentAction.decode(reader, reader.uint32(), message.agentAction);
           continue;
         }
         case 28: {
@@ -59178,7 +58983,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.subscriptionAction = SyncActionValue_SubscriptionAction.decode(reader, reader.uint32());
+          message.subscriptionAction = SyncActionValue_SubscriptionAction.decode(reader, reader.uint32(), message.subscriptionAction);
           continue;
         }
         case 29: {
@@ -59186,7 +58991,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.userStatusMuteAction = SyncActionValue_UserStatusMuteAction.decode(reader, reader.uint32());
+          message.userStatusMuteAction = SyncActionValue_UserStatusMuteAction.decode(reader, reader.uint32(), message.userStatusMuteAction);
           continue;
         }
         case 30: {
@@ -59194,7 +58999,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.timeFormatAction = SyncActionValue_TimeFormatAction.decode(reader, reader.uint32());
+          message.timeFormatAction = SyncActionValue_TimeFormatAction.decode(reader, reader.uint32(), message.timeFormatAction);
           continue;
         }
         case 31: {
@@ -59202,7 +59007,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.nuxAction = SyncActionValue_NuxAction.decode(reader, reader.uint32());
+          message.nuxAction = SyncActionValue_NuxAction.decode(reader, reader.uint32(), message.nuxAction);
           continue;
         }
         case 32: {
@@ -59210,7 +59015,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.primaryVersionAction = SyncActionValue_PrimaryVersionAction.decode(reader, reader.uint32());
+          message.primaryVersionAction = SyncActionValue_PrimaryVersionAction.decode(reader, reader.uint32(), message.primaryVersionAction);
           continue;
         }
         case 33: {
@@ -59218,7 +59023,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.stickerAction = SyncActionValue_StickerAction.decode(reader, reader.uint32());
+          message.stickerAction = SyncActionValue_StickerAction.decode(reader, reader.uint32(), message.stickerAction);
           continue;
         }
         case 34: {
@@ -59226,7 +59031,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.removeRecentStickerAction = SyncActionValue_RemoveRecentStickerAction.decode(reader, reader.uint32());
+          message.removeRecentStickerAction = SyncActionValue_RemoveRecentStickerAction.decode(reader, reader.uint32(), message.removeRecentStickerAction);
           continue;
         }
         case 35: {
@@ -59234,7 +59039,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.chatAssignment = SyncActionValue_ChatAssignmentAction.decode(reader, reader.uint32());
+          message.chatAssignment = SyncActionValue_ChatAssignmentAction.decode(reader, reader.uint32(), message.chatAssignment);
           continue;
         }
         case 36: {
@@ -59242,10 +59047,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.chatAssignmentOpenedStatus = SyncActionValue_ChatAssignmentOpenedStatusAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.chatAssignmentOpenedStatus = SyncActionValue_ChatAssignmentOpenedStatusAction.decode(reader, reader.uint32(), message.chatAssignmentOpenedStatus);
           continue;
         }
         case 37: {
@@ -59253,7 +59055,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.pnForLidChatAction = SyncActionValue_PnForLidChatAction.decode(reader, reader.uint32());
+          message.pnForLidChatAction = SyncActionValue_PnForLidChatAction.decode(reader, reader.uint32(), message.pnForLidChatAction);
           continue;
         }
         case 38: {
@@ -59261,7 +59063,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.marketingMessageAction = SyncActionValue_MarketingMessageAction.decode(reader, reader.uint32());
+          message.marketingMessageAction = SyncActionValue_MarketingMessageAction.decode(reader, reader.uint32(), message.marketingMessageAction);
           continue;
         }
         case 39: {
@@ -59269,10 +59071,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.marketingMessageBroadcastAction = SyncActionValue_MarketingMessageBroadcastAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.marketingMessageBroadcastAction = SyncActionValue_MarketingMessageBroadcastAction.decode(reader, reader.uint32(), message.marketingMessageBroadcastAction);
           continue;
         }
         case 40: {
@@ -59280,7 +59079,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.externalWebBetaAction = SyncActionValue_ExternalWebBetaAction.decode(reader, reader.uint32());
+          message.externalWebBetaAction = SyncActionValue_ExternalWebBetaAction.decode(reader, reader.uint32(), message.externalWebBetaAction);
           continue;
         }
         case 41: {
@@ -59288,10 +59087,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.privacySettingRelayAllCalls = SyncActionValue_PrivacySettingRelayAllCalls.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.privacySettingRelayAllCalls = SyncActionValue_PrivacySettingRelayAllCalls.decode(reader, reader.uint32(), message.privacySettingRelayAllCalls);
           continue;
         }
         case 42: {
@@ -59299,7 +59095,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.callLogAction = SyncActionValue_CallLogAction.decode(reader, reader.uint32());
+          message.callLogAction = SyncActionValue_CallLogAction.decode(reader, reader.uint32(), message.callLogAction);
           continue;
         }
         case 43: {
@@ -59307,7 +59103,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.ugcBot = SyncActionValue_UGCBot.decode(reader, reader.uint32());
+          message.ugcBot = SyncActionValue_UGCBot.decode(reader, reader.uint32(), message.ugcBot);
           continue;
         }
         case 44: {
@@ -59315,7 +59111,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.statusPrivacy = SyncActionValue_StatusPrivacyAction.decode(reader, reader.uint32());
+          message.statusPrivacy = SyncActionValue_StatusPrivacyAction.decode(reader, reader.uint32(), message.statusPrivacy);
           continue;
         }
         case 45: {
@@ -59323,7 +59119,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.botWelcomeRequestAction = SyncActionValue_BotWelcomeRequestAction.decode(reader, reader.uint32());
+          message.botWelcomeRequestAction = SyncActionValue_BotWelcomeRequestAction.decode(reader, reader.uint32(), message.botWelcomeRequestAction);
           continue;
         }
         case 46: {
@@ -59331,10 +59127,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.deleteIndividualCallLog = SyncActionValue_DeleteIndividualCallLogAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.deleteIndividualCallLog = SyncActionValue_DeleteIndividualCallLogAction.decode(reader, reader.uint32(), message.deleteIndividualCallLog);
           continue;
         }
         case 47: {
@@ -59342,7 +59135,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.labelReorderingAction = SyncActionValue_LabelReorderingAction.decode(reader, reader.uint32());
+          message.labelReorderingAction = SyncActionValue_LabelReorderingAction.decode(reader, reader.uint32(), message.labelReorderingAction);
           continue;
         }
         case 48: {
@@ -59350,7 +59143,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.paymentInfoAction = SyncActionValue_PaymentInfoAction.decode(reader, reader.uint32());
+          message.paymentInfoAction = SyncActionValue_PaymentInfoAction.decode(reader, reader.uint32(), message.paymentInfoAction);
           continue;
         }
         case 49: {
@@ -59358,10 +59151,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.customPaymentMethodsAction = SyncActionValue_CustomPaymentMethodsAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.customPaymentMethodsAction = SyncActionValue_CustomPaymentMethodsAction.decode(reader, reader.uint32(), message.customPaymentMethodsAction);
           continue;
         }
         case 50: {
@@ -59369,7 +59159,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.lockChatAction = SyncActionValue_LockChatAction.decode(reader, reader.uint32());
+          message.lockChatAction = SyncActionValue_LockChatAction.decode(reader, reader.uint32(), message.lockChatAction);
           continue;
         }
         case 51: {
@@ -59377,7 +59167,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.chatLockSettings = ChatLockSettings.decode(reader, reader.uint32());
+          message.chatLockSettings = ChatLockSettings.decode(reader, reader.uint32(), message.chatLockSettings);
           continue;
         }
         case 52: {
@@ -59385,7 +59175,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.wamoUserIdentifierAction = SyncActionValue_WamoUserIdentifierAction.decode(reader, reader.uint32());
+          message.wamoUserIdentifierAction = SyncActionValue_WamoUserIdentifierAction.decode(reader, reader.uint32(), message.wamoUserIdentifierAction);
           continue;
         }
         case 53: {
@@ -59394,7 +59184,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           }
 
           message.privacySettingDisableLinkPreviewsAction = SyncActionValue_PrivacySettingDisableLinkPreviewsAction
-            .decode(reader, reader.uint32());
+            .decode(reader, reader.uint32(), message.privacySettingDisableLinkPreviewsAction);
           continue;
         }
         case 54: {
@@ -59402,7 +59192,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.deviceCapabilities = DeviceCapabilities.decode(reader, reader.uint32());
+          message.deviceCapabilities = DeviceCapabilities.decode(reader, reader.uint32(), message.deviceCapabilities);
           continue;
         }
         case 55: {
@@ -59410,7 +59200,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.noteEditAction = SyncActionValue_NoteEditAction.decode(reader, reader.uint32());
+          message.noteEditAction = SyncActionValue_NoteEditAction.decode(reader, reader.uint32(), message.noteEditAction);
           continue;
         }
         case 56: {
@@ -59418,7 +59208,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.favoritesAction = SyncActionValue_FavoritesAction.decode(reader, reader.uint32());
+          message.favoritesAction = SyncActionValue_FavoritesAction.decode(reader, reader.uint32(), message.favoritesAction);
           continue;
         }
         case 57: {
@@ -59426,10 +59216,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.merchantPaymentPartnerAction = SyncActionValue_MerchantPaymentPartnerAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.merchantPaymentPartnerAction = SyncActionValue_MerchantPaymentPartnerAction.decode(reader, reader.uint32(), message.merchantPaymentPartnerAction);
           continue;
         }
         case 58: {
@@ -59437,10 +59224,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.waffleAccountLinkStateAction = SyncActionValue_WaffleAccountLinkStateAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.waffleAccountLinkStateAction = SyncActionValue_WaffleAccountLinkStateAction.decode(reader, reader.uint32(), message.waffleAccountLinkStateAction);
           continue;
         }
         case 59: {
@@ -59448,7 +59232,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.usernameChatStartMode = SyncActionValue_UsernameChatStartModeAction.decode(reader, reader.uint32());
+          message.usernameChatStartMode = SyncActionValue_UsernameChatStartModeAction.decode(reader, reader.uint32(), message.usernameChatStartMode);
           continue;
         }
         case 60: {
@@ -59456,10 +59240,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.notificationActivitySettingAction = SyncActionValue_NotificationActivitySettingAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.notificationActivitySettingAction = SyncActionValue_NotificationActivitySettingAction.decode(reader, reader.uint32(), message.notificationActivitySettingAction);
           continue;
         }
         case 61: {
@@ -59467,7 +59248,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.lidContactAction = SyncActionValue_LidContactAction.decode(reader, reader.uint32());
+          message.lidContactAction = SyncActionValue_LidContactAction.decode(reader, reader.uint32(), message.lidContactAction);
           continue;
         }
         case 62: {
@@ -59475,10 +59256,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.ctwaPerCustomerDataSharingAction = SyncActionValue_CtwaPerCustomerDataSharingAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.ctwaPerCustomerDataSharingAction = SyncActionValue_CtwaPerCustomerDataSharingAction.decode(reader, reader.uint32(), message.ctwaPerCustomerDataSharingAction);
           continue;
         }
         case 63: {
@@ -59486,7 +59264,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.paymentTosAction = SyncActionValue_PaymentTosAction.decode(reader, reader.uint32());
+          message.paymentTosAction = SyncActionValue_PaymentTosAction.decode(reader, reader.uint32(), message.paymentTosAction);
           continue;
         }
         case 64: {
@@ -59495,7 +59273,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           }
 
           message.privacySettingChannelsPersonalisedRecommendationAction =
-            SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction.decode(reader, reader.uint32());
+            SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction.decode(reader, reader.uint32(), message.privacySettingChannelsPersonalisedRecommendationAction);
           continue;
         }
         case 66: {
@@ -59503,10 +59281,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.detectedOutcomesStatusAction = SyncActionValue_DetectedOutcomesStatusAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.detectedOutcomesStatusAction = SyncActionValue_DetectedOutcomesStatusAction.decode(reader, reader.uint32(), message.detectedOutcomesStatusAction);
           continue;
         }
         case 68: {
@@ -59514,10 +59289,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.maibaAiFeaturesControlAction = SyncActionValue_MaibaAIFeaturesControlAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.maibaAiFeaturesControlAction = SyncActionValue_MaibaAIFeaturesControlAction.decode(reader, reader.uint32(), message.maibaAiFeaturesControlAction);
           continue;
         }
         case 69: {
@@ -59525,10 +59297,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.businessBroadcastListAction = SyncActionValue_BusinessBroadcastListAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.businessBroadcastListAction = SyncActionValue_BusinessBroadcastListAction.decode(reader, reader.uint32(), message.businessBroadcastListAction);
           continue;
         }
         case 70: {
@@ -59536,7 +59305,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.musicUserIdAction = SyncActionValue_MusicUserIdAction.decode(reader, reader.uint32());
+          message.musicUserIdAction = SyncActionValue_MusicUserIdAction.decode(reader, reader.uint32(), message.musicUserIdAction);
           continue;
         }
         case 71: {
@@ -59545,7 +59314,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           }
 
           message.statusPostOptInNotificationPreferencesAction =
-            SyncActionValue_StatusPostOptInNotificationPreferencesAction.decode(reader, reader.uint32());
+            SyncActionValue_StatusPostOptInNotificationPreferencesAction.decode(reader, reader.uint32(), message.statusPostOptInNotificationPreferencesAction);
           continue;
         }
         case 72: {
@@ -59553,7 +59322,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.avatarUpdatedAction = SyncActionValue_AvatarUpdatedAction.decode(reader, reader.uint32());
+          message.avatarUpdatedAction = SyncActionValue_AvatarUpdatedAction.decode(reader, reader.uint32(), message.avatarUpdatedAction);
           continue;
         }
         case 74: {
@@ -59561,10 +59330,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.privateProcessingSettingAction = SyncActionValue_PrivateProcessingSettingAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.privateProcessingSettingAction = SyncActionValue_PrivateProcessingSettingAction.decode(reader, reader.uint32(), message.privateProcessingSettingAction);
           continue;
         }
         case 75: {
@@ -59572,10 +59338,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.newsletterSavedInterestsAction = SyncActionValue_NewsletterSavedInterestsAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.newsletterSavedInterestsAction = SyncActionValue_NewsletterSavedInterestsAction.decode(reader, reader.uint32(), message.newsletterSavedInterestsAction);
           continue;
         }
         case 76: {
@@ -59583,7 +59346,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.aiThreadRenameAction = SyncActionValue_AiThreadRenameAction.decode(reader, reader.uint32());
+          message.aiThreadRenameAction = SyncActionValue_AiThreadRenameAction.decode(reader, reader.uint32(), message.aiThreadRenameAction);
           continue;
         }
         case 77: {
@@ -59591,7 +59354,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.interactiveMessageAction = SyncActionValue_InteractiveMessageAction.decode(reader, reader.uint32());
+          message.interactiveMessageAction = SyncActionValue_InteractiveMessageAction.decode(reader, reader.uint32(), message.interactiveMessageAction);
           continue;
         }
         case 78: {
@@ -59599,7 +59362,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.settingsSyncAction = SyncActionValue_SettingsSyncAction.decode(reader, reader.uint32());
+          message.settingsSyncAction = SyncActionValue_SettingsSyncAction.decode(reader, reader.uint32(), message.settingsSyncAction);
           continue;
         }
         case 79: {
@@ -59607,7 +59370,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.outContactAction = SyncActionValue_OutContactAction.decode(reader, reader.uint32());
+          message.outContactAction = SyncActionValue_OutContactAction.decode(reader, reader.uint32(), message.outContactAction);
           continue;
         }
         case 80: {
@@ -59615,7 +59378,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.nctSaltSyncAction = SyncActionValue_NctSaltSyncAction.decode(reader, reader.uint32());
+          message.nctSaltSyncAction = SyncActionValue_NctSaltSyncAction.decode(reader, reader.uint32(), message.nctSaltSyncAction);
           continue;
         }
         case 81: {
@@ -59623,10 +59386,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.businessBroadcastCampaignAction = SyncActionValue_BusinessBroadcastCampaignAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.businessBroadcastCampaignAction = SyncActionValue_BusinessBroadcastCampaignAction.decode(reader, reader.uint32(), message.businessBroadcastCampaignAction);
           continue;
         }
         case 82: {
@@ -59634,10 +59394,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.businessBroadcastInsightsAction = SyncActionValue_BusinessBroadcastInsightsAction.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.businessBroadcastInsightsAction = SyncActionValue_BusinessBroadcastInsightsAction.decode(reader, reader.uint32(), message.businessBroadcastInsightsAction);
           continue;
         }
         case 83: {
@@ -59645,7 +59402,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.customerDataAction = SyncActionValue_CustomerDataAction.decode(reader, reader.uint32());
+          message.customerDataAction = SyncActionValue_CustomerDataAction.decode(reader, reader.uint32(), message.customerDataAction);
           continue;
         }
         case 84: {
@@ -59653,7 +59410,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.subscriptionsSyncV2Action = SyncActionValue_SubscriptionsSyncV2Action.decode(reader, reader.uint32());
+          message.subscriptionsSyncV2Action = SyncActionValue_SubscriptionsSyncV2Action.decode(reader, reader.uint32(), message.subscriptionsSyncV2Action);
           continue;
         }
         case 85: {
@@ -59661,7 +59418,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.threadPinAction = SyncActionValue_ThreadPinAction.decode(reader, reader.uint32());
+          message.threadPinAction = SyncActionValue_ThreadPinAction.decode(reader, reader.uint32(), message.threadPinAction);
           continue;
         }
         case 86: {
@@ -59669,10 +59426,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.autoOrganizeBusinessChatSetting = SyncActionValue_AutoOrganizeBusinessChatSetting.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.autoOrganizeBusinessChatSetting = SyncActionValue_AutoOrganizeBusinessChatSetting.decode(reader, reader.uint32(), message.autoOrganizeBusinessChatSetting);
           continue;
         }
         case 87: {
@@ -59680,7 +59434,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.bizAiSettingsNudgeAction = SyncActionValue_BizAISettingsNudgeAction.decode(reader, reader.uint32());
+          message.bizAiSettingsNudgeAction = SyncActionValue_BizAISettingsNudgeAction.decode(reader, reader.uint32(), message.bizAiSettingsNudgeAction);
           continue;
         }
         case 88: {
@@ -59688,7 +59442,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.coexV2VersionAction = SyncActionValue_CoexV2VersionAction.decode(reader, reader.uint32());
+          message.coexV2VersionAction = SyncActionValue_CoexV2VersionAction.decode(reader, reader.uint32(), message.coexV2VersionAction);
           continue;
         }
         case 89: {
@@ -59696,7 +59450,7 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
             break;
           }
 
-          message.wasaRootSecretAction = SyncActionValue_WASARootSecretAction.decode(reader, reader.uint32());
+          message.wasaRootSecretAction = SyncActionValue_WASARootSecretAction.decode(reader, reader.uint32(), message.wasaRootSecretAction);
           continue;
         }
       }
@@ -60017,10 +59771,10 @@ export const SyncActionValue_AgentAction: MessageFns<SyncActionValue_AgentAction
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_AgentAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_AgentAction): SyncActionValue_AgentAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_AgentAction();
+    const message = into ?? createBaseSyncActionValue_AgentAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60081,10 +59835,10 @@ export const SyncActionValue_AiThreadRenameAction: MessageFns<SyncActionValue_Ai
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_AiThreadRenameAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_AiThreadRenameAction): SyncActionValue_AiThreadRenameAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_AiThreadRenameAction();
+    const message = into ?? createBaseSyncActionValue_AiThreadRenameAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60127,10 +59881,10 @@ export const SyncActionValue_AndroidUnsupportedActions: MessageFns<SyncActionVal
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_AndroidUnsupportedActions {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_AndroidUnsupportedActions): SyncActionValue_AndroidUnsupportedActions {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_AndroidUnsupportedActions();
+    const message = into ?? createBaseSyncActionValue_AndroidUnsupportedActions();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60178,10 +59932,10 @@ export const SyncActionValue_ArchiveChatAction: MessageFns<SyncActionValue_Archi
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ArchiveChatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ArchiveChatAction): SyncActionValue_ArchiveChatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ArchiveChatAction();
+    const message = into ?? createBaseSyncActionValue_ArchiveChatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60198,7 +59952,7 @@ export const SyncActionValue_ArchiveChatAction: MessageFns<SyncActionValue_Archi
             break;
           }
 
-          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32());
+          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32(), message.messageRange);
           continue;
         }
       }
@@ -60240,10 +59994,10 @@ export const SyncActionValue_AutoOrganizeBusinessChatSetting: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_AutoOrganizeBusinessChatSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_AutoOrganizeBusinessChatSetting): SyncActionValue_AutoOrganizeBusinessChatSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_AutoOrganizeBusinessChatSetting();
+    const message = into ?? createBaseSyncActionValue_AutoOrganizeBusinessChatSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60295,10 +60049,10 @@ export const SyncActionValue_AvatarUpdatedAction: MessageFns<SyncActionValue_Ava
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_AvatarUpdatedAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_AvatarUpdatedAction): SyncActionValue_AvatarUpdatedAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_AvatarUpdatedAction();
+    const message = into ?? createBaseSyncActionValue_AvatarUpdatedAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60363,10 +60117,10 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BizAISettingsNudgeAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BizAISettingsNudgeAction): SyncActionValue_BizAISettingsNudgeAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BizAISettingsNudgeAction();
+    const message = into ?? createBaseSyncActionValue_BizAISettingsNudgeAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60427,10 +60181,10 @@ export const SyncActionValue_BotWelcomeRequestAction: MessageFns<SyncActionValue
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BotWelcomeRequestAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BotWelcomeRequestAction): SyncActionValue_BotWelcomeRequestAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BotWelcomeRequestAction();
+    const message = into ?? createBaseSyncActionValue_BotWelcomeRequestAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60476,10 +60230,10 @@ export const SyncActionValue_BroadcastListParticipant: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BroadcastListParticipant {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BroadcastListParticipant): SyncActionValue_BroadcastListParticipant {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BroadcastListParticipant();
+    const message = into ?? createBaseSyncActionValue_BroadcastListParticipant();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60536,10 +60290,10 @@ export const SyncActionValue_BusinessBroadcastAssociationAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BusinessBroadcastAssociationAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BusinessBroadcastAssociationAction): SyncActionValue_BusinessBroadcastAssociationAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BusinessBroadcastAssociationAction();
+    const message = into ?? createBaseSyncActionValue_BusinessBroadcastAssociationAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60615,10 +60369,10 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BusinessBroadcastCampaignAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BusinessBroadcastCampaignAction): SyncActionValue_BusinessBroadcastCampaignAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BusinessBroadcastCampaignAction();
+    const message = into ?? createBaseSyncActionValue_BusinessBroadcastCampaignAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60754,10 +60508,10 @@ export const SyncActionValue_BusinessBroadcastInsightsAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BusinessBroadcastInsightsAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BusinessBroadcastInsightsAction): SyncActionValue_BusinessBroadcastInsightsAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BusinessBroadcastInsightsAction();
+    const message = into ?? createBaseSyncActionValue_BusinessBroadcastInsightsAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60859,10 +60613,10 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_BusinessBroadcastListAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BusinessBroadcastListAction): SyncActionValue_BusinessBroadcastListAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_BusinessBroadcastListAction();
+    const message = into ?? createBaseSyncActionValue_BusinessBroadcastListAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60956,10 +60710,10 @@ export const SyncActionValue_CallLogAction: MessageFns<SyncActionValue_CallLogAc
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CallLogAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CallLogAction): SyncActionValue_CallLogAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CallLogAction();
+    const message = into ?? createBaseSyncActionValue_CallLogAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -60968,7 +60722,7 @@ export const SyncActionValue_CallLogAction: MessageFns<SyncActionValue_CallLogAc
             break;
           }
 
-          message.callLogRecord = CallLogRecord.decode(reader, reader.uint32());
+          message.callLogRecord = CallLogRecord.decode(reader, reader.uint32(), message.callLogRecord);
           continue;
         }
       }
@@ -61004,10 +60758,10 @@ export const SyncActionValue_ChatAssignmentAction: MessageFns<SyncActionValue_Ch
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ChatAssignmentAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ChatAssignmentAction): SyncActionValue_ChatAssignmentAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ChatAssignmentAction();
+    const message = into ?? createBaseSyncActionValue_ChatAssignmentAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61055,10 +60809,10 @@ export const SyncActionValue_ChatAssignmentOpenedStatusAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ChatAssignmentOpenedStatusAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ChatAssignmentOpenedStatusAction): SyncActionValue_ChatAssignmentOpenedStatusAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ChatAssignmentOpenedStatusAction();
+    const message = into ?? createBaseSyncActionValue_ChatAssignmentOpenedStatusAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61105,10 +60859,10 @@ export const SyncActionValue_ClearChatAction: MessageFns<SyncActionValue_ClearCh
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ClearChatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ClearChatAction): SyncActionValue_ClearChatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ClearChatAction();
+    const message = into ?? createBaseSyncActionValue_ClearChatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61117,7 +60871,7 @@ export const SyncActionValue_ClearChatAction: MessageFns<SyncActionValue_ClearCh
             break;
           }
 
-          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32());
+          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32(), message.messageRange);
           continue;
         }
       }
@@ -61153,10 +60907,10 @@ export const SyncActionValue_CoexV2VersionAction: MessageFns<SyncActionValue_Coe
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CoexV2VersionAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CoexV2VersionAction): SyncActionValue_CoexV2VersionAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CoexV2VersionAction();
+    const message = into ?? createBaseSyncActionValue_CoexV2VersionAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61214,10 +60968,10 @@ export const SyncActionValue_ContactAction: MessageFns<SyncActionValue_ContactAc
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ContactAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ContactAction): SyncActionValue_ContactAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ContactAction();
+    const message = into ?? createBaseSyncActionValue_ContactAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61310,10 +61064,10 @@ export const SyncActionValue_CtwaPerCustomerDataSharingAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CtwaPerCustomerDataSharingAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CtwaPerCustomerDataSharingAction): SyncActionValue_CtwaPerCustomerDataSharingAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CtwaPerCustomerDataSharingAction();
+    const message = into ?? createBaseSyncActionValue_CtwaPerCustomerDataSharingAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61371,10 +61125,10 @@ export const SyncActionValue_CustomPaymentMethod: MessageFns<SyncActionValue_Cus
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CustomPaymentMethod {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CustomPaymentMethod): SyncActionValue_CustomPaymentMethod {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CustomPaymentMethod();
+    const message = into ?? createBaseSyncActionValue_CustomPaymentMethod();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61457,10 +61211,10 @@ export const SyncActionValue_CustomPaymentMethodMetadata: MessageFns<SyncActionV
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CustomPaymentMethodMetadata {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CustomPaymentMethodMetadata): SyncActionValue_CustomPaymentMethodMetadata {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CustomPaymentMethodMetadata();
+    const message = into ?? createBaseSyncActionValue_CustomPaymentMethodMetadata();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61516,10 +61270,10 @@ export const SyncActionValue_CustomPaymentMethodsAction: MessageFns<SyncActionVa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CustomPaymentMethodsAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CustomPaymentMethodsAction): SyncActionValue_CustomPaymentMethodsAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CustomPaymentMethodsAction();
+    const message = into ?? createBaseSyncActionValue_CustomPaymentMethodsAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61601,10 +61355,10 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_CustomerDataAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CustomerDataAction): SyncActionValue_CustomerDataAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_CustomerDataAction();
+    const message = into ?? createBaseSyncActionValue_CustomerDataAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61737,10 +61491,10 @@ export const SyncActionValue_DeleteChatAction: MessageFns<SyncActionValue_Delete
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_DeleteChatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_DeleteChatAction): SyncActionValue_DeleteChatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_DeleteChatAction();
+    const message = into ?? createBaseSyncActionValue_DeleteChatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61749,7 +61503,7 @@ export const SyncActionValue_DeleteChatAction: MessageFns<SyncActionValue_Delete
             break;
           }
 
-          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32());
+          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32(), message.messageRange);
           continue;
         }
       }
@@ -61792,10 +61546,10 @@ export const SyncActionValue_DeleteIndividualCallLogAction: MessageFns<SyncActio
       return writer;
     },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_DeleteIndividualCallLogAction {
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_DeleteIndividualCallLogAction): SyncActionValue_DeleteIndividualCallLogAction {
       const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
       const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseSyncActionValue_DeleteIndividualCallLogAction();
+      const message = into ?? createBaseSyncActionValue_DeleteIndividualCallLogAction();
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
@@ -61854,10 +61608,10 @@ export const SyncActionValue_DeleteMessageForMeAction: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_DeleteMessageForMeAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_DeleteMessageForMeAction): SyncActionValue_DeleteMessageForMeAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_DeleteMessageForMeAction();
+    const message = into ?? createBaseSyncActionValue_DeleteMessageForMeAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61912,10 +61666,10 @@ export const SyncActionValue_DetectedOutcomesStatusAction: MessageFns<SyncAction
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_DetectedOutcomesStatusAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_DetectedOutcomesStatusAction): SyncActionValue_DetectedOutcomesStatusAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_DetectedOutcomesStatusAction();
+    const message = into ?? createBaseSyncActionValue_DetectedOutcomesStatusAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -61962,10 +61716,10 @@ export const SyncActionValue_ExternalWebBetaAction: MessageFns<SyncActionValue_E
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ExternalWebBetaAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ExternalWebBetaAction): SyncActionValue_ExternalWebBetaAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ExternalWebBetaAction();
+    const message = into ?? createBaseSyncActionValue_ExternalWebBetaAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62010,10 +61764,10 @@ export const SyncActionValue_FavoritesAction: MessageFns<SyncActionValue_Favorit
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_FavoritesAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_FavoritesAction): SyncActionValue_FavoritesAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_FavoritesAction();
+    const message = into ?? createBaseSyncActionValue_FavoritesAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62063,10 +61817,10 @@ export const SyncActionValue_FavoritesAction_Favorite: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_FavoritesAction_Favorite {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_FavoritesAction_Favorite): SyncActionValue_FavoritesAction_Favorite {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_FavoritesAction_Favorite();
+    const message = into ?? createBaseSyncActionValue_FavoritesAction_Favorite();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62112,10 +61866,10 @@ export const SyncActionValue_InteractiveMessageAction: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_InteractiveMessageAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_InteractiveMessageAction): SyncActionValue_InteractiveMessageAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_InteractiveMessageAction();
+    const message = into ?? createBaseSyncActionValue_InteractiveMessageAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62167,10 +61921,10 @@ export const SyncActionValue_KeyExpiration: MessageFns<SyncActionValue_KeyExpira
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_KeyExpiration {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_KeyExpiration): SyncActionValue_KeyExpiration {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_KeyExpiration();
+    const message = into ?? createBaseSyncActionValue_KeyExpiration();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62216,10 +61970,10 @@ export const SyncActionValue_LabelAssociationAction: MessageFns<SyncActionValue_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LabelAssociationAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LabelAssociationAction): SyncActionValue_LabelAssociationAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LabelAssociationAction();
+    const message = into ?? createBaseSyncActionValue_LabelAssociationAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62295,10 +62049,10 @@ export const SyncActionValue_LabelEditAction: MessageFns<SyncActionValue_LabelEd
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LabelEditAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LabelEditAction): SyncActionValue_LabelEditAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LabelEditAction();
+    const message = into ?? createBaseSyncActionValue_LabelEditAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62415,10 +62169,10 @@ export const SyncActionValue_LabelReorderingAction: MessageFns<SyncActionValue_L
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LabelReorderingAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LabelReorderingAction): SyncActionValue_LabelReorderingAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LabelReorderingAction();
+    const message = into ?? createBaseSyncActionValue_LabelReorderingAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62483,10 +62237,10 @@ export const SyncActionValue_LidContactAction: MessageFns<SyncActionValue_LidCon
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LidContactAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LidContactAction): SyncActionValue_LidContactAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LidContactAction();
+    const message = into ?? createBaseSyncActionValue_LidContactAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62547,10 +62301,10 @@ export const SyncActionValue_LocaleSetting: MessageFns<SyncActionValue_LocaleSet
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LocaleSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LocaleSetting): SyncActionValue_LocaleSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LocaleSetting();
+    const message = into ?? createBaseSyncActionValue_LocaleSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62593,10 +62347,10 @@ export const SyncActionValue_LockChatAction: MessageFns<SyncActionValue_LockChat
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_LockChatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LockChatAction): SyncActionValue_LockChatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_LockChatAction();
+    const message = into ?? createBaseSyncActionValue_LockChatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62645,10 +62399,10 @@ export const SyncActionValue_MaibaAIFeaturesControlAction: MessageFns<SyncAction
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MaibaAIFeaturesControlAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MaibaAIFeaturesControlAction): SyncActionValue_MaibaAIFeaturesControlAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MaibaAIFeaturesControlAction();
+    const message = into ?? createBaseSyncActionValue_MaibaAIFeaturesControlAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62707,10 +62461,10 @@ export const SyncActionValue_MarkChatAsReadAction: MessageFns<SyncActionValue_Ma
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MarkChatAsReadAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MarkChatAsReadAction): SyncActionValue_MarkChatAsReadAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MarkChatAsReadAction();
+    const message = into ?? createBaseSyncActionValue_MarkChatAsReadAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62727,7 +62481,7 @@ export const SyncActionValue_MarkChatAsReadAction: MessageFns<SyncActionValue_Ma
             break;
           }
 
-          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32());
+          message.messageRange = SyncActionValue_SyncActionMessageRange.decode(reader, reader.uint32(), message.messageRange);
           continue;
         }
       }
@@ -62782,10 +62536,10 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MarketingMessageAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MarketingMessageAction): SyncActionValue_MarketingMessageAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MarketingMessageAction();
+    const message = into ?? createBaseSyncActionValue_MarketingMessageAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62887,10 +62641,10 @@ export const SyncActionValue_MarketingMessageBroadcastAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MarketingMessageBroadcastAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MarketingMessageBroadcastAction): SyncActionValue_MarketingMessageBroadcastAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MarketingMessageBroadcastAction();
+    const message = into ?? createBaseSyncActionValue_MarketingMessageBroadcastAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -62949,10 +62703,10 @@ export const SyncActionValue_MerchantPaymentPartnerAction: MessageFns<SyncAction
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MerchantPaymentPartnerAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MerchantPaymentPartnerAction): SyncActionValue_MerchantPaymentPartnerAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MerchantPaymentPartnerAction();
+    const message = into ?? createBaseSyncActionValue_MerchantPaymentPartnerAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63030,10 +62784,10 @@ export const SyncActionValue_MusicUserIdAction: MessageFns<SyncActionValue_Music
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MusicUserIdAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MusicUserIdAction): SyncActionValue_MusicUserIdAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MusicUserIdAction();
+    const message = into ?? createBaseSyncActionValue_MusicUserIdAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63109,10 +62863,10 @@ export const SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry): SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MusicUserIdAction_MusicUserIdMapEntry();
+    const message = into ?? createBaseSyncActionValue_MusicUserIdAction_MusicUserIdMapEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63177,10 +62931,10 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_MuteAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_MuteAction): SyncActionValue_MuteAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_MuteAction();
+    const message = into ?? createBaseSyncActionValue_MuteAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63250,10 +63004,10 @@ export const SyncActionValue_NctSaltSyncAction: MessageFns<SyncActionValue_NctSa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_NctSaltSyncAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_NctSaltSyncAction): SyncActionValue_NctSaltSyncAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_NctSaltSyncAction();
+    const message = into ?? createBaseSyncActionValue_NctSaltSyncAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63301,10 +63055,10 @@ export const SyncActionValue_NewsletterSavedInterestsAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_NewsletterSavedInterestsAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_NewsletterSavedInterestsAction): SyncActionValue_NewsletterSavedInterestsAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_NewsletterSavedInterestsAction();
+    const message = into ?? createBaseSyncActionValue_NewsletterSavedInterestsAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63363,10 +63117,10 @@ export const SyncActionValue_NoteEditAction: MessageFns<SyncActionValue_NoteEdit
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_NoteEditAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_NoteEditAction): SyncActionValue_NoteEditAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_NoteEditAction();
+    const message = into ?? createBaseSyncActionValue_NoteEditAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63450,10 +63204,10 @@ export const SyncActionValue_NotificationActivitySettingAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_NotificationActivitySettingAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_NotificationActivitySettingAction): SyncActionValue_NotificationActivitySettingAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_NotificationActivitySettingAction();
+    const message = into ?? createBaseSyncActionValue_NotificationActivitySettingAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63500,10 +63254,10 @@ export const SyncActionValue_NuxAction: MessageFns<SyncActionValue_NuxAction> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_NuxAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_NuxAction): SyncActionValue_NuxAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_NuxAction();
+    const message = into ?? createBaseSyncActionValue_NuxAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63549,10 +63303,10 @@ export const SyncActionValue_OutContactAction: MessageFns<SyncActionValue_OutCon
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_OutContactAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_OutContactAction): SyncActionValue_OutContactAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_OutContactAction();
+    const message = into ?? createBaseSyncActionValue_OutContactAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63604,10 +63358,10 @@ export const SyncActionValue_PaymentInfoAction: MessageFns<SyncActionValue_Payme
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PaymentInfoAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PaymentInfoAction): SyncActionValue_PaymentInfoAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PaymentInfoAction();
+    const message = into ?? createBaseSyncActionValue_PaymentInfoAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63653,10 +63407,10 @@ export const SyncActionValue_PaymentTosAction: MessageFns<SyncActionValue_Paymen
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PaymentTosAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PaymentTosAction): SyncActionValue_PaymentTosAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PaymentTosAction();
+    const message = into ?? createBaseSyncActionValue_PaymentTosAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63708,10 +63462,10 @@ export const SyncActionValue_PinAction: MessageFns<SyncActionValue_PinAction> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PinAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PinAction): SyncActionValue_PinAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PinAction();
+    const message = into ?? createBaseSyncActionValue_PinAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63754,10 +63508,10 @@ export const SyncActionValue_PnForLidChatAction: MessageFns<SyncActionValue_PnFo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PnForLidChatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PnForLidChatAction): SyncActionValue_PnForLidChatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PnForLidChatAction();
+    const message = into ?? createBaseSyncActionValue_PnForLidChatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63802,10 +63556,10 @@ export const SyncActionValue_PrimaryFeature: MessageFns<SyncActionValue_PrimaryF
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PrimaryFeature {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrimaryFeature): SyncActionValue_PrimaryFeature {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrimaryFeature();
+    const message = into ?? createBaseSyncActionValue_PrimaryFeature();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63854,10 +63608,10 @@ export const SyncActionValue_PrimaryVersionAction: MessageFns<SyncActionValue_Pr
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PrimaryVersionAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrimaryVersionAction): SyncActionValue_PrimaryVersionAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrimaryVersionAction();
+    const message = into ?? createBaseSyncActionValue_PrimaryVersionAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63905,13 +63659,10 @@ export const SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAct
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction): SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction();
+    const message = into ?? createBaseSyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63963,10 +63714,10 @@ export const SyncActionValue_PrivacySettingDisableLinkPreviewsAction: MessageFns
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PrivacySettingDisableLinkPreviewsAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrivacySettingDisableLinkPreviewsAction): SyncActionValue_PrivacySettingDisableLinkPreviewsAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrivacySettingDisableLinkPreviewsAction();
+    const message = into ?? createBaseSyncActionValue_PrivacySettingDisableLinkPreviewsAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64016,10 +63767,10 @@ export const SyncActionValue_PrivacySettingRelayAllCalls: MessageFns<SyncActionV
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PrivacySettingRelayAllCalls {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrivacySettingRelayAllCalls): SyncActionValue_PrivacySettingRelayAllCalls {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrivacySettingRelayAllCalls();
+    const message = into ?? createBaseSyncActionValue_PrivacySettingRelayAllCalls();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64069,10 +63820,10 @@ export const SyncActionValue_PrivateProcessingSettingAction: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PrivateProcessingSettingAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PrivateProcessingSettingAction): SyncActionValue_PrivateProcessingSettingAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PrivateProcessingSettingAction();
+    const message = into ?? createBaseSyncActionValue_PrivateProcessingSettingAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64119,10 +63870,10 @@ export const SyncActionValue_PushNameSetting: MessageFns<SyncActionValue_PushNam
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_PushNameSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_PushNameSetting): SyncActionValue_PushNameSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_PushNameSetting();
+    const message = into ?? createBaseSyncActionValue_PushNameSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64184,10 +63935,10 @@ export const SyncActionValue_QuickReplyAction: MessageFns<SyncActionValue_QuickR
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_QuickReplyAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_QuickReplyAction): SyncActionValue_QuickReplyAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_QuickReplyAction();
+    const message = into ?? createBaseSyncActionValue_QuickReplyAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64289,10 +64040,10 @@ export const SyncActionValue_RecentEmojiWeightsAction: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_RecentEmojiWeightsAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_RecentEmojiWeightsAction): SyncActionValue_RecentEmojiWeightsAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_RecentEmojiWeightsAction();
+    const message = into ?? createBaseSyncActionValue_RecentEmojiWeightsAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64341,10 +64092,10 @@ export const SyncActionValue_RemoveRecentStickerAction: MessageFns<SyncActionVal
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_RemoveRecentStickerAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_RemoveRecentStickerAction): SyncActionValue_RemoveRecentStickerAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_RemoveRecentStickerAction();
+    const message = into ?? createBaseSyncActionValue_RemoveRecentStickerAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64485,10 +64236,10 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SettingsSyncAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SettingsSyncAction): SyncActionValue_SettingsSyncAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SettingsSyncAction();
+    const message = into ?? createBaseSyncActionValue_SettingsSyncAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64819,10 +64570,10 @@ export const SyncActionValue_StarAction: MessageFns<SyncActionValue_StarAction> 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_StarAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_StarAction): SyncActionValue_StarAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_StarAction();
+    const message = into ?? createBaseSyncActionValue_StarAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64870,13 +64621,10 @@ export const SyncActionValue_StatusPostOptInNotificationPreferencesAction: Messa
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): SyncActionValue_StatusPostOptInNotificationPreferencesAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_StatusPostOptInNotificationPreferencesAction): SyncActionValue_StatusPostOptInNotificationPreferencesAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_StatusPostOptInNotificationPreferencesAction();
+    const message = into ?? createBaseSyncActionValue_StatusPostOptInNotificationPreferencesAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -64944,10 +64692,10 @@ export const SyncActionValue_StatusPrivacyAction: MessageFns<SyncActionValue_Sta
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_StatusPrivacyAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_StatusPrivacyAction): SyncActionValue_StatusPrivacyAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_StatusPrivacyAction();
+    const message = into ?? createBaseSyncActionValue_StatusPrivacyAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65083,10 +64831,10 @@ export const SyncActionValue_StatusPrivacyAction_CustomList: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_StatusPrivacyAction_CustomList {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_StatusPrivacyAction_CustomList): SyncActionValue_StatusPrivacyAction_CustomList {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_StatusPrivacyAction_CustomList();
+    const message = into ?? createBaseSyncActionValue_StatusPrivacyAction_CustomList();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65211,10 +64959,10 @@ export const SyncActionValue_StickerAction: MessageFns<SyncActionValue_StickerAc
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_StickerAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_StickerAction): SyncActionValue_StickerAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_StickerAction();
+    const message = into ?? createBaseSyncActionValue_StickerAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65371,10 +65119,10 @@ export const SyncActionValue_SubscriptionAction: MessageFns<SyncActionValue_Subs
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SubscriptionAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SubscriptionAction): SyncActionValue_SubscriptionAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SubscriptionAction();
+    const message = into ?? createBaseSyncActionValue_SubscriptionAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65442,10 +65190,10 @@ export const SyncActionValue_SubscriptionsSyncV2Action: MessageFns<SyncActionVal
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SubscriptionsSyncV2Action {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SubscriptionsSyncV2Action): SyncActionValue_SubscriptionsSyncV2Action {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SubscriptionsSyncV2Action();
+    const message = into ?? createBaseSyncActionValue_SubscriptionsSyncV2Action();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65528,10 +65276,10 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SubscriptionsSyncV2Action_PaidFeature): SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_PaidFeature();
+    const message = into ?? createBaseSyncActionValue_SubscriptionsSyncV2Action_PaidFeature();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65631,13 +65379,10 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
     return writer;
   },
 
-  decode(
-    input: BinaryReader | Uint8Array,
-    length?: number,
-  ): SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo): SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo();
+    const message = into ?? createBaseSyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65750,10 +65495,10 @@ export const SyncActionValue_SyncActionMessage: MessageFns<SyncActionValue_SyncA
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SyncActionMessage {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SyncActionMessage): SyncActionValue_SyncActionMessage {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SyncActionMessage();
+    const message = into ?? createBaseSyncActionValue_SyncActionMessage();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65762,7 +65507,7 @@ export const SyncActionValue_SyncActionMessage: MessageFns<SyncActionValue_SyncA
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -65813,10 +65558,10 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_SyncActionMessageRange {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_SyncActionMessageRange): SyncActionValue_SyncActionMessageRange {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_SyncActionMessageRange();
+    const message = into ?? createBaseSyncActionValue_SyncActionMessageRange();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65883,10 +65628,10 @@ export const SyncActionValue_ThreadPinAction: MessageFns<SyncActionValue_ThreadP
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_ThreadPinAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_ThreadPinAction): SyncActionValue_ThreadPinAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_ThreadPinAction();
+    const message = into ?? createBaseSyncActionValue_ThreadPinAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65929,10 +65674,10 @@ export const SyncActionValue_TimeFormatAction: MessageFns<SyncActionValue_TimeFo
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_TimeFormatAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_TimeFormatAction): SyncActionValue_TimeFormatAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_TimeFormatAction();
+    const message = into ?? createBaseSyncActionValue_TimeFormatAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -65975,10 +65720,10 @@ export const SyncActionValue_UGCBot: MessageFns<SyncActionValue_UGCBot> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_UGCBot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_UGCBot): SyncActionValue_UGCBot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_UGCBot();
+    const message = into ?? createBaseSyncActionValue_UGCBot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66021,10 +65766,10 @@ export const SyncActionValue_UnarchiveChatsSetting: MessageFns<SyncActionValue_U
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_UnarchiveChatsSetting {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_UnarchiveChatsSetting): SyncActionValue_UnarchiveChatsSetting {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_UnarchiveChatsSetting();
+    const message = into ?? createBaseSyncActionValue_UnarchiveChatsSetting();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66067,10 +65812,10 @@ export const SyncActionValue_UserStatusMuteAction: MessageFns<SyncActionValue_Us
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_UserStatusMuteAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_UserStatusMuteAction): SyncActionValue_UserStatusMuteAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_UserStatusMuteAction();
+    const message = into ?? createBaseSyncActionValue_UserStatusMuteAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66116,10 +65861,10 @@ export const SyncActionValue_UsernameChatStartModeAction: MessageFns<SyncActionV
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_UsernameChatStartModeAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_UsernameChatStartModeAction): SyncActionValue_UsernameChatStartModeAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_UsernameChatStartModeAction();
+    const message = into ?? createBaseSyncActionValue_UsernameChatStartModeAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66166,10 +65911,10 @@ export const SyncActionValue_WASARootSecretAction: MessageFns<SyncActionValue_WA
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_WASARootSecretAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_WASARootSecretAction): SyncActionValue_WASARootSecretAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_WASARootSecretAction();
+    const message = into ?? createBaseSyncActionValue_WASARootSecretAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66230,10 +65975,10 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_WASARootSecretAction_RootSecretEntry {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_WASARootSecretAction_RootSecretEntry): SyncActionValue_WASARootSecretAction_RootSecretEntry {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_WASARootSecretAction_RootSecretEntry();
+    const message = into ?? createBaseSyncActionValue_WASARootSecretAction_RootSecretEntry();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66301,10 +66046,10 @@ export const SyncActionValue_WaffleAccountLinkStateAction: MessageFns<SyncAction
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_WaffleAccountLinkStateAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_WaffleAccountLinkStateAction): SyncActionValue_WaffleAccountLinkStateAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_WaffleAccountLinkStateAction();
+    const message = into ?? createBaseSyncActionValue_WaffleAccountLinkStateAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66351,10 +66096,10 @@ export const SyncActionValue_WamoUserIdentifierAction: MessageFns<SyncActionValu
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncActionValue_WamoUserIdentifierAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_WamoUserIdentifierAction): SyncActionValue_WamoUserIdentifierAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncActionValue_WamoUserIdentifierAction();
+    const message = into ?? createBaseSyncActionValue_WamoUserIdentifierAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66397,10 +66142,10 @@ export const SyncdIndex: MessageFns<SyncdIndex> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdIndex {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdIndex): SyncdIndex {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdIndex();
+    const message = into ?? createBaseSyncdIndex();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66446,10 +66191,10 @@ export const SyncdMutation: MessageFns<SyncdMutation> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdMutation {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdMutation): SyncdMutation {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdMutation();
+    const message = into ?? createBaseSyncdMutation();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66466,7 +66211,7 @@ export const SyncdMutation: MessageFns<SyncdMutation> = {
             break;
           }
 
-          message.record = SyncdRecord.decode(reader, reader.uint32());
+          message.record = SyncdRecord.decode(reader, reader.uint32(), message.record);
           continue;
         }
       }
@@ -66505,10 +66250,10 @@ export const SyncdMutations: MessageFns<SyncdMutations> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdMutations {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdMutations): SyncdMutations {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdMutations();
+    const message = into ?? createBaseSyncdMutations();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66583,10 +66328,10 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdPatch {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdPatch): SyncdPatch {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdPatch();
+    const message = into ?? createBaseSyncdPatch();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66595,7 +66340,7 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
             break;
           }
 
-          message.version = SyncdVersion.decode(reader, reader.uint32());
+          message.version = SyncdVersion.decode(reader, reader.uint32(), message.version);
           continue;
         }
         case 2: {
@@ -66617,7 +66362,7 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
             break;
           }
 
-          message.externalMutations = ExternalBlobReference.decode(reader, reader.uint32());
+          message.externalMutations = ExternalBlobReference.decode(reader, reader.uint32(), message.externalMutations);
           continue;
         }
         case 4: {
@@ -66641,7 +66386,7 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
             break;
           }
 
-          message.keyId = KeyId.decode(reader, reader.uint32());
+          message.keyId = KeyId.decode(reader, reader.uint32(), message.keyId);
           continue;
         }
         case 7: {
@@ -66649,7 +66394,7 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
             break;
           }
 
-          message.exitCode = ExitCode.decode(reader, reader.uint32());
+          message.exitCode = ExitCode.decode(reader, reader.uint32(), message.exitCode);
           continue;
         }
         case 8: {
@@ -66719,10 +66464,10 @@ export const SyncdPlainTextRecord: MessageFns<SyncdPlainTextRecord> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdPlainTextRecord {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdPlainTextRecord): SyncdPlainTextRecord {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdPlainTextRecord();
+    const message = into ?? createBaseSyncdPlainTextRecord();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66731,7 +66476,7 @@ export const SyncdPlainTextRecord: MessageFns<SyncdPlainTextRecord> = {
             break;
           }
 
-          message.value = SyncActionData.decode(reader, reader.uint32());
+          message.value = SyncActionData.decode(reader, reader.uint32(), message.value);
           continue;
         }
         case 2: {
@@ -66791,10 +66536,10 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdRecord {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdRecord): SyncdRecord {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdRecord();
+    const message = into ?? createBaseSyncdRecord();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66803,7 +66548,7 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
             break;
           }
 
-          message.index = SyncdIndex.decode(reader, reader.uint32());
+          message.index = SyncdIndex.decode(reader, reader.uint32(), message.index);
           continue;
         }
         case 2: {
@@ -66811,7 +66556,7 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
             break;
           }
 
-          message.value = SyncdValue.decode(reader, reader.uint32());
+          message.value = SyncdValue.decode(reader, reader.uint32(), message.value);
           continue;
         }
         case 3: {
@@ -66819,7 +66564,7 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
             break;
           }
 
-          message.keyId = KeyId.decode(reader, reader.uint32());
+          message.keyId = KeyId.decode(reader, reader.uint32(), message.keyId);
           continue;
         }
       }
@@ -66870,10 +66615,10 @@ export const SyncdSnapshot: MessageFns<SyncdSnapshot> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdSnapshot {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdSnapshot): SyncdSnapshot {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdSnapshot();
+    const message = into ?? createBaseSyncdSnapshot();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66882,7 +66627,7 @@ export const SyncdSnapshot: MessageFns<SyncdSnapshot> = {
             break;
           }
 
-          message.version = SyncdVersion.decode(reader, reader.uint32());
+          message.version = SyncdVersion.decode(reader, reader.uint32(), message.version);
           continue;
         }
         case 2: {
@@ -66912,7 +66657,7 @@ export const SyncdSnapshot: MessageFns<SyncdSnapshot> = {
             break;
           }
 
-          message.keyId = KeyId.decode(reader, reader.uint32());
+          message.keyId = KeyId.decode(reader, reader.uint32(), message.keyId);
           continue;
         }
       }
@@ -66962,10 +66707,10 @@ export const SyncdSnapshotRecovery: MessageFns<SyncdSnapshotRecovery> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdSnapshotRecovery {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdSnapshotRecovery): SyncdSnapshotRecovery {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdSnapshotRecovery();
+    const message = into ?? createBaseSyncdSnapshotRecovery();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -66974,7 +66719,7 @@ export const SyncdSnapshotRecovery: MessageFns<SyncdSnapshotRecovery> = {
             break;
           }
 
-          message.version = SyncdVersion.decode(reader, reader.uint32());
+          message.version = SyncdVersion.decode(reader, reader.uint32(), message.version);
           continue;
         }
         case 2: {
@@ -67043,10 +66788,10 @@ export const SyncdValue: MessageFns<SyncdValue> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdValue {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdValue): SyncdValue {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdValue();
+    const message = into ?? createBaseSyncdValue();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67089,10 +66834,10 @@ export const SyncdVersion: MessageFns<SyncdVersion> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): SyncdVersion {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncdVersion): SyncdVersion {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSyncdVersion();
+    const message = into ?? createBaseSyncdVersion();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67138,10 +66883,10 @@ export const TapLinkAction: MessageFns<TapLinkAction> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TapLinkAction {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: TapLinkAction): TapLinkAction {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTapLinkAction();
+    const message = into ?? createBaseTapLinkAction();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67202,10 +66947,10 @@ export const TemplateButton: MessageFns<TemplateButton> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TemplateButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: TemplateButton): TemplateButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTemplateButton();
+    const message = into ?? createBaseTemplateButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67222,7 +66967,7 @@ export const TemplateButton: MessageFns<TemplateButton> = {
             break;
           }
 
-          message.quickReplyButton = TemplateButton_QuickReplyButton.decode(reader, reader.uint32());
+          message.quickReplyButton = TemplateButton_QuickReplyButton.decode(reader, reader.uint32(), message.quickReplyButton);
           continue;
         }
         case 2: {
@@ -67230,7 +66975,7 @@ export const TemplateButton: MessageFns<TemplateButton> = {
             break;
           }
 
-          message.urlButton = TemplateButton_URLButton.decode(reader, reader.uint32());
+          message.urlButton = TemplateButton_URLButton.decode(reader, reader.uint32(), message.urlButton);
           continue;
         }
         case 3: {
@@ -67238,7 +66983,7 @@ export const TemplateButton: MessageFns<TemplateButton> = {
             break;
           }
 
-          message.callButton = TemplateButton_CallButton.decode(reader, reader.uint32());
+          message.callButton = TemplateButton_CallButton.decode(reader, reader.uint32(), message.callButton);
           continue;
         }
       }
@@ -67284,10 +67029,10 @@ export const TemplateButton_CallButton: MessageFns<TemplateButton_CallButton> = 
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TemplateButton_CallButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: TemplateButton_CallButton): TemplateButton_CallButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTemplateButton_CallButton();
+    const message = into ?? createBaseTemplateButton_CallButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67296,7 +67041,7 @@ export const TemplateButton_CallButton: MessageFns<TemplateButton_CallButton> = 
             break;
           }
 
-          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.displayText);
           continue;
         }
         case 2: {
@@ -67304,7 +67049,7 @@ export const TemplateButton_CallButton: MessageFns<TemplateButton_CallButton> = 
             break;
           }
 
-          message.phoneNumber = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.phoneNumber = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.phoneNumber);
           continue;
         }
       }
@@ -67346,10 +67091,10 @@ export const TemplateButton_QuickReplyButton: MessageFns<TemplateButton_QuickRep
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TemplateButton_QuickReplyButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: TemplateButton_QuickReplyButton): TemplateButton_QuickReplyButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTemplateButton_QuickReplyButton();
+    const message = into ?? createBaseTemplateButton_QuickReplyButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67358,7 +67103,7 @@ export const TemplateButton_QuickReplyButton: MessageFns<TemplateButton_QuickRep
             break;
           }
 
-          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.displayText);
           continue;
         }
         case 2: {
@@ -67406,10 +67151,10 @@ export const TemplateButton_URLButton: MessageFns<TemplateButton_URLButton> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): TemplateButton_URLButton {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: TemplateButton_URLButton): TemplateButton_URLButton {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTemplateButton_URLButton();
+    const message = into ?? createBaseTemplateButton_URLButton();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67418,7 +67163,7 @@ export const TemplateButton_URLButton: MessageFns<TemplateButton_URLButton> = {
             break;
           }
 
-          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.displayText = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.displayText);
           continue;
         }
         case 2: {
@@ -67426,7 +67171,7 @@ export const TemplateButton_URLButton: MessageFns<TemplateButton_URLButton> = {
             break;
           }
 
-          message.url = Message_HighlyStructuredMessage.decode(reader, reader.uint32());
+          message.url = Message_HighlyStructuredMessage.decode(reader, reader.uint32(), message.url);
           continue;
         }
       }
@@ -67468,10 +67213,10 @@ export const ThreadID: MessageFns<ThreadID> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): ThreadID {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ThreadID): ThreadID {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseThreadID();
+    const message = into ?? createBaseThreadID();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67488,7 +67233,7 @@ export const ThreadID: MessageFns<ThreadID> = {
             break;
           }
 
-          message.threadKey = MessageKey.decode(reader, reader.uint32());
+          message.threadKey = MessageKey.decode(reader, reader.uint32(), message.threadKey);
           continue;
         }
       }
@@ -67533,10 +67278,10 @@ export const UnCountedAssociatedMessageList: MessageFns<UnCountedAssociatedMessa
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UnCountedAssociatedMessageList {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UnCountedAssociatedMessageList): UnCountedAssociatedMessageList {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUnCountedAssociatedMessageList();
+    const message = into ?? createBaseUnCountedAssociatedMessageList();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67559,7 +67304,7 @@ export const UnCountedAssociatedMessageList: MessageFns<UnCountedAssociatedMessa
             break;
           }
 
-          message.parentMessage = MessageKey.decode(reader, reader.uint32());
+          message.parentMessage = MessageKey.decode(reader, reader.uint32(), message.parentMessage);
           continue;
         }
         case 3: {
@@ -67615,10 +67360,10 @@ export const UnCountedAssociatedMessageListWithMessageBytes: MessageFns<
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UnCountedAssociatedMessageListWithMessageBytes {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UnCountedAssociatedMessageListWithMessageBytes): UnCountedAssociatedMessageListWithMessageBytes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUnCountedAssociatedMessageListWithMessageBytes();
+    const message = into ?? createBaseUnCountedAssociatedMessageListWithMessageBytes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67641,7 +67386,7 @@ export const UnCountedAssociatedMessageListWithMessageBytes: MessageFns<
             break;
           }
 
-          message.parentMessage = MessageKey.decode(reader, reader.uint32());
+          message.parentMessage = MessageKey.decode(reader, reader.uint32(), message.parentMessage);
           continue;
         }
       }
@@ -67684,10 +67429,10 @@ export const UrlTrackingMap: MessageFns<UrlTrackingMap> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UrlTrackingMap {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UrlTrackingMap): UrlTrackingMap {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUrlTrackingMap();
+    const message = into ?? createBaseUrlTrackingMap();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67746,10 +67491,10 @@ export const UrlTrackingMap_UrlTrackingMapElement: MessageFns<UrlTrackingMap_Url
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UrlTrackingMap_UrlTrackingMapElement {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UrlTrackingMap_UrlTrackingMapElement): UrlTrackingMap_UrlTrackingMapElement {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUrlTrackingMap_UrlTrackingMapElement();
+    const message = into ?? createBaseUrlTrackingMap_UrlTrackingMapElement();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67830,10 +67575,10 @@ export const UserPassword: MessageFns<UserPassword> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserPassword {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UserPassword): UserPassword {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserPassword();
+    const message = into ?? createBaseUserPassword();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67912,10 +67657,10 @@ export const UserPassword_TransformerArg: MessageFns<UserPassword_TransformerArg
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserPassword_TransformerArg {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UserPassword_TransformerArg): UserPassword_TransformerArg {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserPassword_TransformerArg();
+    const message = into ?? createBaseUserPassword_TransformerArg();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -67932,7 +67677,7 @@ export const UserPassword_TransformerArg: MessageFns<UserPassword_TransformerArg
             break;
           }
 
-          message.value = UserPassword_TransformerArg_Value.decode(reader, reader.uint32());
+          message.value = UserPassword_TransformerArg_Value.decode(reader, reader.uint32(), message.value);
           continue;
         }
       }
@@ -67972,10 +67717,10 @@ export const UserPassword_TransformerArg_Value: MessageFns<UserPassword_Transfor
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserPassword_TransformerArg_Value {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UserPassword_TransformerArg_Value): UserPassword_TransformerArg_Value {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserPassword_TransformerArg_Value();
+    const message = into ?? createBaseUserPassword_TransformerArg_Value();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68046,10 +67791,10 @@ export const UserReceipt: MessageFns<UserReceipt> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): UserReceipt {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: UserReceipt): UserReceipt {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseUserReceipt();
+    const message = into ?? createBaseUserReceipt();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68155,10 +67900,10 @@ export const VerifiedNameCertificate: MessageFns<VerifiedNameCertificate> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): VerifiedNameCertificate {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: VerifiedNameCertificate): VerifiedNameCertificate {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseVerifiedNameCertificate();
+    const message = into ?? createBaseVerifiedNameCertificate();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68233,10 +67978,10 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): VerifiedNameCertificate_Details {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: VerifiedNameCertificate_Details): VerifiedNameCertificate_Details {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseVerifiedNameCertificate_Details();
+    const message = into ?? createBaseVerifiedNameCertificate_Details();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68339,10 +68084,10 @@ export const VirtualDeviceOutput: MessageFns<VirtualDeviceOutput> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): VirtualDeviceOutput {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: VirtualDeviceOutput): VirtualDeviceOutput {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseVirtualDeviceOutput();
+    const message = into ?? createBaseVirtualDeviceOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68399,7 +68144,7 @@ export const VirtualDeviceOutput: MessageFns<VirtualDeviceOutput> = {
             break;
           }
 
-          message.encryptedSecretValues = EncryptedSecretValuesOutput.decode(reader, reader.uint32());
+          message.encryptedSecretValues = EncryptedSecretValuesOutput.decode(reader, reader.uint32(), message.encryptedSecretValues);
           continue;
         }
       }
@@ -68448,10 +68193,10 @@ export const WallpaperSettings: MessageFns<WallpaperSettings> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WallpaperSettings {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WallpaperSettings): WallpaperSettings {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWallpaperSettings();
+    const message = into ?? createBaseWallpaperSettings();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -68644,10 +68389,10 @@ export const WebFeatures: MessageFns<WebFeatures> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebFeatures {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WebFeatures): WebFeatures {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebFeatures();
+    const message = into ?? createBaseWebFeatures();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -69325,10 +69070,10 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebMessageInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WebMessageInfo): WebMessageInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebMessageInfo();
+    const message = into ?? createBaseWebMessageInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -69337,7 +69082,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -69345,7 +69090,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.message = Message.decode(reader, reader.uint32());
+          message.message = Message.decode(reader, reader.uint32(), message.message);
           continue;
         }
         case 3: {
@@ -69501,7 +69246,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.paymentInfo = PaymentInfo.decode(reader, reader.uint32());
+          message.paymentInfo = PaymentInfo.decode(reader, reader.uint32(), message.paymentInfo);
           continue;
         }
         case 30: {
@@ -69509,7 +69254,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.finalLiveLocation = Message_LiveLocationMessage.decode(reader, reader.uint32());
+          message.finalLiveLocation = Message_LiveLocationMessage.decode(reader, reader.uint32(), message.finalLiveLocation);
           continue;
         }
         case 31: {
@@ -69517,7 +69262,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.quotedPaymentInfo = PaymentInfo.decode(reader, reader.uint32());
+          message.quotedPaymentInfo = PaymentInfo.decode(reader, reader.uint32(), message.quotedPaymentInfo);
           continue;
         }
         case 32: {
@@ -69573,7 +69318,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.mediaData = MediaData.decode(reader, reader.uint32());
+          message.mediaData = MediaData.decode(reader, reader.uint32(), message.mediaData);
           continue;
         }
         case 39: {
@@ -69581,7 +69326,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.photoChange = PhotoChange.decode(reader, reader.uint32());
+          message.photoChange = PhotoChange.decode(reader, reader.uint32(), message.photoChange);
           continue;
         }
         case 40: {
@@ -69617,7 +69362,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.quotedStickerData = MediaData.decode(reader, reader.uint32());
+          message.quotedStickerData = MediaData.decode(reader, reader.uint32(), message.quotedStickerData);
           continue;
         }
         case 43: {
@@ -69633,7 +69378,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.statusPsa = StatusPSA.decode(reader, reader.uint32());
+          message.statusPsa = StatusPSA.decode(reader, reader.uint32(), message.statusPsa);
           continue;
         }
         case 45: {
@@ -69655,7 +69400,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.pollAdditionalMetadata = PollAdditionalMetadata.decode(reader, reader.uint32());
+          message.pollAdditionalMetadata = PollAdditionalMetadata.decode(reader, reader.uint32(), message.pollAdditionalMetadata);
           continue;
         }
         case 47: {
@@ -69687,7 +69432,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.keepInChat = KeepInChat.decode(reader, reader.uint32());
+          message.keepInChat = KeepInChat.decode(reader, reader.uint32(), message.keepInChat);
           continue;
         }
         case 51: {
@@ -69711,7 +69456,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.pinInChat = PinInChat.decode(reader, reader.uint32());
+          message.pinInChat = PinInChat.decode(reader, reader.uint32(), message.pinInChat);
           continue;
         }
         case 55: {
@@ -69719,7 +69464,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.premiumMessageInfo = PremiumMessageInfo.decode(reader, reader.uint32());
+          message.premiumMessageInfo = PremiumMessageInfo.decode(reader, reader.uint32(), message.premiumMessageInfo);
           continue;
         }
         case 56: {
@@ -69751,7 +69496,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.commentMetadata = CommentMetadata.decode(reader, reader.uint32());
+          message.commentMetadata = CommentMetadata.decode(reader, reader.uint32(), message.commentMetadata);
           continue;
         }
         case 61: {
@@ -69773,7 +69518,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.reportingTokenInfo = ReportingTokenInfo.decode(reader, reader.uint32());
+          message.reportingTokenInfo = ReportingTokenInfo.decode(reader, reader.uint32(), message.reportingTokenInfo);
           continue;
         }
         case 63: {
@@ -69789,7 +69534,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.eventAdditionalMetadata = EventAdditionalMetadata.decode(reader, reader.uint32());
+          message.eventAdditionalMetadata = EventAdditionalMetadata.decode(reader, reader.uint32(), message.eventAdditionalMetadata);
           continue;
         }
         case 65: {
@@ -69819,7 +69564,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.targetMessageId = MessageKey.decode(reader, reader.uint32());
+          message.targetMessageId = MessageKey.decode(reader, reader.uint32(), message.targetMessageId);
           continue;
         }
         case 68: {
@@ -69841,7 +69586,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.statusMentionMessageInfo = StatusMentionMessage.decode(reader, reader.uint32());
+          message.statusMentionMessageInfo = StatusMentionMessage.decode(reader, reader.uint32(), message.statusMentionMessageInfo);
           continue;
         }
         case 70: {
@@ -69893,7 +69638,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.groupHistoryIndividualMessageInfo = GroupHistoryIndividualMessageInfo.decode(reader, reader.uint32());
+          message.groupHistoryIndividualMessageInfo = GroupHistoryIndividualMessageInfo.decode(reader, reader.uint32(), message.groupHistoryIndividualMessageInfo);
           continue;
         }
         case 75: {
@@ -69901,7 +69646,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.groupHistoryBundleInfo = GroupHistoryBundleInfo.decode(reader, reader.uint32());
+          message.groupHistoryBundleInfo = GroupHistoryBundleInfo.decode(reader, reader.uint32(), message.groupHistoryBundleInfo);
           continue;
         }
         case 76: {
@@ -69909,10 +69654,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.interactiveMessageAdditionalMetadata = InteractiveMessageAdditionalMetadata.decode(
-            reader,
-            reader.uint32(),
-          );
+          message.interactiveMessageAdditionalMetadata = InteractiveMessageAdditionalMetadata.decode(reader, reader.uint32(), message.interactiveMessageAdditionalMetadata);
           continue;
         }
         case 77: {
@@ -69920,7 +69662,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.quarantinedMessage = QuarantinedMessage.decode(reader, reader.uint32());
+          message.quarantinedMessage = QuarantinedMessage.decode(reader, reader.uint32(), message.quarantinedMessage);
           continue;
         }
         case 78: {
@@ -69952,7 +69694,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
             break;
           }
 
-          message.scheduledMessageMetadata = ScheduledMessageMetadata.decode(reader, reader.uint32());
+          message.scheduledMessageMetadata = ScheduledMessageMetadata.decode(reader, reader.uint32(), message.scheduledMessageMetadata);
           continue;
         }
         case 82: {
@@ -70134,10 +69876,10 @@ export const WebMessageInfoWithMessageBytes: MessageFns<WebMessageInfoWithMessag
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebMessageInfoWithMessageBytes {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WebMessageInfoWithMessageBytes): WebMessageInfoWithMessageBytes {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebMessageInfoWithMessageBytes();
+    const message = into ?? createBaseWebMessageInfoWithMessageBytes();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -70146,7 +69888,7 @@ export const WebMessageInfoWithMessageBytes: MessageFns<WebMessageInfoWithMessag
             break;
           }
 
-          message.key = MessageKey.decode(reader, reader.uint32());
+          message.key = MessageKey.decode(reader, reader.uint32(), message.key);
           continue;
         }
         case 2: {
@@ -70200,10 +69942,10 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
     return writer;
   },
 
-  decode(input: BinaryReader | Uint8Array, length?: number): WebNotificationsInfo {
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WebNotificationsInfo): WebNotificationsInfo {
     const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
     const end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseWebNotificationsInfo();
+    const message = into ?? createBaseWebNotificationsInfo();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -70277,7 +70019,7 @@ export type DeepPartial<T> = T extends Builtin ? T
 
 export interface MessageFns<T> {
   encode(message: T, writer?: BinaryWriter): BinaryWriter;
-  decode(input: BinaryReader | Uint8Array, length?: number): T;
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: T): T;
   create(base?: DeepPartial<T>): T;
   fromPartial(object: DeepPartial<T>): T;
 }
