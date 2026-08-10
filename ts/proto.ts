@@ -81,7 +81,9 @@ import {
   BinaryReader,
   InvalidUtf8CountingReader,
   UnpairedSurrogateError,
+  longToBigInt,
   unpairedSurrogateIndex,
+  type Long as LongObject,
 } from "./proto-reader";
 
 export { UnpairedSurrogateError };
@@ -106,17 +108,14 @@ function resolve(typeName: string): MessageFns<any> {
 
 // The bridge serializes protobuf 64-bit fields (int64/uint64/sfixed64/…) as
 // protobufjs-style `Long` objects `{ low, high, unsigned }` (see
-// `src/camel_serializer.rs`) so consumers can `JSON.stringify` events without
-// the BigInt serialization error. But the ts-proto encoder (`@bufbuild/protobuf`)
-// only accepts `number | bigint | string` for those fields — handed a `Long`
-// *object* it does `BigInt(obj)`, which throws. This bites when re-encoding a
-// message that embeds a decoded message, e.g. `contextInfo.quotedMessage` from a
-// quoted reply (`sendMessage(..., { quoted })`), whose nested i64 fields are
-// still `Long` objects. Normalize them to precision-safe BigInt before encoding.
-// `unsigned` is the discriminant (matches the serializer's own Long detection),
-// so plain `{ low, high }` data objects are left untouched.
-type LongObject = { low: number; high: number; unsigned: boolean };
-
+// `src/camel_serializer.rs`, and `decodeProto` for a value past 2^53) so
+// consumers can `JSON.stringify` events without the BigInt serialization error.
+// The writer in `proto-reader` takes those back on the 64-bit fields, but a
+// `Long` also reaches here inside a message that embeds a decoded one — e.g.
+// `contextInfo.quotedMessage` from a quoted reply (`sendMessage(..., { quoted })`).
+// Normalize to precision-safe BigInt before encoding. `unsigned` is the
+// discriminant (matches the serializer's own Long detection), so plain
+// `{ low, high }` data objects are left untouched.
 function isLongObject(v: unknown): v is LongObject {
   // `unsigned` (a boolean) is the discriminant: testing it first short-circuits
   // virtually every non-Long object in one comparison, and matches the guard in
@@ -129,12 +128,6 @@ function isLongObject(v: unknown): v is LongObject {
     typeof (v as LongObject).low === "number" &&
     typeof (v as LongObject).high === "number"
   );
-}
-
-function longToBigInt(l: LongObject): bigint {
-  const lo = BigInt(l.low >>> 0);
-  const hi = l.unsigned ? BigInt(l.high >>> 0) : BigInt(l.high | 0);
-  return hi * 4294967296n + lo;
 }
 
 // Normalize the two protobufjs inputs that ts-proto cannot encode directly:

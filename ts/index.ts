@@ -18,7 +18,13 @@ export {
   UnpairedSurrogateError,
   type ProtoDecodeReport,
 } from "./proto";
-export { BinaryReader, InvalidUtf8CountingReader } from "./proto-reader";
+export {
+  BinaryReader,
+  InvalidUtf8CountingReader,
+  longToBigInt,
+  type Int64,
+  type Long,
+} from "./proto-reader";
 
 // Packed wire-batch codecs (message metadata, receipts, server acks).
 export {
