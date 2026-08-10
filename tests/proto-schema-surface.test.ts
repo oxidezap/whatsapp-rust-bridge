@@ -43,13 +43,14 @@ interface Field {
   message: string;
   name: string;
   number: number;
-  label: "optional" | "required" | "repeated" | "map";
+  label: "optional" | "required" | "repeated" | "repeated packed" | "map";
   type: string;
   ref: string;
 }
 
 const FIELDS: Field[] = [];
 const MESSAGES = new Set<string>();
+const BY_MESSAGE = new Map<string, Field[]>();
 
 for (const line of readFileSync(SURFACE_FILE, "utf8").split("\n")) {
   if (line.length === 0 || line.startsWith("#")) continue;
@@ -57,15 +58,19 @@ for (const line of readFileSync(SURFACE_FILE, "utf8").split("\n")) {
   MESSAGES.add(message!);
   // A message the schema declares with no fields carries only its own path.
   if (name === undefined) continue;
-  FIELDS.push({
+  const field: Field = {
     message: message!,
     name: name!,
     number: Number(number),
     label: label as Field["label"],
     type: type!,
     ref,
-  });
+  };
+  FIELDS.push(field);
+  BY_MESSAGE.set(message!, [...(BY_MESSAGE.get(message!) ?? []), field]);
 }
+
+const isRepeated = (field: Field): boolean => field.label.startsWith("repeated");
 
 /**
  * The zero value for the field's type. Zero is deliberate: a proto2 `optional`
@@ -147,32 +152,67 @@ const sampleOf = (field: Field): unknown => {
     return { [mapKey]: mapValue };
   }
   const value = zeroOf(field.type, field.ref);
-  return field.label === "repeated" ? [value] : value;
+  return isRepeated(field) ? [value] : value;
+};
+
+/**
+ * One declared child field of a referenced message. An empty `{}` proves a
+ * submessage was written but not *which* codec wrote it — two message types
+ * both encode `{}` as a zero-length payload — so the payload sample carries a
+ * field only the right codec knows. Children use zero samples, which bounds
+ * this to a single level of nesting.
+ */
+const nestedSampleOf = (ref: string): Record<string, unknown> => {
+  const child = BY_MESSAGE.get(ref)?.[0];
+  return child ? { [keyOf(child)]: sampleOf(child) } : {};
 };
 
 /** The zero sample, plus a payload-bearing one where the type allows it. */
 const samplesOf = (field: Field): unknown[] => {
   const samples = [sampleOf(field)];
   if (field.label === "map") return samples;
-  const distinct = distinctOf(field.type);
-  if (distinct !== undefined) samples.push(field.label === "repeated" ? [distinct] : distinct);
+  const distinct =
+    field.type === "message" ? nestedSampleOf(field.ref) : distinctOf(field.type);
+  if (distinct === undefined) return samples;
+  if (field.type === "message" && Object.keys(distinct).length === 0) return samples;
+  samples.push(isRepeated(field) ? [distinct] : distinct);
   return samples;
 };
 
 const keyOf = (field: Field): string =>
   JSON_NAME_KEYS[`${field.message}.${field.name}`] ?? field.name;
 
-/** Field number carried by the first tag in an encoded message. */
-const firstFieldNumber = (bytes: Uint8Array): number => {
+/** The first tag in an encoded message, split into field number and wire type. */
+const firstTag = (bytes: Uint8Array): [number, number] => {
   let tag = 0;
   for (let shift = 0, i = 0; i < bytes.length; i++, shift += 7) {
     tag |= (bytes[i]! & 0x7f) << shift;
     if ((bytes[i]! & 0x80) === 0) break;
   }
-  return tag >>> 3;
+  return [tag >>> 3, tag & 7];
 };
 
-const sameValue = (type: string, expected: unknown, actual: unknown): boolean => {
+// Anything absent is a varint. A wrong wire type here is not a rename the peer
+// recovers from: it makes the field unreadable to everyone but this codec, and
+// a decoder making the matching mistake hides it from the round trip.
+const WIRE_TYPE: Record<string, number> = {
+  double: 1,
+  fixed64: 1,
+  sfixed64: 1,
+  float: 5,
+  fixed32: 5,
+  sfixed32: 5,
+  string: 2,
+  bytes: 2,
+  message: 2,
+};
+
+const wireTypeOf = (field: Field): number => {
+  if (field.label === "map" || field.label === "repeated packed") return 2;
+  return WIRE_TYPE[field.type] ?? 0;
+};
+
+const sameValue = (type: string, ref: string, expected: unknown, actual: unknown): boolean => {
   if (type === "bytes") {
     const wanted = expected as Uint8Array;
     return (
@@ -181,9 +221,16 @@ const sameValue = (type: string, expected: unknown, actual: unknown): boolean =>
       wanted.every((byte, index) => actual[index] === byte)
     );
   }
-  // An empty submessage carries nothing to compare; that it decoded to an
-  // object at all is the difference between written and dropped.
-  if (type === "message") return typeof actual === "object" && actual !== null;
+  if (type === "message") {
+    if (typeof actual !== "object" || actual === null) return false;
+    // An empty submessage carries nothing to compare; that it decoded to an
+    // object at all is the difference between written and dropped.
+    const [child] = Object.entries(expected as Record<string, unknown>);
+    if (child === undefined) return true;
+    const [childKey, childValue] = child;
+    const childField = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
+    return childField !== undefined && readsBack(childField, childValue, (actual as Record<string, unknown>)[childKey]);
+  }
   return actual === expected;
 };
 
@@ -196,18 +243,18 @@ const readsBack = (field: Field, sample: unknown, actual: unknown): boolean => {
     const [, valueType] = mapTypes(field);
     return expected.every(([key, value], index) => {
       const [decodedKey, decodedValue] = decoded[index]!;
-      return decodedKey === key && sameValue(valueType, value, decodedValue);
+      return decodedKey === key && sameValue(valueType, field.ref, value, decodedValue);
     });
   }
-  if (field.label === "repeated") {
+  if (isRepeated(field)) {
     const expected = sample as unknown[];
     return (
       Array.isArray(actual) &&
       actual.length === expected.length &&
-      expected.every((value, index) => sameValue(field.type, value, actual[index]))
+      expected.every((value, index) => sameValue(field.type, field.ref, value, actual[index]))
     );
   }
-  return sameValue(field.type, sample, actual);
+  return sameValue(field.type, field.ref, sample, actual);
 };
 
 beforeAll(() => {
@@ -236,7 +283,7 @@ describe("generated codec vs whatsapp.proto", () => {
     expect(missing).toEqual([]);
   });
 
-  test("every declared field is written, at its declared number", () => {
+  test("every declared field is written, at its declared number and wire type", () => {
     const failures: string[] = [];
     for (const field of FIELDS) {
       const key = keyOf(field);
@@ -252,8 +299,11 @@ describe("generated codec vs whatsapp.proto", () => {
         failures.push(`${label}: nothing written under "${key}"`);
         continue;
       }
-      const written = firstFieldNumber(bytes);
+      const [written, wire] = firstTag(bytes);
       if (written !== field.number) failures.push(`${label}: written at #${written}`);
+      else if (wire !== wireTypeOf(field)) {
+        failures.push(`${label}: wire type ${wire}, schema declares ${wireTypeOf(field)}`);
+      }
     }
     expect(failures).toEqual([]);
   });
@@ -291,6 +341,25 @@ describe("generated codec vs whatsapp.proto", () => {
           failures.push(
             `${field.message}.${field.name} (#${field.number}): wrote ${JSON.stringify(sample)}, read back ${JSON.stringify(read)}`,
           );
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  test("a field the wire omits decodes as absent, not as its default", () => {
+    // "Absent is absent" is the bridge's rule, and it is also what makes the
+    // zero samples above mean anything: if an omitted field came back as 0 or
+    // "", no round trip could tell a written zero from a missing one.
+    const failures: string[] = [];
+    const empty = new Uint8Array();
+    for (const message of MESSAGES) {
+      const decoded = decodeProto(message, empty) as Record<string, unknown>;
+      for (const field of BY_MESSAGE.get(message) ?? []) {
+        if (field.label === "required") continue;
+        const read = decoded[keyOf(field)];
+        if (read !== undefined) {
+          failures.push(`${field.message}.${field.name}: absent decoded as ${JSON.stringify(read)}`);
         }
       }
     }
