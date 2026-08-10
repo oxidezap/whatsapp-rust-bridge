@@ -161,7 +161,10 @@ const buildSurface = (descriptor: Uint8Array): string => {
 		}
 		const key = entry.field.find(candidate => candidate.number === 1)!
 		const value = entry.field.find(candidate => candidate.number === 2)!
-		return ['map', `map<${TYPE_KEYWORD[key.type]},${TYPE_KEYWORD[value.type]}>`, typeRef(value, local)]
+		const keyKeyword = TYPE_KEYWORD[key.type]
+		const valueKeyword = TYPE_KEYWORD[value.type]
+		if (!keyKeyword || !valueKeyword) throw new Error(`unhandled map type on ${field.name}`)
+		return ['map', `map<${keyKeyword},${valueKeyword}>`, typeRef(value, local)]
 	}
 
 	const emit = (scope: string, local: (p: string) => string, message: DescriptorProto): void => {

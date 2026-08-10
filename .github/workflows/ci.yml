@@ -100,7 +100,11 @@ jobs:
       # manifest the surface test reads, so an upstream schema change has to
       # show up in a diff rather than only in a regenerated working tree.
       - name: Fail if the generated types drifted
-        run: git diff --exit-code -- src/generated_types.rs ts/generated
+        # --intent-to-add first: `git diff` only sees tracked files, so a
+        # generator that starts emitting a new file would pass unreviewed.
+        run: |
+          git add --intent-to-add -- src/generated_types.rs ts/generated
+          git diff --exit-code -- src/generated_types.rs ts/generated
 
       # Nothing measured the artifact, so it grew a little per release with
       # nobody positioned to notice. Runs here rather than at `prepack`

@@ -397,6 +397,12 @@ const nestedMessageBytes = (ref: string, sample: Record<string, unknown>): numbe
     const child = BY_MESSAGE.get(ref)?.find((candidate) => keyOf(candidate) === childKey);
     if (child === undefined) throw new Error(`${ref} does not declare ${childKey}`);
     const values = isRepeated(child) ? (childValue as unknown[]) : [childValue];
+    if (child.label === "repeated packed") {
+      return [
+        ...tagBytes(child.number, 2),
+        ...lengthPrefixed(values.flatMap((value) => payloadBytes(child.type, value))),
+      ];
+    }
     return values.flatMap((value) => [
       ...tagBytes(child.number, wireTypeOf(child)),
       ...(child.type === "message"
@@ -523,15 +529,19 @@ describe("generated codec vs whatsapp.proto", () => {
 
   test("the schema-declared name is the key the codec writes, bar one pinned field", () => {
     const dropped: string[] = [];
+    const threw: string[] = [];
     for (const field of FIELDS) {
       let bytes: Uint8Array;
       try {
         bytes = encodeProto(field.message, { [field.name]: sampleOf(field) });
-      } catch {
+      } catch (error) {
+        // Not silence: a throw here hides the rename the test exists to find.
+        threw.push(`${field.message}.${field.name}: encode threw ${error}`);
         continue;
       }
       if (bytes.length === 0) dropped.push(`${field.message}.${field.name}`);
     }
+    expect(threw).toEqual([]);
     // Every field whose declared name the encoder ignores, enumerated. Anything
     // beyond the pinned entry is a boundary rename the bridge must not make.
     expect(dropped.sort()).toEqual(Object.keys(JSON_NAME_KEYS).sort());

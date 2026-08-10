@@ -24,7 +24,7 @@ const SURFACE_FILE = join(
 
 const SURFACE = readFileSync(SURFACE_FILE, "utf8")
   .split("\n")
-  .filter((line) => line.length > 0)
+  .filter((line) => line.length > 0 && !line.startsWith("#"))
   .map((line) => line.split("\t"));
 
 const declares = (message: string, field: string): boolean =>
