@@ -90,7 +90,9 @@ string `'Infinity'` is not that case: it names the value, and a float field hold
 syntax goes to `BigInt`, which keeps plain digits past 2^53 exact and covers `0x`/`0o`/`0b`.
 Anything else — `'1e2'`, `'12.0'`, `'+12'`, `'9.007199254740992e15'`, `'0e100'` — is
 expanded from its own digits and accepted only if it names a whole number exactly.
-Leading zeros and surrounding whitespace are notation, not value. That is why
+Leading zeros and surrounding whitespace are notation, not value — on either side of
+the point, so `'0.' + '0'*40 + '1e41'` is the integer `1` and is accepted, while the same
+string at `e40` is a tenth and is not. That is why
 `'1.0000000000000000001'` and `'1e-400'` throw instead of arriving as `1` and `0`:
 `Number` would round them to integers the caller never wrote. `float` and `double` do go
 through `Number`, because rounding to the declared width is what those types mean.

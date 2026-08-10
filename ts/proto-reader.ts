@@ -144,15 +144,18 @@ function exactIntegerFromText(text: string): bigint | undefined {
   const [, sign, whole = "", fraction = "", exponent] = parsed;
   if (whole === "" && fraction === "") return undefined;
 
+  const written = whole + fraction;
   // Zero is zero at any exponent, and answering it here keeps `'0e100'` from
   // being turned away by a cap that only exists to bound the padding below.
-  if (/^0*$/.test(whole + fraction)) return 0n;
+  if (/^0*$/.test(written)) return 0n;
 
-  // Leading zeros are notation, not magnitude, so they must not count toward
-  // the cap: `'0000001'` is 1 however many of them there are.
-  const significant = whole.replace(/^0+/, "");
-  const digits = significant + fraction;
-  const pointAt = significant.length + (exponent ? Number(exponent) : 0);
+  // Leading zeros are notation, not magnitude, and dropping one moves the
+  // decimal point with it. Stripping them across the whole significand — not
+  // just the part before the point — is what keeps the cap about how large the
+  // value is rather than how it was spelled.
+  const leadingZeros = written.length - written.replace(/^0+/, "").length;
+  const digits = written.slice(leadingZeros);
+  const pointAt = whole.length + (exponent ? Number(exponent) : 0) - leadingZeros;
   if (pointAt <= 0 || pointAt > MAX_INTEGRAL_DIGITS) return undefined;
 
   let integral: string;

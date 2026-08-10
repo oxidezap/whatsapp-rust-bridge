@@ -200,6 +200,23 @@ const CASES: Case[] = [
     input: `${"0".repeat(41)}1e0`,
     outcomes: spread(TYPES, accepted(1)),
   },
+  // Same value, the zeros on the other side of the point.
+  {
+    label: "'0.' + '0'.repeat(40) + '1e41'",
+    input: `0.${"0".repeat(40)}1e41`,
+    outcomes: spread(TYPES, accepted(1)),
+  },
+  // One exponent lower is a tenth, and no integer field holds that.
+  {
+    label: "'0.' + '0'.repeat(40) + '1e40'",
+    input: `0.${"0".repeat(40)}1e40`,
+    outcomes: {
+      ...spread(INTS, { kind: "throws", message: `invalid @: "0.${"0".repeat(40)}1e40"` }),
+      // A float field rounds to the nearest 32-bit float, which 0.1 is not.
+      float: accepted(Math.fround(0.1)),
+      double: accepted(0.1),
+    },
+  },
   { label: "'-0000012.000'", input: "-0000012.000", outcomes: {
       ...spread(SIGNED_INTS, accepted(-12)),
       ...outOfRange(UNSIGNED_INTS, "-12"),
