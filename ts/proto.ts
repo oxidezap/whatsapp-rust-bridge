@@ -249,7 +249,10 @@ function unpairedSurrogatePath(
   const matches = found.filter(
     (candidate) => candidate.index === error.index && candidate.codeUnit === error.codeUnit,
   );
-  return matches.length === 1 ? matches[0]!.path : undefined;
+  // Distinct paths, not distinct candidates: several bad keys in one map all
+  // name that map, and there is nothing ambiguous about saying so.
+  const paths = new Set(matches.map((candidate) => candidate.path));
+  return paths.size === 1 ? matches[0]!.path : undefined;
 }
 
 export function encodeProto(typeName: string, obj: unknown): Uint8Array {
