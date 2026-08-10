@@ -147,8 +147,9 @@ const MAP_KEY_SAMPLES: Record<string, [string, string]> = {
   bool: ["false", "true"],
   int32: ["7", "9"],
   int64: ["7", "9"],
-  uint32: ["7", "9"],
-  uint64: ["7", "9"],
+  // Past bit 31, so a key decoder swapped for its signed counterpart shows up.
+  uint32: ["7", "2147483648"],
+  uint64: ["7", "2147483648"],
   sint32: ["7", "9"],
   sint64: ["7", "9"],
 };
@@ -218,12 +219,19 @@ const nestedSampleOf = (
     return sample;
   }
   // No scalar to carry: a message like AIMetadataOperation declares only
-  // message fields, so descend until one turns up. `seen` bounds it — the
-  // schema is recursive (a Message quotes a Message).
-  const child = children.find((candidate) => candidate.label !== "map");
-  if (child === undefined) return {};
-  const inner = nestedSampleOf(child.ref, alternate, new Set(seen).add(ref));
-  return { [keyOf(child)]: isRepeated(child) ? [inner] : inner };
+  // message fields, so descend until scalars turn up. Every child, not the
+  // first — ConsumerApplication.PollUpdateMessage and Message.PollAddOptionMessage
+  // agree on their leading child and differ only in the rest. `seen` bounds the
+  // recursion; the schema is cyclic (a Message quotes a Message). Only
+  // scalar-less messages pay for this, so the common case keeps its flat sample.
+  const next = new Set(seen).add(ref);
+  const sample: Record<string, unknown> = {};
+  for (const child of children) {
+    if (child.label === "map") continue;
+    const inner = nestedSampleOf(child.ref, alternate, next);
+    sample[keyOf(child)] = isRepeated(child) ? [inner] : inner;
+  }
+  return sample;
 };
 
 /** The zero sample, plus a payload-bearing one where the type allows it. */
@@ -517,11 +525,22 @@ describe("generated codec vs whatsapp.proto", () => {
       const key = keyOf(field);
       for (const sample of samplesOf(field)) {
         let read: unknown;
+        let keys: string[];
         try {
           const bytes = encodeProto(field.message, { [key]: sample });
-          read = (decodeProto(field.message, bytes) as Record<string, unknown>)[key];
+          const decoded = decodeProto(field.message, bytes) as Record<string, unknown>;
+          read = decoded[key];
+          keys = Object.keys(decoded);
         } catch (error) {
           failures.push(`${field.message}.${field.name} (#${field.number}): ${error}`);
+          continue;
+        }
+        // One field in, one field out: a decoder that also assigns the payload
+        // to a neighbour invents data the wire never carried.
+        if (keys.length !== 1 || keys[0] !== key) {
+          failures.push(
+            `${field.message}.${field.name} (#${field.number}): decoded ${JSON.stringify(keys)}, expected only "${key}"`,
+          );
           continue;
         }
         if (!readsBack(field, sample, read)) {
