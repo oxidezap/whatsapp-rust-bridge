@@ -207,9 +207,15 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 
 	/** The epilogue is per decode loop, so it is checked once per codec. */
 	const finishCodec = (end: number): void => {
-		flush()
 		if (codec === undefined) return
 		const body = lines.slice(codecAt, end).map(line => line.trim())
+		// ts-proto emits no `default`, and one would be a way past the epilogue
+		// that leaves it textually intact: an unknown tag reaching a branch that
+		// continues never has its payload consumed.
+		if (body.some(line => line.startsWith('default:'))) {
+			throw new Error(`${codec} decodes through a default branch, which bypasses the unknown-field skip`)
+		}
+		flush()
 		// Every case is written as a field number, so the switch has to be reading
 		// one: `switch (tag)` would send each declared tag to the epilogue instead.
 		if (!body.includes(FIELD_NUMBER_DISPATCH)) {

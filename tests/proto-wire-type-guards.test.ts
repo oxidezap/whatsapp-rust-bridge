@@ -227,6 +227,19 @@ describe("a generator upgrade that takes the behaviour away", () => {
     ).toThrow("Probe does not dispatch its decode on the field number");
   });
 
+  /**
+   * A branch that continues never reaches the epilogue, which stays textually
+   * intact while the unknown tag's payload is read as the tags that follow.
+   */
+  test("adds a default branch that never reaches the skip", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutateProbe("      }\n      if (tag >>> 3 === 0", "        default: {\n          continue;\n        }\n      }\n      if (tag >>> 3 === 0"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe decodes through a default branch, which bypasses the unknown-field skip");
+  });
+
   test("stops skipping the unknown field its cases break out for", () => {
     expect(() =>
       assertWireTypeGuards(mutateProbe("      reader.skip(tag & 7);", "      // nothing"), DESCRIPTOR),
