@@ -93,6 +93,7 @@ const ALTERNATIVE_TAG_OPERATOR = '==='
  * throw, framing that is malformed rather than unknown truncates the message
  * where a caller cannot see it.
  */
+const FIELD_NUMBER_DISPATCH = 'switch (tag >>> 3) {'
 const UNKNOWN_FIELD_SKIP = [
 	'if (tag >>> 3 === 0 || (tag & 7) === 4) {',
 	'throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);',
@@ -105,6 +106,8 @@ interface Guard {
 	operator: string
 	/** The statement the guarded block leaves on: `break` or `continue`. */
 	exit: string | undefined
+	/** How many statements the block holds, so a read cannot hide before the exit. */
+	statements: number
 }
 
 /**
@@ -113,17 +116,16 @@ interface Guard {
  * reads and continues on the one that does. A guard that falls through instead
  * reads the bytes it was meant to skip.
  */
-const guardExit = (lines: string[], index: number, indent: string): string | undefined => {
+const guardBlock = (lines: string[], index: number, indent: string): Pick<Guard, 'exit' | 'statements'> => {
 	const close = `${indent}${GUARD_INDENT}}`
 	for (let scan = index + 1; scan < lines.length; scan++) {
 		if (lines[scan] !== close) continue
-		for (let last = scan - 1; last > index; last--) {
-			const line = lines[last]!.trim()
-			if (line !== '') return line === 'break;' || line === 'continue;' ? line.slice(0, -1) : undefined
-		}
-		return undefined
+		const body = lines.slice(index + 1, scan).map(line => line.trim()).filter(line => line !== '')
+		const last = body[body.length - 1]
+		const exit = last === 'break;' || last === 'continue;' ? last.slice(0, -1) : undefined
+		return { exit, statements: body.length }
 	}
-	return undefined
+	return { exit: undefined, statements: 0 }
 }
 
 /**
@@ -177,6 +179,11 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		if (exits.length !== 1 || exits[0] !== exit) {
 			throw new Error(`${codec} field ${field} leaves its guard on [${exits}], expected ${exit}`)
 		}
+		// A mismatched tag has to leave on the spot. Anything running first moves
+		// the reader before the skip that consumes the field it did not match.
+		if (sole && guards[0]!.statements !== 1) {
+			throw new Error(`${codec} field ${field} runs ${guards[0]!.statements} statements before leaving its guard`)
+		}
 		// Nothing may run before the last guard: a read ahead of one moves the
 		// reader before the tag it does not match is skipped, whether it sits at
 		// the top of the case or between the two branches of a repeated field.
@@ -203,6 +210,11 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		flush()
 		if (codec === undefined) return
 		const body = lines.slice(codecAt, end).map(line => line.trim())
+		// Every case is written as a field number, so the switch has to be reading
+		// one: `switch (tag)` would send each declared tag to the epilogue instead.
+		if (!body.includes(FIELD_NUMBER_DISPATCH)) {
+			throw new Error(`${codec} does not dispatch its decode on the field number`)
+		}
 		const at = body.indexOf(UNKNOWN_FIELD_SKIP[0]!)
 		if (at < 0 || UNKNOWN_FIELD_SKIP.some((text, offset) => body[at + offset] !== text)) {
 			throw new Error(`${codec} does not skip the unknown field its cases break out for`)
@@ -237,11 +249,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		}
 		const guard = DECODE_TAG_GUARD.exec(line)
 		if (guard && guard[1] === `${indent}${GUARD_INDENT}`) {
-			guards.push({
-				tag: Number(guard[3]),
-				operator: guard[2]!,
-				exit: guardExit(lines, index, indent)
-			})
+			guards.push({ tag: Number(guard[3]), operator: guard[2]!, ...guardBlock(lines, index, indent) })
 		}
 		const text = line.trim()
 		if (text === '') continue

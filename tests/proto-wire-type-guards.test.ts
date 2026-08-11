@@ -207,6 +207,26 @@ describe("a generator upgrade that takes the behaviour away", () => {
     ).toThrow("Probe field 3 runs [reader.uint32();] before its guard");
   });
 
+  /**
+   * A mismatched tag has to leave on the spot: anything running inside the
+   * block first moves the reader before the skip that consumes the field it
+   * did not match.
+   */
+  test("reads inside the mismatch block before leaving it", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutate("if (tag !== 8) {\n            break;", "if (tag !== 8) {\n            reader.uint32();\n            break;"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe field 1 runs 2 statements before leaving its guard");
+  });
+
+  test("dispatches the decode on the whole tag instead of the field number", () => {
+    expect(() =>
+      assertWireTypeGuards(mutateProbe("switch (tag >>> 3) {", "switch (tag) {"), DESCRIPTOR),
+    ).toThrow("Probe does not dispatch its decode on the field number");
+  });
+
   test("stops skipping the unknown field its cases break out for", () => {
     expect(() =>
       assertWireTypeGuards(mutateProbe("      reader.skip(tag & 7);", "      // nothing"), DESCRIPTOR),
