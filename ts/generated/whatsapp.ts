@@ -7348,8 +7348,8 @@ export const ADVDeviceIdentity: MessageFns<ADVDeviceIdentity> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7462,8 +7462,8 @@ export const ADVKeyIndexList: MessageFns<ADVKeyIndexList> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7545,8 +7545,8 @@ export const ADVSignedDeviceIdentity: MessageFns<ADVSignedDeviceIdentity> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7616,8 +7616,8 @@ export const ADVSignedDeviceIdentityHMAC: MessageFns<ADVSignedDeviceIdentityHMAC
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7686,8 +7686,8 @@ export const ADVSignedKeyIndexList: MessageFns<ADVSignedKeyIndexList> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7772,8 +7772,8 @@ export const AIHomeState: MessageFns<AIHomeState> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7899,8 +7899,8 @@ export const AIHomeState_AIHomeOption: MessageFns<AIHomeState_AIHomeOption> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -7974,8 +7974,8 @@ export const AIMediaCollectionMessage: MessageFns<AIMediaCollectionMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8033,8 +8033,8 @@ export const AIMediaCollectionMetadata: MessageFns<AIMediaCollectionMetadata> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8080,8 +8080,8 @@ export const AIMetadataOperation: MessageFns<AIMetadataOperation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8150,8 +8150,8 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8213,8 +8213,8 @@ export const AIRegenerateMetadata: MessageFns<AIRegenerateMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8281,8 +8281,8 @@ export const AIRichResponseCodeMetadata: MessageFns<AIRichResponseCodeMetadata> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8345,8 +8345,8 @@ export const AIRichResponseCodeMetadata_AIRichResponseCodeBlock: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8419,8 +8419,8 @@ export const AIRichResponseContentItemsMetadata: MessageFns<AIRichResponseConten
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8475,8 +8475,8 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8565,8 +8565,8 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseReelItem: MessageF
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8651,8 +8651,8 @@ export const AIRichResponseDynamicMetadata: MessageFns<AIRichResponseDynamicMeta
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8719,8 +8719,8 @@ export const AIRichResponseGridImageMetadata: MessageFns<AIRichResponseGridImage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8790,8 +8790,8 @@ export const AIRichResponseImageURL: MessageFns<AIRichResponseImageURL> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8871,8 +8871,8 @@ export const AIRichResponseInlineImageMetadata: MessageFns<AIRichResponseInlineI
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -8941,8 +8941,8 @@ export const AIRichResponseLatexMetadata: MessageFns<AIRichResponseLatexMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9083,8 +9083,8 @@ export const AIRichResponseLatexMetadata_AIRichResponseLatexExpression: MessageF
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9204,8 +9204,8 @@ export const AIRichResponseMapMetadata: MessageFns<AIRichResponseMapMetadata> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9305,8 +9305,8 @@ export const AIRichResponseMapMetadata_AIRichResponseMapAnnotation: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9400,8 +9400,8 @@ export const AIRichResponseMessage: MessageFns<AIRichResponseMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9552,8 +9552,8 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9642,8 +9642,8 @@ export const AIRichResponseTableMetadata: MessageFns<AIRichResponseTableMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9714,8 +9714,8 @@ export const AIRichResponseTableMetadata_AIRichResponseTableRow: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9765,8 +9765,8 @@ export const AIRichResponseUnifiedResponse: MessageFns<AIRichResponseUnifiedResp
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9811,8 +9811,8 @@ export const AISubscriptionUpsellMetadata: MessageFns<AISubscriptionUpsellMetada
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9868,8 +9868,8 @@ export const AIThreadInfo: MessageFns<AIThreadInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9930,8 +9930,8 @@ export const AIThreadInfo_AIThreadClientInfo: MessageFns<AIThreadInfo_AIThreadCl
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -9977,8 +9977,8 @@ export const AIThreadInfo_AIThreadServerInfo: MessageFns<AIThreadInfo_AIThreadSe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10056,8 +10056,8 @@ export const Account: MessageFns<Account> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10138,8 +10138,8 @@ export const AccountLinkingOpaqueData: MessageFns<AccountLinkingOpaqueData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10198,8 +10198,8 @@ export const ActionLink: MessageFns<ActionLink> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10278,8 +10278,8 @@ export const AutoDownloadSettings: MessageFns<AutoDownloadSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10338,8 +10338,8 @@ export const AvatarUserSettings: MessageFns<AvatarUserSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10429,8 +10429,8 @@ export const BizAccountLinkInfo: MessageFns<BizAccountLinkInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10490,8 +10490,8 @@ export const BizAccountPayload: MessageFns<BizAccountPayload> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10616,8 +10616,8 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10693,8 +10693,8 @@ export const BotAgeCollectionMetadata: MessageFns<BotAgeCollectionMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10741,8 +10741,8 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10787,8 +10787,8 @@ export const BotAgentMetadata: MessageFns<BotAgentMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10853,8 +10853,8 @@ export const BotCapabilityMetadata: MessageFns<BotCapabilityMetadata> = {
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10921,8 +10921,8 @@ export const BotCommandMetadata: MessageFns<BotCommandMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -10969,8 +10969,8 @@ export const BotDocumentMessageMetadata: MessageFns<BotDocumentMessageMetadata> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11082,8 +11082,8 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11237,8 +11237,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata: MessageFns<BotFeedback
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11326,8 +11326,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11486,8 +11486,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11567,8 +11567,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -11642,8 +11642,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -11707,8 +11707,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -11759,8 +11759,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         const tag = reader.uint32();
         switch (tag >>> 3) {
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -11833,8 +11833,8 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -11898,8 +11898,8 @@ export const BotGroupMetadata: MessageFns<BotGroupMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -11945,8 +11945,8 @@ export const BotGroupParticipantMetadata: MessageFns<BotGroupParticipantMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12002,8 +12002,8 @@ export const BotImagineMetadata: MessageFns<BotImagineMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12079,8 +12079,8 @@ export const BotInfrastructureDiagnostics: MessageFns<BotInfrastructureDiagnosti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12127,8 +12127,8 @@ export const BotLinkedAccount: MessageFns<BotLinkedAccount> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12203,8 +12203,8 @@ export const BotLinkedAccountsMetadata: MessageFns<BotLinkedAccountsMetadata> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12317,8 +12317,8 @@ export const BotMediaMetadata: MessageFns<BotMediaMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12380,8 +12380,8 @@ export const BotMemoryFact: MessageFns<BotMemoryFact> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12465,8 +12465,8 @@ export const BotMemoryMetadata: MessageFns<BotMemoryMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12521,8 +12521,8 @@ export const BotMemuMetadata: MessageFns<BotMemuMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12567,8 +12567,8 @@ export const BotMessageOrigin: MessageFns<BotMessageOrigin> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12621,8 +12621,8 @@ export const BotMessageOriginMetadata: MessageFns<BotMessageOriginMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -12678,8 +12678,8 @@ export const BotMessageSharingInfo: MessageFns<BotMessageSharingInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13176,8 +13176,8 @@ export const BotMetadata: MessageFns<BotMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13370,8 +13370,8 @@ export const BotMetricsMetadata: MessageFns<BotMetricsMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13465,8 +13465,8 @@ export const BotModeSelectionMetadata: MessageFns<BotModeSelectionMetadata> = {
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13534,8 +13534,8 @@ export const BotModelMetadata: MessageFns<BotModelMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13703,8 +13703,8 @@ export const BotPluginMetadata: MessageFns<BotPluginMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13793,8 +13793,8 @@ export const BotProgressIndicatorMetadata: MessageFns<BotProgressIndicatorMetada
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -13942,8 +13942,8 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14042,8 +14042,8 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14122,8 +14122,8 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14217,8 +14217,8 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSte
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14283,8 +14283,8 @@ export const BotPromotionMessageMetadata: MessageFns<BotPromotionMessageMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14341,8 +14341,8 @@ export const BotPromptSuggestion: MessageFns<BotPromptSuggestion> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14396,8 +14396,8 @@ export const BotPromptSuggestions: MessageFns<BotPromptSuggestions> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14442,8 +14442,8 @@ export const BotPttPromptMetadata: MessageFns<BotPttPromptMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14496,8 +14496,8 @@ export const BotQuotaMetadata: MessageFns<BotQuotaMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14565,8 +14565,8 @@ export const BotQuotaMetadata_BotFeatureQuotaMetadata: MessageFns<BotQuotaMetada
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14657,8 +14657,8 @@ export const BotReminderMetadata: MessageFns<BotReminderMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14720,8 +14720,8 @@ export const BotRenderingConfigMetadata: MessageFns<BotRenderingConfigMetadata> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14775,8 +14775,8 @@ export const BotRenderingMetadata: MessageFns<BotRenderingMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14840,8 +14840,8 @@ export const BotRenderingMetadata_Keyword: MessageFns<BotRenderingMetadata_Keywo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14898,8 +14898,8 @@ export const BotResolvedToolCallMetadata: MessageFns<BotResolvedToolCallMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -14956,8 +14956,8 @@ export const BotSessionMetadata: MessageFns<BotSessionMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15011,8 +15011,8 @@ export const BotSignatureVerificationMetadata: MessageFns<BotSignatureVerificati
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15098,8 +15098,8 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15155,8 +15155,8 @@ export const BotSourcesMetadata: MessageFns<BotSourcesMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15267,8 +15267,8 @@ export const BotSourcesMetadata_BotSourceItem: MessageFns<BotSourcesMetadata_Bot
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15360,8 +15360,8 @@ export const BotSuggestedPromptMetadata: MessageFns<BotSuggestedPromptMetadata> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15430,8 +15430,8 @@ export const BotUnifiedResponseMutation: MessageFns<BotUnifiedResponseMutation> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15508,8 +15508,8 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15579,8 +15579,8 @@ export const BotUnifiedResponseMutation_SideBySideMetadata: MessageFns<BotUnifie
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -15792,8 +15792,8 @@ export const CallLogRecord: MessageFns<CallLogRecord> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15863,8 +15863,8 @@ export const CallLogRecord_ParticipantInfo: MessageFns<CallLogRecord_Participant
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15921,8 +15921,8 @@ export const CertChain: MessageFns<CertChain> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -15983,8 +15983,8 @@ export const CertChain_NoiseCertificate: MessageFns<CertChain_NoiseCertificate> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16074,8 +16074,8 @@ export const CertChain_NoiseCertificate_Details: MessageFns<CertChain_NoiseCerti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16135,8 +16135,8 @@ export const ChatLockSettings: MessageFns<ChatLockSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16184,8 +16184,8 @@ export const ChatRowOpaqueData: MessageFns<ChatRowOpaqueData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16277,8 +16277,8 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16457,8 +16457,8 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextData: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16556,8 +16556,8 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextLinkData: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16642,8 +16642,8 @@ export const Citation: MessageFns<Citation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -16735,8 +16735,8 @@ export const ClientPairingProps: MessageFns<ClientPairingProps> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17196,8 +17196,8 @@ export const ClientPayload: MessageFns<ClientPayload> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17298,8 +17298,8 @@ export const ClientPayload_DNSSource: MessageFns<ClientPayload_DNSSource> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17425,8 +17425,8 @@ export const ClientPayload_DevicePairingRegistrationData: MessageFns<ClientPaylo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17502,8 +17502,8 @@ export const ClientPayload_InteropData: MessageFns<ClientPayload_InteropData> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17726,8 +17726,8 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17834,8 +17834,8 @@ export const ClientPayload_UserAgent_AppVersion: MessageFns<ClientPayload_UserAg
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -17939,8 +17939,8 @@ export const ClientPayload_WebInfo: MessageFns<ClientPayload_WebInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18102,8 +18102,8 @@ export const ClientPayload_WebInfo_WebdPayload: MessageFns<ClientPayload_WebInfo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18180,8 +18180,8 @@ export const CombinedFingerprint: MessageFns<CombinedFingerprint> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18265,8 +18265,8 @@ export const Command: MessageFns<Command> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18325,8 +18325,8 @@ export const CommentMetadata: MessageFns<CommentMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18374,8 +18374,8 @@ export const CompanionCommitment: MessageFns<CompanionCommitment> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18442,8 +18442,8 @@ export const CompanionEphemeralIdentity: MessageFns<CompanionEphemeralIdentity> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18507,8 +18507,8 @@ export const Config: MessageFns<Config> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18575,8 +18575,8 @@ export const Config_FieldEntry: MessageFns<Config_FieldEntry> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18633,8 +18633,8 @@ export const ConsumerApplication: MessageFns<ConsumerApplication> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18684,8 +18684,8 @@ export const ConsumerApplication_ApplicationData: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18743,8 +18743,8 @@ export const ConsumerApplication_AudioMessage: MessageFns<ConsumerApplication_Au
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18792,8 +18792,8 @@ export const ConsumerApplication_ContactMessage: MessageFns<ConsumerApplication_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -18859,8 +18859,8 @@ export const ConsumerApplication_ContactsArrayMessage: MessageFns<ConsumerApplic
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19093,8 +19093,8 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19203,8 +19203,8 @@ export const ConsumerApplication_DocumentMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19274,8 +19274,8 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19390,8 +19390,8 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19501,8 +19501,8 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19565,8 +19565,8 @@ export const ConsumerApplication_ImageMessage: MessageFns<ConsumerApplication_Im
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19635,8 +19635,8 @@ export const ConsumerApplication_InteractiveAnnotation: MessageFns<ConsumerAppli
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19752,8 +19752,8 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19830,8 +19830,8 @@ export const ConsumerApplication_Location: MessageFns<ConsumerApplication_Locati
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19889,8 +19889,8 @@ export const ConsumerApplication_LocationMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19938,8 +19938,8 @@ export const ConsumerApplication_MediaPayload: MessageFns<ConsumerApplication_Me
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -19986,8 +19986,8 @@ export const ConsumerApplication_Metadata: MessageFns<ConsumerApplication_Metada
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20032,8 +20032,8 @@ export const ConsumerApplication_Option: MessageFns<ConsumerApplication_Option> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20111,8 +20111,8 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20179,8 +20179,8 @@ export const ConsumerApplication_Point: MessageFns<ConsumerApplication_Point> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20234,8 +20234,8 @@ export const ConsumerApplication_PollAddOptionMessage: MessageFns<ConsumerApplic
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20321,8 +20321,8 @@ export const ConsumerApplication_PollCreationMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20381,8 +20381,8 @@ export const ConsumerApplication_PollEncValue: MessageFns<ConsumerApplication_Po
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20450,8 +20450,8 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20524,8 +20524,8 @@ export const ConsumerApplication_PollVoteMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20626,8 +20626,8 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20677,8 +20677,8 @@ export const ConsumerApplication_RevokeMessage: MessageFns<ConsumerApplication_R
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20712,8 +20712,8 @@ export const ConsumerApplication_Signal: MessageFns<ConsumerApplication_Signal> 
       const tag = reader.uint32();
       switch (tag >>> 3) {
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20790,8 +20790,8 @@ export const ConsumerApplication_StatusTextMesage: MessageFns<ConsumerApplicatio
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20841,8 +20841,8 @@ export const ConsumerApplication_StickerMessage: MessageFns<ConsumerApplication_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20889,8 +20889,8 @@ export const ConsumerApplication_SubProtocolPayload: MessageFns<ConsumerApplicat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -20946,8 +20946,8 @@ export const ConsumerApplication_VideoMessage: MessageFns<ConsumerApplication_Vi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -21008,8 +21008,8 @@ export const ConsumerApplication_ViewOnceMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -21759,8 +21759,8 @@ export const ContextInfo: MessageFns<ContextInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -21947,8 +21947,8 @@ export const ContextInfo_AdReplyInfo: MessageFns<ContextInfo_AdReplyInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22048,8 +22048,8 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22111,8 +22111,8 @@ export const ContextInfo_BusinessInteractionPills_Pill: MessageFns<ContextInfo_B
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22184,8 +22184,8 @@ export const ContextInfo_BusinessInteractionPills_SignedPayload: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22235,8 +22235,8 @@ export const ContextInfo_BusinessMessageForwardInfo: MessageFns<ContextInfo_Busi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22322,8 +22322,8 @@ export const ContextInfo_DataSharingContext: MessageFns<ContextInfo_DataSharingC
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22416,8 +22416,8 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22811,8 +22811,8 @@ export const ContextInfo_ExternalAdReplyInfo: MessageFns<ContextInfo_ExternalAdR
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -22932,8 +22932,8 @@ export const ContextInfo_FeatureEligibilities: MessageFns<ContextInfo_FeatureEli
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -23037,8 +23037,8 @@ export const ContextInfo_ForwardedNewsletterMessageInfo: MessageFns<ContextInfo_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -23090,8 +23090,8 @@ export const ContextInfo_PartiallySelectedContent: MessageFns<ContextInfo_Partia
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -23158,8 +23158,8 @@ export const ContextInfo_QuestionReplyQuotedMessage: MessageFns<ContextInfo_Ques
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -23232,8 +23232,8 @@ export const ContextInfo_StatusAudienceMetadata: MessageFns<ContextInfo_StatusAu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -23291,8 +23291,8 @@ export const ContextInfo_UTMInfo: MessageFns<ContextInfo_UTMInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24025,8 +24025,8 @@ export const Conversation: MessageFns<Conversation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24147,8 +24147,8 @@ export const CreateBackupInput: MessageFns<CreateBackupInput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24238,8 +24238,8 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24338,8 +24338,8 @@ export const DecryptMessageInput: MessageFns<DecryptMessageInput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24399,8 +24399,8 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24501,8 +24501,8 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24560,8 +24560,8 @@ export const DeviceCapabilities_AiThread: MessageFns<DeviceCapabilities_AiThread
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24650,8 +24650,8 @@ export const DeviceCapabilities_BusinessBroadcast: MessageFns<DeviceCapabilities
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24700,8 +24700,8 @@ export const DeviceCapabilities_LIDMigration: MessageFns<DeviceCapabilities_LIDM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24746,8 +24746,8 @@ export const DeviceCapabilities_UserHasAvatar: MessageFns<DeviceCapabilities_Use
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24803,8 +24803,8 @@ export const DeviceConsistencyCodeMessage: MessageFns<DeviceConsistencyCodeMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -24967,8 +24967,8 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25126,8 +25126,8 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25224,8 +25224,8 @@ export const DeviceProps: MessageFns<DeviceProps> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25322,8 +25322,8 @@ export const DeviceProps_AppVersion: MessageFns<DeviceProps_AppVersion> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25633,8 +25633,8 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25735,8 +25735,8 @@ export const DisappearingMode: MessageFns<DisappearingMode> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25795,8 +25795,8 @@ export const EmbeddedContent: MessageFns<EmbeddedContent> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -25857,8 +25857,8 @@ export const EmbeddedMessage: MessageFns<EmbeddedMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26049,8 +26049,8 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26218,8 +26218,8 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26340,8 +26340,8 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26403,8 +26403,8 @@ export const EncryptedPairingRequest: MessageFns<EncryptedPairingRequest> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26527,8 +26527,8 @@ export const EncryptedSecretValuesOutput: MessageFns<EncryptedSecretValuesOutput
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26591,8 +26591,8 @@ export const EphemeralSetting: MessageFns<EphemeralSetting> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26704,8 +26704,8 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26756,8 +26756,8 @@ export const EventAdditionalMetadata: MessageFns<EventAdditionalMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26835,8 +26835,8 @@ export const EventResponse: MessageFns<EventResponse> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -26900,8 +26900,8 @@ export const ExitCode: MessageFns<ExitCode> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27002,8 +27002,8 @@ export const ExternalBlobReference: MessageFns<ExternalBlobReference> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27103,8 +27103,8 @@ export const Field: MessageFns<Field> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27174,8 +27174,8 @@ export const Field_SubfieldEntry: MessageFns<Field_SubfieldEntry> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27276,8 +27276,8 @@ export const FingerprintData: MessageFns<FingerprintData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27349,8 +27349,8 @@ export const ForwardedAIBotMessageInfo: MessageFns<ForwardedAIBotMessageInfo> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27606,8 +27606,8 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27756,8 +27756,8 @@ export const GroupHistory: MessageFns<GroupHistory> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27818,8 +27818,8 @@ export const GroupHistoryBundleInfo: MessageFns<GroupHistoryBundleInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27879,8 +27879,8 @@ export const GroupHistoryIndividualMessageInfo: MessageFns<GroupHistoryIndividua
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -27993,8 +27993,8 @@ export const GroupHistoryWithMessageBytes: MessageFns<GroupHistoryWithMessageByt
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28058,8 +28058,8 @@ export const GroupMention: MessageFns<GroupMention> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28127,8 +28127,8 @@ export const GroupParticipant: MessageFns<GroupParticipant> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28185,8 +28185,8 @@ export const GroupRootKeyShare: MessageFns<GroupRootKeyShare> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28264,8 +28264,8 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28335,8 +28335,8 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28433,8 +28433,8 @@ export const HandshakeMessage_ClientFinish: MessageFns<HandshakeMessage_ClientFi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28582,8 +28582,8 @@ export const HandshakeMessage_ClientHello: MessageFns<HandshakeMessage_ClientHel
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28692,8 +28692,8 @@ export const HandshakeMessage_ServerHello: MessageFns<HandshakeMessage_ServerHel
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -28765,8 +28765,8 @@ export const HatchMetadataSync: MessageFns<HatchMetadataSync> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29094,8 +29094,8 @@ export const HistorySync: MessageFns<HistorySync> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29173,8 +29173,8 @@ export const HistorySyncMsg: MessageFns<HistorySyncMsg> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29255,8 +29255,8 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29321,8 +29321,8 @@ export const HydratedTemplateButton_HydratedCallButton: MessageFns<HydratedTempl
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29386,8 +29386,8 @@ export const HydratedTemplateButton_HydratedQuickReplyButton: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29470,8 +29470,8 @@ export const HydratedTemplateButton_HydratedURLButton: MessageFns<HydratedTempla
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29530,8 +29530,8 @@ export const IdentityKeyPairStructure: MessageFns<IdentityKeyPairStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29780,8 +29780,8 @@ export const InThreadSurveyMetadata: MessageFns<InThreadSurveyMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29872,8 +29872,8 @@ export const InThreadSurveyMetadata_InThreadSurveyOption: MessageFns<InThreadSur
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -29938,8 +29938,8 @@ export const InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart: MessageF
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30023,8 +30023,8 @@ export const InThreadSurveyMetadata_InThreadSurveyQuestion: MessageFns<InThreadS
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -30120,8 +30120,8 @@ export const InlineContact: MessageFns<InlineContact> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30255,8 +30255,8 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30316,8 +30316,8 @@ export const InteractiveMessageAdditionalMetadata: MessageFns<InteractiveMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30417,8 +30417,8 @@ export const KeepInChat: MessageFns<KeepInChat> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30512,8 +30512,8 @@ export const KeyExchangeMessage: MessageFns<KeyExchangeMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30562,8 +30562,8 @@ export const KeyId: MessageFns<KeyId> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30608,8 +30608,8 @@ export const LIDMigrationMappingSyncMessage: MessageFns<LIDMigrationMappingSyncM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30676,8 +30676,8 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30743,8 +30743,8 @@ export const LIDMigrationMappingSyncPayload: MessageFns<LIDMigrationMappingSyncP
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30823,8 +30823,8 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30891,8 +30891,8 @@ export const LegacyMessage: MessageFns<LegacyMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -30975,8 +30975,8 @@ export const LimitSharing: MessageFns<LimitSharing> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31046,8 +31046,8 @@ export const LocalizedName: MessageFns<LocalizedName> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31116,8 +31116,8 @@ export const Location: MessageFns<Location> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31164,8 +31164,8 @@ export const MediaData: MessageFns<MediaData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31221,8 +31221,8 @@ export const MediaDomainInfo: MessageFns<MediaDomainInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31444,8 +31444,8 @@ export const MediaEntry: MessageFns<MediaEntry> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31567,8 +31567,8 @@ export const MediaEntry_DownloadableThumbnail: MessageFns<MediaEntry_Downloadabl
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31647,8 +31647,8 @@ export const MediaEntry_ProgressiveJpegDetails: MessageFns<MediaEntry_Progressiv
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31716,8 +31716,8 @@ export const MediaNotifyMessage: MessageFns<MediaNotifyMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31797,8 +31797,8 @@ export const MediaRetryNotification: MessageFns<MediaRetryNotification> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31857,8 +31857,8 @@ export const MemberLabel: MessageFns<MemberLabel> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -31937,8 +31937,8 @@ export const Mention: MessageFns<Mention> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33164,8 +33164,8 @@ export const Message: MessageFns<Message> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33591,8 +33591,8 @@ export const Message_AlbumMessage: MessageFns<Message_AlbumMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33660,8 +33660,8 @@ export const Message_AppStateFatalExceptionNotification: MessageFns<Message_AppS
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33720,8 +33720,8 @@ export const Message_AppStateSyncKey: MessageFns<Message_AppStateSyncKey> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33793,8 +33793,8 @@ export const Message_AppStateSyncKeyData: MessageFns<Message_AppStateSyncKeyData
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33885,8 +33885,8 @@ export const Message_AppStateSyncKeyFingerprint: MessageFns<Message_AppStateSync
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33933,8 +33933,8 @@ export const Message_AppStateSyncKeyId: MessageFns<Message_AppStateSyncKeyId> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -33987,8 +33987,8 @@ export const Message_AppStateSyncKeyRequest: MessageFns<Message_AppStateSyncKeyR
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34041,8 +34041,8 @@ export const Message_AppStateSyncKeyShare: MessageFns<Message_AppStateSyncKeySha
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34252,8 +34252,8 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34348,8 +34348,8 @@ export const Message_BCallMessage: MessageFns<Message_BCallMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34504,8 +34504,8 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34602,8 +34602,8 @@ export const Message_ButtonsMessage_Button: MessageFns<Message_ButtonsMessage_Bu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34655,8 +34655,8 @@ export const Message_ButtonsMessage_Button_ButtonText: MessageFns<Message_Button
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34715,8 +34715,8 @@ export const Message_ButtonsMessage_Button_NativeFlowInfo: MessageFns<Message_Bu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34799,8 +34799,8 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -34960,8 +34960,8 @@ export const Message_Call: MessageFns<Message_Call> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35072,8 +35072,8 @@ export const Message_CallLogMessage: MessageFns<Message_CallLogMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35134,8 +35134,8 @@ export const Message_CallLogMessage_CallParticipant: MessageFns<Message_CallLogM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35181,8 +35181,8 @@ export const Message_CancelPaymentRequestMessage: MessageFns<Message_CancelPayme
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35238,8 +35238,8 @@ export const Message_Chat: MessageFns<Message_Chat> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35329,8 +35329,8 @@ export const Message_ChatCustomImageWallpaper: MessageFns<Message_ChatCustomImag
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35379,8 +35379,8 @@ export const Message_ChatDefaultWallpaper: MessageFns<Message_ChatDefaultWallpap
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35447,8 +35447,8 @@ export const Message_ChatSolidColorWallpaper: MessageFns<Message_ChatSolidColorW
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35506,8 +35506,8 @@ export const Message_ChatStockImageWallpaper: MessageFns<Message_ChatStockImageW
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35619,8 +35619,8 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35738,8 +35738,8 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35811,8 +35811,8 @@ export const Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNoti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35873,8 +35873,8 @@ export const Message_CommentMessage: MessageFns<Message_CommentMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -35957,8 +35957,8 @@ export const Message_ConditionalRevealMessage: MessageFns<Message_ConditionalRev
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36039,8 +36039,8 @@ export const Message_ContactMessage: MessageFns<Message_ContactMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36120,8 +36120,8 @@ export const Message_ContactsArrayMessage: MessageFns<Message_ContactsArrayMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36170,8 +36170,8 @@ export const Message_DeclinePaymentRequestMessage: MessageFns<Message_DeclinePay
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36238,8 +36238,8 @@ export const Message_DeviceSentMessage: MessageFns<Message_DeviceSentMessage> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36508,8 +36508,8 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36598,8 +36598,8 @@ export const Message_EncCommentMessage: MessageFns<Message_EncCommentMessage> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36670,8 +36670,8 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36743,8 +36743,8 @@ export const Message_EncReactionMessage: MessageFns<Message_EncReactionMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -36881,8 +36881,8 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37058,8 +37058,8 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37141,8 +37141,8 @@ export const Message_EventResponseMessage: MessageFns<Message_EventResponseMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37538,8 +37538,8 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37639,8 +37639,8 @@ export const Message_FullHistorySyncOnDemandConfig: MessageFns<Message_FullHisto
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37713,8 +37713,8 @@ export const Message_FullHistorySyncOnDemandRequestMetadata: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37765,8 +37765,8 @@ export const Message_FutureProofMessage: MessageFns<Message_FutureProofMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -37890,8 +37890,8 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38049,8 +38049,8 @@ export const Message_HighlyStructuredMessage: MessageFns<Message_HighlyStructure
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38140,8 +38140,8 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38212,8 +38212,8 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38287,8 +38287,8 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38418,8 +38418,8 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38483,8 +38483,8 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38536,8 +38536,8 @@ export const Message_HistorySyncMessageAccessStatus: MessageFns<Message_HistoryS
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -38739,8 +38739,8 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39158,8 +39158,8 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39241,8 +39241,8 @@ export const Message_InitialSecurityNotificationSettingSync: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39390,8 +39390,8 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39499,8 +39499,8 @@ export const Message_InteractiveMessage_BloksWidget: MessageFns<Message_Interact
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39548,8 +39548,8 @@ export const Message_InteractiveMessage_Body: MessageFns<Message_InteractiveMess
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39624,8 +39624,8 @@ export const Message_InteractiveMessage_CarouselMessage: MessageFns<Message_Inte
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39699,8 +39699,8 @@ export const Message_InteractiveMessage_CollectionMessage: MessageFns<Message_In
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39773,8 +39773,8 @@ export const Message_InteractiveMessage_Footer: MessageFns<Message_InteractiveMe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -39922,8 +39922,8 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40022,8 +40022,8 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40092,8 +40092,8 @@ export const Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton: Mess
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40165,8 +40165,8 @@ export const Message_InteractiveMessage_ShopMessage: MessageFns<Message_Interact
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40238,8 +40238,8 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40304,8 +40304,8 @@ export const Message_InteractiveResponseMessage_Body: MessageFns<Message_Interac
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40378,8 +40378,8 @@ export const Message_InteractiveResponseMessage_NativeFlowResponseMessage: Messa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40529,8 +40529,8 @@ export const Message_InvoiceMessage: MessageFns<Message_InvoiceMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40606,8 +40606,8 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40742,8 +40742,8 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40887,8 +40887,8 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -40944,8 +40944,8 @@ export const Message_ListMessage_Product: MessageFns<Message_ListMessage_Product
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41001,8 +41001,8 @@ export const Message_ListMessage_ProductListHeaderImage: MessageFns<Message_List
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41080,8 +41080,8 @@ export const Message_ListMessage_ProductListInfo: MessageFns<Message_ListMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41150,8 +41150,8 @@ export const Message_ListMessage_ProductSection: MessageFns<Message_ListMessage_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41219,8 +41219,8 @@ export const Message_ListMessage_Row: MessageFns<Message_ListMessage_Row> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41286,8 +41286,8 @@ export const Message_ListMessage_Section: MessageFns<Message_ListMessage_Section
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41377,8 +41377,8 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41435,8 +41435,8 @@ export const Message_ListResponseMessage_SingleSelectReply: MessageFns<Message_L
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -41584,8 +41584,8 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41762,8 +41762,8 @@ export const Message_LocationMessage: MessageFns<Message_LocationMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -41887,8 +41887,8 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42016,8 +42016,8 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42134,8 +42134,8 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42195,8 +42195,8 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42302,8 +42302,8 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42399,8 +42399,8 @@ export const Message_NewsletterFollowerInviteMessage: MessageFns<Message_Newslet
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42605,8 +42605,8 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42681,8 +42681,8 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42772,8 +42772,8 @@ export const Message_PaymentInviteMessage: MessageFns<Message_PaymentInviteMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42844,8 +42844,8 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -42902,8 +42902,8 @@ export const Message_PaymentLinkMetadata_PaymentLinkButton: MessageFns<Message_P
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -42956,8 +42956,8 @@ export const Message_PaymentLinkMetadata_PaymentLinkHeader: MessageFns<Message_P
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -43011,8 +43011,8 @@ export const Message_PaymentLinkMetadata_PaymentLinkProvider: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43149,8 +43149,8 @@ export const Message_PaymentReminderMessage: MessageFns<Message_PaymentReminderM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43385,8 +43385,8 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43494,8 +43494,8 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContact
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43549,8 +43549,8 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefresh
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43604,8 +43604,8 @@ export const Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonce
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43682,8 +43682,8 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43790,8 +43790,8 @@ export const Message_PeerDataOperationRequestMessage_GalaxyFlowAction: MessageFn
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -43882,8 +43882,8 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryReques
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44006,8 +44006,8 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44067,8 +44067,8 @@ export const Message_PeerDataOperationRequestMessage_PlaceholderMessageResendReq
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44124,8 +44124,8 @@ export const Message_PeerDataOperationRequestMessage_RequestStickerReupload: Mes
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44190,8 +44190,8 @@ export const Message_PeerDataOperationRequestMessage_RequestUrlPreview: MessageF
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44257,8 +44257,8 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44347,8 +44347,8 @@ export const Message_PeerDataOperationRequestResponseMessage: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44569,8 +44569,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -44719,8 +44719,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -44798,8 +44798,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if ((tag & 7) === 4 || tag === 0) {
-            break;
+          if (tag === 0 || (tag & 7) === 4) {
+            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
           }
           reader.skip(tag & 7);
         }
@@ -44885,8 +44885,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -44950,8 +44950,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if ((tag & 7) === 4 || tag === 0) {
-            break;
+          if (tag === 0 || (tag & 7) === 4) {
+            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
           }
           reader.skip(tag & 7);
         }
@@ -45111,8 +45111,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -45192,8 +45192,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45300,8 +45300,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45449,8 +45449,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -45589,8 +45589,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45703,8 +45703,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45770,8 +45770,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if ((tag & 7) === 4 || tag === 0) {
-            break;
+          if (tag === 0 || (tag & 7) === 4) {
+            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
           }
           reader.skip(tag & 7);
         }
@@ -45845,8 +45845,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45918,8 +45918,8 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -45997,8 +45997,8 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46045,8 +46045,8 @@ export const Message_PlaceholderMessage: MessageFns<Message_PlaceholderMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46113,8 +46113,8 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46286,8 +46286,8 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46357,8 +46357,8 @@ export const Message_PollCreationMessage_Option: MessageFns<Message_PollCreation
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46415,8 +46415,8 @@ export const Message_PollEncValue: MessageFns<Message_PollEncValue> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46503,8 +46503,8 @@ export const Message_PollResultSnapshotMessage: MessageFns<Message_PollResultSna
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46566,8 +46566,8 @@ export const Message_PollResultSnapshotMessage_PollVote: MessageFns<Message_Poll
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46648,8 +46648,8 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46715,8 +46715,8 @@ export const Message_PollUpdateMessageMetadata: MessageFns<Message_PollUpdateMes
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46770,8 +46770,8 @@ export const Message_PollVoteMessage: MessageFns<Message_PollVoteMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46871,8 +46871,8 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -46950,8 +46950,8 @@ export const Message_ProductMessage_CatalogSnapshot: MessageFns<Message_ProductM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47121,8 +47121,8 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47491,8 +47491,8 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47627,8 +47627,8 @@ export const Message_QuestionResponseMessage: MessageFns<Message_QuestionRespons
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47707,8 +47707,8 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47822,8 +47822,8 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47880,8 +47880,8 @@ export const Message_RequestPhoneNumberMessage: MessageFns<Message_RequestPhoneN
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -47950,8 +47950,8 @@ export const Message_RequestWelcomeMessageMetadata: MessageFns<Message_RequestWe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48000,8 +48000,8 @@ export const Message_RootSecretDistributeMessage: MessageFns<Message_RootSecretD
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48068,8 +48068,8 @@ export const Message_ScheduledCallCreationMessage: MessageFns<Message_ScheduledC
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48127,8 +48127,8 @@ export const Message_ScheduledCallEditMessage: MessageFns<Message_ScheduledCallE
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48218,8 +48218,8 @@ export const Message_SecretEncryptedMessage: MessageFns<Message_SecretEncryptedM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48303,8 +48303,8 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48369,8 +48369,8 @@ export const Message_SenderKeyDistributionMessage: MessageFns<Message_SenderKeyD
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48490,8 +48490,8 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48568,8 +48568,8 @@ export const Message_SplitPaymentParticipant: MessageFns<Message_SplitPaymentPar
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48640,8 +48640,8 @@ export const Message_StatusNotificationMessage: MessageFns<Message_StatusNotific
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48703,8 +48703,8 @@ export const Message_StatusQuestionAnswerMessage: MessageFns<Message_StatusQuest
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48783,8 +48783,8 @@ export const Message_StatusQuotedMessage: MessageFns<Message_StatusQuotedMessage
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -48856,8 +48856,8 @@ export const Message_StatusStickerInteractionMessage: MessageFns<Message_StatusS
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49135,8 +49135,8 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49443,8 +49443,8 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49586,8 +49586,8 @@ export const Message_StickerPackMessage_Sticker: MessageFns<Message_StickerPackM
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49668,8 +49668,8 @@ export const Message_StickerSyncRMRMessage: MessageFns<Message_StickerSyncRMRMes
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49760,8 +49760,8 @@ export const Message_TemplateButtonReplyMessage: MessageFns<Message_TemplateButt
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -49868,8 +49868,8 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50016,8 +50016,8 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50196,8 +50196,8 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50263,8 +50263,8 @@ export const Message_URLMetadata: MessageFns<Message_URLMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50342,8 +50342,8 @@ export const Message_VideoEndCard: MessageFns<Message_VideoEndCard> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50734,8 +50734,8 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50889,8 +50889,8 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -50961,8 +50961,8 @@ export const MessageAddOnContextInfo: MessageFns<MessageAddOnContextInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51030,8 +51030,8 @@ export const MessageAssociation: MessageFns<MessageAssociation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51264,8 +51264,8 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51369,8 +51369,8 @@ export const MessageKey: MessageFns<MessageKey> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51440,8 +51440,8 @@ export const MessageSecretMessage: MessageFns<MessageSecretMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51545,8 +51545,8 @@ export const MessageText: MessageFns<MessageText> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -51616,8 +51616,8 @@ export const Money: MessageFns<Money> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52266,8 +52266,8 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52427,8 +52427,8 @@ export const MsgOpaqueData_EventLocation: MessageFns<MsgOpaqueData_EventLocation
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52489,8 +52489,8 @@ export const MsgOpaqueData_PollOption: MessageFns<MsgOpaqueData_PollOption> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52547,8 +52547,8 @@ export const MsgOpaqueData_PollVoteSnapshot: MessageFns<MsgOpaqueData_PollVoteSn
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52604,8 +52604,8 @@ export const MsgOpaqueData_PollVotesSnapshot: MessageFns<MsgOpaqueData_PollVotes
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52661,8 +52661,8 @@ export const MsgRowOpaqueData: MessageFns<MsgRowOpaqueData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52723,8 +52723,8 @@ export const NoiseCertificate: MessageFns<NoiseCertificate> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52814,8 +52814,8 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -52897,8 +52897,8 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53003,8 +53003,8 @@ export const NotificationSettings: MessageFns<NotificationSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53065,8 +53065,8 @@ export const OrfThreadIdInput: MessageFns<OrfThreadIdInput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53123,8 +53123,8 @@ export const OrfThreadIdOutput: MessageFns<OrfThreadIdOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53192,8 +53192,8 @@ export const PairingRequest: MessageFns<PairingRequest> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53262,8 +53262,8 @@ export const PastParticipant: MessageFns<PastParticipant> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53329,8 +53329,8 @@ export const PastParticipants: MessageFns<PastParticipants> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53486,8 +53486,8 @@ export const PatchDebugData: MessageFns<PatchDebugData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53641,8 +53641,8 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53742,8 +53742,8 @@ export const PaymentBackground_MediaData: MessageFns<PaymentBackground_MediaData
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53924,8 +53924,8 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -53999,8 +53999,8 @@ export const PhoneNumberToLIDMapping: MessageFns<PhoneNumberToLIDMapping> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54068,8 +54068,8 @@ export const PhotoChange: MessageFns<PhotoChange> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54160,8 +54160,8 @@ export const PinInChat: MessageFns<PinInChat> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54246,8 +54246,8 @@ export const Point: MessageFns<Point> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54314,8 +54314,8 @@ export const PollAdditionalMetadata: MessageFns<PollAdditionalMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54379,8 +54379,8 @@ export const PollAdditionalMetadata_PollNameHashHistoryEntry: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54441,8 +54441,8 @@ export const PollEncValue: MessageFns<PollEncValue> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54543,8 +54543,8 @@ export const PollUpdate: MessageFns<PollUpdate> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54622,8 +54622,8 @@ export const PreKeyRecordStructure: MessageFns<PreKeyRecordStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54747,8 +54747,8 @@ export const PreKeySignalMessage: MessageFns<PreKeySignalMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54800,8 +54800,8 @@ export const PremiumMessageInfo: MessageFns<PremiumMessageInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54857,8 +54857,8 @@ export const PrimaryEphemeralIdentity: MessageFns<PrimaryEphemeralIdentity> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -54989,8 +54989,8 @@ export const ProcessedVideo: MessageFns<ProcessedVideo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55053,8 +55053,8 @@ export const ProloguePayload: MessageFns<ProloguePayload> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55113,8 +55113,8 @@ export const Pushname: MessageFns<Pushname> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55149,8 +55149,8 @@ export const QP: MessageFns<QP> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55235,8 +55235,8 @@ export const QP_Filter: MessageFns<QP_Filter> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55322,8 +55322,8 @@ export const QP_FilterClause: MessageFns<QP_FilterClause> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55381,8 +55381,8 @@ export const QP_FilterParameters: MessageFns<QP_FilterParameters> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55439,8 +55439,8 @@ export const QuarantinedMessage: MessageFns<QuarantinedMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55530,8 +55530,8 @@ export const Reaction: MessageFns<Reaction> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55591,8 +55591,8 @@ export const RecentEmojiWeight: MessageFns<RecentEmojiWeight> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55657,8 +55657,8 @@ export const RecordStructure: MessageFns<RecordStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55739,8 +55739,8 @@ export const Reportable: MessageFns<Reportable> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55788,8 +55788,8 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55925,8 +55925,8 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -55998,8 +55998,8 @@ export const ScheduledMessageMetadata: MessageFns<ScheduledMessageMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56079,8 +56079,8 @@ export const SenderKeyDistributionMessage: MessageFns<SenderKeyDistributionMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56150,8 +56150,8 @@ export const SenderKeyMessage: MessageFns<SenderKeyMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56206,8 +56206,8 @@ export const SenderKeyRecordStructure: MessageFns<SenderKeyRecordStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56293,8 +56293,8 @@ export const SenderKeyStateStructure: MessageFns<SenderKeyStateStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56358,8 +56358,8 @@ export const SenderKeyStateStructure_SenderChainKey: MessageFns<SenderKeyStateSt
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56416,8 +56416,8 @@ export const SenderKeyStateStructure_SenderMessageKey: MessageFns<SenderKeyState
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56474,8 +56474,8 @@ export const SenderKeyStateStructure_SenderSigningKey: MessageFns<SenderKeyState
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56521,8 +56521,8 @@ export const ServerErrorReceipt: MessageFns<ServerErrorReceipt> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56707,8 +56707,8 @@ export const SessionStructure: MessageFns<SessionStructure> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56812,8 +56812,8 @@ export const SessionStructure_Chain: MessageFns<SessionStructure_Chain> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56874,8 +56874,8 @@ export const SessionStructure_Chain_ChainKey: MessageFns<SessionStructure_Chain_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -56954,8 +56954,8 @@ export const SessionStructure_Chain_MessageKey: MessageFns<SessionStructure_Chai
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57069,8 +57069,8 @@ export const SessionStructure_PendingKeyExchange: MessageFns<SessionStructure_Pe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57165,8 +57165,8 @@ export const SessionStructure_PendingPreKey: MessageFns<SessionStructure_Pending
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57237,8 +57237,8 @@ export const SessionTransparencyMetadata: MessageFns<SessionTransparencyMetadata
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57318,8 +57318,8 @@ export const SignalMessage: MessageFns<SignalMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57411,8 +57411,8 @@ export const SignedPreKeyRecordStructure: MessageFns<SignedPreKeyRecordStructure
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57538,8 +57538,8 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57603,8 +57603,8 @@ export const StatusAttribution_AiCreatedAttribution: MessageFns<StatusAttributio
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57682,8 +57682,8 @@ export const StatusAttribution_ExternalShare: MessageFns<StatusAttribution_Exter
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57731,8 +57731,8 @@ export const StatusAttribution_GroupStatus: MessageFns<StatusAttribution_GroupSt
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57832,8 +57832,8 @@ export const StatusAttribution_Music: MessageFns<StatusAttribution_Music> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57883,8 +57883,8 @@ export const StatusAttribution_RLAttribution: MessageFns<StatusAttribution_RLAtt
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -57940,8 +57940,8 @@ export const StatusAttribution_StatusReshare: MessageFns<StatusAttribution_Statu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58022,8 +58022,8 @@ export const StatusAttribution_StatusReshare_Metadata: MessageFns<StatusAttribut
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58071,8 +58071,8 @@ export const StatusMentionMessage: MessageFns<StatusMentionMessage> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58130,8 +58130,8 @@ export const StatusPSA: MessageFns<StatusPSA> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58320,8 +58320,8 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58390,8 +58390,8 @@ export const SubProtocol: MessageFns<SubProtocol> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -58470,8 +58470,8 @@ export const SyncActionData: MessageFns<SyncActionData> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -59454,8 +59454,8 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -59803,8 +59803,8 @@ export const SyncActionValue_AgentAction: MessageFns<SyncActionValue_AgentAction
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -59851,8 +59851,8 @@ export const SyncActionValue_AiThreadRenameAction: MessageFns<SyncActionValue_Ai
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -59897,8 +59897,8 @@ export const SyncActionValue_AndroidUnsupportedActions: MessageFns<SyncActionVal
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -59956,8 +59956,8 @@ export const SyncActionValue_ArchiveChatAction: MessageFns<SyncActionValue_Archi
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60010,8 +60010,8 @@ export const SyncActionValue_AutoOrganizeBusinessChatSetting: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60079,8 +60079,8 @@ export const SyncActionValue_AvatarUpdatedAction: MessageFns<SyncActionValue_Ava
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60149,8 +60149,8 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60197,8 +60197,8 @@ export const SyncActionValue_BotWelcomeRequestAction: MessageFns<SyncActionValue
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60254,8 +60254,8 @@ export const SyncActionValue_BroadcastListParticipant: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60306,8 +60306,8 @@ export const SyncActionValue_BusinessBroadcastAssociationAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60449,8 +60449,8 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60556,8 +60556,8 @@ export const SyncActionValue_BusinessBroadcastInsightsAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60673,8 +60673,8 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60726,8 +60726,8 @@ export const SyncActionValue_CallLogAction: MessageFns<SyncActionValue_CallLogAc
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60774,8 +60774,8 @@ export const SyncActionValue_ChatAssignmentAction: MessageFns<SyncActionValue_Ch
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60825,8 +60825,8 @@ export const SyncActionValue_ChatAssignmentOpenedStatusAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60875,8 +60875,8 @@ export const SyncActionValue_ClearChatAction: MessageFns<SyncActionValue_ClearCh
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -60923,8 +60923,8 @@ export const SyncActionValue_CoexV2VersionAction: MessageFns<SyncActionValue_Coe
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61024,8 +61024,8 @@ export const SyncActionValue_ContactAction: MessageFns<SyncActionValue_ContactAc
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61080,8 +61080,8 @@ export const SyncActionValue_CtwaPerCustomerDataSharingAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61171,8 +61171,8 @@ export const SyncActionValue_CustomPaymentMethod: MessageFns<SyncActionValue_Cus
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61235,8 +61235,8 @@ export const SyncActionValue_CustomPaymentMethodMetadata: MessageFns<SyncActionV
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61292,8 +61292,8 @@ export const SyncActionValue_CustomPaymentMethodsAction: MessageFns<SyncActionVa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61451,8 +61451,8 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61507,8 +61507,8 @@ export const SyncActionValue_DeleteChatAction: MessageFns<SyncActionValue_Delete
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61570,8 +61570,8 @@ export const SyncActionValue_DeleteIndividualCallLogAction: MessageFns<SyncActio
             continue;
           }
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        if (tag === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
         }
         reader.skip(tag & 7);
       }
@@ -61632,8 +61632,8 @@ export const SyncActionValue_DeleteMessageForMeAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61682,8 +61682,8 @@ export const SyncActionValue_DetectedOutcomesStatusAction: MessageFns<SyncAction
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61732,8 +61732,8 @@ export const SyncActionValue_ExternalWebBetaAction: MessageFns<SyncActionValue_E
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61786,8 +61786,8 @@ export const SyncActionValue_FavoritesAction: MessageFns<SyncActionValue_Favorit
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61833,8 +61833,8 @@ export const SyncActionValue_FavoritesAction_Favorite: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61890,8 +61890,8 @@ export const SyncActionValue_InteractiveMessageAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61937,8 +61937,8 @@ export const SyncActionValue_KeyExpiration: MessageFns<SyncActionValue_KeyExpira
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -61994,8 +61994,8 @@ export const SyncActionValue_LabelAssociationAction: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62129,8 +62129,8 @@ export const SyncActionValue_LabelEditAction: MessageFns<SyncActionValue_LabelEd
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62201,8 +62201,8 @@ export const SyncActionValue_LabelReorderingAction: MessageFns<SyncActionValue_L
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62269,8 +62269,8 @@ export const SyncActionValue_LidContactAction: MessageFns<SyncActionValue_LidCon
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62317,8 +62317,8 @@ export const SyncActionValue_LocaleSetting: MessageFns<SyncActionValue_LocaleSet
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62363,8 +62363,8 @@ export const SyncActionValue_LockChatAction: MessageFns<SyncActionValue_LockChat
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62423,8 +62423,8 @@ export const SyncActionValue_MaibaAIFeaturesControlAction: MessageFns<SyncAction
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62485,8 +62485,8 @@ export const SyncActionValue_MarkChatAsReadAction: MessageFns<SyncActionValue_Ma
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62600,8 +62600,8 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62657,8 +62657,8 @@ export const SyncActionValue_MarketingMessageBroadcastAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62743,8 +62743,8 @@ export const SyncActionValue_MerchantPaymentPartnerAction: MessageFns<SyncAction
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62814,8 +62814,8 @@ export const SyncActionValue_MusicUserIdAction: MessageFns<SyncActionValue_Music
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62887,8 +62887,8 @@ export const SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -62971,8 +62971,8 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63020,8 +63020,8 @@ export const SyncActionValue_NctSaltSyncAction: MessageFns<SyncActionValue_NctSa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63071,8 +63071,8 @@ export const SyncActionValue_NewsletterSavedInterestsAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63165,8 +63165,8 @@ export const SyncActionValue_NoteEditAction: MessageFns<SyncActionValue_NoteEdit
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63220,8 +63220,8 @@ export const SyncActionValue_NotificationActivitySettingAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63270,8 +63270,8 @@ export const SyncActionValue_NuxAction: MessageFns<SyncActionValue_NuxAction> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63327,8 +63327,8 @@ export const SyncActionValue_OutContactAction: MessageFns<SyncActionValue_OutCon
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63374,8 +63374,8 @@ export const SyncActionValue_PaymentInfoAction: MessageFns<SyncActionValue_Payme
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63431,8 +63431,8 @@ export const SyncActionValue_PaymentTosAction: MessageFns<SyncActionValue_Paymen
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63478,8 +63478,8 @@ export const SyncActionValue_PinAction: MessageFns<SyncActionValue_PinAction> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63524,8 +63524,8 @@ export const SyncActionValue_PnForLidChatAction: MessageFns<SyncActionValue_PnFo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63578,8 +63578,8 @@ export const SyncActionValue_PrimaryFeature: MessageFns<SyncActionValue_PrimaryF
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63624,8 +63624,8 @@ export const SyncActionValue_PrimaryVersionAction: MessageFns<SyncActionValue_Pr
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63675,8 +63675,8 @@ export const SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAct
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63730,8 +63730,8 @@ export const SyncActionValue_PrivacySettingDisableLinkPreviewsAction: MessageFns
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63783,8 +63783,8 @@ export const SyncActionValue_PrivacySettingRelayAllCalls: MessageFns<SyncActionV
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63836,8 +63836,8 @@ export const SyncActionValue_PrivateProcessingSettingAction: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -63886,8 +63886,8 @@ export const SyncActionValue_PushNameSetting: MessageFns<SyncActionValue_PushNam
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64003,8 +64003,8 @@ export const SyncActionValue_QuickReplyAction: MessageFns<SyncActionValue_QuickR
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64062,8 +64062,8 @@ export const SyncActionValue_RecentEmojiWeightsAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64108,8 +64108,8 @@ export const SyncActionValue_RemoveRecentStickerAction: MessageFns<SyncActionVal
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64508,8 +64508,8 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64586,8 +64586,8 @@ export const SyncActionValue_StarAction: MessageFns<SyncActionValue_StarAction> 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64637,8 +64637,8 @@ export const SyncActionValue_StatusPostOptInNotificationPreferencesAction: Messa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64776,8 +64776,8 @@ export const SyncActionValue_StatusPrivacyAction: MessageFns<SyncActionValue_Sta
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -64885,8 +64885,8 @@ export const SyncActionValue_StatusPrivacyAction_CustomList: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65071,8 +65071,8 @@ export const SyncActionValue_StickerAction: MessageFns<SyncActionValue_StickerAc
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65151,8 +65151,8 @@ export const SyncActionValue_SubscriptionAction: MessageFns<SyncActionValue_Subs
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65226,8 +65226,8 @@ export const SyncActionValue_SubscriptionsSyncV2Action: MessageFns<SyncActionVal
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65316,8 +65316,8 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65451,8 +65451,8 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65519,8 +65519,8 @@ export const SyncActionValue_SyncActionMessage: MessageFns<SyncActionValue_SyncA
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65596,8 +65596,8 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65644,8 +65644,8 @@ export const SyncActionValue_ThreadPinAction: MessageFns<SyncActionValue_ThreadP
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65690,8 +65690,8 @@ export const SyncActionValue_TimeFormatAction: MessageFns<SyncActionValue_TimeFo
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65736,8 +65736,8 @@ export const SyncActionValue_UGCBot: MessageFns<SyncActionValue_UGCBot> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65782,8 +65782,8 @@ export const SyncActionValue_UnarchiveChatsSetting: MessageFns<SyncActionValue_U
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65828,8 +65828,8 @@ export const SyncActionValue_UserStatusMuteAction: MessageFns<SyncActionValue_Us
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65877,8 +65877,8 @@ export const SyncActionValue_UsernameChatStartModeAction: MessageFns<SyncActionV
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -65933,8 +65933,8 @@ export const SyncActionValue_WASARootSecretAction: MessageFns<SyncActionValue_WA
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66007,8 +66007,8 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66062,8 +66062,8 @@ export const SyncActionValue_WaffleAccountLinkStateAction: MessageFns<SyncAction
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66112,8 +66112,8 @@ export const SyncActionValue_WamoUserIdentifierAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66158,8 +66158,8 @@ export const SyncdIndex: MessageFns<SyncdIndex> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66215,8 +66215,8 @@ export const SyncdMutation: MessageFns<SyncdMutation> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66272,8 +66272,8 @@ export const SyncdMutations: MessageFns<SyncdMutations> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66414,8 +66414,8 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66496,8 +66496,8 @@ export const SyncdPlainTextRecord: MessageFns<SyncdPlainTextRecord> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66568,8 +66568,8 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66661,8 +66661,8 @@ export const SyncdSnapshot: MessageFns<SyncdSnapshot> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66753,8 +66753,8 @@ export const SyncdSnapshotRecovery: MessageFns<SyncdSnapshotRecovery> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66804,8 +66804,8 @@ export const SyncdValue: MessageFns<SyncdValue> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66850,8 +66850,8 @@ export const SyncdVersion: MessageFns<SyncdVersion> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66907,8 +66907,8 @@ export const TapLinkAction: MessageFns<TapLinkAction> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -66987,8 +66987,8 @@ export const TemplateButton: MessageFns<TemplateButton> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67053,8 +67053,8 @@ export const TemplateButton_CallButton: MessageFns<TemplateButton_CallButton> = 
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67115,8 +67115,8 @@ export const TemplateButton_QuickReplyButton: MessageFns<TemplateButton_QuickRep
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67175,8 +67175,8 @@ export const TemplateButton_URLButton: MessageFns<TemplateButton_URLButton> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67237,8 +67237,8 @@ export const ThreadID: MessageFns<ThreadID> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67316,8 +67316,8 @@ export const UnCountedAssociatedMessageList: MessageFns<UnCountedAssociatedMessa
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67390,8 +67390,8 @@ export const UnCountedAssociatedMessageListWithMessageBytes: MessageFns<
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67451,8 +67451,8 @@ export const UrlTrackingMap: MessageFns<UrlTrackingMap> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67531,8 +67531,8 @@ export const UrlTrackingMap_UrlTrackingMapElement: MessageFns<UrlTrackingMap_Url
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67621,8 +67621,8 @@ export const UserPassword: MessageFns<UserPassword> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67681,8 +67681,8 @@ export const UserPassword_TransformerArg: MessageFns<UserPassword_TransformerArg
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67741,8 +67741,8 @@ export const UserPassword_TransformerArg_Value: MessageFns<UserPassword_Transfor
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67859,8 +67859,8 @@ export const UserReceipt: MessageFns<UserReceipt> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -67932,8 +67932,8 @@ export const VerifiedNameCertificate: MessageFns<VerifiedNameCertificate> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -68032,8 +68032,8 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -68148,8 +68148,8 @@ export const VirtualDeviceOutput: MessageFns<VirtualDeviceOutput> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -68225,8 +68225,8 @@ export const WallpaperSettings: MessageFns<WallpaperSettings> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -68757,8 +68757,8 @@ export const WebFeatures: MessageFns<WebFeatures> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -69720,8 +69720,8 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -69900,8 +69900,8 @@ export const WebMessageInfoWithMessageBytes: MessageFns<WebMessageInfoWithMessag
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }
@@ -69988,8 +69988,8 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
       }
       reader.skip(tag & 7);
     }

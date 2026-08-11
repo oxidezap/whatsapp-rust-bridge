@@ -111,6 +111,15 @@ so `scripts/gen-ts-proto.ts` asserts every case still has one rather than
 trusting the generator to keep emitting it. A repeated numeric field is the one
 place two wire types are both the schema's, and ts-proto emits a branch for each.
 
+**Framing that cannot frame anything is reported.** An unknown field is skipped
+and reading goes on, but a tag that names no field and delimits nothing is not a
+field to skip: field number 0 does not exist, and the end-group wire type has no
+opening group in a schema that declares none. ts-proto leaves the read loop
+there and hands back what it has, which a caller cannot tell from a message that
+never carried the rest — so `scripts/gen-ts-proto.ts` rewrites that epilogue to
+throw, which is what every reference parser does. The four wire types that do
+say where they end are still skipped, not reported.
+
 Nothing here caps nesting depth. A message nests until the JavaScript stack
 gives out, and that throws; a decode never comes back short, which a caller
 could not tell from a message that never carried those levels.

@@ -173,6 +173,34 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
+const DECODE_LOOP_EPILOGUE =
+	/^([ \t]+)if \(\(tag & 7\) === 4 \|\| tag === 0\) \{\n[ \t]+break;\n[ \t]+\}$/gm
+
+/**
+ * A tag with field number 0, or the end-group wire type where the schema
+ * declares no groups, is not a field to skip — it is malformed framing, and
+ * every reference parser rejects the message. ts-proto leaves the read loop
+ * instead and hands back everything read so far, which a caller cannot tell
+ * from a message that never carried the rest. Reporting it is the only reading
+ * that does not lose bytes silently.
+ */
+const rejectIllegalTags = (source: string): string => {
+	let replaced = 0
+	const rejected = source.replace(DECODE_LOOP_EPILOGUE, (_match, indent: string) => {
+		replaced++
+		return (
+			`${indent}if (tag === 0 || (tag & 7) === 4) {\n` +
+			`${indent}  throw new RangeError(\`illegal protobuf tag \${tag} at offset \${reader.pos}\`);\n` +
+			`${indent}}`
+		)
+	})
+	const loops = source.split('reader.skip(tag & 7);').length - 1
+	if (replaced === 0 || replaced !== loops) {
+		throw new Error(`ts-proto emitted a decode loop in an unhandled shape (${replaced}/${loops})`)
+	}
+	return rejected
+}
+
 const TS_PROTO_OPTIONS = [
 	'outputJsonMethods=false',
 	'useExactTypes=false',
@@ -376,6 +404,7 @@ try {
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
+	generatedSource = rejectIllegalTags(generatedSource)
 	const descriptor = readFileSync(descriptorFile)
 	assertWireTypeGuards(generatedSource, descriptor)
 	writeFileSync(generatedFile, generatedSource)

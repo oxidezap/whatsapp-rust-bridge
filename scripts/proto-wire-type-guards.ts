@@ -88,12 +88,14 @@ const SOLE_TAG_OPERATOR = '!=='
 const ALTERNATIVE_TAG_OPERATOR = '==='
 /**
  * The decode loop's epilogue, which every case that leaves on `break` falls
- * into. Without it a mismatched tag leaves its case without consuming the
- * field, and the bytes it framed are read as the tags that follow.
+ * into. Without the skip a mismatched tag leaves its case without consuming the
+ * field, and the bytes it framed are read as the tags that follow; without the
+ * throw, framing that is malformed rather than unknown truncates the message
+ * where a caller cannot see it.
  */
 const UNKNOWN_FIELD_SKIP = [
-	'if ((tag & 7) === 4 || tag === 0) {',
-	'break;',
+	'if (tag === 0 || (tag & 7) === 4) {',
+	'throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);',
 	'}',
 	'reader.skip(tag & 7);'
 ]

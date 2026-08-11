@@ -114,6 +114,57 @@ describe("a tag whose wire type the schema does not declare", () => {
   });
 });
 
+describe("framing that is malformed rather than unknown", () => {
+  /**
+   * An unknown field is skipped and reading goes on; a tag that cannot frame
+   * anything is not a field at all. Field number 0 does not exist, and the
+   * end-group wire type has no opening group in a schema that declares none —
+   * every reference parser rejects the message, and the alternative here is
+   * worse than rejecting: leaving the read loop hands back everything read so
+   * far, which a caller cannot tell from a message that never carried the rest.
+   *
+   * url = 1 -> 0x0a, height = 6 -> 0x30, so the field after the bad tag is one
+   * a working decode would have to return.
+   */
+  test("an end-group tag is reported, not treated as the end of the message", () => {
+    // 4 << 3 | 4 = 0x24, an end group for a field never opened.
+    expect(() =>
+      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, 0x24, 0x30, 0x07)),
+    ).toThrow(RangeError);
+    expect(() =>
+      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, 0x24, 0x30, 0x07)),
+    ).toThrow("illegal protobuf tag 36 at offset 5");
+  });
+
+  test("a zero tag is reported too", () => {
+    expect(() =>
+      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, 0x00, 0x30, 0x07)),
+    ).toThrow("illegal protobuf tag 0 at offset 5");
+  });
+
+  test("the same tags inside a submessage reach the caller", () => {
+    // Message.imageMessage = 3 -> 0x1a, framing the bytes above.
+    expect(() =>
+      decodeProto("Message", bytes(0x1a, 0x07, 0x0a, 0x02, 0x61, 0x62, 0x24, 0x30, 0x07)),
+    ).toThrow(RangeError);
+  });
+
+  test("the wire types that do frame something are still skipped, not reported", () => {
+    // Field 13 is undeclared on ImageMessage: varint, 64-bit, 32-bit and
+    // length-delimited all say where they end, so all four are skipped.
+    expect(decodeProto("Message.ImageMessage", bytes(0x68, 0x07, 0x30, 0x07))).toEqual({ height: 7 });
+    expect(
+      decodeProto("Message.ImageMessage", bytes(0x69, 1, 2, 3, 4, 5, 6, 7, 8, 0x30, 0x07)),
+    ).toEqual({ height: 7 });
+    expect(decodeProto("Message.ImageMessage", bytes(0x6d, 1, 2, 3, 4, 0x30, 0x07))).toEqual({
+      height: 7,
+    });
+    expect(decodeProto("Message.ImageMessage", bytes(0x6a, 0x02, 0x61, 0x62, 0x30, 0x07))).toEqual({
+      height: 7,
+    });
+  });
+});
+
 describe("the payloads a differential fuzzer reported", () => {
   /**
    * Message.ImageMessage. The divergence is at offset 145, where the tag

@@ -111,8 +111,8 @@ const CODEC = `export const Probe: MessageFns<Probe> = {
           break;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(\`illegal protobuf tag \${tag} at offset \${reader.pos}\`);
       }
       reader.skip(tag & 7);
     }
@@ -134,8 +134,8 @@ export const Probe_Inner: MessageFns<Probe_Inner> = {
           continue;
         }
       }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
+      if (tag === 0 || (tag & 7) === 4) {
+        throw new RangeError(\`illegal protobuf tag \${tag} at offset \${reader.pos}\`);
       }
       reader.skip(tag & 7);
     }
