@@ -152,7 +152,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 	let indent = ''
 	let guards: Guard[] = []
 	let tail: { indent: string; text: string } | undefined
-	let opened = false
+	let direct: string[] = []
 	let codecAt = 0
 
 	const flush = (): void => {
@@ -176,6 +176,15 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		const exits = [...new Set(guards.map(guard => guard.exit ?? 'nothing'))]
 		if (exits.length !== 1 || exits[0] !== exit) {
 			throw new Error(`${codec} field ${field} leaves its guard on [${exits}], expected ${exit}`)
+		}
+		// Nothing may run before the last guard: a read ahead of one moves the
+		// reader before the tag it does not match is skipped, whether it sits at
+		// the top of the case or between the two branches of a repeated field.
+		const lastGuard = direct.lastIndexOf('guard')
+		const early = direct.slice(0, Math.max(lastGuard, 0)).filter(text => text !== 'guard' && text !== '}')
+		if (lastGuard !== 0 && early.length === 0 && direct[0] !== 'guard') early.push(direct[0] ?? 'nothing')
+		if (early.length > 0) {
+			throw new Error(`${codec} field ${field} runs [${early[0]}] before its guard`)
 		}
 		// The path the matching tag takes, which the guard says nothing about: a
 		// case that reads and then falls out of the switch reaches
@@ -218,7 +227,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 			indent = caseStart[1]!
 			field = Number(caseStart[2])
 			tail = undefined
-			opened = false
+			direct = []
 			continue
 		}
 		if (field === undefined) continue
@@ -236,15 +245,9 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		}
 		const text = line.trim()
 		if (text === '') continue
-		// The guard has to be the first thing in the case: a read placed ahead of
-		// it moves the reader before the tag it does not match is skipped.
-		if (!opened) {
-			opened = true
-			if (!guard || guard[1] !== `${indent}${GUARD_INDENT}`) {
-				throw new Error(`${codec} field ${field} opens its case on [${text}], expected a tag guard`)
-			}
-		}
-		tail = { indent: line.slice(0, line.length - text.length), text }
+		const own = line.slice(0, line.length - text.length)
+		if (own === `${indent}${GUARD_INDENT}`) direct.push(guard ? 'guard' : text)
+		tail = { indent: own, text }
 	}
 	finishCodec(lines.length)
 

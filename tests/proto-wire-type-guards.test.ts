@@ -177,7 +177,7 @@ describe("a generator upgrade that takes the behaviour away", () => {
         mutate("          if (tag !== 18) {\n            break;\n          }\n\n", ""),
         DESCRIPTOR,
       ),
-    ).toThrow("Probe field 2 opens its case on [message.body = reader.string();], expected a tag guard");
+    ).toThrow("Probe field 2 guards tags [], the schema declares [18]");
   });
 
   /**
@@ -190,7 +190,21 @@ describe("a generator upgrade that takes the behaviour away", () => {
         mutate("        case 1: {\n          if (tag !== 8) {", "        case 1: {\n          reader.uint32();\n          if (tag !== 8) {"),
         DESCRIPTOR,
       ),
-    ).toThrow("Probe field 1 opens its case on [reader.uint32();], expected a tag guard");
+    ).toThrow("Probe field 1 runs [reader.uint32();] before its guard");
+  });
+
+  /**
+   * The gap between the two branches of a repeated numeric field: a read placed
+   * there advances the reader before the packed tag, or any unknown tag, has
+   * been guarded or skipped.
+   */
+  test("reads between the two branches of a repeated numeric field", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutate("          if (tag === 26) {", "          reader.uint32();\n\n          if (tag === 26) {"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe field 3 runs [reader.uint32();] before its guard");
   });
 
   test("stops skipping the unknown field its cases break out for", () => {
