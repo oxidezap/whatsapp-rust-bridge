@@ -172,6 +172,30 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
+const FIELD_CASE = /^[ \t]*case \d+: \{$/gm
+const GUARDED_FIELD_CASE = /^[ \t]*case (\d+): \{\n[ \t]*if \(tag (?:!==|===) (\d+)\) \{$/gm
+
+/**
+ * A field carrying a wire type the schema does not declare is an unknown field,
+ * and the guard each case opens with is the whole of what makes this codec skip
+ * it instead of reading those bytes as that field. No ts-proto option promises
+ * the guard, so losing it has to fail the build rather than turn the codec into
+ * a parser differential quietly.
+ */
+const assertWireTypeGuards = (source: string): void => {
+	const cases = source.match(FIELD_CASE)?.length ?? 0
+	let guarded = 0
+	for (const [, field, tag] of source.matchAll(GUARDED_FIELD_CASE)) {
+		if (Number(tag) >>> 3 !== Number(field)) {
+			throw new Error(`ts-proto guarded field ${field} with tag ${tag}, which is field ${Number(tag) >>> 3}`)
+		}
+		guarded++
+	}
+	if (cases === 0 || guarded !== cases) {
+		throw new Error(`ts-proto emitted a field case with no wire type guard (${guarded}/${cases})`)
+	}
+}
+
 const TS_PROTO_OPTIONS = [
 	'outputJsonMethods=false',
 	'useExactTypes=false',
@@ -375,6 +399,7 @@ try {
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
+	assertWireTypeGuards(generatedSource)
 	writeFileSync(generatedFile, generatedSource)
 	writeFileSync(SURFACE_FILE, buildSurface(readFileSync(descriptorFile)))
 	renameSync(generatedFile, OUTPUT_FILE)

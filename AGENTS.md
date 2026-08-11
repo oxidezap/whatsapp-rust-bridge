@@ -98,6 +98,23 @@ the way protobufjs does; `tests/proto-message-merge.test.ts` pins it. This is no
 a robustness allowance for damaged input — a length that moved a frame boundary
 still frames, and two parsers disagreeing about framed bytes is the defect.
 
+**A wire type the schema does not declare makes the field unknown.** A tag
+carries a field number *and* a wire type, and the wire type is half of what says
+where the field's bytes stop. A number the schema knows, carrying a wire type it
+does not declare for that number, is not that field: it is skipped by its wire
+type like any unknown field, and reading resumes at the byte after it. Reading
+it as the declared field instead consumes a different count and moves every
+boundary that follows — in the payload `tests/proto-field-boundaries.test.ts`
+pins, two bytes of difference swallow the next two fields whole. ts-proto opens
+each case with an exact-tag guard and that guard is the whole of the behaviour,
+so `scripts/gen-ts-proto.ts` asserts every case still has one rather than
+trusting the generator to keep emitting it. A repeated numeric field is the one
+place two wire types are both the schema's, and ts-proto emits a branch for each.
+
+Nothing here caps nesting depth. A message nests until the JavaScript stack
+gives out, and that throws; a decode never comes back short, which a caller
+could not tell from a message that never carried those levels.
+
 **Text on the wire.** A protobuf `string` is UTF-8; a JavaScript string is UTF-16. Neither conversion is total, and the two directions deliberately fail differently.
 
 *Decoding* substitutes U+FFFD for bytes that are not valid UTF-8 and keeps the message. Those bytes come from a peer this side does not control, so throwing would let one bad byte cost the whole message — and hand anyone who wanted it a cheap way to arrange that. The substitution is still a change to the peer's data, so it is reported rather than hidden: pass a `ProtoDecodeReport` to `decodeProto` / `decodeProtoBatch` and read `invalidUtf8Fields`. Ask for no report and nothing is measured — the counting lives in `InvalidUtf8CountingReader`, a separate class, so the ordinary decode path carries neither the flag nor the branch. A caller who wants strictness rejects on that count; Buf's throwing decoder remains reachable as `BinaryReader#string(true)`, and the generated codecs never pass it.
