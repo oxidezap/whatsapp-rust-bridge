@@ -177,8 +177,9 @@ const DECODE_LOOP_EPILOGUE =
 	/^([ \t]+)if \(\(tag & 7\) === 4 \|\| tag === 0\) \{\n[ \t]+break;\n[ \t]+\}$/gm
 
 /**
- * A tag with field number 0, or the end-group wire type where the schema
- * declares no groups, is not a field to skip — it is malformed framing, and
+ * Field number 0 — which no wire type makes legal — or the end-group wire type
+ * where the schema declares no groups, is not a field to skip: it is malformed
+ * framing, and
  * every reference parser rejects the message. ts-proto leaves the read loop
  * instead and hands back everything read so far, which a caller cannot tell
  * from a message that never carried the rest. Reporting it is the only reading
@@ -189,7 +190,7 @@ const rejectIllegalTags = (source: string): string => {
 	const rejected = source.replace(DECODE_LOOP_EPILOGUE, (_match, indent: string) => {
 		replaced++
 		return (
-			`${indent}if (tag === 0 || (tag & 7) === 4) {\n` +
+			`${indent}if (tag >>> 3 === 0 || (tag & 7) === 4) {\n` +
 			`${indent}  throw new RangeError(\`illegal protobuf tag \${tag} at offset \${reader.pos}\`);\n` +
 			`${indent}}`
 		)

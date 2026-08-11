@@ -94,7 +94,7 @@ const ALTERNATIVE_TAG_OPERATOR = '==='
  * where a caller cannot see it.
  */
 const UNKNOWN_FIELD_SKIP = [
-	'if (tag === 0 || (tag & 7) === 4) {',
+	'if (tag >>> 3 === 0 || (tag & 7) === 4) {',
 	'throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);',
 	'}',
 	'reader.skip(tag & 7);'

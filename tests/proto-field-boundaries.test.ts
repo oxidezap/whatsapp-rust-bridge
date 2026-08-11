@@ -136,10 +136,20 @@ describe("framing that is malformed rather than unknown", () => {
     ).toThrow("illegal protobuf tag 36 at offset 5");
   });
 
-  test("a zero tag is reported too", () => {
+  /**
+   * Field number 0 does not exist, and no wire type makes it exist: `0x02` is
+   * field 0 delimiting nothing, which reads as a well-formed empty frame unless
+   * the field number itself is the thing being checked.
+   */
+  test.each([
+    [0x00, "illegal protobuf tag 0 at offset 5"],
+    [0x02, "illegal protobuf tag 2 at offset 5"],
+    [0x03, "illegal protobuf tag 3 at offset 5"],
+    [0x05, "illegal protobuf tag 5 at offset 5"],
+  ])("a field-zero tag %i is reported whatever its wire type", (tag, message) => {
     expect(() =>
-      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, 0x00, 0x30, 0x07)),
-    ).toThrow("illegal protobuf tag 0 at offset 5");
+      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, tag, 0x00, 0x30, 0x07)),
+    ).toThrow(message);
   });
 
   test("the same tags inside a submessage reach the caller", () => {
