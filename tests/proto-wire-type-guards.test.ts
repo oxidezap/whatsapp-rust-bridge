@@ -26,6 +26,7 @@ import { assertWireTypeGuards } from "../scripts/proto-wire-type-guards";
  *   optional uint32 head  = 1;   // tag 8
  *   optional string body  = 2;   // tag 18
  *   repeated uint32 items = 3;   // tags 24 and 26
+ *   optional uint32 far   = 536870911;   // tag 4294967288, the highest legal
  *   message Inner { optional string leaf = 1; }   // tag 10
  * }
  */
@@ -44,6 +45,9 @@ const DESCRIPTOR = toBinary(
               { name: "head", number: 1, label: Label.OPTIONAL, type: Type.UINT32 },
               { name: "body", number: 2, label: Label.OPTIONAL, type: Type.STRING },
               { name: "items", number: 3, label: Label.REPEATED, type: Type.UINT32 },
+              // Past 2^28, where a signed 32-bit shift of the field number
+              // would wrap negative and match no tag the codec carries.
+              { name: "far", number: 536870911, label: Label.OPTIONAL, type: Type.UINT32 },
             ],
             nestedType: [
               {
@@ -78,6 +82,14 @@ const CODEC = `export const Probe: MessageFns<Probe> = {
           }
 
           message.body = reader.string();
+          continue;
+        }
+        case 536870911: {
+          if (tag !== 4294967288) {
+            break;
+          }
+
+          message.far = reader.uint32();
           continue;
         }
         case 3: {

@@ -35,7 +35,10 @@ const WIRE_TYPE: Partial<Record<Type, number>> = {
 	[Type.SFIXED32]: 5
 }
 const LENGTH_DELIMITED = 2
-const TAG_WIRE_TYPE_BITS = 3
+// Multiplied rather than shifted: a field number may reach 2^29 - 1, and `<<`
+// is a signed 32-bit operator, so the top two orders of magnitude would come
+// back negative and match no tag the codec carries.
+const TAG_FIELD_FACTOR = 8
 
 /**
  * Every tag the schema lets a field arrive under. A repeated scalar has two —
@@ -45,9 +48,9 @@ const TAG_WIRE_TYPE_BITS = 3
 const declaredTags = (field: FieldDescriptorProto): number[] => {
 	const wire = WIRE_TYPE[field.type]
 	if (wire === undefined) throw new Error(`unhandled type on ${field.name}`)
-	const tag = (field.number << TAG_WIRE_TYPE_BITS) | wire
+	const tag = field.number * TAG_FIELD_FACTOR + wire
 	return field.label === Label.REPEATED && wire !== LENGTH_DELIMITED
-		? [tag, (field.number << TAG_WIRE_TYPE_BITS) | LENGTH_DELIMITED]
+		? [tag, field.number * TAG_FIELD_FACTOR + LENGTH_DELIMITED]
 		: [tag]
 }
 
