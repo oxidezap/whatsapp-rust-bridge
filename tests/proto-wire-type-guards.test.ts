@@ -137,6 +137,14 @@ const mutate = (from: string, to: string): string => {
   return CODEC.replace(from, to);
 };
 
+/** The decode loop epilogue is per codec, so mutating it needs one named. */
+const mutateProbe = (from: string, to: string): string => {
+  const at = CODEC.indexOf("export const Probe_Inner");
+  const head = CODEC.slice(0, at);
+  expect(head.split(from).length - 1).toBe(1);
+  return head.replace(from, to) + CODEC.slice(at);
+};
+
 describe("the codec ts-proto emits today", () => {
   test("passes the check", () => {
     expect(() => assertWireTypeGuards(CODEC, DESCRIPTOR)).not.toThrow();
@@ -157,7 +165,26 @@ describe("a generator upgrade that takes the behaviour away", () => {
         mutate("          if (tag !== 18) {\n            break;\n          }\n\n", ""),
         DESCRIPTOR,
       ),
-    ).toThrow("Probe field 2 guards tags [], the schema declares [18]");
+    ).toThrow("Probe field 2 opens its case on [message.body = reader.string();], expected a tag guard");
+  });
+
+  /**
+   * A read placed ahead of the guard moves the reader before the tag it does
+   * not match is skipped, so the skip that follows starts mid-field.
+   */
+  test("reads before the guard, moving the reader ahead of the skip", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutate("        case 1: {\n          if (tag !== 8) {", "        case 1: {\n          reader.uint32();\n          if (tag !== 8) {"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe field 1 opens its case on [reader.uint32();], expected a tag guard");
+  });
+
+  test("stops skipping the unknown field its cases break out for", () => {
+    expect(() =>
+      assertWireTypeGuards(mutateProbe("      reader.skip(tag & 7);", "      // nothing"), DESCRIPTOR),
+    ).toThrow("Probe does not skip the unknown field its cases break out for");
   });
 
   test("inverts the comparison, skipping the one tag it should read", () => {

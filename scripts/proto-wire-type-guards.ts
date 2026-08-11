@@ -83,6 +83,17 @@ const DECODE_TAG_GUARD = /^(\s+)if \(tag (!==|===) (\d+)\) \{$/
 const GUARD_INDENT = '  '
 const SOLE_TAG_OPERATOR = '!=='
 const ALTERNATIVE_TAG_OPERATOR = '==='
+/**
+ * The decode loop's epilogue, which every case that leaves on `break` falls
+ * into. Without it a mismatched tag leaves its case without consuming the
+ * field, and the bytes it framed are read as the tags that follow.
+ */
+const UNKNOWN_FIELD_SKIP = [
+	'if ((tag & 7) === 4 || tag === 0) {',
+	'break;',
+	'}',
+	'reader.skip(tag & 7);'
+]
 
 interface Guard {
 	tag: number
@@ -136,6 +147,8 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 	let indent = ''
 	let guards: Guard[] = []
 	let tail: { indent: string; text: string } | undefined
+	let opened = false
+	let codecAt = 0
 
 	const flush = (): void => {
 		if (field === undefined) return
@@ -171,12 +184,24 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		guards = []
 	}
 
+	/** The epilogue is per decode loop, so it is checked once per codec. */
+	const finishCodec = (end: number): void => {
+		flush()
+		if (codec === undefined) return
+		const body = lines.slice(codecAt, end).map(line => line.trim())
+		const at = body.indexOf(UNKNOWN_FIELD_SKIP[0]!)
+		if (at < 0 || UNKNOWN_FIELD_SKIP.some((text, offset) => body[at + offset] !== text)) {
+			throw new Error(`${codec} does not skip the unknown field its cases break out for`)
+		}
+	}
+
 	for (let index = 0; index < lines.length; index++) {
 		const line = lines[index]!
 		const codecStart = MESSAGE_CODEC_START.exec(line)
 		if (codecStart) {
-			flush()
+			finishCodec(index)
 			codec = codecStart[1]!
+			codecAt = index
 			if (!declared.has(codec)) throw new Error(`${codec} is a codec the schema does not declare`)
 			decoded.set(codec, new Set())
 			continue
@@ -188,6 +213,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 			indent = caseStart[1]!
 			field = Number(caseStart[2])
 			tail = undefined
+			opened = false
 			continue
 		}
 		if (field === undefined) continue
@@ -204,9 +230,18 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 			})
 		}
 		const text = line.trim()
-		if (text !== '') tail = { indent: line.slice(0, line.length - text.length), text }
+		if (text === '') continue
+		// The guard has to be the first thing in the case: a read placed ahead of
+		// it moves the reader before the tag it does not match is skipped.
+		if (!opened) {
+			opened = true
+			if (!guard || guard[1] !== `${indent}${GUARD_INDENT}`) {
+				throw new Error(`${codec} field ${field} opens its case on [${text}], expected a tag guard`)
+			}
+		}
+		tail = { indent: line.slice(0, line.length - text.length), text }
 	}
-	flush()
+	finishCodec(lines.length)
 
 	// Every field the schema declares gets a case, so anything missing here is a
 	// case that stopped being recognisable rather than one that reads correctly.
