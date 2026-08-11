@@ -172,28 +172,129 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
-const FIELD_CASE = /^[ \t]*case \d+: \{$/gm
-const GUARDED_FIELD_CASE = /^[ \t]*case (\d+): \{\n[ \t]*if \(tag (?:!==|===) (\d+)\) \{$/gm
+const WIRE_TYPE: Partial<Record<Type, number>> = {
+	[Type.INT32]: 0,
+	[Type.INT64]: 0,
+	[Type.UINT32]: 0,
+	[Type.UINT64]: 0,
+	[Type.SINT32]: 0,
+	[Type.SINT64]: 0,
+	[Type.BOOL]: 0,
+	[Type.ENUM]: 0,
+	[Type.DOUBLE]: 1,
+	[Type.FIXED64]: 1,
+	[Type.SFIXED64]: 1,
+	[Type.STRING]: 2,
+	[Type.BYTES]: 2,
+	[Type.MESSAGE]: 2,
+	[Type.FLOAT]: 5,
+	[Type.FIXED32]: 5,
+	[Type.SFIXED32]: 5
+}
+const LENGTH_DELIMITED = 2
+const TAG_WIRE_TYPE_BITS = 3
+
+/**
+ * Every tag the schema lets a field arrive under. A repeated scalar has two —
+ * packedness decides which one an encoder writes, and a parser accepts both
+ * either way — and everything else has exactly one.
+ */
+const declaredTags = (field: FieldDescriptorProto): number[] => {
+	const wire = WIRE_TYPE[field.type]
+	if (wire === undefined) throw new Error(`unhandled type on ${field.name}`)
+	const tag = (field.number << TAG_WIRE_TYPE_BITS) | wire
+	return field.label === Label.REPEATED && wire !== LENGTH_DELIMITED
+		? [tag, (field.number << TAG_WIRE_TYPE_BITS) | LENGTH_DELIMITED]
+		: [tag]
+}
+
+/** Codec name as ts-proto flattens it, to the tags each of its fields declares. */
+const declaredTagsByCodec = (descriptor: Uint8Array): Map<string, Map<number, Set<number>>> => {
+	const set = fromBinary(FileDescriptorSetSchema, descriptor)
+	const codecs = new Map<string, Map<number, Set<number>>>()
+
+	const collect = (scope: string, local: (path: string) => string, message: DescriptorProto): void => {
+		const path = `${scope}.${message.name}`
+		const tags = new Map<number, Set<number>>()
+		// Map entries included: ts-proto emits a codec for each one.
+		for (const field of message.field) tags.set(field.number, new Set(declaredTags(field)))
+		codecs.set(local(path).replaceAll('.', '_'), tags)
+		for (const nested of message.nestedType) collect(path, local, nested)
+	}
+
+	for (const file of set.file) {
+		const root = `.${file.package}`
+		const local = (path: string): string => (path.startsWith(`${root}.`) ? path.slice(root.length + 1) : path)
+		for (const message of file.messageType) collect(root, local, message)
+	}
+	return codecs
+}
+
+// Indentation is captured rather than fixed: prettier indents the whole codec
+// two spaces further when ts-proto wraps a long `MessageFns<…>` onto its own
+// line, and a guard only counts when it sits directly inside its own case.
+const DECODE_FIELD_CASE = /^(\s+)case (\d+): \{$/
+const DECODE_TAG_GUARD = /^(\s+)if \(tag (?:!==|===) (\d+)\) \{$/
+const GUARD_INDENT = '  '
 
 /**
  * A field carrying a wire type the schema does not declare is an unknown field,
- * and the guard each case opens with is the whole of what makes this codec skip
- * it instead of reading those bytes as that field. No ts-proto option promises
- * the guard, so losing it has to fail the build rather than turn the codec into
- * a parser differential quietly.
+ * and the tag guards each case opens with are the whole of what makes this codec
+ * skip it instead of reading those bytes as that field. No ts-proto option
+ * promises those guards, so a case that loses one — or keeps one against the
+ * wrong tag, which accepts the wire type it should skip — has to fail the build
+ * rather than turn the codec into a parser differential quietly.
  */
-const assertWireTypeGuards = (source: string): void => {
-	const cases = source.match(FIELD_CASE)?.length ?? 0
-	let guarded = 0
-	for (const [, field, tag] of source.matchAll(GUARDED_FIELD_CASE)) {
-		if (Number(tag) >>> 3 !== Number(field)) {
-			throw new Error(`ts-proto guarded field ${field} with tag ${tag}, which is field ${Number(tag) >>> 3}`)
+const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
+	const declared = declaredTagsByCodec(descriptor)
+	let codec: string | undefined
+	let field: number | undefined
+	let indent = ''
+	let guards: number[] = []
+	let checked = 0
+
+	const flush = (): void => {
+		if (field === undefined) return
+		const expected = declared.get(codec!)?.get(field)
+		if (expected === undefined) {
+			throw new Error(`${codec} decodes field ${field}, which the schema does not declare`)
 		}
-		guarded++
+		const seen = [...new Set(guards)].sort((a, b) => a - b)
+		const want = [...expected].sort((a, b) => a - b)
+		if (seen.join(',') !== want.join(',')) {
+			throw new Error(`${codec} field ${field} guards tags [${seen}], the schema declares [${want}]`)
+		}
+		checked++
+		field = undefined
+		guards = []
 	}
-	if (cases === 0 || guarded !== cases) {
-		throw new Error(`ts-proto emitted a field case with no wire type guard (${guarded}/${cases})`)
+
+	for (const line of source.split('\n')) {
+		const codecStart = MESSAGE_CODEC_START.exec(line)
+		if (codecStart) {
+			flush()
+			codec = codecStart[1]!
+			continue
+		}
+		const caseStart = DECODE_FIELD_CASE.exec(line)
+		if (caseStart) {
+			flush()
+			if (!declared.has(codec ?? '')) throw new Error(`decode block outside a known codec: ${codec}`)
+			indent = caseStart[1]!
+			field = Number(caseStart[2])
+			continue
+		}
+		if (field === undefined) continue
+		if (line === `${indent}}` || line === `${indent}default: {`) {
+			flush()
+			continue
+		}
+		const guard = DECODE_TAG_GUARD.exec(line)
+		if (guard && guard[1] === `${indent}${GUARD_INDENT}`) guards.push(Number(guard[2]))
 	}
+	flush()
+
+	if (checked === 0) throw new Error('ts-proto emitted no guarded field case')
 }
 
 const TS_PROTO_OPTIONS = [
@@ -399,9 +500,10 @@ try {
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
-	assertWireTypeGuards(generatedSource)
+	const descriptor = readFileSync(descriptorFile)
+	assertWireTypeGuards(generatedSource, descriptor)
 	writeFileSync(generatedFile, generatedSource)
-	writeFileSync(SURFACE_FILE, buildSurface(readFileSync(descriptorFile)))
+	writeFileSync(SURFACE_FILE, buildSurface(descriptor))
 	renameSync(generatedFile, OUTPUT_FILE)
 } finally {
 	rmSync(tempDir, { recursive: true, force: true })

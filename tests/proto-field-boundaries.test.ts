@@ -249,7 +249,7 @@ describe("nesting depth", () => {
   // Message.ephemeralMessage = 40 -> tag 0xc2 0x02, framing a
   // Message.FutureProofMessage whose message = 1 -> tag 0x0a frames a Message.
   // Sized from the inside out, then written from the outside in, so building a
-  // ten-thousand-level payload stays linear.
+  // hundred-thousand-level payload stays linear.
   const nestMessages = (levels: number): Uint8Array => {
     const outer: number[] = [0];
     const inner: number[] = [];
@@ -277,26 +277,29 @@ describe("nesting depth", () => {
     return depth;
   };
 
-  test("one level round-trips", () => {
+  test("one level decodes to the message it frames", () => {
     expect(decodeProto("Message", nestMessages(1))).toEqual({ ephemeralMessage: { message: {} } });
   });
 
   /**
-   * 10000 is the recursion limit the reference implementation applies, and this
-   * codec carries none of its own — a message is read to the bottom either way,
-   * so a field at any of these depths is a field the caller gets.
+   * This codec configures no limit of its own. 64 decode frames is where the
+   * decoder these payloads were compared against gives up, and 1000 is far past
+   * it while staying well inside the stack of any engine this runs on, so it
+   * separates "no configured cap" from "whatever the host stack happens to be".
    */
-  test.each([9999, 10000, 10001])("%i levels are all read", (levels) => {
+  test.each([63, 64, 65, 1000])("%i levels are all read", (levels) => {
     expect(depthOf(decodeProto("Message", nestMessages(levels)))).toBe(levels);
   });
 
   /**
-   * Past what the JavaScript stack holds the decode throws. What must not
-   * happen is the quiet third option: a message that comes back short, which a
-   * caller cannot tell from a message that never carried those levels.
+   * Where the stack gives out is the host's business — 12500 levels on Bun,
+   * 2928 on Node, and neither number belongs in an assertion. What is this
+   * codec's business is that there is no third outcome: every depth either
+   * comes back whole or throws, and none comes back short, which a caller could
+   * not tell from a message that never carried those levels.
    */
-  test("a depth the stack cannot hold throws instead of coming back short", () => {
-    const outcomes = [20_000, 40_000, 80_000].map((levels) => {
+  test("every depth is read whole or throws, never short", () => {
+    const outcomes = [100, 1_000, 5_000, 20_000, 100_000, 400_000].map((levels) => {
       try {
         return depthOf(decodeProto("Message", nestMessages(levels))) === levels ? "read" : "short";
       } catch (error) {
@@ -305,6 +308,9 @@ describe("nesting depth", () => {
     });
 
     expect(outcomes.filter((outcome) => outcome !== "read" && outcome !== "threw")).toEqual([]);
+    // The ladder has to straddle the ceiling, or it proves only that shallow
+    // payloads decode.
+    expect(outcomes).toContain("read");
     expect(outcomes).toContain("threw");
   });
 });
