@@ -116,13 +116,16 @@ const guardExit = (lines: string[], index: number, indent: string): string | und
  * skip it instead of reading those bytes as that field. No ts-proto option
  * promises those guards, so the build has to fail rather than quietly turn the
  * codec into a parser differential when a case loses a guard, guards the wrong
- * tag, inverts the comparison, falls through instead of leaving, or stops being
+ * tag, inverts the comparison, falls out of either path, or stops being
  * recognisable here at all.
  *
- * The shapes checked are the two ts-proto emits: a field with one declared tag
- * leaves its case on `tag !== declared`, and a repeated numeric field — which
- * arrives packed or unpacked, both the schema's — reads and continues under one
- * `tag === declared` branch per form.
+ * The shapes checked are the two ts-proto emits, both paths of each. A field
+ * with one declared tag leaves its case on `tag !== declared` and continues the
+ * read loop after reading, because falling out of the switch instead reaches
+ * `reader.skip(tag & 7)` and skips a field that was already read. A repeated
+ * numeric field — which arrives packed or unpacked, both the schema's — reads
+ * and continues under one `tag === declared` branch per form, and leaves the
+ * case for anything else.
  */
 export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 	const declared = declaredTagsByCodec(descriptor)
@@ -132,6 +135,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 	let field: number | undefined
 	let indent = ''
 	let guards: Guard[] = []
+	let tail: { indent: string; text: string } | undefined
 
 	const flush = (): void => {
 		if (field === undefined) return
@@ -155,6 +159,13 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 		if (exits.length !== 1 || exits[0] !== exit) {
 			throw new Error(`${codec} field ${field} leaves its guard on [${exits}], expected ${exit}`)
 		}
+		// The path the matching tag takes, which the guard says nothing about: a
+		// case that reads and then falls out of the switch reaches
+		// `reader.skip(tag & 7)` and skips the field after the one it just read.
+		const ends = sole ? 'continue;' : 'break;'
+		if (tail?.indent !== `${indent}${GUARD_INDENT}` || tail.text !== ends) {
+			throw new Error(`${codec} field ${field} ends its case on [${tail?.text ?? 'nothing'}], expected ${ends}`)
+		}
 		decoded.get(codec!)!.add(field)
 		field = undefined
 		guards = []
@@ -176,6 +187,7 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 			if (codec === undefined) throw new Error(`decode case outside a codec: ${line.trim()}`)
 			indent = caseStart[1]!
 			field = Number(caseStart[2])
+			tail = undefined
 			continue
 		}
 		if (field === undefined) continue
@@ -191,6 +203,8 @@ export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): vo
 				exit: guardExit(lines, index, indent)
 			})
 		}
+		const text = line.trim()
+		if (text !== '') tail = { indent: line.slice(0, line.length - text.length), text }
 	}
 	flush()
 

@@ -175,6 +175,30 @@ describe("a generator upgrade that takes the behaviour away", () => {
     ).toThrow("Probe field 1 leaves its guard on [nothing], expected break");
   });
 
+  /**
+   * The other path through the case, which the guard says nothing about. A
+   * singular case that reads and then falls out of the switch reaches the
+   * `reader.skip(tag & 7)` the decode loop ends on, and skips the field after
+   * the one it just read.
+   */
+  test("falls out of the switch after reading instead of continuing", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutate("message.head = reader.uint32();\n          continue;", "message.head = reader.uint32();"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe field 1 ends its case on [message.head = reader.uint32();], expected continue;");
+  });
+
+  test("a repeated numeric case stops leaving on a tag matching neither form", () => {
+    expect(() =>
+      assertWireTypeGuards(
+        mutate("            continue;\n          }\n\n          break;\n        }", "            continue;\n          }\n        }"),
+        DESCRIPTOR,
+      ),
+    ).toThrow("Probe field 3 ends its case on [}], expected break;");
+  });
+
   test("drops the packed branch of a repeated numeric field", () => {
     expect(() =>
       assertWireTypeGuards(
