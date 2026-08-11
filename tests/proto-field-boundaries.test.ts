@@ -17,6 +17,9 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { decodeProto } from "../ts/proto";
 
 const bytes = (...values: number[]) => new Uint8Array(values);
@@ -141,16 +144,17 @@ describe("framing that is malformed rather than unknown", () => {
    * field 0 delimiting nothing, which reads as a well-formed empty frame unless
    * the field number itself is the thing being checked.
    */
-  test.each([
-    [0x00, "illegal protobuf tag 0 at offset 5"],
-    [0x02, "illegal protobuf tag 2 at offset 5"],
-    [0x03, "illegal protobuf tag 3 at offset 5"],
-    [0x05, "illegal protobuf tag 5 at offset 5"],
-  ])("a field-zero tag %i is reported whatever its wire type", (tag, message) => {
-    expect(() =>
-      decodeProto("Message.ImageMessage", bytes(0x0a, 0x02, 0x61, 0x62, tag, 0x00, 0x30, 0x07)),
-    ).toThrow(message);
-  });
+  test.each([0, 1, 2, 3, 4, 5, 6, 7])(
+    "a field-zero tag is reported under wire type %i",
+    (wire) => {
+      expect(() =>
+        decodeProto(
+          "Message.ImageMessage",
+          bytes(0x0a, 0x02, 0x61, 0x62, wire, 0, 0, 0, 0, 0, 0, 0, 0, 0x30, 0x07),
+        ),
+      ).toThrow(`illegal protobuf tag ${wire} at offset 5`);
+    },
+  );
 
   test("the same tags inside a submessage reach the caller", () => {
     // Message.imageMessage = 3 -> 0x1a, framing the bytes above.
@@ -343,13 +347,41 @@ describe("nesting depth", () => {
   });
 
   /**
-   * This codec configures no limit of its own. 64 decode frames is where the
-   * decoder these payloads were compared against gives up, and 1000 is far past
-   * it while staying well inside the stack of any engine this runs on, so it
-   * separates "no configured cap" from "whatever the host stack happens to be".
+   * 64 decode frames is where the decoder these payloads were compared against
+   * gives up; 1000 is far past it and still well inside any host stack this
+   * runs on. Reading these does not by itself rule out a larger configured cap
+   * — a cap and a stack ceiling look the same from here — so the absence of one
+   * is pinned structurally below rather than inferred from a depth that worked.
    */
-  test.each([63, 64, 65, 1000])("%i levels are all read", (levels) => {
+  test.each([63, 64, 65, 1000])("%i levels are past where the compared decoder stops", (levels) => {
     expect(depthOf(decodeProto("Message", nestMessages(levels)))).toBe(levels);
+  });
+
+  /**
+   * What a configured cap would look like in the codec itself. protobufjs
+   * carries `Reader.recursionLimit` and threads a depth argument through every
+   * generated `decode`; ts-proto emits neither, and this is the assertion that
+   * would fail if it started to.
+   */
+  test("the generated codec counts no depth", () => {
+    const generated = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "ts", "generated", "whatsapp.ts"),
+      "utf8",
+    );
+
+    expect(generated).not.toContain("recursionLimit");
+    expect(generated).not.toContain("nesting depth");
+    // Every decode takes the same three parameters and no fourth: a depth would
+    // have to be threaded through all of them to be counted.
+    const parameters = new Set(
+      (generated.match(/decode\(input: BinaryReader \| Uint8Array,[^)]*\)/g) ?? []).map((signature) =>
+        signature.replace(/into\?: [A-Za-z0-9_]+/, "into?: T"),
+      ),
+    );
+
+    expect([...parameters]).toEqual([
+      "decode(input: BinaryReader | Uint8Array, length?: number, into?: T)",
+    ]);
   });
 
   /**
