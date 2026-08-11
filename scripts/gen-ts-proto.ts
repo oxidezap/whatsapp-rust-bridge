@@ -234,24 +234,31 @@ const declaredTagsByCodec = (descriptor: Uint8Array): Map<string, Map<number, Se
 // two spaces further when ts-proto wraps a long `MessageFns<…>` onto its own
 // line, and a guard only counts when it sits directly inside its own case.
 const DECODE_FIELD_CASE = /^(\s+)case (\d+): \{$/
-const DECODE_TAG_GUARD = /^(\s+)if \(tag (?:!==|===) (\d+)\) \{$/
+const DECODE_TAG_GUARD = /^(\s+)if \(tag (!==|===) (\d+)\) \{$/
 const GUARD_INDENT = '  '
+const SOLE_TAG_OPERATOR = '!=='
+const ALTERNATIVE_TAG_OPERATOR = '==='
 
 /**
  * A field carrying a wire type the schema does not declare is an unknown field,
  * and the tag guards each case opens with are the whole of what makes this codec
  * skip it instead of reading those bytes as that field. No ts-proto option
- * promises those guards, so a case that loses one — or keeps one against the
- * wrong tag, which accepts the wire type it should skip — has to fail the build
- * rather than turn the codec into a parser differential quietly.
+ * promises those guards, so the build has to fail rather than quietly turn the
+ * codec into a parser differential when a case loses a guard, guards the wrong
+ * tag, inverts the comparison, or stops being recognisable here at all.
+ *
+ * The shapes checked are the two ts-proto emits: a field with one declared tag
+ * leaves its case on `tag !== declared`, and a repeated numeric field — which
+ * arrives packed or unpacked, both the schema's — takes one `tag === declared`
+ * branch per form.
  */
 const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 	const declared = declaredTagsByCodec(descriptor)
+	const decoded = new Map<string, Set<number>>()
 	let codec: string | undefined
 	let field: number | undefined
 	let indent = ''
-	let guards: number[] = []
-	let checked = 0
+	let guards: { tag: number; operator: string }[] = []
 
 	const flush = (): void => {
 		if (field === undefined) return
@@ -259,12 +266,20 @@ const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 		if (expected === undefined) {
 			throw new Error(`${codec} decodes field ${field}, which the schema does not declare`)
 		}
-		const seen = [...new Set(guards)].sort((a, b) => a - b)
+		const seen = [...new Set(guards.map(guard => guard.tag))].sort((a, b) => a - b)
 		const want = [...expected].sort((a, b) => a - b)
 		if (seen.join(',') !== want.join(',')) {
 			throw new Error(`${codec} field ${field} guards tags [${seen}], the schema declares [${want}]`)
 		}
-		checked++
+		// The comparison is half the guard: `tag === declared` where `tag !==
+		// declared` belongs leaves the case on the one tag it should read and
+		// falls through to the read on every tag it should skip.
+		const wanted = want.length === 1 ? SOLE_TAG_OPERATOR : ALTERNATIVE_TAG_OPERATOR
+		const operators = [...new Set(guards.map(guard => guard.operator))]
+		if (operators.length !== 1 || operators[0] !== wanted) {
+			throw new Error(`${codec} field ${field} guards with [${operators}], expected ${wanted}`)
+		}
+		decoded.get(codec!)!.add(field)
 		field = undefined
 		guards = []
 	}
@@ -274,12 +289,14 @@ const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 		if (codecStart) {
 			flush()
 			codec = codecStart[1]!
+			if (!declared.has(codec)) throw new Error(`${codec} is a codec the schema does not declare`)
+			decoded.set(codec, new Set())
 			continue
 		}
 		const caseStart = DECODE_FIELD_CASE.exec(line)
 		if (caseStart) {
 			flush()
-			if (!declared.has(codec ?? '')) throw new Error(`decode block outside a known codec: ${codec}`)
+			if (codec === undefined) throw new Error(`decode case outside a codec: ${line.trim()}`)
 			indent = caseStart[1]!
 			field = Number(caseStart[2])
 			continue
@@ -290,11 +307,22 @@ const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 			continue
 		}
 		const guard = DECODE_TAG_GUARD.exec(line)
-		if (guard && guard[1] === `${indent}${GUARD_INDENT}`) guards.push(Number(guard[2]))
+		if (guard && guard[1] === `${indent}${GUARD_INDENT}`) {
+			guards.push({ tag: Number(guard[3]), operator: guard[2]! })
+		}
 	}
 	flush()
 
-	if (checked === 0) throw new Error('ts-proto emitted no guarded field case')
+	// Every field the schema declares gets a case, so anything missing here is a
+	// case that stopped being recognisable rather than one that reads correctly.
+	for (const [name, fields] of declared) {
+		const covered = decoded.get(name)
+		if (covered === undefined) throw new Error(`${name} has no generated codec`)
+		const missing = [...fields.keys()].filter(number => !covered.has(number))
+		if (missing.length > 0) {
+			throw new Error(`${name} decodes no guarded case for field ${missing.join(', ')}`)
+		}
+	}
 }
 
 const TS_PROTO_OPTIONS = [
