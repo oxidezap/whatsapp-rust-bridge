@@ -4128,3 +4128,262 @@ mod event_delivery_tests {
         }
     }
 }
+
+/// One test per event this bridge dispatches out of the core's `Event`, driven
+/// end to end: a synthetic core event in, the `onEvent` payload the host
+/// received out.
+#[cfg(test)]
+mod dispatched_event_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::time::Duration;
+    use wasm_bindgen::closure::Closure;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::chrono::{DateTime, Utc};
+    use whatsapp_rust::wacore::pair_code::PairCodeRejection;
+    use whatsapp_rust::wacore::types::events::{
+        AppStateSyncFailed, ContactRemoved, DisableLinkPreviewsUpdate,
+        MessageLabelAssociationUpdate, PairingCodeError, PairingQrCodesExhausted, QuickReplyUpdate,
+    };
+    use whatsapp_rust::waproto::whatsapp::sync_action_value::{
+        LabelAssociationAction, PrivacySettingDisableLinkPreviewsAction, QuickReplyAction,
+    };
+
+    /// The `{ type, data }` pairs an `onEvent` host was handed.
+    type Seen = Rc<RefCell<Vec<(String, JsValue)>>>;
+
+    fn host(seen: &Seen) -> JsValue {
+        let object = js_sys::Object::new();
+        let seen = seen.clone();
+        let closure = Closure::wrap(Box::new(move |event: JsValue| {
+            let read =
+                |key: &str| js_sys::Reflect::get(&event, &key.into()).expect("the key reads");
+            let name = read("type").as_string().expect("type is a string");
+            seen.borrow_mut().push((name, read("data")));
+        }) as Box<dyn FnMut(JsValue)>);
+        js_sys::Reflect::set(
+            &object,
+            &EVENT_CALLBACK_METHOD.into(),
+            &closure.into_js_value(),
+        )
+        .expect("the host accepts onEvent");
+        object.into()
+    }
+
+    /// Run one event through the consumer loop and return what `onEvent` saw.
+    async fn deliver(event: Event) -> (String, JsValue) {
+        let seen: Seen = Rc::new(RefCell::new(Vec::new()));
+        let callbacks = JsEventCallbacks::from_js(host(&seen)).expect("the host shape parses");
+        let (tx, rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
+        tx.try_send(Arc::new(event)).expect("the channel accepts");
+        tx.close();
+        run_event_consumer(&callbacks, rx).await;
+        let seen = seen.borrow();
+        assert_eq!(seen.len(), 1, "the host was not handed exactly one event");
+        seen[0].clone()
+    }
+
+    fn field(data: &JsValue, key: &str) -> JsValue {
+        js_sys::Reflect::get(data, &key.into()).expect("the key reads")
+    }
+
+    fn strings(value: &JsValue) -> Vec<String> {
+        js_sys::Array::from(value)
+            .iter()
+            .map(|entry| entry.as_string().expect("an array of strings"))
+            .collect()
+    }
+
+    fn jid(raw: &str) -> Jid {
+        raw.parse().expect("valid jid")
+    }
+
+    fn timestamp() -> DateTime<Utc> {
+        DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
+    }
+
+    /// The event #1291 made load-bearing: the core announces the connection and
+    /// reports what the critical sync left behind here, so a consumer that never
+    /// receives this one is told the session is healthy.
+    #[test]
+    async fn an_app_state_sync_failed_carries_all_four_fields() {
+        let (name, data) = deliver(Event::AppStateSyncFailed(
+            AppStateSyncFailed::builder()
+                .fatal(vec!["critical_block".to_owned()])
+                .retryable(vec!["regular_high".to_owned()])
+                .skipped(vec!["regular_low".to_owned()])
+                .connected(true)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "app_state_sync_failed");
+        assert_eq!(strings(&field(&data, "fatal")), ["critical_block"]);
+        assert_eq!(strings(&field(&data, "retryable")), ["regular_high"]);
+        assert_eq!(strings(&field(&data, "skipped")), ["regular_low"]);
+        assert_eq!(field(&data, "connected").as_bool(), Some(true));
+    }
+
+    #[test]
+    async fn a_contact_removed_carries_the_contact_that_is_gone() {
+        let (name, data) = deliver(Event::ContactRemoved(
+            ContactRemoved::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "contact_removed");
+        assert_eq!(
+            field(&field(&data, "jid"), "user").as_string().as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
+        // A `DateTime<Utc>` with no serde attribute crosses as chrono's RFC 3339
+        // string, the same as every app-state event already exposed.
+        assert_eq!(
+            field(&data, "timestamp").as_string().as_deref(),
+            Some("2023-11-14T22:13:20Z")
+        );
+    }
+
+    #[test]
+    async fn a_disable_link_previews_update_carries_the_setting_and_its_action() {
+        let (name, data) = deliver(Event::DisableLinkPreviewsUpdate(
+            DisableLinkPreviewsUpdate::builder()
+                .previews_disabled(true)
+                .timestamp(timestamp())
+                .action(Box::new(PrivacySettingDisableLinkPreviewsAction {
+                    is_previews_disabled: Some(true),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "disable_link_previews_update");
+        assert_eq!(field(&data, "previews_disabled").as_bool(), Some(true));
+        // The proto action keeps its Rust field names, as it does on every
+        // app-state event already exposed — `action` is serialized by serde and
+        // not by the camelCase proto serializer.
+        assert_eq!(
+            field(&field(&data, "action"), "is_previews_disabled").as_bool(),
+            Some(true)
+        );
+    }
+
+    #[test]
+    async fn a_message_label_association_update_names_the_message_it_labelled() {
+        let (name, data) = deliver(Event::MessageLabelAssociationUpdate(
+            MessageLabelAssociationUpdate::builder()
+                .label_id("7".to_owned())
+                .chat_jid(jid("5511999@s.whatsapp.net"))
+                .message_id("MSG-1".to_owned())
+                .timestamp(timestamp())
+                .action(Box::new(LabelAssociationAction {
+                    labeled: Some(true),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "message_label_association_update");
+        assert_eq!(field(&data, "label_id").as_string().as_deref(), Some("7"));
+        assert_eq!(
+            field(&data, "message_id").as_string().as_deref(),
+            Some("MSG-1")
+        );
+        assert_eq!(
+            field(&field(&data, "chat_jid"), "user")
+                .as_string()
+                .as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(
+            field(&field(&data, "action"), "labeled").as_bool(),
+            Some(true)
+        );
+    }
+
+    #[test]
+    async fn a_quick_reply_update_carries_the_shortcut_it_changed() {
+        let (name, data) = deliver(Event::QuickReplyUpdate(
+            QuickReplyUpdate::builder()
+                .id("QR-1".to_owned())
+                .timestamp(timestamp())
+                .action(Box::new(QuickReplyAction {
+                    shortcut: Some("/hello".to_owned()),
+                    deleted: Some(false),
+                    ..Default::default()
+                }))
+                .from_full_sync(true)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "quick_reply_update");
+        assert_eq!(field(&data, "id").as_string().as_deref(), Some("QR-1"));
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "action"), "shortcut")
+                .as_string()
+                .as_deref(),
+            Some("/hello")
+        );
+    }
+
+    #[test]
+    async fn a_pairing_qr_codes_exhausted_says_whether_the_socket_is_still_up() {
+        let (name, data) = deliver(Event::PairingQrCodesExhausted(
+            PairingQrCodesExhausted::builder()
+                .disconnected(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pairing_qr_codes_exhausted");
+        assert_eq!(field(&data, "disconnected").as_bool(), Some(false));
+    }
+
+    /// `backoff` crosses as whole seconds, the same unit `qr` and `pairing_code`
+    /// already cross their `timeout` in.
+    #[test]
+    async fn a_pairing_code_error_carries_the_rejection_and_its_backoff() {
+        let (name, data) = deliver(Event::PairingCodeError(
+            PairingCodeError::builder()
+                .rejection(PairCodeRejection::RateOverlimit)
+                .backoff(Duration::from_secs(60))
+                .error("rate-overlimit".to_owned())
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pairing_code_error");
+        assert_eq!(field(&data, "rejection").as_f64(), Some(429.0));
+        assert_eq!(field(&data, "backoff").as_f64(), Some(60.0));
+        assert_eq!(
+            field(&data, "error").as_string().as_deref(),
+            Some("rate-overlimit")
+        );
+    }
+
+    /// An absent `backoff` stays absent: the bridge does not invent a zero for a
+    /// hint the server did not send.
+    #[test]
+    async fn a_pairing_code_error_without_a_backoff_omits_it() {
+        let (_, data) = deliver(Event::PairingCodeError(
+            PairingCodeError::builder()
+                .error("no connection".to_owned())
+                .build(),
+        ))
+        .await;
+
+        assert!(field(&data, "backoff").is_undefined());
+        assert!(field(&data, "rejection").is_undefined());
+    }
+}
