@@ -165,7 +165,9 @@ macro_rules! bridge_events {
                 $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
                 $( Event::$pvariant(data) => {
                     let value = crate::proto::to_js_value(data)?;
-                    let proto = crate::camel_serializer::to_js_value_camel(&data.$pfield)?;
+                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_defaults(
+                        &data.$pfield,
+                    )?;
                     js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
                     ($pname, value)
                 } )*
@@ -216,8 +218,8 @@ bridge_events! {
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
     }
     // Events carrying a protobuf field beside their own. That field crosses in
-    // the protobufjs shape its declaration names, which is not the shape serde
-    // gives the rest of the payload.
+    // the protobufjs shape its declaration names, keeping an explicit `false` or
+    // `0` on the mutation itself — unpin and unarchive are that value.
     serialize_with_proto {
         // Variant                     => "js_name"                         => "TsDataType"                      => proto field
         ContactUpdate                  => "contact_update"                  => "ContactUpdate" => action,
@@ -4221,11 +4223,11 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::types::events::{
         AppStateSyncFailed, CallLogSync, ContactRemoved, DisableLinkPreviewsUpdate,
         MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
-        QuickReplyUpdate,
+        PinUpdate, QuickReplyUpdate,
     };
     use whatsapp_rust::waproto::whatsapp::CallLogRecord;
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        LabelAssociationAction, MuteAction, PrivacySettingDisableLinkPreviewsAction,
+        LabelAssociationAction, MuteAction, PinAction, PrivacySettingDisableLinkPreviewsAction,
         QuickReplyAction,
     };
 
@@ -4383,6 +4385,30 @@ mod dispatched_event_tests {
         assert_eq!(
             field(&field(&record, "startTime"), "low").as_f64(),
             Some(1_700_000_000.0)
+        );
+    }
+
+    /// An unpin is `pinned: false`, and an unarchive is `archived: false`: the
+    /// value carries the transition, so a proto default that the wire actually
+    /// set has to survive the crossing rather than be skipped as a default.
+    #[test]
+    async fn a_mutation_that_undoes_something_keeps_its_explicit_false() {
+        let (name, data) = deliver(Event::PinUpdate(
+            PinUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(PinAction {
+                    pinned: Some(false),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pin_update");
+        assert_eq!(
+            field(&field(&data, "action"), "pinned").as_bool(),
+            Some(false)
         );
     }
 
