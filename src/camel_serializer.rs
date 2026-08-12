@@ -241,7 +241,24 @@ pub enum Defaults {
     /// since an unpin is `pinned: false` and dropping it loses the transition.
     /// A repeated field with no elements is still omitted: protobuf gives it no
     /// presence, so an empty one is the same as one never set.
+    ///
+    /// Applies all the way down, unlike [`Keep`](Self::Keep). A message nested
+    /// in a mutation carries presence too — `messageRange.messages[].key.fromMe`
+    /// is what identifies the message an archive covers — and it is `None`, not
+    /// `Some(false)`, that the wire left out.
     KeepPresent,
+}
+
+impl Defaults {
+    /// What a nested value is serialized with. Only [`KeepPresent`](Self::KeepPresent)
+    /// recurses; the envelope mode preserves its own scalars and leaves protobuf
+    /// nested inside it to protobufjs semantics.
+    fn nested(self) -> CamelSerializer {
+        match self {
+            Defaults::KeepPresent => CamelSerializer::PRESERVE_TOP_LEVEL_PRESENCE,
+            Defaults::Skip | Defaults::Keep => CamelSerializer::PROTO,
+        }
+    }
 }
 
 /// Serializes Rust values to JsValue with camelCase keys and proto-friendly output.
@@ -364,6 +381,7 @@ impl ser::Serializer for CamelSerializer {
             items: SeqItems::Unknown {
                 capacity: len.unwrap_or(0),
             },
+            defaults: self.struct_defaults,
         })
     }
     fn serialize_tuple(self, len: usize) -> Result<SeqSerializer, Error> {
@@ -431,6 +449,7 @@ enum SeqItems {
 
 pub struct SeqSerializer {
     items: SeqItems,
+    defaults: Defaults,
 }
 
 #[inline]
@@ -445,7 +464,7 @@ impl ser::SerializeSeq for SeqSerializer {
     type Error = Error;
 
     fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
-        let js = value.serialize(CamelSerializer::PROTO)?;
+        let js = value.serialize(self.defaults.nested())?;
         let byte = js_u8(&js);
         match &mut self.items {
             SeqItems::Unknown { capacity } => {
@@ -542,7 +561,7 @@ impl ser::SerializeStruct for StructSerializer {
         key: &'static str,
         value: &T,
     ) -> Result<(), Error> {
-        let js_val = value.serialize(CamelSerializer::PROTO)?;
+        let js_val = value.serialize(self.defaults.nested())?;
         let skip = match self.defaults {
             Defaults::Skip => should_skip(&js_val),
             Defaults::Keep => js_val.is_null() || js_val.is_undefined(),

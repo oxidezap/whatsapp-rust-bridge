@@ -4221,15 +4221,16 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::chrono::{DateTime, Utc};
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
-        AppStateSyncFailed, CallLogSync, ContactRemoved, ContactUpdate, DisableLinkPreviewsUpdate,
-        MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
-        PinUpdate, QuickReplyUpdate,
+        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ContactRemoved, ContactUpdate,
+        DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError,
+        PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
     };
-    use whatsapp_rust::waproto::whatsapp::CallLogRecord;
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        ContactAction, LabelAssociationAction, MuteAction, PinAction,
-        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction,
+        ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
+        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
+        SyncActionMessageRange,
     };
+    use whatsapp_rust::waproto::whatsapp::{CallLogRecord, MessageKey};
 
     /// The `{ type, data }` pairs an `onEvent` host was handed.
     type Seen = Rc<RefCell<Vec<(String, JsValue)>>>;
@@ -4434,6 +4435,46 @@ mod dispatched_event_tests {
         let action = field(&data, "action");
         assert_eq!(field(&action, "fullName").as_string().as_deref(), Some(""));
         assert!(field(&action, "firstName").is_undefined());
+    }
+
+    /// A message range identifies the messages an action covers, and `fromMe`
+    /// is half of a message's identity: a `false` the wire set has to survive
+    /// the nesting, not just the mutation's own fields.
+    #[test]
+    async fn a_nested_message_keeps_the_presence_the_wire_gave_it() {
+        let (name, data) = deliver(Event::ArchiveUpdate(
+            ArchiveUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(ArchiveChatAction {
+                    archived: Some(true),
+                    message_range: Some(SyncActionMessageRange {
+                        messages: vec![SyncActionMessage {
+                            key: Some(MessageKey {
+                                id: Some("MSG-1".to_owned()),
+                                from_me: Some(false),
+                                ..Default::default()
+                            })
+                            .into(),
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    })
+                    .into(),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "archive_update");
+        let messages = js_sys::Array::from(&field(
+            &field(&field(&data, "action"), "messageRange"),
+            "messages",
+        ));
+        let key = field(&messages.get(0), "key");
+        assert_eq!(field(&key, "id").as_string().as_deref(), Some("MSG-1"));
+        assert_eq!(field(&key, "fromMe").as_bool(), Some(false));
     }
 
     /// The events that already carried a proto mutation cross it in the same
