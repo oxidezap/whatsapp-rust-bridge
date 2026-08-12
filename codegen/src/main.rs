@@ -304,10 +304,8 @@ fn main() {
     println!("\"{delim};");
 
     println!();
-    println!("/// Every variant of the core's `Event`, in declaration order, as read");
-    println!("/// from the sources this build is locked to. `wasm_client`'s coverage");
-    println!("/// test measures the bridge's dispatch against it, so a variant added");
-    println!("/// upstream fails a test here instead of reaching no consumer.");
+    println!("/// The core's `Event` variants, so `wasm_client`'s coverage test can");
+    println!("/// measure the bridge's dispatch against something other than itself.");
     println!("#[cfg(test)]");
     println!("pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[");
     for variant in core_event_variants(&sources.wacore_src) {
@@ -316,12 +314,9 @@ fn main() {
     println!("];");
 }
 
-/// The core's `Event` variant names, from the one file that declares them.
-///
-/// Read separately rather than off the derive scan, which skips `Event` because
-/// the bridge declares its own union for it. Nothing else in the core is called
-/// `Event`, but a file that stopped declaring it would leave an empty list that
-/// passes every check it feeds, so an absent enum is a panic and not a default.
+/// The core's `Event` variant names, read separately because the derive scan
+/// skips `Event`. An absent enum panics rather than defaulting to an empty
+/// list, which would pass every check it feeds.
 fn core_event_variants(wacore_src: &Path) -> Vec<String> {
     let path = wacore_src.join("types/events.rs");
     let content = std::fs::read_to_string(&path)

@@ -1523,10 +1523,8 @@ export interface WaitingRoomUser {
 }
 "#;
 
-/// Every variant of the core's `Event`, in declaration order, as read
-/// from the sources this build is locked to. `wasm_client`'s coverage
-/// test measures the bridge's dispatch against it, so a variant added
-/// upstream fails a test here instead of reaching no consumer.
+/// The core's `Event` variants, so `wasm_client`'s coverage test can
+/// measure the bridge's dispatch against something other than itself.
 #[cfg(test)]
 pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "Connected",

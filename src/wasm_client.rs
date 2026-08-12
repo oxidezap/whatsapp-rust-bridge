@@ -142,8 +142,7 @@ macro_rules! bridge_events {
         );
 
         /// Every core `Event` variant this bridge carries across, by whichever
-        /// path carries it. [`event_coverage_tests`] measures it against the
-        /// core's own variant list.
+        /// path carries it.
         #[cfg(test)]
         const DISPATCHED_EVENT_VARIANTS: &[&str] = &[
             $( stringify!($variant), )*
@@ -236,19 +235,15 @@ bridge_events! {
         // reconstruction: hosts decode the wire payloads with their own codec
         // and rebuild these shapes for their downstream consumers.
         HistorySync                    => "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
-        // `backoff` is a `Duration`, and a `Duration` crosses this bridge as
-        // whole seconds — the unit `qr` and `pairing_code` already cross their
-        // `timeout` in. Serializing it would emit `{ secs, nanos }` instead,
-        // which is not what `PairingCodeError` declares.
+        // Special-cased for `backoff`: serializing a `Duration` emits
+        // `{ secs, nanos }`, and this bridge crosses one as whole seconds.
         PairingCodeError               => "pairing_code_error"              => "PairingCodeError",
     }
 }
 
-/// The core `Event` variants this bridge deliberately does not carry across,
-/// each with the reason. Every variant the core declares has to appear here or
-/// in `DISPATCHED_EVENT_VARIANTS`; `event_coverage_tests` fails on one that
-/// appears in neither, which is what stops a variant added upstream from being
-/// dropped in silence.
+/// The core `Event` variants this bridge deliberately does not carry across.
+/// Every variant has to appear here or in `DISPATCHED_EVENT_VARIANTS`, so one
+/// added upstream cannot be dropped in silence.
 #[cfg(test)]
 const UNDISPATCHED_EVENT_VARIANTS: &[(&str, &str)] = &[
     (
@@ -4211,8 +4206,8 @@ mod dispatched_event_tests {
     /// The `{ type, data }` pairs an `onEvent` host was handed.
     type Seen = Rc<RefCell<Vec<(String, JsValue)>>>;
 
-    /// A host that records the whole `{ type, data }` rather than the packed
-    /// bytes `event_delivery_tests` reads — these events have no packed form.
+    /// Records the whole `{ type, data }`, not the packed bytes
+    /// `event_delivery_tests` reads — these events have no packed form.
     fn host(seen: &Seen) -> js_sys::Object {
         let object = js_sys::Object::new();
         let seen = seen.clone();
@@ -4257,9 +4252,8 @@ mod dispatched_event_tests {
         DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
     }
 
-    /// The event #1291 made load-bearing: the core announces the connection and
-    /// reports what the critical sync left behind here, so a consumer that never
-    /// receives this one is told the session is healthy.
+    /// Load-bearing since #1291: the core announces the connection and reports
+    /// what the critical sync left behind here.
     #[test]
     async fn an_app_state_sync_failed_carries_all_four_fields() {
         let (name, data) = deliver(Event::AppStateSyncFailed(
@@ -4320,9 +4314,9 @@ mod dispatched_event_tests {
 
         assert_eq!(name, "disable_link_previews_update");
         assert_eq!(field(&data, "previews_disabled").as_bool(), Some(true));
-        // The proto action keeps its Rust field names, as it does on every
-        // app-state event already exposed — `action` is serialized by serde and
-        // not by the camelCase proto serializer.
+        // The proto action keeps its Rust field names, as on every app-state
+        // event already exposed: `action` goes through serde, not the
+        // camelCase proto serializer.
         assert_eq!(
             field(&field(&data, "action"), "is_previews_disabled").as_bool(),
             Some(true)
@@ -4442,15 +4436,10 @@ mod dispatched_event_tests {
     }
 }
 
-/// The bridge's event coverage, measured against the core rather than asserted.
-///
-/// `Event` and `EventKind` are both `#[non_exhaustive]`, so no match in this
-/// crate can be exhaustive and no compiler error can stand in for this: the
-/// wildcard arm the core requires is exactly what swallowed eleven variants.
-/// The list this checks against is regenerated from the core's sources by
-/// `bun run gen:bridge-types`, which every dependency bump has to run — CI
-/// fails on drift — so a bump that adds a variant fails here until the variant
-/// is either carried across or listed with a reason.
+/// `Event` and `EventKind` are both `#[non_exhaustive]`, so no match here can be
+/// exhaustive and the wildcard arm the core requires is what swallowed ten
+/// variants. This measures the dispatch against the core's own list instead,
+/// which `bun run gen:bridge-types` refreshes on every bump.
 #[cfg(test)]
 mod event_coverage_tests {
     use super::{DISPATCHED_EVENT_VARIANTS, UNDISPATCHED_EVENT_VARIANTS};

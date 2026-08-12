@@ -1,14 +1,7 @@
 /**
- * The published `WhatsAppEvent` union, pinned entry by entry.
- *
- * Every entry is a consumer's `switch` label and the shape it reads off `data`.
- * A renamed wire name or a retyped payload breaks every host that handled the
- * old one, and neither shows up as a type error here or there — the union is
- * generated from `bridge_events!`, so a typo in that table simply publishes a
- * different event. This is the list that has to change deliberately.
- *
- * Checks the published declarations, not the Rust table, so it sees what a
- * consumer installs.
+ * The published `WhatsAppEvent` union, pinned entry by entry: every wire name is
+ * a consumer's `switch` label, and the union is generated, so a typo in the
+ * table publishes a different event rather than failing to compile.
  *
  * Run: bun run build && bun test tests/event-union.test.ts
  */
@@ -67,12 +60,12 @@ const PUBLISHED: Record<string, string> = {
   pair_passkey_request: "PairPasskeyRequest",
   pair_passkey_confirmation: "PairPasskeyConfirmation",
   pair_passkey_error: "PairPasskeyError",
-  app_state_sync_failed: "AppStateSyncFailed",  // added by this change
-  contact_removed: "ContactRemoved",  // added by this change
-  disable_link_previews_update: "DisableLinkPreviewsUpdate",  // added by this change
-  message_label_association_update: "MessageLabelAssociationUpdate",  // added by this change
-  quick_reply_update: "QuickReplyUpdate",  // added by this change
-  pairing_qr_codes_exhausted: "PairingQrCodesExhausted",  // added by this change
+  app_state_sync_failed: "AppStateSyncFailed",
+  contact_removed: "ContactRemoved",
+  disable_link_previews_update: "DisableLinkPreviewsUpdate",
+  message_label_association_update: "MessageLabelAssociationUpdate",
+  quick_reply_update: "QuickReplyUpdate",
+  pairing_qr_codes_exhausted: "PairingQrCodesExhausted",
   connected: "Record<string, never>",
   disconnected: "Record<string, never>",
   qr: "{ code: string; timeout: number }",
@@ -87,7 +80,7 @@ const PUBLISHED: Record<string, string> = {
   client_outdated: "Record<string, never>",
   raw_node: "{ tag: string; attrs: Record<string, string>; content?: unknown }",
   history_sync: "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
-  pairing_code_error: "PairingCodeError",  // added by this change
+  pairing_code_error: "PairingCodeError",
 };
 
 function publishedUnion(): Record<string, string> {
