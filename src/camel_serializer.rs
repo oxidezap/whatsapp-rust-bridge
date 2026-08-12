@@ -226,18 +226,38 @@ fn to_camel_case(s: &str) -> String {
 // Serializer
 // ---------------------------------------------------------------------------
 
+/// What a top-level struct field does with a value equal to its type's default.
+///
+/// Absent is absent either way: `None` never crosses. This is only about a
+/// value the wire did supply that happens to equal the default.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Defaults {
+    /// protobufjs: a default-valued field is indistinguishable from an unset
+    /// one, so it is omitted.
+    Skip,
+    /// Every supplied value crosses, `0` and `false` and `""` alike.
+    Keep,
+    /// A supplied scalar crosses even at its default — an unpin is
+    /// `pinned: false`, and dropping it loses the transition — while an empty
+    /// string or collection is omitted, having no presence to report.
+    KeepScalars,
+}
+
 /// Serializes Rust values to JsValue with camelCase keys and proto-friendly output.
 #[derive(Clone, Copy)]
 pub struct CamelSerializer {
-    skip_struct_defaults: bool,
+    struct_defaults: Defaults,
 }
 
 impl CamelSerializer {
     const PROTO: Self = Self {
-        skip_struct_defaults: true,
+        struct_defaults: Defaults::Skip,
     };
     const PRESERVE_TOP_LEVEL_DEFAULTS: Self = Self {
-        skip_struct_defaults: false,
+        struct_defaults: Defaults::Keep,
+    };
+    const PRESERVE_TOP_LEVEL_SCALARS: Self = Self {
+        struct_defaults: Defaults::KeepScalars,
     };
 }
 
@@ -373,7 +393,7 @@ impl ser::Serializer for CamelSerializer {
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<StructSerializer, Error> {
         Ok(StructSerializer {
             obj: Object::new(),
-            skip_defaults: self.skip_struct_defaults,
+            defaults: self.struct_defaults,
         })
     }
     fn serialize_struct_variant(
@@ -387,7 +407,7 @@ impl ser::Serializer for CamelSerializer {
             variant,
             inner: StructSerializer {
                 obj: Object::new(),
-                skip_defaults: self.skip_struct_defaults,
+                defaults: self.struct_defaults,
             },
         })
     }
@@ -509,7 +529,7 @@ impl ser::SerializeTupleVariant for SeqSerializer {
 
 pub struct StructSerializer {
     obj: Object,
-    skip_defaults: bool,
+    defaults: Defaults,
 }
 
 impl ser::SerializeStruct for StructSerializer {
@@ -522,12 +542,10 @@ impl ser::SerializeStruct for StructSerializer {
         value: &T,
     ) -> Result<(), Error> {
         let js_val = value.serialize(CamelSerializer::PROTO)?;
-        let skip = if self.skip_defaults {
-            should_skip(&js_val)
-        } else {
-            // Envelope mode preserves meaningful scalar defaults (`0` and
-            // `false`) but still omits absent Option fields.
-            js_val.is_null() || js_val.is_undefined()
+        let skip = match self.defaults {
+            Defaults::Skip => should_skip(&js_val),
+            Defaults::Keep => js_val.is_null() || js_val.is_undefined(),
+            Defaults::KeepScalars => is_absent(&js_val),
         };
         if skip {
             return Ok(());
@@ -608,6 +626,38 @@ impl ser::SerializeMap for MapSerializer {
 // Skip logic — matches protobufjs behavior (only output set fields)
 // ---------------------------------------------------------------------------
 
+/// Nothing was supplied: no value, or an empty string or collection, which
+/// protobuf cannot tell from one that was never set.
+fn is_absent(val: &JsValue) -> bool {
+    if val.is_null() || val.is_undefined() {
+        return true;
+    }
+    if let Some(s) = val.as_string() {
+        return s.is_empty();
+    }
+    is_empty_collection(val)
+}
+
+/// `[]`, an empty `Uint8Array`, or a message with no fields.
+fn is_empty_collection(val: &JsValue) -> bool {
+    if !val.is_object() {
+        return false;
+    }
+    if val.is_instance_of::<js_sys::Array>() {
+        let arr: js_sys::Array = js_sys::Array::unchecked_from_js(val.clone());
+        return arr.length() == 0;
+    }
+    if val.is_instance_of::<Uint8Array>() {
+        let arr: Uint8Array = Uint8Array::unchecked_from_js(val.clone());
+        return arr.length() == 0;
+    }
+    if is_zero_long(val) {
+        return false;
+    }
+    let obj: Object = Object::unchecked_from_js(val.clone());
+    js_sys::Object::keys(&obj).length() == 0
+}
+
 fn should_skip(val: &JsValue) -> bool {
     if val.is_null() || val.is_undefined() {
         return true;
@@ -628,19 +678,7 @@ fn should_skip(val: &JsValue) -> bool {
         return true;
     }
     // Expensive checks only for objects — avoid clone when possible
-    if val.is_object() {
-        if val.is_instance_of::<js_sys::Array>() {
-            let arr: js_sys::Array = js_sys::Array::unchecked_from_js(val.clone());
-            return arr.length() == 0;
-        }
-        if val.is_instance_of::<Uint8Array>() {
-            let arr: Uint8Array = Uint8Array::unchecked_from_js(val.clone());
-            return arr.length() == 0;
-        }
-        let obj: Object = Object::unchecked_from_js(val.clone());
-        return js_sys::Object::keys(&obj).length() == 0;
-    }
-    false
+    is_empty_collection(val)
 }
 
 // ---------------------------------------------------------------------------
@@ -662,6 +700,16 @@ pub fn to_js_value_camel_preserve_top_level_defaults<T: Serialize>(
     val: &T,
 ) -> Result<JsValue, JsValue> {
     val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_DEFAULTS)
+        .map_err(|e| e.into())
+}
+
+/// Same JS representation as [`to_js_value_camel`], but a scalar the wire
+/// supplied crosses even at its default — see [`Defaults::KeepScalars`]. For a
+/// protobuf value whose `false` or `0` is the thing being reported.
+pub fn to_js_value_camel_preserve_top_level_scalars<T: Serialize>(
+    val: &T,
+) -> Result<JsValue, JsValue> {
+    val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_SCALARS)
         .map_err(|e| e.into())
 }
 

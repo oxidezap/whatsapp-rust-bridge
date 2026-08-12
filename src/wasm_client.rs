@@ -165,7 +165,7 @@ macro_rules! bridge_events {
                 $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
                 $( Event::$pvariant(data) => {
                     let value = crate::proto::to_js_value(data)?;
-                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_defaults(
+                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_scalars(
                         &data.$pfield,
                     )?;
                     js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
@@ -4494,12 +4494,16 @@ mod dispatched_event_tests {
         assert_eq!(name, "quick_reply_update");
         assert_eq!(field(&data, "id").as_string().as_deref(), Some("QR-1"));
         assert_eq!(field(&data, "from_full_sync").as_bool(), Some(true));
+        let action = field(&data, "action");
         assert_eq!(
-            field(&field(&data, "action"), "shortcut")
-                .as_string()
-                .as_deref(),
+            field(&action, "shortcut").as_string().as_deref(),
             Some("/hello")
         );
+        assert_eq!(field(&action, "deleted").as_bool(), Some(false));
+        // A repeated field the mutation left unset has no presence to report,
+        // so it stays absent rather than arriving as an empty array.
+        assert!(field(&action, "keywords").is_undefined());
+        assert!(field(&action, "associatedLabelIds").is_undefined());
     }
 
     #[test]
