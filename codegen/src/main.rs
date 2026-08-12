@@ -1472,10 +1472,15 @@ fn proto_schema() -> &'static ProtoSchema {
         let mut schema = ProtoSchema::default();
         for line in manifest.lines().filter(|line| !line.starts_with('#')) {
             let columns: Vec<&str> = line.split('\t').collect();
-            let Some(message) = columns.first().filter(|name| !name.is_empty()) else {
+            let Some(declared) = columns.first().filter(|name| !name.is_empty()) else {
                 continue;
             };
-            schema.messages.insert((*message).to_string());
+            // `<enum>\tenum` is a declaration line rather than a field line.
+            if columns.len() == 2 && columns[1] == "enum" {
+                schema.enums.insert((*declared).to_string());
+                continue;
+            }
+            schema.messages.insert((*declared).to_string());
             // The last column names the field's own type for a message or enum
             // field; an enum carries its probe values after an `=`.
             match (columns.get(4), columns.get(5)) {
@@ -1573,20 +1578,32 @@ fn collect_type_aliases(path: &Path) {
     let Ok(content) = std::fs::read_to_string(path) else {
         return;
     };
-    let Ok(file) = syn::parse_file(&content) else {
-        return;
+    type_aliases()
+        .lock()
+        .unwrap()
+        .extend(type_aliases_in(&content));
+}
+
+/// A private alias is not part of the serialized surface, and a generic one
+/// cannot be resolved without its arguments — neither is skipped silently
+/// anywhere else, so both are filtered here.
+fn type_aliases_in(content: &str) -> BTreeMap<String, String> {
+    let mut collected = BTreeMap::new();
+    let Ok(file) = syn::parse_file(content) else {
+        return collected;
     };
     for item in &file.items {
         if let Item::Type(alias) = item
             && is_pub(&alias.vis)
             && alias.generics.type_params().next().is_none()
         {
-            type_aliases().lock().unwrap().insert(
+            collected.insert(
                 alias.ident.to_string(),
                 alias.ty.to_token_stream().to_string(),
             );
         }
     }
+    collected
 }
 
 fn resolve_type_alias(name: &str) -> Option<(String, bool)> {
@@ -1727,6 +1744,21 @@ mod tests {
         );
     }
 
+    /// An enum no field references still has a declaration to point at, so the
+    /// manifest has to name it — otherwise resolution fails on a type that is
+    /// right there in `proto-types.d.ts`.
+    #[test]
+    fn an_enum_no_field_references_still_resolves() {
+        assert_eq!(
+            ts_of("wa::CollectionName"),
+            "import('./proto-types').proto.CollectionName"
+        );
+        assert_eq!(
+            ts_of("wa::sync_action_value::settings_sync_action::SettingKey"),
+            "import('./proto-types').proto.SyncActionValue.SettingsSyncAction.SettingKey"
+        );
+    }
+
     #[test]
     #[should_panic(expected = "resolves to 0 declarations")]
     fn a_waproto_type_the_schema_does_not_declare_fails_generation() {
@@ -1734,13 +1766,32 @@ mod tests {
     }
 
     #[test]
+    fn only_public_non_generic_aliases_are_collected() {
+        let collected = type_aliases_in(
+            r#"
+                pub type MessageSecret = [u8; MESSAGE_SECRET_SIZE];
+                type Internal = [u8; 32];
+                pub type Wrapper<T> = Vec<T>;
+            "#,
+        );
+
+        assert_eq!(
+            collected.keys().collect::<Vec<_>>(),
+            vec!["MessageSecret"],
+            "collected {collected:?}"
+        );
+        assert_eq!(collected["MessageSecret"], "[u8 ; MESSAGE_SECRET_SIZE]");
+    }
+
+    #[test]
     fn a_type_alias_resolves_to_what_it_aliases() {
         type_aliases()
             .lock()
             .unwrap()
-            .insert("MessageSecret".to_string(), "[u8 ; 32]".to_string());
-        assert_eq!(ts_of("MessageSecret"), "Uint8Array");
-        assert_eq!(ts_of("Vec<MessageSecret>"), "Uint8Array[]");
+            .extend(type_aliases_in("pub type AliasUnderTest = [u8; 32];"));
+        assert_eq!(ts_of("AliasUnderTest"), "Uint8Array");
+        assert_eq!(ts_of("Vec<AliasUnderTest>"), "Uint8Array[]");
+        assert_eq!(ts_of("Option<AliasUnderTest>"), "Uint8Array | null");
     }
 
     /// The mapping must not swallow the ordinary case: a type this generator
