@@ -200,7 +200,7 @@ export interface CallLogSync {
   from_me: boolean;
   /** When the mutation was written, not when the call happened — the call's own time is `record.start_time`.  This is the field WA Web measures against the pairing timestamp to decide whether a record predates the device, so it is worth having; it is not a time to file the call under. A mutation that arrives without one falls back to the moment it was received, as every other app-state event does. */
   timestamp: number;
-  record: CallLogRecord;
+  record: import('./proto-types').proto.ICallLogRecord;
   from_full_sync: boolean;
 }
 

@@ -93,6 +93,7 @@ export enum BotMetricsEntryPoint {
   GROUP_MEMBER = 54,
   CHATLIST_SEARCH = 55,
   NEW_CHAT_LIST = 56,
+  CONTACTS_TAB = 57,
   UNRECOGNIZED = -1,
 }
 
@@ -269,6 +270,9 @@ export enum MutationProps {
   BIZ_AI_SETTINGS_NUDGE_ACTION = 87,
   COEX_V2_VERSION_ACTION = 88,
   WASA_ROOT_SECRET_ACTION = 89,
+  BUBBLE_LOCK_MESSAGE_ACTION = 90,
+  LABEL_SUBLIST_ACTION = 91,
+  DEVICE_CAPABILITIES_V2 = 92,
   SHARE_OWN_PN = 10001,
   BUSINESS_BROADCAST_ACTION = 10002,
   AI_THREAD_DELETE_ACTION = 10003,
@@ -369,6 +373,16 @@ export interface AIMediaCollectionMetadata {
 
 export interface AIMetadataOperation {
   hatchMetadataSync?: HatchMetadataSync | undefined;
+}
+
+export interface AIProvenance {
+  c2PaMetadata?: AIProvenance_Metadata | undefined;
+  iptcMetadata?: AIProvenance_Metadata | undefined;
+}
+
+export interface AIProvenance_Metadata {
+  createdWithGenAi?: boolean | undefined;
+  editedWithGenAi?: boolean | undefined;
 }
 
 export interface AIQueryFanout {
@@ -656,6 +670,7 @@ export enum BotAgeCollectionMetadata_AgeCollectionType {
 
 export interface BotAgentDeepLinkMetadata {
   token?: string | undefined;
+  clientPublicKey?: Uint8Array | undefined;
 }
 
 export interface BotAgentMetadata {
@@ -733,6 +748,10 @@ export enum BotCapabilityMetadata_BotCapabilityType {
   UNIFIED_RESPONSE_MARKDOWN_LINKS_ENABLED = 63,
   AI_RICH_RESPONSE_MAPS_V2_ENABLED = 64,
   AI_SUBSCRIPTION_METERING_ENABLED = 65,
+  RICH_RESPONSE_SPORTS_WIDGET_ENABLED = 66,
+  AI_RICH_RESPONSE_ARTIFACTS_ENABLED = 67,
+  AI_RICH_RESPONSE_EMAIL_CALENDAR_ENABLED = 68,
+  AI_RICH_RESPONSE_REMINDERS_ENABLED = 69,
   UNRECOGNIZED = -1,
 }
 
@@ -874,6 +893,10 @@ export interface BotGroupParticipantMetadata {
   botFbid?: string | undefined;
 }
 
+export interface BotHistoryShareMetadata {
+  participantsMetadata?: BotGroupParticipantMetadata[] | undefined;
+}
+
 export interface BotImagineMetadata {
   imagineType?: BotImagineMetadata_ImagineType | undefined;
   shortPrompt?: string | undefined;
@@ -1007,6 +1030,7 @@ export interface BotMetadata {
   resolvedToolCallMetadata?: BotResolvedToolCallMetadata | undefined;
   subscriptionUpsellMetadata?: AISubscriptionUpsellMetadata | undefined;
   pttPromptMetadata?: BotPttPromptMetadata | undefined;
+  botHistoryShareMetadata?: BotHistoryShareMetadata | undefined;
   internalMetadata?: Uint8Array | undefined;
 }
 
@@ -1237,6 +1261,7 @@ export interface BotSignatureVerificationUseCaseProof {
   useCase?: BotSignatureVerificationUseCaseProof_BotSignatureUseCase | undefined;
   signature?: Uint8Array | undefined;
   certificateChain?: Uint8Array[] | undefined;
+  certificateChainSki?: BotSignatureVerificationUseCaseProof_CertificateSKI[] | undefined;
 }
 
 export enum BotSignatureVerificationUseCaseProof_BotSignatureUseCase {
@@ -1244,7 +1269,14 @@ export enum BotSignatureVerificationUseCaseProof_BotSignatureUseCase {
   WA_BOT_MSG = 1,
   WA_TEE_BOT_MSG = 2,
   P2P_PILLS = 3,
+  WA_WAFFLE = 4,
+  WA_FEATURE_PKI = 5,
   UNRECOGNIZED = -1,
+}
+
+export interface BotSignatureVerificationUseCaseProof_CertificateSKI {
+  useCase?: BotSignatureVerificationUseCaseProof_BotSignatureUseCase | undefined;
+  ski?: Uint8Array | undefined;
 }
 
 export interface BotSourcesMetadata {
@@ -1632,6 +1664,7 @@ export enum ClientPayload_UserAgent_Platform {
   SMART_GLASSES = 35,
   BLUE_VR = 36,
   AR_WRIST = 37,
+  WAIL = 38,
   UNRECOGNIZED = -1,
 }
 
@@ -1682,6 +1715,22 @@ export interface ClientPayload_WebInfo_WebdPayload {
   supportsE2EDocument?: boolean | undefined;
   documentTypes?: string | undefined;
   features?: Uint8Array | undefined;
+}
+
+export interface CoexStateSync {
+  collectionMutations?: CoexStateSync_CollectionMutations[] | undefined;
+}
+
+export interface CoexStateSync_CollectionMutations {
+  collection?: string | undefined;
+  mutations?: CoexStateSync_Mutation[] | undefined;
+}
+
+export interface CoexStateSync_Mutation {
+  index?: SyncdIndex | undefined;
+  value?: SyncdValue | undefined;
+  dirtyVersion?: Int64 | undefined;
+  operation?: SyncdMutation_SyncdOperation | undefined;
 }
 
 export interface CombinedFingerprint {
@@ -1988,6 +2037,8 @@ export interface ContextInfo {
   crossAppSource?: ContextInfo_CrossAppSource | undefined;
   businessInteractionPills?: ContextInfo_BusinessInteractionPills | undefined;
   posterStatusId?: string | undefined;
+  instagramThreadLink?: ContextInfo_InstagramThreadLink | undefined;
+  aiProvenance?: AIProvenance | undefined;
 }
 
 export enum ContextInfo_CrossAppSource {
@@ -2065,6 +2116,7 @@ export interface ContextInfo_BusinessInteractionPills {
   entryPoint?: ContextInfo_BusinessInteractionPills_EntryPoint | undefined;
   signedPayload?: Uint8Array | undefined;
   signatureEnvelope?: BotSignatureVerificationMetadata | undefined;
+  unauthenticatedBusinessMetadata?: ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata | undefined;
 }
 
 export enum ContextInfo_BusinessInteractionPills_EntryPoint {
@@ -2102,6 +2154,13 @@ export interface ContextInfo_BusinessInteractionPills_Pill {
 export interface ContextInfo_BusinessInteractionPills_SignedPayload {
   verifiedName?: string | undefined;
   pills?: ContextInfo_BusinessInteractionPills_Pill[] | undefined;
+}
+
+export interface ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
+  businessName?: string | undefined;
+  businessCategory?: string | undefined;
+  businessIsOpen?: boolean | undefined;
+  businessIsOpenSnapshotMs?: Int64 | undefined;
 }
 
 export interface ContextInfo_BusinessMessageForwardInfo {
@@ -2201,6 +2260,10 @@ export enum ContextInfo_ForwardedNewsletterMessageInfo_ContentType {
   UNRECOGNIZED = -1,
 }
 
+export interface ContextInfo_InstagramThreadLink {
+  url?: string | undefined;
+}
+
 export interface ContextInfo_PartiallySelectedContent {
   text?: string | undefined;
 }
@@ -2291,6 +2354,7 @@ export interface Conversation {
   appealUpdateTime?: Int64 | undefined;
   authAgentParentCompanyName?: string | undefined;
   authAgentObaPhoneNumber?: string | undefined;
+  identityVerification?: IdentityVerificationState | undefined;
 }
 
 export enum Conversation_EndOfHistoryTransferType {
@@ -2335,6 +2399,17 @@ export interface DecryptMessageOutput {
   error?: string | undefined;
 }
 
+export interface DeriveMessageKeyInput {
+  epochRootKey?: Uint8Array | undefined;
+  epochAnonId?: Uint8Array | undefined;
+  threadId?: string | undefined;
+}
+
+export interface DeriveMessageKeyOutput {
+  messageKey?: Uint8Array | undefined;
+  error?: string | undefined;
+}
+
 export interface DeviceCapabilities {
   chatLockSupportLevel?: DeviceCapabilities_ChatLockSupportLevel | undefined;
   lidMigration?: DeviceCapabilities_LIDMigration | undefined;
@@ -2342,6 +2417,7 @@ export interface DeviceCapabilities {
   userHasAvatar?: DeviceCapabilities_UserHasAvatar | undefined;
   memberNameTagPrimarySupport?: DeviceCapabilities_MemberNameTagPrimarySupport | undefined;
   aiThread?: DeviceCapabilities_AiThread | undefined;
+  aiFbidMigration?: DeviceCapabilities_AiFbidMigration | undefined;
 }
 
 export enum DeviceCapabilities_ChatLockSupportLevel {
@@ -2356,6 +2432,10 @@ export enum DeviceCapabilities_MemberNameTagPrimarySupport {
   RECEIVER_ENABLED = 1,
   SENDER_ENABLED = 2,
   UNRECOGNIZED = -1,
+}
+
+export interface DeviceCapabilities_AiFbidMigration {
+  chatDbMigrationTimestamp?: Int64 | undefined;
 }
 
 export interface DeviceCapabilities_AiThread {
@@ -2447,6 +2527,7 @@ export enum DeviceProps_PlatformType {
   VR = 22,
   CLOUD_API = 23,
   SMARTGLASSES = 24,
+  WAIL = 25,
   UNRECOGNIZED = -1,
 }
 
@@ -2483,6 +2564,7 @@ export interface DeviceProps_HistorySyncConfig {
   supportHatchHistory?: boolean | undefined;
   supportedBotChannelFbids?: string[] | undefined;
   supportInlineContacts?: boolean | undefined;
+  supportNewsletter?: boolean | undefined;
 }
 
 export interface DisappearingMode {
@@ -2557,7 +2639,6 @@ export interface EncryptMessageOutput {
   valueSecretRef?: string | undefined;
   offlineThreadingId?: Int64 | undefined;
   timestampMs?: Int64 | undefined;
-  messageKey?: Uint8Array | undefined;
   error?: string | undefined;
 }
 
@@ -2747,6 +2828,7 @@ export enum HandshakeMessage_HandshakePqMode {
   HANDSHAKE_PQ_MODE_UNKNOWN = 0,
   XXKEM = 1,
   XXKEM_FS = 2,
+  XXKEM_EPH = 9,
   WA_CLASSICAL = 3,
   WA_PQ = 4,
   IKKEM = 5,
@@ -2873,6 +2955,11 @@ export interface IdentityKeyPairStructure {
   privateKey?: Uint8Array | undefined;
 }
 
+export interface IdentityVerificationState {
+  verified?: boolean | undefined;
+  actionSeq?: Int64 | undefined;
+}
+
 export interface InThreadSurveyMetadata {
   tessaSessionId?: string | undefined;
   simonSessionId?: string | undefined;
@@ -2986,6 +3073,8 @@ export interface LabyrinthWaCommand {
   encryptMessageInput?: EncryptMessageInput | undefined;
   decryptMessageInput?: DecryptMessageInput | undefined;
   orfThreadIdInput?: OrfThreadIdInput | undefined;
+  deriveMessageKeyInput?: DeriveMessageKeyInput | undefined;
+  rotateEpochInput?: RotateEpochInput | undefined;
 }
 
 export interface LegacyMessage {
@@ -3204,6 +3293,10 @@ export interface Message {
   splitPaymentMessage?: Message_SplitPaymentMessage | undefined;
   newsletterAdminProfileStatusMessage?: Message_FutureProofMessage | undefined;
   rootSecretDistributeMessage?: Message_RootSecretDistributeMessage | undefined;
+  splitPaymentUpdateMessage?: Message_SplitPaymentUpdateMessage | undefined;
+  musicMessage?: Message_MusicMessage | undefined;
+  statusLinkPreviewMetadata?: Message_StatusLinkPreviewMetadata | undefined;
+  botPlatformRegistrationSuccessMessage?: Message_FutureProofMessage | undefined;
 }
 
 export enum Message_HistorySyncType {
@@ -3243,6 +3336,7 @@ export enum Message_PeerDataOperationRequestType {
   GALAXY_FLOW_ACTION = 11,
   BUSINESS_BROADCAST_INSIGHTS_DELIVERED_TO = 12,
   BUSINESS_BROADCAST_INSIGHTS_REFRESH = 13,
+  CONTACT_REFRESH_REQUEST = 14,
   UNRECOGNIZED = -1,
 }
 
@@ -3332,6 +3426,12 @@ export enum Message_BCallMessage_MediaType {
   UNRECOGNIZED = -1,
 }
 
+export interface Message_BotHistoryShareSyncMetadata {
+  botJid?: string | undefined;
+  historyShareCutoffTimestamp?: Int64 | undefined;
+  historyShareMessages?: Message_HistoryShareMessageEntry[] | undefined;
+}
+
 export interface Message_ButtonsMessage {
   contentText?: string | undefined;
   footerText?: string | undefined;
@@ -3404,6 +3504,7 @@ export interface Message_Call {
   deeplinkPayload?: string | undefined;
   messageContextInfo?: MessageContextInfo | undefined;
   callEntryPoint?: number | undefined;
+  callReason?: string | undefined;
 }
 
 export interface Message_CallLogMessage {
@@ -3652,7 +3753,7 @@ export interface Message_ExtendedTextMessage {
   viewOnce?: boolean | undefined;
   videoHeight?: number | undefined;
   videoWidth?: number | undefined;
-  faviconMMSMetadata?: Message_MMSThumbnailMetadata | undefined;
+  faviconMmsMetadata?: Message_MMSThumbnailMetadata | undefined;
   linkPreviewMetadata?: Message_LinkPreviewMetadata | undefined;
   paymentLinkMetadata?: Message_PaymentLinkMetadata | undefined;
   endCardTiles?: Message_VideoEndCard[] | undefined;
@@ -3784,6 +3885,11 @@ export enum Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_
 
 export interface Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch {
   timestamp?: Int64 | undefined;
+}
+
+export interface Message_HistoryShareMessageEntry {
+  stanzaId?: string | undefined;
+  messageSecretProof?: Uint8Array | undefined;
 }
 
 export interface Message_HistorySyncMessageAccessStatus {
@@ -4115,6 +4221,13 @@ export interface Message_MMSThumbnailMetadata {
   thumbnailWidth?: number | undefined;
 }
 
+export interface Message_MarkAsVerifiedAction {
+  userJidString?: string | undefined;
+  verified?: boolean | undefined;
+  verifiedIdentityKey?: Uint8Array | undefined;
+  actionSeq?: Int64 | undefined;
+}
+
 export interface Message_MessageHistoryBundle {
   mimetype?: string | undefined;
   fileSha256?: Uint8Array | undefined;
@@ -4137,6 +4250,20 @@ export interface Message_MessageHistoryMetadata {
 export interface Message_MessageHistoryNotice {
   contextInfo?: ContextInfo | undefined;
   messageHistoryMetadata?: Message_MessageHistoryMetadata | undefined;
+  botHistoryShareSyncMetadata?: Message_BotHistoryShareSyncMetadata | undefined;
+}
+
+export interface Message_MusicMessage {
+  embeddedMusic?: EmbeddedMusic | undefined;
+  songUri?: string | undefined;
+  artworkUri?: string | undefined;
+  style?: number | undefined;
+  contextInfo?: ContextInfo | undefined;
+}
+
+export enum Message_MusicMessage_MusicMessageStyle {
+  UNKNOWN = 0,
+  UNRECOGNIZED = -1,
 }
 
 export interface Message_NewsletterAdminInviteMessage {
@@ -4189,6 +4316,7 @@ export enum Message_OrderMessage_OrderSurface {
 export interface Message_PaymentExtendedMetadata {
   type?: number | undefined;
   platform?: string | undefined;
+  messageParamsJson?: string | undefined;
 }
 
 export interface Message_PaymentInviteMessage {
@@ -4210,6 +4338,7 @@ export enum Message_PaymentInviteMessage_ServiceType {
   FBPAY = 1,
   NOVI = 2,
   UPI = 3,
+  PIX = 4,
   UNRECOGNIZED = -1,
 }
 
@@ -4399,6 +4528,9 @@ export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperati
   bizBroadcastInsightsContactListResponse?:
     | Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
     | undefined;
+  contactRefreshResponse?:
+    | Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse
+    | undefined;
 }
 
 export enum Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandResponseCode {
@@ -4444,6 +4576,13 @@ export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperati
 
 export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse {
   nonce?: string | undefined;
+}
+
+export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
+  coveredRequestIds?: string[] | undefined;
+  collectionVersion?: Int64 | undefined;
+  primaryDurationMs?: Int64 | undefined;
+  uniqueContactCount?: number | undefined;
 }
 
 export interface Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
@@ -4662,6 +4801,8 @@ export interface Message_ProtocolMessage {
   afterReadDuration?: number | undefined;
   chatThemeSetting?: Message_ChatThemeSetting | undefined;
   aiMetadataOperation?: AIMetadataOperation | undefined;
+  markAsVerifiedAction?: Message_MarkAsVerifiedAction | undefined;
+  coexStateSync?: CoexStateSync | undefined;
 }
 
 export enum Message_ProtocolMessage_Type {
@@ -4695,6 +4836,8 @@ export enum Message_ProtocolMessage_Type {
   MESSAGE_UNSCHEDULE = 32,
   CHAT_THEME_SETTING = 34,
   AI_METADATA_OPERATION = 35,
+  MARK_AS_VERIFIED_ACTION = 36,
+  COEX_STATE_SYNC = 37,
   UNRECOGNIZED = -1,
 }
 
@@ -4822,6 +4965,23 @@ export enum Message_SplitPaymentParticipant_SplitPaymentStatus {
   UNRECOGNIZED = -1,
 }
 
+export interface Message_SplitPaymentUpdateMessage {
+  splitId?: string | undefined;
+  participantJid?: string | undefined;
+}
+
+export interface Message_StatusLinkPreviewMetadata {
+  style?: Message_StatusLinkPreviewMetadata_Style | undefined;
+}
+
+export enum Message_StatusLinkPreviewMetadata_Style {
+  AUTO = 0,
+  COMPACT = 1,
+  FULL = 2,
+  IMMERSIVE = 3,
+  UNRECOGNIZED = -1,
+}
+
 export interface Message_StatusNotificationMessage {
   responseMessageKey?: MessageKey | undefined;
   originalMessageKey?: MessageKey | undefined;
@@ -4833,6 +4993,7 @@ export enum Message_StatusNotificationMessage_StatusNotificationType {
   STATUS_ADD_YOURS = 1,
   STATUS_RESHARE = 2,
   STATUS_QUESTION_ANSWER_RESHARE = 3,
+  STATUS_GROUP_STATUS_REPLY = 4,
   UNRECOGNIZED = -1,
 }
 
@@ -5111,6 +5272,8 @@ export interface MessageContextInfo {
   threadId?: ThreadID[] | undefined;
   weblinkRenderConfig?: WebLinkRenderConfig | undefined;
   teeBotMetadata?: Uint8Array | undefined;
+  accountEncryptionAttestation?: NonE2EEAttestation | undefined;
+  associatedPrimaryIdentityKey?: Uint8Array | undefined;
 }
 
 export enum MessageContextInfo_MessageAddonExpiryType {
@@ -5255,6 +5418,17 @@ export interface NoiseCertificate_Details {
   expires?: Int64 | undefined;
   subject?: string | undefined;
   key?: Uint8Array | undefined;
+}
+
+export interface NonE2EEAttestation {
+  accountType?: NonE2EEAttestation_AccountType | undefined;
+}
+
+export enum NonE2EEAttestation_AccountType {
+  E2EE = 0,
+  HYBRID_E2EE = 1,
+  NON_E2EE = 2,
+  UNRECOGNIZED = -1,
 }
 
 export interface NotificationMessageInfo {
@@ -5622,6 +5796,38 @@ export interface Reportable {
 
 export interface ReportingTokenInfo {
   reportingTag?: Uint8Array | undefined;
+  reportingTagTimestamp?: Int64 | undefined;
+}
+
+export interface RotateEpochInput {
+  currentEpochRootKey?: Uint8Array | undefined;
+  currentEpochAnonId?: Int64 | undefined;
+  currentEpochFbid?: Int64 | undefined;
+  newEpochFbid?: Int64 | undefined;
+  epochStoragePrivateKey?: Uint8Array | undefined;
+  members?: RotateEpochMemberInput[] | undefined;
+}
+
+export interface RotateEpochMemberEdge {
+  deviceId?: Int64 | undefined;
+  encryptedEpochKey?: Uint8Array | undefined;
+  deviceEpochHmac?: Uint8Array | undefined;
+}
+
+export interface RotateEpochMemberInput {
+  deviceId?: Int64 | undefined;
+  epochStoragePublicKey?: Uint8Array | undefined;
+  devicePublicKey?: Uint8Array | undefined;
+}
+
+export interface RotateEpochOutput {
+  newEpochRootKey?: Uint8Array | undefined;
+  newEpochAnonId?: Int64 | undefined;
+  epochAnonId?: Uint8Array | undefined;
+  epochData?: Uint8Array | undefined;
+  memberEdges?: RotateEpochMemberEdge[] | undefined;
+  epochRootKeyFingerprint?: Uint8Array | undefined;
+  error?: string | undefined;
 }
 
 export interface RoutingInfo {
@@ -5780,6 +5986,7 @@ export enum StatusAttribution_Type {
   NEWSLETTER_STATUS = 9,
   STATUS_CLOSE_SHARING = 10,
   PAID_PARTNERSHIP = 11,
+  USERNAME_STATUS = 12,
   UNRECOGNIZED = -1,
 }
 
@@ -5814,6 +6021,7 @@ export enum StatusAttribution_ExternalShare_Source {
   GOOGLE_PHOTOS = 10,
   SOUNDCLOUD = 11,
   SHAZAM = 12,
+  PICSART = 13,
   UNRECOGNIZED = -1,
 }
 
@@ -5986,6 +6194,9 @@ export interface SyncActionValue {
   bizAiSettingsNudgeAction?: SyncActionValue_BizAISettingsNudgeAction | undefined;
   coexV2VersionAction?: SyncActionValue_CoexV2VersionAction | undefined;
   wasaRootSecretAction?: SyncActionValue_WASARootSecretAction | undefined;
+  bubbleLockMessageAction?: SyncActionValue_BubbleLockMessageAction | undefined;
+  labelSublistAction?: SyncActionValue_LabelSublistAction | undefined;
+  deviceCapabilitiesV2?: DeviceCapabilities | undefined;
 }
 
 export enum SyncActionValue_BusinessBroadcastCampaignStatus {
@@ -6045,6 +6256,7 @@ export enum SyncActionValue_BizAISettingsNudgeAction_BizAISettingsCategory {
   EXAMPLE_RESPONSES = 3,
   KNOWLEDGE = 4,
   LEAD_GEN = 5,
+  HANDOFF_REMOVAL_TIMING = 6,
   UNRECOGNIZED = -1,
 }
 
@@ -6055,6 +6267,10 @@ export interface SyncActionValue_BotWelcomeRequestAction {
 export interface SyncActionValue_BroadcastListParticipant {
   lidJid?: string | undefined;
   pnJid?: string | undefined;
+}
+
+export interface SyncActionValue_BubbleLockMessageAction {
+  locked?: boolean | undefined;
 }
 
 export interface SyncActionValue_BusinessBroadcastAssociationAction {
@@ -6087,6 +6303,7 @@ export interface SyncActionValue_BusinessBroadcastListAction {
   listName?: string | undefined;
   labelIds?: string[] | undefined;
   audienceExpression?: string | undefined;
+  customAudienceFbid?: string | undefined;
 }
 
 export interface SyncActionValue_CallLogAction {
@@ -6230,11 +6447,16 @@ export enum SyncActionValue_LabelEditAction_ListType {
   LOCKED = 13,
   INVITES = 14,
   THIRD_PARTY = 15,
+  LEAD = 16,
   UNRECOGNIZED = -1,
 }
 
 export interface SyncActionValue_LabelReorderingAction {
   sortedLabelIds?: number[] | undefined;
+}
+
+export interface SyncActionValue_LabelSublistAction {
+  subListId?: number | undefined;
 }
 
 export interface SyncActionValue_LidContactAction {
@@ -6477,6 +6699,7 @@ export interface SyncActionValue_SettingsSyncAction {
   shouldPlaySoundForCallNotification?: boolean | undefined;
   chatThemeId?: string | undefined;
   colorSchemeId?: string | undefined;
+  stockWallpaperImageId?: string | undefined;
 }
 
 export enum SyncActionValue_SettingsSyncAction_DisplayMode {
@@ -6529,6 +6752,7 @@ export enum SyncActionValue_SettingsSyncAction_SettingKey {
   SHOULD_PLAY_SOUND_FOR_CALL_NOTIFICATION = 31,
   CHAT_THEME_ID = 32,
   COLOR_SCHEME_ID = 33,
+  STOCK_WALLPAPER_IMAGE_ID = 34,
   UNRECOGNIZED = -1,
 }
 
@@ -6669,6 +6893,13 @@ export interface SyncActionValue_WASARootSecretAction_RootSecretEntry {
   id?: string | undefined;
   rootSecret?: Uint8Array | undefined;
   epoch?: Int64 | undefined;
+  status?: SyncActionValue_WASARootSecretAction_RootSecretEntry_Status | undefined;
+}
+
+export enum SyncActionValue_WASARootSecretAction_RootSecretEntry_Status {
+  INACTIVE = 0,
+  ACTIVE = 1,
+  UNRECOGNIZED = -1,
 }
 
 export interface SyncActionValue_WaffleAccountLinkStateAction {
@@ -8096,6 +8327,126 @@ export const AIMetadataOperation: MessageFns<AIMetadataOperation> = {
     message.hatchMetadataSync = (object.hatchMetadataSync !== undefined && object.hatchMetadataSync !== null)
       ? HatchMetadataSync.fromPartial(object.hatchMetadataSync)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseAIProvenance(): AIProvenance {
+  return {};
+}
+
+export const AIProvenance: MessageFns<AIProvenance> = {
+  encode(message: AIProvenance, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.c2PaMetadata !== undefined) {
+      AIProvenance_Metadata.encode(message.c2PaMetadata, writer.uint32(10).fork()).join();
+    }
+    if (message.iptcMetadata !== undefined) {
+      AIProvenance_Metadata.encode(message.iptcMetadata, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIProvenance): AIProvenance {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseAIProvenance();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.c2PaMetadata = AIProvenance_Metadata.decode(reader, reader.uint32(), message.c2PaMetadata);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.iptcMetadata = AIProvenance_Metadata.decode(reader, reader.uint32(), message.iptcMetadata);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<AIProvenance>): AIProvenance {
+    return AIProvenance.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<AIProvenance>): AIProvenance {
+    const message = createBaseAIProvenance();
+    message.c2PaMetadata = (object.c2PaMetadata !== undefined && object.c2PaMetadata !== null)
+      ? AIProvenance_Metadata.fromPartial(object.c2PaMetadata)
+      : undefined;
+    message.iptcMetadata = (object.iptcMetadata !== undefined && object.iptcMetadata !== null)
+      ? AIProvenance_Metadata.fromPartial(object.iptcMetadata)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseAIProvenance_Metadata(): AIProvenance_Metadata {
+  return {};
+}
+
+export const AIProvenance_Metadata: MessageFns<AIProvenance_Metadata> = {
+  encode(message: AIProvenance_Metadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.createdWithGenAi !== undefined) {
+      writer.uint32(8).bool(message.createdWithGenAi);
+    }
+    if (message.editedWithGenAi !== undefined) {
+      writer.uint32(16).bool(message.editedWithGenAi);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: AIProvenance_Metadata): AIProvenance_Metadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseAIProvenance_Metadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.createdWithGenAi = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.editedWithGenAi = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<AIProvenance_Metadata>): AIProvenance_Metadata {
+    return AIProvenance_Metadata.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<AIProvenance_Metadata>): AIProvenance_Metadata {
+    const message = createBaseAIProvenance_Metadata();
+    message.createdWithGenAi = object.createdWithGenAi ?? undefined;
+    message.editedWithGenAi = object.editedWithGenAi ?? undefined;
     return message;
   },
 };
@@ -10722,6 +11073,9 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
     if (message.token !== undefined) {
       writer.uint32(10).string(message.token);
     }
+    if (message.clientPublicKey !== undefined) {
+      writer.uint32(18).bytes(message.clientPublicKey);
+    }
     return writer;
   },
 
@@ -10740,6 +11094,14 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
           message.token = reader.string();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.clientPublicKey = reader.bytes();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -10755,6 +11117,7 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
   fromPartial(object: DeepPartial<BotAgentDeepLinkMetadata>): BotAgentDeepLinkMetadata {
     const message = createBaseBotAgentDeepLinkMetadata();
     message.token = object.token ?? undefined;
+    message.clientPublicKey = object.clientPublicKey ?? undefined;
     return message;
   },
 };
@@ -11963,6 +12326,61 @@ export const BotGroupParticipantMetadata: MessageFns<BotGroupParticipantMetadata
   },
 };
 
+function createBaseBotHistoryShareMetadata(): BotHistoryShareMetadata {
+  return {};
+}
+
+export const BotHistoryShareMetadata: MessageFns<BotHistoryShareMetadata> = {
+  encode(message: BotHistoryShareMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.participantsMetadata !== undefined && message.participantsMetadata.length !== 0) {
+      for (const v of message.participantsMetadata) {
+        BotGroupParticipantMetadata.encode(v!, writer.uint32(10).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotHistoryShareMetadata): BotHistoryShareMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseBotHistoryShareMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.participantsMetadata === undefined) {
+            message.participantsMetadata = [];
+          }
+          const el = BotGroupParticipantMetadata.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.participantsMetadata!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<BotHistoryShareMetadata>): BotHistoryShareMetadata {
+    return BotHistoryShareMetadata.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<BotHistoryShareMetadata>): BotHistoryShareMetadata {
+    const message = createBaseBotHistoryShareMetadata();
+    message.participantsMetadata =
+      object.participantsMetadata?.map((e) => BotGroupParticipantMetadata.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
 function createBaseBotImagineMetadata(): BotImagineMetadata {
   return {};
 }
@@ -12826,6 +13244,9 @@ export const BotMetadata: MessageFns<BotMetadata> = {
     if (message.pttPromptMetadata !== undefined) {
       BotPttPromptMetadata.encode(message.pttPromptMetadata, writer.uint32(338).fork()).join();
     }
+    if (message.botHistoryShareMetadata !== undefined) {
+      BotHistoryShareMetadata.encode(message.botHistoryShareMetadata, writer.uint32(346).fork()).join();
+    }
     if (message.internalMetadata !== undefined) {
       writer.uint32(7994).bytes(message.internalMetadata);
     }
@@ -13167,6 +13588,14 @@ export const BotMetadata: MessageFns<BotMetadata> = {
           message.pttPromptMetadata = BotPttPromptMetadata.decode(reader, reader.uint32(), message.pttPromptMetadata);
           continue;
         }
+        case 43: {
+          if (tag !== 346) {
+            break;
+          }
+
+          message.botHistoryShareMetadata = BotHistoryShareMetadata.decode(reader, reader.uint32(), message.botHistoryShareMetadata);
+          continue;
+        }
         case 999: {
           if (tag !== 7994) {
             break;
@@ -13315,6 +13744,10 @@ export const BotMetadata: MessageFns<BotMetadata> = {
     message.pttPromptMetadata = (object.pttPromptMetadata !== undefined && object.pttPromptMetadata !== null)
       ? BotPttPromptMetadata.fromPartial(object.pttPromptMetadata)
       : undefined;
+    message.botHistoryShareMetadata =
+      (object.botHistoryShareMetadata !== undefined && object.botHistoryShareMetadata !== null)
+        ? BotHistoryShareMetadata.fromPartial(object.botHistoryShareMetadata)
+        : undefined;
     message.internalMetadata = object.internalMetadata ?? undefined;
     return message;
   },
@@ -15049,6 +15482,11 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
         writer.uint32(34).bytes(v!);
       }
     }
+    if (message.certificateChainSki !== undefined && message.certificateChainSki.length !== 0) {
+      for (const v of message.certificateChainSki) {
+        BotSignatureVerificationUseCaseProof_CertificateSKI.encode(v!, writer.uint32(42).fork()).join();
+      }
+    }
     return writer;
   },
 
@@ -15097,6 +15535,20 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
           }
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          if (message.certificateChainSki === undefined) {
+            message.certificateChainSki = [];
+          }
+          const el = BotSignatureVerificationUseCaseProof_CertificateSKI.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.certificateChainSki!.push(el);
+          }
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -15115,6 +15567,76 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
     message.useCase = object.useCase ?? undefined;
     message.signature = object.signature ?? undefined;
     message.certificateChain = object.certificateChain?.map((e) => e) || undefined;
+    message.certificateChainSki =
+      object.certificateChainSki?.map((e) => BotSignatureVerificationUseCaseProof_CertificateSKI.fromPartial(e)) ||
+      undefined;
+    return message;
+  },
+};
+
+function createBaseBotSignatureVerificationUseCaseProof_CertificateSKI(): BotSignatureVerificationUseCaseProof_CertificateSKI {
+  return {};
+}
+
+export const BotSignatureVerificationUseCaseProof_CertificateSKI: MessageFns<
+  BotSignatureVerificationUseCaseProof_CertificateSKI
+> = {
+  encode(
+    message: BotSignatureVerificationUseCaseProof_CertificateSKI,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.useCase !== undefined) {
+      writer.uint32(8).int32(message.useCase);
+    }
+    if (message.ski !== undefined) {
+      writer.uint32(18).bytes(message.ski);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BotSignatureVerificationUseCaseProof_CertificateSKI): BotSignatureVerificationUseCaseProof_CertificateSKI {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseBotSignatureVerificationUseCaseProof_CertificateSKI();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.useCase = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.ski = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<BotSignatureVerificationUseCaseProof_CertificateSKI>,
+  ): BotSignatureVerificationUseCaseProof_CertificateSKI {
+    return BotSignatureVerificationUseCaseProof_CertificateSKI.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<BotSignatureVerificationUseCaseProof_CertificateSKI>,
+  ): BotSignatureVerificationUseCaseProof_CertificateSKI {
+    const message = createBaseBotSignatureVerificationUseCaseProof_CertificateSKI();
+    message.useCase = object.useCase ?? undefined;
+    message.ski = object.ski ?? undefined;
     return message;
   },
 };
@@ -18126,6 +18648,213 @@ export const ClientPayload_WebInfo_WebdPayload: MessageFns<ClientPayload_WebInfo
     message.supportsE2EDocument = object.supportsE2EDocument ?? undefined;
     message.documentTypes = object.documentTypes ?? undefined;
     message.features = object.features ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCoexStateSync(): CoexStateSync {
+  return {};
+}
+
+export const CoexStateSync: MessageFns<CoexStateSync> = {
+  encode(message: CoexStateSync, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.collectionMutations !== undefined && message.collectionMutations.length !== 0) {
+      for (const v of message.collectionMutations) {
+        CoexStateSync_CollectionMutations.encode(v!, writer.uint32(10).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CoexStateSync): CoexStateSync {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseCoexStateSync();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.collectionMutations === undefined) {
+            message.collectionMutations = [];
+          }
+          const el = CoexStateSync_CollectionMutations.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.collectionMutations!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<CoexStateSync>): CoexStateSync {
+    return CoexStateSync.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CoexStateSync>): CoexStateSync {
+    const message = createBaseCoexStateSync();
+    message.collectionMutations =
+      object.collectionMutations?.map((e) => CoexStateSync_CollectionMutations.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseCoexStateSync_CollectionMutations(): CoexStateSync_CollectionMutations {
+  return {};
+}
+
+export const CoexStateSync_CollectionMutations: MessageFns<CoexStateSync_CollectionMutations> = {
+  encode(message: CoexStateSync_CollectionMutations, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.collection !== undefined) {
+      writer.uint32(10).string(message.collection);
+    }
+    if (message.mutations !== undefined && message.mutations.length !== 0) {
+      for (const v of message.mutations) {
+        CoexStateSync_Mutation.encode(v!, writer.uint32(18).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CoexStateSync_CollectionMutations): CoexStateSync_CollectionMutations {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseCoexStateSync_CollectionMutations();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.collection = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          if (message.mutations === undefined) {
+            message.mutations = [];
+          }
+          const el = CoexStateSync_Mutation.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.mutations!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<CoexStateSync_CollectionMutations>): CoexStateSync_CollectionMutations {
+    return CoexStateSync_CollectionMutations.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CoexStateSync_CollectionMutations>): CoexStateSync_CollectionMutations {
+    const message = createBaseCoexStateSync_CollectionMutations();
+    message.collection = object.collection ?? undefined;
+    message.mutations = object.mutations?.map((e) => CoexStateSync_Mutation.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseCoexStateSync_Mutation(): CoexStateSync_Mutation {
+  return {};
+}
+
+export const CoexStateSync_Mutation: MessageFns<CoexStateSync_Mutation> = {
+  encode(message: CoexStateSync_Mutation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.index !== undefined) {
+      SyncdIndex.encode(message.index, writer.uint32(10).fork()).join();
+    }
+    if (message.value !== undefined) {
+      SyncdValue.encode(message.value, writer.uint32(18).fork()).join();
+    }
+    if (message.dirtyVersion !== undefined) {
+      writer.uint32(24).uint64(message.dirtyVersion);
+    }
+    if (message.operation !== undefined) {
+      writer.uint32(32).int32(message.operation);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: CoexStateSync_Mutation): CoexStateSync_Mutation {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseCoexStateSync_Mutation();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.index = SyncdIndex.decode(reader, reader.uint32(), message.index);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = SyncdValue.decode(reader, reader.uint32(), message.value);
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.dirtyVersion = reader.uint64Value();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.operation = reader.int32() as any;
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<CoexStateSync_Mutation>): CoexStateSync_Mutation {
+    return CoexStateSync_Mutation.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<CoexStateSync_Mutation>): CoexStateSync_Mutation {
+    const message = createBaseCoexStateSync_Mutation();
+    message.index = (object.index !== undefined && object.index !== null)
+      ? SyncdIndex.fromPartial(object.index)
+      : undefined;
+    message.value = (object.value !== undefined && object.value !== null)
+      ? SyncdValue.fromPartial(object.value)
+      : undefined;
+    message.dirtyVersion = object.dirtyVersion ?? undefined;
+    message.operation = object.operation ?? undefined;
     return message;
   },
 };
@@ -21234,6 +21963,12 @@ export const ContextInfo: MessageFns<ContextInfo> = {
     if (message.posterStatusId !== undefined) {
       writer.uint32(634).string(message.posterStatusId);
     }
+    if (message.instagramThreadLink !== undefined) {
+      ContextInfo_InstagramThreadLink.encode(message.instagramThreadLink, writer.uint32(642).fork()).join();
+    }
+    if (message.aiProvenance !== undefined) {
+      AIProvenance.encode(message.aiProvenance, writer.uint32(650).fork()).join();
+    }
     return writer;
   },
 
@@ -21758,6 +22493,22 @@ export const ContextInfo: MessageFns<ContextInfo> = {
           message.posterStatusId = reader.string();
           continue;
         }
+        case 80: {
+          if (tag !== 642) {
+            break;
+          }
+
+          message.instagramThreadLink = ContextInfo_InstagramThreadLink.decode(reader, reader.uint32(), message.instagramThreadLink);
+          continue;
+        }
+        case 81: {
+          if (tag !== 650) {
+            break;
+          }
+
+          message.aiProvenance = AIProvenance.decode(reader, reader.uint32(), message.aiProvenance);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -21882,6 +22633,12 @@ export const ContextInfo: MessageFns<ContextInfo> = {
         ? ContextInfo_BusinessInteractionPills.fromPartial(object.businessInteractionPills)
         : undefined;
     message.posterStatusId = object.posterStatusId ?? undefined;
+    message.instagramThreadLink = (object.instagramThreadLink !== undefined && object.instagramThreadLink !== null)
+      ? ContextInfo_InstagramThreadLink.fromPartial(object.instagramThreadLink)
+      : undefined;
+    message.aiProvenance = (object.aiProvenance !== undefined && object.aiProvenance !== null)
+      ? AIProvenance.fromPartial(object.aiProvenance)
+      : undefined;
     return message;
   },
 };
@@ -21991,6 +22748,12 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
     if (message.signatureEnvelope !== undefined) {
       BotSignatureVerificationMetadata.encode(message.signatureEnvelope, writer.uint32(42).fork()).join();
     }
+    if (message.unauthenticatedBusinessMetadata !== undefined) {
+      ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata.encode(
+        message.unauthenticatedBusinessMetadata,
+        writer.uint32(50).fork(),
+      ).join();
+    }
     return writer;
   },
 
@@ -22047,6 +22810,15 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
           message.signatureEnvelope = BotSignatureVerificationMetadata.decode(reader, reader.uint32(), message.signatureEnvelope);
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.unauthenticatedBusinessMetadata = ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata
+            .decode(reader, reader.uint32(), message.unauthenticatedBusinessMetadata);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -22068,6 +22840,12 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
     message.signatureEnvelope = (object.signatureEnvelope !== undefined && object.signatureEnvelope !== null)
       ? BotSignatureVerificationMetadata.fromPartial(object.signatureEnvelope)
       : undefined;
+    message.unauthenticatedBusinessMetadata =
+      (object.unauthenticatedBusinessMetadata !== undefined && object.unauthenticatedBusinessMetadata !== null)
+        ? ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata.fromPartial(
+          object.unauthenticatedBusinessMetadata,
+        )
+        : undefined;
     return message;
   },
 };
@@ -22203,6 +22981,97 @@ export const ContextInfo_BusinessInteractionPills_SignedPayload: MessageFns<
     const message = createBaseContextInfo_BusinessInteractionPills_SignedPayload();
     message.verifiedName = object.verifiedName ?? undefined;
     message.pills = object.pills?.map((e) => ContextInfo_BusinessInteractionPills_Pill.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata(): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
+  return {};
+}
+
+export const ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata: MessageFns<
+  ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata
+> = {
+  encode(
+    message: ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.businessName !== undefined) {
+      writer.uint32(10).string(message.businessName);
+    }
+    if (message.businessCategory !== undefined) {
+      writer.uint32(18).string(message.businessCategory);
+    }
+    if (message.businessIsOpen !== undefined) {
+      writer.uint32(24).bool(message.businessIsOpen);
+    }
+    if (message.businessIsOpenSnapshotMs !== undefined) {
+      writer.uint32(32).int64(message.businessIsOpenSnapshotMs);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.businessName = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.businessCategory = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.businessIsOpen = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.businessIsOpenSnapshotMs = reader.int64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata>,
+  ): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
+    return ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata>,
+  ): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
+    const message = createBaseContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata();
+    message.businessName = object.businessName ?? undefined;
+    message.businessCategory = object.businessCategory ?? undefined;
+    message.businessIsOpen = object.businessIsOpen ?? undefined;
+    message.businessIsOpenSnapshotMs = object.businessIsOpenSnapshotMs ?? undefined;
     return message;
   },
 };
@@ -23062,6 +23931,52 @@ export const ContextInfo_ForwardedNewsletterMessageInfo: MessageFns<ContextInfo_
   },
 };
 
+function createBaseContextInfo_InstagramThreadLink(): ContextInfo_InstagramThreadLink {
+  return {};
+}
+
+export const ContextInfo_InstagramThreadLink: MessageFns<ContextInfo_InstagramThreadLink> = {
+  encode(message: ContextInfo_InstagramThreadLink, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.url !== undefined) {
+      writer.uint32(10).string(message.url);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ContextInfo_InstagramThreadLink): ContextInfo_InstagramThreadLink {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseContextInfo_InstagramThreadLink();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.url = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<ContextInfo_InstagramThreadLink>): ContextInfo_InstagramThreadLink {
+    return ContextInfo_InstagramThreadLink.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ContextInfo_InstagramThreadLink>): ContextInfo_InstagramThreadLink {
+    const message = createBaseContextInfo_InstagramThreadLink();
+    message.url = object.url ?? undefined;
+    return message;
+  },
+};
+
 function createBaseContextInfo_PartiallySelectedContent(): ContextInfo_PartiallySelectedContent {
   return {};
 }
@@ -23505,6 +24420,9 @@ export const Conversation: MessageFns<Conversation> = {
     }
     if (message.authAgentObaPhoneNumber !== undefined) {
       writer.uint32(498).string(message.authAgentObaPhoneNumber);
+    }
+    if (message.identityVerification !== undefined) {
+      IdentityVerificationState.encode(message.identityVerification, writer.uint32(506).fork()).join();
     }
     return writer;
   },
@@ -24024,6 +24942,14 @@ export const Conversation: MessageFns<Conversation> = {
           message.authAgentObaPhoneNumber = reader.string();
           continue;
         }
+        case 63: {
+          if (tag !== 506) {
+            break;
+          }
+
+          message.identityVerification = IdentityVerificationState.decode(reader, reader.uint32(), message.identityVerification);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -24104,6 +25030,9 @@ export const Conversation: MessageFns<Conversation> = {
     message.appealUpdateTime = object.appealUpdateTime ?? undefined;
     message.authAgentParentCompanyName = object.authAgentParentCompanyName ?? undefined;
     message.authAgentObaPhoneNumber = object.authAgentObaPhoneNumber ?? undefined;
+    message.identityVerification = (object.identityVerification !== undefined && object.identityVerification !== null)
+      ? IdentityVerificationState.fromPartial(object.identityVerification)
+      : undefined;
     return message;
   },
 };
@@ -24418,6 +25347,134 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
   },
 };
 
+function createBaseDeriveMessageKeyInput(): DeriveMessageKeyInput {
+  return {};
+}
+
+export const DeriveMessageKeyInput: MessageFns<DeriveMessageKeyInput> = {
+  encode(message: DeriveMessageKeyInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochRootKey !== undefined) {
+      writer.uint32(10).bytes(message.epochRootKey);
+    }
+    if (message.epochAnonId !== undefined) {
+      writer.uint32(18).bytes(message.epochAnonId);
+    }
+    if (message.threadId !== undefined) {
+      writer.uint32(26).string(message.threadId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMessageKeyInput): DeriveMessageKeyInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMessageKeyInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.epochAnonId = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.threadId = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMessageKeyInput>): DeriveMessageKeyInput {
+    return DeriveMessageKeyInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMessageKeyInput>): DeriveMessageKeyInput {
+    const message = createBaseDeriveMessageKeyInput();
+    message.epochRootKey = object.epochRootKey ?? undefined;
+    message.epochAnonId = object.epochAnonId ?? undefined;
+    message.threadId = object.threadId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMessageKeyOutput(): DeriveMessageKeyOutput {
+  return {};
+}
+
+export const DeriveMessageKeyOutput: MessageFns<DeriveMessageKeyOutput> = {
+  encode(message: DeriveMessageKeyOutput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.messageKey !== undefined) {
+      writer.uint32(10).bytes(message.messageKey);
+    }
+    if (message.error !== undefined) {
+      writer.uint32(18).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMessageKeyOutput): DeriveMessageKeyOutput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMessageKeyOutput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.messageKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMessageKeyOutput>): DeriveMessageKeyOutput {
+    return DeriveMessageKeyOutput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMessageKeyOutput>): DeriveMessageKeyOutput {
+    const message = createBaseDeriveMessageKeyOutput();
+    message.messageKey = object.messageKey ?? undefined;
+    message.error = object.error ?? undefined;
+    return message;
+  },
+};
+
 function createBaseDeviceCapabilities(): DeviceCapabilities {
   return {};
 }
@@ -24441,6 +25498,9 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
     }
     if (message.aiThread !== undefined) {
       DeviceCapabilities_AiThread.encode(message.aiThread, writer.uint32(50).fork()).join();
+    }
+    if (message.aiFbidMigration !== undefined) {
+      DeviceCapabilities_AiFbidMigration.encode(message.aiFbidMigration, writer.uint32(58).fork()).join();
     }
     return writer;
   },
@@ -24500,6 +25560,14 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
           message.aiThread = DeviceCapabilities_AiThread.decode(reader, reader.uint32(), message.aiThread);
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.aiFbidMigration = DeviceCapabilities_AiFbidMigration.decode(reader, reader.uint32(), message.aiFbidMigration);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -24528,6 +25596,55 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
     message.aiThread = (object.aiThread !== undefined && object.aiThread !== null)
       ? DeviceCapabilities_AiThread.fromPartial(object.aiThread)
       : undefined;
+    message.aiFbidMigration = (object.aiFbidMigration !== undefined && object.aiFbidMigration !== null)
+      ? DeviceCapabilities_AiFbidMigration.fromPartial(object.aiFbidMigration)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDeviceCapabilities_AiFbidMigration(): DeviceCapabilities_AiFbidMigration {
+  return {};
+}
+
+export const DeviceCapabilities_AiFbidMigration: MessageFns<DeviceCapabilities_AiFbidMigration> = {
+  encode(message: DeviceCapabilities_AiFbidMigration, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chatDbMigrationTimestamp !== undefined) {
+      writer.uint32(8).uint64(message.chatDbMigrationTimestamp);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_AiFbidMigration): DeviceCapabilities_AiFbidMigration {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeviceCapabilities_AiFbidMigration();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.chatDbMigrationTimestamp = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeviceCapabilities_AiFbidMigration>): DeviceCapabilities_AiFbidMigration {
+    return DeviceCapabilities_AiFbidMigration.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeviceCapabilities_AiFbidMigration>): DeviceCapabilities_AiFbidMigration {
+    const message = createBaseDeviceCapabilities_AiFbidMigration();
+    message.chatDbMigrationTimestamp = object.chatDbMigrationTimestamp ?? undefined;
     return message;
   },
 };
@@ -25424,6 +26541,9 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
     if (message.supportInlineContacts !== undefined) {
       writer.uint32(192).bool(message.supportInlineContacts);
     }
+    if (message.supportNewsletter !== undefined) {
+      writer.uint32(200).bool(message.supportNewsletter);
+    }
     return writer;
   },
 
@@ -25632,6 +26752,14 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
           message.supportInlineContacts = reader.bool();
           continue;
         }
+        case 25: {
+          if (tag !== 200) {
+            break;
+          }
+
+          message.supportNewsletter = reader.bool();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -25670,6 +26798,7 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
     message.supportHatchHistory = object.supportHatchHistory ?? undefined;
     message.supportedBotChannelFbids = object.supportedBotChannelFbids?.map((e) => e) || undefined;
     message.supportInlineContacts = object.supportInlineContacts ?? undefined;
+    message.supportNewsletter = object.supportNewsletter ?? undefined;
     return message;
   },
 };
@@ -26267,9 +27396,6 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
     if (message.timestampMs !== undefined) {
       writer.uint32(40).uint64(message.timestampMs);
     }
-    if (message.messageKey !== undefined) {
-      writer.uint32(50).bytes(message.messageKey);
-    }
     if (message.error !== undefined) {
       writer.uint32(58).string(message.error);
     }
@@ -26323,14 +27449,6 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
           message.timestampMs = reader.uint64Value();
           continue;
         }
-        case 6: {
-          if (tag !== 50) {
-            break;
-          }
-
-          message.messageKey = reader.bytes();
-          continue;
-        }
         case 7: {
           if (tag !== 58) {
             break;
@@ -26358,7 +27476,6 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
     message.valueSecretRef = object.valueSecretRef ?? undefined;
     message.offlineThreadingId = object.offlineThreadingId ?? undefined;
     message.timestampMs = object.timestampMs ?? undefined;
-    message.messageKey = object.messageKey ?? undefined;
     message.error = object.error ?? undefined;
     return message;
   },
@@ -29549,6 +30666,64 @@ export const IdentityKeyPairStructure: MessageFns<IdentityKeyPairStructure> = {
   },
 };
 
+function createBaseIdentityVerificationState(): IdentityVerificationState {
+  return {};
+}
+
+export const IdentityVerificationState: MessageFns<IdentityVerificationState> = {
+  encode(message: IdentityVerificationState, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.verified !== undefined) {
+      writer.uint32(8).bool(message.verified);
+    }
+    if (message.actionSeq !== undefined) {
+      writer.uint32(16).uint64(message.actionSeq);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: IdentityVerificationState): IdentityVerificationState {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseIdentityVerificationState();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.verified = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.actionSeq = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<IdentityVerificationState>): IdentityVerificationState {
+    return IdentityVerificationState.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<IdentityVerificationState>): IdentityVerificationState {
+    const message = createBaseIdentityVerificationState();
+    message.verified = object.verified ?? undefined;
+    message.actionSeq = object.actionSeq ?? undefined;
+    return message;
+  },
+};
+
 function createBaseInThreadSurveyMetadata(): InThreadSurveyMetadata {
   return {};
 }
@@ -30780,6 +31955,12 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
     if (message.orfThreadIdInput !== undefined) {
       OrfThreadIdInput.encode(message.orfThreadIdInput, writer.uint32(34).fork()).join();
     }
+    if (message.deriveMessageKeyInput !== undefined) {
+      DeriveMessageKeyInput.encode(message.deriveMessageKeyInput, writer.uint32(42).fork()).join();
+    }
+    if (message.rotateEpochInput !== undefined) {
+      RotateEpochInput.encode(message.rotateEpochInput, writer.uint32(50).fork()).join();
+    }
     return writer;
   },
 
@@ -30822,6 +32003,22 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
           message.orfThreadIdInput = OrfThreadIdInput.decode(reader, reader.uint32(), message.orfThreadIdInput);
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.deriveMessageKeyInput = DeriveMessageKeyInput.decode(reader, reader.uint32(), message.deriveMessageKeyInput);
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.rotateEpochInput = RotateEpochInput.decode(reader, reader.uint32(), message.rotateEpochInput);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -30847,6 +32044,13 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
       : undefined;
     message.orfThreadIdInput = (object.orfThreadIdInput !== undefined && object.orfThreadIdInput !== null)
       ? OrfThreadIdInput.fromPartial(object.orfThreadIdInput)
+      : undefined;
+    message.deriveMessageKeyInput =
+      (object.deriveMessageKeyInput !== undefined && object.deriveMessageKeyInput !== null)
+        ? DeriveMessageKeyInput.fromPartial(object.deriveMessageKeyInput)
+        : undefined;
+    message.rotateEpochInput = (object.rotateEpochInput !== undefined && object.rotateEpochInput !== null)
+      ? RotateEpochInput.fromPartial(object.rotateEpochInput)
       : undefined;
     return message;
   },
@@ -32297,6 +33501,19 @@ export const Message: MessageFns<Message> = {
       Message_RootSecretDistributeMessage.encode(message.rootSecretDistributeMessage, writer.uint32(1018).fork())
         .join();
     }
+    if (message.splitPaymentUpdateMessage !== undefined) {
+      Message_SplitPaymentUpdateMessage.encode(message.splitPaymentUpdateMessage, writer.uint32(1026).fork()).join();
+    }
+    if (message.musicMessage !== undefined) {
+      Message_MusicMessage.encode(message.musicMessage, writer.uint32(1034).fork()).join();
+    }
+    if (message.statusLinkPreviewMetadata !== undefined) {
+      Message_StatusLinkPreviewMetadata.encode(message.statusLinkPreviewMetadata, writer.uint32(1042).fork()).join();
+    }
+    if (message.botPlatformRegistrationSuccessMessage !== undefined) {
+      Message_FutureProofMessage.encode(message.botPlatformRegistrationSuccessMessage, writer.uint32(1050).fork())
+        .join();
+    }
     return writer;
   },
 
@@ -33163,6 +34380,38 @@ export const Message: MessageFns<Message> = {
           message.rootSecretDistributeMessage = Message_RootSecretDistributeMessage.decode(reader, reader.uint32(), message.rootSecretDistributeMessage);
           continue;
         }
+        case 128: {
+          if (tag !== 1026) {
+            break;
+          }
+
+          message.splitPaymentUpdateMessage = Message_SplitPaymentUpdateMessage.decode(reader, reader.uint32(), message.splitPaymentUpdateMessage);
+          continue;
+        }
+        case 129: {
+          if (tag !== 1034) {
+            break;
+          }
+
+          message.musicMessage = Message_MusicMessage.decode(reader, reader.uint32(), message.musicMessage);
+          continue;
+        }
+        case 130: {
+          if (tag !== 1042) {
+            break;
+          }
+
+          message.statusLinkPreviewMetadata = Message_StatusLinkPreviewMetadata.decode(reader, reader.uint32(), message.statusLinkPreviewMetadata);
+          continue;
+        }
+        case 131: {
+          if (tag !== 1050) {
+            break;
+          }
+
+          message.botPlatformRegistrationSuccessMessage = Message_FutureProofMessage.decode(reader, reader.uint32(), message.botPlatformRegistrationSuccessMessage);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -33536,6 +34785,22 @@ export const Message: MessageFns<Message> = {
     message.rootSecretDistributeMessage =
       (object.rootSecretDistributeMessage !== undefined && object.rootSecretDistributeMessage !== null)
         ? Message_RootSecretDistributeMessage.fromPartial(object.rootSecretDistributeMessage)
+        : undefined;
+    message.splitPaymentUpdateMessage =
+      (object.splitPaymentUpdateMessage !== undefined && object.splitPaymentUpdateMessage !== null)
+        ? Message_SplitPaymentUpdateMessage.fromPartial(object.splitPaymentUpdateMessage)
+        : undefined;
+    message.musicMessage = (object.musicMessage !== undefined && object.musicMessage !== null)
+      ? Message_MusicMessage.fromPartial(object.musicMessage)
+      : undefined;
+    message.statusLinkPreviewMetadata =
+      (object.statusLinkPreviewMetadata !== undefined && object.statusLinkPreviewMetadata !== null)
+        ? Message_StatusLinkPreviewMetadata.fromPartial(object.statusLinkPreviewMetadata)
+        : undefined;
+    message.botPlatformRegistrationSuccessMessage =
+      (object.botPlatformRegistrationSuccessMessage !== undefined &&
+          object.botPlatformRegistrationSuccessMessage !== null)
+        ? Message_FutureProofMessage.fromPartial(object.botPlatformRegistrationSuccessMessage)
         : undefined;
     return message;
   },
@@ -34369,6 +35634,85 @@ export const Message_BCallMessage: MessageFns<Message_BCallMessage> = {
   },
 };
 
+function createBaseMessage_BotHistoryShareSyncMetadata(): Message_BotHistoryShareSyncMetadata {
+  return {};
+}
+
+export const Message_BotHistoryShareSyncMetadata: MessageFns<Message_BotHistoryShareSyncMetadata> = {
+  encode(message: Message_BotHistoryShareSyncMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.botJid !== undefined) {
+      writer.uint32(10).string(message.botJid);
+    }
+    if (message.historyShareCutoffTimestamp !== undefined) {
+      writer.uint32(16).int64(message.historyShareCutoffTimestamp);
+    }
+    if (message.historyShareMessages !== undefined && message.historyShareMessages.length !== 0) {
+      for (const v of message.historyShareMessages) {
+        Message_HistoryShareMessageEntry.encode(v!, writer.uint32(26).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_BotHistoryShareSyncMetadata): Message_BotHistoryShareSyncMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_BotHistoryShareSyncMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.botJid = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.historyShareCutoffTimestamp = reader.int64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          if (message.historyShareMessages === undefined) {
+            message.historyShareMessages = [];
+          }
+          const el = Message_HistoryShareMessageEntry.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.historyShareMessages!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_BotHistoryShareSyncMetadata>): Message_BotHistoryShareSyncMetadata {
+    return Message_BotHistoryShareSyncMetadata.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_BotHistoryShareSyncMetadata>): Message_BotHistoryShareSyncMetadata {
+    const message = createBaseMessage_BotHistoryShareSyncMetadata();
+    message.botJid = object.botJid ?? undefined;
+    message.historyShareCutoffTimestamp = object.historyShareCutoffTimestamp ?? undefined;
+    message.historyShareMessages =
+      object.historyShareMessages?.map((e) => Message_HistoryShareMessageEntry.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
 function createBaseMessage_ButtonsMessage(): Message_ButtonsMessage {
   return {};
 }
@@ -34861,6 +36205,9 @@ export const Message_Call: MessageFns<Message_Call> = {
     if (message.callEntryPoint !== undefined) {
       writer.uint32(88).uint32(message.callEntryPoint);
     }
+    if (message.callReason !== undefined) {
+      writer.uint32(98).string(message.callReason);
+    }
     return writer;
   },
 
@@ -34959,6 +36306,14 @@ export const Message_Call: MessageFns<Message_Call> = {
           message.callEntryPoint = reader.uint32();
           continue;
         }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.callReason = reader.string();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -34988,6 +36343,7 @@ export const Message_Call: MessageFns<Message_Call> = {
       ? MessageContextInfo.fromPartial(object.messageContextInfo)
       : undefined;
     message.callEntryPoint = object.callEntryPoint ?? undefined;
+    message.callReason = object.callReason ?? undefined;
     return message;
   },
 };
@@ -37242,8 +38598,8 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
     if (message.videoWidth !== undefined) {
       writer.uint32(256).uint32(message.videoWidth);
     }
-    if (message.faviconMMSMetadata !== undefined) {
-      Message_MMSThumbnailMetadata.encode(message.faviconMMSMetadata, writer.uint32(266).fork()).join();
+    if (message.faviconMmsMetadata !== undefined) {
+      Message_MMSThumbnailMetadata.encode(message.faviconMmsMetadata, writer.uint32(266).fork()).join();
     }
     if (message.linkPreviewMetadata !== undefined) {
       Message_LinkPreviewMetadata.encode(message.linkPreviewMetadata, writer.uint32(274).fork()).join();
@@ -37480,7 +38836,7 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
             break;
           }
 
-          message.faviconMMSMetadata = Message_MMSThumbnailMetadata.decode(reader, reader.uint32(), message.faviconMMSMetadata);
+          message.faviconMmsMetadata = Message_MMSThumbnailMetadata.decode(reader, reader.uint32(), message.faviconMmsMetadata);
           continue;
         }
         case 34: {
@@ -37578,8 +38934,8 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
     message.viewOnce = object.viewOnce ?? undefined;
     message.videoHeight = object.videoHeight ?? undefined;
     message.videoWidth = object.videoWidth ?? undefined;
-    message.faviconMMSMetadata = (object.faviconMMSMetadata !== undefined && object.faviconMMSMetadata !== null)
-      ? Message_MMSThumbnailMetadata.fromPartial(object.faviconMMSMetadata)
+    message.faviconMmsMetadata = (object.faviconMmsMetadata !== undefined && object.faviconMmsMetadata !== null)
+      ? Message_MMSThumbnailMetadata.fromPartial(object.faviconMmsMetadata)
       : undefined;
     message.linkPreviewMetadata = (object.linkPreviewMetadata !== undefined && object.linkPreviewMetadata !== null)
       ? Message_LinkPreviewMetadata.fromPartial(object.linkPreviewMetadata)
@@ -38504,6 +39860,64 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
     const message =
       createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch();
     message.timestamp = object.timestamp ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMessage_HistoryShareMessageEntry(): Message_HistoryShareMessageEntry {
+  return {};
+}
+
+export const Message_HistoryShareMessageEntry: MessageFns<Message_HistoryShareMessageEntry> = {
+  encode(message: Message_HistoryShareMessageEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.stanzaId !== undefined) {
+      writer.uint32(10).string(message.stanzaId);
+    }
+    if (message.messageSecretProof !== undefined) {
+      writer.uint32(18).bytes(message.messageSecretProof);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_HistoryShareMessageEntry): Message_HistoryShareMessageEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_HistoryShareMessageEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.stanzaId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.messageSecretProof = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_HistoryShareMessageEntry>): Message_HistoryShareMessageEntry {
+    return Message_HistoryShareMessageEntry.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_HistoryShareMessageEntry>): Message_HistoryShareMessageEntry {
+    const message = createBaseMessage_HistoryShareMessageEntry();
+    message.stanzaId = object.stanzaId ?? undefined;
+    message.messageSecretProof = object.messageSecretProof ?? undefined;
     return message;
   },
 };
@@ -41911,6 +43325,88 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
   },
 };
 
+function createBaseMessage_MarkAsVerifiedAction(): Message_MarkAsVerifiedAction {
+  return {};
+}
+
+export const Message_MarkAsVerifiedAction: MessageFns<Message_MarkAsVerifiedAction> = {
+  encode(message: Message_MarkAsVerifiedAction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userJidString !== undefined) {
+      writer.uint32(10).string(message.userJidString);
+    }
+    if (message.verified !== undefined) {
+      writer.uint32(16).bool(message.verified);
+    }
+    if (message.verifiedIdentityKey !== undefined) {
+      writer.uint32(26).bytes(message.verifiedIdentityKey);
+    }
+    if (message.actionSeq !== undefined) {
+      writer.uint32(32).uint64(message.actionSeq);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MarkAsVerifiedAction): Message_MarkAsVerifiedAction {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_MarkAsVerifiedAction();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userJidString = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.verified = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.verifiedIdentityKey = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.actionSeq = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_MarkAsVerifiedAction>): Message_MarkAsVerifiedAction {
+    return Message_MarkAsVerifiedAction.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_MarkAsVerifiedAction>): Message_MarkAsVerifiedAction {
+    const message = createBaseMessage_MarkAsVerifiedAction();
+    message.userJidString = object.userJidString ?? undefined;
+    message.verified = object.verified ?? undefined;
+    message.verifiedIdentityKey = object.verifiedIdentityKey ?? undefined;
+    message.actionSeq = object.actionSeq ?? undefined;
+    return message;
+  },
+};
+
 function createBaseMessage_MessageHistoryBundle(): Message_MessageHistoryBundle {
   return {};
 }
@@ -42168,6 +43664,9 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
     if (message.messageHistoryMetadata !== undefined) {
       Message_MessageHistoryMetadata.encode(message.messageHistoryMetadata, writer.uint32(18).fork()).join();
     }
+    if (message.botHistoryShareSyncMetadata !== undefined) {
+      Message_BotHistoryShareSyncMetadata.encode(message.botHistoryShareSyncMetadata, writer.uint32(26).fork()).join();
+    }
     return writer;
   },
 
@@ -42194,6 +43693,14 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
           message.messageHistoryMetadata = Message_MessageHistoryMetadata.decode(reader, reader.uint32(), message.messageHistoryMetadata);
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.botHistoryShareSyncMetadata = Message_BotHistoryShareSyncMetadata.decode(reader, reader.uint32(), message.botHistoryShareSyncMetadata);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -42215,6 +43722,108 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
       (object.messageHistoryMetadata !== undefined && object.messageHistoryMetadata !== null)
         ? Message_MessageHistoryMetadata.fromPartial(object.messageHistoryMetadata)
         : undefined;
+    message.botHistoryShareSyncMetadata =
+      (object.botHistoryShareSyncMetadata !== undefined && object.botHistoryShareSyncMetadata !== null)
+        ? Message_BotHistoryShareSyncMetadata.fromPartial(object.botHistoryShareSyncMetadata)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseMessage_MusicMessage(): Message_MusicMessage {
+  return {};
+}
+
+export const Message_MusicMessage: MessageFns<Message_MusicMessage> = {
+  encode(message: Message_MusicMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.embeddedMusic !== undefined) {
+      EmbeddedMusic.encode(message.embeddedMusic, writer.uint32(10).fork()).join();
+    }
+    if (message.songUri !== undefined) {
+      writer.uint32(18).string(message.songUri);
+    }
+    if (message.artworkUri !== undefined) {
+      writer.uint32(26).string(message.artworkUri);
+    }
+    if (message.style !== undefined) {
+      writer.uint32(32).int32(message.style);
+    }
+    if (message.contextInfo !== undefined) {
+      ContextInfo.encode(message.contextInfo, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_MusicMessage): Message_MusicMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_MusicMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.embeddedMusic = EmbeddedMusic.decode(reader, reader.uint32(), message.embeddedMusic);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.songUri = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.artworkUri = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.style = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.contextInfo = ContextInfo.decode(reader, reader.uint32(), message.contextInfo);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_MusicMessage>): Message_MusicMessage {
+    return Message_MusicMessage.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_MusicMessage>): Message_MusicMessage {
+    const message = createBaseMessage_MusicMessage();
+    message.embeddedMusic = (object.embeddedMusic !== undefined && object.embeddedMusic !== null)
+      ? EmbeddedMusic.fromPartial(object.embeddedMusic)
+      : undefined;
+    message.songUri = object.songUri ?? undefined;
+    message.artworkUri = object.artworkUri ?? undefined;
+    message.style = object.style ?? undefined;
+    message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
+      ? ContextInfo.fromPartial(object.contextInfo)
+      : undefined;
     return message;
   },
 };
@@ -42654,6 +44263,9 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
     if (message.platform !== undefined) {
       writer.uint32(18).string(message.platform);
     }
+    if (message.messageParamsJson !== undefined) {
+      writer.uint32(26).string(message.messageParamsJson);
+    }
     return writer;
   },
 
@@ -42680,6 +44292,14 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
           message.platform = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.messageParamsJson = reader.string();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -42696,6 +44316,7 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
     const message = createBaseMessage_PaymentExtendedMetadata();
     message.type = object.type ?? undefined;
     message.platform = object.platform ?? undefined;
+    message.messageParamsJson = object.messageParamsJson ?? undefined;
     return message;
   },
 };
@@ -44445,6 +46066,12 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
         .encode(message.bizBroadcastInsightsContactListResponse, writer.uint32(98).fork()).join();
     }
+    if (message.contactRefreshResponse !== undefined) {
+      Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse.encode(
+        message.contactRefreshResponse,
+        writer.uint32(106).fork(),
+      ).join();
+    }
     return writer;
   },
 
@@ -44568,6 +46195,15 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               .decode(reader, reader.uint32(), message.bizBroadcastInsightsContactListResponse);
           continue;
         }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.contactRefreshResponse =
+            Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse.decode(reader, reader.uint32(), message.contactRefreshResponse);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -44645,6 +46281,12 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           object.bizBroadcastInsightsContactListResponse !== null)
         ? Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
           .fromPartial(object.bizBroadcastInsightsContactListResponse)
+        : undefined;
+    message.contactRefreshResponse =
+      (object.contactRefreshResponse !== undefined && object.contactRefreshResponse !== null)
+        ? Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse.fromPartial(
+          object.contactRefreshResponse,
+        )
         : undefined;
     return message;
   },
@@ -44977,6 +46619,109 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         return message;
       },
     };
+
+function createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse(): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
+  return {};
+}
+
+export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse: MessageFns<
+  Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse
+> = {
+  encode(
+    message: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.coveredRequestIds !== undefined && message.coveredRequestIds.length !== 0) {
+      for (const v of message.coveredRequestIds) {
+        writer.uint32(10).string(v!);
+      }
+    }
+    if (message.collectionVersion !== undefined) {
+      writer.uint32(16).uint64(message.collectionVersion);
+    }
+    if (message.primaryDurationMs !== undefined) {
+      writer.uint32(24).int64(message.primaryDurationMs);
+    }
+    if (message.uniqueContactCount !== undefined) {
+      writer.uint32(32).uint32(message.uniqueContactCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message =
+      into ?? createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.coveredRequestIds === undefined) {
+            message.coveredRequestIds = [];
+          }
+          const el = reader.string();
+          if (el !== undefined) {
+            message.coveredRequestIds!.push(el);
+          }
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.collectionVersion = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.primaryDurationMs = reader.int64Value();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.uniqueContactCount = reader.uint32();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse>,
+  ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
+    return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse.fromPartial(
+      base ?? {},
+    );
+  },
+  fromPartial(
+    object: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse>,
+  ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
+    const message =
+      createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse();
+    message.coveredRequestIds = object.coveredRequestIds?.map((e) => e) || undefined;
+    message.collectionVersion = object.collectionVersion ?? undefined;
+    message.primaryDurationMs = object.primaryDurationMs ?? undefined;
+    message.uniqueContactCount = object.uniqueContactCount ?? undefined;
+    return message;
+  },
+};
 
 function createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle(): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
   return {};
@@ -47256,6 +49001,12 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
     if (message.aiMetadataOperation !== undefined) {
       AIMetadataOperation.encode(message.aiMetadataOperation, writer.uint32(250).fork()).join();
     }
+    if (message.markAsVerifiedAction !== undefined) {
+      Message_MarkAsVerifiedAction.encode(message.markAsVerifiedAction, writer.uint32(258).fork()).join();
+    }
+    if (message.coexStateSync !== undefined) {
+      CoexStateSync.encode(message.coexStateSync, writer.uint32(266).fork()).join();
+    }
     return writer;
   },
 
@@ -47490,6 +49241,22 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
           message.aiMetadataOperation = AIMetadataOperation.decode(reader, reader.uint32(), message.aiMetadataOperation);
           continue;
         }
+        case 32: {
+          if (tag !== 258) {
+            break;
+          }
+
+          message.markAsVerifiedAction = Message_MarkAsVerifiedAction.decode(reader, reader.uint32(), message.markAsVerifiedAction);
+          continue;
+        }
+        case 33: {
+          if (tag !== 266) {
+            break;
+          }
+
+          message.coexStateSync = CoexStateSync.decode(reader, reader.uint32(), message.coexStateSync);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -47583,6 +49350,12 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
       : undefined;
     message.aiMetadataOperation = (object.aiMetadataOperation !== undefined && object.aiMetadataOperation !== null)
       ? AIMetadataOperation.fromPartial(object.aiMetadataOperation)
+      : undefined;
+    message.markAsVerifiedAction = (object.markAsVerifiedAction !== undefined && object.markAsVerifiedAction !== null)
+      ? Message_MarkAsVerifiedAction.fromPartial(object.markAsVerifiedAction)
+      : undefined;
+    message.coexStateSync = (object.coexStateSync !== undefined && object.coexStateSync !== null)
+      ? CoexStateSync.fromPartial(object.coexStateSync)
       : undefined;
     return message;
   },
@@ -48586,6 +50359,110 @@ export const Message_SplitPaymentParticipant: MessageFns<Message_SplitPaymentPar
       ? Money.fromPartial(object.amount)
       : undefined;
     message.status = object.status ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMessage_SplitPaymentUpdateMessage(): Message_SplitPaymentUpdateMessage {
+  return {};
+}
+
+export const Message_SplitPaymentUpdateMessage: MessageFns<Message_SplitPaymentUpdateMessage> = {
+  encode(message: Message_SplitPaymentUpdateMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.splitId !== undefined) {
+      writer.uint32(10).string(message.splitId);
+    }
+    if (message.participantJid !== undefined) {
+      writer.uint32(18).string(message.participantJid);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_SplitPaymentUpdateMessage): Message_SplitPaymentUpdateMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_SplitPaymentUpdateMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.splitId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.participantJid = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_SplitPaymentUpdateMessage>): Message_SplitPaymentUpdateMessage {
+    return Message_SplitPaymentUpdateMessage.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_SplitPaymentUpdateMessage>): Message_SplitPaymentUpdateMessage {
+    const message = createBaseMessage_SplitPaymentUpdateMessage();
+    message.splitId = object.splitId ?? undefined;
+    message.participantJid = object.participantJid ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMessage_StatusLinkPreviewMetadata(): Message_StatusLinkPreviewMetadata {
+  return {};
+}
+
+export const Message_StatusLinkPreviewMetadata: MessageFns<Message_StatusLinkPreviewMetadata> = {
+  encode(message: Message_StatusLinkPreviewMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.style !== undefined) {
+      writer.uint32(8).int32(message.style);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: Message_StatusLinkPreviewMetadata): Message_StatusLinkPreviewMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessage_StatusLinkPreviewMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.style = reader.int32() as any;
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<Message_StatusLinkPreviewMetadata>): Message_StatusLinkPreviewMetadata {
+    return Message_StatusLinkPreviewMetadata.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Message_StatusLinkPreviewMetadata>): Message_StatusLinkPreviewMetadata {
+    const message = createBaseMessage_StatusLinkPreviewMetadata();
+    message.style = object.style ?? undefined;
     return message;
   },
 };
@@ -51111,6 +52988,12 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
     if (message.teeBotMetadata !== undefined) {
       writer.uint32(138).bytes(message.teeBotMetadata);
     }
+    if (message.accountEncryptionAttestation !== undefined) {
+      NonE2EEAttestation.encode(message.accountEncryptionAttestation, writer.uint32(146).fork()).join();
+    }
+    if (message.associatedPrimaryIdentityKey !== undefined) {
+      writer.uint32(154).bytes(message.associatedPrimaryIdentityKey);
+    }
     return writer;
   },
 
@@ -51263,6 +53146,22 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
           message.teeBotMetadata = reader.bytes();
           continue;
         }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.accountEncryptionAttestation = NonE2EEAttestation.decode(reader, reader.uint32(), message.accountEncryptionAttestation);
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.associatedPrimaryIdentityKey = reader.bytes();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -51304,6 +53203,11 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
     message.threadId = object.threadId?.map((e) => ThreadID.fromPartial(e)) || undefined;
     message.weblinkRenderConfig = object.weblinkRenderConfig ?? undefined;
     message.teeBotMetadata = object.teeBotMetadata ?? undefined;
+    message.accountEncryptionAttestation =
+      (object.accountEncryptionAttestation !== undefined && object.accountEncryptionAttestation !== null)
+        ? NonE2EEAttestation.fromPartial(object.accountEncryptionAttestation)
+        : undefined;
+    message.associatedPrimaryIdentityKey = object.associatedPrimaryIdentityKey ?? undefined;
     return message;
   },
 };
@@ -52832,6 +54736,52 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
     message.expires = object.expires ?? undefined;
     message.subject = object.subject ?? undefined;
     message.key = object.key ?? undefined;
+    return message;
+  },
+};
+
+function createBaseNonE2EEAttestation(): NonE2EEAttestation {
+  return {};
+}
+
+export const NonE2EEAttestation: MessageFns<NonE2EEAttestation> = {
+  encode(message: NonE2EEAttestation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.accountType !== undefined) {
+      writer.uint32(8).int32(message.accountType);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: NonE2EEAttestation): NonE2EEAttestation {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseNonE2EEAttestation();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.accountType = reader.int32() as any;
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<NonE2EEAttestation>): NonE2EEAttestation {
+    return NonE2EEAttestation.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<NonE2EEAttestation>): NonE2EEAttestation {
+    const message = createBaseNonE2EEAttestation();
+    message.accountType = object.accountType ?? undefined;
     return message;
   },
 };
@@ -55769,6 +57719,9 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
     if (message.reportingTag !== undefined) {
       writer.uint32(10).bytes(message.reportingTag);
     }
+    if (message.reportingTagTimestamp !== undefined) {
+      writer.uint32(16).uint64(message.reportingTagTimestamp);
+    }
     return writer;
   },
 
@@ -55787,6 +57740,14 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
           message.reportingTag = reader.bytes();
           continue;
         }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.reportingTagTimestamp = reader.uint64Value();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -55802,6 +57763,387 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
   fromPartial(object: DeepPartial<ReportingTokenInfo>): ReportingTokenInfo {
     const message = createBaseReportingTokenInfo();
     message.reportingTag = object.reportingTag ?? undefined;
+    message.reportingTagTimestamp = object.reportingTagTimestamp ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRotateEpochInput(): RotateEpochInput {
+  return {};
+}
+
+export const RotateEpochInput: MessageFns<RotateEpochInput> = {
+  encode(message: RotateEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.currentEpochRootKey !== undefined) {
+      writer.uint32(10).bytes(message.currentEpochRootKey);
+    }
+    if (message.currentEpochAnonId !== undefined) {
+      writer.uint32(16).uint64(message.currentEpochAnonId);
+    }
+    if (message.currentEpochFbid !== undefined) {
+      writer.uint32(24).uint64(message.currentEpochFbid);
+    }
+    if (message.newEpochFbid !== undefined) {
+      writer.uint32(32).uint64(message.newEpochFbid);
+    }
+    if (message.epochStoragePrivateKey !== undefined) {
+      writer.uint32(42).bytes(message.epochStoragePrivateKey);
+    }
+    if (message.members !== undefined && message.members.length !== 0) {
+      for (const v of message.members) {
+        RotateEpochMemberInput.encode(v!, writer.uint32(50).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RotateEpochInput): RotateEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseRotateEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.currentEpochRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.currentEpochAnonId = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.currentEpochFbid = reader.uint64Value();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.newEpochFbid = reader.uint64Value();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.epochStoragePrivateKey = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          if (message.members === undefined) {
+            message.members = [];
+          }
+          const el = RotateEpochMemberInput.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.members!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<RotateEpochInput>): RotateEpochInput {
+    return RotateEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RotateEpochInput>): RotateEpochInput {
+    const message = createBaseRotateEpochInput();
+    message.currentEpochRootKey = object.currentEpochRootKey ?? undefined;
+    message.currentEpochAnonId = object.currentEpochAnonId ?? undefined;
+    message.currentEpochFbid = object.currentEpochFbid ?? undefined;
+    message.newEpochFbid = object.newEpochFbid ?? undefined;
+    message.epochStoragePrivateKey = object.epochStoragePrivateKey ?? undefined;
+    message.members = object.members?.map((e) => RotateEpochMemberInput.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseRotateEpochMemberEdge(): RotateEpochMemberEdge {
+  return {};
+}
+
+export const RotateEpochMemberEdge: MessageFns<RotateEpochMemberEdge> = {
+  encode(message: RotateEpochMemberEdge, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deviceId !== undefined) {
+      writer.uint32(8).uint64(message.deviceId);
+    }
+    if (message.encryptedEpochKey !== undefined) {
+      writer.uint32(18).bytes(message.encryptedEpochKey);
+    }
+    if (message.deviceEpochHmac !== undefined) {
+      writer.uint32(26).bytes(message.deviceEpochHmac);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RotateEpochMemberEdge): RotateEpochMemberEdge {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseRotateEpochMemberEdge();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deviceId = reader.uint64Value();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.encryptedEpochKey = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deviceEpochHmac = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<RotateEpochMemberEdge>): RotateEpochMemberEdge {
+    return RotateEpochMemberEdge.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RotateEpochMemberEdge>): RotateEpochMemberEdge {
+    const message = createBaseRotateEpochMemberEdge();
+    message.deviceId = object.deviceId ?? undefined;
+    message.encryptedEpochKey = object.encryptedEpochKey ?? undefined;
+    message.deviceEpochHmac = object.deviceEpochHmac ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRotateEpochMemberInput(): RotateEpochMemberInput {
+  return {};
+}
+
+export const RotateEpochMemberInput: MessageFns<RotateEpochMemberInput> = {
+  encode(message: RotateEpochMemberInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deviceId !== undefined) {
+      writer.uint32(8).uint64(message.deviceId);
+    }
+    if (message.epochStoragePublicKey !== undefined) {
+      writer.uint32(18).bytes(message.epochStoragePublicKey);
+    }
+    if (message.devicePublicKey !== undefined) {
+      writer.uint32(26).bytes(message.devicePublicKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RotateEpochMemberInput): RotateEpochMemberInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseRotateEpochMemberInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deviceId = reader.uint64Value();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.epochStoragePublicKey = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.devicePublicKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<RotateEpochMemberInput>): RotateEpochMemberInput {
+    return RotateEpochMemberInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RotateEpochMemberInput>): RotateEpochMemberInput {
+    const message = createBaseRotateEpochMemberInput();
+    message.deviceId = object.deviceId ?? undefined;
+    message.epochStoragePublicKey = object.epochStoragePublicKey ?? undefined;
+    message.devicePublicKey = object.devicePublicKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRotateEpochOutput(): RotateEpochOutput {
+  return {};
+}
+
+export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
+  encode(message: RotateEpochOutput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newEpochRootKey !== undefined) {
+      writer.uint32(10).bytes(message.newEpochRootKey);
+    }
+    if (message.newEpochAnonId !== undefined) {
+      writer.uint32(16).uint64(message.newEpochAnonId);
+    }
+    if (message.epochAnonId !== undefined) {
+      writer.uint32(26).bytes(message.epochAnonId);
+    }
+    if (message.epochData !== undefined) {
+      writer.uint32(34).bytes(message.epochData);
+    }
+    if (message.memberEdges !== undefined && message.memberEdges.length !== 0) {
+      for (const v of message.memberEdges) {
+        RotateEpochMemberEdge.encode(v!, writer.uint32(42).fork()).join();
+      }
+    }
+    if (message.epochRootKeyFingerprint !== undefined) {
+      writer.uint32(50).bytes(message.epochRootKeyFingerprint);
+    }
+    if (message.error !== undefined) {
+      writer.uint32(58).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: RotateEpochOutput): RotateEpochOutput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseRotateEpochOutput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newEpochRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.newEpochAnonId = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.epochAnonId = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.epochData = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          if (message.memberEdges === undefined) {
+            message.memberEdges = [];
+          }
+          const el = RotateEpochMemberEdge.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.memberEdges!.push(el);
+          }
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.epochRootKeyFingerprint = reader.bytes();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<RotateEpochOutput>): RotateEpochOutput {
+    return RotateEpochOutput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RotateEpochOutput>): RotateEpochOutput {
+    const message = createBaseRotateEpochOutput();
+    message.newEpochRootKey = object.newEpochRootKey ?? undefined;
+    message.newEpochAnonId = object.newEpochAnonId ?? undefined;
+    message.epochAnonId = object.epochAnonId ?? undefined;
+    message.epochData = object.epochData ?? undefined;
+    message.memberEdges = object.memberEdges?.map((e) => RotateEpochMemberEdge.fromPartial(e)) || undefined;
+    message.epochRootKeyFingerprint = object.epochRootKeyFingerprint ?? undefined;
+    message.error = object.error ?? undefined;
     return message;
   },
 };
@@ -58800,6 +61142,15 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
     if (message.wasaRootSecretAction !== undefined) {
       SyncActionValue_WASARootSecretAction.encode(message.wasaRootSecretAction, writer.uint32(714).fork()).join();
     }
+    if (message.bubbleLockMessageAction !== undefined) {
+      SyncActionValue_BubbleLockMessageAction.encode(message.bubbleLockMessageAction, writer.uint32(722).fork()).join();
+    }
+    if (message.labelSublistAction !== undefined) {
+      SyncActionValue_LabelSublistAction.encode(message.labelSublistAction, writer.uint32(730).fork()).join();
+    }
+    if (message.deviceCapabilitiesV2 !== undefined) {
+      DeviceCapabilities.encode(message.deviceCapabilitiesV2, writer.uint32(738).fork()).join();
+    }
     return writer;
   },
 
@@ -59453,6 +61804,30 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           message.wasaRootSecretAction = SyncActionValue_WASARootSecretAction.decode(reader, reader.uint32(), message.wasaRootSecretAction);
           continue;
         }
+        case 90: {
+          if (tag !== 722) {
+            break;
+          }
+
+          message.bubbleLockMessageAction = SyncActionValue_BubbleLockMessageAction.decode(reader, reader.uint32(), message.bubbleLockMessageAction);
+          continue;
+        }
+        case 91: {
+          if (tag !== 730) {
+            break;
+          }
+
+          message.labelSublistAction = SyncActionValue_LabelSublistAction.decode(reader, reader.uint32(), message.labelSublistAction);
+          continue;
+        }
+        case 92: {
+          if (tag !== 738) {
+            break;
+          }
+
+          message.deviceCapabilitiesV2 = DeviceCapabilities.decode(reader, reader.uint32(), message.deviceCapabilitiesV2);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -59748,6 +62123,16 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
       : undefined;
     message.wasaRootSecretAction = (object.wasaRootSecretAction !== undefined && object.wasaRootSecretAction !== null)
       ? SyncActionValue_WASARootSecretAction.fromPartial(object.wasaRootSecretAction)
+      : undefined;
+    message.bubbleLockMessageAction =
+      (object.bubbleLockMessageAction !== undefined && object.bubbleLockMessageAction !== null)
+        ? SyncActionValue_BubbleLockMessageAction.fromPartial(object.bubbleLockMessageAction)
+        : undefined;
+    message.labelSublistAction = (object.labelSublistAction !== undefined && object.labelSublistAction !== null)
+      ? SyncActionValue_LabelSublistAction.fromPartial(object.labelSublistAction)
+      : undefined;
+    message.deviceCapabilitiesV2 = (object.deviceCapabilitiesV2 !== undefined && object.deviceCapabilitiesV2 !== null)
+      ? DeviceCapabilities.fromPartial(object.deviceCapabilitiesV2)
       : undefined;
     return message;
   },
@@ -60273,6 +62658,52 @@ export const SyncActionValue_BroadcastListParticipant: MessageFns<SyncActionValu
   },
 };
 
+function createBaseSyncActionValue_BubbleLockMessageAction(): SyncActionValue_BubbleLockMessageAction {
+  return {};
+}
+
+export const SyncActionValue_BubbleLockMessageAction: MessageFns<SyncActionValue_BubbleLockMessageAction> = {
+  encode(message: SyncActionValue_BubbleLockMessageAction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.locked !== undefined) {
+      writer.uint32(8).bool(message.locked);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_BubbleLockMessageAction): SyncActionValue_BubbleLockMessageAction {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseSyncActionValue_BubbleLockMessageAction();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.locked = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SyncActionValue_BubbleLockMessageAction>): SyncActionValue_BubbleLockMessageAction {
+    return SyncActionValue_BubbleLockMessageAction.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SyncActionValue_BubbleLockMessageAction>): SyncActionValue_BubbleLockMessageAction {
+    const message = createBaseSyncActionValue_BubbleLockMessageAction();
+    message.locked = object.locked ?? undefined;
+    return message;
+  },
+};
+
 function createBaseSyncActionValue_BusinessBroadcastAssociationAction(): SyncActionValue_BusinessBroadcastAssociationAction {
   return {};
 }
@@ -60610,6 +63041,9 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
     if (message.audienceExpression !== undefined) {
       writer.uint32(42).string(message.audienceExpression);
     }
+    if (message.customAudienceFbid !== undefined) {
+      writer.uint32(50).string(message.customAudienceFbid);
+    }
     return writer;
   },
 
@@ -60672,6 +63106,14 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
           message.audienceExpression = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.customAudienceFbid = reader.string();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -60694,6 +63136,7 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
     message.listName = object.listName ?? undefined;
     message.labelIds = object.labelIds?.map((e) => e) || undefined;
     message.audienceExpression = object.audienceExpression ?? undefined;
+    message.customAudienceFbid = object.customAudienceFbid ?? undefined;
     return message;
   },
 };
@@ -62215,6 +64658,52 @@ export const SyncActionValue_LabelReorderingAction: MessageFns<SyncActionValue_L
   fromPartial(object: DeepPartial<SyncActionValue_LabelReorderingAction>): SyncActionValue_LabelReorderingAction {
     const message = createBaseSyncActionValue_LabelReorderingAction();
     message.sortedLabelIds = object.sortedLabelIds?.map((e) => e) || undefined;
+    return message;
+  },
+};
+
+function createBaseSyncActionValue_LabelSublistAction(): SyncActionValue_LabelSublistAction {
+  return {};
+}
+
+export const SyncActionValue_LabelSublistAction: MessageFns<SyncActionValue_LabelSublistAction> = {
+  encode(message: SyncActionValue_LabelSublistAction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.subListId !== undefined) {
+      writer.uint32(8).int32(message.subListId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_LabelSublistAction): SyncActionValue_LabelSublistAction {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseSyncActionValue_LabelSublistAction();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.subListId = reader.int32();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SyncActionValue_LabelSublistAction>): SyncActionValue_LabelSublistAction {
+    return SyncActionValue_LabelSublistAction.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SyncActionValue_LabelSublistAction>): SyncActionValue_LabelSublistAction {
+    const message = createBaseSyncActionValue_LabelSublistAction();
+    message.subListId = object.subListId ?? undefined;
     return message;
   },
 };
@@ -64233,6 +66722,9 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
     if (message.colorSchemeId !== undefined) {
       writer.uint32(266).string(message.colorSchemeId);
     }
+    if (message.stockWallpaperImageId !== undefined) {
+      writer.uint32(274).string(message.stockWallpaperImageId);
+    }
     return writer;
   },
 
@@ -64507,6 +66999,14 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
           message.colorSchemeId = reader.string();
           continue;
         }
+        case 34: {
+          if (tag !== 274) {
+            break;
+          }
+
+          message.stockWallpaperImageId = reader.string();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -64554,6 +67054,7 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
     message.shouldPlaySoundForCallNotification = object.shouldPlaySoundForCallNotification ?? undefined;
     message.chatThemeId = object.chatThemeId ?? undefined;
     message.colorSchemeId = object.colorSchemeId ?? undefined;
+    message.stockWallpaperImageId = object.stockWallpaperImageId ?? undefined;
     return message;
   },
 };
@@ -65972,6 +68473,9 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
     if (message.epoch !== undefined) {
       writer.uint32(24).int64(message.epoch);
     }
+    if (message.status !== undefined) {
+      writer.uint32(32).int32(message.status);
+    }
     return writer;
   },
 
@@ -66006,6 +68510,14 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
           message.epoch = reader.int64Value();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -66027,6 +68539,7 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
     message.id = object.id ?? undefined;
     message.rootSecret = object.rootSecret ?? undefined;
     message.epoch = object.epoch ?? undefined;
+    message.status = object.status ?? undefined;
     return message;
   },
 };

@@ -16,8 +16,14 @@ import { packedContents } from "./pack";
  * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
  * drift above — enough that ordinary work does not trip it, tight enough that
  * a jump does.
+ *
+ * Raised from 7,500,000 when the core regenerated its whatspec bundle at
+ * 2.3000.1044659339: a WhatsApp schema release adds messages and enums across
+ * the proto, and the derived declarations and codec grow with it. That is the
+ * one kind of growth this budget cannot ask anyone to trim, so it buys the same
+ * headroom again over the new floor rather than tracking it.
  */
-const MAX_UNPACKED_BYTES = 7_500_000;
+const MAX_UNPACKED_BYTES = 7_900_000;
 
 const { files, unpackedSize: total } = packedContents();
 
