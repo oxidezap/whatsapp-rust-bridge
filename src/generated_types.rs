@@ -196,7 +196,7 @@ export interface CallLogSync {
   call_creator_jid: Jid;
   /** The call's identifier, from the mutation's index (the same value `record.call_id` carries when the record carries one). */
   call_id: string;
-  /** Whether *this account* placed the call.  Read this rather than `record.is_incoming`, which despite its name holds the same thing rather than its opposite: WA Web writes the record with `isIncoming: fromMe`, so a consumer taking the field at its word files every call backwards. */
+  /** Whether *this account* placed the call, from [`call_creator_jid`](Self::call_creator_jid) compared against this account.  Read this rather than `record.is_incoming`, which is not reliable in either direction: it means the opposite of its name in mutations WA Web wrote and exactly its name in ones the phone wrote, so a consumer taking it at its word files some calls backwards. */
   from_me: boolean;
   /** When the mutation was written, not when the call happened — the call's own time is `record.start_time`.  This is the field WA Web measures against the pairing timestamp to decide whether a record predates the device, so it is worth having; it is not a time to file the call under. A mutation that arrives without one falls back to the moment it was received, as every other app-state event does. */
   timestamp: string;
