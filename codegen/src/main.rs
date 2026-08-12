@@ -302,6 +302,42 @@ fn main() {
     println!("const _TS_GENERATED_TYPES: &str = r{delim}\"");
     print!("{ts}");
     println!("\"{delim};");
+
+    println!();
+    println!("/// Every variant of the core's `Event`, in declaration order, as read");
+    println!("/// from the sources this build is locked to. `wasm_client`'s coverage");
+    println!("/// test measures the bridge's dispatch against it, so a variant added");
+    println!("/// upstream fails a test here instead of reaching no consumer.");
+    println!("#[cfg(test)]");
+    println!("pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[");
+    for variant in core_event_variants(&sources.wacore_src) {
+        println!("    \"{variant}\",");
+    }
+    println!("];");
+}
+
+/// The core's `Event` variant names, from the one file that declares them.
+///
+/// Read separately rather than off the derive scan, which skips `Event` because
+/// the bridge declares its own union for it. Nothing else in the core is called
+/// `Event`, but a file that stopped declaring it would leave an empty list that
+/// passes every check it feeds, so an absent enum is a panic and not a default.
+fn core_event_variants(wacore_src: &Path) -> Vec<String> {
+    let path = wacore_src.join("types/events.rs");
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    core_event_variants_in(&content)
+        .unwrap_or_else(|| panic!("{} declares no `enum Event`", path.display()))
+}
+
+fn core_event_variants_in(content: &str) -> Option<Vec<String>> {
+    let file = syn::parse_file(content).ok()?;
+    file.items.iter().find_map(|item| match item {
+        Item::Enum(e) if e.ident == "Event" => {
+            Some(e.variants.iter().map(|v| v.ident.to_string()).collect())
+        }
+        _ => None,
+    })
 }
 
 #[derive(Debug)]
@@ -1710,6 +1746,38 @@ mod tests {
 
     fn ts_of(source: &str) -> String {
         rust_type_to_ts(&syn::parse_str::<Type>(source).unwrap()).0
+    }
+
+    /// The variant list feeds the bridge's dispatch-coverage test, so it has to
+    /// read the core's `Event` as declared: `#[non_exhaustive]`, doc comments
+    /// between variants, and every payload behind a wrapper.
+    #[test]
+    fn core_event_variants_are_read_in_declaration_order() {
+        let source = r#"
+            #[derive(Clone, Serialize)]
+            #[non_exhaustive]
+            pub enum Event {
+                Connected(Connected),
+                /// A batched app-state sync left a collection unsynced.
+                AppStateSyncFailed(AppStateSyncFailed),
+                Messages(Box<MessageBatch>),
+            }
+        "#;
+        assert_eq!(
+            core_event_variants_in(source),
+            Some(vec![
+                "Connected".to_owned(),
+                "AppStateSyncFailed".to_owned(),
+                "Messages".to_owned(),
+            ])
+        );
+    }
+
+    /// An empty list would pass every check it feeds, so sources that declare no
+    /// `Event` are reported rather than defaulted.
+    #[test]
+    fn sources_without_the_event_enum_are_not_an_empty_list() {
+        assert_eq!(core_event_variants_in("pub struct Event;"), None);
     }
 
     /// Every wrapper a waproto type is written behind in the core reaches the

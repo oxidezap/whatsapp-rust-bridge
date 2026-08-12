@@ -129,7 +129,7 @@ macro_rules! bridge_events {
             $( $variant:ident => $name:literal => $ts_type:literal ),* $(,)?
         }
         special {
-            $( $xname:literal => $xts:literal ),* $(,)?
+            $( $xvariant:ident => $xname:literal => $xts:literal ),* $(,)?
         }
     ) => {
         // Generate WhatsAppEvent TypeScript type
@@ -140,6 +140,15 @@ macro_rules! bridge_events {
             $( ev!($xname, $xts), )*
             ";\n",
         );
+
+        /// Every core `Event` variant this bridge carries across, by whichever
+        /// path carries it. [`event_coverage_tests`] measures it against the
+        /// core's own variant list.
+        #[cfg(test)]
+        const DISPATCHED_EVENT_VARIANTS: &[&str] = &[
+            $( stringify!($variant), )*
+            $( stringify!($xvariant), )*
+        ];
 
         // Generate event_to_js dispatch (JS-specific, existing path)
         fn event_to_js(event: &Event) -> Result<JsValue, JsValue> {
@@ -207,33 +216,60 @@ bridge_events! {
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
     }
     special {
-        // "js_name"                         => "TsDataType"
-        "connected"                       => "Record<string, never>",
-        "disconnected"                    => "Record<string, never>",
-        "qr"                              => "{ code: string; timeout: number }",
-        "pairing_code"                    => "{ code: string; timeout: number }",
-        "pair_success"                    => "{ id: string; lid: string; business_name: string; platform: string }",
-        "pair_error"                      => "{ id: string; lid: string; business_name: string; platform: string; error: string }",
-        "logged_out"                      => "{ on_connect: boolean; reason: string }",
-        "message"                         => "{ message: Record<string, unknown>; info: MessageInfo & { is_view_once: boolean } }",
-        "notification"                    => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
-        "stream_replaced"                 => "Record<string, never>",
-        "qr_scanned_without_multidevice"  => "Record<string, never>",
-        "client_outdated"                 => "Record<string, never>",
-        "raw_node"                        => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
+        // Variant                     => "js_name"                         => "TsDataType"
+        Connected                      => "connected"                       => "Record<string, never>",
+        Disconnected                   => "disconnected"                    => "Record<string, never>",
+        PairingQrCode                  => "qr"                              => "{ code: string; timeout: number }",
+        PairingCode                    => "pairing_code"                    => "{ code: string; timeout: number }",
+        PairSuccess                    => "pair_success"                    => "{ id: string; lid: string; business_name: string; platform: string }",
+        PairError                      => "pair_error"                      => "{ id: string; lid: string; business_name: string; platform: string; error: string }",
+        LoggedOut                      => "logged_out"                      => "{ on_connect: boolean; reason: string }",
+        Messages                       => "message"                         => "{ message: Record<string, unknown>; info: MessageInfo & { is_view_once: boolean } }",
+        Notification                   => "notification"                    => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
+        StreamReplaced                 => "stream_replaced"                 => "Record<string, never>",
+        QrScannedWithoutMultidevice    => "qr_scanned_without_multidevice"  => "Record<string, never>",
+        ClientOutdated                 => "client_outdated"                 => "Record<string, never>",
+        RawNode                        => "raw_node"                        => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
         // The bridge itself never emits `message`/`history_sync` events — both
         // cross the boundary as wire batches (`onMessageBatch` /
         // `onHistorySyncBatch`). The union entries describe the host-side
         // reconstruction: hosts decode the wire payloads with their own codec
         // and rebuild these shapes for their downstream consumers.
-        "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
+        HistorySync                    => "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
         // `backoff` is a `Duration`, and a `Duration` crosses this bridge as
         // whole seconds — the unit `qr` and `pairing_code` already cross their
         // `timeout` in. Serializing it would emit `{ secs, nanos }` instead,
         // which is not what `PairingCodeError` declares.
-        "pairing_code_error"              => "PairingCodeError",
+        PairingCodeError               => "pairing_code_error"              => "PairingCodeError",
     }
 }
+
+/// The core `Event` variants this bridge deliberately does not carry across,
+/// each with the reason. Every variant the core declares has to appear here or
+/// in `DISPATCHED_EVENT_VARIANTS`; `event_coverage_tests` fails on one that
+/// appears in neither, which is what stops a variant added upstream from being
+/// dropped in silence.
+#[cfg(test)]
+const UNDISPATCHED_EVENT_VARIANTS: &[(&str, &str)] = &[
+    (
+        "DecryptedPayload",
+        "the payload is the bytes, and the bytes are #[serde(skip)] — what would \
+         cross is a header with the plaintext missing. Emitted only while a \
+         consumer holds a forwarding lease, which this bridge never takes.",
+    ),
+    (
+        "SentFrame",
+        "its one field is the marshaled stanza, also #[serde(skip)], so the event \
+         would cross as an empty object. Lease-gated like DecryptedPayload.",
+    ),
+    (
+        "EncDecryptFailed",
+        "every field crosses, but the core emits nothing while no consumer holds \
+         acquire_enc_decrypt_failed_forwarding(). Publishing it would add an \
+         event that can never fire; delivering it needs a lease toggle of the \
+         kind setRawNodeForwarding is, which is a separate change.",
+    ),
+];
 
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CLIENT_CONFIG: &str = r#"
@@ -4407,5 +4443,61 @@ mod dispatched_event_tests {
 
         assert!(field(&data, "backoff").is_undefined());
         assert!(field(&data, "rejection").is_undefined());
+    }
+}
+
+/// The bridge's event coverage, measured against the core rather than asserted.
+///
+/// `Event` and `EventKind` are both `#[non_exhaustive]`, so no match in this
+/// crate can be exhaustive and no compiler error can stand in for this: the
+/// wildcard arm the core requires is exactly what swallowed eleven variants.
+/// The list this checks against is regenerated from the core's sources by
+/// `bun run gen:bridge-types`, which every dependency bump has to run — CI
+/// fails on drift — so a bump that adds a variant fails here until the variant
+/// is either carried across or listed with a reason.
+#[cfg(test)]
+mod event_coverage_tests {
+    use super::{DISPATCHED_EVENT_VARIANTS, UNDISPATCHED_EVENT_VARIANTS};
+    use crate::generated_types::CORE_EVENT_VARIANTS;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn is_excluded(variant: &str) -> bool {
+        UNDISPATCHED_EVENT_VARIANTS
+            .iter()
+            .any(|(name, _)| *name == variant)
+    }
+
+    #[test]
+    fn every_core_event_is_dispatched_or_excluded_on_the_record() {
+        let unaccounted: Vec<&&str> = CORE_EVENT_VARIANTS
+            .iter()
+            .filter(|variant| {
+                !DISPATCHED_EVENT_VARIANTS.contains(*variant) && !is_excluded(variant)
+            })
+            .collect();
+
+        assert!(
+            unaccounted.is_empty(),
+            "the core dispatches {unaccounted:?}, which this bridge neither converts nor \
+             lists as deliberately undispatched. Add an entry to `bridge_events!` or to \
+             `UNDISPATCHED_EVENT_VARIANTS` with the reason."
+        );
+    }
+
+    /// A name the core dropped or renamed leaves an entry here matching nothing,
+    /// which would go on passing the check above while covering no variant.
+    #[test]
+    fn nothing_is_listed_that_the_core_no_longer_declares() {
+        let stale: Vec<&str> = DISPATCHED_EVENT_VARIANTS
+            .iter()
+            .chain(UNDISPATCHED_EVENT_VARIANTS.iter().map(|(name, _)| name))
+            .filter(|variant| !CORE_EVENT_VARIANTS.contains(variant))
+            .copied()
+            .collect();
+
+        assert!(
+            stale.is_empty(),
+            "{stale:?} name no variant of the core's `Event`"
+        );
     }
 }
