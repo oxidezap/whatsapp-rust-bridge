@@ -21,7 +21,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 /** Addressing mode for a group (phone number vs LID). */
 export type AddressingMode = "pn" | "lid";
 
-/** A batched app-state sync finished without leaving every collection synced.  Collections are named as they appear on the wire (`critical_block`, `regular_high`, …) rather than as an enum, so the payload stays stable if the set of collections changes.  `fatal` is the one a consumer usually has to act on: the server refused the collection, and repeating the request gets the same answer. WhatsApp Web treats that as grounds to notify the primary device and log out; this library will not end a session on its own, so it reports the refusal and keeps the connection. When `connected` is true the client dispatched [`Event::Connected`] anyway and is usable, minus whatever those collections carry — for `critical_block` that includes the push name, so presence stays unavailable until it syncs. */
+/** A batched app-state sync finished without leaving every collection synced.  Collections are named as they appear on the wire (`critical_block`, `regular_high`, …) rather than as an enum, so the payload stays stable if the set of collections changes.  `fatal` is the one a consumer usually has to act on: the server refused the collection, and repeating the request gets the same answer. WhatsApp Web treats that as grounds to notify the primary device and log out; this library will not end a session on its own, so it reports the refusal and keeps the connection. When `connected` is true the client dispatched [`Event::Connected`] anyway and is usable, minus whatever those collections carry — for `critical_block` that includes the push name, so presence stays unavailable until it syncs.  The initial sync that follows pairing normally connects, so its report normally carries `connected: true`. A `false` means no [`Event::Connected`] accompanied this report: a sync that ran before the connection was ready, such as one a `syncd_app_state` dirty bit started while the offline backlog was still being processed, or an initial sync whose connection was paused, superseded or rejected by the server as it finished. */
 export interface AppStateSyncFailed {
   /** Refused outright by the server (400/404). Terminal for this connection. */
   fatal: string[];
@@ -188,6 +188,20 @@ export interface CallLinkPreview {
   creator_pn?: Jid | null;
   waiting_room_enabled: boolean;
   is_admin: boolean;
+}
+
+/** A call placed or received on the primary device, synced through app state.  The only channel that carries a call the companion never saw signalling for: a call placed on the phone puts nothing on this socket, so [`Event::IncomingCall`] and friends cannot see it. */
+export interface CallLogSync {
+  /** Who started the call, from the mutation's index.  The index rather than the record: `record.call_creator_jid` is optional and WA Web leaves it unset for calls it received none for, while it fills the index in either way — falling back to this account for a call it placed, or to the peer for one it took. */
+  call_creator_jid: Jid;
+  /** The call's identifier, from the mutation's index (the same value `record.call_id` carries when the record carries one). */
+  call_id: string;
+  /** Whether *this account* placed the call.  Read this rather than `record.is_incoming`, which despite its name holds the same thing rather than its opposite: WA Web writes the record with `isIncoming: fromMe`, so a consumer taking the field at its word files every call backwards. */
+  from_me: boolean;
+  /** When the mutation was written, not when the call happened — the call's own time is `record.start_time`.  This is the field WA Web measures against the pairing timestamp to decide whether a record predates the device, so it is worth having; it is not a time to file the call under. A mutation that arrives without one falls back to the moment it was received, as every other app-state event does. */
+  timestamp: number;
+  record: import('./proto-types').proto.ICallLogRecord;
+  from_full_sync: boolean;
 }
 
 /** Meta Verified subscription state, which is what lifts the cap permanently. */
