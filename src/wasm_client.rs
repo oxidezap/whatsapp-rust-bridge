@@ -165,7 +165,7 @@ macro_rules! bridge_events {
                 $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
                 $( Event::$pvariant(data) => {
                     let value = crate::proto::to_js_value(data)?;
-                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_scalars(
+                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(
                         &data.$pfield,
                     )?;
                     js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
@@ -4221,14 +4221,14 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::chrono::{DateTime, Utc};
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
-        AppStateSyncFailed, CallLogSync, ContactRemoved, DisableLinkPreviewsUpdate,
+        AppStateSyncFailed, CallLogSync, ContactRemoved, ContactUpdate, DisableLinkPreviewsUpdate,
         MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
         PinUpdate, QuickReplyUpdate,
     };
     use whatsapp_rust::waproto::whatsapp::CallLogRecord;
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        LabelAssociationAction, MuteAction, PinAction, PrivacySettingDisableLinkPreviewsAction,
-        QuickReplyAction,
+        ContactAction, LabelAssociationAction, MuteAction, PinAction,
+        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction,
     };
 
     /// The `{ type, data }` pairs an `onEvent` host was handed.
@@ -4410,6 +4410,30 @@ mod dispatched_event_tests {
             field(&field(&data, "action"), "pinned").as_bool(),
             Some(false)
         );
+    }
+
+    /// A blank the wire supplied is not an absent field: `Some("")` is a name
+    /// being cleared, and only a repeated field with no elements has no presence
+    /// for protobuf to report.
+    #[test]
+    async fn a_mutation_keeps_a_blank_it_supplied_and_omits_what_it_never_set() {
+        let (name, data) = deliver(Event::ContactUpdate(
+            ContactUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(ContactAction {
+                    full_name: Some(String::new()),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "contact_update");
+        let action = field(&data, "action");
+        assert_eq!(field(&action, "fullName").as_string().as_deref(), Some(""));
+        assert!(field(&action, "firstName").is_undefined());
     }
 
     /// The events that already carried a proto mutation cross it in the same

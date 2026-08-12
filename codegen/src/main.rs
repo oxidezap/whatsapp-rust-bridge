@@ -679,8 +679,8 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                         .map(|f| {
                             let field_name =
                                 f.ident.as_ref().unwrap().to_string().replace("r#", "");
-                            let (ts_type, optional) = timestamp_module_type(&f.attrs)
-                                .unwrap_or_else(|| rust_type_to_ts(&f.ty));
+                            let (ts_type, optional) =
+                                timestamp_module_type(f).unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
                                 name: serde_name.unwrap_or_else(|| {
@@ -1277,18 +1277,99 @@ fn get_serde_rename(f: &syn::Field) -> Option<String> {
     serde_string_argument(&f.attrs, "rename")
 }
 
-/// A `DateTime` written through one of chrono's `ts_*` serde modules, which
+/// A `DateTime` written through one of chrono's timestamp modules, which
 /// replace the RFC 3339 string with an integer. The module is named on the
 /// field, so the type alone cannot tell the two apart.
-fn timestamp_module_type(attrs: &[Attribute]) -> Option<(String, bool)> {
-    let module = serde_string_argument(attrs, "with")?;
-    let module = module.rsplit("::").next()?;
-    if !module.starts_with("ts_") {
+///
+/// Named one by one rather than by an `ts_` prefix: a module this generator has
+/// not read is a representation it cannot name, and guessing one publishes a
+/// declaration nobody honours. An unknown one on a `DateTime` field stops
+/// generation instead, the way an unplaceable type already does.
+fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
+    if !is_datetime(&field.ty) {
         return None;
     }
-    match module.ends_with("_option") {
-        true => Some(("number | null".to_string(), true)),
-        false => Some(("number".to_string(), false)),
+    let module = serde_timestamp_module(&field.attrs)?;
+    let module = module.rsplit("::").next().unwrap_or_default();
+    match module {
+        "ts_seconds" | "ts_milliseconds" | "ts_microseconds" | "ts_nanoseconds" => {
+            Some(("number".to_string(), false))
+        }
+        "ts_seconds_option"
+        | "ts_milliseconds_option"
+        | "ts_microseconds_option"
+        | "ts_nanoseconds_option" => Some(("number | null".to_string(), true)),
+        other => panic!(
+            "a DateTime field is serialized through `{other}`, whose shape this generator \
+             cannot name. Add it beside chrono's timestamp modules."
+        ),
+    }
+}
+
+/// The module a field's `with`, or the function its `serialize_with`, names.
+///
+/// `serialize_with` first, and matched at a word boundary, because `with = "`
+/// is a substring of `serialize_with = "` — reading the outer key off the inner
+/// one names `serialize` as the module. Only the serialize direction shows up
+/// in a declaration, so a lone `deserialize_with` is nothing to read.
+fn serde_timestamp_module(attrs: &[Attribute]) -> Option<String> {
+    for tokens in serde_attribute_tokens(attrs) {
+        if let Some(path) = keyed_string(&tokens, "serialize_with") {
+            return Some(path.trim_end_matches("::serialize").to_owned());
+        }
+        if let Some(path) = keyed_string(&tokens, "with") {
+            return Some(path.to_owned());
+        }
+    }
+    None
+}
+
+/// The string after `key = ` in an attribute's tokens, where `key` is not the
+/// tail of a longer identifier.
+fn keyed_string<'a>(tokens: &'a str, key: &str) -> Option<&'a str> {
+    let needle = format!("{key} = \"");
+    let mut from = 0;
+    while let Some(offset) = tokens[from..].find(&needle) {
+        let at = from + offset;
+        let value = at + needle.len();
+        let end = value + tokens[value..].find('"')?;
+        let preceded = tokens[..at].ends_with(|c: char| c.is_alphanumeric() || c == '_');
+        if !preceded {
+            return Some(&tokens[value..end]);
+        }
+        from = end;
+    }
+    None
+}
+
+/// A `chrono::DateTime`, through the wrappers a field can carry it behind.
+fn is_datetime(ty: &Type) -> bool {
+    match ty {
+        Type::Path(TypePath { path, .. }) => {
+            let Some(last) = path.segments.last() else {
+                return false;
+            };
+            if last.ident == "DateTime" {
+                return true;
+            }
+            match last.ident.to_string().as_str() {
+                "Option" | "Box" | "Arc" | "Rc" | "Cow" | "Vec" => {
+                    let PathArguments::AngleBracketed(args) = &last.arguments else {
+                        return false;
+                    };
+                    args.args
+                        .iter()
+                        .find_map(|arg| match arg {
+                            GenericArgument::Type(inner) => Some(is_datetime(inner)),
+                            _ => None,
+                        })
+                        .unwrap_or(false)
+                }
+                _ => false,
+            }
+        }
+        Type::Reference(r) => is_datetime(&r.elem),
+        _ => false,
     }
 }
 
@@ -1787,6 +1868,39 @@ mod tests {
         );
     }
 
+    /// A module this generator cannot name a shape for is reported rather than
+    /// assumed to be an integer, and a `with` on any other type is not its
+    /// business.
+    #[test]
+    #[should_panic(expected = "whose shape this generator cannot name")]
+    fn an_unknown_timestamp_module_stops_generation() {
+        generated_type(
+            r#"
+            #[derive(Serialize)]
+            pub struct Odd {
+                #[serde(with = "custom::ts_string")]
+                pub at: DateTime<Utc>,
+            }
+        "#,
+            "Odd",
+        );
+    }
+
+    #[test]
+    fn a_serde_with_on_another_type_is_left_alone() {
+        let generated = generated_type(
+            r#"
+            #[derive(Serialize)]
+            pub struct Payload {
+                #[serde(with = "serde_bytes")]
+                pub blob: Vec<u8>,
+            }
+        "#,
+            "Payload",
+        );
+        assert!(generated.contains("blob: Uint8Array;"), "{generated}");
+    }
+
     /// An empty list would pass every check it feeds, so sources that declare no
     /// `Event` are reported rather than defaulted.
     #[test]
@@ -1795,8 +1909,9 @@ mod tests {
     }
 
     /// A `DateTime` crosses as chrono writes it, and chrono writes a string
-    /// unless the field names one of its `ts_*` modules. Declaring the string
-    /// case as a number let consumers do arithmetic on text.
+    /// unless the field names one of its timestamp modules — through `with`, or
+    /// through `serialize_with` naming the module's own function. Declaring the
+    /// string case as a number let consumers do arithmetic on text.
     #[test]
     fn a_datetime_is_a_number_only_where_the_field_asks_for_one() {
         let source = r#"
@@ -1807,6 +1922,8 @@ mod tests {
                 pub seconds: DateTime<Utc>,
                 #[serde(with = "chrono::serde::ts_seconds_option")]
                 pub maybe_seconds: Option<DateTime<Utc>>,
+                #[serde(serialize_with = "chrono::serde::ts_seconds::serialize")]
+                pub written_by_function: DateTime<Utc>,
             }
         "#;
         let generated = generated_type(source, "Timestamps");
@@ -1814,6 +1931,10 @@ mod tests {
         assert!(generated.contains("seconds: number;"), "{generated}");
         assert!(
             generated.contains("maybe_seconds?: number | null;"),
+            "{generated}"
+        );
+        assert!(
+            generated.contains("written_by_function: number;"),
             "{generated}"
         );
     }

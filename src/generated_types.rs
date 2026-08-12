@@ -860,7 +860,7 @@ export interface MessageInfo {
   server_id: number;
   type: string;
   push_name: string;
-  timestamp: string;
+  timestamp: number;
   category: MessageCategory;
   multicast: boolean;
   media_type: string;

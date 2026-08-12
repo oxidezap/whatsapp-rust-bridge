@@ -237,10 +237,11 @@ pub enum Defaults {
     Skip,
     /// Every supplied value crosses, `0` and `false` and `""` alike.
     Keep,
-    /// A supplied scalar crosses even at its default — an unpin is
-    /// `pinned: false`, and dropping it loses the transition — while an empty
-    /// string or collection is omitted, having no presence to report.
-    KeepScalars,
+    /// Every value the wire supplied crosses — `false`, `0` and `""` alike,
+    /// since an unpin is `pinned: false` and dropping it loses the transition.
+    /// A repeated field with no elements is still omitted: protobuf gives it no
+    /// presence, so an empty one is the same as one never set.
+    KeepPresent,
 }
 
 /// Serializes Rust values to JsValue with camelCase keys and proto-friendly output.
@@ -256,8 +257,8 @@ impl CamelSerializer {
     const PRESERVE_TOP_LEVEL_DEFAULTS: Self = Self {
         struct_defaults: Defaults::Keep,
     };
-    const PRESERVE_TOP_LEVEL_SCALARS: Self = Self {
-        struct_defaults: Defaults::KeepScalars,
+    const PRESERVE_TOP_LEVEL_PRESENCE: Self = Self {
+        struct_defaults: Defaults::KeepPresent,
     };
 }
 
@@ -545,7 +546,7 @@ impl ser::SerializeStruct for StructSerializer {
         let skip = match self.defaults {
             Defaults::Skip => should_skip(&js_val),
             Defaults::Keep => js_val.is_null() || js_val.is_undefined(),
-            Defaults::KeepScalars => is_absent(&js_val),
+            Defaults::KeepPresent => is_absent(&js_val),
         };
         if skip {
             return Ok(());
@@ -626,20 +627,18 @@ impl ser::SerializeMap for MapSerializer {
 // Skip logic — matches protobufjs behavior (only output set fields)
 // ---------------------------------------------------------------------------
 
-/// Nothing was supplied: no value, or an empty string or collection, which
-/// protobuf cannot tell from one that was never set.
+/// Nothing was supplied. `null` is an absent `Option`; an empty repeated field
+/// is the one other shape protobuf cannot tell from one never set, so `""` and
+/// `{}` — which only a `Some` produces — are not absent.
 fn is_absent(val: &JsValue) -> bool {
     if val.is_null() || val.is_undefined() {
         return true;
     }
-    if let Some(s) = val.as_string() {
-        return s.is_empty();
-    }
-    is_empty_collection(val)
+    is_empty_sequence(val)
 }
 
-/// `[]`, an empty `Uint8Array`, or a message with no fields.
-fn is_empty_collection(val: &JsValue) -> bool {
+/// `[]` or an empty `Uint8Array`.
+fn is_empty_sequence(val: &JsValue) -> bool {
     if !val.is_object() {
         return false;
     }
@@ -650,6 +649,20 @@ fn is_empty_collection(val: &JsValue) -> bool {
     if val.is_instance_of::<Uint8Array>() {
         let arr: Uint8Array = Uint8Array::unchecked_from_js(val.clone());
         return arr.length() == 0;
+    }
+    false
+}
+
+/// `[]`, an empty `Uint8Array`, or a message with no fields.
+fn is_empty_collection(val: &JsValue) -> bool {
+    if !val.is_object() {
+        return false;
+    }
+    if is_empty_sequence(val) {
+        return true;
+    }
+    if val.is_instance_of::<js_sys::Array>() || val.is_instance_of::<Uint8Array>() {
+        return false;
     }
     if is_zero_long(val) {
         return false;
@@ -703,13 +716,13 @@ pub fn to_js_value_camel_preserve_top_level_defaults<T: Serialize>(
         .map_err(|e| e.into())
 }
 
-/// Same JS representation as [`to_js_value_camel`], but a scalar the wire
-/// supplied crosses even at its default — see [`Defaults::KeepScalars`]. For a
+/// Same JS representation as [`to_js_value_camel`], but every value the wire
+/// supplied crosses even at its default — see [`Defaults::KeepPresent`]. For a
 /// protobuf value whose `false` or `0` is the thing being reported.
-pub fn to_js_value_camel_preserve_top_level_scalars<T: Serialize>(
+pub fn to_js_value_camel_preserve_top_level_presence<T: Serialize>(
     val: &T,
 ) -> Result<JsValue, JsValue> {
-    val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_SCALARS)
+    val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_PRESENCE)
         .map_err(|e| e.into())
 }
 
