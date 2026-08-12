@@ -54,7 +54,11 @@ const BY_MESSAGE = new Map<string, Field[]>();
 
 for (const line of readFileSync(SURFACE_FILE, "utf8").split("\n")) {
   if (line.length === 0 || line.startsWith("#")) continue;
-  const [message, name, number, label, type, ref = ""] = line.split("\t");
+  const columns = line.split("\t");
+  // `<enum>\tenum` declares an enum, which has no fields and no generated
+  // message type. `enum` is a proto keyword, so no field can carry that name.
+  if (columns.length === 2 && columns[1] === "enum") continue;
+  const [message, name, number, label, type, ref = ""] = columns;
   MESSAGES.add(message!);
   // A message the schema declares with no fields carries only its own path.
   if (name === undefined) continue;

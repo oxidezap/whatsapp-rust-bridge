@@ -5,10 +5,22 @@
 //!
 //! Usage: bun run gen:types (outputs to ../src/generated_types.rs)
 
-use std::collections::BTreeMap;
+use quote::ToTokens;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use syn::{Attribute, Fields, GenericArgument, Item, PathArguments, Type, TypePath};
 use walkdir::WalkDir;
+
+/// Declarations this generator writes itself, so a reference to one is not a
+/// dangling name. Each is here because the derive scan cannot reach it.
+const HAND_WRITTEN_DECLARATIONS: &[&str] = &["Jid", "JsonValue"];
+
+/// Declarations the bridge writes, through Tsify or its own
+/// `typescript_custom_section`s. wasm-bindgen concatenates every section into
+/// one `.d.ts`, so a reference to one of these resolves there — this generator
+/// just cannot see them from the core's sources.
+const BRIDGE_DECLARATIONS: &[&str] = &["KeyPair"];
 
 /// Where the core's sources live, as two roots rather than one: published
 /// crates put `wacore` and `whatsapp-rust` side by side in the registry, while
@@ -189,6 +201,17 @@ fn main() {
 
     let mut all_types = BTreeMap::new();
 
+    // Aliases first: a field's type is rendered as it is parsed, so an alias
+    // declared in a later file would otherwise resolve to nothing.
+    for entry in WalkDir::new(&wacore_dir)
+        .into_iter()
+        .chain(WalkDir::new(&src_dir))
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "rs"))
+    {
+        collect_type_aliases(entry.path());
+    }
+
     // Parse wacore types
     for entry in WalkDir::new(wacore_dir)
         .into_iter()
@@ -235,6 +258,7 @@ fn main() {
         !all_types.is_empty(),
         "no types parsed: refusing to generate an empty type file"
     );
+    assert_declarations_are_closed(&all_types);
 
     // Build TypeScript content
     let mut ts = String::new();
@@ -249,6 +273,13 @@ fn main() {
     ts.push_str("  device: number;\n");
     ts.push_str("  integrator: number;\n");
     ts.push_str("}\n");
+
+    // `serde_json::Value` is the core's own type for a payload whose shape the
+    // server decides (MEX responses). It has no declaration to discover.
+    ts.push_str("\n/** Any JSON value, as `serde_json::Value` crosses. */\n");
+    ts.push_str(
+        "export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };\n",
+    );
 
     for (name, ts_type) in &all_types {
         ts.push('\n');
@@ -792,7 +823,14 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                     }
                 }
 
-                if !has_serde_derive(&e.attrs) {
+                // `ReceiptType` writes its `Serialize` out by hand, in the shape
+                // the derive it replaced produced (whatsapp-rust keeps the
+                // indices in declaration order for exactly that reason). The
+                // derive scan cannot see it, so the name is listed here — the
+                // variants still come from the enum body, so one added upstream
+                // lands in the declaration rather than going stale.
+                const MANUAL_SERIALIZE_ENUMS: &[&str] = &["ReceiptType"];
+                if !has_serde_derive(&e.attrs) && !MANUAL_SERIALIZE_ENUMS.contains(&name.as_str()) {
                     continue;
                 }
 
@@ -1006,10 +1044,15 @@ fn has_serde_skip(attrs: &[Attribute]) -> bool {
 }
 
 fn type_parameters(generics: &syn::Generics) -> Vec<String> {
-    generics
+    let parameters: Vec<String> = generics
         .type_params()
         .map(|parameter| parameter.ident.to_string())
-        .collect()
+        .collect();
+    generic_parameter_names()
+        .lock()
+        .unwrap()
+        .extend(parameters.iter().cloned());
+    parameters
 }
 
 fn tuple_fields_to_ts(fields: &syn::punctuated::Punctuated<syn::Field, syn::Token![,]>) -> String {
@@ -1269,7 +1312,7 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                     if let PathArguments::AngleBracketed(args) = &last.arguments
                         && let Some(inner) = args.args.iter().find_map(|arg| match arg {
                             GenericArgument::Type(inner) => Some(inner),
-                            _ => None
+                            _ => None,
                         })
                     {
                         return rust_type_to_ts(inner);
@@ -1313,13 +1356,24 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                 // Bytes → Uint8Array
                 "Bytes" => ("Uint8Array".to_string(), false),
 
-                // Known waproto types → any (proto types are too complex for syn)
-                "Message" if path_contains_wa(path) => ("any".to_string(), false),
-                "HistorySync" if path_contains_wa(path) => ("any".to_string(), false),
+                // serde_json::Value → the JSON shape it serializes to. The core
+                // imports it bare in places, so the path is not always there to
+                // match on; nothing else outside waproto is named `Value`.
+                "Value" if !path_contains_wa(path) => ("JsonValue".to_string(), false),
 
-                // Default: preserve generic arguments and assume the named
-                // type is another generated declaration.
-                other => (render_named_type(other, &last.arguments), false),
+                // Default: a proto type resolves to the declaration
+                // `proto-types.d.ts` already publishes for it, an alias
+                // resolves to what it aliases, and anything else is assumed to
+                // be another generated declaration.
+                other => {
+                    if let Some(reference) = proto_type_reference(path) {
+                        return (reference, false);
+                    }
+                    if let Some(aliased) = resolve_type_alias(other) {
+                        return aliased;
+                    }
+                    (render_named_type(other, &last.arguments), false)
+                }
             }
         }
         Type::Reference(r) => rust_type_to_ts(&r.elem),
@@ -1357,6 +1411,7 @@ fn array_type(element: String) -> String {
 }
 
 fn render_named_type(name: &str, arguments: &PathArguments) -> String {
+    referenced_names().lock().unwrap().insert(name.to_string());
     let PathArguments::AngleBracketed(arguments) = arguments else {
         return name.to_string();
     };
@@ -1389,6 +1444,242 @@ fn path_contains_wa(path: &syn::Path) -> bool {
         .any(|s| s.ident == "wa" || s.ident == "waproto")
 }
 
+/// Every message and enum `whatsapp.proto` declares, under the dotted names
+/// `proto-types.d.ts` nests its declarations by.
+#[derive(Default)]
+struct ProtoSchema {
+    messages: BTreeSet<String>,
+    enums: BTreeSet<String>,
+}
+
+/// The schema manifest `scripts/gen-ts-proto.ts` writes beside the codec, off
+/// the same protoc invocation. Reading it rather than reconstructing names from
+/// prost's module paths is what makes a reference exact: prost lowercases a
+/// parent message into a module (`SyncActionValue` → `sync_action_value`), and
+/// no casing rule turns every one of those back into the name protobufjs nests
+/// under (`ADVSignedDeviceIdentity` is not `AdvSignedDeviceIdentity`).
+fn proto_schema() -> &'static ProtoSchema {
+    static SCHEMA: OnceLock<ProtoSchema> = OnceLock::new();
+    SCHEMA.get_or_init(|| {
+        const MANIFEST: &str = "../ts/generated/whatsapp-surface.txt";
+        let manifest = std::fs::read_to_string(MANIFEST).unwrap_or_else(|error| {
+            panic!(
+                "cannot read {MANIFEST}: {error}\n\
+                 It is the schema manifest `bun run gen:proto-codec` writes, and the \n\
+                 generated declarations resolve their waproto references against it."
+            )
+        });
+        let mut schema = ProtoSchema::default();
+        for line in manifest.lines().filter(|line| !line.starts_with('#')) {
+            let columns: Vec<&str> = line.split('\t').collect();
+            let Some(declared) = columns.first().filter(|name| !name.is_empty()) else {
+                continue;
+            };
+            // `<enum>\tenum` is a declaration line rather than a field line.
+            if columns.len() == 2 && columns[1] == "enum" {
+                schema.enums.insert((*declared).to_string());
+                continue;
+            }
+            schema.messages.insert((*declared).to_string());
+            // The last column names the field's own type for a message or enum
+            // field; an enum carries its probe values after an `=`.
+            match (columns.get(4), columns.get(5)) {
+                (Some(&"message"), Some(referenced)) => {
+                    schema.messages.insert((*referenced).to_string());
+                }
+                (Some(&"enum"), Some(referenced)) => {
+                    let name = referenced.split('=').next().unwrap_or(referenced);
+                    schema.enums.insert(name.to_string());
+                }
+                _ => {}
+            }
+        }
+        assert!(
+            !schema.messages.is_empty(),
+            "{MANIFEST} declared no messages"
+        );
+        schema
+    })
+}
+
+/// A waproto type as a reference to the declaration the package already
+/// publishes for it, mirroring the `history_sync` event entry in
+/// `src/wasm_client.rs`.
+///
+/// `None` when the path is not a waproto one. An unresolvable waproto path
+/// panics instead: emitting the bare name is what put twenty types that do not
+/// exist into the published `.d.ts`.
+fn proto_type_reference(path: &syn::Path) -> Option<String> {
+    // The last such segment, not the first: the core writes both `wa::X` and
+    // the fully qualified `waproto::wa::X`.
+    let start = path
+        .segments
+        .iter()
+        .rposition(|s| s.ident == "wa" || s.ident == "waproto")?;
+    let segments: Vec<String> = path
+        .segments
+        .iter()
+        .skip(start + 1)
+        .map(|s| s.ident.to_string())
+        .collect();
+    let (leaf, parents) = segments.split_last()?;
+
+    let schema = proto_schema();
+    let matches = |declared: &&String| {
+        let components: Vec<&str> = declared.split('.').collect();
+        components.len() == parents.len() + 1
+            && components.last() == Some(&leaf.as_str())
+            && components[..parents.len()]
+                .iter()
+                .zip(parents)
+                .all(|(component, parent)| squash_name(component) == squash_name(parent))
+    };
+
+    let message = schema.messages.iter().find(matches);
+    let declared = schema.enums.iter().find(matches);
+    let reference = match (message, declared) {
+        (Some(message), None) => {
+            let (namespaces, _) = message.rsplit_once('.').unwrap_or(("", message));
+            if namespaces.is_empty() {
+                format!("I{leaf}")
+            } else {
+                format!("{namespaces}.I{leaf}")
+            }
+        }
+        (None, Some(declared)) => declared.clone(),
+        _ => panic!(
+            "waproto type `{}` resolves to {} declarations in the schema manifest",
+            segments.join("::"),
+            message.is_some() as usize + declared.is_some() as usize
+        ),
+    };
+    Some(format!("import('./proto-types').proto.{reference}"))
+}
+
+/// Casing-insensitive, separator-insensitive form of a name, so a prost module
+/// (`sync_action_value`) compares equal to the message it was derived from
+/// (`SyncActionValue`) without depending on how the acronyms were split.
+fn squash_name(name: &str) -> String {
+    name.chars()
+        .filter(|c| *c != '_')
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}
+
+/// `pub type X = …;` from the core, as source text. Resolved on demand rather
+/// than eagerly: an alias can name another alias, and the table is built before
+/// anything is rendered.
+fn type_aliases() -> &'static Mutex<BTreeMap<String, String>> {
+    static ALIASES: OnceLock<Mutex<BTreeMap<String, String>>> = OnceLock::new();
+    ALIASES.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn collect_type_aliases(path: &Path) {
+    let Ok(content) = std::fs::read_to_string(path) else {
+        return;
+    };
+    type_aliases()
+        .lock()
+        .unwrap()
+        .extend(type_aliases_in(&content));
+}
+
+/// A private alias is not part of the serialized surface, and a generic one
+/// cannot be resolved without its arguments — neither is skipped silently
+/// anywhere else, so both are filtered here.
+fn type_aliases_in(content: &str) -> BTreeMap<String, String> {
+    let mut collected = BTreeMap::new();
+    let Ok(file) = syn::parse_file(content) else {
+        return collected;
+    };
+    for item in &file.items {
+        if let Item::Type(alias) = item
+            && is_pub(&alias.vis)
+            && alias.generics.type_params().next().is_none()
+        {
+            collected.insert(
+                alias.ident.to_string(),
+                alias.ty.to_token_stream().to_string(),
+            );
+        }
+    }
+    collected
+}
+
+fn resolve_type_alias(name: &str) -> Option<(String, bool)> {
+    thread_local! {
+        static RESOLVING: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+    }
+    let aliased = type_aliases().lock().unwrap().get(name).cloned()?;
+    let ty = syn::parse_str::<Type>(&aliased).ok()?;
+    RESOLVING.with(|stack| {
+        if stack.borrow().iter().any(|entry| entry == name) {
+            return None;
+        }
+        stack.borrow_mut().push(name.to_string());
+        let resolved = rust_type_to_ts(&ty);
+        stack.borrow_mut().pop();
+        Some(resolved)
+    })
+}
+
+/// Named types the emitted declarations refer to, recorded as they are
+/// rendered. Checked against what the file ends up declaring.
+fn referenced_names() -> &'static Mutex<BTreeSet<String>> {
+    static REFERENCED: OnceLock<Mutex<BTreeSet<String>>> = OnceLock::new();
+    REFERENCED.get_or_init(|| Mutex::new(BTreeSet::new()))
+}
+
+fn generic_parameter_names() -> &'static Mutex<BTreeSet<String>> {
+    static PARAMETERS: OnceLock<Mutex<BTreeSet<String>>> = OnceLock::new();
+    PARAMETERS.get_or_init(|| Mutex::new(BTreeSet::new()))
+}
+
+/// Refuse to emit a declaration that names a type the file does not declare.
+///
+/// A consumer's tsconfig sets `skipLibCheck: true` — the default nearly
+/// everywhere — so such a name reaches them as a silent `any` rather than an
+/// error. Nineteen accumulated that way. The cost of failing here is that the
+/// first core type this generator cannot place stops `bun run build` and needs
+/// a mapping written for it; the alternative is publishing a type nobody has.
+///
+/// This sees one `typescript_custom_section` out of several, so it cannot be
+/// the whole net — `tests/published-dts.test.ts` checks the concatenated file
+/// wasm-bindgen actually emits. It runs first because it names the Rust type
+/// that caused the break, which a TypeScript error cannot.
+fn assert_declarations_are_closed(declared: &BTreeMap<String, TsTypeDef>) {
+    let referenced = referenced_names().lock().unwrap().clone();
+    let generics = generic_parameter_names().lock().unwrap().clone();
+    let dangling = dangling_references(declared, &referenced, &generics);
+
+    assert!(
+        dangling.is_empty(),
+        "the generated declarations name {} type(s) nothing declares: {}\n\
+         Each needs a mapping in `rust_type_to_ts` — a waproto type resolves to \n\
+         `proto-types.d.ts`, a `pub type` alias resolves to what it aliases, and \n\
+         anything else needs a declaration of its own.",
+        dangling.len(),
+        dangling.join(", ")
+    );
+}
+
+fn dangling_references(
+    declared: &BTreeMap<String, TsTypeDef>,
+    referenced: &BTreeSet<String>,
+    generics: &BTreeSet<String>,
+) -> Vec<String> {
+    referenced
+        .iter()
+        .filter(|name| {
+            !declared.contains_key(*name)
+                && !HAND_WRITTEN_DECLARATIONS.contains(&name.as_str())
+                && !BRIDGE_DECLARATIONS.contains(&name.as_str())
+                && !generics.contains(*name)
+        })
+        .cloned()
+        .collect()
+}
+
 fn to_snake_case(s: &str) -> String {
     let mut result = String::with_capacity(s.len() + 4);
     for (i, c) in s.chars().enumerate() {
@@ -1415,6 +1706,122 @@ mod tests {
             .get(name)
             .unwrap_or_else(|| panic!("missing generated type {name}"))
             .to_typescript(name)
+    }
+
+    fn ts_of(source: &str) -> String {
+        rust_type_to_ts(&syn::parse_str::<Type>(source).unwrap()).0
+    }
+
+    /// Every wrapper a waproto type is written behind in the core reaches the
+    /// same reference. A mapping written only for the bare case leaks the Rust
+    /// name out of one of these.
+    #[test]
+    fn waproto_references_survive_every_wrapper_the_core_uses() {
+        const KEY: &str = "import('./proto-types').proto.IMessageKey";
+        assert_eq!(ts_of("wa::MessageKey"), KEY);
+        assert_eq!(ts_of("Option<wa::MessageKey>"), format!("{KEY} | null"));
+        assert_eq!(ts_of("Vec<wa::MessageKey>"), format!("{KEY}[]"));
+        assert_eq!(ts_of("Box<wa::MessageKey>"), KEY);
+        assert_eq!(ts_of("Arc<wa::MessageKey>"), KEY);
+        assert_eq!(
+            ts_of("Option<Box<waproto::wa::MessageKey>>"),
+            format!("{KEY} | null")
+        );
+    }
+
+    /// The namespace comes from the schema manifest, not from re-casing prost's
+    /// module name, and a proto enum is not declared with the `I` prefix a
+    /// message carries.
+    #[test]
+    fn waproto_references_name_the_declaration_proto_types_publishes() {
+        assert_eq!(
+            ts_of("Box<wa::sync_action_value::ArchiveChatAction>"),
+            "import('./proto-types').proto.SyncActionValue.IArchiveChatAction"
+        );
+        assert_eq!(
+            ts_of("wa::client_payload::user_agent::Platform"),
+            "import('./proto-types').proto.ClientPayload.UserAgent.Platform"
+        );
+    }
+
+    /// An enum no field references still has a declaration to point at, so the
+    /// manifest has to name it — otherwise resolution fails on a type that is
+    /// right there in `proto-types.d.ts`.
+    #[test]
+    fn an_enum_no_field_references_still_resolves() {
+        assert_eq!(
+            ts_of("wa::CollectionName"),
+            "import('./proto-types').proto.CollectionName"
+        );
+        assert_eq!(
+            ts_of("wa::sync_action_value::settings_sync_action::SettingKey"),
+            "import('./proto-types').proto.SyncActionValue.SettingsSyncAction.SettingKey"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "resolves to 0 declarations")]
+    fn a_waproto_type_the_schema_does_not_declare_fails_generation() {
+        ts_of("wa::NoSuchProtoMessage");
+    }
+
+    #[test]
+    fn only_public_non_generic_aliases_are_collected() {
+        let collected = type_aliases_in(
+            r#"
+                pub type MessageSecret = [u8; MESSAGE_SECRET_SIZE];
+                type Internal = [u8; 32];
+                pub type Wrapper<T> = Vec<T>;
+            "#,
+        );
+
+        assert_eq!(
+            collected.keys().collect::<Vec<_>>(),
+            vec!["MessageSecret"],
+            "collected {collected:?}"
+        );
+        assert_eq!(collected["MessageSecret"], "[u8 ; MESSAGE_SECRET_SIZE]");
+    }
+
+    #[test]
+    fn a_type_alias_resolves_to_what_it_aliases() {
+        type_aliases()
+            .lock()
+            .unwrap()
+            .extend(type_aliases_in("pub type AliasUnderTest = [u8; 32];"));
+        assert_eq!(ts_of("AliasUnderTest"), "Uint8Array");
+        assert_eq!(ts_of("Vec<AliasUnderTest>"), "Uint8Array[]");
+        assert_eq!(ts_of("Option<AliasUnderTest>"), "Uint8Array | null");
+    }
+
+    /// The mapping must not swallow the ordinary case: a type this generator
+    /// declares is still referenced by name.
+    #[test]
+    fn a_generated_declaration_is_still_referenced_by_name() {
+        assert_eq!(ts_of("Option<MessageInfo>"), "MessageInfo | null");
+        assert_eq!(ts_of("Vec<DeviceInfo>"), "DeviceInfo[]");
+    }
+
+    #[test]
+    fn a_name_nothing_declares_is_reported_rather_than_emitted() {
+        let mut declared = BTreeMap::new();
+        parse_source(
+            r#"
+                #[derive(Serialize)]
+                pub struct Holder { known: Holder, unknown: Unplaceable, jid: Jid, generic: T }
+            "#,
+            &mut declared,
+        );
+        let referenced = ["Holder", "Unplaceable", "Jid", "T"]
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect();
+        let generics = ["T".to_string()].into_iter().collect();
+
+        assert_eq!(
+            dangling_references(&declared, &referenced, &generics),
+            vec!["Unplaceable".to_string()]
+        );
     }
 
     #[test]
