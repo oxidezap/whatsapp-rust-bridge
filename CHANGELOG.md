@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.9.0...v0.10.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **events:** deliver the core events the bridge was dropping ([#54](https://github.com/oxidezap/whatsapp-rust-bridge/issues/54))
+* **deps:** update whatsapp-rust so a degraded sync still announces the connection ([#51](https://github.com/oxidezap/whatsapp-rust-bridge/issues/51))
+
+### Features
+
+* **events:** deliver the core events the bridge was dropping ([#54](https://github.com/oxidezap/whatsapp-rust-bridge/issues/54)) ([2a27217](https://github.com/oxidezap/whatsapp-rust-bridge/commit/2a27217587292e044be7b5647d661e065090cd62))
+
+
+### Bug Fixes
+
+* **codegen:** point generated declarations at the proto types they name ([#52](https://github.com/oxidezap/whatsapp-rust-bridge/issues/52)) ([4f5eccd](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4f5eccdbc9dee649da6b9770ccaccee9ec994c83))
+* **deps:** update whatsapp-rust so a degraded sync still announces the connection ([#51](https://github.com/oxidezap/whatsapp-rust-bridge/issues/51)) ([5b2a9d0](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5b2a9d00c1b600972d92b6c2764e645fb17018de))
+
 ## [0.9.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.1...v0.9.0) (2026-08-11)
 
 
