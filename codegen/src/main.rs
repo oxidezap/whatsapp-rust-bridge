@@ -1775,6 +1775,30 @@ mod tests {
         assert_eq!(core_event_variants_in("pub struct Event;"), None);
     }
 
+    /// A `DateTime` crosses as chrono writes it, and chrono writes a string
+    /// unless the field names one of its `ts_*` modules. Declaring the string
+    /// case as a number let consumers do arithmetic on text.
+    #[test]
+    fn a_datetime_is_a_number_only_where_the_field_asks_for_one() {
+        let source = r#"
+            #[derive(Serialize)]
+            pub struct Timestamps {
+                pub written_at: DateTime<Utc>,
+                #[serde(with = "chrono::serde::ts_seconds")]
+                pub seconds: DateTime<Utc>,
+                #[serde(with = "chrono::serde::ts_seconds_option")]
+                pub maybe_seconds: Option<DateTime<Utc>>,
+            }
+        "#;
+        let generated = generated_type(source, "Timestamps");
+        assert!(generated.contains("written_at: string;"), "{generated}");
+        assert!(generated.contains("seconds: number;"), "{generated}");
+        assert!(
+            generated.contains("maybe_seconds?: number | null;"),
+            "{generated}"
+        );
+    }
+
     /// Every wrapper a waproto type is written behind in the core reaches the
     /// same reference. A mapping written only for the bare case leaks the Rust
     /// name out of one of these.

@@ -104,21 +104,26 @@ macro_rules! ev {
 }
 
 thread_local! {
-    /// Event names, interned once per thread alongside the envelope keys in
-    /// [`crate::js_keys`]. Bounded by the event enum.
-    static EVENT_NAME_CACHE: RefCell<HashMap<&'static str, JsValue>> =
+    /// Event names and the proto-field keys beside them, interned once per
+    /// thread alongside the envelope keys in [`crate::js_keys`]. Bounded by the
+    /// event enum.
+    static INTERNED_NAMES: RefCell<HashMap<&'static str, JsValue>> =
         RefCell::new(HashMap::new());
+}
+
+fn interned(name: &'static str) -> JsValue {
+    INTERNED_NAMES.with(|cache| {
+        cache
+            .borrow_mut()
+            .entry(name)
+            .or_insert_with(|| JsValue::from_str(name))
+            .clone()
+    })
 }
 
 fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, JsValue> {
     let event = js_sys::Object::new();
-    let name = EVENT_NAME_CACHE.with(|c| {
-        c.borrow_mut()
-            .entry(event_type)
-            .or_insert_with(|| JsValue::from_str(event_type))
-            .clone()
-    });
-    js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &name)?;
+    js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &interned(event_type))?;
     js_keys::set(&event, &js_keys::EVENT_DATA_KEY, data)?;
     Ok(event.into())
 }
@@ -174,20 +179,8 @@ bridge_events! {
         ContactNumberChanged     => "contact_number_changed"        => "ContactNumberChanged",
         ContactSyncRequested     => "contact_sync_requested"        => "ContactSyncRequested",
         GroupUpdate              => "group_update"                  => "GroupUpdate",
-        ContactUpdate            => "contact_update"                => "ContactUpdate",
         PushNameUpdate           => "push_name_update"              => "PushNameUpdate",
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
-        PinUpdate                => "pin_update"                    => "PinUpdate",
-        MuteUpdate               => "mute_update"                  => "MuteUpdate",
-        ArchiveUpdate            => "archive_update"                => "ArchiveUpdate",
-        StarUpdate               => "star_update"                   => "StarUpdate",
-        MarkChatAsReadUpdate     => "mark_chat_as_read_update"      => "MarkChatAsReadUpdate",
-        DeleteChatUpdate         => "delete_chat_update"            => "DeleteChatUpdate",
-        ClearChatUpdate          => "clear_chat_update"             => "ClearChatUpdate",
-        UserStatusMuteUpdate     => "user_status_mute_update"       => "UserStatusMuteUpdate",
-        DeleteMessageForMeUpdate => "delete_message_for_me_update"  => "DeleteMessageForMeUpdate",
-        LabelEditUpdate          => "label_edit_update"             => "LabelEditUpdate",
-        LabelAssociationUpdate   => "label_association_update"      => "LabelAssociationUpdate",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
         DirtyState               => "dirty_state"                    => "{ dirty_type: DirtyType; timestamp?: number | null }",
@@ -209,10 +202,22 @@ bridge_events! {
         PairPasskeyError         => "pair_passkey_error"            => "PairPasskeyError",
         AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
         ContactRemoved           => "contact_removed"               => "ContactRemoved",
-        DisableLinkPreviewsUpdate => "disable_link_previews_update" => "DisableLinkPreviewsUpdate",
-        MessageLabelAssociationUpdate => "message_label_association_update" => "MessageLabelAssociationUpdate",
-        QuickReplyUpdate         => "quick_reply_update"            => "QuickReplyUpdate",
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
+        ContactUpdate            => "contact_update"                  => "ContactUpdate",
+        PinUpdate                => "pin_update"                      => "PinUpdate",
+        MuteUpdate               => "mute_update"                     => "MuteUpdate",
+        ArchiveUpdate            => "archive_update"                  => "ArchiveUpdate",
+        StarUpdate               => "star_update"                     => "StarUpdate",
+        MarkChatAsReadUpdate     => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate",
+        DeleteChatUpdate         => "delete_chat_update"              => "DeleteChatUpdate",
+        ClearChatUpdate          => "clear_chat_update"               => "ClearChatUpdate",
+        UserStatusMuteUpdate     => "user_status_mute_update"         => "UserStatusMuteUpdate",
+        DeleteMessageForMeUpdate => "delete_message_for_me_update"    => "DeleteMessageForMeUpdate",
+        LabelEditUpdate          => "label_edit_update"               => "LabelEditUpdate",
+        LabelAssociationUpdate   => "label_association_update"        => "LabelAssociationUpdate",
+        MessageLabelAssociationUpdate => "message_label_association_update" => "MessageLabelAssociationUpdate",
+        QuickReplyUpdate         => "quick_reply_update"              => "QuickReplyUpdate",
+        DisableLinkPreviewsUpdate => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate",
     }
     special {
         // Variant                     => "js_name"                         => "TsDataType"
@@ -4196,11 +4201,14 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::chrono::{DateTime, Utc};
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
-        AppStateSyncFailed, ContactRemoved, DisableLinkPreviewsUpdate,
-        MessageLabelAssociationUpdate, PairingCodeError, PairingQrCodesExhausted, QuickReplyUpdate,
+        AppStateSyncFailed, CallLogSync, ContactRemoved, DisableLinkPreviewsUpdate,
+        MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
+        QuickReplyUpdate,
     };
+    use whatsapp_rust::waproto::whatsapp::CallLogRecord;
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        LabelAssociationAction, PrivacySettingDisableLinkPreviewsAction, QuickReplyAction,
+        LabelAssociationAction, MuteAction, PrivacySettingDisableLinkPreviewsAction,
+        QuickReplyAction,
     };
 
     /// The `{ type, data }` pairs an `onEvent` host was handed.
@@ -4314,13 +4322,78 @@ mod dispatched_event_tests {
 
         assert_eq!(name, "disable_link_previews_update");
         assert_eq!(field(&data, "previews_disabled").as_bool(), Some(true));
-        // The proto action keeps its Rust field names, as on every app-state
-        // event already exposed: `action` goes through serde, not the
-        // camelCase proto serializer.
         assert_eq!(
-            field(&field(&data, "action"), "is_previews_disabled").as_bool(),
+            field(&field(&data, "action"), "isPreviewsDisabled").as_bool(),
             Some(true)
         );
+    }
+
+    /// The record is the whole event: a call placed on the phone puts nothing on
+    /// this socket, so no other event can see it.
+    #[test]
+    async fn a_call_log_sync_carries_the_record_and_who_placed_the_call() {
+        let (name, data) = deliver(Event::CallLogSync(
+            CallLogSync::builder()
+                .call_creator_jid(jid("5511999@s.whatsapp.net"))
+                .call_id("CALL-1".to_owned())
+                .from_me(true)
+                .timestamp(timestamp())
+                .record(Box::new(CallLogRecord {
+                    is_video: Some(true),
+                    start_time: Some(1_700_000_000),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "call_log_sync");
+        assert_eq!(
+            field(&data, "call_id").as_string().as_deref(),
+            Some("CALL-1")
+        );
+        assert_eq!(field(&data, "from_me").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "call_creator_jid"), "user")
+                .as_string()
+                .as_deref(),
+            Some("5511999")
+        );
+        let record = field(&data, "record");
+        assert_eq!(field(&record, "isVideo").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&record, "startTime"), "low").as_f64(),
+            Some(1_700_000_000.0)
+        );
+    }
+
+    /// The events that already carried a proto mutation cross it in the same
+    /// protobufjs shape, which is what their declarations have always named: a
+    /// camelCase key, and the `Long` split for a 64-bit field.
+    #[test]
+    async fn an_already_exposed_action_crosses_in_the_shape_it_declares() {
+        let (name, data) = deliver(Event::MuteUpdate(
+            MuteUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(MuteAction {
+                    muted: Some(true),
+                    mute_end_timestamp: Some(1_700_000_000),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "mute_update");
+        let action = field(&data, "action");
+        assert_eq!(field(&action, "muted").as_bool(), Some(true));
+        let end = field(&action, "muteEndTimestamp");
+        assert_eq!(field(&end, "low").as_f64(), Some(1_700_000_000.0));
+        assert_eq!(field(&end, "high").as_f64(), Some(0.0));
+        assert!(field(&action, "mute_end_timestamp").is_undefined());
     }
 
     #[test]
