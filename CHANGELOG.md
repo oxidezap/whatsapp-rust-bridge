@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.10.0...v0.11.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a caller's <biz> no longer duplicates the derived one ([#55](https://github.com/oxidezap/whatsapp-rust-bridge/issues/55))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a caller's &lt;biz&gt; no longer duplicates the derived one ([#55](https://github.com/oxidezap/whatsapp-rust-bridge/issues/55)) ([7355996](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7355996ab80348edf19d6fc2a25b30ac37de4434))
+
 ## [0.10.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.9.0...v0.10.0) (2026-08-12)
 
 
