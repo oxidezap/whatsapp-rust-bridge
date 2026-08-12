@@ -46,6 +46,20 @@ jobs:
       - name: Cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      # `codegen/` is its own package, so the two steps above do not reach it.
+      # Its tests pin the type mapping at the level the published-.d.ts check
+      # cannot: they name the Rust type a broken declaration came from.
+      #
+      # `--target` is the host's, because `.cargo/config.toml` builds for wasm32
+      # by default and a wasm test binary is not something the runner can
+      # execute. `gen:bridge-types` passes the same flag for the same reason.
+      - name: Codegen format, lints and unit tests
+        run: |
+          HOST=$(rustc -vV | sed -n 's/^host: //p')
+          cargo fmt --manifest-path codegen/Cargo.toml --all -- --check
+          cargo clippy --manifest-path codegen/Cargo.toml --all-targets --target "$HOST" -- -D warnings
+          cargo test --manifest-path codegen/Cargo.toml --target "$HOST"
+
   build-and-test:
     # The benchmark step that used to run here invoked `bench:node`, whose
     # targets under benches/ were deleted in 157f43a. It never surfaced because

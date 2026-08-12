@@ -237,6 +237,7 @@ const HEADER = [
 	'# <message>\t<field>\t<number>\t<label>\t<type>[\t<enum probe values or message type>]',
 	'# <label> is optional | required | repeated | repeated packed | map.',
 	'# A line with only <message> is a message the schema declares with no fields.',
+	'# A line "<enum>\\tenum" declares an enum, whether or not a field references it.',
 	''
 ].join('\n')
 
@@ -275,6 +276,9 @@ const replaceGeneratedContract = (source: string, expected: string, replacement:
  * Flatten the compiled schema into one tab-separated line per field:
  *
  *   <message path>  <declared name>  <number>  <label>  <type>  [type ref]
+ *
+ * Plus one line per declaration that no field line would name: `<message path>`
+ * alone for a message with no fields, and `<enum path>\tenum` for every enum.
  *
  * `tests/proto-schema-surface.test.ts` replays this against the generated
  * codec, so the schema — not the generator's own output — is what says which
@@ -357,6 +361,13 @@ const buildSurface = (descriptor: Uint8Array): string => {
 	for (const file of set.file) {
 		const root = `.${file.package}`
 		const local = (path: string): string => (path.startsWith(`${root}.`) ? path.slice(root.length + 1) : path)
+		// An enum is otherwise only named where a field references one, so an
+		// enum nothing references has no line — and a reader cannot tell it from
+		// one the schema does not declare. `codegen/` resolves a Rust waproto
+		// path against this file and refuses to emit a reference it cannot find.
+		for (const path of enumProbes.keys()) {
+			if (path.startsWith(`${root}.`)) lines.push(`${local(path)}\tenum`)
+		}
 		for (const message of file.messageType) emit(root, local, message)
 	}
 
