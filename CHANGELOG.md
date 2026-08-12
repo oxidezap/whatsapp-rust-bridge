@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.1...v0.9.0) (2026-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **proto:** agree on where a field ends and how deep a message goes ([#49](https://github.com/oxidezap/whatsapp-rust-bridge/issues/49))
+
+### Bug Fixes
+
+* **proto:** agree on where a field ends and how deep a message goes ([#49](https://github.com/oxidezap/whatsapp-rust-bridge/issues/49)) ([0bddd55](https://github.com/oxidezap/whatsapp-rust-bridge/commit/0bddd558eadb33806d493622abb9e940d5e16999))
+
 ## [0.8.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.0...v0.8.1) (2026-08-10)
 
 
