@@ -679,7 +679,8 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                         .map(|f| {
                             let field_name =
                                 f.ident.as_ref().unwrap().to_string().replace("r#", "");
-                            let (ts_type, optional) = rust_type_to_ts(&f.ty);
+                            let (ts_type, optional) = timestamp_module_type(&f.attrs)
+                                .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
                                 name: serde_name.unwrap_or_else(|| {
@@ -1276,6 +1277,21 @@ fn get_serde_rename(f: &syn::Field) -> Option<String> {
     serde_string_argument(&f.attrs, "rename")
 }
 
+/// A `DateTime` written through one of chrono's `ts_*` serde modules, which
+/// replace the RFC 3339 string with an integer. The module is named on the
+/// field, so the type alone cannot tell the two apart.
+fn timestamp_module_type(attrs: &[Attribute]) -> Option<(String, bool)> {
+    let module = serde_string_argument(attrs, "with")?;
+    let module = module.rsplit("::").next()?;
+    if !module.starts_with("ts_") {
+        return None;
+    }
+    match module.ends_with("_option") {
+        true => Some(("number | null".to_string(), true)),
+        false => Some(("number".to_string(), false)),
+    }
+}
+
 fn get_serde_rename_variant(v: &syn::Variant) -> Option<String> {
     serde_string_argument(&v.attrs, "rename")
 }
@@ -1369,8 +1385,11 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                 // Duration → number (milliseconds)
                 "Duration" => ("number".to_string(), false),
 
-                // DateTime → number (unix timestamp)
-                "DateTime" => ("number".to_string(), false),
+                // DateTime → chrono's RFC 3339 string, which is what its plain
+                // `Serialize` writes. A field annotated with one of chrono's
+                // `ts_*` modules writes a number instead; that is read off the
+                // field, which this sees nothing of.
+                "DateTime" => ("string".to_string(), false),
 
                 // Jid → Jid (structured object with user, server, device, etc.)
                 "Jid" => ("Jid".to_string(), false),

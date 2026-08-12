@@ -133,6 +133,9 @@ macro_rules! bridge_events {
         serialize {
             $( $variant:ident => $name:literal => $ts_type:literal ),* $(,)?
         }
+        serialize_with_proto {
+            $( $pvariant:ident => $pname:literal => $pts_type:literal => $pfield:ident ),* $(,)?
+        }
         special {
             $( $xvariant:ident => $xname:literal => $xts:literal ),* $(,)?
         }
@@ -142,6 +145,7 @@ macro_rules! bridge_events {
         const _TS_WHATSAPP_EVENT: &str = concat!(
             "export type WhatsAppEvent =\n",
             $( ev!($name, $ts_type), )*
+            $( ev!($pname, $pts_type), )*
             $( ev!($xname, $xts), )*
             ";\n",
         );
@@ -151,6 +155,7 @@ macro_rules! bridge_events {
         #[cfg(test)]
         const DISPATCHED_EVENT_VARIANTS: &[&str] = &[
             $( stringify!($variant), )*
+            $( stringify!($pvariant), )*
             $( stringify!($xvariant), )*
         ];
 
@@ -158,6 +163,12 @@ macro_rules! bridge_events {
         fn event_to_js(event: &Event) -> Result<JsValue, JsValue> {
             let (event_type, data) = match event {
                 $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
+                $( Event::$pvariant(data) => {
+                    let value = crate::proto::to_js_value(data)?;
+                    let proto = crate::camel_serializer::to_js_value_camel(&data.$pfield)?;
+                    js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
+                    ($pname, value)
+                } )*
                 other => return event_to_js_special(other),
             };
             make_js_event(event_type, &data)
@@ -203,21 +214,28 @@ bridge_events! {
         AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
         ContactRemoved           => "contact_removed"               => "ContactRemoved",
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
-        ContactUpdate            => "contact_update"                  => "ContactUpdate",
-        PinUpdate                => "pin_update"                      => "PinUpdate",
-        MuteUpdate               => "mute_update"                     => "MuteUpdate",
-        ArchiveUpdate            => "archive_update"                  => "ArchiveUpdate",
-        StarUpdate               => "star_update"                     => "StarUpdate",
-        MarkChatAsReadUpdate     => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate",
-        DeleteChatUpdate         => "delete_chat_update"              => "DeleteChatUpdate",
-        ClearChatUpdate          => "clear_chat_update"               => "ClearChatUpdate",
-        UserStatusMuteUpdate     => "user_status_mute_update"         => "UserStatusMuteUpdate",
-        DeleteMessageForMeUpdate => "delete_message_for_me_update"    => "DeleteMessageForMeUpdate",
-        LabelEditUpdate          => "label_edit_update"               => "LabelEditUpdate",
-        LabelAssociationUpdate   => "label_association_update"        => "LabelAssociationUpdate",
-        MessageLabelAssociationUpdate => "message_label_association_update" => "MessageLabelAssociationUpdate",
-        QuickReplyUpdate         => "quick_reply_update"              => "QuickReplyUpdate",
-        DisableLinkPreviewsUpdate => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate",
+    }
+    // Events carrying a protobuf field beside their own. That field crosses in
+    // the protobufjs shape its declaration names, which is not the shape serde
+    // gives the rest of the payload.
+    serialize_with_proto {
+        // Variant                     => "js_name"                         => "TsDataType"                      => proto field
+        ContactUpdate                  => "contact_update"                  => "ContactUpdate" => action,
+        PinUpdate                      => "pin_update"                      => "PinUpdate" => action,
+        MuteUpdate                     => "mute_update"                     => "MuteUpdate" => action,
+        ArchiveUpdate                  => "archive_update"                  => "ArchiveUpdate" => action,
+        StarUpdate                     => "star_update"                     => "StarUpdate" => action,
+        MarkChatAsReadUpdate           => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate" => action,
+        DeleteChatUpdate               => "delete_chat_update"              => "DeleteChatUpdate" => action,
+        ClearChatUpdate                => "clear_chat_update"               => "ClearChatUpdate" => action,
+        UserStatusMuteUpdate           => "user_status_mute_update"         => "UserStatusMuteUpdate" => action,
+        DeleteMessageForMeUpdate       => "delete_message_for_me_update"    => "DeleteMessageForMeUpdate" => action,
+        LabelEditUpdate                => "label_edit_update"               => "LabelEditUpdate" => action,
+        LabelAssociationUpdate         => "label_association_update"        => "LabelAssociationUpdate" => action,
+        MessageLabelAssociationUpdate  => "message_label_association_update" => "MessageLabelAssociationUpdate" => action,
+        QuickReplyUpdate               => "quick_reply_update"              => "QuickReplyUpdate" => action,
+        DisableLinkPreviewsUpdate      => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate" => action,
+        CallLogSync                    => "call_log_sync"                   => "CallLogSync" => record,
     }
     special {
         // Variant                     => "js_name"                         => "TsDataType"
