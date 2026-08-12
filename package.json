@@ -34,7 +34,7 @@
         "gen:bridge-types": "cargo fetch && cd codegen && cargo run -q --bin gen-types --target $(rustc -vV | grep host | cut -d' ' -f2) > ../src/generated_types.rs.tmp && mv ../src/generated_types.rs.tmp ../src/generated_types.rs",
         "gen:proto-codec": "bun run scripts/gen-ts-proto.ts",
         "gen:proto-types": "bun run scripts/gen-protobufjs-dts.ts",
-        "gen": "bun run gen:bridge-types && bun run gen:proto-codec && bun run gen:proto-types",
+        "gen": "bun run gen:proto-codec && bun run gen:proto-types && bun run gen:bridge-types",
         "build:wasm": "wasm-pack build --target web --out-dir pkg --no-pack",
         "build:wasm:dev": "wasm-pack build --target web --out-dir pkg --no-pack --dev",
         "build:ts": "bun build ts/index.ts --minify --outfile dist/index.js --target node && cp pkg/whatsapp_rust_bridge_bg.wasm dist/ && cp ts/proto-types.d.ts dist/proto-types.d.ts && cp ts/proto-types.d.ts pkg/proto-types.d.ts && printf 'export { proto } from \"./index.js\";\\n' > dist/proto-types.js",

@@ -149,6 +149,8 @@ The release wasm build runs `wasm-opt` and is memory-hungry — it can be killed
 
 `bun run build` regenerates `src/generated_types.rs` and `ts/generated/` — the ts-proto codec plus `whatsapp-surface.txt`, one line per field the schema declares. CI fails if the result differs from what is committed. Commit the regenerated files rather than reverting them: the manifest is what `tests/proto-schema-surface.test.ts` checks the codec against, and it puts an upstream renumbering or rename in the diff.
 
+`gen` runs in that dependency order — codec, then `proto-types.d.ts`, then the bridge types — because a generated declaration naming a waproto type resolves it against that manifest and emits `import('./proto-types').proto.…`, the same reference the `history_sync` event entry uses. A named type the generator cannot place (not waproto, not a `pub type` alias, not something it or the bridge declares) fails the generation rather than emitting a name nothing declares. That check sees one `typescript_custom_section`; `tests/published-dts.test.ts` checks the concatenated `.d.ts` with `skipLibCheck: false`, which is the whole of it — every consumer tsconfig leaves that flag on, so a dangling name reaches them as a silent `any`.
+
 ## Tests
 
 There is **no mock server in CI**, so no test here proves an end-to-end response body. What tests can prove:

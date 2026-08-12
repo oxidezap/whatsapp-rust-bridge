@@ -15,6 +15,9 @@ export interface Jid {
   integrator: number;
 }
 
+/** Any JSON value, as `serde_json::Value` crosses. */
+export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
+
 /** Addressing mode for a group (phone number vs LID). */
 export type AddressingMode = "pn" | "lid";
 
@@ -41,7 +44,7 @@ export interface ArchiveUpdate {
   /** The chat being archived or unarchived. */
   jid: Jid;
   timestamp: number;
-  action: ArchiveChatAction;
+  action: import('./proto-types').proto.SyncActionValue.IArchiveChatAction;
   from_full_sync: boolean;
 }
 
@@ -224,7 +227,7 @@ export interface ClearChatUpdate {
   /** From the index, not the proto. */
   delete_media: boolean;
   timestamp: number;
-  action: ClearChatAction;
+  action: import('./proto-types').proto.SyncActionValue.IClearChatAction;
   from_full_sync: boolean;
 }
 
@@ -274,7 +277,7 @@ export interface ContactUpdate {
   /** The chat/contact this sync action applies to. */
   jid: Jid;
   timestamp: number;
-  action: ContactAction;
+  action: import('./proto-types').proto.SyncActionValue.IContactAction;
   from_full_sync: boolean;
 }
 
@@ -305,7 +308,7 @@ export interface DeleteChatUpdate {
   /** From the index, not the proto — DeleteChatAction only has messageRange. */
   delete_media: boolean;
   timestamp: number;
-  action: DeleteChatAction;
+  action: import('./proto-types').proto.SyncActionValue.IDeleteChatAction;
   from_full_sync: boolean;
 }
 
@@ -316,7 +319,7 @@ export interface DeleteMessageForMeUpdate {
   message_id: string;
   from_me: boolean;
   timestamp: number;
-  action: DeleteMessageForMeAction;
+  action: import('./proto-types').proto.SyncActionValue.IDeleteMessageForMeAction;
   from_full_sync: boolean;
 }
 
@@ -330,7 +333,7 @@ export interface Device {
   signed_pre_key_id: number;
   signed_pre_key_signature: Uint8Array;
   adv_secret_key: Uint8Array;
-  account?: ADVSignedDeviceIdentity | null;
+  account?: import('./proto-types').proto.IADVSignedDeviceIdentity | null;
   push_name: string;
   app_version_primary: number;
   app_version_secondary: number;
@@ -468,7 +471,7 @@ export interface DisableLinkPreviewsUpdate {
   /** `true` when link previews are now disabled. Only emitted when the wire carried the flag; WA Web treats an absent one as a malformed mutation. */
   previews_disabled: boolean;
   timestamp: number;
-  action: PrivacySettingDisableLinkPreviewsAction;
+  action: import('./proto-types').proto.SyncActionValue.IPrivacySettingDisableLinkPreviewsAction;
   from_full_sync: boolean;
 }
 
@@ -711,7 +714,7 @@ export interface IdentityChange {
 
 /** One decrypted inbound message. The same items (and order) back both consumer surfaces: the durability hook's batch and [`Event::Messages`]. */
 export interface InboundMessage {
-  message: any;
+  message: import('./proto-types').proto.IMessage;
   info: MessageInfo;
 }
 
@@ -751,7 +754,7 @@ export interface LabelAssociationUpdate {
   /** The chat the label was associated with or removed from. */
   chat_jid: Jid;
   timestamp: number;
-  action: LabelAssociationAction;
+  action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
 
@@ -760,7 +763,7 @@ export interface LabelEditUpdate {
   /** The label identifier (the index key, not a JID). */
   label_id: string;
   timestamp: number;
-  action: LabelEditAction;
+  action: import('./proto-types').proto.SyncActionValue.ILabelEditAction;
   from_full_sync: boolean;
 }
 
@@ -814,7 +817,7 @@ export interface MarkChatAsReadUpdate {
   /** The chat being marked as read or unread. */
   jid: Jid;
   timestamp: number;
-  action: MarkChatAsReadAction;
+  action: import('./proto-types').proto.SyncActionValue.IMarkChatAsReadAction;
   from_full_sync: boolean;
 }
 
@@ -868,7 +871,7 @@ export interface MessageInfo {
   /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
   peer_recipient_pn?: Jid | null;
   /** Parent post key when the dispatched message is a decrypted CAG channel comment (`enc_comment_message`). The inner `Message` proto has no slot for the threading link, so it surfaces here. */
-  comment_target?: MessageKey | null;
+  comment_target?: import('./proto-types').proto.IMessageKey | null;
   /** Broadcast-contact-list recipients from `<participants><to jid>` on an incoming broadcast/status stanza. Populated only for broadcasts; used to validate a `deviceSentMessage.phash` (WA Web `validateBclHash`). Empty otherwise. */
   bcl_participants: Jid[];
 }
@@ -882,7 +885,7 @@ export interface MessageLabelAssociationUpdate {
   /** The labelled message's id. */
   message_id: string;
   timestamp: number;
-  action: LabelAssociationAction;
+  action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
 
@@ -918,12 +921,12 @@ export interface MexNotification {
   from?: Jid | null;
   stanza_id?: string | null;
   offline?: string | null;
-  payload: Value;
+  payload: JsonValue;
 }
 
 /** MEX GraphQL response. */
 export interface MexResponse {
-  data?: Value | null;
+  data?: JsonValue | null;
   errors?: MexGraphQLError[] | null;
 }
 
@@ -973,7 +976,7 @@ export interface MsgSecretEntry {
   sender: string;
   /** Message identifier. `Arc<str>` keeps entry clones used by buffered persistence cheap without changing the serialized representation. */
   msg_id: string;
-  secret: MessageSecret;
+  secret: Uint8Array;
   /** Absolute unix-seconds retention deadline. `0` means never expire. Computed by the caller from the parent message's event time plus a per-add-on-kind horizon (see `MsgSecretRetention`). The store prunes rows whose deadline has passed; it does not know the horizon itself. */
   expires_at: number | string;
   /** Parent message event time (unix seconds), or `0` when unknown. Kept so the receive path can enforce the edit-processing window (`editTs < message_ts + window`) the same way WhatsApp Web does. */
@@ -984,7 +987,7 @@ export interface MuteUpdate {
   /** The chat being muted or unmuted. */
   jid: Jid;
   timestamp: number;
-  action: MuteAction;
+  action: import('./proto-types').proto.SyncActionValue.IMuteAction;
   from_full_sync: boolean;
 }
 
@@ -1120,7 +1123,7 @@ export interface PinUpdate {
   /** The chat being pinned or unpinned. */
   jid: Jid;
   timestamp: number;
-  action: PinAction;
+  action: import('./proto-types').proto.SyncActionValue.IPinAction;
   from_full_sync: boolean;
 }
 
@@ -1162,7 +1165,7 @@ export interface QuickReplyUpdate {
   /** The quick reply's identifier (the index key, not a JID). */
   id: string;
   timestamp: number;
-  action: QuickReplyAction;
+  action: import('./proto-types').proto.SyncActionValue.IQuickReplyAction;
   from_full_sync: boolean;
 }
 
@@ -1174,6 +1177,22 @@ export interface Receipt {
   /** True when the receipt carried the `offline` attribute, i.e. it was drained from the server's offline queue on reconnect rather than delivered live. Mirrors WA Web `incomingMsgReceiptParser` (`offline: maybeAttrString`). */
   offline: boolean;
 }
+
+export type ReceiptType =
+  | "Delivered"
+  | "Sent"
+  | "Sender"
+  | "Retry"
+  | "EncRekeyRetry"
+  | "Read"
+  | "ReadSelf"
+  | "Played"
+  | "PlayedSelf"
+  | "ServerError"
+  | "Inactive"
+  | "PeerMsg"
+  | "HistorySync"
+  | { "Other": string };
 
 /** Chat state type as received from incoming stanzas.  Aligned with WhatsApp Web's `WAChatState` constants: - `typing` = ACTIVE_CHAT_STATE_TYPE.TYPING - `recording_audio` = ACTIVE_CHAT_STATE_TYPE.RECORDING_AUDIO - `idle` = IDLE_CHAT_STATE_TYPE.IDLE */
 export type ReceivedChatState = "typing" | "recording_audio" | "idle";
@@ -1219,7 +1238,7 @@ export interface StarUpdate {
   message_id: string;
   from_me: boolean;
   timestamp: number;
-  action: StarAction;
+  action: import('./proto-types').proto.SyncActionValue.IStarAction;
   from_full_sync: boolean;
 }
 
@@ -1279,7 +1298,7 @@ export interface UserStatusMuteUpdate {
   /** `true` = status muted, `false` = unmuted. */
   muted: boolean;
   timestamp: number;
-  action: UserStatusMuteAction;
+  action: import('./proto-types').proto.SyncActionValue.IUserStatusMuteAction;
   from_full_sync: boolean;
 }
 

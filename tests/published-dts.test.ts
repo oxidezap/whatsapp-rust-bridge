@@ -19,6 +19,7 @@ import ts from "typescript";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRY = join(ROOT, "dist", "index.d.ts");
+const CONSUMER = join(ROOT, "tests", "fixtures", "published-dts-consumer.ts");
 
 /**
  * The lib set a consumer would have: `dom` for the stream/fetch globals the
@@ -53,7 +54,7 @@ test("the published declarations typecheck without skipLibCheck", () => {
     "dist/index.d.ts is absent — run `bun run build` first",
   ).toBe(true);
 
-  const program = ts.createProgram([ENTRY], OPTIONS);
+  const program = ts.createProgram([ENTRY, CONSUMER], OPTIONS);
   const messages = ts
     .getPreEmitDiagnostics(program)
     .map((diagnostic) => {
