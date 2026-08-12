@@ -199,6 +199,12 @@ bridge_events! {
         PairPasskeyRequest       => "pair_passkey_request"          => "PairPasskeyRequest",
         PairPasskeyConfirmation  => "pair_passkey_confirmation"     => "PairPasskeyConfirmation",
         PairPasskeyError         => "pair_passkey_error"            => "PairPasskeyError",
+        AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
+        ContactRemoved           => "contact_removed"               => "ContactRemoved",
+        DisableLinkPreviewsUpdate => "disable_link_previews_update" => "DisableLinkPreviewsUpdate",
+        MessageLabelAssociationUpdate => "message_label_association_update" => "MessageLabelAssociationUpdate",
+        QuickReplyUpdate         => "quick_reply_update"            => "QuickReplyUpdate",
+        PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
     }
     special {
         // "js_name"                         => "TsDataType"
@@ -221,6 +227,11 @@ bridge_events! {
         // reconstruction: hosts decode the wire payloads with their own codec
         // and rebuild these shapes for their downstream consumers.
         "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
+        // `backoff` is a `Duration`, and a `Duration` crosses this bridge as
+        // whole seconds — the unit `qr` and `pairing_code` already cross their
+        // `timeout` in. Serializing it would emit `{ secs, nanos }` instead,
+        // which is not what `PairingCodeError` declares.
+        "pairing_code_error"              => "PairingCodeError",
     }
 }
 
@@ -1983,6 +1994,17 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
                 &connect_failure_reason_str(&lo.reason).into(),
             )?;
             ("logged_out", d.into())
+        }
+        Event::PairingCodeError(error) => {
+            let d = js_sys::Object::new();
+            if let Some(rejection) = error.rejection {
+                js_sys::Reflect::set(&d, &"rejection".into(), &(rejection.code() as f64).into())?;
+            }
+            if let Some(backoff) = error.backoff {
+                js_sys::Reflect::set(&d, &"backoff".into(), &(backoff.as_secs() as f64).into())?;
+            }
+            js_sys::Reflect::set(&d, &"error".into(), &error.error.as_str().into())?;
+            ("pairing_code_error", d.into())
         }
         Event::Notification(node) => {
             let data = node_ref_to_js(node.get())?;
