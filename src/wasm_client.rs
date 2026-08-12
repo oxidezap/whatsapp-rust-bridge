@@ -3866,7 +3866,7 @@ mod event_delivery_tests {
     }
 
     /// Run the consumer loop over `events` against an already built host.
-    async fn drive_object(object: &js_sys::Object, events: Vec<Event>) {
+    pub(super) async fn drive_object(object: &js_sys::Object, events: Vec<Event>) {
         let callbacks =
             JsEventCallbacks::from_js(object.clone().into()).expect("the host shape parses");
         let (tx, rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
@@ -4211,14 +4211,14 @@ mod dispatched_event_tests {
     /// The `{ type, data }` pairs an `onEvent` host was handed.
     type Seen = Rc<RefCell<Vec<(String, JsValue)>>>;
 
-    fn host(seen: &Seen) -> JsValue {
+    /// A host that records the whole `{ type, data }` rather than the packed
+    /// bytes `event_delivery_tests` reads — these events have no packed form.
+    fn host(seen: &Seen) -> js_sys::Object {
         let object = js_sys::Object::new();
         let seen = seen.clone();
         let closure = Closure::wrap(Box::new(move |event: JsValue| {
-            let read =
-                |key: &str| js_sys::Reflect::get(&event, &key.into()).expect("the key reads");
-            let name = read("type").as_string().expect("type is a string");
-            seen.borrow_mut().push((name, read("data")));
+            let name = field(&event, "type").as_string().expect("type is a string");
+            seen.borrow_mut().push((name, field(&event, "data")));
         }) as Box<dyn FnMut(JsValue)>);
         js_sys::Reflect::set(
             &object,
@@ -4226,17 +4226,13 @@ mod dispatched_event_tests {
             &closure.into_js_value(),
         )
         .expect("the host accepts onEvent");
-        object.into()
+        object
     }
 
     /// Run one event through the consumer loop and return what `onEvent` saw.
     async fn deliver(event: Event) -> (String, JsValue) {
         let seen: Seen = Rc::new(RefCell::new(Vec::new()));
-        let callbacks = JsEventCallbacks::from_js(host(&seen)).expect("the host shape parses");
-        let (tx, rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
-        tx.try_send(Arc::new(event)).expect("the channel accepts");
-        tx.close();
-        run_event_consumer(&callbacks, rx).await;
+        super::event_delivery_tests::drive_object(&host(&seen), vec![event]).await;
         let seen = seen.borrow();
         assert_eq!(seen.len(), 1, "the host was not handed exactly one event");
         seen[0].clone()
