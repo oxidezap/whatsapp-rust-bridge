@@ -43,7 +43,7 @@ export interface AppStateSyncKey {
 export interface ArchiveUpdate {
   /** The chat being archived or unarchived. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IArchiveChatAction;
   from_full_sync: boolean;
 }
@@ -199,7 +199,7 @@ export interface CallLogSync {
   /** Whether *this account* placed the call.  Read this rather than `record.is_incoming`, which despite its name holds the same thing rather than its opposite: WA Web writes the record with `isIncoming: fromMe`, so a consumer taking the field at its word files every call backwards. */
   from_me: boolean;
   /** When the mutation was written, not when the call happened — the call's own time is `record.start_time`.  This is the field WA Web measures against the pairing timestamp to decide whether a record predates the device, so it is worth having; it is not a time to file the call under. A mutation that arrives without one falls back to the moment it was received, as every other app-state event does. */
-  timestamp: number;
+  timestamp: string;
   record: import('./proto-types').proto.ICallLogRecord;
   from_full_sync: boolean;
 }
@@ -240,7 +240,7 @@ export interface ClearChatUpdate {
   delete_starred: boolean;
   /** From the index, not the proto. */
   delete_media: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IClearChatAction;
   from_full_sync: boolean;
 }
@@ -270,27 +270,27 @@ export interface ContactNumberChanged {
   old_lid?: Jid | null;
   /** New LID (if provided by server). */
   new_lid?: Jid | null;
-  timestamp: number;
+  timestamp: string;
 }
 
 /** A saved contact was deleted on a linked device.  Carries no action payload: the mutation is a syncd `Remove`, and WA Web's `WAWebContactSync` ignores the value on that branch and simply drops the contact from the address book. */
 export interface ContactRemoved {
   /** The contact that is no longer saved. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   from_full_sync: boolean;
 }
 
 /** Server requests a full contact re-sync.  Emitted from `<notification type="contacts"><sync after="..."/>`. */
 export interface ContactSyncRequested {
-  after?: number | null;
-  timestamp: number;
+  after?: string | null;
+  timestamp: string;
 }
 
 export interface ContactUpdate {
   /** The chat/contact this sync action applies to. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IContactAction;
   from_full_sync: boolean;
 }
@@ -299,7 +299,7 @@ export interface ContactUpdate {
 export interface ContactUpdated {
   /** The contact whose profile was updated. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
 }
 
 export type DayOfWeek = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | string;
@@ -321,7 +321,7 @@ export interface DeleteChatUpdate {
   jid: Jid;
   /** From the index, not the proto — DeleteChatAction only has messageRange. */
   delete_media: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IDeleteChatAction;
   from_full_sync: boolean;
 }
@@ -332,7 +332,7 @@ export interface DeleteMessageForMeUpdate {
   participant_jid?: Jid | null;
   message_id: string;
   from_me: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IDeleteMessageForMeAction;
   from_full_sync: boolean;
 }
@@ -484,7 +484,7 @@ export type DirtyType = "account_sync" | "groups" | "syncd_app_state" | "newslet
 export interface DisableLinkPreviewsUpdate {
   /** `true` when link previews are now disabled. Only emitted when the wire carried the flag; WA Web treats an absent one as a malformed mutation. */
   previews_disabled: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IPrivacySettingDisableLinkPreviewsAction;
   from_full_sync: boolean;
 }
@@ -705,7 +705,7 @@ export interface GroupUpdate {
   /** Country code supplied for the participant by the server. */
   participant_country_code?: string | null;
   /** When the change occurred */
-  timestamp: number;
+  timestamp: string;
   /** Whether the group uses LID addressing mode */
   is_lid_addressing_mode: boolean;
   /** Whether participant identity information was incomplete in the source stanza. */
@@ -767,7 +767,7 @@ export interface LabelAssociationUpdate {
   label_id: string;
   /** The chat the label was associated with or removed from. */
   chat_jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
@@ -776,7 +776,7 @@ export interface LabelAssociationUpdate {
 export interface LabelEditUpdate {
   /** The label identifier (the index key, not a JID). */
   label_id: string;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.ILabelEditAction;
   from_full_sync: boolean;
 }
@@ -830,7 +830,7 @@ export interface LogoutMessage {
 export interface MarkChatAsReadUpdate {
   /** The chat being marked as read or unread. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IMarkChatAsReadAction;
   from_full_sync: boolean;
 }
@@ -898,7 +898,7 @@ export interface MessageLabelAssociationUpdate {
   chat_jid: Jid;
   /** The labelled message's id. */
   message_id: string;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
@@ -959,7 +959,7 @@ export type MissedReason = "offline" | "remote";
 export interface MsgBotInfo {
   edit_type?: BotEditType | null;
   edit_target_id?: string | null;
-  edit_sender_timestamp_ms?: number | null;
+  edit_sender_timestamp_ms?: string | null;
 }
 
 export interface MsgMetaInfo {
@@ -1000,7 +1000,7 @@ export interface MsgSecretEntry {
 export interface MuteUpdate {
   /** The chat being muted or unmuted. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IMuteAction;
   from_full_sync: boolean;
 }
@@ -1126,7 +1126,7 @@ export interface PictureUpdate {
   jid: Jid;
   /** The user who made the change. Present for group picture changes (the admin who changed it). `None` for personal picture updates. */
   author?: Jid | null;
-  timestamp: number;
+  timestamp: string;
   /** Whether the picture was removed (true) or set/updated (false). */
   removed: boolean;
   /** The server-assigned picture ID (from `<set id="..."/>`). `None` for deletions. */
@@ -1136,7 +1136,7 @@ export interface PictureUpdate {
 export interface PinUpdate {
   /** The chat being pinned or unpinned. */
   jid: Jid;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IPinAction;
   from_full_sync: boolean;
 }
@@ -1149,7 +1149,7 @@ export interface PresenceUpdate {
   /** The contact whose presence changed. */
   from: Jid;
   unavailable: boolean;
-  last_seen?: number | null;
+  last_seen?: string | null;
 }
 
 export type PrivacyCategory = "last" | "online" | "profile" | "status" | "groupadd" | "readreceipts" | "calladd" | "messages" | "defense" | string;
@@ -1178,7 +1178,7 @@ export type PushPriority = "high" | "high_force";
 export interface QuickReplyUpdate {
   /** The quick reply's identifier (the index key, not a JID). */
   id: string;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IQuickReplyAction;
   from_full_sync: boolean;
 }
@@ -1186,7 +1186,7 @@ export interface QuickReplyUpdate {
 export interface Receipt {
   source: MessageSource;
   message_ids: string[];
-  timestamp: number;
+  timestamp: string;
   type: ReceiptType;
   /** True when the receipt carried the `offline` attribute, i.e. it was drained from the server's offline queue on reconnect rather than delivered live. Mirrors WA Web `incomingMsgReceiptParser` (`offline: maybeAttrString`). */
   offline: boolean;
@@ -1236,7 +1236,7 @@ export interface ServerAck {
   /** Chat/entity the ack refers to, when present and parseable. */
   from?: Jid | null;
   /** Server timestamp from the ack's `t` attribute, when present. For a message ack this is the authoritative send timestamp (whatsmeow reads the same attribute into `SendResponse.Timestamp`). */
-  timestamp?: number | null;
+  timestamp?: string | null;
   /** Nack code (e.g. `"479"`) when the server rejected the stanza; `None` for a plain ack. */
   error?: string | null;
 }
@@ -1251,7 +1251,7 @@ export interface StarUpdate {
   participant_jid?: Jid | null;
   message_id: string;
   from_me: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IStarAction;
   from_full_sync: boolean;
 }
@@ -1302,7 +1302,7 @@ export interface UserAboutUpdate {
   /** The contact whose about text changed. */
   jid: Jid;
   status: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 /** A contact/group/newsletter's status updates were muted/unmuted on a linked device. */
@@ -1311,7 +1311,7 @@ export interface UserStatusMuteUpdate {
   jid: Jid;
   /** `true` = status muted, `false` = unmuted. */
   muted: boolean;
-  timestamp: number;
+  timestamp: string;
   action: import('./proto-types').proto.SyncActionValue.IUserStatusMuteAction;
   from_full_sync: boolean;
 }
@@ -1536,3 +1536,78 @@ export interface WaitingRoomUser {
   state: string;
 }
 "#;
+
+/// The core's `Event` variants, so `wasm_client`'s coverage test can
+/// measure the bridge's dispatch against something other than itself.
+#[cfg(test)]
+pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
+    "Connected",
+    "Disconnected",
+    "PairSuccess",
+    "PairError",
+    "LoggedOut",
+    "PairingQrCode",
+    "PairingCode",
+    "PairingCodeRefresh",
+    "PairingCodeError",
+    "PairingQrCodesExhausted",
+    "QrScannedWithoutMultidevice",
+    "ClientOutdated",
+    "Messages",
+    "Receipt",
+    "ServerAck",
+    "UndecryptableMessage",
+    "Notification",
+    "ChatPresence",
+    "Presence",
+    "PictureUpdate",
+    "UserAboutUpdate",
+    "ContactUpdated",
+    "ContactNumberChanged",
+    "ContactSyncRequested",
+    "GroupUpdate",
+    "ContactUpdate",
+    "IncomingCall",
+    "MissedCall",
+    "CallEndedElsewhere",
+    "PushNameUpdate",
+    "SelfPushNameUpdated",
+    "PinUpdate",
+    "MuteUpdate",
+    "ArchiveUpdate",
+    "StarUpdate",
+    "MarkChatAsReadUpdate",
+    "DeleteChatUpdate",
+    "ClearChatUpdate",
+    "UserStatusMuteUpdate",
+    "DeleteMessageForMeUpdate",
+    "LabelEditUpdate",
+    "LabelAssociationUpdate",
+    "HistorySync",
+    "OfflineSyncPreview",
+    "OfflineSyncCompleted",
+    "DirtyState",
+    "DeviceListUpdate",
+    "IdentityChange",
+    "BusinessStatusUpdate",
+    "StreamReplaced",
+    "TemporaryBan",
+    "ConnectFailure",
+    "StreamError",
+    "DisappearingModeChanged",
+    "NewsletterLiveUpdate",
+    "RawNode",
+    "MexNotification",
+    "PairPasskeyRequest",
+    "PairPasskeyConfirmation",
+    "PairPasskeyError",
+    "AppStateSyncFailed",
+    "DecryptedPayload",
+    "SentFrame",
+    "MessageLabelAssociationUpdate",
+    "QuickReplyUpdate",
+    "DisableLinkPreviewsUpdate",
+    "ContactRemoved",
+    "EncDecryptFailed",
+    "CallLogSync",
+];

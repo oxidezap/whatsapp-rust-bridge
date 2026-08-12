@@ -104,21 +104,26 @@ macro_rules! ev {
 }
 
 thread_local! {
-    /// Event names, interned once per thread alongside the envelope keys in
-    /// [`crate::js_keys`]. Bounded by the event enum.
-    static EVENT_NAME_CACHE: RefCell<HashMap<&'static str, JsValue>> =
+    /// Event names and the proto-field keys beside them, interned once per
+    /// thread alongside the envelope keys in [`crate::js_keys`]. Bounded by the
+    /// event enum.
+    static INTERNED_NAMES: RefCell<HashMap<&'static str, JsValue>> =
         RefCell::new(HashMap::new());
+}
+
+fn interned(name: &'static str) -> JsValue {
+    INTERNED_NAMES.with(|cache| {
+        cache
+            .borrow_mut()
+            .entry(name)
+            .or_insert_with(|| JsValue::from_str(name))
+            .clone()
+    })
 }
 
 fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, JsValue> {
     let event = js_sys::Object::new();
-    let name = EVENT_NAME_CACHE.with(|c| {
-        c.borrow_mut()
-            .entry(event_type)
-            .or_insert_with(|| JsValue::from_str(event_type))
-            .clone()
-    });
-    js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &name)?;
+    js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &interned(event_type))?;
     js_keys::set(&event, &js_keys::EVENT_DATA_KEY, data)?;
     Ok(event.into())
 }
@@ -128,8 +133,11 @@ macro_rules! bridge_events {
         serialize {
             $( $variant:ident => $name:literal => $ts_type:literal ),* $(,)?
         }
+        serialize_with_proto {
+            $( $pvariant:ident => $pname:literal => $pts_type:literal => $pfield:ident ),* $(,)?
+        }
         special {
-            $( $xname:literal => $xts:literal ),* $(,)?
+            $( $xvariant:ident => $xname:literal => $xts:literal ),* $(,)?
         }
     ) => {
         // Generate WhatsAppEvent TypeScript type
@@ -137,14 +145,32 @@ macro_rules! bridge_events {
         const _TS_WHATSAPP_EVENT: &str = concat!(
             "export type WhatsAppEvent =\n",
             $( ev!($name, $ts_type), )*
+            $( ev!($pname, $pts_type), )*
             $( ev!($xname, $xts), )*
             ";\n",
         );
+
+        /// Every core `Event` variant this bridge carries across, by whichever
+        /// path carries it.
+        #[cfg(test)]
+        const DISPATCHED_EVENT_VARIANTS: &[&str] = &[
+            $( stringify!($variant), )*
+            $( stringify!($pvariant), )*
+            $( stringify!($xvariant), )*
+        ];
 
         // Generate event_to_js dispatch (JS-specific, existing path)
         fn event_to_js(event: &Event) -> Result<JsValue, JsValue> {
             let (event_type, data) = match event {
                 $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
+                $( Event::$pvariant(data) => {
+                    let value = crate::proto::to_js_value(data)?;
+                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(
+                        &data.$pfield,
+                    )?;
+                    js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
+                    ($pname, value)
+                } )*
                 other => return event_to_js_special(other),
             };
             make_js_event(event_type, &data)
@@ -166,20 +192,8 @@ bridge_events! {
         ContactNumberChanged     => "contact_number_changed"        => "ContactNumberChanged",
         ContactSyncRequested     => "contact_sync_requested"        => "ContactSyncRequested",
         GroupUpdate              => "group_update"                  => "GroupUpdate",
-        ContactUpdate            => "contact_update"                => "ContactUpdate",
         PushNameUpdate           => "push_name_update"              => "PushNameUpdate",
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
-        PinUpdate                => "pin_update"                    => "PinUpdate",
-        MuteUpdate               => "mute_update"                  => "MuteUpdate",
-        ArchiveUpdate            => "archive_update"                => "ArchiveUpdate",
-        StarUpdate               => "star_update"                   => "StarUpdate",
-        MarkChatAsReadUpdate     => "mark_chat_as_read_update"      => "MarkChatAsReadUpdate",
-        DeleteChatUpdate         => "delete_chat_update"            => "DeleteChatUpdate",
-        ClearChatUpdate          => "clear_chat_update"             => "ClearChatUpdate",
-        UserStatusMuteUpdate     => "user_status_mute_update"       => "UserStatusMuteUpdate",
-        DeleteMessageForMeUpdate => "delete_message_for_me_update"  => "DeleteMessageForMeUpdate",
-        LabelEditUpdate          => "label_edit_update"             => "LabelEditUpdate",
-        LabelAssociationUpdate   => "label_association_update"      => "LabelAssociationUpdate",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
         DirtyState               => "dirty_state"                    => "{ dirty_type: DirtyType; timestamp?: number | null }",
@@ -199,30 +213,83 @@ bridge_events! {
         PairPasskeyRequest       => "pair_passkey_request"          => "PairPasskeyRequest",
         PairPasskeyConfirmation  => "pair_passkey_confirmation"     => "PairPasskeyConfirmation",
         PairPasskeyError         => "pair_passkey_error"            => "PairPasskeyError",
+        AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
+        ContactRemoved           => "contact_removed"               => "ContactRemoved",
+        PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
+    }
+    // Events carrying a protobuf field beside their own. That field crosses in
+    // the protobufjs shape its declaration names, keeping an explicit `false` or
+    // `0` on the mutation itself — unpin and unarchive are that value.
+    serialize_with_proto {
+        // Variant                     => "js_name"                         => "TsDataType"                      => proto field
+        ContactUpdate                  => "contact_update"                  => "ContactUpdate" => action,
+        PinUpdate                      => "pin_update"                      => "PinUpdate" => action,
+        MuteUpdate                     => "mute_update"                     => "MuteUpdate" => action,
+        ArchiveUpdate                  => "archive_update"                  => "ArchiveUpdate" => action,
+        StarUpdate                     => "star_update"                     => "StarUpdate" => action,
+        MarkChatAsReadUpdate           => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate" => action,
+        DeleteChatUpdate               => "delete_chat_update"              => "DeleteChatUpdate" => action,
+        ClearChatUpdate                => "clear_chat_update"               => "ClearChatUpdate" => action,
+        UserStatusMuteUpdate           => "user_status_mute_update"         => "UserStatusMuteUpdate" => action,
+        DeleteMessageForMeUpdate       => "delete_message_for_me_update"    => "DeleteMessageForMeUpdate" => action,
+        LabelEditUpdate                => "label_edit_update"               => "LabelEditUpdate" => action,
+        LabelAssociationUpdate         => "label_association_update"        => "LabelAssociationUpdate" => action,
+        MessageLabelAssociationUpdate  => "message_label_association_update" => "MessageLabelAssociationUpdate" => action,
+        QuickReplyUpdate               => "quick_reply_update"              => "QuickReplyUpdate" => action,
+        DisableLinkPreviewsUpdate      => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate" => action,
+        CallLogSync                    => "call_log_sync"                   => "CallLogSync" => record,
     }
     special {
-        // "js_name"                         => "TsDataType"
-        "connected"                       => "Record<string, never>",
-        "disconnected"                    => "Record<string, never>",
-        "qr"                              => "{ code: string; timeout: number }",
-        "pairing_code"                    => "{ code: string; timeout: number }",
-        "pair_success"                    => "{ id: string; lid: string; business_name: string; platform: string }",
-        "pair_error"                      => "{ id: string; lid: string; business_name: string; platform: string; error: string }",
-        "logged_out"                      => "{ on_connect: boolean; reason: string }",
-        "message"                         => "{ message: Record<string, unknown>; info: MessageInfo & { is_view_once: boolean } }",
-        "notification"                    => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
-        "stream_replaced"                 => "Record<string, never>",
-        "qr_scanned_without_multidevice"  => "Record<string, never>",
-        "client_outdated"                 => "Record<string, never>",
-        "raw_node"                        => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
+        // Variant                     => "js_name"                         => "TsDataType"
+        Connected                      => "connected"                       => "Record<string, never>",
+        Disconnected                   => "disconnected"                    => "Record<string, never>",
+        PairingQrCode                  => "qr"                              => "{ code: string; timeout: number }",
+        PairingCode                    => "pairing_code"                    => "{ code: string; timeout: number }",
+        PairSuccess                    => "pair_success"                    => "{ id: string; lid: string; business_name: string; platform: string }",
+        PairError                      => "pair_error"                      => "{ id: string; lid: string; business_name: string; platform: string; error: string }",
+        LoggedOut                      => "logged_out"                      => "{ on_connect: boolean; reason: string }",
+        Messages                       => "message"                         => "{ message: Record<string, unknown>; info: MessageInfo & { is_view_once: boolean } }",
+        Notification                   => "notification"                    => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
+        StreamReplaced                 => "stream_replaced"                 => "Record<string, never>",
+        QrScannedWithoutMultidevice    => "qr_scanned_without_multidevice"  => "Record<string, never>",
+        ClientOutdated                 => "client_outdated"                 => "Record<string, never>",
+        RawNode                        => "raw_node"                        => "{ tag: string; attrs: Record<string, string>; content?: unknown }",
         // The bridge itself never emits `message`/`history_sync` events — both
         // cross the boundary as wire batches (`onMessageBatch` /
         // `onHistorySyncBatch`). The union entries describe the host-side
         // reconstruction: hosts decode the wire payloads with their own codec
         // and rebuild these shapes for their downstream consumers.
-        "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
+        HistorySync                    => "history_sync"                    => "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
+        // Special-cased for `backoff`: serializing a `Duration` emits
+        // `{ secs, nanos }`, and this bridge crosses one as whole seconds.
+        PairingCodeError               => "pairing_code_error"              => "PairingCodeError",
     }
 }
+
+/// The core `Event` variants this bridge deliberately does not carry across.
+/// Every variant has to appear here or in `DISPATCHED_EVENT_VARIANTS`, so one
+/// added upstream cannot be dropped in silence.
+#[cfg(test)]
+const UNDISPATCHED_EVENT_VARIANTS: &[(&str, &str)] = &[
+    (
+        "DecryptedPayload",
+        "the payload is the bytes, and the bytes are #[serde(skip)] — what would \
+         cross is a header with the plaintext missing. Emitted only while a \
+         consumer holds a forwarding lease, which this bridge never takes.",
+    ),
+    (
+        "SentFrame",
+        "its one field is the marshaled stanza, also #[serde(skip)], so the event \
+         would cross as an empty object. Lease-gated like DecryptedPayload.",
+    ),
+    (
+        "EncDecryptFailed",
+        "every field crosses, but the core emits nothing while no consumer holds \
+         acquire_enc_decrypt_failed_forwarding(). Publishing it would add an \
+         event that can never fire; delivering it needs a lease toggle of the \
+         kind setRawNodeForwarding is, which is a separate change.",
+    ),
+];
 
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CLIENT_CONFIG: &str = r#"
@@ -1983,6 +2050,17 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
                 &connect_failure_reason_str(&lo.reason).into(),
             )?;
             ("logged_out", d.into())
+        }
+        Event::PairingCodeError(error) => {
+            let d = js_sys::Object::new();
+            if let Some(rejection) = error.rejection {
+                js_sys::Reflect::set(&d, &"rejection".into(), &(rejection.code() as f64).into())?;
+            }
+            if let Some(backoff) = error.backoff {
+                js_sys::Reflect::set(&d, &"backoff".into(), &(backoff.as_secs() as f64).into())?;
+            }
+            js_sys::Reflect::set(&d, &"error".into(), &error.error.as_str().into())?;
+            ("pairing_code_error", d.into())
         }
         Event::Notification(node) => {
             let data = node_ref_to_js(node.get())?;
@@ -3808,7 +3886,7 @@ mod event_delivery_tests {
     }
 
     /// Run the consumer loop over `events` against an already built host.
-    async fn drive_object(object: &js_sys::Object, events: Vec<Event>) {
+    pub(super) async fn drive_object(object: &js_sys::Object, events: Vec<Event>) {
         let callbacks =
             JsEventCallbacks::from_js(object.clone().into()).expect("the host shape parses");
         let (tx, rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
@@ -4126,5 +4204,471 @@ mod event_delivery_tests {
                 .count();
             assert_eq!(seen, 1, "{id} crossed {seen} times");
         }
+    }
+}
+
+/// One test per event this bridge dispatches out of the core's `Event`, driven
+/// end to end: a synthetic core event in, the `onEvent` payload the host
+/// received out.
+#[cfg(test)]
+mod dispatched_event_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::time::Duration;
+    use wasm_bindgen::closure::Closure;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::chrono::{DateTime, Utc};
+    use whatsapp_rust::wacore::pair_code::PairCodeRejection;
+    use whatsapp_rust::wacore::types::events::{
+        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ContactRemoved, ContactUpdate,
+        DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError,
+        PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
+    };
+    use whatsapp_rust::waproto::whatsapp::sync_action_value::{
+        ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
+        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
+        SyncActionMessageRange,
+    };
+    use whatsapp_rust::waproto::whatsapp::{CallLogRecord, MessageKey};
+
+    /// The `{ type, data }` pairs an `onEvent` host was handed.
+    type Seen = Rc<RefCell<Vec<(String, JsValue)>>>;
+
+    /// Records the whole `{ type, data }`, not the packed bytes
+    /// `event_delivery_tests` reads — these events have no packed form.
+    fn host(seen: &Seen) -> js_sys::Object {
+        let object = js_sys::Object::new();
+        let seen = seen.clone();
+        let closure = Closure::wrap(Box::new(move |event: JsValue| {
+            let name = field(&event, "type").as_string().expect("type is a string");
+            seen.borrow_mut().push((name, field(&event, "data")));
+        }) as Box<dyn FnMut(JsValue)>);
+        js_sys::Reflect::set(
+            &object,
+            &EVENT_CALLBACK_METHOD.into(),
+            &closure.into_js_value(),
+        )
+        .expect("the host accepts onEvent");
+        object
+    }
+
+    /// Run one event through the consumer loop and return what `onEvent` saw.
+    async fn deliver(event: Event) -> (String, JsValue) {
+        let seen: Seen = Rc::new(RefCell::new(Vec::new()));
+        super::event_delivery_tests::drive_object(&host(&seen), vec![event]).await;
+        let seen = seen.borrow();
+        assert_eq!(seen.len(), 1, "the host was not handed exactly one event");
+        seen[0].clone()
+    }
+
+    fn field(data: &JsValue, key: &str) -> JsValue {
+        js_sys::Reflect::get(data, &key.into()).expect("the key reads")
+    }
+
+    fn strings(value: &JsValue) -> Vec<String> {
+        js_sys::Array::from(value)
+            .iter()
+            .map(|entry| entry.as_string().expect("an array of strings"))
+            .collect()
+    }
+
+    fn jid(raw: &str) -> Jid {
+        raw.parse().expect("valid jid")
+    }
+
+    fn timestamp() -> DateTime<Utc> {
+        DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
+    }
+
+    /// Load-bearing since #1291: the core announces the connection and reports
+    /// what the critical sync left behind here.
+    #[test]
+    async fn an_app_state_sync_failed_carries_all_four_fields() {
+        let (name, data) = deliver(Event::AppStateSyncFailed(
+            AppStateSyncFailed::builder()
+                .fatal(vec!["critical_block".to_owned()])
+                .retryable(vec!["regular_high".to_owned()])
+                .skipped(vec!["regular_low".to_owned()])
+                .connected(true)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "app_state_sync_failed");
+        assert_eq!(strings(&field(&data, "fatal")), ["critical_block"]);
+        assert_eq!(strings(&field(&data, "retryable")), ["regular_high"]);
+        assert_eq!(strings(&field(&data, "skipped")), ["regular_low"]);
+        assert_eq!(field(&data, "connected").as_bool(), Some(true));
+    }
+
+    #[test]
+    async fn a_contact_removed_carries_the_contact_that_is_gone() {
+        let (name, data) = deliver(Event::ContactRemoved(
+            ContactRemoved::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "contact_removed");
+        assert_eq!(
+            field(&field(&data, "jid"), "user").as_string().as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
+        // A `DateTime<Utc>` with no serde attribute crosses as chrono's RFC 3339
+        // string, the same as every app-state event already exposed.
+        assert_eq!(
+            field(&data, "timestamp").as_string().as_deref(),
+            Some("2023-11-14T22:13:20Z")
+        );
+    }
+
+    #[test]
+    async fn a_disable_link_previews_update_carries_the_setting_and_its_action() {
+        let (name, data) = deliver(Event::DisableLinkPreviewsUpdate(
+            DisableLinkPreviewsUpdate::builder()
+                .previews_disabled(true)
+                .timestamp(timestamp())
+                .action(Box::new(PrivacySettingDisableLinkPreviewsAction {
+                    is_previews_disabled: Some(true),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "disable_link_previews_update");
+        assert_eq!(field(&data, "previews_disabled").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "action"), "isPreviewsDisabled").as_bool(),
+            Some(true)
+        );
+    }
+
+    /// The record is the whole event: a call placed on the phone puts nothing on
+    /// this socket, so no other event can see it.
+    #[test]
+    async fn a_call_log_sync_carries_the_record_and_who_placed_the_call() {
+        let (name, data) = deliver(Event::CallLogSync(
+            CallLogSync::builder()
+                .call_creator_jid(jid("5511999@s.whatsapp.net"))
+                .call_id("CALL-1".to_owned())
+                .from_me(true)
+                .timestamp(timestamp())
+                .record(Box::new(CallLogRecord {
+                    is_video: Some(true),
+                    start_time: Some(1_700_000_000),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "call_log_sync");
+        assert_eq!(
+            field(&data, "call_id").as_string().as_deref(),
+            Some("CALL-1")
+        );
+        assert_eq!(field(&data, "from_me").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "call_creator_jid"), "user")
+                .as_string()
+                .as_deref(),
+            Some("5511999")
+        );
+        let record = field(&data, "record");
+        assert_eq!(field(&record, "isVideo").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&record, "startTime"), "low").as_f64(),
+            Some(1_700_000_000.0)
+        );
+    }
+
+    /// An unpin is `pinned: false`, and an unarchive is `archived: false`: the
+    /// value carries the transition, so a proto default that the wire actually
+    /// set has to survive the crossing rather than be skipped as a default.
+    #[test]
+    async fn a_mutation_that_undoes_something_keeps_its_explicit_false() {
+        let (name, data) = deliver(Event::PinUpdate(
+            PinUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(PinAction {
+                    pinned: Some(false),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pin_update");
+        assert_eq!(
+            field(&field(&data, "action"), "pinned").as_bool(),
+            Some(false)
+        );
+    }
+
+    /// A blank the wire supplied is not an absent field: `Some("")` is a name
+    /// being cleared, and only a repeated field with no elements has no presence
+    /// for protobuf to report.
+    #[test]
+    async fn a_mutation_keeps_a_blank_it_supplied_and_omits_what_it_never_set() {
+        let (name, data) = deliver(Event::ContactUpdate(
+            ContactUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(ContactAction {
+                    full_name: Some(String::new()),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "contact_update");
+        let action = field(&data, "action");
+        assert_eq!(field(&action, "fullName").as_string().as_deref(), Some(""));
+        assert!(field(&action, "firstName").is_undefined());
+    }
+
+    /// A message range identifies the messages an action covers, and `fromMe`
+    /// is half of a message's identity: a `false` the wire set has to survive
+    /// the nesting, not just the mutation's own fields.
+    #[test]
+    async fn a_nested_message_keeps_the_presence_the_wire_gave_it() {
+        let (name, data) = deliver(Event::ArchiveUpdate(
+            ArchiveUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(ArchiveChatAction {
+                    archived: Some(true),
+                    message_range: Some(SyncActionMessageRange {
+                        messages: vec![SyncActionMessage {
+                            key: Some(MessageKey {
+                                id: Some("MSG-1".to_owned()),
+                                from_me: Some(false),
+                                ..Default::default()
+                            })
+                            .into(),
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    })
+                    .into(),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "archive_update");
+        let messages = js_sys::Array::from(&field(
+            &field(&field(&data, "action"), "messageRange"),
+            "messages",
+        ));
+        let key = field(&messages.get(0), "key");
+        assert_eq!(field(&key, "id").as_string().as_deref(), Some("MSG-1"));
+        assert_eq!(field(&key, "fromMe").as_bool(), Some(false));
+    }
+
+    /// The events that already carried a proto mutation cross it in the same
+    /// protobufjs shape, which is what their declarations have always named: a
+    /// camelCase key, and the `Long` split for a 64-bit field.
+    #[test]
+    async fn an_already_exposed_action_crosses_in_the_shape_it_declares() {
+        let (name, data) = deliver(Event::MuteUpdate(
+            MuteUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(MuteAction {
+                    muted: Some(true),
+                    mute_end_timestamp: Some(1_700_000_000),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "mute_update");
+        let action = field(&data, "action");
+        assert_eq!(field(&action, "muted").as_bool(), Some(true));
+        let end = field(&action, "muteEndTimestamp");
+        assert_eq!(field(&end, "low").as_f64(), Some(1_700_000_000.0));
+        assert_eq!(field(&end, "high").as_f64(), Some(0.0));
+        assert!(field(&action, "mute_end_timestamp").is_undefined());
+    }
+
+    #[test]
+    async fn a_message_label_association_update_names_the_message_it_labelled() {
+        let (name, data) = deliver(Event::MessageLabelAssociationUpdate(
+            MessageLabelAssociationUpdate::builder()
+                .label_id("7".to_owned())
+                .chat_jid(jid("5511999@s.whatsapp.net"))
+                .message_id("MSG-1".to_owned())
+                .timestamp(timestamp())
+                .action(Box::new(LabelAssociationAction {
+                    labeled: Some(true),
+                    ..Default::default()
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "message_label_association_update");
+        assert_eq!(field(&data, "label_id").as_string().as_deref(), Some("7"));
+        assert_eq!(
+            field(&data, "message_id").as_string().as_deref(),
+            Some("MSG-1")
+        );
+        assert_eq!(
+            field(&field(&data, "chat_jid"), "user")
+                .as_string()
+                .as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(
+            field(&field(&data, "action"), "labeled").as_bool(),
+            Some(true)
+        );
+    }
+
+    #[test]
+    async fn a_quick_reply_update_carries_the_shortcut_it_changed() {
+        let (name, data) = deliver(Event::QuickReplyUpdate(
+            QuickReplyUpdate::builder()
+                .id("QR-1".to_owned())
+                .timestamp(timestamp())
+                .action(Box::new(QuickReplyAction {
+                    shortcut: Some("/hello".to_owned()),
+                    deleted: Some(false),
+                    ..Default::default()
+                }))
+                .from_full_sync(true)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "quick_reply_update");
+        assert_eq!(field(&data, "id").as_string().as_deref(), Some("QR-1"));
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(true));
+        let action = field(&data, "action");
+        assert_eq!(
+            field(&action, "shortcut").as_string().as_deref(),
+            Some("/hello")
+        );
+        assert_eq!(field(&action, "deleted").as_bool(), Some(false));
+        // A repeated field the mutation left unset has no presence to report,
+        // so it stays absent rather than arriving as an empty array.
+        assert!(field(&action, "keywords").is_undefined());
+        assert!(field(&action, "associatedLabelIds").is_undefined());
+    }
+
+    #[test]
+    async fn a_pairing_qr_codes_exhausted_says_whether_the_socket_is_still_up() {
+        let (name, data) = deliver(Event::PairingQrCodesExhausted(
+            PairingQrCodesExhausted::builder()
+                .disconnected(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pairing_qr_codes_exhausted");
+        assert_eq!(field(&data, "disconnected").as_bool(), Some(false));
+    }
+
+    /// `backoff` crosses as whole seconds, the same unit `qr` and `pairing_code`
+    /// already cross their `timeout` in.
+    #[test]
+    async fn a_pairing_code_error_carries_the_rejection_and_its_backoff() {
+        let (name, data) = deliver(Event::PairingCodeError(
+            PairingCodeError::builder()
+                .rejection(PairCodeRejection::RateOverlimit)
+                .backoff(Duration::from_secs(60))
+                .error("rate-overlimit".to_owned())
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "pairing_code_error");
+        assert_eq!(field(&data, "rejection").as_f64(), Some(429.0));
+        assert_eq!(field(&data, "backoff").as_f64(), Some(60.0));
+        assert_eq!(
+            field(&data, "error").as_string().as_deref(),
+            Some("rate-overlimit")
+        );
+    }
+
+    /// An absent `backoff` stays absent: the bridge does not invent a zero for a
+    /// hint the server did not send.
+    #[test]
+    async fn a_pairing_code_error_without_a_backoff_omits_it() {
+        let (_, data) = deliver(Event::PairingCodeError(
+            PairingCodeError::builder()
+                .error("no connection".to_owned())
+                .build(),
+        ))
+        .await;
+
+        assert!(field(&data, "backoff").is_undefined());
+        assert!(field(&data, "rejection").is_undefined());
+    }
+}
+
+/// `Event` and `EventKind` are both `#[non_exhaustive]`, so no match here can be
+/// exhaustive and the wildcard arm the core requires is what swallowed ten
+/// variants. This measures the dispatch against the core's own list instead,
+/// which `bun run gen:bridge-types` refreshes on every bump.
+#[cfg(test)]
+mod event_coverage_tests {
+    use super::{DISPATCHED_EVENT_VARIANTS, UNDISPATCHED_EVENT_VARIANTS};
+    use crate::generated_types::CORE_EVENT_VARIANTS;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn is_excluded(variant: &str) -> bool {
+        UNDISPATCHED_EVENT_VARIANTS
+            .iter()
+            .any(|(name, _)| *name == variant)
+    }
+
+    #[test]
+    fn every_core_event_is_dispatched_or_excluded_on_the_record() {
+        let unaccounted: Vec<&&str> = CORE_EVENT_VARIANTS
+            .iter()
+            .filter(|variant| {
+                !DISPATCHED_EVENT_VARIANTS.contains(*variant) && !is_excluded(variant)
+            })
+            .collect();
+
+        assert!(
+            unaccounted.is_empty(),
+            "the core dispatches {unaccounted:?}, which this bridge neither converts nor \
+             lists as deliberately undispatched. Add an entry to `bridge_events!` or to \
+             `UNDISPATCHED_EVENT_VARIANTS` with the reason."
+        );
+    }
+
+    /// A name the core dropped or renamed leaves an entry here matching nothing,
+    /// which would go on passing the check above while covering no variant.
+    #[test]
+    fn nothing_is_listed_that_the_core_no_longer_declares() {
+        let stale: Vec<&str> = DISPATCHED_EVENT_VARIANTS
+            .iter()
+            .chain(UNDISPATCHED_EVENT_VARIANTS.iter().map(|(name, _)| name))
+            .filter(|variant| !CORE_EVENT_VARIANTS.contains(variant))
+            .copied()
+            .collect();
+
+        assert!(
+            stale.is_empty(),
+            "{stale:?} name no variant of the core's `Event`"
+        );
     }
 }
