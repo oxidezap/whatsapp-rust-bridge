@@ -8,7 +8,13 @@
  * layout; the Rust writers live in `src/wasm_client.rs`.
  */
 
-const utf8Decoder = new TextDecoder();
+/**
+ * `ignoreBOM` keeps a leading U+FEFF instead of eating it as a byte-order mark.
+ * The wire carries text, not files: a value that opens with one is the peer's
+ * own character, and dropping it also loses the three bytes every length behind
+ * it is counted in.
+ */
+const utf8Decoder = new TextDecoder("utf-8", { ignoreBOM: true });
 const utf8Encoder = new TextEncoder();
 
 // ---------------------------------------------------------------------------

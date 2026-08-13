@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  decodeMessageWireBatch,
   decodeReceiptWireBatch,
   decodeServerAckWireBatch,
+  encodeMessageWireBatch,
   encodeReceiptWireBatch,
   encodeServerAckWireBatch,
   type PackedWireBatch,
@@ -113,6 +115,39 @@ describe("packed batch string region", () => {
         `LAST${pad}`,
       ]);
     }
+  });
+
+  test("a value opening with U+FEFF keeps it, and keeps the region aligned", () => {
+    // `TextDecoder` eats a leading U+FEFF as a byte-order mark unless told not
+    // to, and the wire length still counts the three bytes it removed.
+    for (const pad of ["", "P".repeat(120)]) {
+      const acks = [{ id: "﻿A" }, { id: `B${pad}` }];
+      const batch = encodeServerAckWireBatch(acks);
+      expect(regionBytes(batch) < TINY_STRING_LIMIT).toBe(pad === "");
+      expect(decodeServerAckWireBatch(batch).map(ack => ack.id)).toEqual(["﻿A", `B${pad}`]);
+    }
+  });
+
+  test("the message batch's table keeps a U+FEFF a peer sent", () => {
+    // A separate decoder, but the same shared `TextDecoder`: a push name is the
+    // peer's own text, and the bridge transports it rather than trimming it.
+    const batch = encodeMessageWireBatch([
+      {
+        payload: new Uint8Array(),
+        info: {
+          chat: "5511999@s.whatsapp.net",
+          sender: "5511999@s.whatsapp.net",
+          isFromMe: false,
+          isGroup: false,
+          id: "M1",
+          timestamp: 1700000000,
+          pushName: "﻿Ana",
+          isViewOnce: false,
+          isOffline: false,
+        },
+      },
+    ]);
+    expect(decodeMessageWireBatch(batch).infos[0]!.pushName).toBe("﻿Ana");
   });
 
   test("an inline length on the wire is a UTF-8 byte count", () => {
