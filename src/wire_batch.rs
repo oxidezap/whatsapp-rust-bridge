@@ -1,7 +1,9 @@
-//! Packed wire-batch transport: fixed-width numeric records plus a per-batch
-//! deduplicated string table, so repeated addresses and metadata pay one
-//! host-side decode per batch instead of one FFI object build per event.
-//! Record layouts are mirrored by the host decoders in `ts/wire-info.ts`.
+//! Packed wire-batch transport: fixed-width numeric records plus a string table
+//! that outlives the batch, so a repeated address or push name is materialized
+//! once on the host instead of once per batch — and never as one FFI object
+//! build per event. Every transport here rolls that table the same way, under
+//! `PACKED_FLAG_RESET_CACHES`. Record layouts are mirrored by the host decoders
+//! in `ts/wire-info.ts`.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -55,8 +57,9 @@ pub(crate) enum BatchBuffer {
 /// Slots per packed metadata record. Layout is mirrored by the host-side
 /// decoder (`ts/wire-info.ts`); update both together.
 pub(crate) const MESSAGE_WIRE_INFO_RECORD_WIDTH: usize = 10;
-/// Six u32 fields: messages, strings, message bytes, string bytes, record width,
-/// reserved. A multiple of 8 so the f64 record block that follows is aligned.
+/// Six u32 fields: messages, new string definitions, message bytes, string
+/// region bytes, record width, flags. A multiple of 8 so the f64 record block
+/// that follows is aligned.
 const MESSAGE_WIRE_HEADER_BYTES: usize = 24;
 /// Payload capacity the reused encoder keeps between batches. Above it a batch
 /// of large media protobufs would pin its own peak for the rest of the session.
@@ -64,6 +67,27 @@ const MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES: usize = 4 * crate::WASM_PAGE_BYTES;
 /// Metadata capacity the reused string table keeps. A full batch of addresses,
 /// ids and push names fits well inside it; the cap is what an outlier hits.
 const WIRE_STRING_TABLE_RETAINED_BYTES: usize = 16 * 1024;
+/// Bytes the message table's cross-batch cache may hold before it rolls. A push
+/// name comes from a peer, so without this one oversized value would sit in the
+/// table — and in the host's mirror of it — until the entry ceiling was reached.
+const WIRE_STRING_CACHE_MAX_BYTES: usize = 64 * 1024;
+/// Entry ceiling before a cross-batch table rolls, shared by every packed
+/// transport. Bounded so a long session cannot grow the tables without limit;
+/// a roll costs one batch of re-definitions.
+const PACKED_STRING_CACHE_MAX: usize = 4096;
+/// Header flag: the host must clear its table before reading this batch. The
+/// one invalidation protocol both the message and the receipt/ack transports
+/// speak — a table that outlives a batch is only safe while the two sides agree
+/// on when it is dropped.
+const PACKED_FLAG_RESET_CACHES: u32 = 1;
+/// Header flag: the host must clear its table *after* reading this batch,
+/// because the writer drops its own the moment this batch is out.
+///
+/// `PACKED_FLAG_RESET_CACHES` alone would say so only on the next batch, and on
+/// a stream that then goes idle there is no next batch — the host would hold
+/// everything the rolled table had, including a push name a peer sized, for as
+/// long as the realm lives. This says it in the batch that causes the roll.
+const PACKED_FLAG_CLEAR_AFTER: u32 = 1 << 1;
 /// Size of the single host-allocated buffer offered to hosts that opted into
 /// borrowing, and therefore the whole resident cost of the opt-in. A full
 /// `EVENT_BATCH_CAPACITY` run of receipts packs into roughly 2 KiB, so this
@@ -74,93 +98,205 @@ const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
 const INFO_FLAG_OFFLINE: u32 = 1 << 3;
 
-/// Per-batch deduplicated string table shared by every packed wire batch.
-/// Repeated values (addresses, push names, ack classes) pay one host-side
-/// decode per batch instead of one FFI string crossing per event.
+/// Cross-batch string table for the message transport, holding the values the
+/// host has already materialized. Addresses, push names and edit attributes
+/// repeat batch after batch, so a batch defines only what the host does not
+/// have yet and every repeat costs one numeric slot and nothing on the host.
 ///
-/// Dedup scans the entries already written instead of indexing them in a map:
-/// a batch holds at most `EVENT_BATCH_CAPACITY` messages, so the scan stays in
-/// the tens of length comparisons, and a map would cost one owned `String` per
-/// distinct value on a path that otherwise allocates nothing per message.
-#[derive(Default)]
+/// Two rules keep the two sides in step, and both are the ones the packed
+/// receipt/ack writer already follows:
+///
+/// - a definition is only counted as held once the batch carrying it has been
+///   written out, so a batch the host never receives rolls the table instead of
+///   leaving it one entry ahead ([`WireStringTable::abandon`]);
+/// - a roll is announced, never inferred: the next batch carries
+///   [`PACKED_FLAG_RESET_CACHES`] and re-defines what it needs.
+///
+/// Values that do not repeat — message ids, unavailable-request ids — are
+/// written inline with their length in the record instead, so a stream of
+/// unique ids can neither fill the table nor be retained by it.
 pub(crate) struct WireStringTable {
-    /// Concatenated UTF-8 payloads of the table entries.
-    data: Vec<u8>,
-    /// K + 1 byte offsets delimiting the K entries (leading zero).
-    offsets: Vec<u32>,
+    /// Table index of every value the host holds, by value.
+    cache: HashMap<String, u32>,
+    /// Entries the host holds, and therefore the index the next definition
+    /// takes. Bounded by `PACKED_STRING_CACHE_MAX`.
+    held: u32,
+    /// Bytes `cache` holds, against `WIRE_STRING_CACHE_MAX_BYTES`.
+    cache_bytes: usize,
+    /// Concatenated UTF-8 payloads of the definitions this batch adds.
+    definitions: Vec<u8>,
+    /// K + 1 byte offsets delimiting this batch's K definitions (leading zero).
+    definition_offsets: Vec<u32>,
+    /// Definitions written so far, so a definition knows its index before the
+    /// batch is committed.
+    defined: u32,
+    /// This batch's inline values, in record order. Their lengths ride in the
+    /// records, so they need no offset table and never enter the cache.
+    inline: Vec<u8>,
     /// Rendering buffer for values that have no `&str` form of their own,
     /// reused so rendering one does not allocate.
     scratch: String,
+    /// Header flags the batch being built will carry.
+    flags: u32,
+}
+
+impl Default for WireStringTable {
+    /// A table with nothing in it still asks the host to clear: the encoder is
+    /// per WASM instance and the host's mirror is per JS realm, so a fresh
+    /// encoder cannot assume the mirror it is about to index is empty.
+    fn default() -> Self {
+        Self {
+            cache: HashMap::new(),
+            held: 0,
+            cache_bytes: 0,
+            definitions: Vec::new(),
+            definition_offsets: Vec::new(),
+            defined: 0,
+            inline: Vec::new(),
+            scratch: String::new(),
+            flags: PACKED_FLAG_RESET_CACHES,
+        }
+    }
 }
 
 impl WireStringTable {
-    fn intern(&mut self, value: &str) -> u32 {
-        let value = value.as_bytes();
-        for (index, window) in self.offsets.windows(2).enumerate() {
-            if &self.data[window[0] as usize..window[1] as usize] == value {
-                return index as u32;
-            }
+    /// Slot for a value the host may already hold, defining it if not.
+    fn cache(&mut self, value: &str) -> u32 {
+        if let Some(&index) = self.cache.get(value) {
+            return index;
         }
-        if self.offsets.is_empty() {
-            self.offsets.push(0);
+        let index = self.held + self.defined;
+        self.cache.insert(value.to_owned(), index);
+        self.cache_bytes += value.len();
+        if self.definition_offsets.is_empty() {
+            self.definition_offsets.push(0);
         }
-        let index = (self.offsets.len() - 1) as u32;
-        self.data.extend_from_slice(value);
-        self.offsets.push(self.data.len() as u32);
+        self.definitions.extend_from_slice(value.as_bytes());
+        self.definition_offsets.push(self.definitions.len() as u32);
+        self.defined += 1;
         index
     }
 
     /// Optional slots carry index + 1 so 0 can mean absent.
     #[inline]
-    fn intern_optional(&mut self, value: Option<&str>) -> f64 {
+    fn cache_optional(&mut self, value: Option<&str>) -> f64 {
         match value {
-            Some(value) => (self.intern(value) + 1) as f64,
+            Some(value) => (self.cache(value) + 1) as f64,
             None => 0.0,
         }
     }
 
-    /// Intern a JID in its canonical (non-AD) form, rendered into the reusable
-    /// scratch rather than into an owned `String` per call.
-    fn intern_jid(&mut self, jid: &Jid) -> u32 {
+    /// Cache a JID in its canonical (non-AD) form, rendered into the reusable
+    /// scratch rather than into an owned `String` per call. Only a value the
+    /// table has not seen before is copied.
+    fn cache_jid(&mut self, jid: &Jid) -> u32 {
         let mut scratch = std::mem::take(&mut self.scratch);
         scratch.clear();
         push_jid_to_string(&jid.user, jid.server, 0, 0, &mut scratch);
-        let index = self.intern(&scratch);
+        let index = self.cache(&scratch);
         self.scratch = scratch;
         index
     }
 
     #[inline]
-    fn intern_jid_optional(&mut self, jid: Option<&Jid>) -> f64 {
+    fn cache_jid_optional(&mut self, jid: Option<&Jid>) -> f64 {
         match jid {
-            Some(jid) => (self.intern_jid(jid) + 1) as f64,
+            Some(jid) => (self.cache_jid(jid) + 1) as f64,
             None => 0.0,
         }
     }
 
-    /// Number of interned entries. The offset vector carries a leading zero, so
-    /// it holds one more element than there are entries.
+    /// Write a value that does not repeat. The record carries its byte length,
+    /// the bytes go to the inline region in record order.
     #[inline]
-    fn len(&self) -> usize {
-        self.offsets.len().saturating_sub(1)
+    fn write_inline(&mut self, value: &str) -> f64 {
+        self.inline.extend_from_slice(value.as_bytes());
+        value.len() as f64
     }
 
-    /// Drop the entries but keep every buffer, so the next batch interns into
-    /// allocations this one already paid for.
-    ///
-    /// The two buffers a peer can inflate are capped: push names and message
-    /// ids arrive from the wire, and the table now outlives the batch, so one
-    /// oversized event would otherwise pin its peak for the session. `offsets`
-    /// needs no cap, being bounded by the batch's entry count.
-    fn reset(&mut self) {
-        self.data.clear();
-        if self.data.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES {
-            self.data.shrink_to(WIRE_STRING_TABLE_RETAINED_BYTES);
+    /// Optional inline slots carry length + 1 so 0 can mean absent — an empty
+    /// value is not the same as no value.
+    #[inline]
+    fn write_inline_optional(&mut self, value: Option<&str>) -> f64 {
+        match value {
+            Some(value) => self.write_inline(value) + 1.0,
+            None => 0.0,
         }
-        self.offsets.clear();
+    }
+
+    /// Definitions this batch adds to the host's table.
+    #[inline]
+    fn defined(&self) -> u32 {
+        self.defined
+    }
+
+    /// Bytes this batch's string region spans: definitions then inline values.
+    #[inline]
+    fn region_len(&self) -> usize {
+        self.definitions.len() + self.inline.len()
+    }
+
+    /// Clear the batch's own buffers, keeping the cache and the flags.
+    ///
+    /// The buffers a peer can inflate are capped: push names and message ids
+    /// arrive from the wire, and these buffers outlive the batch, so one
+    /// oversized event would otherwise pin its peak for the session.
+    /// `definition_offsets` needs no cap, being bounded by the entry ceiling.
+    fn clear_batch(&mut self) {
+        for buffer in [&mut self.definitions, &mut self.inline] {
+            buffer.clear();
+            if buffer.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES {
+                buffer.shrink_to(WIRE_STRING_TABLE_RETAINED_BYTES);
+            }
+        }
+        self.definition_offsets.clear();
+        self.defined = 0;
         self.scratch.clear();
         if self.scratch.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES {
             self.scratch.shrink_to(WIRE_STRING_TABLE_RETAINED_BYTES);
+        }
+    }
+
+    /// Whether committing the batch as it stands will roll the table. Known
+    /// before the header is written, which is what lets that header carry
+    /// [`PACKED_FLAG_CLEAR_AFTER`] rather than leave the host waiting for a
+    /// batch that may never come.
+    fn will_roll(&self) -> bool {
+        self.cache.len() >= PACKED_STRING_CACHE_MAX
+            || self.cache_bytes >= WIRE_STRING_CACHE_MAX_BYTES
+            || packed_tables_revoked()
+    }
+
+    /// Clear the cache and arm the flag that tells the host to do the same.
+    fn roll(&mut self) {
+        self.cache.clear();
+        self.held = 0;
+        self.cache_bytes = 0;
+        self.flags |= PACKED_FLAG_RESET_CACHES;
+    }
+
+    /// The batch reached the host: its definitions are now held, and the flag
+    /// it carried has been spent. A table at its ceiling rolls here rather than
+    /// mid-batch, so the announcement rides the next batch's header.
+    fn commit(&mut self) {
+        let rolling = self.will_roll();
+        self.held += self.defined;
+        self.clear_batch();
+        self.flags = 0;
+        if rolling {
+            self.roll();
+        }
+    }
+
+    /// The batch was dropped before the host saw it. Its definitions took table
+    /// indices that now exist on this side only, so the table has to roll:
+    /// keeping them would have every later record point past what the host
+    /// holds, and read a neighbour's value rather than fail.
+    fn abandon(&mut self) {
+        let defined = self.defined > 0;
+        self.clear_batch();
+        if defined {
+            self.roll();
         }
     }
 }
@@ -178,6 +314,37 @@ thread_local! {
     /// client, because the buffer does: a window one host kept has to be safe
     /// from every later batch, whoever produces it.
     static BORROW_REVOKED: Cell<bool> = const { Cell::new(false) };
+    /// Set when a host was seen deferring a batch past its callback.
+    static PACKED_TABLES_REVOKED: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Stop letting a table outlive its batch, for the rest of the process.
+///
+/// A table spanning batches is only sound in delivery order, and a host that
+/// hands back something promise-like has not decoded inside its callback: its
+/// decodes happen later, in an order the writer cannot see. So every batch
+/// goes back to carrying `PACKED_FLAG_RESET_CACHES` and every value it
+/// references, which is self-contained and therefore reads the same whenever
+/// and in whatever order it is decoded.
+///
+/// Permanent, for the reason [`revoke_borrowed_batches`] is: nothing can tell
+/// when such a host is finished, so resuming is a guess, and the cost of
+/// guessing wrong is silent corruption against an optimization.
+pub(crate) fn revoke_packed_tables() {
+    if PACKED_TABLES_REVOKED.with(|revoked| revoked.replace(true)) {
+        return;
+    }
+    invalidate_packed_tables();
+}
+
+pub(crate) fn packed_tables_revoked() -> bool {
+    PACKED_TABLES_REVOKED.with(Cell::get)
+}
+
+/// Test-only, for the reason [`reset_borrowed_batches`] is.
+#[cfg(test)]
+pub(crate) fn reset_packed_tables() {
+    PACKED_TABLES_REVOKED.with(|revoked| revoked.set(false));
 }
 
 /// Stop handing out windows on the shared buffer, for the rest of the process,
@@ -277,9 +444,9 @@ fn write_offsets(out: &mut Vec<u8>, offsets: &[u32]) {
 
 /// Bounded transport representation for decrypted messages. Protobuf payloads
 /// share one backing buffer and one offset table. Metadata crosses as packed
-/// numeric records plus a per-batch string table: addresses and push names
-/// repeat across a batch, so each unique string pays one decode on the host
-/// instead of one FFI object build per message.
+/// numeric records plus a string table that outlives the batch: an address or a
+/// push name is decoded once on the host and referenced by index for as long as
+/// the table stands, instead of being materialized again every batch.
 #[derive(Default)]
 pub(crate) struct MessageWireBatch {
     /// Concatenated `proto.Message` payloads in event order.
@@ -288,8 +455,9 @@ pub(crate) struct MessageWireBatch {
     /// leading zero sentinel makes empty and singleton batches unambiguous.
     message_offsets: Vec<u32>,
     strings: WireStringTable,
-    /// `MESSAGE_WIRE_INFO_RECORD_WIDTH` slots per message; string slots hold
-    /// table indices (optional slots are index + 1, 0 = absent).
+    /// `MESSAGE_WIRE_INFO_RECORD_WIDTH` slots per message. A cached slot holds
+    /// a table index (optional slots are index + 1, 0 = absent); an inline slot
+    /// holds its value's byte length (optional slots are length + 1).
     info_records: Vec<f64>,
 }
 
@@ -347,20 +515,28 @@ impl MessageWireBatch {
             flags |= INFO_FLAG_OFFLINE;
         }
 
-        let chat = self.strings.intern_jid(&source.chat) as f64;
-        let sender = self.strings.intern_jid(&source.sender) as f64;
-        let sender_alt = self.strings.intern_jid_optional(source.sender_alt.as_ref());
+        let chat = self.strings.cache_jid(&source.chat) as f64;
+        let sender = self.strings.cache_jid(&source.sender) as f64;
+        let sender_alt = self.strings.cache_jid_optional(source.sender_alt.as_ref());
         let recipient_alt = self
             .strings
-            .intern_jid_optional(source.recipient_alt.as_ref());
-        let id = self.strings.intern(&info.id) as f64;
-        let push_name = self.strings.intern(&info.push_name) as f64;
-        let unavailable_request_id = self
-            .strings
-            .intern_optional(info.unavailable_request_id.as_deref());
+            .cache_jid_optional(source.recipient_alt.as_ref());
+        // A push name repeats across a batch and across batches alike, and a
+        // peer-sized one repeated 32 times is exactly what the table is for:
+        // one copy, however long it is. What bounds it on the host's side is
+        // the byte ceiling and `PACKED_FLAG_CLEAR_AFTER`, not a length limit
+        // here — writing it inline would cost a copy per message.
+        let push_name = self.strings.cache(&info.push_name) as f64;
         let edit = self
             .strings
-            .intern_optional((!edit.is_empty()).then_some(edit));
+            .cache_optional((!edit.is_empty()).then_some(edit));
+        // Inline values are written in the order the host reads them back: id,
+        // then the request id. Ids are unique per message, so caching them
+        // would fill the table with values no later batch can reference.
+        let id = self.strings.write_inline(&info.id);
+        let unavailable_request_id = self
+            .strings
+            .write_inline_optional(info.unavailable_request_id.as_deref());
 
         self.info_records.extend_from_slice(&[
             chat,
@@ -377,7 +553,7 @@ impl MessageWireBatch {
         Ok(())
     }
 
-    /// Assemble the batch for the host and reset the per-batch state.
+    /// Assemble the batch for the host and clear the per-batch state.
     ///
     /// Every buffer keeps its capacity: the encoder outlives the batch (see
     /// [`MessageWireBatch::with_encoder`]), so a steady stream of messages
@@ -394,7 +570,7 @@ impl MessageWireBatch {
     )]
     pub(crate) fn finish(&mut self) -> Result<JsValue, JsValue> {
         let batch = cross_flat_batch(BatchBuffer::Owned, |out| self.write_flat(out));
-        self.reset();
+        self.commit();
         Ok(batch)
     }
 
@@ -402,11 +578,11 @@ impl MessageWireBatch {
     /// crossed, so an envelope can carry the batch as one of its segments.
     pub(crate) fn write_and_reset(&mut self, out: &mut Vec<u8>) {
         self.write_flat(out);
-        self.reset();
+        self.commit();
     }
 
-    /// Drop the batch contents while keeping the buffers.
-    pub(crate) fn reset(&mut self) {
+    /// Drop the records while keeping the buffers.
+    fn clear_records(&mut self) {
         self.message_data.clear();
         if self.message_data.capacity() > MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES {
             self.message_data
@@ -414,7 +590,28 @@ impl MessageWireBatch {
         }
         self.message_offsets.clear();
         self.info_records.clear();
-        self.strings.reset();
+    }
+
+    /// The batch was written out, so the host now holds what it defined.
+    fn commit(&mut self) {
+        self.clear_records();
+        self.strings.commit();
+    }
+
+    /// Drop a batch the host will never see. Anything it defined into the
+    /// string table goes with it — see [`WireStringTable::abandon`].
+    pub(crate) fn reset(&mut self) {
+        self.clear_records();
+        self.strings.abandon();
+    }
+
+    /// Drop the batch and roll the table unconditionally, for when a batch that
+    /// was already written out never reached the host — see
+    /// [`invalidate_packed_tables`].
+    fn invalidate(&mut self) {
+        self.clear_records();
+        self.strings.clear_batch();
+        self.strings.roll();
     }
 
     /// Run `f` with the process-wide message encoder, so the buffers a batch
@@ -435,22 +632,33 @@ impl MessageWireBatch {
     /// multiple of 8) and the `u32` tables follow at 4-aligned offsets, which
     /// lets the host build typed-array views straight over the buffer. Padding
     /// is therefore never needed — a property the host-side decoder asserts.
+    ///
+    /// The string region is this batch's definitions followed by its inline
+    /// values; the offset table delimits the definitions, so where they end is
+    /// where the inline values begin.
     fn write_flat(&self, out: &mut Vec<u8>) {
         let header = [
             self.len() as u32,
-            self.strings.len() as u32,
+            self.strings.defined(),
             self.message_data.len() as u32,
-            self.strings.data.len() as u32,
+            self.strings.region_len() as u32,
             MESSAGE_WIRE_INFO_RECORD_WIDTH as u32,
-            // Reserved: keeps the header a multiple of 8 for the record block.
-            0,
+            // The roll this batch is about to cause is announced in its own
+            // header, so the host drops the table with it rather than holding
+            // it until whenever the next batch arrives.
+            self.strings.flags
+                | if self.strings.will_roll() {
+                    PACKED_FLAG_CLEAR_AFTER
+                } else {
+                    0
+                },
         ];
         out.reserve(
             MESSAGE_WIRE_HEADER_BYTES
                 + self.info_records.len() * 8
-                + (self.message_offsets.len() + self.strings.offsets.len() + 2) * 4
+                + (self.message_offsets.len() + self.strings.definition_offsets.len() + 2) * 4
                 + self.message_data.len()
-                + self.strings.data.len(),
+                + self.strings.region_len(),
         );
         for field in header {
             out.extend_from_slice(&field.to_le_bytes());
@@ -459,20 +667,14 @@ impl MessageWireBatch {
             out.extend_from_slice(&record.to_le_bytes());
         }
         write_offsets(out, &self.message_offsets);
-        write_offsets(out, &self.strings.offsets);
+        write_offsets(out, &self.strings.definition_offsets);
         out.extend_from_slice(&self.message_data);
-        out.extend_from_slice(&self.strings.data);
+        out.extend_from_slice(&self.strings.definitions);
+        out.extend_from_slice(&self.strings.inline);
     }
 }
 
-/// Cache ceilings before the encoder resets both sides. Bounded so a long
-/// session cannot grow the tables without limit; a reset costs one batch of
-/// re-definitions.
-const PACKED_STRING_CACHE_MAX: usize = 4096;
 const PACKED_JID_CACHE_MAX: usize = 1024;
-
-/// Header flag: the host must clear its caches before reading this batch.
-const PACKED_FLAG_RESET_CACHES: u32 = 1;
 
 const RECEIPT_FLAG_FROM_ME: u8 = 1 << 0;
 const RECEIPT_FLAG_GROUP: u8 = 1 << 1;
@@ -632,6 +834,17 @@ impl FlatBatchWriter {
         out.extend_from_slice(&self.records);
         out.extend_from_slice(&self.definitions);
 
+        self.clear_batch();
+        self.flags = 0;
+        if packed_tables_revoked() {
+            self.string_cache.clear();
+            self.jid_cache.clear();
+            self.flags = PACKED_FLAG_RESET_CACHES;
+        }
+    }
+
+    /// Drop the batch's own buffers, keeping the caches and the flags.
+    fn clear_batch(&mut self) {
         self.new_strings.clear();
         self.new_jids.clear();
         self.records.clear();
@@ -640,7 +853,17 @@ impl FlatBatchWriter {
         self.new_string_count = 0;
         self.new_jid_count = 0;
         self.record_count = 0;
-        self.flags = 0;
+    }
+
+    /// Drop a batch the host will never see, and roll the caches with it: the
+    /// slots it took exist only here, so every later record would index past
+    /// what the host holds. Announced through the same header flag a ceiling
+    /// roll uses.
+    fn invalidate(&mut self) {
+        self.clear_batch();
+        self.string_cache.clear();
+        self.jid_cache.clear();
+        self.flags |= PACKED_FLAG_RESET_CACHES;
     }
 }
 
@@ -756,6 +979,28 @@ impl EventWireEnvelope {
         self.segments.clear();
         self.records = 0;
     }
+}
+
+impl Drop for EventWireEnvelope {
+    /// A buffered run that is still here has not crossed, and the segments in
+    /// it were written by encoders that already counted their definitions as
+    /// held. Nothing else can see that: the dispatch future can be dropped at
+    /// any suspension point, and it takes the envelope with it. So roll every
+    /// table rather than reason about which kind the lost segments were.
+    fn drop(&mut self) {
+        if !self.segments.is_empty() {
+            invalidate_packed_tables();
+        }
+    }
+}
+
+/// Roll every packed transport's table, announcing it to the host through
+/// `PACKED_FLAG_RESET_CACHES`. The tables outlive the batch, so anything built
+/// and then not delivered has to be taken back on both sides at once.
+pub(crate) fn invalidate_packed_tables() {
+    MessageWireBatch::with_encoder(MessageWireBatch::invalidate);
+    RECEIPT_ENCODER.with(|encoder| encoder.borrow_mut().writer.invalidate());
+    SERVER_ACK_ENCODER.with(|encoder| encoder.borrow_mut().writer.invalidate());
 }
 
 /// Packed transport for `Event::Receipt` runs.
@@ -934,6 +1179,19 @@ mod tests {
     use whatsapp_rust::wacore::types::message::{EditAttribute, MessageInfo};
     use whatsapp_rust::waproto::whatsapp::Message;
 
+    /// The table's entries, in slot order, as the host would materialize them.
+    fn definitions_of(batch: &MessageWireBatch) -> Vec<&str> {
+        batch
+            .strings
+            .definition_offsets
+            .windows(2)
+            .map(|w| {
+                std::str::from_utf8(&batch.strings.definitions[w[0] as usize..w[1] as usize])
+                    .expect("definitions are UTF-8")
+            })
+            .collect()
+    }
+
     #[test]
     fn message_wire_batch_packs_canonical_records_and_dedups_strings() {
         let mut info = MessageInfo::default();
@@ -962,47 +1220,262 @@ mod tests {
         assert_eq!(batch.len(), 2);
         assert_eq!(batch.info_records.len(), 2 * MESSAGE_WIRE_INFO_RECORD_WIDTH);
 
-        let table: Vec<&str> = batch
-            .strings
-            .offsets
-            .windows(2)
-            .map(|w| {
-                std::str::from_utf8(&batch.strings.data[w[0] as usize..w[1] as usize])
-                    .expect("table entries are UTF-8")
-            })
-            .collect();
-        // Canonical (non-AD) forms, deduplicated across both records.
+        // Canonical (non-AD) forms, deduplicated across both records. The ids
+        // are not here: they are unique per message and go out inline.
         assert_eq!(
-            table,
+            definitions_of(&batch),
             [
                 "120363@g.us",
                 "5511@s.whatsapp.net",
                 "999@lid",
-                "WIRE-1",
                 "Alice",
-                "PDO-1",
-                "1",
-                "WIRE-2",
+                "1"
             ]
         );
+        assert_eq!(batch.strings.inline, b"WIRE-1PDO-1WIRE-2");
 
         let record = &batch.info_records[..MESSAGE_WIRE_INFO_RECORD_WIDTH];
         assert_eq!(record[0], 0.0); // chat
         assert_eq!(record[1], 1.0); // sender
         assert_eq!(record[2], 3.0); // senderAlt (optional: index + 1)
         assert_eq!(record[3], 0.0); // recipientAlt absent
-        assert_eq!(record[4], 3.0); // id
-        assert_eq!(record[5], 4.0); // pushName
+        assert_eq!(record[4], 6.0); // id: inline byte length of "WIRE-1"
+        assert_eq!(record[5], 3.0); // pushName
         assert_eq!(record[7], 0.0); // flags: none set
-        assert_eq!(record[8], 6.0); // unavailableRequestId (index + 1)
-        assert_eq!(record[9], 7.0); // edit "1" (index + 1)
+        assert_eq!(record[8], 6.0); // unavailableRequestId: length + 1
+        assert_eq!(record[9], 5.0); // edit "1" (index + 1)
 
         let second_record = &batch.info_records[MESSAGE_WIRE_INFO_RECORD_WIDTH..];
         assert_eq!(second_record[0], 0.0); // chat deduplicated
         assert_eq!(second_record[1], 1.0); // sender deduplicated
         assert_eq!(second_record[2], 0.0); // senderAlt absent
-        assert_eq!(second_record[4], 7.0); // id "WIRE-2"
-        assert_eq!(second_record[5], 4.0); // pushName deduplicated
+        assert_eq!(second_record[4], 6.0); // id "WIRE-2" inline
+        assert_eq!(second_record[5], 3.0); // pushName deduplicated
+        assert_eq!(second_record[8], 0.0); // unavailableRequestId absent
+    }
+
+    /// The point of the change: a second batch from the same chat defines
+    /// nothing and still addresses everything the first one defined.
+    #[test]
+    fn a_second_batch_reuses_the_table_the_first_one_defined() {
+        let mut batch = MessageWireBatch::default();
+        batch.push(&inbound("FIRST", 8)).expect("packs");
+        let first_definitions: Vec<String> = definitions_of(&batch)
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let first_record = batch.info_records.clone();
+        // `inbound` addresses one contact, so chat and sender share a canonical
+        // form: two entries, not three.
+        assert_eq!(first_definitions, ["5511999@s.whatsapp.net", "Peer"]);
+        assert_eq!(
+            batch.strings.flags, PACKED_FLAG_RESET_CACHES,
+            "a table nobody has yet still has to be claimed"
+        );
+
+        let mut out = Vec::new();
+        batch.write_and_reset(&mut out);
+
+        batch.push(&inbound("SECOND", 8)).expect("packs");
+        assert!(
+            definitions_of(&batch).is_empty(),
+            "the second batch redefined the table"
+        );
+        assert_eq!(batch.strings.flags, 0, "nothing asked the host to clear");
+        assert_eq!(batch.strings.inline, b"SECOND");
+        // Same slots, so the host reads them out of the table it already holds.
+        let second_record = &batch.info_records;
+        for slot in [0usize, 1, 5] {
+            assert_eq!(second_record[slot], first_record[slot], "slot {slot}");
+        }
+    }
+
+    /// A batch the host never receives took table slots that exist only here.
+    /// Keeping them would have every later record index one entry past what the
+    /// host holds — a neighbour's address read as this message's, silently.
+    #[test]
+    fn an_abandoned_batch_rolls_the_table() {
+        let mut batch = MessageWireBatch::default();
+        batch.push(&inbound("SENT", 8)).expect("packs");
+        let mut out = Vec::new();
+        batch.write_and_reset(&mut out);
+        assert_eq!(batch.strings.held, 2, "one address form and the push name");
+
+        // A run cancelled mid-batch: the definitions were never written out.
+        batch.push(&inbound("DROPPED", 8)).expect("packs");
+        let mut other = MessageInfo::default();
+        other.source.chat = "120363@g.us".parse().expect("valid chat jid");
+        other.source.sender = "5511:7@s.whatsapp.net".parse().expect("valid sender jid");
+        other.id = "DROPPED-2".into();
+        other.push_name = "Someone Else".into();
+        batch
+            .push(
+                &InboundMessage::builder()
+                    .message(Arc::new(Message::default()))
+                    .info(Arc::new(other))
+                    .build(),
+            )
+            .expect("packs");
+        assert!(batch.strings.defined() > 0, "the drop has to matter");
+        batch.reset();
+
+        assert_eq!(batch.strings.held, 0, "the table kept unsent definitions");
+        assert_eq!(
+            batch.strings.flags, PACKED_FLAG_RESET_CACHES,
+            "the roll was not announced"
+        );
+        batch.push(&inbound("AFTER", 8)).expect("packs");
+        assert_eq!(
+            definitions_of(&batch),
+            ["5511999@s.whatsapp.net", "Peer"],
+            "the next batch has to redefine what the host lost"
+        );
+        assert_eq!(batch.info_records[0], 0.0, "indices restart at the table's");
+    }
+
+    /// An abandoned batch that defined nothing has nothing to take back, so it
+    /// must not throw the table away either.
+    #[test]
+    fn an_empty_abandon_keeps_the_table() {
+        let mut batch = MessageWireBatch::default();
+        batch.push(&inbound("SENT", 8)).expect("packs");
+        let mut out = Vec::new();
+        batch.write_and_reset(&mut out);
+        let held = batch.strings.held;
+
+        batch.reset();
+        assert_eq!(batch.strings.held, held);
+        assert_eq!(batch.strings.flags, 0);
+        batch.push(&inbound("AFTER", 8)).expect("packs");
+        assert!(definitions_of(&batch).is_empty());
+    }
+
+    /// The table is bounded, so a long session cannot grow it without limit —
+    /// and the roll that bounds it is announced rather than inferred.
+    #[test]
+    fn the_table_rolls_at_its_entry_ceiling() {
+        let mut batch = MessageWireBatch::default();
+        let mut out = Vec::new();
+        let mut rolled = None;
+        for round in 0..PACKED_STRING_CACHE_MAX {
+            let mut info = MessageInfo::default();
+            info.source.chat = "5511999@s.whatsapp.net".parse().expect("valid chat jid");
+            info.source.sender = "5511999:9@s.whatsapp.net"
+                .parse()
+                .expect("valid sender jid");
+            info.id = "CEILING".into();
+            // A distinct push name each round is what fills the table.
+            info.push_name = format!("Peer {round}");
+            batch
+                .push(
+                    &InboundMessage::builder()
+                        .message(Arc::new(Message::default()))
+                        .info(Arc::new(info))
+                        .build(),
+                )
+                .expect("packs");
+            out.clear();
+            batch.write_and_reset(&mut out);
+            if batch.strings.flags & PACKED_FLAG_RESET_CACHES != 0 {
+                rolled = Some(round);
+                break;
+            }
+        }
+        let rolled = rolled.expect("the table never reached its ceiling");
+        assert_eq!(batch.strings.held, 0, "a rolled table still holds entries");
+        assert!(
+            rolled + 1 >= PACKED_STRING_CACHE_MAX - 2,
+            "rolled too early"
+        );
+
+        batch.push(&inbound("AFTER", 8)).expect("packs");
+        assert_eq!(
+            definitions_of(&batch),
+            ["5511999@s.whatsapp.net", "Peer"],
+            "the batch after a roll has to redefine what it references"
+        );
+    }
+
+    /// Builds a one-message batch carrying `push_name`.
+    fn named(id: &str, push_name: String) -> InboundMessage {
+        let mut info = MessageInfo::default();
+        info.source.chat = "5511999@s.whatsapp.net".parse().expect("valid chat jid");
+        info.source.sender = "5511999:9@s.whatsapp.net"
+            .parse()
+            .expect("valid sender jid");
+        info.id = id.into();
+        info.push_name = push_name;
+        InboundMessage::builder()
+            .message(Arc::new(Message::default()))
+            .info(Arc::new(info))
+            .build()
+    }
+
+    /// The table is what keeps a peer-sized push name from being written once
+    /// per message. A run of 32 sharing one 1 MiB name is the shape that makes
+    /// the difference: one copy on the wire, not thirty-two.
+    #[test]
+    fn an_oversized_push_name_is_written_once_per_batch() {
+        let oversized = "n".repeat(1024 * 1024);
+        let mut batch = MessageWireBatch::default();
+        for round in 0..32 {
+            batch
+                .push(&named(&format!("HUGE-{round}"), oversized.clone()))
+                .expect("packs");
+        }
+
+        assert_eq!(batch.len(), 32);
+        assert_eq!(
+            definitions_of(&batch),
+            ["5511999@s.whatsapp.net", &oversized],
+            "the push name was written per message"
+        );
+        assert!(
+            batch.strings.region_len() < oversized.len() * 2,
+            "the region carries more than one copy: {} bytes",
+            batch.strings.region_len()
+        );
+
+        // It also blows the byte ceiling, so the batch that carries it tells
+        // the host to drop the table the moment it has been read.
+        let mut out = Vec::new();
+        batch.write_flat(&mut out);
+        let flags = u32::from_le_bytes(out[20..24].try_into().expect("4 bytes"));
+        assert_eq!(
+            flags & PACKED_FLAG_CLEAR_AFTER,
+            PACKED_FLAG_CLEAR_AFTER,
+            "the host would have held it until the next batch"
+        );
+        batch.commit();
+        assert_eq!(batch.strings.held, 0, "the writer kept it");
+    }
+
+    /// The aggregate ceiling still bounds what the table holds, and rolls the
+    /// same announced way the entry ceiling does.
+    #[test]
+    fn the_table_rolls_at_its_byte_ceiling() {
+        const FILLER_BYTES: usize = 240;
+        let mut batch = MessageWireBatch::default();
+        let mut out = Vec::new();
+        // Long enough that the byte ceiling is reached well before the entry one.
+        let filler = "n".repeat(FILLER_BYTES);
+        let mut rolled = false;
+        for round in 0..PACKED_STRING_CACHE_MAX {
+            let push_name = format!("{round}{filler}");
+            batch.push(&named("BYTES", push_name)).expect("packs");
+            out.clear();
+            batch.write_and_reset(&mut out);
+            if batch.strings.flags & PACKED_FLAG_RESET_CACHES != 0 {
+                rolled = true;
+                assert!(
+                    round < PACKED_STRING_CACHE_MAX - 1,
+                    "the entry ceiling rolled first, so this proves nothing"
+                );
+                break;
+            }
+        }
+        assert!(rolled, "the table never reached its byte ceiling");
+        assert_eq!(batch.strings.held, 0, "a rolled table still holds entries");
     }
 
     /// Pins the byte layout the host decoder (`decodeMessageWireBatch`) reads.
@@ -1029,12 +1502,16 @@ mod tests {
             u32::from_le_bytes(out[offset..offset + 4].try_into().expect("4 bytes")) as usize
         };
         assert_eq!(u32_at(0), 1, "message count");
-        let string_count = u32_at(4);
-        assert_eq!(string_count, 4, "chat, sender, id, pushName");
+        let definition_count = u32_at(4);
+        assert_eq!(definition_count, 3, "chat, sender, pushName");
         let message_bytes = u32_at(8);
         let string_bytes = u32_at(12);
         assert_eq!(u32_at(16), MESSAGE_WIRE_INFO_RECORD_WIDTH, "record width");
-        assert_eq!(u32_at(20), 0, "reserved keeps the header 8-aligned");
+        assert_eq!(
+            u32_at(20),
+            PACKED_FLAG_RESET_CACHES as usize,
+            "a fresh writer claims the host's table"
+        );
 
         // Records lead so they land 8-aligned behind the header.
         assert_eq!(MESSAGE_WIRE_HEADER_BYTES % 8, 0);
@@ -1044,23 +1521,95 @@ mod tests {
                 .try_into()
                 .expect("8 bytes"),
         );
-        assert_eq!(chat_slot, 0.0, "chat interns first");
+        assert_eq!(chat_slot, 0.0, "chat is defined first");
 
         // Then the two offset tables, each carrying its leading sentinel.
         assert_eq!(u32_at(records_end), 0, "payload offset sentinel");
         assert_eq!(u32_at(records_end + 4), message_bytes, "payload end");
-        let string_offsets_at = records_end + 8;
-        assert_eq!(u32_at(string_offsets_at), 0, "string offset sentinel");
+        let definition_offsets_at = records_end + 8;
+        assert_eq!(
+            u32_at(definition_offsets_at),
+            0,
+            "definition offset sentinel"
+        );
 
-        let payloads_at = string_offsets_at + (string_count + 1) * 4;
+        let payloads_at = definition_offsets_at + (definition_count + 1) * 4;
         let strings_at = payloads_at + message_bytes;
         assert_eq!(out.len(), strings_at + string_bytes, "no trailing padding");
+        // Definitions, then the inline values in record order.
+        let definition_bytes = u32_at(definition_offsets_at + definition_count * 4);
         assert_eq!(
-            std::str::from_utf8(&out[strings_at..strings_at + string_bytes])
-                .expect("table bytes are UTF-8"),
-            "120363@g.us5511@s.whatsapp.netWIRE-1Alice"
+            std::str::from_utf8(&out[strings_at..strings_at + definition_bytes])
+                .expect("definition bytes are UTF-8"),
+            "120363@g.us5511@s.whatsapp.netAlice"
+        );
+        assert_eq!(
+            std::str::from_utf8(&out[strings_at + definition_bytes..strings_at + string_bytes])
+                .expect("inline bytes are UTF-8"),
+            "WIRE-1"
         );
     }
+
+    /// The two sides of this format are hand-mirrored, so one fixture is pinned
+    /// byte for byte on both. The same literal is asserted against
+    /// `encodeMessageWireBatch` in `tests/message-wire-table.test.ts`; a change
+    /// to either writer that the other does not follow fails here or there
+    /// rather than in a host's decode.
+    #[test]
+    fn message_wire_batch_matches_the_host_encoder_byte_for_byte() {
+        let mut info = MessageInfo::default();
+        info.source.chat = "120363@g.us".parse().expect("valid chat jid");
+        info.source.sender = "5511:7@s.whatsapp.net".parse().expect("valid sender jid");
+        info.id = "WIRE-1".into();
+        info.push_name = "Alice".into();
+        assert_eq!(
+            info.timestamp.timestamp(),
+            0,
+            "the fixture pins timestamp 0"
+        );
+
+        let mut batch = MessageWireBatch::default();
+        batch
+            .push(
+                &InboundMessage::builder()
+                    .message(Arc::new(Message::default()))
+                    .info(Arc::new(info))
+                    .build(),
+            )
+            .expect("packs");
+        let mut out = Vec::new();
+        batch.write_flat(&mut out);
+
+        let hex: String = out.iter().map(|byte| format!("{byte:02x}")).collect();
+        assert_eq!(hex, MESSAGE_WIRE_GOLDEN_HEX);
+    }
+
+    /// Shared with `tests/message-wire-table.test.ts`. Regenerate both together.
+    ///
+    /// header: 1 message, 3 definitions, 0 payload bytes, 41 string bytes,
+    /// record width 10, flags = reset. Then the record — chat 0, sender 1,
+    /// senderAlt/recipientAlt absent, id 6 bytes inline, pushName 2, timestamp
+    /// 0, no flags, no request id, no edit — the two offset tables, and the
+    /// string region: the three definitions, then the inline id.
+    const MESSAGE_WIRE_GOLDEN_HEX: &str = concat!(
+        "010000000300000000000000290000000a00000001000000",
+        "0000000000000000",
+        "000000000000f03f",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000001840",
+        "0000000000000040",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "0000000000000000",
+        "000000000b0000001e00000023000000",
+        "31323033363340672e7573",
+        "3535313140732e77686174736170702e6e6574",
+        "416c696365",
+        "574952452d31",
+    );
 
     /// Builds a one-message batch whose payload is `payload_len` bytes of text.
     fn inbound(id: &str, payload_len: usize) -> InboundMessage {
@@ -1094,7 +1643,10 @@ mod tests {
     }
 
     /// Happy path: a reused encoder is byte-identical to a fresh one, below the
-    /// retained-payload threshold, at it, and above it.
+    /// retained-payload threshold, at it, and above it. The table outlives the
+    /// batch, so the reused encoder is cleared to a fresh one first — without
+    /// that the two are deliberately different, which the neighbouring tests
+    /// are the ones to check.
     #[test]
     fn reused_encoder_is_byte_identical_to_a_fresh_one() {
         let sizes = [
@@ -1110,6 +1662,7 @@ mod tests {
             let expected = flat_of(&fresh);
 
             let reused = MessageWireBatch::with_encoder(|encoder| {
+                *encoder = MessageWireBatch::default();
                 encoder.push(&message).expect("reused encoder packs");
                 let bytes = flat_of(encoder);
                 encoder.reset();
@@ -1126,6 +1679,7 @@ mod tests {
         let first = inbound("ABANDONED", 16);
         let second = inbound("KEPT", 16);
         MessageWireBatch::with_encoder(|encoder| {
+            *encoder = MessageWireBatch::default();
             encoder.push(&first).expect("packs");
             encoder.reset();
             encoder.push(&second).expect("packs");
@@ -1207,42 +1761,53 @@ mod tests {
         assert_eq!(cursor + id_length, out.len(), "the region ends with it");
     }
 
-    /// The scan-based dedup must not confuse a value with a longer one that
-    /// starts the same way.
+    /// Dedup must not confuse a value with a longer one that starts the same
+    /// way, and a repeat must land on the slot the host already holds.
     #[test]
     fn string_table_distinguishes_prefixes() {
         let mut table = WireStringTable::default();
-        let a = table.intern("a");
-        let ab = table.intern("ab");
-        let a_again = table.intern("a");
+        let a = table.cache("a");
+        let ab = table.cache("ab");
+        let a_again = table.cache("a");
         assert_eq!(a, 0);
         assert_eq!(ab, 1);
         assert_eq!(a_again, 0, "an exact repeat still dedups");
-        assert_eq!(table.len(), 2);
-        assert_eq!(table.data, b"aab");
+        assert_eq!(table.defined(), 2);
+        assert_eq!(table.definitions, b"aab");
     }
 
     /// Push names and message ids come from the wire, so an oversized one must
-    /// not pin the reused table's peak for the rest of the session.
+    /// not pin the reused buffers' peak for the rest of the session.
     #[test]
     fn string_table_capacity_stays_bounded() {
-        let oversized = "n".repeat(WIRE_STRING_TABLE_RETAINED_BYTES * 2);
+        // Past both ceilings: the buffers must shrink back, and the table must
+        // roll rather than hold the value until the entry ceiling is reached.
+        let oversized = "n".repeat(WIRE_STRING_CACHE_MAX_BYTES + 1);
+        assert!(oversized.len() > WIRE_STRING_TABLE_RETAINED_BYTES);
         let mut table = WireStringTable::default();
-        table.intern(&oversized);
-        table.intern_jid(&"5511999@s.whatsapp.net".parse().expect("valid jid"));
-        assert!(table.data.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES);
+        table.cache(&oversized);
+        table.write_inline(&oversized);
+        table.cache_jid(&"5511999@s.whatsapp.net".parse().expect("valid jid"));
+        assert!(table.definitions.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES);
+        assert!(table.inline.capacity() > WIRE_STRING_TABLE_RETAINED_BYTES);
 
-        table.reset();
-        assert!(
-            table.data.capacity() <= WIRE_STRING_TABLE_RETAINED_BYTES,
-            "table kept {} bytes",
-            table.data.capacity()
-        );
-        assert!(table.scratch.capacity() <= WIRE_STRING_TABLE_RETAINED_BYTES);
+        table.commit();
+        for (name, capacity) in [
+            ("definitions", table.definitions.capacity()),
+            ("inline", table.inline.capacity()),
+            ("scratch", table.scratch.capacity()),
+        ] {
+            assert!(
+                capacity <= WIRE_STRING_TABLE_RETAINED_BYTES,
+                "{name} kept {capacity} bytes"
+            );
+        }
 
-        // Still usable, and interning starts from an empty table again.
-        assert_eq!(table.intern("after"), 0);
-        assert_eq!(table.len(), 1);
+        // The oversized value also took the table past its byte ceiling, so the
+        // commit rolled it: the next batch defines from an empty table again.
+        assert_eq!(table.flags, PACKED_FLAG_RESET_CACHES);
+        assert_eq!(table.cache("after"), 0);
+        assert_eq!(table.defined(), 1);
     }
 
     /// Reuse stops at the boundary: a batch the host holds must not be
@@ -1456,12 +2021,137 @@ mod tests {
         assert_eq!(encode(BatchBuffer::Borrowed), encode(BatchBuffer::Owned));
     }
 
+    /// The dispatch future can be dropped at any suspension point, and it takes
+    /// a buffered envelope with it. Those segments were written by encoders that
+    /// already counted their definitions as held, so the tables have to roll —
+    /// otherwise the next batch's slots index past what the host has.
+    #[test]
+    fn a_dropped_envelope_rolls_every_table() {
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
+        ReceiptWireBatch::with_encoder(|encoder| *encoder = ReceiptWireBatch::default());
+
+        // A delivered batch: the host holds what it defined.
+        let mut out = Vec::new();
+        MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&inbound("DELIVERED", 8)).expect("packs");
+            encoder.write_and_reset(&mut out);
+            assert_eq!(encoder.strings.held, 2);
+            assert_eq!(encoder.strings.flags, 0);
+        });
+
+        // A run buffered into an envelope that is then dropped unflushed.
+        {
+            let mut envelope = EventWireEnvelope::default();
+            MessageWireBatch::with_encoder(|encoder| {
+                encoder.push(&inbound("LOST", 8)).expect("packs");
+                let records = encoder.len();
+                envelope.push_segment(EVENT_SEGMENT_KIND_MESSAGE, records, |out| {
+                    encoder.write_and_reset(out)
+                });
+            });
+            assert!(!envelope.is_empty());
+        }
+
+        MessageWireBatch::with_encoder(|encoder| {
+            assert_eq!(encoder.strings.held, 0, "the lost segment stayed held");
+            assert_eq!(encoder.strings.flags, PACKED_FLAG_RESET_CACHES);
+            encoder.push(&inbound("AFTER", 8)).expect("packs");
+            assert_eq!(
+                definitions_of(encoder),
+                ["5511999@s.whatsapp.net", "Peer"],
+                "the batch after the loss has to redefine what it references"
+            );
+            encoder.reset();
+        });
+        ReceiptWireBatch::with_encoder(|encoder| {
+            assert!(encoder.writer.string_cache.is_empty());
+            assert_eq!(
+                encoder.writer.flags & PACKED_FLAG_RESET_CACHES,
+                PACKED_FLAG_RESET_CACHES
+            );
+        });
+    }
+
+    /// A host that defers its decode reads batches in an order the writer
+    /// cannot see, and a table spanning batches is only sound in delivery
+    /// order. Giving it up makes every batch self-contained, which reads the
+    /// same whenever it is decoded — the optimization goes, not the values.
+    #[test]
+    fn revoking_the_tables_makes_every_batch_self_contained() {
+        reset_packed_tables();
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
+
+        let mut out = Vec::new();
+        MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&inbound("BEFORE-1", 8)).expect("packs");
+            encoder.write_and_reset(&mut out);
+            encoder.push(&inbound("BEFORE-2", 8)).expect("packs");
+            assert!(
+                definitions_of(encoder).is_empty(),
+                "the table is supposed to span batches until it is revoked"
+            );
+            encoder.write_and_reset(&mut out);
+        });
+
+        revoke_packed_tables();
+
+        // Two batches in a row, each defining everything it names and each
+        // asking the reader to clear: decoded in either order, both read right.
+        for round in 0..2 {
+            MessageWireBatch::with_encoder(|encoder| {
+                encoder.push(&inbound("AFTER", 8)).expect("packs");
+                assert_eq!(
+                    definitions_of(encoder),
+                    ["5511999@s.whatsapp.net", "Peer"],
+                    "round {round} leaned on a table the reader may not have"
+                );
+                assert_eq!(encoder.strings.flags, PACKED_FLAG_RESET_CACHES);
+                assert_eq!(encoder.info_records[0], 0.0, "slots restart every batch");
+                out.clear();
+                encoder.write_and_reset(&mut out);
+            });
+        }
+
+        // The packed writers give theirs up too, under the same flag.
+        ReceiptWireBatch::with_encoder(|encoder| {
+            assert!(encoder.writer.string_cache.is_empty());
+            assert_eq!(
+                encoder.writer.flags & PACKED_FLAG_RESET_CACHES,
+                PACKED_FLAG_RESET_CACHES
+            );
+        });
+        reset_packed_tables();
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
+    }
+
+    /// Crossing the envelope is not losing it, so the tables must survive.
+    #[test]
+    fn a_crossed_envelope_keeps_every_table() {
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
+        let mut envelope = EventWireEnvelope::default();
+        MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&inbound("SENT", 8)).expect("packs");
+            let records = encoder.len();
+            envelope.push_segment(EVENT_SEGMENT_KIND_MESSAGE, records, |out| {
+                encoder.write_and_reset(out)
+            });
+        });
+        let _crossed = envelope.finish(BatchBuffer::Owned);
+        drop(envelope);
+
+        MessageWireBatch::with_encoder(|encoder| {
+            assert_eq!(encoder.strings.held, 2, "a delivered run rolled the table");
+            assert_eq!(encoder.strings.flags, 0);
+            encoder.reset();
+        });
+    }
+
     /// The encoder is process-wide, so the borrow must end before any host
     /// callback runs. Two batches built back to back must stay independent.
     #[test]
     fn consecutive_batches_are_serialized_and_independent() {
-        MessageWireBatch::with_encoder(MessageWireBatch::reset);
         let first = MessageWireBatch::with_encoder(|encoder| {
+            *encoder = MessageWireBatch::default();
             encoder.push(&inbound("FIRST", 16)).expect("packs");
             encoder.finish().expect("crosses")
         });
