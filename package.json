@@ -47,6 +47,8 @@
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
         "test:rust": "wasm-pack test --node",
         "check:size": "bun run scripts/check-size.ts",
+        "measure:fn-sizes": "node scripts/wasm-fn-sizes.mjs pkg/whatsapp_rust_bridge_bg.wasm",
+        "measure:zone-peak": "node scripts/wasm-zone-peak.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "prepack": "bun run scripts/check-pack.ts",
         "prepublishOnly": "bun run build"
     },
