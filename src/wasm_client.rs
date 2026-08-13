@@ -313,6 +313,12 @@ export interface WhatsAppEventCallbacks {
    * Protobuf-wire message path. The bridge packs a bounded ordered group of
    * messages — payloads and metadata alike — into one flat buffer. Decode it
    * with `decodeMessageWireBatch`.
+   *
+   * Decode every batch, exactly once, in the order it arrives, before calling
+   * back into the client: addresses and push names repeat, so a batch defines
+   * them once and later batches reference the table the decoder is holding.
+   * A batch skipped or decoded out of order leaves that table describing a
+   * history the records do not have.
    */
   onMessageBatch(batch: MessageWireBatch): void;
   /**
@@ -1076,9 +1082,13 @@ impl BatchDelivery {
                 Ok(batch) => {
                     if let Err(e) = channel.call(&callbacks.receiver, B::KIND, &batch) {
                         log::warn!("JS {} batch callback threw: {e:?}", B::KIND);
+                        crate::wire_batch::invalidate_packed_tables();
                     }
                 }
-                Err(e) => log::warn!("{} wire batch materialization failed: {e:?}", B::KIND),
+                Err(e) => {
+                    log::warn!("{} wire batch materialization failed: {e:?}", B::KIND);
+                    crate::wire_batch::invalidate_packed_tables();
+                }
             }
             if budget.record(work_remains) {
                 yield_to_io().await;
@@ -1146,6 +1156,7 @@ impl BatchDelivery {
         };
         if let Err(e) = result {
             log::warn!("JS batch callback threw: {e:?}");
+            crate::wire_batch::invalidate_packed_tables();
         }
         if budget.record(work_remains) {
             yield_to_io().await;
@@ -1476,9 +1487,15 @@ async fn dispatch_message_wire_batch(
         Ok(batch) => {
             if let Err(e) = callbacks.call_message_batch(&batch) {
                 log::warn!("JS message batch callback threw: {e:?}");
+                // The batch crossed but nothing says the host read it, and the
+                // encoders count a written batch as held. Take it back.
+                crate::wire_batch::invalidate_packed_tables();
             }
         }
-        Err(e) => log::warn!("Message wire batch materialization failed: {e:?}"),
+        Err(e) => {
+            log::warn!("Message wire batch materialization failed: {e:?}");
+            crate::wire_batch::invalidate_packed_tables();
+        }
     }
     if budget.record(work_remains) {
         yield_to_io().await;

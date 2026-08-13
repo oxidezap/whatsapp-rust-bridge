@@ -2,28 +2,40 @@
  * Packed wire-batch codecs (message metadata, receipts, server acks).
  *
  * The bridge crosses hot per-event metadata as fixed-width numeric records
- * plus a per-batch deduplicated string table: repeated addresses, push names
- * and ack classes pay one decode per batch instead of one FFI object build
- * per event. This module is the single host-side owner of every record
- * layout; the Rust writers live in `src/wasm_client.rs`.
+ * plus a string table that outlives the batch: repeated addresses, push names
+ * and ack classes are materialized once per process and referenced by index
+ * afterwards, instead of one FFI object build per event. This module is the
+ * single host-side owner of every record layout; the Rust writers live in
+ * `src/wire_batch.rs`.
+ *
+ * A table that outlives a batch only works while both sides agree on when it
+ * is dropped, so every codec here speaks one invalidation protocol: the writer
+ * sets `PACKED_FLAG_RESET_CACHES` in a batch's header and the reader clears
+ * before reading it. That makes every decoder here **stateful**. Decode each
+ * batch exactly once, in the order the bridge delivered it; a batch decoded
+ * twice, out of order, or not at all leaves the table describing a history the
+ * records do not have.
  */
 
 const utf8Decoder = new TextDecoder();
 const utf8Encoder = new TextEncoder();
 
 // ---------------------------------------------------------------------------
-// Shared string-table helpers
+// Shared table helpers
 // ---------------------------------------------------------------------------
 
-function decodeStringTable(data: Uint8Array, offsets: Uint32Array): string[] {
-  const table: string[] = new Array(Math.max(0, offsets.length - 1));
-  for (let i = 0; i + 1 < offsets.length; i++) {
-    table[i] = utf8Decoder.decode(data.subarray(offsets[i]!, offsets[i + 1]!));
-  }
-  return table;
-}
+/** Header flag: clear the table this batch's records index into. */
+const PACKED_FLAG_RESET_CACHES = 1;
+/**
+ * Entry and byte ceilings a writer rolls its table at, mirroring
+ * `PACKED_STRING_CACHE_MAX` / `WIRE_STRING_CACHE_MAX_BYTES` in
+ * `src/wire_batch.rs`. Only the builders below need them: a decoder is told to
+ * clear, it never decides.
+ */
+const PACKED_STRING_CACHE_MAX = 4096;
+const WIRE_STRING_CACHE_MAX_BYTES = 64 * 1024;
 
-function tableAccessors(table: string[]) {
+function tableAccessors(table: readonly string[]) {
   const required = (index: number): string => {
     const value = table[index];
     if (value === undefined) throw new RangeError("packed record references a missing table entry");
@@ -32,39 +44,6 @@ function tableAccessors(table: string[]) {
   // Optional slots carry table index + 1 so 0 can mean absent.
   const optional = (raw: number): string | undefined => (raw === 0 ? undefined : required(raw - 1));
   return { required, optional };
-}
-
-/** Build-side mirror of the Rust `WireStringTable`, for tests and tooling. */
-class StringTableBuilder {
-  private readonly table: string[] = [];
-  private readonly indexByValue = new Map<string, number>();
-
-  intern(value: string): number {
-    const existing = this.indexByValue.get(value);
-    if (existing !== undefined) return existing;
-    const index = this.table.length;
-    this.table.push(value);
-    this.indexByValue.set(value, index);
-    return index;
-  }
-
-  internOptional(value: string | undefined): number {
-    return value === undefined ? 0 : this.intern(value) + 1;
-  }
-
-  pack(): { data: Uint8Array; offsets: Uint32Array } {
-    const encoder = new TextEncoder();
-    const encoded = this.table.map(value => encoder.encode(value));
-    const offsets = new Uint32Array(encoded.length + 1);
-    let total = 0;
-    for (let i = 0; i < encoded.length; i++) {
-      total += encoded[i]!.length;
-      offsets[i + 1] = total;
-    }
-    const data = new Uint8Array(total);
-    for (let i = 0; i < encoded.length; i++) data.set(encoded[i]!, offsets[i]!);
-    return { data, offsets };
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -154,26 +133,32 @@ const INFO_FLAG_OFFLINE = 1 << 3;
  * `src/wire_batch.rs`:
  *
  * ```text
- * header (24 B): u32 messages | u32 strings | u32 message_bytes
- *                u32 string_bytes | u32 record_width | u32 reserved
+ * header (24 B): u32 messages | u32 definitions | u32 message_bytes
+ *                u32 string_bytes | u32 record_width | u32 flags
  * records:       messages * record_width * f64
  * offsets:       (messages + 1) * u32
- * str offsets:   (strings + 1) * u32
+ * def offsets:   (definitions + 1) * u32
  * payloads:      message_bytes
- * strings:       string_bytes
+ * strings:       string_bytes — definitions, then inline values
  * ```
  *
  * The f64 block leads so it lands 8-aligned behind the 24-byte header, and the
  * u32 tables follow at 4-aligned offsets. That is what lets this decoder build
  * views straight over the one buffer the bridge crossed, instead of the five
  * typed arrays an object envelope would have carried.
+ *
+ * `definitions` are the entries this batch adds to the standing table; the
+ * offset table delimits them, so where they end is where the inline values —
+ * message ids and the like, which never repeat and so never enter the table —
+ * begin. `flags` carries `PACKED_FLAG_RESET_CACHES`.
  */
 const MESSAGE_WIRE_HEADER_BYTES = 24;
 const HEADER_SLOT_MESSAGES = 0;
-const HEADER_SLOT_STRINGS = 4;
+const HEADER_SLOT_DEFINITIONS = 4;
 const HEADER_SLOT_MESSAGE_BYTES = 8;
 const HEADER_SLOT_STRING_BYTES = 12;
 const HEADER_SLOT_RECORD_WIDTH = 16;
+const HEADER_SLOT_FLAGS = 20;
 
 /** Decoded message batch: payload slices plus one envelope per message. */
 export interface MessageWireBatchView {
@@ -195,6 +180,21 @@ function alignedBuffer(buffer: Uint8Array): Uint8Array {
   return (buffer.byteOffset + MESSAGE_WIRE_HEADER_BYTES) % 8 === 0 ? buffer : new Uint8Array(buffer);
 }
 
+/**
+ * The standing message table: every entry a batch's records may index, held
+ * across batches so a chat address or a push name is decoded once and then
+ * only referenced. Cleared exactly when a batch's header says to — the writer
+ * decides, because only the writer knows what it has already sent.
+ *
+ * Module state, like the receipt and server-ack readers: the bridge's encoder
+ * is likewise one per WASM instance. That is also its limit — two bridge
+ * instances in one realm would interleave batches against one table. The
+ * writer's first batch always asks for a clear, so a second instance starting
+ * up cannot inherit the first one's indices, but two instances running side by
+ * side would need a table each.
+ */
+const messageTable: string[] = [];
+
 /** Decode a packed message batch into payload slices and metadata envelopes. */
 export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatchView {
   const buffer = alignedBuffer(batch);
@@ -203,10 +203,11 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   }
   const header = new DataView(buffer.buffer, buffer.byteOffset, MESSAGE_WIRE_HEADER_BYTES);
   const messageCount = header.getUint32(HEADER_SLOT_MESSAGES, true);
-  const stringCount = header.getUint32(HEADER_SLOT_STRINGS, true);
+  const definitionCount = header.getUint32(HEADER_SLOT_DEFINITIONS, true);
   const messageBytes = header.getUint32(HEADER_SLOT_MESSAGE_BYTES, true);
   const stringBytes = header.getUint32(HEADER_SLOT_STRING_BYTES, true);
   const recordWidth = header.getUint32(HEADER_SLOT_RECORD_WIDTH, true);
+  const batchFlags = header.getUint32(HEADER_SLOT_FLAGS, true);
   if (recordWidth !== MESSAGE_WIRE_INFO_RECORD_WIDTH) {
     throw new RangeError(
       `message wire batch record width ${recordWidth} does not match the expected ${MESSAGE_WIRE_INFO_RECORD_WIDTH}`,
@@ -215,9 +216,9 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
 
   const recordBytes = messageCount * recordWidth * 8;
   const offsetBytes = (messageCount + 1) * 4;
-  const stringOffsetBytes = (stringCount + 1) * 4;
+  const definitionOffsetBytes = (definitionCount + 1) * 4;
   const expected =
-    MESSAGE_WIRE_HEADER_BYTES + recordBytes + offsetBytes + stringOffsetBytes + messageBytes + stringBytes;
+    MESSAGE_WIRE_HEADER_BYTES + recordBytes + offsetBytes + definitionOffsetBytes + messageBytes + stringBytes;
   if (buffer.byteLength < expected) {
     throw new RangeError(`message wire batch is truncated: ${buffer.byteLength} bytes, expected ${expected}`);
   }
@@ -227,13 +228,39 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   cursor += recordBytes;
   const messageOffsets = new Uint32Array(buffer.buffer, buffer.byteOffset + cursor, messageCount + 1);
   cursor += offsetBytes;
-  const stringOffsets = new Uint32Array(buffer.buffer, buffer.byteOffset + cursor, stringCount + 1);
-  cursor += stringOffsetBytes;
+  const definitionOffsets = new Uint32Array(buffer.buffer, buffer.byteOffset + cursor, definitionCount + 1);
+  cursor += definitionOffsetBytes;
   const messageData = buffer.subarray(cursor, cursor + messageBytes);
   cursor += messageBytes;
   const stringData = buffer.subarray(cursor, cursor + stringBytes);
 
-  const { required, optional } = tableAccessors(decodeStringTable(stringData, stringOffsets));
+  // Clearing before the definitions land is the whole of the protocol: the
+  // batch that rolls the table is also the batch that rebuilds it.
+  if ((batchFlags & PACKED_FLAG_RESET_CACHES) !== 0) messageTable.length = 0;
+  const definitionBytes = definitionOffsets[definitionCount]!;
+  if (definitionBytes > stringBytes) {
+    throw new RangeError("message wire batch string definitions run past its string region");
+  }
+  for (let i = 0; i < definitionCount; i++) {
+    messageTable.push(utf8Decoder.decode(stringData.subarray(definitionOffsets[i]!, definitionOffsets[i + 1]!)));
+  }
+
+  // Inline values are read in record order, so their offsets are a cursor
+  // rather than a table: only their byte length rides in the record.
+  let inlineAt = definitionBytes;
+  const inlineValue = (length: number): string => {
+    const end = inlineAt + length;
+    if (end > stringBytes) {
+      throw new RangeError("message wire batch inline value runs past its string region");
+    }
+    const value = utf8Decoder.decode(stringData.subarray(inlineAt, end));
+    inlineAt = end;
+    return value;
+  };
+  const inlineOptional = (raw: number): string | undefined =>
+    raw === 0 ? undefined : inlineValue(raw - 1);
+
+  const { required, optional } = tableAccessors(messageTable);
   const infos: MessageWireInfo[] = new Array(messageCount);
   for (let i = 0; i < messageCount; i++) {
     const base = i * recordWidth;
@@ -245,12 +272,12 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
       recipientAlt: optional(records[base + INFO_SLOT_RECIPIENT_ALT]!),
       isFromMe: (flags & INFO_FLAG_FROM_ME) !== 0,
       isGroup: (flags & INFO_FLAG_GROUP) !== 0,
-      id: required(records[base + INFO_SLOT_ID]!),
+      id: inlineValue(records[base + INFO_SLOT_ID]!),
       timestamp: records[base + INFO_SLOT_TIMESTAMP]!,
       pushName: required(records[base + INFO_SLOT_PUSH_NAME]!),
       isViewOnce: (flags & INFO_FLAG_VIEW_ONCE) !== 0,
       isOffline: (flags & INFO_FLAG_OFFLINE) !== 0,
-      unavailableRequestId: optional(records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID]!),
+      unavailableRequestId: inlineOptional(records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID]!),
       edit: optional(records[base + INFO_SLOT_EDIT]!),
     };
   }
@@ -265,64 +292,133 @@ export interface MessageWireEntry {
 }
 
 /**
- * Inverse of `decodeMessageWireBatch`, for hosts that need to fabricate batches
- * (tests, replay tooling). Mirrors the Rust writer byte for byte.
+ * Build-side mirror of the Rust `MessageWireBatch`, for hosts that need to
+ * fabricate batches (tests, replay tooling).
+ *
+ * One encoder is one writer: it keeps the table across `encode` calls exactly
+ * as the bridge's does, so a run of batches decodes the way a run from the
+ * bridge decodes — later batches defining nothing and indexing what earlier
+ * ones defined. Its first batch always asks the reader to clear, so a run
+ * starts from a table it owns rather than one someone else left behind.
+ */
+export class MessageWireBatchEncoder {
+  private readonly cache = new Map<string, number>();
+  /** Entries the reader holds, and so the index the next definition takes. */
+  private held = 0;
+  private cacheBytes = 0;
+  private flags = PACKED_FLAG_RESET_CACHES;
+
+  /** Encode one batch, as `MessageWireBatch::write_flat` writes one. */
+  encode(entries: readonly MessageWireEntry[]): PackedWireBatch {
+    const definitions: Uint8Array[] = [];
+    const inline: Uint8Array[] = [];
+    const cache = (value: string): number => {
+      const existing = this.cache.get(value);
+      if (existing !== undefined) return existing;
+      const index = this.held + definitions.length;
+      const encoded = utf8Encoder.encode(value);
+      this.cache.set(value, index);
+      this.cacheBytes += encoded.byteLength;
+      definitions.push(encoded);
+      return index;
+    };
+    const cacheOptional = (value: string | undefined): number =>
+      value === undefined ? 0 : cache(value) + 1;
+    const writeInline = (value: string): number => {
+      const encoded = utf8Encoder.encode(value);
+      inline.push(encoded);
+      return encoded.byteLength;
+    };
+    const writeInlineOptional = (value: string | undefined): number =>
+      value === undefined ? 0 : writeInline(value) + 1;
+
+    const records = new Float64Array(entries.length * MESSAGE_WIRE_INFO_RECORD_WIDTH);
+    const messageOffsets = new Uint32Array(entries.length + 1);
+    let payloadBytes = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const { payload, info } = entries[i]!;
+      payloadBytes += payload.byteLength;
+      messageOffsets[i + 1] = payloadBytes;
+      const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
+      records[base + INFO_SLOT_CHAT] = cache(info.chat);
+      records[base + INFO_SLOT_SENDER] = cache(info.sender);
+      records[base + INFO_SLOT_SENDER_ALT] = cacheOptional(info.senderAlt);
+      records[base + INFO_SLOT_RECIPIENT_ALT] = cacheOptional(info.recipientAlt);
+      records[base + INFO_SLOT_PUSH_NAME] = cache(info.pushName);
+      records[base + INFO_SLOT_TIMESTAMP] = info.timestamp;
+      records[base + INFO_SLOT_FLAGS] =
+        (info.isFromMe ? INFO_FLAG_FROM_ME : 0) |
+        (info.isGroup ? INFO_FLAG_GROUP : 0) |
+        (info.isViewOnce ? INFO_FLAG_VIEW_ONCE : 0) |
+        (info.isOffline ? INFO_FLAG_OFFLINE : 0);
+      records[base + INFO_SLOT_EDIT] = cacheOptional(info.edit);
+      // Inline values go out in record order, and the reader consumes them in
+      // that order: id first, then the optional request id.
+      records[base + INFO_SLOT_ID] = writeInline(info.id);
+      records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = writeInlineOptional(info.unavailableRequestId);
+    }
+
+    const definitionOffsets = new Uint32Array(definitions.length + 1);
+    let definitionBytes = 0;
+    for (let i = 0; i < definitions.length; i++) {
+      definitionBytes += definitions[i]!.byteLength;
+      definitionOffsets[i + 1] = definitionBytes;
+    }
+    let stringBytes = definitionBytes;
+    for (const value of inline) stringBytes += value.byteLength;
+
+    const total =
+      MESSAGE_WIRE_HEADER_BYTES +
+      records.byteLength +
+      messageOffsets.byteLength +
+      definitionOffsets.byteLength +
+      payloadBytes +
+      stringBytes;
+    const buffer = new Uint8Array(total);
+    const header = new DataView(buffer.buffer, 0, MESSAGE_WIRE_HEADER_BYTES);
+    header.setUint32(HEADER_SLOT_MESSAGES, entries.length, true);
+    header.setUint32(HEADER_SLOT_DEFINITIONS, definitions.length, true);
+    header.setUint32(HEADER_SLOT_MESSAGE_BYTES, payloadBytes, true);
+    header.setUint32(HEADER_SLOT_STRING_BYTES, stringBytes, true);
+    header.setUint32(HEADER_SLOT_RECORD_WIDTH, MESSAGE_WIRE_INFO_RECORD_WIDTH, true);
+    header.setUint32(HEADER_SLOT_FLAGS, this.flags, true);
+
+    let cursor = MESSAGE_WIRE_HEADER_BYTES;
+    const append = (bytes: Uint8Array): void => {
+      buffer.set(bytes, cursor);
+      cursor += bytes.byteLength;
+    };
+    append(new Uint8Array(records.buffer, records.byteOffset, records.byteLength));
+    append(new Uint8Array(messageOffsets.buffer, messageOffsets.byteOffset, messageOffsets.byteLength));
+    append(
+      new Uint8Array(definitionOffsets.buffer, definitionOffsets.byteOffset, definitionOffsets.byteLength),
+    );
+    for (const { payload } of entries) append(payload);
+    for (const value of definitions) append(value);
+    for (const value of inline) append(value);
+
+    // The batch is written, so the reader now holds what it defined — and the
+    // table rolls here, not mid-batch, so the flag rides the next header.
+    this.held += definitions.length;
+    this.flags = 0;
+    if (this.cache.size >= PACKED_STRING_CACHE_MAX || this.cacheBytes >= WIRE_STRING_CACHE_MAX_BYTES) {
+      this.cache.clear();
+      this.held = 0;
+      this.cacheBytes = 0;
+      this.flags = PACKED_FLAG_RESET_CACHES;
+    }
+    return buffer;
+  }
+}
+
+/**
+ * Inverse of `decodeMessageWireBatch` for a single standalone batch: it carries
+ * its own table definitions and asks the reader to clear, so it decodes the
+ * same whatever ran before it. Use `MessageWireBatchEncoder` to fabricate a run
+ * of batches that share a table the way the bridge's do.
  */
 export function encodeMessageWireBatch(entries: readonly MessageWireEntry[]): PackedWireBatch {
-  const strings = new StringTableBuilder();
-  const records = new Float64Array(entries.length * MESSAGE_WIRE_INFO_RECORD_WIDTH);
-  const messageOffsets = new Uint32Array(entries.length + 1);
-  let payloadBytes = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const { payload, info } = entries[i]!;
-    payloadBytes += payload.byteLength;
-    messageOffsets[i + 1] = payloadBytes;
-    const base = i * MESSAGE_WIRE_INFO_RECORD_WIDTH;
-    records[base + INFO_SLOT_CHAT] = strings.intern(info.chat);
-    records[base + INFO_SLOT_SENDER] = strings.intern(info.sender);
-    records[base + INFO_SLOT_SENDER_ALT] = strings.internOptional(info.senderAlt);
-    records[base + INFO_SLOT_RECIPIENT_ALT] = strings.internOptional(info.recipientAlt);
-    records[base + INFO_SLOT_ID] = strings.intern(info.id);
-    records[base + INFO_SLOT_PUSH_NAME] = strings.intern(info.pushName);
-    records[base + INFO_SLOT_TIMESTAMP] = info.timestamp;
-    records[base + INFO_SLOT_FLAGS] =
-      (info.isFromMe ? INFO_FLAG_FROM_ME : 0) |
-      (info.isGroup ? INFO_FLAG_GROUP : 0) |
-      (info.isViewOnce ? INFO_FLAG_VIEW_ONCE : 0) |
-      (info.isOffline ? INFO_FLAG_OFFLINE : 0);
-    records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = strings.internOptional(info.unavailableRequestId);
-    records[base + INFO_SLOT_EDIT] = strings.internOptional(info.edit);
-  }
-  const { data: stringData, offsets: stringOffsets } = strings.pack();
-
-  const total =
-    MESSAGE_WIRE_HEADER_BYTES +
-    records.byteLength +
-    messageOffsets.byteLength +
-    stringOffsets.byteLength +
-    payloadBytes +
-    stringData.byteLength;
-  const buffer = new Uint8Array(total);
-  const header = new DataView(buffer.buffer, 0, MESSAGE_WIRE_HEADER_BYTES);
-  header.setUint32(HEADER_SLOT_MESSAGES, entries.length, true);
-  header.setUint32(HEADER_SLOT_STRINGS, Math.max(0, stringOffsets.length - 1), true);
-  header.setUint32(HEADER_SLOT_MESSAGE_BYTES, payloadBytes, true);
-  header.setUint32(HEADER_SLOT_STRING_BYTES, stringData.byteLength, true);
-  header.setUint32(HEADER_SLOT_RECORD_WIDTH, MESSAGE_WIRE_INFO_RECORD_WIDTH, true);
-
-  let cursor = MESSAGE_WIRE_HEADER_BYTES;
-  buffer.set(new Uint8Array(records.buffer, records.byteOffset, records.byteLength), cursor);
-  cursor += records.byteLength;
-  buffer.set(new Uint8Array(messageOffsets.buffer, messageOffsets.byteOffset, messageOffsets.byteLength), cursor);
-  cursor += messageOffsets.byteLength;
-  buffer.set(new Uint8Array(stringOffsets.buffer, stringOffsets.byteOffset, stringOffsets.byteLength), cursor);
-  cursor += stringOffsets.byteLength;
-  for (const { payload } of entries) {
-    buffer.set(payload, cursor);
-    cursor += payload.byteLength;
-  }
-  buffer.set(stringData, cursor);
-  return buffer;
+  return new MessageWireBatchEncoder().encode(entries);
 }
 
 // ---------------------------------------------------------------------------
@@ -372,7 +468,6 @@ export interface ServerAckWireData {
 }
 
 const PACKED_HEADER_BYTES = 20;
-const PACKED_FLAG_RESET_CACHES = 1;
 /** Below this many bytes an ASCII region decodes faster in JS than through
  * `TextDecoder`, whose constant cost dominates for short inputs. */
 const TINY_STRING_LIMIT = 100;
