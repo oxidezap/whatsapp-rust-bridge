@@ -347,6 +347,13 @@ jobs:
       - name: Check the tarball size
         run: bun run check:size
 
+      # And the shape inside it, for the same reason: this job rebuilds the
+      # wasm rather than carrying CI's, so a toolchain difference here — a
+      # wasm-pack that dropped the pass list, a wasm-opt that ignored it —
+      # would ship the uncapped function shape past a green CI run.
+      - name: Check the wasm's largest function
+        run: bun run check:wasm-shape
+
       # No NODE_AUTH_TOKEN and no --provenance: trusted publishing authenticates
       # over OIDC and attaches provenance on its own.
       - run: npm publish --ignore-scripts

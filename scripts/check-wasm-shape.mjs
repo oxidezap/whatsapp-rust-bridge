@@ -54,9 +54,9 @@ try {
 // largest body clears this budget by half — a pass that measured the wrong
 // artifact. The published one is stripped (`strip = true` plus wasm-opt's
 // `--strip-debug`), so a name section means this is not it.
-if (shape.names.size > 0) {
+if (shape.hasNameSection) {
   console.error(
-    `check-wasm-shape: ${path} still carries a name section (${shape.names.size} names).\n` +
+    `check-wasm-shape: ${path} still carries a name section (${shape.names.size} function names).\n` +
       `check-wasm-shape: that is a --dev or --keep-debug build, whose function sizes are ` +
       `not the published ones. Measure a 'bun run build'.`
   );

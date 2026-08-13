@@ -39,6 +39,10 @@ export function codeShape(path) {
   let importedFunctions = 0;
   const bodies = [];
   const names = new Map();
+  // Separate from `names.size`: the name section has subsections, and a module
+  // carrying only the module-name or local-name one leaves the map empty while
+  // still being a debug build. The gate rejects on the section, not the map.
+  let hasNameSection = false;
 
   while (at < buf.length) {
     const id = byte();
@@ -89,6 +93,7 @@ export function codeShape(path) {
       const sectionName = buf.subarray(at, at + nameLength).toString("utf8");
       at += nameLength;
       if (sectionName === "name") {
+        hasNameSection = true;
         const end = start + size;
         while (at < end) {
           const subsection = byte();
@@ -109,6 +114,14 @@ export function codeShape(path) {
     }
 
     at = start + size;
+  }
+
+  // Every section length has to land exactly on the end of the file. A
+  // declared length that overruns it walks `at` past the buffer and ends the
+  // loop quietly, so a truncated module would otherwise be reported as a
+  // smaller one — which, to a gate on the largest body, reads as a pass.
+  if (at !== buf.length) {
+    throw new Error(`${path} is truncated or malformed: sections end at ${at} of ${buf.length}`);
   }
 
   // A module with no code section would report a largest body of `undefined`
@@ -135,6 +148,7 @@ export function codeShape(path) {
     bySize: bySize.reverse(),
     importedFunctions,
     names,
+    hasNameSection,
     total,
     medianBody,
     largestBody: bySize[0].size,
