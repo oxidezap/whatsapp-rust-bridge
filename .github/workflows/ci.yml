@@ -138,6 +138,14 @@ jobs:
       - name: Fail if the package outgrew its budget
         run: bun run check:size
 
+      # The budget above is blind to how the bytes are distributed, and that
+      # distribution is what a consumer pays for at connect: the same total
+      # spread over one 177 KB function instead of 87 KB costs it ~18 MiB of
+      # private memory. It hangs off one wasm-opt flag in Cargo.toml, which
+      # nothing else here would notice the loss of.
+      - name: Fail if the wasm's largest function regrew
+        run: bun run check:wasm-shape
+
       - name: Run Tests with Bun
         run: bun test
         env:

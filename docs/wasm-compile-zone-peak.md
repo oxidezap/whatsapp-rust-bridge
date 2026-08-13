@@ -13,18 +13,38 @@ Rust. Two of the three names hold up. The proposal does not: **none of those
 functions exists in the Rust source.** wasm-opt builds them, and it would
 rebuild them out of whatever we split.
 
-Everything below is reproducible with `scripts/wasm-fn-sizes.mjs` and
+What does move them is the wasm-opt flag that assembles them, and it is now
+set: the release pass list in `Cargo.toml` carries
+`--one-caller-inline-max-function-size 2000`. "The lever, swept" below is the
+sweep that picked 2000, and `check:wasm-shape` is what fails if the flag ever
+goes missing.
+
+**Two windows, two numbers, and they are four times apart.** Everything this
+repository can measure is a *whole-module eager compile*, and that says the cap
+is worth ~4.2 MiB of private memory. The consumer's own connect harness, which
+compiles roughly a fifth of the module, measured **18.41 MiB of USS**. Neither
+number is wrong; "What the eager number is, and is not" says which to quote
+where. Do not carry the 4.2 into a connect-window argument, and do not carry
+the 18.41 into a comparison between two artifacts here.
+
+Everything measured *here* is reproducible with `scripts/wasm-fn-sizes.mjs` and
 `scripts/wasm-zone-peak.mjs`.
 
 ## The artifact
 
-Measurements are against the published `0.11.0` `dist/whatsapp_rust_bridge_bg.wasm`
-(5,512,857 bytes, 11,688 defined functions, median body 70 bytes). A local
-build of the same commit — whatsapp-rust `8cea605`, wasm-bindgen `0.2.126`,
-binaryen `117`, the `Cargo.toml` release flags verbatim — reproduces its code
-section exactly: same 11,688 functions, same 4,979,477 body bytes, and the same
-three outliers at the same indices. The comparisons here are therefore against
-the bytes a consumer actually loads.
+The naming and attribution below are against the published `0.11.0`
+`dist/whatsapp_rust_bridge_bg.wasm` (5,512,857 bytes, 11,688 defined functions,
+median body 70 bytes). A local build of that commit — whatsapp-rust `8cea605`,
+wasm-bindgen `0.2.126`, binaryen `117`, the `Cargo.toml` release flags verbatim
+— reproduces its code section exactly: same 11,688 functions, same 4,979,477
+body bytes, and the same three outliers at the same indices. That is what ties
+the indices to names.
+
+The sweep further down is against the same toolchain at whatsapp-rust
+`7c971c82`, one commit later. Uncapped, that build has 11,733 functions and
+4,990,667 body bytes — 45 functions and 11,190 bytes more than `0.11.0` — with
+the same 177,110-byte largest body and the same 7.894 MiB serialised zone peak,
+to three decimals. The function *indices* shift by a few; the shape does not.
 
 | index | body | share of code |
 |---|---|---|
@@ -95,7 +115,8 @@ both of which `scripts/wasm-zone-peak.mjs` runs:
 
 Both compile the whole module eagerly, which a real connect does not — a
 connect compiles roughly a fifth of it. This is a comparator between artifacts,
-not a prediction of a host's RSS.
+not a prediction of a host's RSS, and the gap between the two is not a rounding
+difference: see "What the eager number is, and is not".
 
 What the number tracks is per-function compilation work, and not one tier's
 zones. Compiling every function costs ~7.9 MiB where loading the same module
@@ -123,63 +144,166 @@ parallel (41 %). The reported 16.4 of 31.3 MiB (52 %) is the same finding on a
 different V8 and a different compile window; the attribution reproduces, the
 absolute numbers do not transfer.
 
-## The one lever this repository has
+## The lever, swept
 
 Not a source split — the wasm-opt flag that builds the functions in the first
-place. `-ocimfs=N` caps single-caller inlining at `N`:
+place. `-ocimfs=N` caps single-caller inlining at `N`, and it is now set to
+`2000` in the release pass list.
 
-| build | functions | code bytes | largest body | zone peak (parallel, 25 runs) | private (median) |
-|---|---|---|---|---|---|
-| current | 11,688 | 4,979,477 | 177,110 B | 20.159 MiB | 52.797 MiB |
-| `-ocimfs=2000` | 11,752 | 4,979,634 (+157) | 87,456 B | 9.786 MiB | 48.117 MiB |
-| `-ocimfs=200` | 12,846 | 4,964,183 (−15,294) | 59,509 B | 4.369 MiB | 48.191 MiB |
+One cargo build and one `wasm-bindgen` run feed every arm, so the arms differ by
+that flag and nothing else. Serial zone peak over 3 runs (it repeats bit for
+bit); parallel zone peak and private memory are medians of 15:
 
-The private-memory gain saturates at `-ocimfs=2000`: cutting the zone peak by a
-further 5.4 MiB buys nothing more, which is the warning about zone memory being
-allocator memory playing out — most of it is already free when the window ends.
-Repeating the current and `-ocimfs=200` rows across three sessions put the gap
-at 4.0–4.8 MiB every time.
+| `-ocimfs` | functions | code bytes | largest body | zone, serial | zone, parallel | private |
+|---|---|---|---|---|---|---|
+| *(none, `-1`)* | 11,733 | 4,990,667 | 177,110 B | 7.894 MiB | 18.882 MiB | 52.555 MiB |
+| 8000 | 11,745 | +81 | 121,900 B | 4.956 MiB | 13.463 MiB | 50.164 MiB |
+| 4000 | 11,764 | +143 | 101,933 B | 3.716 MiB | 10.474 MiB | 47.938 MiB |
+| **2000** | **11,797** | **+158** | **87,456 B** | **3.528 MiB** | **9.411 MiB** | **48.383 MiB** |
+| 1000 | 11,870 | +858 | 87,456 B | 3.237 MiB | 7.630 MiB | 47.965 MiB |
+| 500 | 12,112 | −3,009 | 79,420 B | 2.987 MiB | 5.807 MiB | 47.906 MiB |
+| 200 | 12,892 | −15,797 | 59,509 B | 1.904 MiB | 4.276 MiB | 48.586 MiB |
 
-Compile wall time is not a reason to prefer either. One session had `-ocimfs=200`
-18 % slower; two later ones had it 5 % faster (89.4 / 89.9 ms against 94.3 /
-95.8). The spread between sessions is larger than the difference within one, so
-there is no effect here worth quoting.
+Three things in that table decided the value, and none of them is the zone peak,
+which keeps falling all the way down and stops being worth anything long before
+it stops falling:
+
+- **Private memory saturates between 4000 and 2000.** 52.6 MiB uncapped, 50.2 at
+  8000, then 47.9–48.6 for every cap from 4000 down — a 0.7 MiB band that the
+  run-to-run spread covers. Cutting the zone peak from 9.4 to 4.3 MiB buys
+  nothing, which is zone memory being allocator memory: most of it is already
+  free when the window ends.
+- **1000 is 2000 with extra steps.** Identical largest body, 73 more functions,
+  700 more bytes. Below it, 500 and 200 do keep shrinking the largest body, and
+  buy no memory for it.
+- **8000 is half a lever.** It leaves the largest body at 121,900 B and collects
+  about half the private-memory gain.
+
+So the memory side puts the knee at 4000–2000, and the per-message side (below)
+cannot separate any two arms in that range. What breaks the tie is that 2000 is
+the value the consumer's connect harness actually measured — 18.41 MiB of USS,
+9 rounds out of 9. Picking 4000 for a difference this sweep cannot resolve
+would trade a measured result for an inferred one.
+
+Compile wall time is not a reason to prefer any of them. Medians across the
+arms sit between 87 and 101 ms in parallel mode with no ordering by cap, and the
+spread between sessions is larger than the spread across the table.
 
 ### What it costs per message
 
 It is not free, and the cost lands on the hot path. `#2102` is the decoder every
 inbound message goes through, and capping inlining is exactly what stops it
-being one body. Measured by building the module with a temporary
+being one body.
+
+Same method as the original: each arm is built with a temporary
 `#[wasm_bindgen]` export over `waproto::whatsapp::Message::decode_from_slice`
-(present in all three arms, so the arms stay comparable), decoding a 437-byte
-`ExtendedTextMessage` with a context info and a device-list metadata block,
-15,000 decodes per sample, 11 samples per round, 14 rounds interleaved across
-the arms:
+— present in every arm, so the arms stay comparable, and reverted before the
+commit — decoding a 437-byte `ExtendedTextMessage` with a context info and a
+device-list metadata block, 15,000 decodes per sample, 11 samples per round.
 
-| build | best ns/decode | p10 | vs current |
+Two things were added to it, because the first pass here could not tell a real
+difference from the harness's own:
+
+- **A control arm.** The uncapped module runs twice under two names. Whatever
+  separates those two is the floor, and nothing below it is a finding.
+- **Rotation.** The arms run in a different order every round. With a fixed
+  order, the control arm in the second slot came out 1.0 % behind the identical
+  module in the first — a position effect that reads exactly like a small
+  regression.
+
+21 rounds, rotated, comparing each arm to the uncapped one round by round
+(minimum of the round's 11 samples):
+
+| `-ocimfs` | best ns/decode | paired median | rounds slower |
 |---|---|---|---|
-| current | 3,509.9 | 3,558.3 | — |
-| `-ocimfs=2000` | 3,602.6 | 3,621.6 | +2.6 % |
-| `-ocimfs=200` | 3,656.8 | 3,659.4 | +4.2 % |
+| *(none)* | 2,894.8 | — | — |
+| 8000 | 2,926.7 | +1.3 % | 14/21 |
+| 4000 | 2,940.7 | +1.3 % | 14/21 |
+| 2000 | 2,984.9 | +2.3 % | 15/21 |
+| 1000 | 3,004.9 | +1.2 % | 13/21 |
+| 500 | 2,966.0 | +1.0 % | 13/21 |
+| 200 | 2,928.8 | +1.6 % | 13/21 |
+| *control: uncapped, twice* | 2,927.2 vs 2,926.8 | +0.6 % | 11/21 |
 
-The medians are noise-dominated on this machine and do not separate the arms;
-the minimum and the p10 both order them monotonically with the inlining cap,
-which is the direction less inlining should push. Read it as a few percent, not
-as a precise figure.
+**Read this as a cost of roughly 1–2 % that the sweep cannot attribute to a
+particular cap.** Every capped arm is slower than uncapped more often than not,
+and every one of them is close enough to the control that the ordering between
+them is not evidence. The earlier figures — +2.6 % at 2000, +4.2 % at 200,
+monotonic in the cap — came from an unrotated harness whose control had not been
+run; the direction survives, the monotonicity does not, and the magnitude at
+2000 is at most what was reported and probably less.
+
+What this still does not measure: a saturated client, or any message larger than
+a short text. The decode penalty is per inbound message and the memory saving is
+once per process, so a profile that decodes far more per connect trades
+differently than the one below.
+
+## What the eager number is, and is not
+
+The tables above are a **whole-module eager compile**: every function, all at
+once, in a process that does nothing else. On that comparator, `-ocimfs=2000` is
+worth ~4.2 MiB of private memory. It is the right number for comparing two
+artifacts in this repository, and it is the wrong number to quote to a consumer.
+
+A real connect compiles roughly a fifth of the module — and it is the expensive
+fifth, since the functions a connect touches are the ones this flag splits. The
+consumer's own harness (`wabench`'s `pingpong`, driving `oxidezap/baileyrs` over
+this bridge; 9 rounds with the arms interleaved, 30,000 messages at 1000 msg/s,
+every source frozen in a detached worktree, USS sampled in the client process)
+measured, for the cap alone and over a core already at `7c971c82`:
+
+| metric | effect of `-ocimfs=2000` | sign | p |
+|---|---|---|---|
+| **USS after connect** | **−18.41 MiB (−20.7 %)** | 9/9 | 0.004 |
+| peak USS | −17.19 MiB (−15.6 %) | 9/9 | 0.004 |
+
+Reconfirmed at 4000 msg/s: −21.5 MiB across 3/3 pairs.
+
+**That is ~4× the eager number, and the difference is not error in either.** The
+eager compile pays for 11,733 functions and then reports what survives the
+window; a connect pays for the few hundred that a handshake and a first message
+reach, which is where the split bodies are concentrated. Quote 4.2 MiB when
+comparing two builds here. Quote 18.41 MiB when talking about what a consumer
+pays, and say which harness produced it — nothing in this repository can
+reproduce it, because there is no mock server in CI.
+
+## What holds it
+
+`check:wasm-shape` fails the build when the largest function body goes over
+100,000 bytes, and CI runs it beside `check:size`.
+
+The two gates do not overlap. `check:size` watches the package's total bytes,
+and the total is blind to this: the artifact that costs a consumer 18 MiB more
+is **157 bytes smaller** than the one that does not. What separates them is the
+distribution, and the distribution hangs off one line in a wasm-opt flag list —
+a line that could be dropped while rebasing, or lost to a wasm-pack upgrade that
+reorders the metadata, with nothing else to notice. Same exports, same types,
+same behaviour, same size, no test to fail.
+
+The gate is on the largest body rather than on the zone peak because the peak is
+a V8 statistic: it would have to be re-baselined on every Node bump, which is a
+gate that gets deleted the first time it fails for the wrong reason. The largest
+body is a property of our own bytes, it is what sets the serialised peak, and it
+moves with the same flag. `measure:zone-peak` still prices the peak itself when
+a human wants the number.
 
 ## Where this leaves it
 
-The flag is **not** changed here. The trade is ~4.3 MiB of private memory at
-first compile against ~3 % on every message decode, and it is measured on a
-whole-module eager compile rather than on the connect window the ~37 MiB came
-from. That is the caller's call to make, not this repository's, and the sibling
-investigation into the `code` section's total size touches the same artifact —
-landing both blind would leave neither measurable.
+The flag is set to 2000, and the sweep above is why rather than the value being
+inherited. What the consumer gets for it is 18.41 MiB of USS after connect
+(9/9 rounds); what it pays is on the order of 1–2 % per inbound message decode
+and 158 bytes of code.
 
-To make the call on better evidence, run `-ocimfs=2000` through the consumer's
-own connect harness and compare private memory there; the CPU side needs a
-message-rate benchmark against a real stanza stream, which nothing in this
-repository can stand up (there is no mock server in CI).
+What did not get measured, and would change the trade if it went the other way:
 
-What did not get measured: the connect window itself, any artifact other than a
-whole-module eager compile, and `#3305`, which belongs to the core.
+- **A saturated or chattier client.** The connect measurement runs a client that
+  is ~97 % idle, exchanging short text messages. The memory saving is paid once
+  per process and the decode cost is paid per message, so a profile with large
+  or frequent inbound messages moves the balance towards the cost.
+- **The CPU cost at a rate this harness can resolve.** 21 rotated rounds put
+  every arm within 1–2 % of uncapped and within ~1 % of a same-artifact control.
+  A cleaner machine, or a benchmark against a real stanza stream, could separate
+  what this one could not.
+- **Any cap between 2000 and 4000.** The knee is somewhere in there; the sweep
+  brackets it rather than locating it, and the end-to-end evidence sits at 2000.
+- **`#3305`**, which belongs to the core.
