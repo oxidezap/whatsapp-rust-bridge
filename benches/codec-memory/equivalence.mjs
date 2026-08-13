@@ -324,6 +324,23 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
     local.HistorySync = { replacement: true };
     return `own=${Object.hasOwn(local, "HistorySync")} local=${local.HistorySync?.replacement === true} shared=${mod.proto.HistorySync?.replacement === true}`;
   };
+  // An overlay that already has its own setter for the name: a data property's
+  // [[Set]] delegates to it, so this must too rather than defining over it.
+  const overlaySetter = async (name) => {
+    const mod = await load(name, "?overlay-setter=1");
+    const seen = [];
+    const local = Object.create(mod.proto);
+    Object.defineProperty(local, "HistorySync", { configurable: true, set: (v) => seen.push(v) });
+    Reflect.set(mod.proto, "HistorySync", { marker: true }, local);
+    return `setter called ${seen.length} time(s), shared untouched ${mod.proto.HistorySync?.marker !== true}`;
+  };
+  const lazyOverlaySetter = await overlaySetter("lazyboth-pertype");
+  const eagerOverlaySetter = await overlaySetter("stock");
+  check(
+    `a receiver's own setter gets the write, as on stock (${eagerOverlaySetter})`,
+    lazyOverlaySetter === eagerOverlaySetter,
+  );
+
   const lazyOverlay = await overlay("lazyboth-pertype");
   const eagerOverlay = await overlay("stock");
   check(`a write through Object.create(proto) behaves as stock does (${eagerOverlay})`, lazyOverlay === eagerOverlay);

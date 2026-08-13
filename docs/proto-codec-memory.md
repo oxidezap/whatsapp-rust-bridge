@@ -354,7 +354,7 @@ spans 16856–21080 KiB over the four, so read the sign, not the magnitude.
 
 One arm keeps its **sign** in all six configurations and its **magnitude** on
 v22: `lazyboth-pertype +touch`, −1.91 to −2.08 MiB there. On v26 only the sign
-holds — −0.86 by default, −0.86 under `--predictable`, −2.16 under the GC-only
+holds — −0.93 by default, −0.86 under `--predictable`, −2.16 under the GC-only
 flags, a factor of 2.5. `cut-real` keeps neither on v26: anywhere from −0.45 to
 −4.26 depending on the flags and on which run, and its widest single spread
 comes from re-running the default configuration rather than from changing flags.
@@ -582,6 +582,8 @@ document rests on that parse.
 ## Not covered
 
 The wasm `code` section, which is a separate constant of the same process and
-has its own investigation. The wasm module compile step (+7.9 to +8.3 MiB) and
-the un-returned Buffer pages (+5.7 MiB) are both larger than everything measured
-here, and neither is protobuf.
+has its own investigation. Reading and compiling the wasm costs **+13.6 MiB on
+v22 and +13.9 on v26 together**, which is larger than everything measured here
+and is not protobuf. The split between reading and compiling is deliberately not
+quoted: it would be one stage reading minus another, and the import table above
+is the reason that subtraction is not valid.

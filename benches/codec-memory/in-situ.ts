@@ -235,6 +235,16 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
       // made an own property there and left the namespace alone; writing
       // through to \`target\` would change it for every holder.
       if (this !== target) {
+        // What a data property's [[Set]] does with a foreign receiver: an own
+        // setter there gets the write, an own data property keeps its flags,
+        // and only an absent one is created.
+        const own = Object.getOwnPropertyDescriptor(this, key);
+        // An own accessor on the receiver makes a data property's [[Set]] fail
+        // without running it, and a non-writable own data property fails too.
+        if (own) {
+          if (!own.get && !own.set && own.writable) Object.defineProperty(this, key, { value });
+          return;
+        }
         Object.defineProperty(this, key, { value, writable: true, enumerable: true, configurable: true });
         return;
       }
