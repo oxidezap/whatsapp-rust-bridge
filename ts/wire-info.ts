@@ -33,6 +33,13 @@ const utf8Encoder = new TextEncoder();
 /** Header flag: clear the table this batch's records index into. */
 const PACKED_FLAG_RESET_CACHES = 1;
 /**
+ * Header flag: clear the table once this batch has been read. The writer drops
+ * its own the moment this batch is out, and saying so here rather than on the
+ * next batch is what keeps a stream that goes idle from leaving everything the
+ * rolled table held — a peer-sized push name included — alive in this realm.
+ */
+const PACKED_FLAG_CLEAR_AFTER = 1 << 1;
+/**
  * Entry and byte ceilings a writer rolls its table at, mirroring
  * `PACKED_STRING_CACHE_MAX` / `WIRE_STRING_CACHE_MAX_BYTES` in
  * `src/wire_batch.rs`. Only the builders below need them: a decoder is told to
@@ -133,15 +140,6 @@ const INFO_FLAG_FROM_ME = 1 << 0;
 const INFO_FLAG_GROUP = 1 << 1;
 const INFO_FLAG_VIEW_ONCE = 1 << 2;
 const INFO_FLAG_OFFLINE = 1 << 3;
-/** The push name slot holds an inline byte length, not a table index. */
-const INFO_FLAG_PUSH_NAME_INLINE = 1 << 4;
-/**
- * Longest push name the table holds, mirroring
- * `WIRE_CACHED_PUSH_NAME_MAX_BYTES` in `src/wire_batch.rs`. A push name is the
- * one cached value that is free text the peer chose; a longer one goes inline
- * so the table never holds it past the batch that carried it.
- */
-const WIRE_CACHED_PUSH_NAME_MAX_BYTES = 256;
 
 /**
  * Byte layout of a message batch, written by `MessageWireBatch::write_flat` in
@@ -293,20 +291,20 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
       recipientAlt: optional(records[base + INFO_SLOT_RECIPIENT_ALT]!),
       isFromMe: (flags & INFO_FLAG_FROM_ME) !== 0,
       isGroup: (flags & INFO_FLAG_GROUP) !== 0,
-      // Inline values are consumed in this order, so these three stay in it:
-      // id, push name, request id.
+      // Inline values are consumed in this order, so these two stay in it:
+      // id, then the request id.
       id: inlineValue(records[base + INFO_SLOT_ID]!),
       timestamp: records[base + INFO_SLOT_TIMESTAMP]!,
-      pushName:
-        (flags & INFO_FLAG_PUSH_NAME_INLINE) !== 0
-          ? inlineValue(records[base + INFO_SLOT_PUSH_NAME]!)
-          : required(records[base + INFO_SLOT_PUSH_NAME]!),
+      pushName: required(records[base + INFO_SLOT_PUSH_NAME]!),
       isViewOnce: (flags & INFO_FLAG_VIEW_ONCE) !== 0,
       isOffline: (flags & INFO_FLAG_OFFLINE) !== 0,
       unavailableRequestId: inlineOptional(records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID]!),
       edit: optional(records[base + INFO_SLOT_EDIT]!),
     };
   }
+  // The writer has already dropped what it held, so the table goes with this
+  // batch rather than surviving until whenever the next one arrives.
+  if ((batchFlags & PACKED_FLAG_CLEAR_AFTER) !== 0) messageTable.length = 0;
   return { messageData, messageOffsets, infos };
 }
 
@@ -341,8 +339,27 @@ export class MessageWireBatchEncoder {
   private cacheBytes = 0;
   private flags = PACKED_FLAG_RESET_CACHES;
 
-  /** Encode one batch, as `MessageWireBatch::write_flat` writes one. */
+  /**
+   * Encode one batch, as `MessageWireBatch::write_flat` writes one.
+   *
+   * A throw part-way leaves the encoder holding cache entries whose definitions
+   * were never written, so it gives the whole table up rather than hand the
+   * next batch indices the reader has no entries for — the same thing the Rust
+   * writer does with a batch it abandons.
+   */
   encode(entries: readonly MessageWireEntry[]): PackedWireBatch {
+    try {
+      return this.encodeBatch(entries);
+    } catch (error) {
+      this.cache.clear();
+      this.held = 0;
+      this.cacheBytes = 0;
+      this.flags = PACKED_FLAG_RESET_CACHES;
+      throw error;
+    }
+  }
+
+  private encodeBatch(entries: readonly MessageWireEntry[]): PackedWireBatch {
     const definitions: Uint8Array[] = [];
     const inline: Uint8Array[] = [];
     const cache = (value: string): number => {
@@ -357,11 +374,11 @@ export class MessageWireBatchEncoder {
     };
     const cacheOptional = (value: string | undefined): number =>
       value === undefined ? 0 : cache(value) + 1;
-    const writeInlineBytes = (encoded: Uint8Array): number => {
+    const writeInline = (value: string): number => {
+      const encoded = utf8Encoder.encode(value);
       inline.push(encoded);
       return encoded.byteLength;
     };
-    const writeInline = (value: string): number => writeInlineBytes(utf8Encoder.encode(value));
     const writeInlineOptional = (value: string | undefined): number =>
       value === undefined ? 0 : writeInline(value) + 1;
 
@@ -377,25 +394,19 @@ export class MessageWireBatchEncoder {
       records[base + INFO_SLOT_SENDER] = cache(info.sender);
       records[base + INFO_SLOT_SENDER_ALT] = cacheOptional(info.senderAlt);
       records[base + INFO_SLOT_RECIPIENT_ALT] = cacheOptional(info.recipientAlt);
+      records[base + INFO_SLOT_PUSH_NAME] = cache(info.pushName);
       records[base + INFO_SLOT_TIMESTAMP] = info.timestamp;
-
-      // Inline values go out in the order the reader consumes them: id, push
-      // name, request id. Cache order is independent of that, and unchanged.
-      // The limit is on UTF-8 bytes, which is what the Rust writer measures.
-      const pushName = utf8Encoder.encode(info.pushName);
-      const pushNameInline = pushName.byteLength > WIRE_CACHED_PUSH_NAME_MAX_BYTES;
-      records[base + INFO_SLOT_ID] = writeInline(info.id);
-      records[base + INFO_SLOT_PUSH_NAME] = pushNameInline
-        ? writeInlineBytes(pushName)
-        : cache(info.pushName);
       records[base + INFO_SLOT_EDIT] = cacheOptional(info.edit);
-      records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = writeInlineOptional(info.unavailableRequestId);
       records[base + INFO_SLOT_FLAGS] =
         (info.isFromMe ? INFO_FLAG_FROM_ME : 0) |
         (info.isGroup ? INFO_FLAG_GROUP : 0) |
         (info.isViewOnce ? INFO_FLAG_VIEW_ONCE : 0) |
-        (info.isOffline ? INFO_FLAG_OFFLINE : 0) |
-        (pushNameInline ? INFO_FLAG_PUSH_NAME_INLINE : 0);
+        (info.isOffline ? INFO_FLAG_OFFLINE : 0);
+
+      // Inline values go out in the order the reader consumes them: id, then
+      // the request id. Cache order is independent of that.
+      records[base + INFO_SLOT_ID] = writeInline(info.id);
+      records[base + INFO_SLOT_UNAVAILABLE_REQUEST_ID] = writeInlineOptional(info.unavailableRequestId);
     }
 
     const definitionOffsets = new Uint32Array(definitions.length + 1);
@@ -421,7 +432,12 @@ export class MessageWireBatchEncoder {
     header.setUint32(HEADER_SLOT_MESSAGE_BYTES, payloadBytes, true);
     header.setUint32(HEADER_SLOT_STRING_BYTES, stringBytes, true);
     header.setUint32(HEADER_SLOT_RECORD_WIDTH, MESSAGE_WIRE_INFO_RECORD_WIDTH, true);
-    header.setUint32(HEADER_SLOT_FLAGS, this.flags, true);
+    // The roll this batch is about to cause is announced in its own header, so
+    // the reader drops the table with it rather than holding it until whenever
+    // the next batch arrives.
+    const rolling =
+      this.cache.size >= PACKED_STRING_CACHE_MAX || this.cacheBytes >= WIRE_STRING_CACHE_MAX_BYTES;
+    header.setUint32(HEADER_SLOT_FLAGS, this.flags | (rolling ? PACKED_FLAG_CLEAR_AFTER : 0), true);
 
     let cursor = MESSAGE_WIRE_HEADER_BYTES;
     const append = (bytes: Uint8Array): void => {
@@ -438,10 +454,10 @@ export class MessageWireBatchEncoder {
     for (const value of inline) append(value);
 
     // The batch is written, so the reader now holds what it defined — and the
-    // table rolls here, not mid-batch, so the flag rides the next header.
+    // table rolls here, not mid-batch.
     this.held += definitions.length;
     this.flags = 0;
-    if (this.cache.size >= PACKED_STRING_CACHE_MAX || this.cacheBytes >= WIRE_STRING_CACHE_MAX_BYTES) {
+    if (rolling) {
       this.cache.clear();
       this.held = 0;
       this.cacheBytes = 0;

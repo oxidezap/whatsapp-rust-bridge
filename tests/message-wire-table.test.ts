@@ -18,6 +18,7 @@ import {
 const HEADER_SLOT_DEFINITIONS = 4;
 const HEADER_SLOT_FLAGS = 20;
 const PACKED_FLAG_RESET_CACHES = 1;
+const PACKED_FLAG_CLEAR_AFTER = 1 << 1;
 
 const payload = new Uint8Array([10, 2, 104, 105]);
 
@@ -252,48 +253,68 @@ describe("message wire table", () => {
   });
 
   /**
-   * A push name is the peer's own free text and the only cached value with no
-   * shape of its own. The table's byte ceiling bounds the aggregate, but the
-   * host only hears about a roll on the *next* batch — so an oversized name
-   * goes inline and is never in the table to begin with.
+   * A peer sizes its own push name, and the table is what stops one from being
+   * written per message. The batch that blows the byte ceiling says so in its
+   * own header, so the reader drops the table straight after reading it rather
+   * than holding a megabyte until whenever the next batch arrives — on a stream
+   * that then goes idle, that is the difference between bounded and not.
    */
-  test("an oversized push name goes inline instead of into the table", () => {
-    const oversized = "n".repeat(257);
+  test("an oversized push name is written once and then dropped", () => {
+    const oversized = "n".repeat(1024 * 1024);
     const encoder = new MessageWireBatchEncoder();
-    const batch = encoder.encode([entry({ id: "M1", pushName: oversized })]);
-    // The address only: chat and sender share a canonical form here.
-    expect(header(batch, HEADER_SLOT_DEFINITIONS)).toBe(1);
-    expect(decodeMessageWireBatch(batch).infos[0]).toMatchObject({
-      id: "M1",
-      pushName: oversized,
+    const batch = encoder.encode(
+      Array.from({ length: 32 }, (_, i) => entry({ id: `M${i}`, pushName: oversized })),
+    );
+
+    // The address and the name, once each, for all 32 messages.
+    expect(header(batch, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    expect(batch.byteLength).toBeLessThan(oversized.length * 2);
+    expect(header(batch, HEADER_SLOT_FLAGS) & PACKED_FLAG_CLEAR_AFTER).toBe(PACKED_FLAG_CLEAR_AFTER);
+
+    const infos = decodeMessageWireBatch(batch).infos;
+    expect(infos).toHaveLength(32);
+    expect(infos.every(i => i.pushName === oversized)).toBe(true);
+
+    // Dropped: the next batch has to define what it names all over again.
+    const next = encoder.encode([entry({ id: "M-next" })]);
+    expect(header(next, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    expect(decodeMessageWireBatch(next).infos[0]).toMatchObject({
       chat: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M-next",
     });
-
-    // A repeat is not deduplicated, because nothing remembered it.
-    const again = encoder.encode([entry({ id: "M2", pushName: oversized })]);
-    expect(header(again, HEADER_SLOT_DEFINITIONS)).toBe(0);
-    expect(decodeMessageWireBatch(again).infos[0]!.pushName).toBe(oversized);
-
-    // At the limit it is a table entry like any other, and dedups.
-    const atLimit = "n".repeat(256);
-    const first = encoder.encode([entry({ id: "M3", pushName: atLimit })]);
-    expect(header(first, HEADER_SLOT_DEFINITIONS)).toBe(1);
-    const second = encoder.encode([entry({ id: "M4", pushName: atLimit })]);
-    expect(header(second, HEADER_SLOT_DEFINITIONS)).toBe(0);
-    expect(decodeMessageWireBatch(first).infos[0]!.pushName).toBe(atLimit);
-    expect(decodeMessageWireBatch(second).infos[0]!.pushName).toBe(atLimit);
   });
 
-  test("an inline push name is read in order, between the id and the request id", () => {
-    const oversized = "ç".repeat(200); // 400 UTF-8 bytes, over the limit
-    const batch = encodeMessageWireBatch([
-      entry({ id: "M1", pushName: oversized, unavailableRequestId: "PDO-1" }),
-      entry({ id: "M2", pushName: "Peer", unavailableRequestId: "PDO-2" }),
-    ]);
-    const infos = decodeMessageWireBatch(batch).infos;
-    expect(infos.map(i => i.id)).toEqual(["M1", "M2"]);
-    expect(infos.map(i => i.pushName)).toEqual([oversized, "Peer"]);
-    expect(infos.map(i => i.unavailableRequestId)).toEqual(["PDO-1", "PDO-2"]);
+  /**
+   * The encoder mutates its table as it goes, so a throw part-way leaves it
+   * holding entries whose definitions were never written. Reusing it must not
+   * hand the reader indices for those.
+   */
+  test("an encoder that threw mid-batch gives up its table", () => {
+    const encoder = new MessageWireBatchEncoder();
+    decodeMessageWireBatch(encoder.encode([entry({ id: "M1" })]));
+
+    const exploding = entry({ id: "M2", chat: "cached-before-the-throw@g.us" });
+    Object.defineProperty(exploding.info, "sender", {
+      get() {
+        throw new Error("boom");
+      },
+    });
+    expect(() => encoder.encode([exploding])).toThrow("boom");
+
+    // The chat the throwing batch cached, in a batch that does get written.
+    // Without the rollback the encoder still believes the reader holds it, so
+    // it emits no definition and points at a slot the reader never filled.
+    const after = encoder.encode([entry({ id: "M3", chat: "cached-before-the-throw@g.us" })]);
+    expect(header(after, HEADER_SLOT_FLAGS) & PACKED_FLAG_RESET_CACHES).toBe(
+      PACKED_FLAG_RESET_CACHES,
+    );
+    expect(decodeMessageWireBatch(after).infos[0]).toMatchObject({
+      chat: "cached-before-the-throw@g.us",
+      sender: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M3",
+    });
   });
 
   test("a record pointing past the table is rejected, not read as undefined", () => {

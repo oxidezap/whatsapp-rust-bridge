@@ -80,6 +80,14 @@ const PACKED_STRING_CACHE_MAX: usize = 4096;
 /// speak — a table that outlives a batch is only safe while the two sides agree
 /// on when it is dropped.
 const PACKED_FLAG_RESET_CACHES: u32 = 1;
+/// Header flag: the host must clear its table *after* reading this batch,
+/// because the writer drops its own the moment this batch is out.
+///
+/// `PACKED_FLAG_RESET_CACHES` alone would say so only on the next batch, and on
+/// a stream that then goes idle there is no next batch — the host would hold
+/// everything the rolled table had, including a push name a peer sized, for as
+/// long as the realm lives. This says it in the batch that causes the roll.
+const PACKED_FLAG_CLEAR_AFTER: u32 = 1 << 1;
 /// Size of the single host-allocated buffer offered to hosts that opted into
 /// borrowing, and therefore the whole resident cost of the opt-in. A full
 /// `EVENT_BATCH_CAPACITY` run of receipts packs into roughly 2 KiB, so this
@@ -89,17 +97,6 @@ const INFO_FLAG_FROM_ME: u32 = 1 << 0;
 const INFO_FLAG_GROUP: u32 = 1 << 1;
 const INFO_FLAG_VIEW_ONCE: u32 = 1 << 2;
 const INFO_FLAG_OFFLINE: u32 = 1 << 3;
-/// The push name slot holds an inline byte length, not a table index.
-const INFO_FLAG_PUSH_NAME_INLINE: u32 = 1 << 4;
-
-/// Longest push name the table will hold. Everything else it caches is either
-/// enum-derived or a JID the core already parsed; a push name is free text the
-/// peer chose, and it is the one cached value with no shape of its own. A
-/// longer one goes inline, so it is never held past the batch that carried it —
-/// the table's byte ceiling bounds the aggregate, but only the next batch tells
-/// the host to act on it, and on a stream that then goes idle that batch never
-/// comes.
-const WIRE_CACHED_PUSH_NAME_MAX_BYTES: usize = 256;
 
 /// Cross-batch string table for the message transport, holding the values the
 /// host has already materialized. Addresses, push names and edit attributes
@@ -260,6 +257,16 @@ impl WireStringTable {
         }
     }
 
+    /// Whether committing the batch as it stands will roll the table. Known
+    /// before the header is written, which is what lets that header carry
+    /// [`PACKED_FLAG_CLEAR_AFTER`] rather than leave the host waiting for a
+    /// batch that may never come.
+    fn will_roll(&self) -> bool {
+        self.cache.len() >= PACKED_STRING_CACHE_MAX
+            || self.cache_bytes >= WIRE_STRING_CACHE_MAX_BYTES
+            || packed_tables_revoked()
+    }
+
     /// Clear the cache and arm the flag that tells the host to do the same.
     fn roll(&mut self) {
         self.cache.clear();
@@ -272,13 +279,11 @@ impl WireStringTable {
     /// it carried has been spent. A table at its ceiling rolls here rather than
     /// mid-batch, so the announcement rides the next batch's header.
     fn commit(&mut self) {
+        let rolling = self.will_roll();
         self.held += self.defined;
         self.clear_batch();
         self.flags = 0;
-        if self.cache.len() >= PACKED_STRING_CACHE_MAX
-            || self.cache_bytes >= WIRE_STRING_CACHE_MAX_BYTES
-            || packed_tables_revoked()
-        {
+        if rolling {
             self.roll();
         }
     }
@@ -516,20 +521,19 @@ impl MessageWireBatch {
         let recipient_alt = self
             .strings
             .cache_jid_optional(source.recipient_alt.as_ref());
-        // Inline values are written in the order the host reads them back:
-        // id, push name, request id. Cache order is independent of that. Ids
-        // are unique per message, so caching them would fill the table with
-        // values no later batch can reference and keep the host holding them.
-        let id = self.strings.write_inline(&info.id);
-        let push_name = if info.push_name.len() > WIRE_CACHED_PUSH_NAME_MAX_BYTES {
-            flags |= INFO_FLAG_PUSH_NAME_INLINE;
-            self.strings.write_inline(&info.push_name)
-        } else {
-            self.strings.cache(&info.push_name) as f64
-        };
+        // A push name repeats across a batch and across batches alike, and a
+        // peer-sized one repeated 32 times is exactly what the table is for:
+        // one copy, however long it is. What bounds it on the host's side is
+        // the byte ceiling and `PACKED_FLAG_CLEAR_AFTER`, not a length limit
+        // here — writing it inline would cost a copy per message.
+        let push_name = self.strings.cache(&info.push_name) as f64;
         let edit = self
             .strings
             .cache_optional((!edit.is_empty()).then_some(edit));
+        // Inline values are written in the order the host reads them back: id,
+        // then the request id. Ids are unique per message, so caching them
+        // would fill the table with values no later batch can reference.
+        let id = self.strings.write_inline(&info.id);
         let unavailable_request_id = self
             .strings
             .write_inline_optional(info.unavailable_request_id.as_deref());
@@ -639,7 +643,15 @@ impl MessageWireBatch {
             self.message_data.len() as u32,
             self.strings.region_len() as u32,
             MESSAGE_WIRE_INFO_RECORD_WIDTH as u32,
-            self.strings.flags,
+            // The roll this batch is about to cause is announced in its own
+            // header, so the host drops the table with it rather than holding
+            // it until whenever the next batch arrives.
+            self.strings.flags
+                | if self.strings.will_roll() {
+                    PACKED_FLAG_CLEAR_AFTER
+                } else {
+                    0
+                },
         ];
         out.reserve(
             MESSAGE_WIRE_HEADER_BYTES
@@ -1399,59 +1411,57 @@ mod tests {
             .build()
     }
 
-    /// A peer picks its own push name, and the table now outlives the batch.
-    /// The byte ceiling bounds the aggregate, but only the *next* batch tells
-    /// the host about it — so one oversized name must never get in at all.
+    /// The table is what keeps a peer-sized push name from being written once
+    /// per message. A run of 32 sharing one 1 MiB name is the shape that makes
+    /// the difference: one copy on the wire, not thirty-two.
     #[test]
-    fn an_oversized_push_name_never_enters_the_table() {
-        let oversized = "n".repeat(WIRE_CACHED_PUSH_NAME_MAX_BYTES + 1);
+    fn an_oversized_push_name_is_written_once_per_batch() {
+        let oversized = "n".repeat(1024 * 1024);
         let mut batch = MessageWireBatch::default();
-        batch
-            .push(&named("HUGE", oversized.clone()))
-            .expect("packs");
+        for round in 0..32 {
+            batch
+                .push(&named(&format!("HUGE-{round}"), oversized.clone()))
+                .expect("packs");
+        }
 
+        assert_eq!(batch.len(), 32);
         assert_eq!(
             definitions_of(&batch),
-            ["5511999@s.whatsapp.net"],
-            "the push name was cached"
+            ["5511999@s.whatsapp.net", &oversized],
+            "the push name was written per message"
         );
-        assert_eq!(batch.strings.inline, format!("HUGE{oversized}").as_bytes());
-        let record = &batch.info_records[..MESSAGE_WIRE_INFO_RECORD_WIDTH];
-        assert_eq!(record[5], oversized.len() as f64, "inline byte length");
-        assert_eq!(
-            record[7] as u32 & INFO_FLAG_PUSH_NAME_INLINE,
-            INFO_FLAG_PUSH_NAME_INLINE
+        assert!(
+            batch.strings.region_len() < oversized.len() * 2,
+            "the region carries more than one copy: {} bytes",
+            batch.strings.region_len()
         );
 
+        // It also blows the byte ceiling, so the batch that carries it tells
+        // the host to drop the table the moment it has been read.
         let mut out = Vec::new();
-        batch.write_and_reset(&mut out);
-        assert_eq!(batch.strings.held, 1, "only the address is held");
-        assert_eq!(batch.strings.flags, 0, "no roll was needed");
-
-        // One byte shorter and it is a table entry like any other.
-        let at_limit = "n".repeat(WIRE_CACHED_PUSH_NAME_MAX_BYTES);
-        let mut batch = MessageWireBatch::default();
-        batch.push(&named("FITS", at_limit.clone())).expect("packs");
+        batch.write_flat(&mut out);
+        let flags = u32::from_le_bytes(out[20..24].try_into().expect("4 bytes"));
         assert_eq!(
-            definitions_of(&batch),
-            ["5511999@s.whatsapp.net", &at_limit]
+            flags & PACKED_FLAG_CLEAR_AFTER,
+            PACKED_FLAG_CLEAR_AFTER,
+            "the host would have held it until the next batch"
         );
-        assert_eq!(batch.info_records[7] as u32 & INFO_FLAG_PUSH_NAME_INLINE, 0);
+        batch.commit();
+        assert_eq!(batch.strings.held, 0, "the writer kept it");
     }
 
     /// The aggregate ceiling still bounds what the table holds, and rolls the
     /// same announced way the entry ceiling does.
     #[test]
     fn the_table_rolls_at_its_byte_ceiling() {
+        const FILLER_BYTES: usize = 240;
         let mut batch = MessageWireBatch::default();
         let mut out = Vec::new();
-        // Short enough to be cached, long enough that the byte ceiling is
-        // reached well before the entry one.
-        let filler = "n".repeat(WIRE_CACHED_PUSH_NAME_MAX_BYTES - 16);
+        // Long enough that the byte ceiling is reached well before the entry one.
+        let filler = "n".repeat(FILLER_BYTES);
         let mut rolled = false;
         for round in 0..PACKED_STRING_CACHE_MAX {
             let push_name = format!("{round}{filler}");
-            assert!(push_name.len() <= WIRE_CACHED_PUSH_NAME_MAX_BYTES);
             batch.push(&named("BYTES", push_name)).expect("packs");
             out.clear();
             batch.write_and_reset(&mut out);

@@ -326,6 +326,11 @@ export interface WhatsAppEventCallbacks {
    * gives up the cross-batch table for the rest of the session — every batch
    * then carries every value it names, which decodes the same in any order.
    * Keeping the buffer is fine; decoding it later is what costs the table.
+   *
+   * The check runs after the batch has been handed over, so the batch that
+   * revealed the violation is the one it cannot save: decoded after a later
+   * one, it reads that one's table. Every batch after it is safe whenever it
+   * is decoded.
    */
   onMessageBatch(batch: MessageWireBatch): void;
   /**
@@ -699,6 +704,14 @@ fn is_thenable(value: &JsValue) -> bool {
 /// gives them up rather than let one host read another batch's strings. It is
 /// separate from the borrow contract — a copying callback is welcome to keep
 /// the buffer, but not to decode it out of order.
+///
+/// This is reactive, and it cannot reach the batch already handed over: that
+/// one went out with a header written before the violation was visible, and if
+/// the host decodes it after a later batch it reads that batch's table. The
+/// bound is one batch, the one the host mishandled, and every batch after it
+/// is safe under any ordering — which is the best a check downstream of
+/// delivery can do. Making the in-flight batch safe too would mean every batch
+/// carrying every value always, which is the cost this whole change removes.
 ///
 /// A callback that threw is handled by the caller: the batch may not have been
 /// read at all, which is a roll, not a permanent revocation.
