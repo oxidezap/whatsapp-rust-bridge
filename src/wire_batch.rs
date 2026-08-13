@@ -277,6 +277,7 @@ impl WireStringTable {
         self.flags = 0;
         if self.cache.len() >= PACKED_STRING_CACHE_MAX
             || self.cache_bytes >= WIRE_STRING_CACHE_MAX_BYTES
+            || packed_tables_revoked()
         {
             self.roll();
         }
@@ -308,6 +309,37 @@ thread_local! {
     /// client, because the buffer does: a window one host kept has to be safe
     /// from every later batch, whoever produces it.
     static BORROW_REVOKED: Cell<bool> = const { Cell::new(false) };
+    /// Set when a host was seen deferring a batch past its callback.
+    static PACKED_TABLES_REVOKED: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Stop letting a table outlive its batch, for the rest of the process.
+///
+/// A table spanning batches is only sound in delivery order, and a host that
+/// hands back something promise-like has not decoded inside its callback: its
+/// decodes happen later, in an order the writer cannot see. So every batch
+/// goes back to carrying `PACKED_FLAG_RESET_CACHES` and every value it
+/// references, which is self-contained and therefore reads the same whenever
+/// and in whatever order it is decoded.
+///
+/// Permanent, for the reason [`revoke_borrowed_batches`] is: nothing can tell
+/// when such a host is finished, so resuming is a guess, and the cost of
+/// guessing wrong is silent corruption against an optimization.
+pub(crate) fn revoke_packed_tables() {
+    if PACKED_TABLES_REVOKED.with(|revoked| revoked.replace(true)) {
+        return;
+    }
+    invalidate_packed_tables();
+}
+
+pub(crate) fn packed_tables_revoked() -> bool {
+    PACKED_TABLES_REVOKED.with(Cell::get)
+}
+
+/// Test-only, for the reason [`reset_borrowed_batches`] is.
+#[cfg(test)]
+pub(crate) fn reset_packed_tables() {
+    PACKED_TABLES_REVOKED.with(|revoked| revoked.set(false));
 }
 
 /// Stop handing out windows on the shared buffer, for the rest of the process,
@@ -792,6 +824,11 @@ impl FlatBatchWriter {
 
         self.clear_batch();
         self.flags = 0;
+        if packed_tables_revoked() {
+            self.string_cache.clear();
+            self.jid_cache.clear();
+            self.flags = PACKED_FLAG_RESET_CACHES;
+        }
     }
 
     /// Drop the batch's own buffers, keeping the caches and the flags.
@@ -2023,6 +2060,58 @@ mod tests {
                 PACKED_FLAG_RESET_CACHES
             );
         });
+    }
+
+    /// A host that defers its decode reads batches in an order the writer
+    /// cannot see, and a table spanning batches is only sound in delivery
+    /// order. Giving it up makes every batch self-contained, which reads the
+    /// same whenever it is decoded — the optimization goes, not the values.
+    #[test]
+    fn revoking_the_tables_makes_every_batch_self_contained() {
+        reset_packed_tables();
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
+
+        let mut out = Vec::new();
+        MessageWireBatch::with_encoder(|encoder| {
+            encoder.push(&inbound("BEFORE-1", 8)).expect("packs");
+            encoder.write_and_reset(&mut out);
+            encoder.push(&inbound("BEFORE-2", 8)).expect("packs");
+            assert!(
+                definitions_of(encoder).is_empty(),
+                "the table is supposed to span batches until it is revoked"
+            );
+            encoder.write_and_reset(&mut out);
+        });
+
+        revoke_packed_tables();
+
+        // Two batches in a row, each defining everything it names and each
+        // asking the reader to clear: decoded in either order, both read right.
+        for round in 0..2 {
+            MessageWireBatch::with_encoder(|encoder| {
+                encoder.push(&inbound("AFTER", 8)).expect("packs");
+                assert_eq!(
+                    definitions_of(encoder),
+                    ["5511999@s.whatsapp.net", "Peer"],
+                    "round {round} leaned on a table the reader may not have"
+                );
+                assert_eq!(encoder.strings.flags, PACKED_FLAG_RESET_CACHES);
+                assert_eq!(encoder.info_records[0], 0.0, "slots restart every batch");
+                out.clear();
+                encoder.write_and_reset(&mut out);
+            });
+        }
+
+        // The packed writers give theirs up too, under the same flag.
+        ReceiptWireBatch::with_encoder(|encoder| {
+            assert!(encoder.writer.string_cache.is_empty());
+            assert_eq!(
+                encoder.writer.flags & PACKED_FLAG_RESET_CACHES,
+                PACKED_FLAG_RESET_CACHES
+            );
+        });
+        reset_packed_tables();
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
     }
 
     /// Crossing the envelope is not losing it, so the tables must survive.

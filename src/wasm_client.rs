@@ -319,6 +319,13 @@ export interface WhatsAppEventCallbacks {
    * them once and later batches reference the table the decoder is holding.
    * A batch skipped or decoded out of order leaves that table describing a
    * history the records do not have.
+   *
+   * The return type is `void` and TypeScript lets an `async` method satisfy
+   * it, so this is checked rather than trusted: a callback that hands back
+   * anything promise-like has not decoded inside its call, and the bridge
+   * gives up the cross-batch table for the rest of the session — every batch
+   * then carries every value it names, which decodes the same in any order.
+   * Keeping the buffer is fine; decoding it later is what costs the table.
    */
   onMessageBatch(batch: MessageWireBatch): void;
   /**
@@ -686,6 +693,24 @@ fn is_thenable(value: &JsValue) -> bool {
         && js_sys::Reflect::get(value, &"then".into()).is_ok_and(|then| then.is_function())
 }
 
+/// A callback that handed back something promise-like has not decoded inside
+/// its call: its decodes land later, in an order the writer cannot see. The
+/// packed tables span batches and are only sound in delivery order, so this
+/// gives them up rather than let one host read another batch's strings. It is
+/// separate from the borrow contract — a copying callback is welcome to keep
+/// the buffer, but not to decode it out of order.
+///
+/// A callback that threw is handled by the caller: the batch may not have been
+/// read at all, which is a roll, not a permanent revocation.
+fn note_batch_deferred(kind: &str, result: &Result<JsValue, JsValue>) {
+    if result.as_ref().is_ok_and(is_thenable) {
+        crate::wire_batch::revoke_packed_tables();
+        log::error!(
+            "JS {kind} batch callback returned something promise-like; the cross-batch string table is off for the rest of the session"
+        );
+    }
+}
+
 /// Registered delivery for one packed batch kind: the copying callback and,
 /// when the host opted in, the borrowing one.
 #[derive(Default)]
@@ -743,6 +768,8 @@ impl PackedBatchChannelState {
                 "{kind} borrowing batch callback did not consume the batch synchronously; falling back to a buffer per batch"
             );
         }
+        // Borrowing or not, a deferred decode reorders this kind's table.
+        note_batch_deferred(kind, &result);
         result
     }
 }
@@ -903,10 +930,13 @@ impl JsEventCallbacks {
 
     fn call_message_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
         debug_assert!(self.on_message_batch.is_some());
-        self.on_message_batch
+        let result = self
+            .on_message_batch
             .as_ref()
             .expect("message callback checked before dispatch")
-            .call1(&self.receiver, batch)
+            .call1(&self.receiver, batch);
+        note_batch_deferred("message", &result);
+        result
     }
 
     fn supports_history_sync_batching(&self) -> bool {
@@ -919,10 +949,13 @@ impl JsEventCallbacks {
 
     fn call_event_batch(&self, batch: &JsValue) -> Result<JsValue, JsValue> {
         debug_assert!(self.on_event_batch.is_some());
-        self.on_event_batch
+        let result = self
+            .on_event_batch
             .as_ref()
             .expect("event-envelope callback checked before dispatch")
-            .call1(&self.receiver, batch)
+            .call1(&self.receiver, batch);
+        note_batch_deferred("event envelope", &result);
+        result
     }
 
     /// Whether this event's batch may be buffered into an envelope: only the
@@ -3805,6 +3838,42 @@ mod packed_batch_channel_tests {
 
         deliver(&channel, "RCPT-A");
         assert_eq!(channel.buffer(), BatchBuffer::Owned, "the borrow survived");
+    }
+
+    /// A `void` callback that hands back a promise decodes later, in an order
+    /// the writer cannot see. TypeScript allows it — an `async` method
+    /// satisfies a `void` signature — so the tables have to notice, whether or
+    /// not the callback borrows. Without this the message path returns another
+    /// batch's chat and push name, silently.
+    #[test]
+    fn a_batch_callback_that_defers_gives_up_the_cross_batch_tables() {
+        crate::wire_batch::reset_packed_tables();
+
+        note_batch_deferred("message", &Ok(JsValue::UNDEFINED));
+        assert!(
+            !crate::wire_batch::packed_tables_revoked(),
+            "a conforming callback gave up the tables"
+        );
+
+        // A throw is the caller's business — the batch may not have been read
+        // at all, which is a roll, not a permanent revocation.
+        note_batch_deferred("message", &Err(JsValue::from_str("boom")));
+        assert!(!crate::wire_batch::packed_tables_revoked());
+
+        // Bare thenable, not `instanceof Promise`: an `async` method satisfies
+        // a `void` signature in TypeScript, and so does anything with a `then`.
+        let thenable = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &thenable,
+            &"then".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .expect("set then");
+        note_batch_deferred("message", &Ok(thenable.into()));
+        assert!(crate::wire_batch::packed_tables_revoked());
+
+        crate::wire_batch::reset_packed_tables();
+        MessageWireBatch::with_encoder(|encoder| *encoder = MessageWireBatch::default());
     }
 
     /// A callback that throws has not finished with its window either, and the
