@@ -7,9 +7,10 @@ the other 651 — and if so, which mechanism charges: **the code being present**
 or **the code being run**.
 
 Short answer: two designs pay and they are the same order of magnitude.
-Generating the codec for only the types a consumer declares is worth **−3.89 /
-−2.27 MiB** and is an API change. Deferring construction **per type** is worth
-**−2.08 / −1.07 MiB** after realistic use, and the four differences a consumer
+Generating the codec for only the types a consumer declares is worth **−3.91
+MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
+Deferring construction **per type** is worth **−1.93 MiB (v22) / −0.99 (v26)**
+after realistic use, and the four differences a consumer
 can observe — a property descriptor, the order `Object.keys` returns, and two
 corners of writing to a frozen or sealed namespace — are declared below.
 Every other shape of either idea is worth
@@ -52,6 +53,10 @@ demonstrations, both from the tables below:
 - Running v26 with `--predictable` — samples then land within 30 KiB of each
   other — **flips the sign** of the body-only removal, from −1.54 MiB to
   +1.64 MiB, while leaving both candidate designs where they were.
+- Re-running the in-situ table on v26 with nothing changed moved `cut +touch`
+  from −0.33 MiB to **+3.20**, and `cut-real +touch` from −2.27 to −0.45. The
+  same re-run reproduced every v22 arm within ~150 KiB and reproduced the
+  retained-memory column byte for byte on both versions.
 
 So `Private_Dirty` differences of this size are page-commit consequences, not
 the quantity itself. Where the two disagree, the retained-memory accounting
@@ -207,15 +212,25 @@ would flatter every one of them.
 
 | arm | v22 Δ | v26 Δ | what it changes |
 |---|---|---|---|
-| **textcut** | **−2532** | **−1552** | 657 codec bodies gone; export names and namespace work identical |
-| cut (385 kept, rest stubbed) +touch | −1120 | −336 | codec bodies gone for the removed types, names kept |
-| **cut-real (385 kept) +touch** | **−3980** | **−2324** | the removed types and their enums are not there at all |
-| lazycodecs +touch | −852 | +288 | codec objects deferred, `proto` assembled eagerly |
-| lazyns +touch | −924 | −712 | codecs eager, the whole tree on the first read of `proto` |
-| lazyboth +touch | −1716 | −180 | both, whole-tree |
-| lazyns-pertype +touch | +72 | +28 | codecs eager, one lazy getter per type |
-| **lazyboth-pertype +touch** | **−2132** | **−1096** | both, per type — the shape that could ship |
-| textcut-lazyns | −4376 | −3532 | the floor |
+| **textcut** | **−2528** | **−1632** | 657 codec bodies gone; export names and namespace work identical |
+| cut (385 kept, rest stubbed) +touch | −1076 | **+3276** | codec bodies gone for the removed types, names kept |
+| **cut-real (385 kept) +touch** | **−4004** | **−464** | the removed types and their enums are not there at all |
+| lazycodecs +touch | −828 | +256 | codec objects deferred, `proto` assembled eagerly |
+| lazyns +touch | −948 | −772 | codecs eager, the whole tree on the first read of `proto` |
+| lazyboth +touch | −1640 | −184 | both, whole-tree |
+| lazyns-pertype +touch | −124 | −196 | codecs eager, one lazy getter per type |
+| **lazyboth-pertype +touch** | **−1976** | **−1016** | both, per type — the shape that could ship |
+| textcut-lazyns | −4516 | −3604 | the floor |
+
+**The v26 column of this table does not reproduce between whole runs, and the
+v22 column does.** Re-running the identical artifacts moved `cut +touch` from
+−336 to +3276 KiB and `cut-real +touch` from −2324 to −464, while every v22 arm
+came back within ~150 KiB of its previous reading. The v26 samples say why:
+`stock` spans 16784–21104 KiB across fifteen repetitions, so its median is
+decided by how many landed in each cluster. The retained-memory column below
+does not have this property — it came back **byte for byte identical** across
+both runs on both versions — which is why the recommendation rests on it and on
+v22, and why no v26 private-memory figure here is quoted to two digits.
 
 `cut` and `cut-real` are the same 385 types kept, and the difference between
 them is the whole cost of a name existing: `cut` replaces the other 272 codec
@@ -224,22 +239,23 @@ builds 657 wrappers and 657 paths; `cut-real` does not export them, so it does
 not. `cut-real` also drops the enums nested under the removed messages and the ones
 only they referenced — leaving all 212 in rebuilds `proto.HistorySync` out of
 its enums alone, which is a namespace node the cut is supposed to have removed.
-The stubbed arm is what "remove the bodies" is worth (−1.09 / −0.33 MiB); the
-real one is what the proposed API change is worth (−3.89 / −2.27 MiB).
+The stubbed arm is what "remove the bodies" is worth (−1.05 MiB on v22); the
+real one is what the proposed API change is worth (−3.91 MiB on v22, −1.61 MiB
+retained on v22 and −0.60 on v26).
 
 Three of these are about *how* the deferral is written, and the difference
 between them is the whole story:
 
 - `lazycodecs` defers each codec object but leaves `proto-namespace.ts`
   assembling eagerly, and that assembly reads every export. Every getter fires
-  during import anyway, so it buys nothing on v26 and 0.82 MiB of noise on v22.
+  during import anyway, so it buys nothing on v26 and 0.81 MiB of noise on v22.
 - `lazyboth` defers the namespace as one unit, behind a Proxy. Enormous at
   import, and then the first read of any property builds all 657 — which is why
-  `+touch` leaves it at −0.12 MiB on v26 and worse than stock on retained memory
-  on both (+0.35 / +0.27 MiB).
+  `+touch` leaves it at −0.18 MiB on v26 and worse than stock on retained memory
+  on both (+0.36 / +0.28 MiB).
 - `lazyboth-pertype` gives each type its own getter, so touching six types
   builds six wrappers and the codecs their decodes reach. This one does not
-  collapse: **−2.08 MiB (v22) / −1.07 MiB (v26) after the client has used the
+  collapse: **−1.93 MiB (v22) / −0.99 MiB (v26) after the client has used the
   library.** It needs both halves — `lazyns-pertype`, per-type getters over
   eager codecs, is worth nothing, because the codec objects are built either
   way and the tree of 657 getters costs about what the wrappers it defers do.
@@ -251,19 +267,19 @@ node 26 to external memory and the two move in opposite directions:
 
 | arm | v22 retained | vs base | v26 retained | vs base |
 |---|---|---|---|---|
-| stock | 12564 | 0 | 10765 | 0 |
-| stock +touch | 12687 | 0 | 10888 | 0 |
-| **textcut** | **10773** | **−1791** | **10030** | **−735** |
-| cut +touch | 12033 | −654 | 11293 | +405 |
-| **cut-real +touch** | **11038** | **−1649** | **10271** | **−617** |
-| lazyboth +touch | 13043 | +356 | 11169 | +281 |
-| **lazyboth-pertype +touch** | **12174** | **−513** | **10277** | **−611** |
-| textcut-lazyns | 10080 | −2484 | 9333 | −1432 |
+| stock | 6992 | 0 | 4629 | 0 |
+| stock +touch | 7115 | 0 | 4751 | 0 |
+| **textcut** | **5201** | **−1791** | **3894** | **−735** |
+| cut +touch | 6461 | −654 | 5157 | +406 |
+| **cut-real +touch** | **5466** | **−1649** | **4135** | **−616** |
+| lazyboth +touch | 7481 | +366 | 5042 | +291 |
+| **lazyboth-pertype +touch** | **6729** | **−386** | **4233** | **−518** |
+| textcut-lazyns | 4508 | −2484 | 3196 | −1433 |
 
 The text is **0.72–1.75 MiB of retained memory**. The per-type lazy design
-retains **0.50 (v22) / 0.60 (v26) MiB** less than stock after the same traffic;
-the real cut retains 1.61 / 0.60 — three times as much on v22 and **the same
-amount on v26**. The whole-tree lazy arm retains *more* than stock, which is the
+retains **0.38 (v22) / 0.51 (v26) MiB** less than stock after the same traffic;
+the real cut retains 1.61 / 0.60 — four times as much on v22 and **a fifth more
+on v26**. The whole-tree lazy arm retains *more* than stock, which is the
 clearest statement of what deferring at the wrong granularity does.
 
 ### The same arms under V8's predictable mode
@@ -315,25 +331,27 @@ spans 16856–21080 KiB over the four, so read the sign, not the magnitude.
 
 One arm is unmoved in all six configurations: `lazyboth-pertype +touch`, at
 −1.91 to −2.08 MiB on v22 and −0.86 to −2.16 on v26. `cut-real` is not: −3.67 to
-−4.05 MiB on v22, and on v26 anywhere from −0.43 to −4.26 depending on the
-flags. Its *retained* memory is stable across all of them (−1.61 / −0.60), so
-the cut's advantage is real and its size on node 26 is not something to quote to
-two digits.
+−4.05 MiB on v22, and on v26 anywhere from −0.45 to −4.26 depending on the flags
+and on which run — its widest single spread comes from re-running the default
+configuration, not from changing flags. Its *retained* memory is stable across
+all of them (−1.61 / −0.60), so the cut's advantage is real and its size on node
+26 is not something to quote at all.
 
 ## Which mechanism pays
 
 Both, and they are the same order of magnitude — but each only in one specific
 shape, and every other shape of the same idea is worth nothing.
 
-**Removing the types outright** is the largest single lever: **−3.89 MiB (v22) /
-−2.27 MiB (v26)** for a client that keeps the 385 it can reach, and 1.61 / 0.60
-MiB of retained memory. Note what has to go with the bodies for that number: the
+**Removing the types outright** is the largest single lever: **−3.91 MiB on
+v22** for a client that keeps the 385 it can reach, and 1.61 / 0.60 MiB of
+retained memory. On v26 its private-memory figure is not reproducible enough to
+quote — the retained one is. Note what has to go with the bodies for that number: the
 export names and the enums under them, and therefore the 272 namespace wrappers
 and paths built over them. Removing only the bodies and keeping the names
 (`cut`) is worth a quarter of it, and `textcut` — every body gone, every name
 kept — is the arm whose sign flips under `--predictable` on v26.
 
-**Deferring the work** is worth **−2.08 MiB (v22) / −1.07 MiB (v26)** after a
+**Deferring the work** is worth **−1.93 MiB (v22) / −0.99 MiB (v26)** after a
 client has used six types — the one arm that holds its value in all six
 configurations — and it costs nothing at the API. But only per type. Three designs, three answers:
 
@@ -357,10 +375,10 @@ bodies but keeps names is worth a third of one that removes the names too.
 ### The transparent one: a per-type lazy namespace
 
 Generated codecs built on first use, `proto` a plain object whose types
-materialize one getter at a time. Measured as `lazyboth-pertype`: **−2.08 /
-−1.07 MiB after realistic use**, −0.50 / −0.60 MiB of retained memory, stable
-under all three flag configurations on both node versions, and **no API
-change**.
+materialize one getter at a time. Measured as `lazyboth-pertype`: **−1.93 /
+−0.99 MiB after realistic use**, −0.38 / −0.51 MiB of retained memory, stable
+under all three flag configurations on both node versions and across repeat
+runs, and **no API change**.
 
 `bun run bench:codec-memory:equivalence` is the reason to believe it is the same
 library. Against the stock bundle it checks:
@@ -453,11 +471,11 @@ rather than riding along with a measurement.
 
 ### The bigger one: a cut, which is an API change
 
-`cut-real` is worth about 1.9× the lazy design on private memory and three times
-as much retained memory on node 22 — though on node 26 the two retain the same
-amount, and the cut's private-memory advantage there reads anywhere from −0.43
-to −4.26 MiB depending on the V8 flags. It is also not transparent, and cannot
-be made so:
+`cut-real` is worth about 2× the lazy design on private memory and four times as
+much retained memory on node 22 — though on node 26 it retains only a fifth more
+(0.60 against 0.51 MiB), and its private-memory advantage there reads anywhere
+from −0.45 to −4.26 MiB depending on the V8 flags and on which run. It is also
+not transparent, and cannot be made so:
 
 **`proto` is a public namespace over all 657 types.** `encodeProto("X", …)`
 resolves any name in the schema, and consumers depend on that. The `cut-real`
@@ -471,8 +489,8 @@ It also does not stack cleanly with the lazy design — `textcut-lazyns` is the
 floor at −4.34 / −3.47 MiB, but that arm keeps no working codec at all, so it
 bounds the two together rather than pricing them.
 
-**Recommendation: take the lazy design.** It is half the cut's private memory,
-the same retained memory on node 26, and the only arm whose value holds in every
+**Recommendation: take the lazy design.** It is half the cut's private memory
+on v22, within a fifth of its retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change a consumer can only observe through the
 four corners declared above. The
 cut is worth reopening only if someone is willing to
