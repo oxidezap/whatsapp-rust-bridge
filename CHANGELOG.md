@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.12.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.11.0...v0.12.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **wire:** hold the message string table across batches, as the receipt one does ([#58](https://github.com/oxidezap/whatsapp-rust-bridge/issues/58))
+
+### Bug Fixes
+
+* **wire:** read the packed string region in the unit the wire writes ([#57](https://github.com/oxidezap/whatsapp-rust-bridge/issues/57)) ([c1c0fb0](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c1c0fb081d895d818a88ecaca0a39b2f0ef89d5e))
+
+
+### Performance
+
+* let a source build drop the domains it does not use ([#62](https://github.com/oxidezap/whatsapp-rust-bridge/issues/62)) ([a7aabec](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a7aabec500c02af4b012a1ce36080d490fec6a31))
+* **proto:** measure what the 657 generated codecs cost, and which fix pays ([#60](https://github.com/oxidezap/whatsapp-rust-bridge/issues/60)) ([5383497](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5383497a0abd5bd3faac551cc983333a6ebce636))
+* pull the inlining lever [#61](https://github.com/oxidezap/whatsapp-rust-bridge/issues/61) measured, and take the core's msg_secrets bound ([#63](https://github.com/oxidezap/whatsapp-rust-bridge/issues/63)) ([80c36cc](https://github.com/oxidezap/whatsapp-rust-bridge/commit/80c36cc957dd28fdc01a77fd4c11a0b8ed1613b6))
+* **wasm:** name the three functions that dominate V8's compile-zone peak, and price the one lever ([#61](https://github.com/oxidezap/whatsapp-rust-bridge/issues/61)) ([5d10541](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5d105418bf88e37e5372d7e5836287857a87c1b9))
+* **wire:** hold the message string table across batches, as the receipt one does ([#58](https://github.com/oxidezap/whatsapp-rust-bridge/issues/58)) ([d5b6b38](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d5b6b38c5028fef53d0d5cdd7c262b89afe4d2ef))
+
 ## [0.11.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.10.0...v0.11.0) (2026-08-12)
 
 
