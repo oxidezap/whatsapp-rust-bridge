@@ -228,9 +228,8 @@ function lazify(block: Block, codecs: Map<string, Block>): string {
 }
 
 /**
- * The brace counter is not string-aware. Nothing in the generated file breaks
- * it today, but a regeneration that did would shift every block boundary and
- * every measurement built on them — so both benchmarks check this first.
+ * The brace counter is not string-aware, so a regeneration that broke it would
+ * shift every block boundary and every measurement built on them.
  */
 export function assertRoundTrip(parsed: Parsed, source = readFileSync(SOURCE, "utf8")): void {
   const rebuilt = emit(parsed, new Set(parsed.codecs.keys()), "eager");

@@ -51,10 +51,8 @@ if (!existsSync(join(ROOT, "pkg", "whatsapp_rust_bridge.js"))) {
 }
 
 /**
- * Every rewrite below finds its insertion point by string. A moved anchor is
- * the dangerous failure here: `indexOf` returns -1, `slice` quietly produces
- * something that still bundles, and the arm goes on reporting a number for a
- * variant it is not. So each one is asserted rather than trusted.
+ * A moved anchor is the dangerous failure: `slice(-1)` still bundles, and the
+ * arm reports a number for a variant it is not. So assert rather than trust.
  */
 const anchor = (source: string, needle: string, what: string): number => {
   const at = source.indexOf(needle);

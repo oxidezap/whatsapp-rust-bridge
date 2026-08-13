@@ -1,11 +1,7 @@
 /**
- * The order the arms are sampled in, one permutation per repetition.
- *
- * Rotating by one only balances positions when the repetition count is a
- * multiple of the arm count, and neither default is: 15 repetitions over 18
- * runs leaves every arm three slots it never occupies. A seeded shuffle has no
- * such structure, and seeding it keeps the run reproducible — `Math.random`
- * would not.
+ * The order the arms are sampled in, one permutation per repetition. Rotating
+ * balances positions only when the repetitions are a multiple of the arms, and
+ * neither default is; seeded, because `Math.random` would not reproduce.
  */
 
 /** mulberry32: small, well-distributed, and deterministic from `seed`. */
