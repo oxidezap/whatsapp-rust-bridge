@@ -2,12 +2,15 @@
  * What a message batch costs the host, before and after the table started
  * outliving the batch.
  *
- * `baseline` is `ts/wire-info.ts` as of the commit named by `BASELINE_REV`,
- * where every batch carried its own string table and the host rebuilt that
- * table from bytes each time. `current` is the working tree. Both arms drive
- * the same traffic through their own encoder and their own decoder, so the
- * numbers compare like for like: the encoders are byte-exact mirrors of the
- * Rust writer each version ships.
+ * `baseline` is `ts/wire-info.ts` as of the commit named by `BASELINE_REV`
+ * (default `origin/main`), where every batch carried its own string table and
+ * the host rebuilt that table from bytes each time. `current` is the working
+ * tree. Both arms drive the same traffic through their own encoder and their
+ * own decoder, so the numbers compare like for like: the encoders are
+ * byte-exact mirrors of the Rust writer each version ships.
+ *
+ * A baseline identical to the working tree is an error, not a 0% result — set
+ * `BASELINE_REV` to whatever the change you are measuring branched from.
  *
  * Reported per traffic shape:
  *   bytes/batch  what crosses the boundary
@@ -25,7 +28,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const BASELINE_REV = process.env.BASELINE_REV ?? "HEAD";
+const BASELINE_REV = process.env.BASELINE_REV ?? "origin/main";
 const WARMUP_ROUNDS = 3;
 const ROUNDS = 21;
 const BATCHES = 2_000;
@@ -55,7 +58,20 @@ async function loadBaseline(): Promise<WireModule> {
     cmd: ["git", "show", `${BASELINE_REV}:ts/wire-info.ts`],
     stdout: "pipe",
   });
-  if (source.exitCode !== 0) throw new Error(`cannot read ${BASELINE_REV}:ts/wire-info.ts`);
+  if (source.exitCode !== 0) {
+    throw new Error(
+      `cannot read ${BASELINE_REV}:ts/wire-info.ts — set BASELINE_REV to a revision that has it`,
+    );
+  }
+  // Two arms running the same code would report a clean 0% rather than fail,
+  // which is the one result this harness must never produce quietly.
+  const decoded = new TextDecoder().decode(source.stdout);
+  if (decoded === (await Bun.file(new URL("../ts/wire-info.ts", import.meta.url)).text())) {
+    throw new Error(
+      `${BASELINE_REV}:ts/wire-info.ts is identical to the working tree, so there is nothing to ` +
+        `compare — point BASELINE_REV at the revision before the change you are measuring`,
+    );
+  }
   const dir = join(tmpdir(), "wire-info-baseline");
   mkdirSync(dir, { recursive: true });
   const file = join(dir, "wire-info.ts");

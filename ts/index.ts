@@ -40,7 +40,6 @@ export {
   EVENT_SEGMENT_KIND_RECEIPT,
   EVENT_SEGMENT_KIND_SERVER_ACK,
   MESSAGE_WIRE_INFO_RECORD_WIDTH,
-  MessageWireBatchEncoder,
   type EventWireSegment,
   type MessageWireBatchView,
   type MessageWireEntry,
