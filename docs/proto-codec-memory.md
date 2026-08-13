@@ -9,8 +9,9 @@ or **the code being run**.
 Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.89 /
 −2.27 MiB** and is an API change. Deferring construction **per type** is worth
-**−2.08 / −1.07 MiB** after realistic use, and the only differences a consumer
-can observe are a property descriptor and the order `Object.keys` returns.
+**−2.08 / −1.07 MiB** after realistic use, and the three differences a consumer
+can observe — a property descriptor, the order `Object.keys` returns, and one
+corner of writing to a frozen namespace — are declared below.
 Every other shape of either idea is worth
 nothing: deferring construction alone, deferring the namespace as one unit, or
 removing codec bodies while keeping their names. The recommendation is the lazy
@@ -28,7 +29,9 @@ of them, medians over the repetition counts stated per table.
 Two node versions, because they disagree: **v22.22.2** and **v26.5.0**. Every
 number below was taken on this machine, 4 cores / 16 GB, against `d5b6b38`
 (v0.11.0 plus #57 and #58), with a locally built release wasm (`whatsapp_rust_bridge_bg.wasm`,
-5,993,200 B).
+5,993,200 B). Every artifact was built with **bun 1.3.11**, whose optimizer
+decides the bytes being compared — both runners print it in their header for
+that reason.
 
 ### The one caveat that governs everything else
 
@@ -42,10 +45,9 @@ demonstrations, both from the tables below:
   cluster and produced the "instantiation costs 2.7 MiB" reading that goes with
   it; a rebuilt, re-run set put it in the lower cluster and produced the
   opposite one.
-- Running v26 with `--predictable` (deterministic, single-threaded GC — samples
-  land within 30 KiB of each other) **flips the sign** of the body-only removal,
-  from −1.54 MiB to +1.64 MiB — while leaving both candidate designs where they
-  were.
+- Running v26 with `--predictable` — samples then land within 30 KiB of each
+  other — **flips the sign** of the body-only removal, from −1.54 MiB to
+  +1.64 MiB, while leaving both candidate designs where they were.
 
 So `Private_Dirty` differences of this size are page-commit consequences, not
 the quantity itself. Where the two disagree, the retained-memory accounting
@@ -243,10 +245,10 @@ the real cut retains 1.61 / 0.60 — three times as much on v22 and **the same
 amount on v26**. The whole-tree lazy arm retains *more* than stock, which is the
 clearest statement of what deferring at the wrong granularity does.
 
-### The same arms under a deterministic GC
+### The same arms under V8's predictable mode
 
 `NODE_FLAGS=--predictable`, 4 repetitions — samples land within 30 KiB of each
-other, so the spread is gone and only the quantization regime has changed:
+other, so the spread is gone:
 
 | arm | v22 Δ | v26 Δ |
 |---|---|---|
@@ -262,15 +264,40 @@ other, so the spread is gone and only the quantization regime has changed:
 
 v22 reproduces the default configuration arm for arm. v26 does not: `textcut`
 flips from −1.54 to **+1.64 MiB**, and `textcut-lazyns` from −3.39 to −0.18.
-Nothing about the codecs changed between the two tables — only where V8 decided
-to grow.
+Nothing about the codecs changed between the two tables.
 
-One arm is unmoved in all four configurations: `lazyboth-pertype +touch`, at
-−1.91 to −2.08 MiB on v22 and −0.86 to −1.07 on v26. `cut-real` is not: it is
-−3.67 to −3.89 MiB on v22 and −2.27 in the default configuration on v26, but
-only −0.43 there under `--predictable`. Its *retained* memory is stable (−1.61 /
-−0.60 in both), so the cut's advantage is real and its size on node 26 is not
-something to quote to two digits.
+**What `--predictable` changes is not only the GC**, and the first version of
+this document said it was. V8 documents the flag as "enable predictable mode"
+and carries `--predictable-gc-schedule`, `--single-threaded` and
+`--single-threaded-gc` as separate flags, so re-running the arms under the two
+that name the GC says which half moved — 4 repetitions,
+`NODE_FLAGS="--predictable-gc-schedule --single-threaded-gc"`:
+
+| arm | v22 Δ | v26 Δ |
+|---|---|---|
+| textcut | −2476 | −5754 |
+| **cut-real +touch** | **−4144** | **−4364** |
+| lazyns +touch | −22 | +214 |
+| lazyboth +touch | −1082 | −3650 |
+| **lazyboth-pertype +touch** | **−1978** | **−2214** |
+| textcut-lazyns | −4584 | −5136 |
+
+Neither flip reproduces. `textcut` stays negative on v26, and `cut-real` returns
+to −4.26 MiB there instead of the −0.43 it showed under `--predictable`. So the
+v26 reversals belong to predictable mode as a whole — which also serializes
+background compilation, the work a megabyte of lazily-compiled function bodies
+generates — and not to GC scheduling. This document no longer attributes them to
+where V8 grew its heap; what they establish is that on v26 the arms defined by
+*text presence* are configuration-dependent, and that is claim enough to prefer
+an arm that is not. These samples are also the loosest taken: on v26 `stock`
+spans 16856–21080 KiB over the four, so read the sign, not the magnitude.
+
+One arm is unmoved in all six configurations: `lazyboth-pertype +touch`, at
+−1.91 to −2.08 MiB on v22 and −0.86 to −2.16 on v26. `cut-real` is not: −3.67 to
+−4.05 MiB on v22, and on v26 anywhere from −0.43 to −4.26 depending on the
+flags. Its *retained* memory is stable across all of them (−1.61 / −0.60), so
+the cut's advantage is real and its size on node 26 is not something to quote to
+two digits.
 
 ## Which mechanism pays
 
@@ -286,7 +313,7 @@ and paths built over them. Removing only the bodies and keeping the names
 kept — is the arm whose sign flips under `--predictable` on v26.
 
 **Deferring the work** is worth **−2.08 MiB (v22) / −1.07 MiB (v26)** after a
-client has used six types — the one arm that holds its value in all four
+client has used six types — the one arm that holds its value in all six
 configurations — and it costs nothing at the API. But only per type. Three designs, three answers:
 
 1. Isolated, deferring construction alone keeps 78 % (v22) / 94 % (v26) of the
@@ -311,7 +338,8 @@ bodies but keeps names is worth a third of one that removes the names too.
 Generated codecs built on first use, `proto` a plain object whose types
 materialize one getter at a time. Measured as `lazyboth-pertype`: **−2.08 /
 −1.07 MiB after realistic use**, −0.50 / −0.60 MiB of retained memory, stable
-under both GC configurations on both node versions, and **no API change**.
+under all three flag configurations on both node versions, and **no API
+change**.
 
 `bun run bench:codec-memory:equivalence` is the reason to believe it is the same
 library. Against the stock bundle it checks:
@@ -330,7 +358,8 @@ library. Against the stock bundle it checks:
   on writing itself back fails the first, an unmemoized forward-compatible
   wrapper the second, a setter that insists on redefining a sealed accessor the
   third, and one that silently accepts a write a frozen data property would
-  have rejected the fourth;
+  have rejected the fourth. The same write from non-strict code is reported
+  rather than asserted, because there the two genuinely differ;
 - 250 of 270 top-level types still unmaterialized after import, 247 after a
   ping-pong exchange.
 
@@ -341,8 +370,8 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Two differences are observable, and both are inherent rather than defects to
-fix:
+Three differences are observable, and all three are inherent to an accessor
+rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
   returns an accessor where the eager namespace returns a writable data
@@ -353,12 +382,20 @@ fix:
   them descending, so the namespace starts at `mentionMentionType` rather than
   at the first declaration. Any design that moves the codecs into one bag loses
   that, whatever order it builds in.
+- assigning to a type that has never been read, from **non-strict code**, after
+  `Object.freeze(proto)`: a frozen data property ignores the write silently,
+  and the setter throws `TypeError` instead. A setter cannot see its caller's
+  strictness, so it has to pick one behaviour for both, and throwing is the one
+  that matches every strict caller — which is all ESM and all compiled
+  TypeScript. Only a Proxy could defer the choice to the caller, by returning
+  `false` from a `set` trap; that is a different design, unmeasured here, and it
+  puts a trap on every property read of the hottest object in the package.
 
 Everything else behaves identically: reading, calling, enumerating, spreading,
-`JSON.stringify`, freezing, assigning after a seal, and refusing to assign
-after a freeze. That is the whole of
-what "transparent" means here, and `bench:codec-memory:equivalence` prints the
-key-order divergence on every run rather than hiding it in a set comparison.
+`JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
+assignment after a freeze. That is the whole of what "transparent" means here,
+and `bench:codec-memory:equivalence` prints the key-order and sloppy-mode
+divergences on every run rather than hiding them in a set comparison.
 
 Six details any implementation has to get right, all six found by getting them
 wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
@@ -382,8 +419,9 @@ rather than riding along with a measurement.
 
 `cut-real` is worth about 1.9× the lazy design on private memory and three times
 as much retained memory on node 22 — though on node 26 the two retain the same
-amount, and the cut's private-memory advantage there does not survive
-`--predictable`. It is also not transparent, and cannot be made so:
+amount, and the cut's private-memory advantage there reads anywhere from −0.43
+to −4.26 MiB depending on the V8 flags. It is also not transparent, and cannot
+be made so:
 
 **`proto` is a public namespace over all 657 types.** `encodeProto("X", …)`
 resolves any name in the schema, and consumers depend on that. The `cut-real`
@@ -399,8 +437,8 @@ bounds the two together rather than pricing them.
 
 **Recommendation: take the lazy design.** It is half the cut's private memory,
 the same retained memory on node 26, and the only arm whose value holds in every
-configuration measured — for a change no consumer can observe except by reading
-a property descriptor or enumerating `proto` and depending on the order. The
+configuration measured — for a change a consumer can only observe through the
+three corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.
@@ -416,8 +454,8 @@ bun run benches/codec-memory/slice.ts   # the reachability counts
 ```
 
 `REPS`, `NODE_BIN` and `NODE_FLAGS` override the defaults; the tables above are
-the defaults on both node versions, and the deterministic table adds
-`NODE_FLAGS=--predictable`. `slice.ts` also self-checks that a slice keeping
+the defaults on both node versions, plus `NODE_FLAGS=--predictable` and
+`NODE_FLAGS="--predictable-gc-schedule --single-threaded-gc"`. `slice.ts` also self-checks that a slice keeping
 every codec reproduces the generated file byte for byte — every count in this
 document rests on that parse.
 

@@ -250,6 +250,28 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   const lazyFrozen = assignFrozen(frozenLazy);
   const eagerFrozen = assignFrozen(frozenEager);
   check(`assignment after Object.freeze(proto) behaves as stock does (${eagerFrozen})`, lazyFrozen === eagerFrozen);
+
+  // The same write from non-strict code. A frozen data property ignores it
+  // silently; a setter cannot see the caller's strictness, so it has to pick
+  // one behaviour for both. Reported, not asserted — the third difference.
+  // `new Function` is the sloppy-mode call site an ES module cannot otherwise
+  // write.
+  const sloppyAssign = new Function("target", "target.HistorySync = { marker: true }; return target.HistorySync;");
+  const sloppy = async (name) => {
+    const mod = await load(name, "?sloppy=1");
+    Object.freeze(mod.proto);
+    try {
+      return `accepted, marker=${sloppyAssign(mod.proto)?.marker === true}`;
+    } catch (error) {
+      return error.constructor.name;
+    }
+  };
+  const lazySloppy = await sloppy("lazyboth-pertype");
+  const eagerSloppy = await sloppy("stock");
+  console.log(
+    `  note sloppy-mode assignment after Object.freeze(proto): stock ${eagerSloppy}, lazy ${lazySloppy}` +
+      (lazySloppy === eagerSloppy ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

@@ -158,7 +158,9 @@ const median = (xs: number[]) => {
 };
 
 const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toString().trim();
-console.log(`reps=${REPS} node=${version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
+// bun built every artifact here, and its optimizer decides the bytes being
+// measured, so the header names it alongside the node that ran them.
+console.log(`reps=${REPS} node=${version} bun=${Bun.version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
 console.log(
   ["arm", "codecs", "bundleKiB", "import Δ med", "min", "max", "vs 0 codecs", "PrivDirty med", "heapUsed med"].join("\t"),
 );
