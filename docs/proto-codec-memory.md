@@ -23,8 +23,12 @@ design. The measurement is in `benches/codec-memory/`.
 other processes the file-backed half of `Rss` drifts tens of MiB without private
 memory moving, and a clean page stops being private the moment a second process
 maps the same file. Two full `global.gc()` passes before each reading. One
-process per sample, arms interleaved round-robin so machine drift lands on all
-of them, medians over the repetition counts stated per table.
+process per sample, arms interleaved under a fresh seeded permutation each
+repetition so machine drift lands on all of them, medians over the repetition
+counts stated per table. The permutation is seeded rather than rotated because
+neither default repetition count is a multiple of its arm count — 15 over 18
+runs leaves every arm three positions it never occupies — and seeded rather
+than random so a run reproduces.
 
 Two node versions, because they disagree: **v22.22.2** and **v26.5.0**. Every
 number below was taken on this machine, 4 cores / 16 GB, against `d5b6b38`
@@ -240,9 +244,10 @@ between them is the whole story:
   eager codecs, is worth nothing, because the codec objects are built either
   way and the tree of 657 getters costs about what the wrappers it defers do.
 
-Retained memory — post-GC `heapUsed` plus `external`, summed per sample and
-then medianed, because node 22 charges the codec text to the heap and node 26 to
-external memory and the two move in opposite directions:
+Retained memory — post-GC `heapUsed` plus `external`, each as a per-process
+delta across the import for the same reason `Private_Dirty` is, summed per
+sample and then medianed, because node 22 charges the codec text to the heap and
+node 26 to external memory and the two move in opposite directions:
 
 | arm | v22 retained | vs base | v26 retained | vs base |
 |---|---|---|---|---|
@@ -365,8 +370,11 @@ library. Against the stock bundle it checks:
   `fromPartial` — each driven with one empty instance of every message field it
   declares, 858 nested fields, which is every cross-codec call the rewrite
   touched;
-- the registry's non-generated spellings (`AdvSignedDeviceIdentity`), the
-  `ADVSignedKeyIndexList` alias, and the synthesized-unknown-child behaviour of
+- all five of the registry's non-generated spellings — `AdvSignedDeviceIdentity`,
+  `AdvSignedKeyIndexList`, `AdvDeviceIdentity`, `AdvSignedDeviceIdentityHmac`
+  and `LidMigrationMappingSyncPayload`, none of which the all-codec sweep
+  reaches, since that one drives generated names — plus the
+  `ADVSignedKeyIndexList` alias and the synthesized-unknown-child behaviour of
   the four forward-compatible carriers;
 - a type read for the first time *after* `Object.freeze(proto)`, the same object
   handed out twice from a frozen namespace, and assignment after

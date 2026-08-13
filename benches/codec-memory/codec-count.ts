@@ -10,6 +10,7 @@
 
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { shuffled } from "./schedule";
 import { assertRoundTrip, closure, emit, parse, PING_PONG_ROOTS, REGISTRY_ROOTS, ROOT, type Mode } from "./slice";
 
 const HERE = import.meta.dir;
@@ -134,12 +135,11 @@ const deltas = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 const totals = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 const heaps = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 
-// Round-robin, and rotated by one each repetition: sampling the arms in a fixed
+// Round-robin, and a fresh permutation each repetition: sampling in a fixed
 // order would leave every arm at a fixed position in the sweep, so a machine
 // that drifts within a sweep would charge that drift to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (let i = 0; i < arms.length; i++) {
-    const arm = arms[(i + rep) % arms.length]!;
+  for (const arm of shuffled(arms, rep)) {
     const proc = Bun.spawnSync({
       cmd: [NODE, "--expose-gc", ...NODE_FLAGS, join(HERE, "probe.mjs"), join(OUT, `${arm.name}.js`)],
       stdout: "pipe",

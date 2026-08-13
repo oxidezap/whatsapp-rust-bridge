@@ -31,6 +31,9 @@ const touch = process.argv[3] === "touch";
 
 settle();
 const before = smaps();
+// Deltas for the same reason as Private_Dirty: a fresh node does not start from
+// a fixed heap.
+const baseline = process.memoryUsage();
 
 const mod = await import(bundle);
 globalThis.__keep = mod;
@@ -54,8 +57,8 @@ console.log(
     privateDirty: after.privateDirty,
     deltaPrivateDirty: after.privateDirty - before.privateDirty,
     rss: after.rss,
-    heapUsed: Math.round(heap.heapUsed / 1024),
-    heapTotal: Math.round(heap.heapTotal / 1024),
-    external: Math.round(heap.external / 1024),
+    heapUsed: Math.round((heap.heapUsed - baseline.heapUsed) / 1024),
+    heapTotal: Math.round((heap.heapTotal - baseline.heapTotal) / 1024),
+    external: Math.round((heap.external - baseline.external) / 1024),
   }),
 );

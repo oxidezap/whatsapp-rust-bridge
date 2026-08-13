@@ -36,6 +36,7 @@
 
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { shuffled } from "./schedule";
 import { assertRoundTrip, closure, emit, parse, PING_PONG_ROOTS, ROOT } from "./slice";
 
 const HERE = import.meta.dir;
@@ -533,11 +534,10 @@ const heaps = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const externals = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const retained = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 
-// Rotated by one each repetition, so no arm keeps a fixed position in the
-// sweep and drift within one cannot be charged to arm identity.
+// A fresh permutation each repetition, so no arm keeps a position in the sweep
+// and drift within one cannot be charged to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (let i = 0; i < runs.length; i++) {
-    const run = runs[(i + rep) % runs.length]!;
+  for (const run of shuffled(runs, rep)) {
     const proc = Bun.spawnSync({
       cmd: [
         NODE,

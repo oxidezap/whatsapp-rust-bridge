@@ -11,6 +11,7 @@
 
 import { cpSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { shuffled } from "./schedule";
 import { ROOT } from "./slice";
 
 const HERE = import.meta.dir;
@@ -64,8 +65,7 @@ const STAGES = ["wasm-bytes", "wasm-module", "wasm-module-freed", "js-only", "fu
 const samples = new Map<string, number[]>(STAGES.map((stage) => [stage, []]));
 
 for (let rep = 0; rep < REPS; rep++) {
-  for (let i = 0; i < STAGES.length; i++) {
-    const stage = STAGES[(i + rep) % STAGES.length]!;
+  for (const stage of shuffled(STAGES, rep)) {
     const proc = Bun.spawnSync({
       cmd: [NODE, "--expose-gc", ...NODE_FLAGS, join(HERE, "import-stages-probe.mjs"), stage, WORK],
       stdout: "pipe",

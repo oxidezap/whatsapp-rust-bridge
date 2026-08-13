@@ -83,8 +83,14 @@ const CASES = [
   ["WebMessageInfo", { key: { remoteJid: "1@s.whatsapp.net", id: "X" }, message: { conversation: "y" } }],
   ["SyncActionValue", { starAction: { starred: true } }],
   ["ADVSignedDeviceIdentity", { details: new Uint8Array([1, 2, 3]) }],
-  // Only `proto.ts`'s hand-written registry knows this spelling.
+  // Every spelling only `proto.ts`'s hand-written registry knows. The all-codec
+  // sweep drives generated names, so nothing else reaches these five, and a
+  // typo in any of them would leave the suite green.
   ["AdvSignedDeviceIdentity", { details: new Uint8Array([9]) }],
+  ["AdvSignedKeyIndexList", { accountSignatureKey: new Uint8Array([1]) }],
+  ["AdvDeviceIdentity", { rawId: 1, keyIndex: 2 }],
+  ["AdvSignedDeviceIdentityHmac", { details: new Uint8Array([2]), hmac: new Uint8Array([3]) }],
+  ["LidMigrationMappingSyncPayload", { chatDbMigrationTimestamp: 7 }],
 ];
 
 let failures = 0;

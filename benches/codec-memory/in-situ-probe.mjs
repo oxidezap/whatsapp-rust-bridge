@@ -24,6 +24,10 @@ const touch = process.argv[3] === "touch";
 
 settle();
 const before = priv();
+// Retained memory is a per-process delta for the same reason Private_Dirty is:
+// a fresh node does not start from a fixed heap, and that variation would land
+// on the arm.
+const baseline = process.memoryUsage();
 
 const mod = await import(bundle);
 globalThis.__keep = mod;
@@ -56,8 +60,8 @@ console.log(
     bundle,
     touch,
     delta: after - before,
-    heapUsed: Math.round(heap.heapUsed / 1024),
-    external: Math.round(heap.external / 1024),
-    heapTotal: Math.round(heap.heapTotal / 1024),
+    heapUsed: Math.round((heap.heapUsed - baseline.heapUsed) / 1024),
+    external: Math.round((heap.external - baseline.external) / 1024),
+    heapTotal: Math.round((heap.heapTotal - baseline.heapTotal) / 1024),
   }),
 );
