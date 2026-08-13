@@ -208,7 +208,16 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
   let held: { value: any } | undefined;
   const keep = (value: any) => {
     try {
-      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+      // Carry the current flags across: a consumer may have made this property
+      // non-enumerable before ever reading it, and materializing must not put
+      // it back into \`Object.keys\`.
+      const current = Object.getOwnPropertyDescriptor(target, key);
+      Object.defineProperty(target, key, {
+        value,
+        writable: true,
+        enumerable: current ? current.enumerable : true,
+        configurable: true,
+      });
     } catch {
       held = { value };
     }

@@ -509,8 +509,8 @@ and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode, both
 `Reflect.set` and all three redefinition divergences on every run rather than
 hiding them in a set comparison.
 
-Six details any implementation has to get right, all six found by getting them
-wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
+Seven details any implementation has to get right, all seven found by getting
+them wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
 parent, which materializes every type that has children (106 of 270 in the first
 attempt); merging a child namespace with `Object.assign` reads the children, so
 descriptors have to be copied instead; a rewrite that redirects `X.decode(` to a
@@ -520,7 +520,10 @@ getter that cannot write itself back, because the consumer froze or sealed the
 namespace, has to hold the value in its closure rather than throw; its setter
 has to accept a write after a seal and refuse one after a freeze, which is what
 the data property it replaces does; and the wrapper it returns has to be
-memoized, or a frozen namespace hands out a new object per read.
+memoized, or a frozen namespace hands out a new object per read; and
+materializing has to carry the property's current flags across, or a type the
+consumer hid with `enumerable: false` reappears in `Object.keys` the moment it
+is first read.
 
 This is not implemented here. It changes the shape `scripts/gen-ts-proto.ts`
 emits and the way `ts/proto-namespace.ts` assembles the package's most

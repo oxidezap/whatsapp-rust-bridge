@@ -394,6 +394,19 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   };
   const lazyFlag = await redefineFlagOnly("lazyboth-pertype");
   const eagerFlag = await redefineFlagOnly("stock");
+
+  // Hiding a type before reading it. Materializing must carry the flag across,
+  // or the type reappears in `Object.keys` the moment it is first used.
+  const hidden = async (name) => {
+    const mod = await load(name, "?hidden=1");
+    Object.defineProperty(mod.proto, "HistorySync", { enumerable: false });
+    const before = Object.keys(mod.proto).includes("HistorySync");
+    void mod.proto.HistorySync;
+    return `in keys before ${before}, after ${Object.keys(mod.proto).includes("HistorySync")}`;
+  };
+  const lazyHidden = await hidden("lazyboth-pertype");
+  const eagerHidden = await hidden("stock");
+  check(`a type hidden before first read stays hidden (${eagerHidden})`, lazyHidden === eagerHidden);
   console.log(
     `  note Object.defineProperty(proto, …, { writable: false }) before any read: stock ${eagerFlag}, lazy ${lazyFlag}` +
       (lazyFlag === eagerFlag ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
