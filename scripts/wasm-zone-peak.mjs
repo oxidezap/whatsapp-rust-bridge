@@ -34,25 +34,38 @@ import v8 from "node:v8";
 const SELF = fileURLToPath(import.meta.url);
 const MIB = 1024 * 1024;
 
-/** Private/resident footprint of this process, for the RSS half of the story. */
+/**
+ * Private/resident footprint of this process, for the RSS half of the story.
+ *
+ * procfs is Linux-only, and the zone number — the reason this script exists —
+ * is not. Every read here is optional: a machine without procfs reports the
+ * V8 statistic and leaves these fields null, rather than failing before the
+ * compile it came to measure.
+ */
 function processMemory() {
-  const status = readFileSync("/proc/self/status", "utf8");
-  const field = (key) => {
-    const m = status.match(new RegExp(`^${key}:\\s+(\\d+) kB`, "m"));
-    return m ? Number(m[1]) * 1024 : null;
+  const kilobytes = (text, key) => {
+    if (text === null) return null;
+    const match = text.match(new RegExp(`^${key}:\\s+(\\d+) kB`, "m"));
+    return match ? Number(match[1]) * 1024 : null;
   };
-  let priv = null;
-  try {
-    const rollup = readFileSync("/proc/self/smaps_rollup", "utf8");
-    const g = (key) => {
-      const m = rollup.match(new RegExp(`^${key}:\\s+(\\d+) kB`, "m"));
-      return m ? Number(m[1]) * 1024 : 0;
-    };
-    priv = g("Private_Dirty") + g("Private_Clean");
-  } catch {
-    // smaps_rollup is Linux-only; the zone number stands on its own without it.
-  }
-  return { rss: field("VmRSS"), peakRss: field("VmHWM"), private: priv };
+  const read = (path) => {
+    try {
+      return readFileSync(path, "utf8");
+    } catch {
+      return null;
+    }
+  };
+
+  const status = read("/proc/self/status");
+  const rollup = read("/proc/self/smaps_rollup");
+  const dirty = kilobytes(rollup, "Private_Dirty");
+  const clean = kilobytes(rollup, "Private_Clean");
+
+  return {
+    rss: kilobytes(status, "VmRSS"),
+    peakRss: kilobytes(status, "VmHWM"),
+    private: dirty === null && clean === null ? null : (dirty ?? 0) + (clean ?? 0),
+  };
 }
 
 async function child(wasmPath) {
@@ -85,7 +98,7 @@ async function child(wasmPath) {
       peakMalloced: v8.getHeapStatistics().peak_malloced_memory,
       peakRss: after.peakRss,
       private: after.private,
-      rssDelta: after.rss - before.rss,
+      rssDelta: after.rss === null || before.rss === null ? null : after.rss - before.rss,
       compileMs,
     })
   );
@@ -135,16 +148,43 @@ function driver(wasmPath, reps, serial) {
   );
 }
 
+const USAGE =
+  "usage: node scripts/wasm-zone-peak.mjs <file.wasm> [--reps N] [--serial|--parallel]";
+
 const args = process.argv.slice(2);
-const wasmPath = args.find((a) => !a.startsWith("--"));
-if (!wasmPath) {
-  console.error("usage: node scripts/wasm-zone-peak.mjs <file.wasm> [--reps N] [--serial|--parallel]");
+let wasmPath = null;
+let reps = 15;
+let serial = true;
+
+// `--reps` takes a value, so the scan has to consume it — otherwise a path
+// written after the flag is shadowed by the count, and the script measures a
+// file named "15".
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+  if (arg === "--reps") reps = Number(args[++i]);
+  else if (arg === "--serial") serial = true;
+  else if (arg === "--parallel") serial = false;
+  else if (arg.startsWith("--")) {
+    console.error(`unknown option ${arg}\n${USAGE}`);
+    process.exit(2);
+  } else if (wasmPath === null) wasmPath = arg;
+  else {
+    console.error(`unexpected argument ${arg}\n${USAGE}`);
+    process.exit(2);
+  }
+}
+
+if (wasmPath === null) {
+  console.error(USAGE);
   process.exit(2);
 }
 
-if (process.env.WASM_ZONE_PEAK_CHILD) {
-  await child(wasmPath);
-} else {
-  const repsFlag = args.indexOf("--reps");
-  driver(wasmPath, repsFlag === -1 ? 15 : Number(args[repsFlag + 1]), !args.includes("--parallel"));
+// A rep count that runs nothing would still print a summary — nulls and a
+// `mode`, which reads like a measurement of an artifact that costs nothing.
+if (!Number.isInteger(reps) || reps < 1) {
+  console.error(`--reps must be a positive integer\n${USAGE}`);
+  process.exit(2);
 }
+
+if (process.env.WASM_ZONE_PEAK_CHILD) await child(wasmPath);
+else driver(wasmPath, reps, serial);
