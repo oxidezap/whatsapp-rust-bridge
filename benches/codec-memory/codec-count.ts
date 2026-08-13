@@ -30,7 +30,7 @@ const OUT = join(WORK, "artifacts");
 mkdirSync(SRC, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
-const REPS = Number(process.env.REPS ?? 12);
+const REPS = Number(process.env.REPS ?? 25);
 const NODE = process.env.NODE_BIN ?? "node";
 const NODE_FLAGS = (process.env.NODE_FLAGS ?? "").split(" ").filter(Boolean);
 const READER = join(ROOT, "ts", "proto-reader");

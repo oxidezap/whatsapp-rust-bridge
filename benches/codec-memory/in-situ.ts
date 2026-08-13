@@ -12,13 +12,17 @@
  *   cut             the ping-pong closure kept, the rest stubbed — the largest
  *                   cut a Baileys-compatible client could actually take
  *   lazycodecs      codec objects deferred, `proto` assembled eagerly
- *   lazyns          codecs eager, `proto` assembled on first property read
+ *   lazyns          codecs eager, the whole `proto` tree on first read
  *   lazyboth        both — the ceiling on deferring execution
+ *   lazyns-pertype  codecs eager, one lazy getter per type in `proto`
+ *   lazyboth-pertype  both, per type — the shape that could actually ship
  *   textcut-lazyns  both, over the stubbed codecs — the floor
  *
- * The lazy arms build `proto` behind a Proxy. That is a measurement shape, not
- * a proposal: it answers "what is the most deferral could ever be worth" and
- * nothing about what the published namespace should be.
+ * The `whole` arms put `proto` behind a Proxy, which is a measurement shape and
+ * not a proposal: they answer "what is the most deferral could ever be worth"
+ * and, once a client touches one type, they build all 657. The `pertype` arms
+ * are the honest control for a shippable lazy namespace — a plain object whose
+ * types materialize one at a time.
  *
  * Needs pkg/ — run `bun run build:wasm` first. A dev build works and every arm
  * carries the same wasm either way, so the differences between arms hold; only
@@ -32,7 +36,7 @@ import { closure, emit, parse, PING_PONG_ROOTS, ROOT } from "./slice";
 
 const HERE = import.meta.dir;
 const WORK = join(ROOT, "target", "codec-memory", "in-situ");
-const REPS = Number(process.env.REPS ?? 12);
+const REPS = Number(process.env.REPS ?? 15);
 const NODE = process.env.NODE_BIN ?? "node";
 const NODE_FLAGS = (process.env.NODE_FLAGS ?? "").split(" ").filter(Boolean);
 
@@ -77,8 +81,19 @@ const rewriteProtoTs = (source: string): string => {
     "interface MessageFns<T> {\n  encode(message: T, writer?: any): any;\n",
     "  decode(input: Uint8Array | any, length?: number): T;\n  fromPartial(obj: any): T;\n}\n\n",
     source.slice(registryEnd, resolveStart),
+    // The names the stock registry accepts that are not the generated
+    // spelling. Dropping them would make the arms differ by more than when
+    // a codec is built.
+    "const REGISTRY_ALIASES: Record<string, string> = {\n",
+    '  AdvSignedDeviceIdentity: "ADVSignedDeviceIdentity",\n',
+    '  AdvSignedKeyIndexList: "ADVSignedKeyIndexList",\n',
+    '  AdvDeviceIdentity: "ADVDeviceIdentity",\n',
+    '  AdvSignedDeviceIdentityHmac: "ADVSignedDeviceIdentityHMAC",\n',
+    '  LidMigrationMappingSyncPayload: "LIDMigrationMappingSyncPayload",\n',
+    "};\n\n",
     "function resolve(typeName: string): MessageFns<any> {\n",
-    '  const candidate = (codecs as Record<string, any>)[typeName.replaceAll(".", "_")];\n',
+    '  const flat = REGISTRY_ALIASES[typeName] ?? typeName.replaceAll(".", "_");\n',
+    "  const candidate = (codecs as Record<string, any>)[flat];\n",
     "  if (candidate) return candidate as MessageFns<any>;\n",
     "  throw new Error(`unknown proto type: ${typeName}`);\n}\n",
     source.slice(resolveEnd),
@@ -114,6 +129,115 @@ const messagePass = (fromGetterObject: boolean) =>
       cursor[leaf] = Object.assign({}, cursor[leaf] ?? {}, value);
     }
   }`;
+
+/**
+ * The tree built at import, but each type materialized on first read and then
+ * written back as a plain property.
+ *
+ * Deferring the whole namespace behind one Proxy answers "what is the most
+ * deferral could be worth"; it does not answer "what does a client that uses
+ * six types keep", because the first read builds all 657. This one does, and
+ * it is also the only shape that could ship: `proto` stays a plain object and
+ * property access keeps its semantics.
+ *
+ * Two details the obvious implementation gets wrong. Walking to a parent with
+ * `cursor[segment] ??= {}` *reads* the parent, so every type with children
+ * materializes at build time; the containers are therefore held in a map and
+ * attached from there. And merging children with `Object.assign` reads them,
+ * so the descriptors are copied instead.
+ */
+const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): string => {
+  const head = source.slice(0, source.indexOf("const buildNamespace = "));
+  const codecFor = fromGetterObject
+    ? "(codecs as Record<string, any>)[flatName]"
+    : "(gen as Record<string, any>)[flatName]";
+  return `${head}const defineLazy = (target: Record<string, any>, key: string, make: () => any): void => {
+  Object.defineProperty(target, key, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      const value = make();
+      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+      return value;
+    },
+    set(value: any) {
+      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+    },
+  });
+};
+
+const buildNamespace = (): Record<string, any> => {
+  const root: Record<string, any> = {};
+  const codecNameSet = new Set<string>(codecNames);
+  // One child container per flat name, reachable without reading the property
+  // that will carry it.
+  const containers = new Map<string, Record<string, any>>();
+  const childrenOf = (flatName: string): Record<string, any> => {
+    let container = containers.get(flatName);
+    if (!container) containers.set(flatName, (container = {}));
+    return container;
+  };
+  const containerFor = (path: string[]): Record<string, any> => {
+    let cursor = root;
+    let prefix = "";
+    for (const segment of path) {
+      prefix = prefix ? \`\${prefix}\${NAMESPACE_SEPARATOR}\${segment}\` : segment;
+      const known = containers.has(prefix);
+      const child = childrenOf(prefix);
+      // A prefix that is itself a message gets its children through the getter
+      // below; a pure namespace node attaches directly.
+      if (!known && !codecNameSet.has(prefix)) cursor[segment] = child;
+      cursor = child;
+    }
+    return cursor;
+  };
+  const place = (flatName: string): [Record<string, any>, string] => {
+    const path = flatName.split(NAMESPACE_SEPARATOR);
+    const leaf = path.pop()!;
+    return [containerFor(path), leaf];
+  };
+
+  // Memoized per flat name so an alias and its target share one wrapper.
+  const wrappers = new Map<string, () => any>();
+  for (const flatName of codecNames) {
+    const [cursor, leaf] = place(flatName);
+    const children = childrenOf(flatName);
+    let built: any;
+    const make = () => {
+      if (built === undefined) {
+        built = wrapMessage(flatName.replaceAll(NAMESPACE_SEPARATOR, PROTO_TYPE_SEPARATOR), ${codecFor});
+        Object.defineProperties(built, Object.getOwnPropertyDescriptors(children));
+      }
+      return built;
+    };
+    wrappers.set(flatName, make);
+    defineLazy(cursor, leaf, make);
+  }
+
+  for (const [flatName, value] of Object.entries(gen)) {
+    if (flatName === "codecs" || !isVisibleGeneratedExport(flatName, value) || !isEnumLike(value)) continue;
+    const [cursor, leaf] = place(flatName);
+    cursor[leaf] = Object.assign({}, childrenOf(flatName), value);
+  }
+
+  for (const [alias, target] of Object.entries(HISTORICAL_ALIASES)) {
+    const make = wrappers.get(target);
+    if (make && !Object.getOwnPropertyDescriptor(root, alias)) defineLazy(root, alias, make);
+  }
+
+  for (const parent of FORWARD_COMPATIBLE_PARENTS) {
+    const descriptor = Object.getOwnPropertyDescriptor(root, parent);
+    if (!descriptor?.get) continue;
+    const inner = descriptor.get;
+    defineLazy(root, parent, () => wrapWithForwardCompatibleChildren(inner.call(root)));
+  }
+
+  return root;
+};
+
+export const proto: Record<string, any> = buildNamespace();
+`;
+};
 
 /** The same tree, assembled on the first property read of `proto`. */
 const rewriteNamespaceLazy = (source: string, fromGetterObject: boolean): string => {
@@ -161,7 +285,8 @@ const IMPORT_LAZY = `${IMPORT_GEN}\nimport { codecs } from "./generated/whatsapp
 interface Arm {
   name: string;
   codecModule?: string;
-  lazyNamespace?: boolean;
+  /** `whole`: one Proxy over the entire tree. `pertype`: a getter per type. */
+  lazyNamespace?: "whole" | "pertype";
   /** `textcut` cannot run the ping-pong traffic — its codecs throw. */
   touchable: boolean;
 }
@@ -172,9 +297,11 @@ const arms: Arm[] = [
   { name: "textcut", codecModule: stubCodecs(new Set()), touchable: false },
   { name: "cut", codecModule: stubCodecs(PING_PONG), touchable: true },
   { name: "lazycodecs", codecModule: LAZY_CODECS, touchable: true },
-  { name: "lazyns", lazyNamespace: true, touchable: true },
-  { name: "lazyboth", codecModule: LAZY_CODECS, lazyNamespace: true, touchable: true },
-  { name: "textcut-lazyns", codecModule: stubCodecs(new Set()), lazyNamespace: true, touchable: false },
+  { name: "lazyns", lazyNamespace: "whole", touchable: true },
+  { name: "lazyboth", codecModule: LAZY_CODECS, lazyNamespace: "whole", touchable: true },
+  { name: "lazyns-pertype", lazyNamespace: "pertype", touchable: true },
+  { name: "lazyboth-pertype", codecModule: LAZY_CODECS, lazyNamespace: "pertype", touchable: true },
+  { name: "textcut-lazyns", codecModule: stubCodecs(new Set()), lazyNamespace: "whole", touchable: false },
 ];
 
 mkdirSync(WORK, { recursive: true });
@@ -198,9 +325,24 @@ for (const arm of arms) {
   }
   const namespacePath = join(tree, "ts", "proto-namespace.ts");
   let namespaceSource = readFileSync(namespacePath, "utf8");
-  if (lazyCodecs) namespaceSource = namespaceSource.replace(IMPORT_GEN, IMPORT_LAZY);
-  if (arm.lazyNamespace) {
+  if (lazyCodecs) {
+    namespaceSource = namespaceSource.replace(IMPORT_GEN, IMPORT_LAZY);
+  } else if (arm.lazyNamespace === "pertype") {
+    // The per-type tree is keyed by name, so it needs the list even when the
+    // codec module itself stayed eager.
+    writeFileSync(
+      join(tree, "ts", "codec-names.ts"),
+      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
+    );
+    namespaceSource = namespaceSource.replace(
+      IMPORT_GEN,
+      `${IMPORT_GEN}\nimport { codecNames } from "./codec-names";`,
+    );
+  }
+  if (arm.lazyNamespace === "whole") {
     namespaceSource = rewriteNamespaceLazy(namespaceSource, lazyCodecs);
+  } else if (arm.lazyNamespace === "pertype") {
+    namespaceSource = rewriteNamespacePerType(namespaceSource, lazyCodecs);
   } else if (lazyCodecs) {
     // Eager namespace over a getter object: it reads every getter while
     // assembling, which is the whole point of the `lazycodecs` arm.
@@ -228,6 +370,9 @@ const label = (run: { arm: Arm; touch: boolean }) => `${run.arm.name}${run.touch
 
 const priv = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const heaps = new Map<string, number[]>(runs.map((run) => [label(run), []]));
+// Node 22 charges the codec text to the JS heap and node 26 to external
+// memory, so neither column alone says what an arm retains.
+const externals = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 
 for (let rep = 0; rep < REPS; rep++) {
   for (const run of runs) {
@@ -247,6 +392,7 @@ for (let rep = 0; rep < REPS; rep++) {
     const row = JSON.parse(proc.stdout.toString());
     priv.get(label(run))!.push(row.delta);
     heaps.get(label(run))!.push(row.heapUsed);
+    externals.get(label(run))!.push(row.external);
   }
 }
 
@@ -258,7 +404,9 @@ const median = (xs: number[]) => {
 
 const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toString().trim();
 console.log(`reps=${REPS} node=${version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
-console.log(["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs stock", "heapUsed med"].join("\t"));
+console.log(
+  ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs stock", "heapUsed med", "external med"].join("\t"),
+);
 const stock = median(priv.get("stock")!);
 for (const run of runs) {
   const key = label(run);
@@ -272,6 +420,7 @@ for (const run of runs) {
       Math.max(...xs),
       (median(xs) - stock).toFixed(0),
       median(heaps.get(key)!).toFixed(0),
+      median(externals.get(key)!).toFixed(0),
     ].join("\t"),
   );
 }
