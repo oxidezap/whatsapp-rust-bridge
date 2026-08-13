@@ -60,11 +60,11 @@ demonstrations, both from the tables below:
   opposite one.
 - Running v26 with `--predictable` — samples then land within 30 KiB of each
   other — **flips the sign** of the body-only removal, from −1.30 MiB to
-  +1.64 MiB, while leaving both candidate designs where they were.
+  +1.62 MiB, while leaving both candidate designs where they were.
 - Re-running the in-situ table on v26 with nothing changed put `cut +touch` at
   −0.33 MiB, then **+3.20**, then −0.39, then −0.02 across four runs. The same
   four runs reproduced every v22 arm within ~200 KiB, reproduced the
-  retained-memory column byte for byte on both versions, and held the
+  retained-memory column to the KiB on both versions, and held the
   recommended arm between −0.93 and −1.07 MiB.
 
 So `Private_Dirty` differences of this size are page-commit consequences, not
@@ -247,8 +247,9 @@ v22 column does.** Four runs of the identical artifacts, KiB:
 | **lazyboth-pertype +touch** | **−1096** | **−1016** | **−952** | **−948** |
 
 Every v22 arm came back within ~200 KiB of its previous reading each time, and
-the retained-memory column below came back **byte for byte identical in all four
-runs on both versions**. The v26 samples say why the rest move: `stock` spans
+the retained-memory column below came back **identical in all four runs on both
+versions**, to the KiB the probe records. The v26 samples say why the rest move:
+`stock` spans
 16860–21128 KiB across fifteen repetitions, so its median is decided by how many
 landed in each cluster. So no v26 private-memory figure here is quoted to two
 digits — except that the arm the recommendation rests on is the one that holds
@@ -322,7 +323,7 @@ other, so the spread is gone:
 | textcut-lazyns | −4250 | **−218** |
 
 v22 reproduces the default configuration arm for arm. v26 does not: `textcut`
-flips from −1.30 to **+1.64 MiB**, and `textcut-lazyns` from −3.40 to −0.18.
+flips from −1.30 to **+1.62 MiB**, and `textcut-lazyns` from −3.40 to −0.21.
 Nothing about the codecs changed between the two tables.
 
 **What `--predictable` changes is not only the GC**, and the first version of

@@ -1,7 +1,7 @@
 /**
  * The same changes, inside the real library.
  *
- * Seven bundles of `ts/index.ts` that differ only in what the codec layer does
+ * Ten bundles of `ts/index.ts` that differ only in what the codec layer does
  * at import — same wasm, same glue, same reader, same wire-batch codecs — so a
  * difference between two of them is the codec layer's.
  *
