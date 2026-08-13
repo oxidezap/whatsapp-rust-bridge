@@ -1138,6 +1138,75 @@ mod tests {
         });
     }
 
+    /// The host cuts one string region by the lengths carried in the records,
+    /// so those lengths have to count the same unit the region is written in:
+    /// UTF-8 bytes. A value outside ASCII is where a UTF-16 count would differ,
+    /// and every value here is the peer's own text — an unrecognized `type`
+    /// attribute and the message ids it acknowledges.
+    #[test]
+    fn packed_batch_lengths_count_utf8_bytes() {
+        let kind = "leído";
+        let id = "Ação-1";
+        assert_ne!(
+            kind.len(),
+            kind.encode_utf16().count(),
+            "the values have to be non-ASCII for this to test anything"
+        );
+
+        let receipt = Event::Receipt(
+            wacore::types::events::Receipt::builder()
+                .source(wacore::types::message::MessageSource {
+                    chat: "5511999@s.whatsapp.net".parse().expect("valid chat jid"),
+                    sender: "5511999@s.whatsapp.net".parse().expect("valid sender jid"),
+                    ..Default::default()
+                })
+                .message_ids(vec![id.to_string()])
+                .timestamp(Default::default())
+                .r#type(wacore::types::presence::ReceiptType::Other(
+                    kind.to_string(),
+                ))
+                .offline(false)
+                .build(),
+        );
+
+        let mut out = Vec::new();
+        ReceiptWireBatch::with_encoder(|encoder| {
+            *encoder = ReceiptWireBatch::default();
+            encoder.begin();
+            encoder.push(&receipt).expect("packs");
+            encoder.write_and_reset(&mut out);
+        });
+
+        let u32_at =
+            |at: usize| u32::from_le_bytes(out[at..at + 4].try_into().expect("4 bytes")) as usize;
+        let u16_at =
+            |at: usize| u16::from_le_bytes(out[at..at + 2].try_into().expect("2 bytes")) as usize;
+        let new_strings = u32_at(4);
+        let records_at = PACKED_HEADER_BYTES + new_strings * 4 + u32_at(8) * 11;
+        let region_at = out.len() - u32_at(12);
+
+        // Walk the definitions the way the host does: each length in slot order,
+        // cutting the region as it goes.
+        let mut cursor = region_at;
+        let definitions: Vec<&str> = (0..new_strings)
+            .map(|i| {
+                let length = u16_at(PACKED_HEADER_BYTES + i * 4 + 2);
+                let value = std::str::from_utf8(&out[cursor..cursor + length])
+                    .expect("a definition ends on a character boundary");
+                cursor += length;
+                value
+            })
+            .collect();
+        assert_eq!(definitions, ["5511999", "s.whatsapp.net", kind]);
+
+        // Record: u8 flags | 8 x u16 slots | f64 timestamp | u8 id count | u16
+        // id length. The inline values follow the definitions in the region.
+        let id_length = u16_at(records_at + 1 + 8 * 2 + 8 + 1);
+        assert_eq!(id_length, id.len(), "an inline length counts UTF-8 bytes");
+        assert_eq!(&out[cursor..cursor + id_length], id.as_bytes());
+        assert_eq!(cursor + id_length, out.len(), "the region ends with it");
+    }
+
     /// The scan-based dedup must not confuse a value with a longer one that
     /// starts the same way.
     #[test]
