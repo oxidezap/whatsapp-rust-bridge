@@ -3,6 +3,24 @@
 //! Wraps `whatsapp_rust::Client` with JS-provided adapters for
 //! transport (WebSocket), storage (InMemory/JS), and HTTP (fetch).
 
+// The conversion helpers here are shared by the per-domain modules below, so
+// turning a domain off leaves the ones only it called unused. That is the
+// feature working, not a defect — but the allow is scoped to exactly the builds
+// where it is expected, so the default build still reports a helper that has
+// genuinely lost its last caller.
+#![cfg_attr(
+    not(all(
+        feature = "client-business",
+        feature = "client-chat-actions",
+        feature = "client-contacts",
+        feature = "client-groups",
+        feature = "client-media",
+        feature = "client-newsletter",
+        feature = "client-signal",
+    )),
+    allow(dead_code)
+)]
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -2531,14 +2549,23 @@ pub struct WasmWhatsAppClient {
 // its own `#[wasm_bindgen] impl WasmWhatsAppClient` block. wasm-bindgen
 // accepts several impl blocks for one type, and a child module reaches this
 // module's private fields and helpers, so the split costs no visibility.
+// Each optional one is a Cargo feature, on by default; connection and
+// messaging are not optional. See `[features]` in Cargo.toml.
+#[cfg(feature = "client-business")]
 mod business;
+#[cfg(feature = "client-chat-actions")]
 mod chat_actions;
 mod connection;
+#[cfg(feature = "client-contacts")]
 mod contacts;
+#[cfg(feature = "client-groups")]
 mod groups;
+#[cfg(feature = "client-media")]
 mod media;
 mod messaging;
+#[cfg(feature = "client-newsletter")]
 mod newsletter;
+#[cfg(feature = "client-signal")]
 mod signal;
 
 impl Drop for WasmWhatsAppClient {

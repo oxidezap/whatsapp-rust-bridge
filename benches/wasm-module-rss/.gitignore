@@ -1,0 +1,4 @@
+# Built by build-variant.sh. Each artifact is 4-7 MB and is reproducible from
+# the feature set in its name, so the measurements travel in the docs and the
+# binaries do not travel at all.
+artifacts/

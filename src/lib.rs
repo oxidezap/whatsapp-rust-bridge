@@ -24,12 +24,14 @@ pub mod js_http;
 mod js_keys;
 pub mod js_time;
 pub mod js_transport;
+#[cfg(feature = "legacy-session")]
 pub mod legacy_session;
 pub mod logger;
 pub mod memory_profile;
 pub mod proto;
 pub mod result_types;
 pub mod runtime;
+#[cfg(feature = "client-signal")]
 pub mod signal_records;
 pub mod wasm_client;
 mod wasm_utils;

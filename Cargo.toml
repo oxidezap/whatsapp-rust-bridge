@@ -40,10 +40,40 @@ wasm-opt = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = []
+# Everything the published artifact carries today. A consumer who wants a
+# smaller one turns features off from here with `--no-default-features` plus
+# the ones it keeps; `default` itself stays the surface that shipped, so
+# nothing is ever removed from this list without a major bump.
+default = [
+    "client-business",
+    "client-chat-actions",
+    "client-contacts",
+    "client-groups",
+    "client-media",
+    "client-newsletter",
+    "client-signal",
+    "legacy-session",
+]
 audio = ["dep:symphonia"]
 image = ["dep:image"]
 sticker = ["dep:img-parts"]
+
+# One per `#[wasm_bindgen]` domain in `src/wasm_client/`. Connection and
+# messaging have no feature: a client that cannot connect or send is not a
+# client, and everything else in the graph hangs off those two anyway.
+client-business = []
+client-chat-actions = []
+client-contacts = []
+client-groups = []
+client-media = []
+client-newsletter = []
+# The standalone Signal record codecs and the group-message crypto exports.
+client-signal = []
+# Typed interop with the decoded libsignal SessionRecord v1 model, for
+# migrating externally produced auth state. The core keeps this off by default
+# so a client carries no migration surface; the bridge turns it on for the
+# consumers that migrate from a JS implementation.
+legacy-session = ["whatsapp-rust/legacy-session-interop"]
 # Diagnostics-only counting allocator and scoped history-sync attribution.
 # Kept out of production builds because every allocation pays counter overhead.
 # The core's own tracing metadata supplies task names; the bridge never mirrors
@@ -97,7 +127,7 @@ web-sys = { version = "0.3", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = ["danger-skip-cert-chain-verify", "legacy-session-interop"] }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = ["danger-skip-cert-chain-verify"] }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
