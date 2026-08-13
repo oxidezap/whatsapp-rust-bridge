@@ -13,7 +13,10 @@
  * says which fields those are.
  *
  * What this does not cover: scalar field values (the payloads set message
- * fields only), and nesting past one level.
+ * fields only), and nesting past one level. And one difference it does not
+ * check because it is real: before a type is first read its property is an
+ * accessor, where the eager namespace has a data descriptor. Reading, calling,
+ * enumerating and spreading are identical; `getOwnPropertyDescriptor` is not.
  *
  * Run `bun run bench:codec-memory:in-situ` first — it builds the bundles.
  * Then: bun run bench:codec-memory:equivalence
@@ -172,16 +175,21 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   const frozen = await load("lazyboth-pertype", "?frozen=1");
   Object.freeze(frozen.proto);
   let ok = false;
+  let stable = false;
   try {
     ok = Buffer.compare(
       Buffer.from(frozen.proto.HistorySync.encode({}).finish()),
       Buffer.from(stock.proto.HistorySync.encode({}).finish()),
     ) === 0;
+    // Identity too: a getter that cannot write itself back must still hand out
+    // the same object, and the forward-compatible carriers wrap on the way out.
+    stable = frozen.proto.HistorySync === frozen.proto.HistorySync && frozen.proto.Message === frozen.proto.Message;
   } catch (error) {
     console.log(`    ${error.message}`);
   }
   console.log("\nfrozen namespace");
   check("a type read for the first time after Object.freeze(proto) still resolves", ok);
+  check("a frozen namespace hands out the same object twice", stable);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

@@ -115,8 +115,16 @@ const rewriteProtoTsForCut = (source: string): string => {
     "interface MessageFns<T> {\n  encode(message: T, writer?: any): any;\n",
     "  decode(input: Uint8Array | any, length?: number): T;\n  fromPartial(obj: any): T;\n}\n\n",
     source.slice(registryEnd, resolveStart),
+    // The kept types keep their registry spellings; only the removed names go.
+    "const REGISTRY_ALIASES: Record<string, string> = {\n",
+    '  AdvSignedDeviceIdentity: "ADVSignedDeviceIdentity",\n',
+    '  AdvSignedKeyIndexList: "ADVSignedKeyIndexList",\n',
+    '  AdvDeviceIdentity: "ADVDeviceIdentity",\n',
+    '  AdvSignedDeviceIdentityHmac: "ADVSignedDeviceIdentityHMAC",\n',
+    '  LidMigrationMappingSyncPayload: "LIDMigrationMappingSyncPayload",\n',
+    "};\n\n",
     "function resolve(typeName: string): MessageFns<any> {\n",
-    '  const candidate = GENERATED_MODULE[typeName.replaceAll(".", "_")];\n',
+    '  const candidate = GENERATED_MODULE[REGISTRY_ALIASES[typeName] ?? typeName.replaceAll(".", "_")];\n',
     '  if (candidate && typeof candidate === "object" && "encode" in candidate) {\n',
     "    return candidate as MessageFns<any>;\n  }\n",
     "  throw new Error(`unknown proto type: ${typeName}`);\n}\n",
@@ -259,7 +267,12 @@ const buildNamespace = (): Record<string, any> => {
     const descriptor = Object.getOwnPropertyDescriptor(root, parent);
     if (!descriptor?.get) continue;
     const inner = descriptor.get;
-    defineLazy(root, parent, () => wrapWithForwardCompatibleChildren(inner.call(root)));
+    // Memoized, not just deferred: on a frozen namespace the getter cannot
+    // write itself back, and an unmemoized wrapper would hand out a new Proxy
+    // per read, so proto.Message !== proto.Message — which the eager tree
+    // never does.
+    let wrapped: any;
+    defineLazy(root, parent, () => (wrapped ??= wrapWithForwardCompatibleChildren(inner.call(root))));
   }
 
   return root;
@@ -324,11 +337,60 @@ interface Arm {
 }
 
 const PING_PONG = closure(parsed, PING_PONG_ROOTS);
+
+/**
+ * The enums a generator emitting only `keep` would still emit: the ones nested
+ * under a kept message, and the ones a kept message's field references. Leaving
+ * all 212 in would rebuild `proto.HistorySync` out of its enums alone, which is
+ * a namespace node the cut is supposed to have removed.
+ */
+const reachableEnums = (keep: Set<string>): Set<string> => {
+  const flat = (dotted: string) => dotted.replaceAll(".", "_");
+  const declared = new Set<string>();
+  const referenced = new Set<string>();
+  for (const line of readFileSync(join(ROOT, "ts", "generated", "whatsapp-surface.txt"), "utf8").split("\n")) {
+    if (!line || line.startsWith("#")) continue;
+    const columns = line.split("\t");
+    if (columns.length === 2 && columns[1] === "enum") {
+      declared.add(flat(columns[0]!));
+      continue;
+    }
+    const [owner, , , , type, ref] = columns;
+    if (type !== "enum" || !ref || !keep.has(flat(owner!))) continue;
+    referenced.add(flat(ref.split("=")[0]!));
+  }
+  const kept = new Set<string>();
+  for (const name of declared) {
+    if (referenced.has(name)) {
+      kept.add(name);
+      continue;
+    }
+    // Nested under a kept message: the longest prefix that names one.
+    const segments = name.split("_");
+    for (let cut = segments.length - 1; cut > 0; cut--) {
+      if (keep.has(segments.slice(0, cut).join("_"))) {
+        kept.add(name);
+        break;
+      }
+    }
+  }
+  return kept;
+};
+
+/** The codec module a generator would emit for `keep`: nothing else in it. */
+const realCut = (keep: Set<string>): string => {
+  const enums = reachableEnums(keep);
+  const trimmed: typeof parsed = {
+    ...parsed,
+    blocks: parsed.blocks.filter((block) => block.kind !== "enum" || enums.has(block.name!)),
+  };
+  return emit(trimmed, keep, "eager", false);
+};
 const arms: Arm[] = [
   { name: "stock", touchable: true },
   { name: "textcut", codecModule: stubCodecs(new Set()), touchable: false },
   { name: "cut", codecModule: stubCodecs(PING_PONG), touchable: true },
-  { name: "cut-real", codecModule: emit(parsed, PING_PONG, "eager", false), realCut: true, touchable: true },
+  { name: "cut-real", codecModule: realCut(PING_PONG), realCut: true, touchable: true },
   { name: "lazycodecs", codecModule: LAZY_CODECS, touchable: true },
   { name: "lazyns", lazyNamespace: "whole", touchable: true },
   { name: "lazyboth", codecModule: LAZY_CODECS, lazyNamespace: "whole", touchable: true },
