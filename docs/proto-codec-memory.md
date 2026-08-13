@@ -10,12 +10,16 @@ Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.89
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
 Deferring construction **per type** is worth **−1.91 MiB (v22) / −0.93 (v26)**
-after realistic use, and the five differences a consumer
-can observe — a property descriptor, the order `Object.keys` returns, and three
-corners of writing to or redefining a property — are declared below.
-Every other shape of either idea is worth
-nothing: deferring construction alone, deferring the namespace as one unit, or
-removing codec bodies while keeping their names. The recommendation is the lazy
+after realistic use, and the six differences a consumer can observe — a property
+descriptor, the order `Object.keys` returns, and four corners of writing to or
+redefining a property — are declared below.
+
+Those two are the only *shippable* shapes measured. Two others save real memory
+but cannot be shipped in any form: `textcut` and `cut` leave the removed types
+exported and throwing, which is worse for a consumer than removing them. The
+rest save nothing at all — deferring construction alone, deferring the namespace
+as one unit, and per-type getters over eager codecs are each within noise of
+stock once the client has used the library. The recommendation is the lazy
 design. The measurement is in `benches/codec-memory/`.
 
 ## What was measured, and how
@@ -399,9 +403,13 @@ library. Against the stock bundle it checks:
 - all five of the registry's non-generated spellings — `AdvSignedDeviceIdentity`,
   `AdvSignedKeyIndexList`, `AdvDeviceIdentity`, `AdvSignedDeviceIdentityHmac`
   and `LidMigrationMappingSyncPayload`, none of which the all-codec sweep
-  reaches, since that one drives generated names — plus the
-  `ADVSignedKeyIndexList` alias and the synthesized-unknown-child behaviour of
-  the four forward-compatible carriers;
+  reaches, since that one drives generated names — and the
+  synthesized-unknown-child behaviour of the four forward-compatible carriers;
+- that `ADVKeyIndexList` and `ADVSignedKeyIndexList` are both present and stay
+  distinct, which is what `HISTORICAL_ALIASES` does today: it installs the alias
+  only when the generated module lacks that export, and the module has it, so
+  the alias never fires. An earlier version of this suite asserted the target
+  alone, which only rechecked one of the 657;
 - a type read for the first time *after* `Object.freeze(proto)`, the same object
   handed out twice from a frozen namespace, and assignment after
   `Object.seal(proto)` and after `Object.freeze(proto)` — a getter that insists
@@ -422,8 +430,8 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Five differences are observable, and all five are inherent to an accessor
-rather than defects to fix:
+Six differences are observable, and all six are inherent to an accessor rather
+than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
   returns an accessor where the eager namespace returns a writable data
@@ -452,7 +460,12 @@ rather than defects to fix:
   so stock stays `writable: true`; converting an accessor to a data property
   defaults them to `false`, so the next assignment throws where stock accepts
   it. `defineProperty` never reaches the accessor, so no getter or setter can
-  compensate — again only a Proxy could.
+  compensate — again only a Proxy could;
+- `Reflect.set(proto, "Message", value)` after `Object.freeze(proto)`: a frozen
+  data property's `[[Set]]` returns `false` and leaves the caller to decide,
+  while a setter runs and this one throws. Same root as the sloppy-mode case —
+  an accessor cannot hand the decision back — and it is the reason both are
+  listed rather than merged.
 
 Not on the list, because it was a defect and is fixed: a write through an
 overlay — `Object.create(proto).Message = x` — reaches the setter with the
@@ -463,9 +476,9 @@ overlay. The setter checks its receiver, and the harness checks the setter.
 Everything else behaves identically: reading, calling, enumerating, spreading,
 `JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
 assignment after a freeze. That is the whole of what "transparent" means here,
-and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode and both
-redefinition divergences on every run rather than hiding them in a set
-comparison.
+and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode,
+`Reflect.set` and both redefinition divergences on every run rather than hiding
+them in a set comparison.
 
 Six details any implementation has to get right, all six found by getting them
 wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
@@ -508,7 +521,7 @@ bounds the two together rather than pricing them.
 **Recommendation: take the lazy design.** It is half the cut's private memory
 on v22, within a fifth of its retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change a consumer can only observe through the
-five corners declared above. The
+six corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.

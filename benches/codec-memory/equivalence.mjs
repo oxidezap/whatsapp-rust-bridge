@@ -200,7 +200,17 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
     check(`${name}: encodeProto ${viaFn}, decodeProto ${decoded}`, viaFn && decoded);
   }
 
-  check("ADVSignedKeyIndexList alias present", typeof mod.proto.ADVSignedKeyIndexList?.encode === "function");
+  // `HISTORICAL_ALIASES` installs `ADVKeyIndexList` only when the generated
+  // module has no such export, and it has one — so today the alias never fires
+  // and the two stay distinct codecs. Checking the target alone would just
+  // recheck one of the 657.
+  check(
+    "ADVKeyIndexList and ADVSignedKeyIndexList are both present and distinct, as on stock",
+    typeof mod.proto.ADVKeyIndexList?.encode === "function" &&
+      typeof mod.proto.ADVSignedKeyIndexList?.encode === "function" &&
+      (mod.proto.ADVKeyIndexList === mod.proto.ADVSignedKeyIndexList) ===
+        (stock.proto.ADVKeyIndexList === stock.proto.ADVSignedKeyIndexList),
+  );
   check(
     "unknown child on a forward-compatible carrier synthesizes",
     typeof mod.proto.Message.SomeUnreleasedThing?.fromObject === "function",
@@ -328,6 +338,25 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   };
   const lazyOpen = await redefineOpen("lazyboth-pertype");
   const eagerOpen = await redefineOpen("stock");
+
+  // `Reflect.set` reports rather than throws: a frozen data property's [[Set]]
+  // returns false, while a setter runs and this one throws. Same root as the
+  // sloppy-mode case — the accessor cannot hand the decision back to the caller.
+  const reflectFrozen = async (name) => {
+    const mod = await load(name, "?reflect=1");
+    Object.freeze(mod.proto);
+    try {
+      return `returned ${Reflect.set(mod.proto, "HistorySync", { marker: true })}`;
+    } catch (error) {
+      return `threw ${error.constructor.name}`;
+    }
+  };
+  const lazyReflect = await reflectFrozen("lazyboth-pertype");
+  const eagerReflect = await reflectFrozen("stock");
+  console.log(
+    `  note Reflect.set after Object.freeze(proto): stock ${eagerReflect}, lazy ${lazyReflect}` +
+      (lazyReflect === eagerReflect ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
   console.log(
     `  note Object.defineProperty(proto, …, { value }) before any read: stock ${eagerOpen}, lazy ${lazyOpen}` +
       (lazyOpen === eagerOpen ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
