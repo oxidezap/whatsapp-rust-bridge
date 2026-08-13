@@ -217,7 +217,15 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
     get() {
       return held ? held.value : keep(make());
     },
-    set(value: any) {
+    set(this: any, value: any) {
+      // An inherited write — \`Object.create(proto).Message = x\` — reaches this
+      // setter with the overlay as the receiver. A data property would have
+      // made an own property there and left the namespace alone; writing
+      // through to \`target\` would change it for every holder.
+      if (this !== target) {
+        Object.defineProperty(this, key, { value, writable: true, enumerable: true, configurable: true });
+        return;
+      }
       // A frozen namespace has non-writable data properties, so assigning to
       // one throws in module code and cannot change what a read returns. An
       // accessor's setter still runs, so it has to refuse rather than accept.
@@ -525,8 +533,11 @@ const heaps = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const externals = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const retained = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 
+// Rotated by one each repetition, so no arm keeps a fixed position in the
+// sweep and drift within one cannot be charged to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (const run of runs) {
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[(i + rep) % runs.length]!;
     const proc = Bun.spawnSync({
       cmd: [
         NODE,

@@ -9,9 +9,9 @@ or **the code being run**.
 Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.89 /
 −2.27 MiB** and is an API change. Deferring construction **per type** is worth
-**−2.08 / −1.07 MiB** after realistic use, and the three differences a consumer
-can observe — a property descriptor, the order `Object.keys` returns, and one
-corner of writing to a frozen namespace — are declared below.
+**−2.08 / −1.07 MiB** after realistic use, and the four differences a consumer
+can observe — a property descriptor, the order `Object.keys` returns, and two
+corners of writing to a frozen or sealed namespace — are declared below.
 Every other shape of either idea is worth
 nothing: deferring construction alone, deferring the namespace as one unit, or
 removing codec bodies while keeping their names. The recommendation is the lazy
@@ -63,7 +63,7 @@ is the one to believe. It is reported alongside.
 | published bundle 1.06 MB | **1,088,484 B** (1.038 MiB) | `bun build ts/index.ts --minify --target node` |
 | codec is 93 % of the bundle | **81.8 %** (890,176 B) | see below |
 | wasm-bindgen glue 172 KB unminified | **176,556 B** = 172.4 KiB | exact |
-| ~7.9 MiB of private RSS to evaluate the bundle | **8.6 MiB** (v22) / **7.9 MiB** (v26) | confirmed |
+| ~7.9 MiB of private RSS to evaluate the bundle | **11.4 MiB** (v22) / **8.0 MiB** (v26) | confirmed on v26, half again as large on v22 |
 | ~18 MiB left for JS after discounting the wasm module | **no** | see the decomposition |
 
 **Why 81.8 % and not 93 %.** Rebuilding `ts/generated/whatsapp.ts` as its own
@@ -76,24 +76,40 @@ Still the dominant term, and the prompt's headline ("the JavaScript cost of this
 package is protobuf, not the bridge") survives as a statement about *bytes*. It
 does not survive as a statement about memory.
 
-### Where the ~19.6 MiB of an import actually goes
+### Where the ~19.4 MiB of an import actually goes
 
-Private_Dirty delta per stage, 5 repetitions each, one process per stage:
+`bun run bench:codec-memory:import-stages` — Private_Dirty delta per stage, 5
+repetitions, one process per stage, each stage measured on its own rather than
+by subtraction:
 
 | stage | v22.22.2 | v26.5.0 |
 |---|---|---|
-| `readFileSync` of the 5.99 MB wasm | +5.74 MiB | +5.73 MiB |
-| … then `new WebAssembly.Module(bytes)` | +13.60 MiB | +14.01 MiB |
-| … then dropping the Buffer and collecting | +13.64 MiB | +14.00 MiB |
-| the same bundle with the wasm bootstrap removed | +8.55 MiB | +7.91 MiB |
-| importing the library as published | +19.59 MiB | +16.62 MiB |
+| `readFileSync` of the 5,993,200 B wasm | +5.73 MiB | +5.72 MiB |
+| … then `new WebAssembly.Module(bytes)` | +13.63 MiB | +13.90 MiB |
+| … then dropping the Buffer and collecting | +13.61 MiB | +14.03 MiB |
+| the same bundle with the wasm bootstrap removed | +11.43 MiB | +7.96 MiB |
+| importing the library as published | +19.35 MiB | +16.48 MiB |
 
-Two things fall out. Freeing the wasm Buffer **does not return the pages** — the
+Three things fall out. Freeing the wasm Buffer **does not return the pages** —
+13.63 → 13.61 MiB on v22, and on v26 the reading goes up rather than down. The
 "it is collected later" line in the pre-analysis is not true of private memory
-here. And the JS half of the import is **7.9–8.6 MiB**, which is the original
-~7.9 MiB attribution, not ~18 MiB. The 18 MiB figure comes from subtracting only
-the `WebAssembly.Module` step from the total and leaving the un-returned Buffer
-pages and the instantiation on the JS side of the ledger.
+here.
+
+The JS half of the import is **7.96 MiB on v26**, which is the original ~7.9 MiB
+attribution almost exactly, and **11.43 MiB on v22**, which is half again as
+much. Neither is ~18 MiB.
+
+And **the stages do not add up**, which is the actual answer to where 18 MiB
+came from: 11.43 + 13.61 = 25.04 against a 19.35 MiB total, because each stage
+carries per-process costs the others also carry and the two allocation paths
+share pages. A decomposition by subtracting one measured stage from the total is
+therefore not valid, and that subtraction — total minus the `WebAssembly.Module`
+step, leaving the un-returned Buffer pages and the instantiation on the JS side
+of the ledger — is exactly how the ~18 MiB figure was produced.
+
+An earlier, uncommitted version of this probe put the v22 JS-only stage at
+8.55 MiB. The committed one says 11.43, tightly (11636–11724 KiB over five
+runs), and the committed one is what this table now reports.
 
 ## Which codecs are reachable
 
@@ -370,7 +386,7 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Three differences are observable, and all three are inherent to an accessor
+Four differences are observable, and all four are inherent to an accessor
 rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
@@ -389,13 +405,25 @@ rather than defects to fix:
   that matches every strict caller — which is all ESM and all compiled
   TypeScript. Only a Proxy could defer the choice to the caller, by returning
   `false` from a `set` trap; that is a different design, unmeasured here, and it
-  puts a trap on every property read of the hottest object in the package.
+  puts a trap on every property read of the hottest object in the package;
+- `Object.defineProperty(proto, "Message", { value })` after `Object.seal(proto)`
+  and before the type is read: a sealed data property is still writable, so
+  stock takes the new value, while a sealed accessor is non-configurable and
+  cannot become a data property, so the call throws `Cannot redefine property`.
+  After a *freeze* both refuse, so this is the seal case only.
+
+Not on the list, because it was a defect and is fixed: a write through an
+overlay — `Object.create(proto).Message = x` — reaches the setter with the
+overlay as its receiver, and a setter that ignored that would have rewritten the
+shared namespace for every holder instead of making an own property on the
+overlay. The setter checks its receiver, and the harness checks the setter.
 
 Everything else behaves identically: reading, calling, enumerating, spreading,
 `JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
 assignment after a freeze. That is the whole of what "transparent" means here,
-and `bench:codec-memory:equivalence` prints the key-order and sloppy-mode
-divergences on every run rather than hiding them in a set comparison.
+and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode and
+redefinition divergences on every run rather than hiding them in a set
+comparison.
 
 Six details any implementation has to get right, all six found by getting them
 wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
@@ -438,7 +466,7 @@ bounds the two together rather than pricing them.
 **Recommendation: take the lazy design.** It is half the cut's private memory,
 the same retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change a consumer can only observe through the
-three corners declared above. The
+four corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.
@@ -450,6 +478,7 @@ bun run bench:codec-memory              # the isolated sweep, 25 reps
 bun run build:wasm                      # in-situ needs pkg/
 bun run bench:codec-memory:in-situ      # the ten library arms, 15 reps
 bun run bench:codec-memory:equivalence  # is the lazy arm the same library?
+bun run bench:codec-memory:import-stages # where an import's memory goes, 5 reps
 bun run benches/codec-memory/slice.ts   # the reachability counts
 ```
 

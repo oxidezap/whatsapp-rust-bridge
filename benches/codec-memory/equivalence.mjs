@@ -108,7 +108,10 @@ const check = (label, ok) => {
   console.log(
     `lazyboth-pertype: ${before}/${total} top-level types unmaterialized after import, ${stillLazy()} after a ping-pong exchange`,
   );
-  check("touching three types leaves the rest unbuilt", stillLazy() >= before - 6);
+  // Exactly three, not "about three": the workload reads three top-level names,
+  // and every codec their decodes reach lives in a child container. An arm that
+  // materialized a fourth would still be lazy but no longer selectively so.
+  check(`touching three types materializes exactly three (${before - stillLazy()})`, stillLazy() === before - 3);
 }
 
 const codecPaths = [];
@@ -266,6 +269,40 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
       return error.constructor.name;
     }
   };
+  // An overlay: `Object.create(proto)` then a write, before the type is read.
+  // A data property makes an own property on the overlay and leaves the shared
+  // namespace alone; a setter that ignored its receiver would rewrite `proto`
+  // for every holder instead.
+  const overlay = async (name) => {
+    const mod = await load(name, "?overlay=1");
+    const local = Object.create(mod.proto);
+    local.HistorySync = { replacement: true };
+    return `own=${Object.hasOwn(local, "HistorySync")} local=${local.HistorySync?.replacement === true} shared=${mod.proto.HistorySync?.replacement === true}`;
+  };
+  const lazyOverlay = await overlay("lazyboth-pertype");
+  const eagerOverlay = await overlay("stock");
+  check(`a write through Object.create(proto) behaves as stock does (${eagerOverlay})`, lazyOverlay === eagerOverlay);
+
+  // `Object.defineProperty` after a seal. Stock's sealed data property is still
+  // writable, so a value descriptor lands; a non-configurable accessor cannot
+  // become a data property, so the same call throws. Reported, not asserted.
+  const redefine = async (name) => {
+    const mod = await load(name, "?redefine=1");
+    Object.seal(mod.proto);
+    try {
+      Object.defineProperty(mod.proto, "HistorySync", { value: { marker: true } });
+      return `accepted, marker=${mod.proto.HistorySync?.marker === true}`;
+    } catch (error) {
+      return error.constructor.name;
+    }
+  };
+  const lazyRedefine = await redefine("lazyboth-pertype");
+  const eagerRedefine = await redefine("stock");
+  console.log(
+    `  note Object.defineProperty after Object.seal(proto): stock ${eagerRedefine}, lazy ${lazyRedefine}` +
+      (lazyRedefine === eagerRedefine ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
+
   const lazySloppy = await sloppy("lazyboth-pertype");
   const eagerSloppy = await sloppy("stock");
   console.log(

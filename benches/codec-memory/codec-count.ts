@@ -134,10 +134,12 @@ const deltas = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 const totals = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 const heaps = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 
-// Round-robin, not one arm at a time: whatever the machine does during the run
-// then lands on every arm instead of on whichever one happened to go last.
+// Round-robin, and rotated by one each repetition: sampling the arms in a fixed
+// order would leave every arm at a fixed position in the sweep, so a machine
+// that drifts within a sweep would charge that drift to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (const arm of arms) {
+  for (let i = 0; i < arms.length; i++) {
+    const arm = arms[(i + rep) % arms.length]!;
     const proc = Bun.spawnSync({
       cmd: [NODE, "--expose-gc", ...NODE_FLAGS, join(HERE, "probe.mjs"), join(OUT, `${arm.name}.js`)],
       stdout: "pipe",
