@@ -62,6 +62,7 @@ opt_passes=(
   --directize
   --optimize-stack-ir
   --merge-similar-functions
+  --one-caller-inline-max-function-size 2000
 )
 [ "${NAMED:-0}" = "1" ] || opt_passes+=(--strip-debug)
 
