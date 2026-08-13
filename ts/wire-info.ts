@@ -466,11 +466,9 @@ class PackedBatchReader {
   /**
    * Take the next `length` bytes of the string region as one value.
    *
-   * Values are taken in the order the region was written, so outside ASCII the
-   * UTF-16 cursor walks forward with the byte cursor rather than the region
-   * being decoded again per value: one pass over the region either way. The
-   * walk reads each unit's own UTF-8 width, which the region being valid UTF-8
-   * makes exact — every value the writer packs is a Rust `&str`.
+   * The walk is affordable because values are taken in the order the region was
+   * written, and exact because that region is valid UTF-8 — every value the
+   * writer packs is a Rust `&str`.
    */
   private take(length: number): string {
     const start = this.inlineCursor;

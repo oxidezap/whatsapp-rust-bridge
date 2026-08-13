@@ -1,17 +1,12 @@
 /**
  * What reading the packed receipt/ack string region costs.
  *
- * The decoder cuts one region per batch by the byte lengths its records carry.
- * While the region is ASCII that is one decode plus `substring` per value; a
- * region carrying anything else is decoded a value at a time, which is the
- * price of reading a peer's own text correctly. Both regimes are measured on
- * both sides of the short-region threshold in `ts/wire-info.ts`, because the
- * two sides take different paths through the whole-region decode.
+ * The cases pair ASCII against non-ASCII on both sides of `TINY_STRING_LIMIT`,
+ * because those are the four paths `ts/wire-info.ts` can take through a region.
  *
  * One case per process: the decoder is a singleton whose region path would
- * otherwise be polymorphic across cases, which is not what a host decoding a
- * stream of one shape sees. The driver interleaves rounds so machine drift hits
- * the cases equally.
+ * otherwise go polymorphic across cases, which is not what a host decoding a
+ * stream of one shape sees. Rounds interleave so drift hits the cases equally.
  *
  * Run: bun run benches/wire-batch-decode.ts
  */
