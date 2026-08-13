@@ -3,10 +3,16 @@
  *
  * The consumer-visible symptom is a ~37 MiB step in private memory the first
  * time a process opens a connection. That step is V8 compiling this module —
- * not per-session state — and the part of it that scales with our artifact is
- * the compiler's zone memory. `v8.getHeapStatistics().peak_malloced_memory`
- * counts exactly that, and with compilation serialised it is bit-identical run
- * to run, which makes it usable as a build-time gate without a benchmark host.
+ * not per-session state — and `v8.getHeapStatistics().peak_malloced_memory`
+ * tracks the part of it that scales with our artifact. With compilation
+ * serialised it is bit-identical run to run, which makes it usable as a
+ * comparator without a benchmark host.
+ *
+ * What it tracks is per-function compilation work, and NOT one tier's zones:
+ * compiling every function costs ~7.9 MiB where a lazy load costs 0.5, stubbing
+ * every body takes it to 0.28 — and `--liftoff-only` leaves it where it was, to
+ * three decimals. Read a change in it as "the module got cheaper to compile",
+ * not as a claim about which compiler paid.
  *
  * Node, not Bun: the number is a V8 statistic, and the flags below are V8
  * flags. Plain `.mjs` for the same reason — the child processes are spawned
@@ -68,36 +74,24 @@ function processMemory() {
   };
 }
 
-async function child(wasmPath) {
+// The synchronous constructor under `--no-wasm-lazy-compilation` returns with
+// the whole module compiled, so there is nothing to wait for afterwards. An
+// earlier version settled for 600 ms per run against a moving peak: serial mode
+// reported the same 7.894 MiB with and without it, and 15 parallel runs each way
+// were indistinguishable (median 18.85 vs 19.82 MiB, ranges overlapping). Sample
+// straight after the constructor.
+function child(wasmPath) {
   const bytes = readFileSync(wasmPath);
   const before = processMemory();
   const started = process.hrtime.bigint();
   const compiled = new WebAssembly.Module(bytes);
   const compileMs = Number(process.hrtime.bigint() - started) / 1e6;
-
-  // `new WebAssembly.Module` returns once the baseline tier is done; the
-  // optimising tier keeps running on background tasks and is most of the zone
-  // memory we came for. Wait for the peak to stop moving rather than guessing
-  // a sleep.
-  let peak = v8.getHeapStatistics().peak_malloced_memory;
-  let unchanged = 0;
-  const deadline = Date.now() + 60_000;
-  while (unchanged < 12 && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    const now = v8.getHeapStatistics().peak_malloced_memory;
-    if (now === peak) unchanged++;
-    else {
-      peak = now;
-      unchanged = 0;
-    }
-  }
-
   const after = processMemory();
 
-  // The module has to still be reachable here. A collection during the loop
-  // above would hand its compiled code back before the sample, and the RSS
-  // figures would then report whether a GC happened rather than what the
-  // module costs. Reading it after the sample is what keeps it alive.
+  // The module has to still be reachable through the sample above. A collection
+  // before it would hand the compiled code back, and the RSS figures would then
+  // report whether a GC happened rather than what the module costs. Reading it
+  // afterwards is what keeps it alive.
   const exports = WebAssembly.Module.exports(compiled).length;
 
   process.stdout.write(
@@ -125,13 +119,21 @@ function driver(wasmPath, reps, serial) {
     runs.push(JSON.parse(out.trim().split("\n").pop()));
   }
 
+  // Averaging the middle pair on an even count, rather than taking the upper of
+  // the two: with `--reps 2` the upper-middle IS the maximum, which reports the
+  // worse of two runs as the typical one.
+  const median = (sorted) => {
+    const middle = sorted.length >> 1;
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  };
+
   const summarise = (key) => {
     const values = runs.map((r) => r[key]).filter((v) => v != null).sort((a, b) => a - b);
     if (values.length === 0) return null;
     const mib = (b) => (b / MIB).toFixed(3);
     return {
       min: mib(values[0]),
-      median: mib(values[Math.floor(values.length / 2)]),
+      median: mib(median(values)),
       max: mib(values[values.length - 1]),
       distinctValues: new Set(values).size,
     };
@@ -148,7 +150,7 @@ function driver(wasmPath, reps, serial) {
         zonePeakMiB: summarise("peakMalloced"),
         peakRssMiB: summarise("peakRss"),
         privateMiB: summarise("private"),
-        compileMsMedian: Number(compileMs[Math.floor(compileMs.length / 2)].toFixed(1)),
+        compileMsMedian: Number(median(compileMs).toFixed(1)),
       },
       null,
       2
@@ -194,5 +196,5 @@ if (!Number.isInteger(reps) || reps < 1) {
   process.exit(2);
 }
 
-if (process.env.WASM_ZONE_PEAK_CHILD) await child(wasmPath);
+if (process.env.WASM_ZONE_PEAK_CHILD) child(wasmPath);
 else driver(wasmPath, reps, serial);

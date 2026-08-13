@@ -89,11 +89,21 @@ both of which `scripts/wasm-zone-peak.mjs` runs:
   most expensive function. **Bit-identical across 15 runs**, every artifact
   measured, so a pair of runs is enough to compare two builds.
 - `--parallel`: V8's own scheduling, so the peak depends on which functions
-  happen to compile together. Every run differs; read the median of 15.
+  happen to compile together. Every run differs, and the median of 15 moves
+  between sessions on this machine (17.8–20.2 MiB for the same artifact), so
+  read it for the size of a gap and not for its third decimal.
 
 Both compile the whole module eagerly, which a real connect does not — a
 connect compiles roughly a fifth of it. This is a comparator between artifacts,
 not a prediction of a host's RSS.
+
+What the number tracks is per-function compilation work, and not one tier's
+zones. Compiling every function costs ~7.9 MiB where loading the same module
+lazily costs 0.5, and stubbing every body takes it to 0.28 — but `--liftoff-only`
+leaves it where it was, to three decimals, in both configurations. Whatever the
+optimising tier spends is not what this counts. Read a drop as "the module got
+cheaper to compile", not as a claim about which compiler paid, and do not read
+the V8 zone names from the original report into these figures.
 
 ## What the three functions are actually worth
 
@@ -103,13 +113,13 @@ function. Against the published artifact, 15 runs per row:
 
 | module | zone peak, serial | zone peak, parallel (median) | private after (median) |
 |---|---|---|---|
-| shipped | 7.894 MiB | 18.038 MiB | 52.402 MiB |
-| minus `#2102` | 7.343 MiB | 14.610 MiB | 48.820 MiB |
-| minus all three | 4.877 MiB | 10.238 MiB | 47.547 MiB |
-| every body stubbed | 0.282 MiB | 0.374 MiB | 14.879 MiB |
+| shipped | 7.894 MiB | 17.788 MiB | 52.883 MiB |
+| minus `#2102` | 7.343 MiB | 13.338 MiB | 48.492 MiB |
+| minus all three | 4.877 MiB | 10.426 MiB | 47.094 MiB |
+| every body stubbed | 0.282 MiB | 0.382 MiB | 14.695 MiB |
 
-The three hold 3.02 of 7.89 MiB serialised (38 %) and 7.80 of 18.04 MiB in
-parallel (43 %). The reported 16.4 of 31.3 MiB (52 %) is the same finding on a
+The three hold 3.02 of 7.89 MiB serialised (38 %) and 7.36 of 17.79 MiB in
+parallel (41 %). The reported 16.4 of 31.3 MiB (52 %) is the same finding on a
 different V8 and a different compile window; the attribution reproduces, the
 absolute numbers do not transfer.
 
@@ -118,17 +128,22 @@ absolute numbers do not transfer.
 Not a source split — the wasm-opt flag that builds the functions in the first
 place. `-ocimfs=N` caps single-caller inlining at `N`:
 
-| build | functions | code bytes | largest body | zone peak (parallel, 25 runs) | private (median) | compile ms |
-|---|---|---|---|---|---|---|
-| current | 11,688 | 4,979,477 | 177,110 B | 17.958 MiB | 52.520 MiB | 93.5 |
-| `-ocimfs=2000` | 11,752 | 4,979,634 (+157) | 87,456 B | 9.568 MiB | 48.242 MiB | 92.4 |
-| `-ocimfs=200` | 12,846 | 4,964,183 (−15,294) | 59,509 B | 4.208 MiB | 48.289 MiB | 110.1 |
+| build | functions | code bytes | largest body | zone peak (parallel, 25 runs) | private (median) |
+|---|---|---|---|---|---|
+| current | 11,688 | 4,979,477 | 177,110 B | 20.159 MiB | 52.797 MiB |
+| `-ocimfs=2000` | 11,752 | 4,979,634 (+157) | 87,456 B | 9.786 MiB | 48.117 MiB |
+| `-ocimfs=200` | 12,846 | 4,964,183 (−15,294) | 59,509 B | 4.369 MiB | 48.191 MiB |
 
 The private-memory gain saturates at `-ocimfs=2000`: cutting the zone peak by a
 further 5.4 MiB buys nothing more, which is the warning about zone memory being
 allocator memory playing out — most of it is already free when the window ends.
-`-ocimfs=200` also costs 18 % more compile wall time, having 1,158 more
-functions to compile.
+Repeating the current and `-ocimfs=200` rows across three sessions put the gap
+at 4.0–4.8 MiB every time.
+
+Compile wall time is not a reason to prefer either. One session had `-ocimfs=200`
+18 % slower; two later ones had it 5 % faster (89.4 / 89.9 ms against 94.3 /
+95.8). The spread between sessions is larger than the difference within one, so
+there is no effect here worth quoting.
 
 ### What it costs per message
 
