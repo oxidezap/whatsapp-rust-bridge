@@ -98,11 +98,9 @@ const rewriteProtoTs = (source: string): string => {
     "interface MessageFns<T> {\n  encode(message: T, writer?: any): any;\n",
     "  decode(input: Uint8Array | any, length?: number): T;\n  fromPartial(obj: any): T;\n}\n\n",
     source.slice(registryEnd, resolveStart),
-    // The names the stock registry accepts that are not the generated
-    // spelling. Dropping them would make the arms differ by more than when
-    // a codec is built.
-    // Null-prototype: a plain literal would answer `constructor` and friends
-    // from `Object.prototype`, and stock's registry lookup does not.
+    // The spellings stock's registry accepts that the generator does not emit;
+    // dropping them would make the arms differ by more than laziness.
+    // Null-prototype, because a literal answers `constructor` and stock cannot.
     "const REGISTRY_ALIASES: Record<string, string> = Object.assign(Object.create(null), {\n",
     '  AdvSignedDeviceIdentity: "ADVSignedDeviceIdentity",\n',
     '  AdvSignedKeyIndexList: "ADVSignedKeyIndexList",\n',

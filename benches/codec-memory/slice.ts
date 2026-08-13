@@ -232,11 +232,9 @@ function lazify(block: Block, codecs: Map<string, Block>): string {
  * shift every block boundary and every measurement built on them.
  */
 export function assertRoundTrip(parsed: Parsed, source = readFileSync(SOURCE, "utf8")): void {
-  // Concatenation alone proves no text was lost or reordered — not that the
-  // boundaries are right. A block that ended early would still rejoin
-  // perfectly, and every closure built on it would be wrong. So the counts and
-  // the shape of each block are checked against the source independently.
-  // `\s*`: prettier wraps 16 of the 657 declarations onto a second line.
+  // Rejoining cannot catch a block that ended early — the chunks still fit —
+  // and every closure built on a bad boundary would be wrong, so the counts and
+  // endings are checked against the source. `\s*`: prettier wraps 16 of 657.
   const declared = (source.match(/^export const [A-Za-z0-9_]+:\s*MessageFns</gm) ?? []).length;
   if (declared !== parsed.codecs.size) {
     throw new Error(`parsed ${parsed.codecs.size} codecs, source declares ${declared}`);

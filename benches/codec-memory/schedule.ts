@@ -23,15 +23,9 @@ const shuffle = <T>(items: readonly T[], seed: number): T[] => {
 };
 
 /**
- * A Latin square, one row per repetition: over a complete cycle of
- * `items.length` repetitions every arm occupies every slot exactly once, and
- * every arm's mean sweep position is identical, so drift within a sweep cannot
- * be charged to arm identity. The base order is reshuffled each cycle.
- *
- * The leftover rows of an incomplete cycle take their rotations spread around
- * the cycle rather than consecutively — consecutive offsets give each arm a
- * contiguous block of slots, which is what pulled the 15-of-18 sweep's mean
- * positions to 7.00–10.00. Spread, they are 8.00–9.00 against an ideal 8.50.
+ * A Latin square over a seeded base order, reshuffled each cycle: a complete
+ * cycle gives every arm every slot once and one mean position. An incomplete
+ * one spreads its rotations, since consecutive ones leave each arm a block.
  */
 export const shuffled = <T>(items: readonly T[], rep: number, reps: number): T[] => {
   const n = items.length;
