@@ -102,8 +102,25 @@ named("registry closure", closure(parsed, REGISTRY_ROOTS));
 named("all 657", new Set(parsed.codecs.keys()));
 named("lazy 657", new Set(parsed.codecs.keys()), "lazy");
 
-// The same bytes as data rather than as code.
-const minified = readFileSync(join(OUT, "all-657.js"), "utf8");
+/**
+ * The same bytes as data rather than as code — codec text only. Reusing
+ * `all-657.js` would put the shared reader inside the blob as well as in the
+ * arm's own module, so those two arms would carry it twice and the eager ones
+ * once. Building the blob with the reader left external keeps the payload to
+ * what these controls are about.
+ */
+{
+  const built = Bun.spawnSync({
+    cmd: [
+      "bun", "build", join(SRC, "all-657.entry.ts"), "--minify", "--target", "node",
+      "--external", READER, "--outfile", join(OUT, "all-657-codeconly.js"),
+    ],
+    stdout: "pipe",
+    stderr: "inherit",
+  });
+  if (built.exitCode !== 0) throw new Error("bundle failed: all-657-codeconly");
+}
+const minified = readFileSync(join(OUT, "all-657-codeconly.js"), "utf8");
 const emptyModule = emit(parsed, new Set(), "eager");
 arms.push({
   name: "string-657",
@@ -122,7 +139,7 @@ arms.push({
   bytes: bundle(
     "file-657",
     `${emptyModule}\nimport { readFileSync } from "node:fs";\nexport const blob: string = readFileSync(${JSON.stringify(
-      join(OUT, "all-657.js"),
+      join(OUT, "all-657-codeconly.js"),
     )}, "utf8");\n(globalThis as any).__blob = blob;\n`,
     ", blob",
   ),

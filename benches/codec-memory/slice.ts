@@ -114,11 +114,13 @@ export function parse(source = readFileSync(SOURCE, "utf8")): Parsed {
 
   // Runtime dependency: a codec body naming another codec. `X.encode(`,
   // `X.decode(`, `X.fromPartial(` and `X.create(` are the only shapes ts-proto
-  // emits for a cross-message call.
+  // emits for a cross-message call — but prettier will put a long name and the
+  // `.decode(` that follows it on separate lines, so the gap has to be allowed
+  // or those edges are missing from every closure.
   const deps = new Map<string, Set<string>>();
   for (const [name, block] of codecs) {
     const set = new Set<string>();
-    for (const m of block.text.matchAll(/([A-Za-z0-9_]+)\.(?:encode|decode|fromPartial|create)\(/g)) {
+    for (const m of block.text.matchAll(/([A-Za-z0-9_]+)\s*\.(?:encode|decode|fromPartial|create)\(/g)) {
       const ref = m[1]!;
       if (ref !== name && codecs.has(ref)) set.add(ref);
     }
@@ -191,8 +193,12 @@ function lazify(block: Block, codecs: Map<string, Block>): string {
   const body = block.text
     .replace(CODEC_HEAD, "")
     .replace(/;\s*$/, "")
-    .replace(/(^|[^.\w])([A-Za-z0-9_]+)\.(encode|decode|fromPartial|create)\(/g, (match, lead, ref, method) =>
-      codecs.has(ref) ? `${lead}_mk_${ref}().${method}(` : match,
+    // `\s*` is not cosmetic: prettier puts a long codec name and the `.decode(`
+    // that follows it on separate lines, and a rewrite that only matches the
+    // adjacent form leaves those call sites naming a binding the lazy module no
+    // longer has. `bench:codec-memory:equivalence` is what caught that.
+    .replace(/(^|[^.\w])([A-Za-z0-9_]+)(\s*)\.(encode|decode|fromPartial|create)\(/g, (match, lead, ref, gap, method) =>
+      codecs.has(ref) ? `${lead}_mk_${ref}()${gap}.${method}(` : match,
     );
   return [
     `let _lz_${name}: any;`,

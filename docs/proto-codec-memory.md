@@ -9,9 +9,10 @@ or **the code being run**.
 Short answer: the text costs 0.7–1.8 MiB of retained memory, about a tenth of
 what importing the library costs, and it is reachable only by an API change.
 Deferring the work is worth about the same — **but only when the deferral is per
-type**. Deferring construction alone buys nothing, deferring the namespace as
-one unit collapses the moment a client touches it, and deferring per type holds
-−0.99 to −1.88 MiB after realistic use in every configuration measured. The
+type**. Deferring construction alone buys nothing, deferring the namespace as one
+unit ends up worse than stock the moment a client touches it, and deferring per
+type holds −0.78 to −1.86 MiB after realistic use in every configuration
+measured. The
 recommendation is the lazy design, not the cut. The measurement is in
 `benches/codec-memory/`.
 
@@ -25,8 +26,8 @@ process per sample, arms interleaved round-robin so machine drift lands on all
 of them, medians over the repetition counts stated per table.
 
 Two node versions, because they disagree: **v22.22.2** and **v26.5.0**. Every
-number below was taken on this machine, 4 cores / 16 GB, against `c1c0fb0`
-(v0.11.0 plus #57), with a locally built release wasm (`whatsapp_rust_bridge_bg.wasm`,
+number below was taken on this machine, 4 cores / 16 GB, against `d5b6b38`
+(v0.11.0 plus #57 and #58), with a locally built release wasm (`whatsapp_rust_bridge_bg.wasm`,
 5,993,200 B).
 
 ### The one caveat that governs everything else
@@ -36,7 +37,7 @@ sit on a step boundary and their samples split into two clusters ~2.5 MiB apart;
 a median over such an arm is decided by how many runs landed in each. Two
 demonstrations, both from the tables below:
 
-- On v26 the isolated 657-codec arm reports `min 2104, max 4880` over 25
+- On v26 the isolated 657-codec arm reports `min 2116, max 4860` over 25
   repetitions. An earlier run of the same artifact put its median in the upper
   cluster and produced the "instantiation costs 2.7 MiB" reading that goes with
   it; a rebuilt, re-run set put it in the lower cluster and produced the
@@ -57,8 +58,8 @@ is the one to believe. It is reported alongside.
 |---|---|---|
 | 658 message codecs | **657** | `grep -c 'MessageFns<'` counts the `interface MessageFns<T>` declaration too. 657 codecs, 657 interfaces, 657 `createBase*`, 212 enums, one-to-one |
 | codec alone rebuilds to 1.014 MB | **1,014,386 B** | exact |
-| published bundle 1.06 MB | **1,087,972 B** (1.038 MiB) | `bun build ts/index.ts --minify --target node` |
-| codec is 93 % of the bundle | **81.8 %** (890,139 B) | see below |
+| published bundle 1.06 MB | **1,088,484 B** (1.038 MiB) | `bun build ts/index.ts --minify --target node` |
+| codec is 93 % of the bundle | **81.8 %** (890,176 B) | see below |
 | wasm-bindgen glue 172 KB unminified | **176,556 B** = 172.4 KiB | exact |
 | ~7.9 MiB of private RSS to evaluate the bundle | **8.6 MiB** (v22) / **7.9 MiB** (v26) | confirmed |
 | ~18 MiB left for JS after discounting the wasm module | **no** | see the decomposition |
@@ -68,7 +69,7 @@ entry point keeps all 657 export names alive at every use site, because they are
 the bundle's public surface. Inside `dist/index.js` the codec is an internal
 module and the minifier renames those identifiers. Measuring by difference —
 build `ts/index.ts` as it stands, then again with each codec body replaced by an
-empty object under the same export name — gives 1,087,972 − 197,833 = **890,139 B**.
+empty object under the same export name — gives 1,088,484 − 198,308 = **890,176 B**.
 Still the dominant term, and the prompt's headline ("the JavaScript cost of this
 package is protobuf, not the bridge") survives as a statement about *bytes*. It
 does not survive as a statement about memory.
@@ -99,26 +100,26 @@ pages and the instantiation on the JS side of the ledger.
 ```
 message codecs                       657
 enums                                212
-reached by no other codec             85
-closure of Message                   324
-closure of WebMessageInfo            353
-closure of HistorySync               376
+reached by no other codec             74
+closure of Message                   335
+closure of WebMessageInfo            364
+closure of HistorySync               387
 closure of ClientPayload               8
-closure of the ping-pong roots       374
-closure of the proto.ts registry     514
-outside that closure                 143
+closure of the ping-pong roots       385
+closure of the proto.ts registry     525
+outside that closure                 132
 ```
 
 A closure is transitive over the `Foo.decode(...)` / `Foo.encode(...)` calls one
 codec makes into another — what has to exist for that codec to run at all.
 
-The number that decides the shape of any cut is **324**. `Message` embeds nearly
-half the schema, so decoding one inbound message can reach 324 codecs, and a
+The number that decides the shape of any cut is **335**. `Message` embeds nearly
+half the schema, so decoding one inbound message can reach 335 codecs, and a
 client cannot know which branch arrives. Add `WebMessageInfo`, the pairing
-records and the sender-key messages and it is **374 of 657** — the largest cut a
+records and the sender-key messages and it is **385 of 657** — the largest cut a
 Baileys-compatible client could take while still decoding ordinary traffic.
 
-The 143 codecs outside even the hand-written `proto.ts` registry exist because
+The 132 codecs outside even the hand-written `proto.ts` registry exist because
 ts-proto emits everything in `whatsapp.proto`. They are still **public**: the
 `proto` namespace resolves any type by name and Baileys-compatible consumers
 depend on that.
@@ -131,23 +132,23 @@ depend on that.
 
 | arm | codecs | bundle KiB | v22 Δ | vs 0 | v26 Δ | vs 0 |
 |---|---|---|---|---|---|---|
-| baseline | 0 | 12.9 | 80 | 0 | 420 | 0 |
-| | 25 | 35.8 | 464 | +384 | 668 | +248 |
-| | 50 | 57.9 | 560 | +480 | 892 | +472 |
-| | 100 | 107.4 | 484 | +404 | 856 | +436 |
-| | 200 | 205.8 | 1320 | +1240 | 1440 | +1020 |
-| | 300 | 295.5 | 1344 | +1264 | 1508 | +1088 |
-| ping-pong closure | 374 | 560.3 | 1096 | +1016 | 1656 | +1236 |
-| | 400 | 392.7 | 1416 | +1336 | 1544 | +1124 |
-| | 450 | 444.3 | 3084 | +3004 | 1628 | +1208 |
-| | 500 | 497.0 | 3432 | +3352 | 1756 | +1336 |
-| registry closure | 514 | 733.0 | 3840 | +3760 | 1732 | +1312 |
-| | 550 | 561.7 | 3744 | +3664 | 1876 | +1456 |
-| | 646 | 858.7 | 4808 | +4728 | 2084 | +1664 |
-| **all, eager** | **657** | **903.1** | **5168** | **+5088** | **2184** | **+1764** |
-| **all, lazy (control)** | **657** | **942.8** | **4032** | **+3952** | **2080** | **+1660** |
-| 657 as a string literal | 0 | 916.0 | 2164 | +2084 | 2444 | +2024 |
-| 657 read from disk | 0 | 13.0 | 1064 | +984 | 1332 | +912 |
+| baseline | 0 | 12.9 | 84 | 0 | 428 | 0 |
+| | 25 | 35.8 | 464 | +380 | 668 | +240 |
+| | 50 | 56.2 | 552 | +468 | 900 | +472 |
+| | 100 | 105.7 | 648 | +564 | 852 | +424 |
+| | 200 | 203.9 | 1312 | +1228 | 1432 | +1004 |
+| | 300 | 291.9 | 1352 | +1268 | 1508 | +1080 |
+| ping-pong closure | 385 | 566.9 | 1120 | +1036 | 1676 | +1248 |
+| | 400 | 390.1 | 1412 | +1328 | 1236 | +808 |
+| | 450 | 441.5 | 3080 | +2996 | 1656 | +1228 |
+| | 500 | 495.9 | 3416 | +3332 | 1776 | +1348 |
+| registry closure | 525 | 739.7 | 3908 | +3824 | 1752 | +1324 |
+| | 550 | 559.2 | 3768 | +3684 | 1916 | +1488 |
+| | 646 | 858.7 | 4964 | +4880 | 2100 | +1672 |
+| **all, eager** | **657** | **903.1** | **5180** | **+5096** | **2172** | **+1744** |
+| **all, lazy (control)** | **657** | **936.4** | **4028** | **+3944** | **2068** | **+1640** |
+| 657 as a string literal | 0 | 903.2 | 2136 | +2052 | 2420 | +1992 |
+| 657 read from disk | 0 | 13.0 | 1052 | +968 | 1320 | +892 |
 
 Δ is each process's own before/after difference rather than its absolute
 reading: two fresh node processes need not start from the same page-commit
@@ -155,8 +156,8 @@ state, and a difference in where they started would otherwise land on the codec
 count. The absolute readings are in the harness output alongside.
 
 The curve is not linear in codec count — the v22 column steps 1.63 MiB between
-400 and 450 codecs, and the v26 column climbs by a fifth of that over the same
-range. Those are quantization, not a property of the codecs.
+400 and 450 codecs, and the v26 column goes *down* from 300 to 400. Those are
+quantization, not a property of the codecs.
 
 The last two rows separate *bytes* from *code*. `read from disk` holds one copy
 of the same minified text as a plain string and costs ~0.9 MiB, so the bytes
@@ -166,8 +167,8 @@ keeps alive, plus the heap string) and costs about twice that.
 **The control is the `lazy` row.** Same 657 codecs, same source, every object
 literal moved behind a memoised factory so nothing is constructed until it is
 used — verified by round-tripping `Message` and a nested `WebMessageInfo`
-through it. Deferring every construction saves **1.11 MiB on v22 and 0.10 MiB on
-v26**, out of the 4.97 / 1.72 MiB the codecs cost. Removing the text saves all
+through it. Deferring every construction saves **1.13 MiB on v22 and 0.10 MiB on
+v26**, out of the 4.98 / 1.70 MiB the codecs cost. Removing the text saves all
 of it. This arm defers construction and nothing else; the in-situ section adds
 the design that also defers the namespace, which is a different number.
 
@@ -180,53 +181,58 @@ decode, a `WebMessageInfo` round trip, `encodeProto`/`decodeProto`.
 
 | arm | v22 Δ | v26 Δ | what it changes |
 |---|---|---|---|
-| stock +touch | +264 | +172 | the ping-pong traffic itself |
-| **textcut** | **−2436** | **−1740** | 657 codec bodies gone; names and namespace work identical |
-| cut (374 kept) | −952 | −564 | the largest cut a client could take |
-| cut +touch | −816 | −452 | |
-| lazycodecs | −940 | +140 | codec objects deferred, `proto` assembled eagerly |
-| lazycodecs +touch | −732 | +392 | |
-| lazyns | −2152 | −2320 | codecs eager, the whole tree on the first read of `proto` |
-| lazyns +touch | −656 | −688 | |
-| lazyboth | −3884 | −3276 | both, whole-tree |
-| lazyboth +touch | −1468 | −28 | |
-| lazyns-pertype | +92 | −88 | codecs eager, one lazy getter per type |
-| lazyns-pertype +touch | +336 | +140 | |
-| **lazyboth-pertype** | **−2252** | **−1176** | both, per type — the shape that could ship |
-| **lazyboth-pertype +touch** | **−1876** | **−988** | |
-| textcut-lazyns | −4324 | −3664 | the floor |
+| stock +touch | +276 | +240 | the ping-pong traffic itself |
+| **textcut** | **−2464** | **−1624** | 657 codec bodies gone; names and namespace work identical |
+| cut (385 kept) | −908 | −304 | the largest cut a client could take |
+| cut +touch | −784 | −36 | |
+| lazycodecs | −824 | +312 | codec objects deferred, `proto` assembled eagerly |
+| lazycodecs +touch | −780 | +540 | |
+| lazyns | −2160 | −1972 | codecs eager, the whole tree on the first read of `proto` |
+| lazyns +touch | −620 | −492 | |
+| lazyboth | −3880 | −3156 | both, whole-tree |
+| lazyboth +touch | −1452 | +88 | |
+| lazyns-pertype | +72 | +108 | codecs eager, one lazy getter per type |
+| lazyns-pertype +touch | +356 | +312 | |
+| **lazyboth-pertype** | **−2152** | **−1076** | both, per type — the shape that could ship |
+| **lazyboth-pertype +touch** | **−1900** | **−868** | |
+| textcut-lazyns | −4444 | −3468 | the floor |
 
 Three of these are about *how* the deferral is written, and the difference
 between them is the whole story:
 
 - `lazycodecs` defers each codec object but leaves `proto-namespace.ts`
   assembling eagerly, and that assembly reads every export. Every getter fires
-  during import anyway, so it buys nothing on v26 and 0.92 MiB of noise on v22.
+  during import anyway, so it buys nothing on v26 and 0.80 MiB of noise on v22.
 - `lazyboth` defers the namespace as one unit, behind a Proxy. Enormous at
   import, and then the first read of any property builds all 657 — which is why
-  `+touch` collapses it to −0.03 MiB on v26.
+  `+touch` leaves it *worse* than stock on v26 and worse on retained memory on
+  both (+0.45 / +0.40 MiB).
 - `lazyboth-pertype` gives each type its own getter, so touching six types
   builds six wrappers and the codecs their decodes reach. This one does not
-  collapse: **−1.83 MiB (v22) / −0.96 MiB (v26) after the client has used the
+  collapse: **−1.86 MiB (v22) / −0.85 MiB (v26) after the client has used the
   library.** It needs both halves — `lazyns-pertype`, per-type getters over
   eager codecs, is worth nothing, because the codec objects are built either
   way and the tree of 657 getters costs about what the wrappers it defers do.
 
-Retained memory for the arms that matter, which does not move with GC
-configuration:
+Retained memory — post-GC `heapUsed` plus `external`, summed per sample and
+then medianed, because node 22 charges the codec text to the heap and node 26 to
+external memory and the two move in opposite directions:
 
-| | v22 heapUsed | v26 heapUsed | v26 external |
-|---|---|---|---|
-| stock | 9380 | 7745 | 3029 |
-| stock +touch | 9504 | 7867 | 3029 |
-| textcut | 7580 | 8062 | 1967 |
-| lazyboth-pertype +touch | 8954 | 7179 | 3089 |
+| arm | v22 retained | vs stock | v26 retained | vs stock |
+|---|---|---|---|---|
+| stock | 12564 | 0 | 10765 | 0 |
+| stock +touch | 12687 | +123 | 10888 | +123 |
+| **textcut** | **10773** | **−1791** | **10030** | **−735** |
+| cut +touch | 12033 | −531 | 11293 | +528 |
+| lazyboth +touch | 13024 | +460 | 11173 | +408 |
+| **lazyboth-pertype +touch** | **12125** | **−439** | **10252** | **−513** |
+| textcut-lazyns | 10080 | −2484 | 9333 | −1432 |
 
-v22 charges the codec text to the JS heap (−1.76 MiB) and v26 to external
-memory (−1.04 MiB, −0.73 MiB net of a slightly larger heap). Either way the
-text is **0.7–1.8 MiB of retained memory**. The per-type lazy design retains
-**0.54 MiB (v22) / 0.67 MiB (v26)** less than stock after the same traffic, and
-the `Private_Dirty` deltas above are those numbers amplified by page commits.
+The text is **0.72–1.75 MiB of retained memory**. The per-type lazy design
+retains **0.43 (v22) / 0.50 (v26) MiB** less than stock after the same traffic;
+the whole-tree one retains *more* than stock, which is the clearest statement of
+what deferring at the wrong granularity does. The `Private_Dirty` deltas above
+are these numbers amplified by page commits.
 
 ### The same arms under a deterministic GC
 
@@ -235,33 +241,34 @@ other, so the spread is gone and only the quantization regime has changed:
 
 | arm | v22 Δ | v26 Δ |
 |---|---|---|
-| stock +touch | +150 | **+4104** |
-| textcut | −2512 | **+1664** |
-| cut | −1040 | −592 |
-| lazycodecs | −768 | +188 |
-| lazyns +touch | −354 | **+3222** |
-| lazyboth +touch | −1316 | **+2254** |
-| lazyns-pertype +touch | +556 | +44 |
-| **lazyboth-pertype +touch** | **−1794** | **−866** |
-| textcut-lazyns | −4236 | −494 |
+| stock +touch | +184 | +156 |
+| textcut | −2544 | **+1716** |
+| cut | −1028 | −392 |
+| lazycodecs | −830 | +256 |
+| lazyns +touch | −328 | −736 |
+| lazyboth +touch | −1338 | −122 |
+| lazyns-pertype +touch | +536 | +100 |
+| **lazyboth-pertype +touch** | **−1800** | **−798** |
+| textcut-lazyns | −4224 | **−160** |
 
-v22 reproduces the default configuration arm for arm. v26 does not: four arms
-change sign, including the ping-pong traffic on stock, which alone commits 4 MiB
-here and 0.17 MiB in the default configuration. Nothing about the codecs changed
-between the two tables — only where V8 decided to grow.
+v22 reproduces the default configuration arm for arm. v26 does not: `textcut`
+flips from −1.59 to **+1.68 MiB**, and `textcut-lazyns` from −3.39 to −0.16.
+Nothing about the codecs changed between the two tables — only where V8 decided
+to grow.
 
 One arm is unmoved in all four configurations: `lazyboth-pertype +touch`, at
-−1.79 to −1.88 MiB on v22 and −0.87 to −0.99 MiB on v26. `textcut` is the one
-that flips. That is the opposite of what this investigation expected, and it is
-the reason the recommendation below is the lazy design rather than the cut.
+−1.76 to −1.86 MiB on v22 and −0.78 to −0.85 MiB on v26. The two arms that flip
+are both text cuts. That is the opposite of what this investigation expected,
+and it is the reason the recommendation below is the lazy design rather than the
+cut.
 
 ## Which mechanism pays
 
 Both, in roughly the same amount — but only if the deferral is written per type.
 
-**The text**, unconditionally: it is 0.7–1.8 MiB of retained memory, and that is
-true of a process whether or not anyone ever calls a codec. In `Private_Dirty`
-it reads as −1.7 to −2.4 MiB in the default configuration, and **+1.7 MiB under
+**The text**, unconditionally: it is 0.72–1.75 MiB of retained memory, and that
+is true of a process whether or not anyone ever calls a codec. In `Private_Dirty`
+it reads as −1.6 to −2.5 MiB in the default configuration, and **+1.7 MiB under
 `--predictable` on v26** — the one arm in this investigation whose sign is not
 stable across GC configurations.
 
@@ -270,13 +277,14 @@ stable across GC configurations.
 1. Isolated, deferring construction alone keeps 78 % (v22) / 94 % (v26) of the
    eager cost. That is the enum result: the text is still there and V8 still
    parses it.
-2. In situ, deferring construction alone (`lazycodecs`) buys nothing on v26,
-   because the eager namespace reads every export while assembling.
+2. In situ, deferring construction alone (`lazycodecs`) buys nothing on v26 —
+   it is 0.30 MiB *worse* — because the eager namespace reads every export while
+   assembling.
 3. Deferring the namespace **per type** as well (`lazyboth-pertype`) is worth
-   **−1.88 MiB (v22) / −0.99 MiB (v26)** after a client has used six types, and
+   **−1.86 MiB (v22) / −0.85 MiB (v26)** after a client has used six types, and
    it holds that in every configuration measured. Deferring the namespace as
-   one unit (`lazyboth`) looks better at import and collapses to −0.03 MiB on
-   v26 once the first property is read, because that read builds all 657.
+   one unit (`lazyboth`) looks better at import and ends up *worse than stock*
+   once the first property is read, because that read builds all 657.
 
 The distinction the original hypothesis drew — presence versus execution — is
 real, but it is not the one that decides this. What decides it is **granularity**:
@@ -290,19 +298,20 @@ text is worth, without deleting anything.
 
 Make the generated codec module build each codec on first use, and make
 `proto` a plain object whose types materialize one getter at a time. Measured
-above as `lazyboth-pertype`; **−1.88 / −0.99 MiB after realistic use**, −0.54 /
-−0.67 MiB of retained heap, stable under both GC configurations on both node
+above as `lazyboth-pertype`; **−1.86 / −0.85 MiB after realistic use**, −0.43 /
+−0.50 MiB of retained memory, stable under both GC configurations on both node
 versions.
 
 It is transparent, and the harness checks that rather than asserting it. Against
 the stock bundle, the prototype has:
 
 - the same 8,133 namespace paths, no missing and no extra;
-- byte-identical `encode` output and identical `decode` results through both
-  `proto.X` and `encodeProto`/`decodeProto`, including the registry's
+- all 657 codecs round-tripping identically — each driven with one empty
+  instance of every message field it declares, which is 857 nested fields and
+  therefore every cross-codec call the rewrite touched — plus the registry's
   non-generated spellings (`AdvSignedDeviceIdentity`), the `ADVSignedKeyIndexList`
-  alias, and the synthesized-unknown-child behaviour of the four forward-compatible
-  carriers;
+  alias, and the synthesized-unknown-child behaviour of the four
+  forward-compatible carriers;
 - 250 of 270 top-level types still unmaterialized after import, 247 after a
   ping-pong exchange.
 
@@ -312,11 +321,14 @@ untouched, and the getters are enumerable and configurable, so `Object.keys`,
 materializes one wrapper and writes it back as a plain property, so there is no
 per-call cost after it.
 
-Two details any implementation has to get right, both found by getting them
-wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
+Three details any implementation has to get right, all three found by getting
+them wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
 parent, which materializes every type that has children (106 of 270 in the first
-attempt); and merging a child namespace with `Object.assign` reads the children,
-so descriptors have to be copied instead.
+attempt); merging a child namespace with `Object.assign` reads the children, so
+descriptors have to be copied instead; and a rewrite that redirects `X.decode(`
+to a factory has to allow for the name and the call sitting on separate lines,
+which is how prettier emits the long ones — 11 cross-codec edges hide there, and
+the all-657 sweep is what found them.
 
 This is not implemented here. It changes the shape `scripts/gen-ts-proto.ts`
 emits and the way `ts/proto-namespace.ts` assembles the package's most
@@ -325,8 +337,9 @@ rather than riding along with a measurement.
 
 ### What not to take
 
-A cut. The most a Baileys-compatible client can drop is 283 of 657 codecs, worth
-**−0.93 MiB (v22) / −0.55 MiB (v26)** — less than the lazy design — and before
+A cut. The most a Baileys-compatible client can drop is 272 of 657 codecs, worth
+**−0.89 MiB (v22) / −0.30 MiB (v26)**, and on retained memory it is *worse* than
+stock on v26 (+0.52 MiB) — less than the lazy design — and before
 that arithmetic there is a constraint that settles it:
 
 **`proto` is a public namespace over all 657 types.** `encodeProto("X", …)`
@@ -336,7 +349,7 @@ removes a codec from the text can be transparent — the removed name is gone fr
 consumer declares which message types it uses, and the codec is generated for
 that set.** That is an API change, not an optimization, and it is stated as one
 here rather than dressed up as transparent. Its ceiling is the `textcut` row
-(−1.7 to −2.4 MiB, and +1.6 MiB under `--predictable` on v26); its realistic
+(−1.6 to −2.5 MiB, and +1.7 MiB under `--predictable` on v26); its realistic
 value is the `cut` row, under 1 MiB.
 
 Against a ~61 MiB floor for a WhatsApp client in Node, a breaking change to the

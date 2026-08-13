@@ -371,8 +371,11 @@ const label = (run: { arm: Arm; touch: boolean }) => `${run.arm.name}${run.touch
 const priv = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 const heaps = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 // Node 22 charges the codec text to the JS heap and node 26 to external
-// memory, so neither column alone says what an arm retains.
+// memory, so neither column alone says what an arm retains. Summed per sample,
+// not per median: the two move in opposite directions on node 26, and a median
+// of one plus a median of the other is a number no process ever had.
 const externals = new Map<string, number[]>(runs.map((run) => [label(run), []]));
+const retained = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 
 for (let rep = 0; rep < REPS; rep++) {
   for (const run of runs) {
@@ -393,6 +396,7 @@ for (let rep = 0; rep < REPS; rep++) {
     priv.get(label(run))!.push(row.delta);
     heaps.get(label(run))!.push(row.heapUsed);
     externals.get(label(run))!.push(row.external);
+    retained.get(label(run))!.push(row.heapUsed + row.external);
   }
 }
 
@@ -405,9 +409,10 @@ const median = (xs: number[]) => {
 const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toString().trim();
 console.log(`reps=${REPS} node=${version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
 console.log(
-  ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs stock", "heapUsed med", "external med"].join("\t"),
+  ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs stock", "retained med", "vs stock", "heapUsed med", "external med"].join("\t"),
 );
 const stock = median(priv.get("stock")!);
+const retainedStock = median(retained.get("stock")!);
 for (const run of runs) {
   const key = label(run);
   const xs = priv.get(key)!;
@@ -419,6 +424,8 @@ for (const run of runs) {
       Math.min(...xs),
       Math.max(...xs),
       (median(xs) - stock).toFixed(0),
+      median(retained.get(key)!).toFixed(0),
+      (median(retained.get(key)!) - retainedStock).toFixed(0),
       median(heaps.get(key)!).toFixed(0),
       median(externals.get(key)!).toFixed(0),
     ].join("\t"),
