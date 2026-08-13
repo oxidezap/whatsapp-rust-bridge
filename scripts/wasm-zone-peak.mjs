@@ -72,7 +72,7 @@ async function child(wasmPath) {
   const bytes = readFileSync(wasmPath);
   const before = processMemory();
   const started = process.hrtime.bigint();
-  new WebAssembly.Module(bytes);
+  const compiled = new WebAssembly.Module(bytes);
   const compileMs = Number(process.hrtime.bigint() - started) / 1e6;
 
   // `new WebAssembly.Module` returns once the baseline tier is done; the
@@ -93,6 +93,13 @@ async function child(wasmPath) {
   }
 
   const after = processMemory();
+
+  // The module has to still be reachable here. A collection during the loop
+  // above would hand its compiled code back before the sample, and the RSS
+  // figures would then report whether a GC happened rather than what the
+  // module costs. Reading it after the sample is what keeps it alive.
+  const exports = WebAssembly.Module.exports(compiled).length;
+
   process.stdout.write(
     JSON.stringify({
       peakMalloced: v8.getHeapStatistics().peak_malloced_memory,
@@ -100,6 +107,7 @@ async function child(wasmPath) {
       private: after.private,
       rssDelta: after.rss === null || before.rss === null ? null : after.rss - before.rss,
       compileMs,
+      exports,
     })
   );
 }
