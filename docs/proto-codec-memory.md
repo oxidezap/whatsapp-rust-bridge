@@ -7,9 +7,9 @@ the other 651 — and if so, which mechanism charges: **the code being present**
 or **the code being run**.
 
 Short answer: two designs pay and they are the same order of magnitude.
-Generating the codec for only the types a consumer declares is worth **−3.91
+Generating the codec for only the types a consumer declares is worth **−3.89
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
-Deferring construction **per type** is worth **−1.93 MiB (v22) / −0.99 (v26)**
+Deferring construction **per type** is worth **−1.91 MiB (v22) / −0.93 (v26)**
 after realistic use, and the five differences a consumer
 can observe — a property descriptor, the order `Object.keys` returns, and three
 corners of writing to or redefining a property — are declared below.
@@ -54,10 +54,11 @@ demonstrations, both from the tables below:
 - Running v26 with `--predictable` — samples then land within 30 KiB of each
   other — **flips the sign** of the body-only removal, from −1.54 MiB to
   +1.64 MiB, while leaving both candidate designs where they were.
-- Re-running the in-situ table on v26 with nothing changed moved `cut +touch`
-  from −0.33 MiB to **+3.20**, and `cut-real +touch` from −2.27 to −0.45. The
-  same re-run reproduced every v22 arm within ~150 KiB and reproduced the
-  retained-memory column byte for byte on both versions.
+- Re-running the in-situ table on v26 with nothing changed put `cut +touch` at
+  −0.33 MiB, then **+3.20**, then −0.39 across three runs, and `cut-real +touch`
+  at −2.27, −0.45 and −0.41. The same three runs reproduced every v22 arm within
+  ~200 KiB and reproduced the retained-memory column byte for byte on both
+  versions.
 
 So `Private_Dirty` differences of this size are page-commit consequences, not
 the quantity itself. Where the two disagree, the retained-memory accounting
@@ -218,25 +219,26 @@ would flatter every one of them.
 
 | arm | v22 Δ | v26 Δ | what it changes |
 |---|---|---|---|
-| **textcut** | **−2528** | **−1632** | 657 codec bodies gone; export names and namespace work identical |
-| cut (385 kept, rest stubbed) +touch | −1076 | **+3276** | codec bodies gone for the removed types, names kept |
-| **cut-real (385 kept) +touch** | **−4004** | **−464** | the removed types and their enums are not there at all |
-| lazycodecs +touch | −828 | +256 | codec objects deferred, `proto` assembled eagerly |
-| lazyns +touch | −948 | −772 | codecs eager, the whole tree on the first read of `proto` |
-| lazyboth +touch | −1640 | −184 | both, whole-tree |
-| lazyns-pertype +touch | −124 | −196 | codecs eager, one lazy getter per type |
-| **lazyboth-pertype +touch** | **−1976** | **−1016** | both, per type — the shape that could ship |
-| textcut-lazyns | −4516 | −3604 | the floor |
+| **textcut** | **−2404** | **−1556** | 657 codec bodies gone; export names and namespace work identical |
+| cut (385 kept, rest stubbed) +touch | −1068 | −404 | codec bodies gone for the removed types, names kept |
+| **cut-real (385 kept) +touch** | **−3980** | **−420** | the removed types and their enums are not there at all |
+| lazycodecs +touch | −812 | +320 | codec objects deferred, `proto` assembled eagerly |
+| lazyns +touch | −904 | −676 | codecs eager, the whole tree on the first read of `proto` |
+| lazyboth +touch | −1660 | −92 | both, whole-tree |
+| lazyns-pertype +touch | −52 | −24 | codecs eager, one lazy getter per type |
+| **lazyboth-pertype +touch** | **−1960** | **−952** | both, per type — the shape that could ship |
+| textcut-lazyns | −4308 | −3628 | the floor |
 
 **The v26 column of this table does not reproduce between whole runs, and the
-v22 column does.** Re-running the identical artifacts moved `cut +touch` from
-−336 to +3276 KiB and `cut-real +touch` from −2324 to −464, while every v22 arm
-came back within ~150 KiB of its previous reading. The v26 samples say why:
-`stock` spans 16784–21104 KiB across fifteen repetitions, so its median is
-decided by how many landed in each cluster. The retained-memory column below
-does not have this property — it came back **byte for byte identical** across
-both runs on both versions — which is why the recommendation rests on it and on
-v22, and why no v26 private-memory figure here is quoted to two digits.
+v22 column does.** Across three runs of the identical artifacts `cut +touch`
+read −336, **+3276** and −404 KiB, and `cut-real +touch` read −2324, −464 and
+−420, while every v22 arm came back within ~200 KiB of its previous reading. The
+v26 samples say why: `stock` spans 16820–21180 KiB across fifteen repetitions,
+so its median is decided by how many landed in each cluster. The retained-memory
+column below does not have this property — it came back **byte for byte
+identical in all three runs on both versions** — which is why the recommendation
+rests on it and on v22, and why no v26 private-memory figure here is quoted to
+two digits.
 
 `cut` and `cut-real` are the same 385 types kept, and the difference between
 them is the whole cost of a name existing: `cut` replaces the other 272 codec
@@ -246,7 +248,7 @@ not. `cut-real` also drops the enums nested under the removed messages and the o
 only they referenced — leaving all 212 in rebuilds `proto.HistorySync` out of
 its enums alone, which is a namespace node the cut is supposed to have removed.
 The stubbed arm is what "remove the bodies" is worth (−1.05 MiB on v22); the
-real one is what the proposed API change is worth (−3.91 MiB on v22, −1.61 MiB
+real one is what the proposed API change is worth (−3.89 MiB on v22, −1.61 MiB
 retained on v22 and −0.60 on v26).
 
 Three of these are about *how* the deferral is written, and the difference
@@ -261,7 +263,7 @@ between them is the whole story:
   on both (+0.36 / +0.28 MiB).
 - `lazyboth-pertype` gives each type its own getter, so touching six types
   builds six wrappers and the codecs their decodes reach. This one does not
-  collapse: **−1.93 MiB (v22) / −0.99 MiB (v26) after the client has used the
+  collapse: **−1.91 MiB (v22) / −0.93 MiB (v26) after the client has used the
   library.** It needs both halves — `lazyns-pertype`, per-type getters over
   eager codecs, is worth nothing, because the codec objects are built either
   way and the tree of 657 getters costs about what the wrappers it defers do.
@@ -348,7 +350,7 @@ all of them (−1.61 / −0.60), so the cut's advantage is real and its size on 
 Both, and they are the same order of magnitude — but each only in one specific
 shape, and every other shape of the same idea is worth nothing.
 
-**Removing the types outright** is the largest single lever: **−3.91 MiB on
+**Removing the types outright** is the largest single lever: **−3.89 MiB on
 v22** for a client that keeps the 385 it can reach, and 1.61 / 0.60 MiB of
 retained memory. On v26 its private-memory figure is not reproducible enough to
 quote — the retained one is. Note what has to go with the bodies for that number: the
@@ -357,7 +359,7 @@ and paths built over them. Removing only the bodies and keeping the names
 (`cut`) is worth a quarter of it, and `textcut` — every body gone, every name
 kept — is the arm whose sign flips under `--predictable` on v26.
 
-**Deferring the work** is worth **−1.93 MiB (v22) / −0.99 MiB (v26)** after a
+**Deferring the work** is worth **−1.91 MiB (v22) / −0.93 MiB (v26)** after a
 client has used six types — the one arm that holds its value in all six
 configurations — and it costs nothing at the API. But only per type. Three designs, three answers:
 
@@ -381,8 +383,8 @@ bodies but keeps names is worth a third of one that removes the names too.
 ### The transparent one: a per-type lazy namespace
 
 Generated codecs built on first use, `proto` a plain object whose types
-materialize one getter at a time. Measured as `lazyboth-pertype`: **−1.93 /
-−0.99 MiB after realistic use**, −0.38 / −0.51 MiB of retained memory, stable
+materialize one getter at a time. Measured as `lazyboth-pertype`: **−1.91 /
+−0.93 MiB after realistic use**, −0.38 / −0.51 MiB of retained memory, stable
 under all three flag configurations on both node versions and across repeat
 runs, and **no API change**.
 
