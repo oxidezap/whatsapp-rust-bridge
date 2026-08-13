@@ -10,9 +10,9 @@ Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.91
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
 Deferring construction **per type** is worth **−1.93 MiB (v22) / −0.99 (v26)**
-after realistic use, and the four differences a consumer
-can observe — a property descriptor, the order `Object.keys` returns, and two
-corners of writing to a frozen or sealed namespace — are declared below.
+after realistic use, and the five differences a consumer
+can observe — a property descriptor, the order `Object.keys` returns, and three
+corners of writing to or redefining a property — are declared below.
 Every other shape of either idea is worth
 nothing: deferring construction alone, deferring the namespace as one unit, or
 removing codec bodies while keeping their names. The recommendation is the lazy
@@ -26,10 +26,11 @@ memory moving, and a clean page stops being private the moment a second process
 maps the same file. Two full `global.gc()` passes before each reading. One
 process per sample, arms interleaved under a fresh seeded permutation each
 repetition so machine drift lands on all of them, medians over the repetition
-counts stated per table. The permutation is seeded rather than rotated because
-neither default repetition count is a multiple of its arm count — 15 over 18
-runs leaves every arm three positions it never occupies — and seeded rather
-than random so a run reproduces.
+counts stated per table. The permutations form a Latin square — within any
+`arms` consecutive repetitions each arm occupies each slot exactly once, so a
+partial cycle is off by at most one — because a fixed order leaves every arm at
+one position, and independent shuffles still let an arm favour a slot over five
+or fifteen samples. Seeded, so a run reproduces.
 
 Two node versions, because they disagree: **v22.22.2** and **v26.5.0**. Every
 number below was taken on this machine, 4 cores / 16 GB, against `d5b6b38`
@@ -419,7 +420,7 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Four differences are observable, and all four are inherent to an accessor
+Five differences are observable, and all five are inherent to an accessor
 rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
@@ -443,7 +444,13 @@ rather than defects to fix:
   and before the type is read: a sealed data property is still writable, so
   stock takes the new value, while a sealed accessor is non-configurable and
   cannot become a data property, so the call throws `Cannot redefine property`.
-  After a *freeze* both refuse, so this is the seal case only.
+  After a *freeze* both refuse, so this is the seal case only;
+- the same call on an **unsealed** namespace, before the type is read.
+  Redefining an existing data property leaves omitted attributes as they were,
+  so stock stays `writable: true`; converting an accessor to a data property
+  defaults them to `false`, so the next assignment throws where stock accepts
+  it. `defineProperty` never reaches the accessor, so no getter or setter can
+  compensate — again only a Proxy could.
 
 Not on the list, because it was a defect and is fixed: a write through an
 overlay — `Object.create(proto).Message = x` — reaches the setter with the
@@ -454,7 +461,7 @@ overlay. The setter checks its receiver, and the harness checks the setter.
 Everything else behaves identically: reading, calling, enumerating, spreading,
 `JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
 assignment after a freeze. That is the whole of what "transparent" means here,
-and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode and
+and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode and both
 redefinition divergences on every run rather than hiding them in a set
 comparison.
 
@@ -499,7 +506,7 @@ bounds the two together rather than pricing them.
 **Recommendation: take the lazy design.** It is half the cut's private memory
 on v22, within a fifth of its retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change a consumer can only observe through the
-four corners declared above. The
+five corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.

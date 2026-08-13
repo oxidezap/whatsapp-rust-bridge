@@ -310,6 +310,28 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   };
   const lazyRedefine = await redefine("lazyboth-pertype");
   const eagerRedefine = await redefine("stock");
+
+  // The same call without sealing first. Redefining an existing data property
+  // leaves omitted attributes alone, so stock stays writable; converting an
+  // accessor defaults them to false, so the next assignment throws. Reported —
+  // `defineProperty` bypasses the accessor, so only a Proxy could see it.
+  const redefineOpen = async (name) => {
+    const mod = await load(name, "?redefine-open=1");
+    Object.defineProperty(mod.proto, "HistorySync", { value: { marker: true } });
+    const writable = Object.getOwnPropertyDescriptor(mod.proto, "HistorySync").writable;
+    try {
+      mod.proto.HistorySync = { second: true };
+      return `writable=${writable}, later assignment ok`;
+    } catch (error) {
+      return `writable=${writable}, later assignment ${error.constructor.name}`;
+    }
+  };
+  const lazyOpen = await redefineOpen("lazyboth-pertype");
+  const eagerOpen = await redefineOpen("stock");
+  console.log(
+    `  note Object.defineProperty(proto, …, { value }) before any read: stock ${eagerOpen}, lazy ${lazyOpen}` +
+      (lazyOpen === eagerOpen ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
   console.log(
     `  note Object.defineProperty after Object.seal(proto): stock ${eagerRedefine}, lazy ${lazyRedefine}` +
       (lazyRedefine === eagerRedefine ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
