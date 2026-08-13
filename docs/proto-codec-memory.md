@@ -10,8 +10,8 @@ Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.88
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
 Deferring construction **per type** is worth **−1.91 MiB (v22) / −0.93 (v26)**
-after realistic use, and the seven differences a consumer can observe — a property
-descriptor, the order `Object.keys` returns, and five corners of writing to or
+after realistic use, and the eight differences a consumer can observe — a property
+descriptor, the order `Object.keys` returns, and six corners of writing to or
 redefining a property — are declared below.
 
 Those two are the only *shippable* shapes measured. Two others save real memory
@@ -352,13 +352,20 @@ where V8 grew its heap; what they establish is that on v26 the arms defined by
 an arm that is not. These samples are also the loosest taken: on v26 `stock`
 spans 16856–21080 KiB over the four, so read the sign, not the magnitude.
 
-One arm is unmoved in all six configurations: `lazyboth-pertype +touch`, at
-−1.91 to −2.08 MiB on v22 and −0.86 to −2.16 on v26. `cut-real` is not: −3.67 to
-−4.05 MiB on v22, and on v26 anywhere from −0.45 to −4.26 depending on the flags
-and on which run — its widest single spread comes from re-running the default
-configuration, not from changing flags. Its *retained* memory is stable across
-all of them (−1.61 / −0.60), so the cut's advantage is real and its size on node
-26 is not something to quote at all.
+One arm keeps its **sign** in all six configurations and its **magnitude** on
+v22: `lazyboth-pertype +touch`, −1.91 to −2.08 MiB there. On v26 only the sign
+holds — −0.86 by default, −0.86 under `--predictable`, −2.16 under the GC-only
+flags, a factor of 2.5. `cut-real` keeps neither on v26: anywhere from −0.45 to
+−4.26 depending on the flags and on which run, and its widest single spread
+comes from re-running the default configuration rather than from changing flags.
+It is steady on v22 (−3.67 to −4.05) and its *retained* memory is steady
+everywhere (−1.61 / −0.60), so the cut's advantage is real and its v26 private
+size is not something to quote at all.
+
+What separates the two arms on v26 is therefore not that one is stable and the
+other is not — neither magnitude is. It is that the lazy arm never changes sign
+and never reads worse than stock, while `cut +touch` reads **+3276 KiB** in one
+run of four and `lazycodecs` reads positive in every configuration.
 
 ## Which mechanism pays
 
@@ -375,8 +382,8 @@ and paths built over them. Removing only the bodies and keeping the names
 kept — is the arm whose sign flips under `--predictable` on v26.
 
 **Deferring the work** is worth **−1.91 MiB (v22) / −0.93 MiB (v26)** after a
-client has used six types — the one arm that holds its value in all six
-configurations — and it costs nothing at the API. But only per type. Three designs, three answers:
+client has used six types — the one arm that keeps its sign in all six
+configurations, and its magnitude on v22 — and it costs nothing at the API. But only per type. Three designs, three answers:
 
 1. Isolated, deferring construction alone keeps 78 % (v22) / 94 % (v26) of the
    eager cost. That is the enum result: the text is still there and V8 still
@@ -441,7 +448,7 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Seven differences are observable, and all seven are inherent to an accessor
+Eight differences are observable, and all eight are inherent to an accessor
 rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
@@ -481,7 +488,13 @@ rather than defects to fix:
   before the type is read: stock cannot create the own property on the receiver
   and reports `false`, while the setter tries to define it and throws. Third
   face of the same root, and the reason the receiver fix in the setter closes
-  the ordinary overlay case but not this one.
+  the ordinary overlay case but not this one;
+- `Object.defineProperty(proto, "Message", { writable: false })` — a descriptor
+  with no `value` — before the type is read. Redefining stock's data property
+  flips the flag and keeps the codec; converting an accessor supplies the
+  missing attributes from their defaults, so **the property becomes
+  `undefined`**. This is the sharpest of the eight: the others change how a
+  write behaves, this one loses the codec.
 
 Not on the list, because it was a defect and is fixed: a write through an
 overlay — `Object.create(proto).Message = x` — reaches the setter with the
@@ -493,8 +506,8 @@ Everything else behaves identically: reading, calling, enumerating, spreading,
 `JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
 assignment after a freeze. That is the whole of what "transparent" means here,
 and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode, both
-`Reflect.set` and both redefinition divergences on every run rather than hiding
-them in a set comparison.
+`Reflect.set` and all three redefinition divergences on every run rather than
+hiding them in a set comparison.
 
 Six details any implementation has to get right, all six found by getting them
 wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
@@ -539,9 +552,9 @@ floor at −4.39 / −3.40 MiB, but that arm keeps no working codec at all, so i
 bounds the two together rather than pricing them.
 
 **Recommendation: take the lazy design.** It is half the cut's private memory
-on v22, within a fifth of its retained memory on node 26, and the only arm whose value holds in every
-configuration measured — for a change a consumer can only observe through the
-seven corners declared above. The
+on v22, within a fifth of its retained memory on node 26, and the only arm that
+never changes sign or reads worse than stock in any configuration measured — for
+a change a consumer can only observe through the eight corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.

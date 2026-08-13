@@ -382,6 +382,23 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   const lazyOpen = await redefineOpen("lazyboth-pertype");
   const eagerOpen = await redefineOpen("stock");
 
+  // A descriptor with no `value` at all. Stock keeps the codec and only flips
+  // the flag; converting an accessor supplies the defaults, so the codec
+  // becomes `undefined`. The sharpest of these corners, and the same root:
+  // `defineProperty` never reaches the accessor.
+  const redefineFlagOnly = async (name) => {
+    const mod = await load(name, "?redefine-flag=1");
+    Object.defineProperty(mod.proto, "HistorySync", { writable: false });
+    const codec = mod.proto.HistorySync;
+    return `value ${codec === undefined ? "undefined" : typeof codec.encode === "function" ? "still a codec" : "present but not a codec"}`;
+  };
+  const lazyFlag = await redefineFlagOnly("lazyboth-pertype");
+  const eagerFlag = await redefineFlagOnly("stock");
+  console.log(
+    `  note Object.defineProperty(proto, …, { writable: false }) before any read: stock ${eagerFlag}, lazy ${lazyFlag}` +
+      (lazyFlag === eagerFlag ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
+
   // `Reflect.set` reports rather than throws: a frozen data property's [[Set]]
   // returns false, while a setter runs and this one throws. Same root as the
   // sloppy-mode case — the accessor cannot hand the decision back to the caller.
