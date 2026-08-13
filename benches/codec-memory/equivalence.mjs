@@ -211,10 +211,33 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
       (mod.proto.ADVKeyIndexList === mod.proto.ADVSignedKeyIndexList) ===
         (stock.proto.ADVKeyIndexList === stock.proto.ADVSignedKeyIndexList),
   );
-  check(
-    "unknown child on a forward-compatible carrier synthesizes",
-    typeof mod.proto.Message.SomeUnreleasedThing?.fromObject === "function",
-  );
+  // All four carriers `FORWARD_COMPATIBLE_PARENTS` names, not just the first:
+  // a rewrite that wrapped one and missed three would pass a single check.
+  // Only the arm is read: synthesizing a child on `stock` would memoize it and
+  // add a path the next arm's tree comparison would then call missing.
+  for (const carrier of ["Message", "WebMessageInfo", "ContextInfo", "SyncActionValue"]) {
+    check(
+      `unknown child on ${carrier} synthesizes`,
+      typeof mod.proto[carrier].SomeUnreleasedThing?.fromObject === "function",
+    );
+  }
+
+  // Names reachable from `Object.prototype` go through the same resolver as
+  // any other string. Stock finds an inherited function and fails on `.encode`;
+  // an arm whose alias map inherits too would fail somewhere else.
+  for (const name of ["constructor", "toString"]) {
+    // The minifier renames the local the error names, so compare the shape of
+    // the failure rather than its text.
+    const via = (m) => {
+      try {
+        m.encodeProto(name, {});
+        return "encoded";
+      } catch (error) {
+        return `${error.constructor.name}: ${error.message.replace(/^\S+/, "<local>")}`;
+      }
+    };
+    check(`encodeProto(${JSON.stringify(name)}) fails as stock does (${via(stock)})`, via(mod) === via(stock));
+  }
 }
 
 // A consumer may freeze the namespace before reading a type. The eager tree

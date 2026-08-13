@@ -59,7 +59,7 @@ demonstrations, both from the tables below:
   it; a rebuilt, re-run set put it in the lower cluster and produced the
   opposite one.
 - Running v26 with `--predictable` — samples then land within 30 KiB of each
-  other — **flips the sign** of the body-only removal, from −1.54 MiB to
+  other — **flips the sign** of the body-only removal, from −1.30 MiB to
   +1.64 MiB, while leaving both candidate designs where they were.
 - Re-running the in-situ table on v26 with nothing changed put `cut +touch` at
   −0.33 MiB, then **+3.20**, then −0.39, then −0.02 across four runs. The same
@@ -322,7 +322,7 @@ other, so the spread is gone:
 | textcut-lazyns | −4250 | **−218** |
 
 v22 reproduces the default configuration arm for arm. v26 does not: `textcut`
-flips from −1.54 to **+1.64 MiB**, and `textcut-lazyns` from −3.39 to −0.18.
+flips from −1.30 to **+1.64 MiB**, and `textcut-lazyns` from −3.40 to −0.18.
 Nothing about the codecs changed between the two tables.
 
 **What `--predictable` changes is not only the GC**, and the first version of
@@ -523,9 +523,13 @@ not transparent, and cannot be made so:
 
 **`proto` is a public namespace over all 657 types.** `encodeProto("X", …)`
 resolves any name in the schema, and consumers depend on that. The `cut-real`
-arm gets its number precisely *because* the removed names are gone from the
-module — from `proto`, and from the `.d.ts` with it. A cut therefore has exactly
-one honest shape: **the consumer declares which message types it uses, and the
+arm gets its number because 120 of the 270 top-level names are gone from the
+module — from `proto`, and from the `.d.ts` with it. Not all of them go: two,
+`SyncdMutation` and `MediaRetryNotification`, survive as enum-only containers,
+because a kept type references a nested enum of theirs and ts-proto's flat
+`Parent_Enum` naming makes the namespace rebuild the parent node. Any real cut
+inherits that, so it is part of what `cut-real` measures rather than a defect in
+the arm. A cut therefore has exactly one honest shape: **the consumer declares which message types it uses, and the
 codec is generated for that set.** That is an API change, not an optimization,
 and it is stated as one here rather than dressed up as transparent.
 

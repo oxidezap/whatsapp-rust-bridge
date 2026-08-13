@@ -101,13 +101,15 @@ const rewriteProtoTs = (source: string): string => {
     // The names the stock registry accepts that are not the generated
     // spelling. Dropping them would make the arms differ by more than when
     // a codec is built.
-    "const REGISTRY_ALIASES: Record<string, string> = {\n",
+    // Null-prototype: a plain literal would answer `constructor` and friends
+    // from `Object.prototype`, and stock's registry lookup does not.
+    "const REGISTRY_ALIASES: Record<string, string> = Object.assign(Object.create(null), {\n",
     '  AdvSignedDeviceIdentity: "ADVSignedDeviceIdentity",\n',
     '  AdvSignedKeyIndexList: "ADVSignedKeyIndexList",\n',
     '  AdvDeviceIdentity: "ADVDeviceIdentity",\n',
     '  AdvSignedDeviceIdentityHmac: "ADVSignedDeviceIdentityHMAC",\n',
     '  LidMigrationMappingSyncPayload: "LIDMigrationMappingSyncPayload",\n',
-    "};\n\n",
+    "});\n\n",
     "function resolve(typeName: string): MessageFns<any> {\n",
     '  const flat = REGISTRY_ALIASES[typeName] ?? typeName.replaceAll(".", "_");\n',
     "  const candidate = (codecs as Record<string, any>)[flat];\n",
@@ -129,13 +131,15 @@ const rewriteProtoTsForCut = (source: string): string => {
     "  decode(input: Uint8Array | any, length?: number): T;\n  fromPartial(obj: any): T;\n}\n\n",
     source.slice(registryEnd, resolveStart),
     // The kept types keep their registry spellings; only the removed names go.
-    "const REGISTRY_ALIASES: Record<string, string> = {\n",
+    // Null-prototype: a plain literal would answer `constructor` and friends
+    // from `Object.prototype`, and stock's registry lookup does not.
+    "const REGISTRY_ALIASES: Record<string, string> = Object.assign(Object.create(null), {\n",
     '  AdvSignedDeviceIdentity: "ADVSignedDeviceIdentity",\n',
     '  AdvSignedKeyIndexList: "ADVSignedKeyIndexList",\n',
     '  AdvDeviceIdentity: "ADVDeviceIdentity",\n',
     '  AdvSignedDeviceIdentityHmac: "ADVSignedDeviceIdentityHMAC",\n',
     '  LidMigrationMappingSyncPayload: "LIDMigrationMappingSyncPayload",\n',
-    "};\n\n",
+    "});\n\n",
     "function resolve(typeName: string): MessageFns<any> {\n",
     '  const candidate = GENERATED_MODULE[REGISTRY_ALIASES[typeName] ?? typeName.replaceAll(".", "_")];\n',
     '  if (candidate && typeof candidate === "object" && "encode" in candidate) {\n',
