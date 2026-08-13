@@ -46,6 +46,18 @@ jobs:
       - name: Cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      # Everything above builds with every `client-*` feature on, so a `#[cfg]`
+      # that only holds when they are all present compiles here and breaks for
+      # the consumer who turned one off — the whole reason those features exist.
+      # Two configurations, because they fail differently: nothing on catches a
+      # gated module's helpers going with it, and a partial set catches a domain
+      # that quietly reached into another one.
+      - name: Cargo clippy (reduced feature sets)
+        run: |
+          cargo clippy --all-targets --no-default-features -- -D warnings
+          cargo clippy --all-targets --no-default-features \
+            --features client-signal,client-media -- -D warnings
+
       # `codegen/` is its own package, so the two steps above do not reach it.
       # Its tests pin the type mapping at the level the published-.d.ts check
       # cannot: they name the Rust type a broken declaration came from.
