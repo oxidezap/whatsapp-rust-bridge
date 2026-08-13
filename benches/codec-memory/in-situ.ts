@@ -20,7 +20,9 @@
  * a proposal: it answers "what is the most deferral could ever be worth" and
  * nothing about what the published namespace should be.
  *
- * Needs pkg/ — run `bun run build:wasm:dev` first.
+ * Needs pkg/ — run `bun run build:wasm` first. A dev build works and every arm
+ * carries the same wasm either way, so the differences between arms hold; only
+ * the absolute totals move, and the doc's are from a release build.
  * Run: bun run bench:codec-memory:in-situ   (REPS, NODE_BIN, NODE_FLAGS honoured)
  */
 
@@ -35,7 +37,7 @@ const NODE = process.env.NODE_BIN ?? "node";
 const NODE_FLAGS = (process.env.NODE_FLAGS ?? "").split(" ").filter(Boolean);
 
 if (!existsSync(join(ROOT, "pkg", "whatsapp_rust_bridge.js"))) {
-  throw new Error("pkg/ is missing — run `bun run build:wasm:dev` first");
+  throw new Error("pkg/ is missing — run `bun run build:wasm` first");
 }
 
 const parsed = parse();

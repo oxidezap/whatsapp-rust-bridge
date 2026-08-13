@@ -128,7 +128,11 @@ arms.push({
   ),
 });
 
-const samples = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
+// Per-process deltas, not absolute readings: two fresh node processes need not
+// start from the same page-commit state, and a difference in where they started
+// would land on the codec count.
+const deltas = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
+const totals = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 const heaps = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 
 // Round-robin, not one arm at a time: whatever the machine does during the run
@@ -142,7 +146,8 @@ for (let rep = 0; rep < REPS; rep++) {
     });
     if (proc.exitCode !== 0) throw new Error(`probe failed: ${arm.name}`);
     const row = JSON.parse(proc.stdout.toString());
-    samples.get(arm.name)!.push(row.privateDirty);
+    deltas.get(arm.name)!.push(row.deltaPrivateDirty);
+    totals.get(arm.name)!.push(row.privateDirty);
     heaps.get(arm.name)!.push(row.heapUsed);
   }
 }
@@ -155,10 +160,12 @@ const median = (xs: number[]) => {
 
 const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toString().trim();
 console.log(`reps=${REPS} node=${version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
-console.log(["arm", "codecs", "bundleKiB", "PrivDirty med", "min", "max", "vs 0 codecs", "heapUsed med"].join("\t"));
-const base = median(samples.get(arms[0]!.name)!);
+console.log(
+  ["arm", "codecs", "bundleKiB", "import Δ med", "min", "max", "vs 0 codecs", "PrivDirty med", "heapUsed med"].join("\t"),
+);
+const base = median(deltas.get(arms[0]!.name)!);
 for (const arm of arms) {
-  const xs = samples.get(arm.name)!;
+  const xs = deltas.get(arm.name)!;
   console.log(
     [
       arm.label,
@@ -168,6 +175,7 @@ for (const arm of arms) {
       Math.min(...xs),
       Math.max(...xs),
       (median(xs) - base).toFixed(0),
+      median(totals.get(arm.name)!).toFixed(0),
       median(heaps.get(arm.name)!).toFixed(0),
     ].join("\t"),
   );
