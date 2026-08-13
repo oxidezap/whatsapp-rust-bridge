@@ -139,7 +139,7 @@ const heaps = new Map<string, number[]>(arms.map((arm) => [arm.name, []]));
 // order would leave every arm at a fixed position in the sweep, so a machine
 // that drifts within a sweep would charge that drift to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (const arm of shuffled(arms, rep)) {
+  for (const arm of shuffled(arms, rep, REPS)) {
     const proc = Bun.spawnSync({
       cmd: [NODE, "--expose-gc", ...NODE_FLAGS, join(HERE, "probe.mjs"), join(OUT, `${arm.name}.js`)],
       stdout: "pipe",

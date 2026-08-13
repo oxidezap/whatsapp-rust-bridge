@@ -10,8 +10,8 @@ Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.89
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
 Deferring construction **per type** is worth **−1.91 MiB (v22) / −0.93 (v26)**
-after realistic use, and the six differences a consumer can observe — a property
-descriptor, the order `Object.keys` returns, and four corners of writing to or
+after realistic use, and the seven differences a consumer can observe — a property
+descriptor, the order `Object.keys` returns, and five corners of writing to or
 redefining a property — are declared below.
 
 Those two are the only *shippable* shapes measured. Two others save real memory
@@ -30,11 +30,14 @@ memory moving, and a clean page stops being private the moment a second process
 maps the same file. Two full `global.gc()` passes before each reading. One
 process per sample, arms interleaved under a fresh seeded permutation each
 repetition so machine drift lands on all of them, medians over the repetition
-counts stated per table. The permutations form a Latin square — within any
-`arms` consecutive repetitions each arm occupies each slot exactly once, so a
-partial cycle is off by at most one — because a fixed order leaves every arm at
-one position, and independent shuffles still let an arm favour a slot over five
-or fifteen samples. Seeded, so a run reproduces.
+counts stated per table. The permutations form a Latin square — over a
+complete cycle of `arms` repetitions every arm occupies every slot once and
+every arm's mean sweep position is identical — because a fixed order leaves
+every arm at one position, and independent shuffles still let an arm favour a
+slot over five or fifteen samples. An incomplete cycle spreads its rotations
+around the cycle rather than taking them consecutively, which holds the
+15-of-18 sweep's mean positions to 8.00–9.00 against an ideal 8.50 instead of
+7.00–10.00. Seeded, so a run reproduces.
 
 Two node versions, because they disagree: **v22.22.2** and **v26.5.0**. Every
 number below was taken on this machine, 4 cores / 16 GB, against `d5b6b38`
@@ -430,8 +433,8 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Six differences are observable, and all six are inherent to an accessor rather
-than defects to fix:
+Seven differences are observable, and all seven are inherent to an accessor
+rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
   returns an accessor where the eager namespace returns a writable data
@@ -465,7 +468,12 @@ than defects to fix:
   data property's `[[Set]]` returns `false` and leaves the caller to decide,
   while a setter runs and this one throws. Same root as the sloppy-mode case —
   an accessor cannot hand the decision back — and it is the reason both are
-  listed rather than merged.
+  listed rather than merged;
+- `Reflect.set` through a **non-extensible** `Object.create(proto)` overlay,
+  before the type is read: stock cannot create the own property on the receiver
+  and reports `false`, while the setter tries to define it and throws. Third
+  face of the same root, and the reason the receiver fix in the setter closes
+  the ordinary overlay case but not this one.
 
 Not on the list, because it was a defect and is fixed: a write through an
 overlay — `Object.create(proto).Message = x` — reaches the setter with the
@@ -476,7 +484,7 @@ overlay. The setter checks its receiver, and the harness checks the setter.
 Everything else behaves identically: reading, calling, enumerating, spreading,
 `JSON.stringify`, freezing, assigning after a seal, and refusing a strict-mode
 assignment after a freeze. That is the whole of what "transparent" means here,
-and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode,
+and `bench:codec-memory:equivalence` prints the key-order, sloppy-mode, both
 `Reflect.set` and both redefinition divergences on every run rather than hiding
 them in a set comparison.
 
@@ -515,13 +523,13 @@ codec is generated for that set.** That is an API change, not an optimization,
 and it is stated as one here rather than dressed up as transparent.
 
 It also does not stack cleanly with the lazy design — `textcut-lazyns` is the
-floor at −4.34 / −3.47 MiB, but that arm keeps no working codec at all, so it
+floor at −4.21 / −3.54 MiB, but that arm keeps no working codec at all, so it
 bounds the two together rather than pricing them.
 
 **Recommendation: take the lazy design.** It is half the cut's private memory
 on v22, within a fifth of its retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change a consumer can only observe through the
-six corners declared above. The
+seven corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.

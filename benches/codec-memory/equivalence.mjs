@@ -305,6 +305,26 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   const eagerOverlay = await overlay("stock");
   check(`a write through Object.create(proto) behaves as stock does (${eagerOverlay})`, lazyOverlay === eagerOverlay);
 
+  // The same overlay, made non-extensible. Stock cannot create the own property
+  // and reports false; the setter tries to define it and throws. Reported —
+  // same root as the other two, an accessor runs where a data property would
+  // have handed the failure back.
+  const sealedOverlay = async (name) => {
+    const mod = await load(name, "?overlay-sealed=1");
+    const local = Object.preventExtensions(Object.create(mod.proto));
+    try {
+      return `returned ${Reflect.set(local, "HistorySync", { marker: true })}`;
+    } catch (error) {
+      return `threw ${error.constructor.name}`;
+    }
+  };
+  const lazySealedOverlay = await sealedOverlay("lazyboth-pertype");
+  const eagerSealedOverlay = await sealedOverlay("stock");
+  console.log(
+    `  note Reflect.set through a non-extensible Object.create(proto): stock ${eagerSealedOverlay}, lazy ${lazySealedOverlay}` +
+      (lazySealedOverlay === eagerSealedOverlay ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
+  );
+
   // `Object.defineProperty` after a seal. Stock's sealed data property is still
   // writable, so a value descriptor lands; a non-configurable accessor cannot
   // become a data property, so the same call throws. Reported, not asserted.

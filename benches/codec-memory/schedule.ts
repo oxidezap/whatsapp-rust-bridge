@@ -1,7 +1,7 @@
 /**
  * The order the arms are sampled in, one permutation per repetition. Balanced,
- * because independent shuffles still leave an arm favouring a slot over five or
- * fifteen repetitions; seeded, because `Math.random` would not reproduce.
+ * because a fixed order and independent shuffles both leave an arm favouring
+ * one end of the sweep; seeded, because `Math.random` would not reproduce.
  */
 
 /** mulberry32: small, well-distributed, and deterministic from `seed`. */
@@ -23,14 +23,22 @@ const shuffle = <T>(items: readonly T[], seed: number): T[] => {
 };
 
 /**
- * A Latin square, one row per repetition: within any `items.length` consecutive
- * repetitions every arm occupies every slot exactly once, so a partial cycle is
- * off by at most one. The base order is reshuffled each cycle, so no pair of
- * arms stays adjacent across the run.
+ * A Latin square, one row per repetition: over a complete cycle of
+ * `items.length` repetitions every arm occupies every slot exactly once, and
+ * every arm's mean sweep position is identical, so drift within a sweep cannot
+ * be charged to arm identity. The base order is reshuffled each cycle.
+ *
+ * The leftover rows of an incomplete cycle take their rotations spread around
+ * the cycle rather than consecutively — consecutive offsets give each arm a
+ * contiguous block of slots, which is what pulled the 15-of-18 sweep's mean
+ * positions to 7.00–10.00. Spread, they are 8.00–9.00 against an ideal 8.50.
  */
-export const shuffled = <T>(items: readonly T[], rep: number): T[] => {
+export const shuffled = <T>(items: readonly T[], rep: number, reps: number): T[] => {
   const n = items.length;
   const base = shuffle(items, Math.floor(rep / n) * 2654435761 + 1);
-  const offset = rep % n;
+  const whole = Math.floor(reps / n) * n;
+  const leftover = reps - whole;
+  const offset =
+    rep >= whole && leftover > 1 ? Math.round(((rep - whole) * n) / leftover) % n : rep % n;
   return base.map((_, i) => base[(i + offset) % n]!);
 };

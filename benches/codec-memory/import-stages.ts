@@ -65,7 +65,7 @@ const STAGES = ["wasm-bytes", "wasm-module", "wasm-module-freed", "js-only", "fu
 const samples = new Map<string, number[]>(STAGES.map((stage) => [stage, []]));
 
 for (let rep = 0; rep < REPS; rep++) {
-  for (const stage of shuffled(STAGES, rep)) {
+  for (const stage of shuffled(STAGES, rep, REPS)) {
     const proc = Bun.spawnSync({
       cmd: [NODE, "--expose-gc", ...NODE_FLAGS, join(HERE, "import-stages-probe.mjs"), stage, WORK],
       stdout: "pipe",

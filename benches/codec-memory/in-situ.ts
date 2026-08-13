@@ -567,7 +567,7 @@ const retained = new Map<string, number[]>(runs.map((run) => [label(run), []]));
 // A fresh permutation each repetition, so no arm keeps a position in the sweep
 // and drift within one cannot be charged to arm identity.
 for (let rep = 0; rep < REPS; rep++) {
-  for (const run of shuffled(runs, rep)) {
+  for (const run of shuffled(runs, rep, REPS)) {
     const proc = Bun.spawnSync({
       cmd: [
         NODE,
