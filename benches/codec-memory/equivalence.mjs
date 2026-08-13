@@ -135,13 +135,19 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
       const b = Buffer.from(at(mod.proto, path).encode(payload).finish());
       const da = JSON.stringify(at(stock.proto, path).decode(a));
       const db = JSON.stringify(at(mod.proto, path).decode(b));
-      if (Buffer.compare(a, b) !== 0 || da !== db) broken.push(path);
+      // `fromPartial` is rewritten by the lazy transform too, and it is public.
+      const pa = JSON.stringify(at(stock.proto, path).fromPartial(payload));
+      const pb = JSON.stringify(at(mod.proto, path).fromPartial(payload));
+      if (Buffer.compare(a, b) !== 0 || da !== db || pa !== pb) broken.push(path);
     } catch (error) {
       broken.push(`${path} (${error.message})`);
     }
   }
   const edges = codecPaths.reduce((total, path) => total + (messageFields.get(path)?.length ?? 0), 0);
-  check(`all ${codecPaths.length} codecs round-trip identically, ${edges} nested fields exercised`, broken.length === 0);
+  check(
+    `all ${codecPaths.length} codecs round-trip identically through encode/decode/fromPartial, ${edges} nested fields exercised`,
+    broken.length === 0,
+  );
   if (broken.length) console.log("    broken:", broken.slice(0, 5));
 
   for (const [name, value] of CASES) {
@@ -157,6 +163,25 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
     "unknown child on a forward-compatible carrier synthesizes",
     typeof mod.proto.Message.SomeUnreleasedThing?.fromObject === "function",
   );
+}
+
+// A consumer may freeze the namespace before reading a type. The eager tree
+// stays readable after that; a lazy one that insists on writing itself back
+// would throw, which is a difference a consumer can see.
+{
+  const frozen = await load("lazyboth-pertype", "?frozen=1");
+  Object.freeze(frozen.proto);
+  let ok = false;
+  try {
+    ok = Buffer.compare(
+      Buffer.from(frozen.proto.HistorySync.encode({}).finish()),
+      Buffer.from(stock.proto.HistorySync.encode({}).finish()),
+    ) === 0;
+  } catch (error) {
+    console.log(`    ${error.message}`);
+  }
+  console.log("\nfrozen namespace");
+  check("a type read for the first time after Object.freeze(proto) still resolves", ok);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

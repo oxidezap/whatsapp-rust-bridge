@@ -9,8 +9,12 @@
  *   textcut         657 codec bodies replaced by four throwing methods; every
  *                   export name and the namespace's own work stay identical,
  *                   so what this removes is codec *text* and nothing else
- *   cut             the ping-pong closure kept, the rest stubbed — the largest
- *                   cut a Baileys-compatible client could actually take
+ *   cut             the ping-pong closure kept, the rest stubbed under the same
+ *                   export names — codec bodies removed and nothing else
+ *   cut-real        the ping-pong closure and nothing else: the removed types
+ *                   are not exported, so the namespace never wraps them. This
+ *                   is what the consumer-declared cut would actually ship, and
+ *                   it does not run without the API change
  *   lazycodecs      codec objects deferred, `proto` assembled eagerly
  *   lazyns          codecs eager, the whole `proto` tree on first read
  *   lazyboth        both — the ceiling on deferring execution
@@ -100,6 +104,26 @@ const rewriteProtoTs = (source: string): string => {
   ].join("");
 };
 
+/** Same resolver, over the star import, for the arm whose module lost exports. */
+const rewriteProtoTsForCut = (source: string): string => {
+  const registryStart = source.indexOf("import {\n  Message,");
+  const registryEnd = source.indexOf('import * as gen from "./generated/whatsapp";');
+  const resolveStart = source.indexOf("function resolve(typeName: string)");
+  const resolveEnd = source.indexOf("\n}\n", resolveStart) + 3;
+  return [
+    source.slice(0, registryStart),
+    "interface MessageFns<T> {\n  encode(message: T, writer?: any): any;\n",
+    "  decode(input: Uint8Array | any, length?: number): T;\n  fromPartial(obj: any): T;\n}\n\n",
+    source.slice(registryEnd, resolveStart),
+    "function resolve(typeName: string): MessageFns<any> {\n",
+    '  const candidate = GENERATED_MODULE[typeName.replaceAll(".", "_")];\n',
+    '  if (candidate && typeof candidate === "object" && "encode" in candidate) {\n',
+    "    return candidate as MessageFns<any>;\n  }\n",
+    "  throw new Error(`unknown proto type: ${typeName}`);\n}\n",
+    source.slice(resolveEnd),
+  ].join("");
+};
+
 const messagePass = (fromGetterObject: boolean) =>
   fromGetterObject
     ? `  for (const flatName of codecNames) {
@@ -157,7 +181,13 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
     enumerable: true,
     get() {
       const value = make();
-      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+      // A consumer may have frozen or sealed the namespace before reading it,
+      // which makes this accessor non-configurable. The eager namespace stays
+      // readable after that, so this one has to as well: keep the memoized
+      // value and skip the write-back rather than throwing.
+      try {
+        Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+      } catch {}
       return value;
     },
     set(value: any) {
@@ -287,6 +317,8 @@ interface Arm {
   codecModule?: string;
   /** `whole`: one Proxy over the entire tree. `pertype`: a getter per type. */
   lazyNamespace?: "whole" | "pertype";
+  /** The removed types are gone from the module, so `proto.ts` cannot name them. */
+  realCut?: boolean;
   /** `textcut` cannot run the ping-pong traffic — its codecs throw. */
   touchable: boolean;
 }
@@ -296,6 +328,7 @@ const arms: Arm[] = [
   { name: "stock", touchable: true },
   { name: "textcut", codecModule: stubCodecs(new Set()), touchable: false },
   { name: "cut", codecModule: stubCodecs(PING_PONG), touchable: true },
+  { name: "cut-real", codecModule: emit(parsed, PING_PONG, "eager", false), realCut: true, touchable: true },
   { name: "lazycodecs", codecModule: LAZY_CODECS, touchable: true },
   { name: "lazyns", lazyNamespace: "whole", touchable: true },
   { name: "lazyboth", codecModule: LAZY_CODECS, lazyNamespace: "whole", touchable: true },
@@ -316,6 +349,12 @@ for (const arm of arms) {
 
   const lazyCodecs = arm.codecModule === LAZY_CODECS;
   if (arm.codecModule) writeFileSync(join(tree, "ts", "generated", "whatsapp.ts"), arm.codecModule);
+  if (arm.realCut) {
+    // The 31-entry registry names types this arm no longer has. Resolving
+    // through the star import is what a generated-for-your-types codec would
+    // do, and the names that are gone throw — which is the API change.
+    writeFileSync(join(tree, "ts", "proto.ts"), rewriteProtoTsForCut(readFileSync(join(tree, "ts", "proto.ts"), "utf8")));
+  }
   if (lazyCodecs) {
     writeFileSync(
       join(tree, "ts", "codec-names.ts"),
@@ -409,10 +448,13 @@ const median = (xs: number[]) => {
 const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toString().trim();
 console.log(`reps=${REPS} node=${version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
 console.log(
-  ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs stock", "retained med", "vs stock", "heapUsed med", "external med"].join("\t"),
+  ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs base", "retained med", "vs base", "heapUsed med", "external med"].join("\t"),
 );
-const stock = median(priv.get("stock")!);
-const retainedStock = median(retained.get("stock")!);
+// A `+touch` arm is measured against `stock +touch`: the traffic itself costs
+// 0.12–0.28 MiB, and charging that to the arm would flatter every one of them.
+const baseline = (run: { touch: boolean }) => (run.touch ? "stock +touch" : "stock");
+const stockPriv = (run: { touch: boolean }) => median(priv.get(baseline(run))!);
+const stockRetained = (run: { touch: boolean }) => median(retained.get(baseline(run))!);
 for (const run of runs) {
   const key = label(run);
   const xs = priv.get(key)!;
@@ -423,9 +465,9 @@ for (const run of runs) {
       median(xs).toFixed(0),
       Math.min(...xs),
       Math.max(...xs),
-      (median(xs) - stock).toFixed(0),
+      (median(xs) - stockPriv(run)).toFixed(0),
       median(retained.get(key)!).toFixed(0),
-      (median(retained.get(key)!) - retainedStock).toFixed(0),
+      (median(retained.get(key)!) - stockRetained(run)).toFixed(0),
       median(heaps.get(key)!).toFixed(0),
       median(externals.get(key)!).toFixed(0),
     ].join("\t"),

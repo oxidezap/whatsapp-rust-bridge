@@ -154,7 +154,7 @@ const CODEC_HEAD = /^export const [A-Za-z0-9_]+:\s*MessageFns<[\s\S]*?>\s*=\s*/;
  * but builds each object only when its property is first read — the control
  * for "does deferring execution pay what removing the text pays?".
  */
-export function emit(parsed: Parsed, keep: Set<string>, mode: Mode = "eager"): string {
+export function emit(parsed: Parsed, keep: Set<string>, mode: Mode = "eager", exportBag = true): string {
   const out: string[] = [];
   const names: string[] = [];
   for (const block of parsed.blocks) {
@@ -170,11 +170,17 @@ export function emit(parsed: Parsed, keep: Set<string>, mode: Mode = "eager"): s
     // so they cannot move the measurement.
     out.push(block.text);
   }
+  if (!exportBag) return out.join("\n");
   out.push(
     mode === "eager"
       ? `export const codecs: Record<string, any> = {\n${names.map((n) => `  ${n},`).join("\n")}\n};\n`
-      : `export const codecs: Record<string, any> = {\n${names
-          .map((n) => `  get ${n}() { return _mk_${n}(); },`)
+      : // The getter writes itself back as a plain property on first read, so
+        // `resolve()` pays for the deferral once rather than on every encode.
+        `function _install(key: string, value: any): any {\n` +
+        `  Object.defineProperty(codecs, key, { value, writable: true, enumerable: true, configurable: true });\n` +
+        `  return value;\n}\n\n` +
+        `export const codecs: Record<string, any> = {\n${names
+          .map((n) => `  get ${n}() { return _install(${JSON.stringify(n)}, _mk_${n}()); },`)
           .join("\n")}\n};\n`,
   );
   return out.join("\n");
