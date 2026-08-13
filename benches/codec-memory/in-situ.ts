@@ -36,11 +36,12 @@
 
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { closure, emit, parse, PING_PONG_ROOTS, ROOT } from "./slice";
+import { assertRoundTrip, closure, emit, parse, PING_PONG_ROOTS, ROOT } from "./slice";
 
 const HERE = import.meta.dir;
 const WORK = join(ROOT, "target", "codec-memory", "in-situ");
 const REPS = Number(process.env.REPS ?? 15);
+if (!Number.isSafeInteger(REPS) || REPS < 1) throw new Error(`REPS must be a positive integer, got ${process.env.REPS}`);
 const NODE = process.env.NODE_BIN ?? "node";
 const NODE_FLAGS = (process.env.NODE_FLAGS ?? "").split(" ").filter(Boolean);
 
@@ -48,7 +49,20 @@ if (!existsSync(join(ROOT, "pkg", "whatsapp_rust_bridge.js"))) {
   throw new Error("pkg/ is missing — run `bun run build:wasm` first");
 }
 
+/**
+ * Every rewrite below finds its insertion point by string. A moved anchor is
+ * the dangerous failure here: `indexOf` returns -1, `slice` quietly produces
+ * something that still bundles, and the arm goes on reporting a number for a
+ * variant it is not. So each one is asserted rather than trusted.
+ */
+const anchor = (source: string, needle: string, what: string): number => {
+  const at = source.indexOf(needle);
+  if (at < 0) throw new Error(`${what}: anchor not found — ${JSON.stringify(needle.slice(0, 40))}`);
+  return at;
+};
+
 const parsed = parse();
+assertRoundTrip(parsed);
 const LAZY_CODECS = emit(parsed, new Set(parsed.codecs.keys()), "lazy");
 const CODEC_NAMES = [...parsed.codecs.keys()];
 
@@ -75,10 +89,10 @@ const stubCodecs = (keep: Set<string>): string =>
 
 /** `proto.ts` resolves through the getter object rather than a 31-entry registry. */
 const rewriteProtoTs = (source: string): string => {
-  const registryStart = source.indexOf("import {\n  Message,");
-  const registryEnd = source.indexOf('import * as gen from "./generated/whatsapp";');
-  const resolveStart = source.indexOf("function resolve(typeName: string)");
-  const resolveEnd = source.indexOf("\n}\n", resolveStart) + 3;
+  const registryStart = anchor(source, "import {\n  Message,", "proto.ts");
+  const registryEnd = anchor(source, 'import * as gen from "./generated/whatsapp";', "proto.ts");
+  const resolveStart = anchor(source, "function resolve(typeName: string)", "proto.ts");
+  const resolveEnd = anchor(source.slice(resolveStart), "\n}\n", "proto.ts") + resolveStart + 3;
   return [
     source.slice(0, registryStart),
     'import { codecs } from "./generated/whatsapp";\n\n',
@@ -106,10 +120,10 @@ const rewriteProtoTs = (source: string): string => {
 
 /** Same resolver, over the star import, for the arm whose module lost exports. */
 const rewriteProtoTsForCut = (source: string): string => {
-  const registryStart = source.indexOf("import {\n  Message,");
-  const registryEnd = source.indexOf('import * as gen from "./generated/whatsapp";');
-  const resolveStart = source.indexOf("function resolve(typeName: string)");
-  const resolveEnd = source.indexOf("\n}\n", resolveStart) + 3;
+  const registryStart = anchor(source, "import {\n  Message,", "proto.ts (cut)");
+  const registryEnd = anchor(source, 'import * as gen from "./generated/whatsapp";', "proto.ts (cut)");
+  const resolveStart = anchor(source, "function resolve(typeName: string)", "proto.ts (cut)");
+  const resolveEnd = anchor(source.slice(resolveStart), "\n}\n", "proto.ts (cut)") + resolveStart + 3;
   return [
     source.slice(0, registryStart),
     "interface MessageFns<T> {\n  encode(message: T, writer?: any): any;\n",
@@ -179,7 +193,7 @@ const messagePass = (fromGetterObject: boolean) =>
  * so the descriptors are copied instead.
  */
 const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): string => {
-  const head = source.slice(0, source.indexOf("const buildNamespace = "));
+  const head = source.slice(0, anchor(source, "const buildNamespace = ", "proto-namespace.ts (per type)"));
   const codecFor = fromGetterObject
     ? "(codecs as Record<string, any>)[flatName]"
     : "(gen as Record<string, any>)[flatName]";
@@ -204,6 +218,12 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
       return held ? held.value : keep(make());
     },
     set(value: any) {
+      // A frozen namespace has non-writable data properties, so assigning to
+      // one throws in module code and cannot change what a read returns. An
+      // accessor's setter still runs, so it has to refuse rather than accept.
+      if (Object.isFrozen(target)) {
+        throw new TypeError("Cannot assign to read only property '" + key + "' of object");
+      }
       keep(value);
     },
   });
@@ -293,7 +313,7 @@ export const proto: Record<string, any> = buildNamespace();
 
 /** The same tree, assembled on the first property read of `proto`. */
 const rewriteNamespaceLazy = (source: string, fromGetterObject: boolean): string => {
-  const head = source.slice(0, source.indexOf("const buildNamespace = "));
+  const head = source.slice(0, anchor(source, "const buildNamespace = ", "proto-namespace.ts (whole)"));
   return `${head}const buildNamespace = (): Record<string, any> => {
   const root: Record<string, any> = {};
   const place = (flatName: string): [Record<string, any>, string] => {
@@ -344,6 +364,15 @@ interface Arm {
   /** `textcut` cannot run the ping-pong traffic — its codecs throw. */
   touchable: boolean;
 }
+
+const writeCodecNames = (tree: string): void => {
+  const list = (names: readonly string[]) => names.map((name) => `  ${JSON.stringify(name)},`).join("\n");
+  writeFileSync(
+    join(tree, "ts", "codec-names.ts"),
+    `export const codecNames: readonly string[] = [\n${list(CODEC_NAMES)}\n];\n` +
+      `export const exportOrder: readonly string[] = [\n${list(parsed.exportOrder)}\n];\n`,
+  );
+};
 
 const PING_PONG = closure(parsed, PING_PONG_ROOTS);
 
@@ -427,11 +456,7 @@ for (const arm of arms) {
     writeFileSync(join(tree, "ts", "proto.ts"), rewriteProtoTsForCut(readFileSync(join(tree, "ts", "proto.ts"), "utf8")));
   }
   if (lazyCodecs) {
-    writeFileSync(
-      join(tree, "ts", "codec-names.ts"),
-      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n` +
-        `export const exportOrder: readonly string[] = [\n${parsed.exportOrder.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
-    );
+    writeCodecNames(tree);
     writeFileSync(join(tree, "ts", "proto.ts"), rewriteProtoTs(readFileSync(join(tree, "ts", "proto.ts"), "utf8")));
   }
   const namespacePath = join(tree, "ts", "proto-namespace.ts");
@@ -441,11 +466,7 @@ for (const arm of arms) {
   } else if (arm.lazyNamespace === "pertype") {
     // The per-type tree is keyed by name, so it needs the list even when the
     // codec module itself stayed eager.
-    writeFileSync(
-      join(tree, "ts", "codec-names.ts"),
-      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n` +
-        `export const exportOrder: readonly string[] = [\n${parsed.exportOrder.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
-    );
+    writeCodecNames(tree);
     namespaceSource = namespaceSource.replace(
       IMPORT_GEN,
       `${IMPORT_GEN}\nimport { codecNames, exportOrder } from "./codec-names";`,
@@ -458,12 +479,27 @@ for (const arm of arms) {
   } else if (lazyCodecs) {
     // Eager namespace over a getter object: it reads every getter while
     // assembling, which is the whole point of the `lazycodecs` arm.
+    anchor(namespaceSource, "for (const [flatName, value] of Object.entries(gen)) {", "proto-namespace.ts (eager bag)");
     namespaceSource = namespaceSource.replace(
       "for (const [flatName, value] of Object.entries(gen)) {",
       'for (const [flatName, value] of [...codecNames.map((n) => [n, (codecs as any)[n]] as const), ...Object.entries(gen).filter(([n]) => n !== "codecs")]) {',
     );
   }
   writeFileSync(namespacePath, namespaceSource);
+
+  // The arm's own module has to carry what the arm's name claims, or the
+  // number it reports is for a variant nobody described.
+  if (arm.codecModule) {
+    const bodies = (arm.codecModule.match(/^function createBase/gm) ?? []).length;
+    const factories = (arm.codecModule.match(/^function _mk_/gm) ?? []).length;
+    const expected = arm.codecModule === LAZY_CODECS ? CODEC_NAMES.length : undefined;
+    if (arm.codecModule === LAZY_CODECS && factories !== expected) {
+      throw new Error(`${arm.name}: ${factories} lazy factories, expected ${expected}`);
+    }
+    if (arm.realCut && bodies !== PING_PONG.size) {
+      throw new Error(`${arm.name}: ${bodies} codec bodies, expected ${PING_PONG.size}`);
+    }
+  }
 
   const built = Bun.spawnSync({
     cmd: ["bun", "build", join(tree, "ts", "index.ts"), "--minify", "--target", "node", "--outfile", join(WORK, `${arm.name}.js`)],

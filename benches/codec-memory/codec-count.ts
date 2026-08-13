@@ -1,27 +1,16 @@
 /**
  * What a codec count costs, with the codec layer on its own.
  *
- * Builds one bundle per codec count and measures `Private_Dirty` in a process
- * that only imports it. Three of the arms are not codec counts at all:
- *
- *   lazy    657 codecs of source, none of them evaluated on import — the
- *           control for "does deferring execution pay what removing the text
- *           pays?"
- *   string  the same minified bytes carried as a string literal, so nothing
- *           in them is code
- *   file    the same bytes again, read at runtime — `string` pays for two
- *           copies (module source and heap string) and this one for one
- *
- * Read the numbers as the codec layer in isolation. `in-situ.ts` measures the
- * same changes inside the real library, and they do not agree; docs/proto-codec-memory.md
- * says why that is the interesting part.
+ * The `lazy`, `string` and `file` arms are controls rather than counts; what
+ * each one isolates, and why the isolated numbers disagree with `in-situ.ts`,
+ * is in docs/proto-codec-memory.md.
  *
  * Run: bun run bench:codec-memory   (REPS, NODE_BIN, NODE_FLAGS honoured)
  */
 
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { closure, emit, parse, PING_PONG_ROOTS, REGISTRY_ROOTS, ROOT, type Mode } from "./slice";
+import { assertRoundTrip, closure, emit, parse, PING_PONG_ROOTS, REGISTRY_ROOTS, ROOT, type Mode } from "./slice";
 
 const HERE = import.meta.dir;
 const WORK = join(ROOT, "target", "codec-memory");
@@ -31,17 +20,15 @@ mkdirSync(SRC, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
 const REPS = Number(process.env.REPS ?? 25);
+if (!Number.isSafeInteger(REPS) || REPS < 1) throw new Error(`REPS must be a positive integer, got ${process.env.REPS}`);
 const NODE = process.env.NODE_BIN ?? "node";
 const NODE_FLAGS = (process.env.NODE_FLAGS ?? "").split(" ").filter(Boolean);
 const READER = join(ROOT, "ts", "proto-reader");
 
 const parsed = parse();
+assertRoundTrip(parsed);
 
-/**
- * A codec set has to be closed under the calls its members make or the module
- * does not run, so grow one by whole closures — smallest first, for the finest
- * steps at the low end. The point of these arms is a count, not a meaning.
- */
+/** Smallest closures first, for the finest steps at the low end. */
 const byClosureSize = [...parsed.codecs.keys()]
   .map((name) => ({ name, size: closure(parsed, [name]).size }))
   .sort((a, b) => a.size - b.size || a.name.localeCompare(b.name));
@@ -102,13 +89,8 @@ named("registry closure", closure(parsed, REGISTRY_ROOTS));
 named("all 657", new Set(parsed.codecs.keys()));
 named("lazy 657", new Set(parsed.codecs.keys()), "lazy");
 
-/**
- * The same bytes as data rather than as code — codec text only. Reusing
- * `all-657.js` would put the shared reader inside the blob as well as in the
- * arm's own module, so those two arms would carry it twice and the eager ones
- * once. Building the blob with the reader left external keeps the payload to
- * what these controls are about.
- */
+// Codec text only: reusing `all-657.js` would put the shared reader inside the
+// blob as well as in the arm's own module, and the eager arms carry it once.
 {
   const built = Bun.spawnSync({
     cmd: [

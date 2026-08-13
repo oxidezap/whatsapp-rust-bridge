@@ -9,7 +9,11 @@
 
 import { readFileSync } from "node:fs";
 
-const priv = () => Number(/^Private_Dirty:\s+(\d+) kB$/m.exec(readFileSync("/proc/self/smaps_rollup", "utf8"))[1]);
+const priv = () => {
+  const match = /^Private_Dirty:\s+(\d+) kB$/m.exec(readFileSync("/proc/self/smaps_rollup", "utf8"));
+  if (!match) throw new Error("/proc/self/smaps_rollup carries no Private_Dirty line — this probe needs Linux");
+  return Number(match[1]);
+};
 const settle = () => {
   global.gc();
   global.gc();

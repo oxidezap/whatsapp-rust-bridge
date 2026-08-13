@@ -9,8 +9,9 @@ or **the code being run**.
 Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.89 /
 −2.27 MiB** and is an API change. Deferring construction **per type** is worth
-**−2.08 / −1.07 MiB** after realistic use, and the only difference a consumer
-can observe is a property descriptor. Every other shape of either idea is worth
+**−2.08 / −1.07 MiB** after realistic use, and the only differences a consumer
+can observe are a property descriptor and the order `Object.keys` returns.
+Every other shape of either idea is worth
 nothing: deferring construction alone, deferring the namespace as one unit, or
 removing codec bodies while keeping their names. The recommendation is the lazy
 design. The measurement is in `benches/codec-memory/`.
@@ -96,7 +97,7 @@ pages and the instantiation on the JS side of the ledger.
 
 `bun run benches/codec-memory/slice.ts`:
 
-```
+```text
 message codecs                       657
 enums                                212
 reached by no other codec             74
@@ -216,7 +217,7 @@ between them is the whole story:
   on both (+0.35 / +0.27 MiB).
 - `lazyboth-pertype` gives each type its own getter, so touching six types
   builds six wrappers and the codecs their decodes reach. This one does not
-  collapse: **−2.09 MiB (v22) / −0.96 MiB (v26) after the client has used the
+  collapse: **−2.08 MiB (v22) / −1.07 MiB (v26) after the client has used the
   library.** It needs both halves — `lazyns-pertype`, per-type getters over
   eager codecs, is worth nothing, because the codec objects are built either
   way and the tree of 657 getters costs about what the wrappers it defers do.
@@ -318,23 +319,26 @@ library. Against the stock bundle it checks:
 - the same 8,133 namespace paths, none missing and none extra;
 - **all 657 codecs round-tripping identically** through `encode`, `decode` and
   `fromPartial` — each driven with one empty instance of every message field it
-  declares, 857 nested fields, which is every cross-codec call the rewrite
+  declares, 858 nested fields, which is every cross-codec call the rewrite
   touched;
 - the registry's non-generated spellings (`AdvSignedDeviceIdentity`), the
   `ADVSignedKeyIndexList` alias, and the synthesized-unknown-child behaviour of
   the four forward-compatible carriers;
 - a type read for the first time *after* `Object.freeze(proto)`, the same object
   handed out twice from a frozen namespace, and assignment after
-  `Object.seal(proto)` — a getter that insists on writing itself back fails the
-  first, an unmemoized forward-compatible wrapper the second, and a setter that
-  insists on redefining a sealed accessor the third;
+  `Object.seal(proto)` and after `Object.freeze(proto)` — a getter that insists
+  on writing itself back fails the first, an unmemoized forward-compatible
+  wrapper the second, a setter that insists on redefining a sealed accessor the
+  third, and one that silently accepts a write a frozen data property would
+  have rejected the fourth;
 - 250 of 270 top-level types still unmaterialized after import, 247 after a
   ping-pong exchange.
 
 Types do not change: nothing is removed from the schema, the `.d.ts` is
 untouched, and the getters are enumerable and configurable, so `Object.keys`,
-`in`, spread and `JSON.stringify` behave as they do today. First access writes
-the value back as a plain property — on the namespace and in the codec module
+`in`, spread and `JSON.stringify` all see the same set of keys they see today —
+in a different order, which is the second declared difference below. First
+access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
 Two differences are observable, and both are inherent rather than defects to
@@ -351,7 +355,8 @@ fix:
   that, whatever order it builds in.
 
 Everything else behaves identically: reading, calling, enumerating, spreading,
-`JSON.stringify`, freezing, and assigning after a seal. That is the whole of
+`JSON.stringify`, freezing, assigning after a seal, and refusing to assign
+after a freeze. That is the whole of
 what "transparent" means here, and `bench:codec-memory:equivalence` prints the
 key-order divergence on every run rather than hiding it in a set comparison.
 
@@ -363,9 +368,10 @@ descriptors have to be copied instead; a rewrite that redirects `X.decode(` to a
 factory has to allow for the name and the call sitting on separate lines, which
 is how prettier emits the long ones — 11 cross-codec edges hide there; a
 getter that cannot write itself back, because the consumer froze or sealed the
-namespace, has to hold the value in its closure rather than throw — for reads
-*and* for assignments; and the wrapper it returns has to be memoized, or a
-frozen namespace hands out a new object per read.
+namespace, has to hold the value in its closure rather than throw; its setter
+has to accept a write after a seal and refuse one after a freeze, which is what
+the data property it replaces does; and the wrapper it returns has to be
+memoized, or a frozen namespace hands out a new object per read.
 
 This is not implemented here. It changes the shape `scripts/gen-ts-proto.ts`
 emits and the way `ts/proto-namespace.ts` assembles the package's most
@@ -394,13 +400,14 @@ bounds the two together rather than pricing them.
 **Recommendation: take the lazy design.** It is half the cut's private memory,
 the same retained memory on node 26, and the only arm whose value holds in every
 configuration measured — for a change no consumer can observe except by reading
-a property descriptor. The cut is worth reopening only if someone is willing to
+a property descriptor or enumerating `proto` and depending on the order. The
+cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.
 
 ## Running it
 
-```
+```sh
 bun run bench:codec-memory              # the isolated sweep, 25 reps
 bun run build:wasm                      # in-situ needs pkg/
 bun run bench:codec-memory:in-situ      # the ten library arms, 15 reps

@@ -234,6 +234,22 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   const lazyResult = assign(sealed);
   const eagerResult = assign(eager);
   check(`assignment after Object.seal(proto) behaves as stock does (${eagerResult})`, lazyResult === eagerResult);
+
+  // And after a freeze it must refuse, the way a frozen data property does.
+  const frozenLazy = await load("lazyboth-pertype", "?frozen-write=1");
+  const frozenEager = await load("stock", "?frozen-write=1");
+  const assignFrozen = (mod) => {
+    Object.freeze(mod.proto);
+    try {
+      mod.proto.HistorySync = { marker: true };
+      return `accepted, marker=${mod.proto.HistorySync?.marker === true}`;
+    } catch (error) {
+      return error.constructor.name;
+    }
+  };
+  const lazyFrozen = assignFrozen(frozenLazy);
+  const eagerFrozen = assignFrozen(frozenEager);
+  check(`assignment after Object.freeze(proto) behaves as stock does (${eagerFrozen})`, lazyFrozen === eagerFrozen);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");

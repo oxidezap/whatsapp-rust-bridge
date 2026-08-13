@@ -160,6 +160,14 @@ const CODEC_HEAD = /^export const [A-Za-z0-9_]+:\s*MessageFns<[\s\S]*?>\s*=\s*/;
  * for "does deferring execution pay what removing the text pays?".
  */
 export function emit(parsed: Parsed, keep: Set<string>, mode: Mode = "eager", exportBag = true): string {
+  // A kept codec whose neighbour was dropped names a binding the emitted module
+  // does not have. Every caller passes a `closure(...)`, so this only fires on a
+  // hand-written set — and then it names the edge instead of failing at bundle.
+  for (const name of keep) {
+    for (const dep of parsed.deps.get(name) ?? []) {
+      if (!keep.has(dep)) throw new Error(`keep is not dependency-closed: ${name} needs ${dep}`);
+    }
+  }
   const out: string[] = [];
   const names: string[] = [];
   for (const block of parsed.blocks) {
@@ -219,6 +227,17 @@ function lazify(block: Block, codecs: Map<string, Block>): string {
   ].join("\n");
 }
 
+/**
+ * The brace counter is not string-aware. Nothing in the generated file breaks
+ * it today, but a regeneration that did would shift every block boundary and
+ * every measurement built on them — so both benchmarks check this first.
+ */
+export function assertRoundTrip(parsed: Parsed, source = readFileSync(SOURCE, "utf8")): void {
+  const rebuilt = emit(parsed, new Set(parsed.codecs.keys()), "eager");
+  const roundTrip = rebuilt.slice(0, rebuilt.lastIndexOf("\nexport const codecs")).trimEnd();
+  if (roundTrip !== source.trimEnd()) throw new Error("slicer does not round-trip the generated codec");
+}
+
 /** Roots a Baileys-compatible client reaches before any cut could apply. */
 export const PING_PONG_ROOTS = [
   "Message",
@@ -252,12 +271,7 @@ export const REGISTRY_ROOTS = [
 if (import.meta.main) {
   const source = readFileSync(SOURCE, "utf8");
   const parsed = parse(source);
-
-  // A slice keeping every codec must reproduce the file it was cut from, or
-  // the parser is dropping something and every count below is fiction.
-  const rebuilt = emit(parsed, new Set(parsed.codecs.keys()), "eager");
-  const roundTrip = rebuilt.slice(0, rebuilt.lastIndexOf("\nexport const codecs")).trimEnd();
-  if (roundTrip !== source.trimEnd()) throw new Error("slicer does not round-trip the generated codec");
+  assertRoundTrip(parsed, source);
 
   const referenced = new Set<string>();
   for (const deps of parsed.deps.values()) for (const dep of deps) referenced.add(dep);

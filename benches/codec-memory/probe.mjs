@@ -12,7 +12,8 @@ import { readFileSync } from "node:fs";
 
 const field = (text, name) => {
   const match = new RegExp(`^${name}:\\s+(\\d+) kB$`, "m").exec(text);
-  return match ? Number(match[1]) : null;
+  if (!match) throw new Error(`/proc/self/smaps_rollup carries no ${name} line — this probe needs Linux`);
+  return Number(match[1]);
 };
 const smaps = () => {
   const text = readFileSync("/proc/self/smaps_rollup", "utf8");
