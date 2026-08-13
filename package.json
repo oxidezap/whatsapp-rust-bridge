@@ -32,6 +32,7 @@
         "bench:node": "bun run build && node --expose-gc benches/binary.ts && node --expose-gc benches/signal.ts && node --expose-gc benches/curve.ts && node --expose-gc benches/crypto.ts",
         "bench:proto": "bun run benches/proto-encode.ts",
         "bench:wire": "bun run benches/wire-batch-decode.ts",
+        "bench:wire:message": "bun run benches/message-wire-batch.ts",
         "gen:bridge-types": "cargo fetch && cd codegen && cargo run -q --bin gen-types --target $(rustc -vV | grep host | cut -d' ' -f2) > ../src/generated_types.rs.tmp && mv ../src/generated_types.rs.tmp ../src/generated_types.rs",
         "gen:proto-codec": "bun run scripts/gen-ts-proto.ts",
         "gen:proto-types": "bun run scripts/gen-protobufjs-dts.ts",
