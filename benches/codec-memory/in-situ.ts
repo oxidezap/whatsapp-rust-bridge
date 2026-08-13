@@ -516,6 +516,38 @@ for (const arm of arms) {
   if (built.exitCode !== 0) throw new Error(`build failed: ${arm.name}`);
 }
 
+// Bytes only, never measured for memory: the codec share of the bundle is the
+// published size minus this one, and `textcut`'s four-method stubs cost enough
+// bytes of their own to understate it.
+const emptyBundle = (): number => {
+  const tree = join(WORK, "bytes-only");
+  rmSync(tree, { recursive: true, force: true });
+  cpSync(join(ROOT, "ts"), join(tree, "ts"), { recursive: true });
+  symlinkSync(join(ROOT, "pkg"), join(tree, "pkg"));
+  symlinkSync(join(ROOT, "node_modules"), join(tree, "node_modules"));
+  writeFileSync(
+    join(tree, "ts", "generated", "whatsapp.ts"),
+    parsed.blocks
+      .map((block) =>
+        block.kind === "codec"
+          ? `export const ${block.name}: any = {};`
+          : block.kind === "createBase"
+            ? ""
+            : block.text,
+      )
+      .join("\n"),
+  );
+  const built = Bun.spawnSync({
+    cmd: ["bun", "build", join(tree, "ts", "index.ts"), "--minify", "--target", "node", "--outfile", join(WORK, "bytes-only.js")],
+    stdout: "pipe",
+    stderr: "inherit",
+  });
+  if (built.exitCode !== 0) throw new Error("build failed: bytes-only");
+  return statSync(join(WORK, "bytes-only.js")).size;
+};
+const emptyBytes = emptyBundle();
+const stockBytes = statSync(join(WORK, "stock.js")).size;
+
 const runs: { arm: Arm; touch: boolean }[] = [];
 for (const arm of arms) {
   runs.push({ arm, touch: false });
@@ -567,6 +599,9 @@ const version = Bun.spawnSync({ cmd: [NODE, "-v"], stdout: "pipe" }).stdout.toSt
 // bun built every arm here, and its optimizer decides the bytes being measured,
 // so the header names it alongside the node that ran them.
 console.log(`reps=${REPS} node=${version} bun=${Bun.version} flags=${NODE_FLAGS.join(" ") || "(none)"}`);
+console.log(
+  `bundle=${stockBytes} B, codec bodies and names replaced by {}=${emptyBytes} B, codec share=${stockBytes - emptyBytes} B (${(((stockBytes - emptyBytes) / stockBytes) * 100).toFixed(1)} %)`,
+);
 console.log(
   ["arm", "bundleKiB", "PrivDirty med", "min", "max", "vs base", "retained med", "vs base", "heapUsed med", "external med"].join("\t"),
 );

@@ -79,8 +79,13 @@ is the one to believe. It is reported alongside.
 entry point keeps all 657 export names alive at every use site, because they are
 the bundle's public surface. Inside `dist/index.js` the codec is an internal
 module and the minifier renames those identifiers. Measuring by difference —
-build `ts/index.ts` as it stands, then again with each codec body replaced by an
-empty object under the same export name — gives 1,088,484 − 198,308 = **890,176 B**.
+build `ts/index.ts` as it stands, then again with every codec replaced by
+`export const X: any = {}` under the same name — gives 1,088,484 − 198,308 =
+**890,176 B**. `bench:codec-memory:in-situ` builds that second bundle and prints
+the three numbers in its header. It is a *byte* control and is never measured
+for memory; the `textcut` arm below keeps four throwing methods per codec
+instead, because `{}` would stop `proto-namespace.ts` recognising a codec and
+would remove the namespace's own work along with the text.
 Still the dominant term, and the prompt's headline ("the JavaScript cost of this
 package is protobuf, not the bridge") survives as a statement about *bytes*. It
 does not survive as a statement about memory.
@@ -359,10 +364,10 @@ configurations — and it costs nothing at the API. But only per type. Three des
    eager cost. That is the enum result: the text is still there and V8 still
    parses it.
 2. In situ, deferring construction alone (`lazycodecs`) buys nothing on v26 — it
-   is 0.35 MiB *worse* — because the eager namespace reads every export while
+   is 0.25 MiB *worse* — because the eager namespace reads every export while
    assembling.
-3. Deferring the namespace as one unit (`lazyboth`) looks like −3.8 MiB at
-   import and comes back to −0.12 MiB on v26 once the first property is read,
+3. Deferring the namespace as one unit (`lazyboth`) looks like −3.2 MiB at
+   import and comes back to −0.18 MiB on v26 once the first property is read,
    because that read builds all 657. Per type, it does not come back.
 
 So the distinction the original hypothesis drew — presence versus execution — is
@@ -402,8 +407,10 @@ library. Against the stock bundle it checks:
   third, and one that silently accepts a write a frozen data property would
   have rejected the fourth. The same write from non-strict code is reported
   rather than asserted, because there the two genuinely differ;
-- 250 of 270 top-level types still unmaterialized after import, 247 after a
-  ping-pong exchange.
+- 250 of 270 top-level types still unmaterialized after import and 244 after
+  the same six-type workload the `+touch` arms run — both counts asserted
+  absolutely, since a rewrite that materialized wrappers at import would move
+  them together and pass a delta check.
 
 Types do not change: nothing is removed from the schema, the `.d.ts` is
 untouched, and the getters are enumerable and configurable, so `Object.keys`,

@@ -107,17 +107,23 @@ const check = (label, ok) => {
       .length;
   const total = Object.keys(fresh.proto).length;
   const before = stillLazy();
+  // The same six types `in-situ-probe.mjs` touches, so this counts what the
+  // measured workload materializes rather than a smaller stand-in.
+  fresh.proto.HandshakeMessage.encode({ clientHello: { ephemeral: new Uint8Array(32) } }).finish();
+  fresh.proto.ClientPayload.encode({ passive: false }).finish();
+  fresh.proto.ADVSignedDeviceIdentity.encode({ details: new Uint8Array(8) }).finish();
+  fresh.proto.DeviceProps.encode({ os: "bridge" }).finish();
   const wire = fresh.proto.Message.encode({ extendedTextMessage: { text: "ping" } }).finish();
   fresh.proto.Message.decode(wire);
   fresh.proto.WebMessageInfo.encode({ key: { id: "A" }, message: { conversation: "pong" } }).finish();
-  fresh.proto.ClientPayload.encode({ passive: false }).finish();
+  const after = stillLazy();
   console.log(
-    `lazyboth-pertype: ${before}/${total} top-level types unmaterialized after import, ${stillLazy()} after a ping-pong exchange`,
+    `lazyboth-pertype: ${before}/${total} top-level types unmaterialized after import, ${after} after a ping-pong exchange`,
   );
-  // Exactly three, not "about three": the workload reads three top-level names,
-  // and every codec their decodes reach lives in a child container. An arm that
-  // materialized a fourth would still be lazy but no longer selectively so.
-  check(`touching three types materializes exactly three (${before - stillLazy()})`, stillLazy() === before - 3);
+  // Absolute, not just the delta: a rewrite that materialized unrelated
+  // wrappers during import would move both numbers together and still pass.
+  check(`${total} top-level types, ${before} unmaterialized after import`, total === 270 && before === 250);
+  check(`the six types the measured workload reads materialize exactly six (${before - after})`, after === 244);
 }
 
 const codecPaths = [];
