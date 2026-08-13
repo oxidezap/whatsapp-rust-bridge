@@ -449,7 +449,12 @@ access writes the value back as a plain property — on the namespace and in the
 both — so nothing pays a factory call twice.
 
 Nine differences are observable, and all nine are inherent to an accessor
-rather than defects to fix:
+rather than defects to fix. Seven of them are one rule with several faces: **a
+data property's `[[Set]]` can report failure to its caller and an accessor's
+setter cannot.** Wherever the eager namespace would refuse a write — frozen,
+sealed, a receiver that cannot take the property — stock returns `false` or
+throws according to the caller's strictness, and a setter that ran to completion
+reports success. Every instance below is that rule; any not listed will be too.
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
   returns an accessor where the eager namespace returns a writable data
@@ -489,11 +494,12 @@ rather than defects to fix:
   and reports `false`, while the setter tries to define it and throws. Third
   face of the same root, and the reason the receiver fix in the setter closes
   the ordinary overlay case but not this one;
-- `Reflect.set(proto, "Message", value, overlay)` where the overlay has its own
-  accessor for that name. Neither runs the overlay's setter and neither touches
-  the shared namespace — the spec fails the `[[Set]]` rather than delegating —
-  but stock reports that failure as `false` where a setter that ran to
-  completion reports `true`;
+- `Reflect.set(proto, "Message", value, receiver)` where the receiver's own
+  property cannot take the write — an accessor, or a non-writable data property.
+  Neither implementation changes anything, and neither runs the receiver's
+  setter, because the spec fails the `[[Set]]` rather than delegating; stock
+  reports that failure as `false` where a setter that ran to completion reports
+  `true`;
 - `Object.defineProperty(proto, "Message", { writable: false })` — a descriptor
   with no `value` — before the type is read. Redefining stock's data property
   flips the flag and keeps the codec; converting an accessor supplies the

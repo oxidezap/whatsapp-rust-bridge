@@ -332,7 +332,16 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
     const local = Object.create(mod.proto);
     Object.defineProperty(local, "HistorySync", { configurable: true, set: (v) => seen.push(v) });
     const returned = Reflect.set(mod.proto, "HistorySync", { marker: true }, local);
-    return `returned ${returned}, setter called ${seen.length} time(s), shared untouched ${mod.proto.HistorySync?.marker !== true}`;
+    // The other receiver the spec refuses: an own data property that is not
+    // writable. Same expected outcome, so it rides along with this check.
+    const readOnly = Object.create(mod.proto);
+    Object.defineProperty(readOnly, "HistorySync", { value: "kept", writable: false });
+    const readOnlyReturned = Reflect.set(mod.proto, "HistorySync", { marker: true }, readOnly);
+    return (
+      `accessor receiver returned ${returned}, setter called ${seen.length} time(s); ` +
+      `read-only receiver returned ${readOnlyReturned}, value ${JSON.stringify(readOnly.HistorySync)}; ` +
+      `shared untouched ${mod.proto.HistorySync?.marker !== true}`
+    );
   };
   const lazyOverlaySetter = await overlaySetter("lazyboth-pertype");
   const eagerOverlaySetter = await overlaySetter("stock");
@@ -341,7 +350,7 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   // `false` where a setter that ran to completion reports `true`. Same root as
   // the other delegation corners.
   console.log(
-    `  note Reflect.set with a foreign receiver holding an accessor: stock ${eagerOverlaySetter}, lazy ${lazyOverlaySetter}` +
+    `  note Reflect.set with a receiver that cannot take the write: stock ${eagerOverlaySetter}, lazy ${lazyOverlaySetter}` +
       (lazyOverlaySetter === eagerOverlaySetter ? "" : " — inherent to an accessor, see docs/proto-codec-memory.md"),
   );
 
