@@ -126,10 +126,20 @@ while (at < buf.length) {
 const total = bodies.reduce((sum, f) => sum + f.size, 0);
 const sorted = [...bodies].sort((a, b) => a.size - b.size);
 
+// Averaging the middle pair on an even function count, the same way
+// `wasm-zone-peak.mjs` does. A module with an even count is the normal case
+// here, so taking the upper of the two would quietly report the larger half's
+// smallest function as typical.
+const middle = sorted.length >> 1;
+const medianBody =
+  sorted.length % 2
+    ? sorted[middle].size
+    : (sorted[middle - 1].size + sorted[middle].size) / 2;
+
 console.log(`${path}`);
 console.log(`  functions     ${bodies.length} defined, ${importedFunctions} imported`);
 console.log(`  code bodies   ${total} bytes`);
-console.log(`  median body   ${sorted[Math.floor(sorted.length / 2)].size} bytes`);
+console.log(`  median body   ${medianBody} bytes`);
 console.log(`  largest body  ${sorted[sorted.length - 1].size} bytes`);
 console.log(`  name section  ${names.size ? `${names.size} names` : "absent (indices only)"}`);
 console.log("");
