@@ -134,6 +134,25 @@ Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode n
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
+## Cargo features
+
+`default` is what the published artifact carries, and `bun run build` passes no
+`--features` — so anything not in `default` has never shipped. That includes
+`audio`, `image`, `sticker` and `memory-profiling`.
+
+The `client-*` features and `legacy-session` are the other direction: all of
+them are in `default`, and a consumer building from source subtracts with
+`--no-default-features --features …`. Each one gates one `#[wasm_bindgen]`
+domain, and the core paths only that domain could reach go with it — the whole
+set is worth 1.23 MiB of `Private_Dirty` per process, measured in
+`docs/wasm-artifact-private-memory.md`. Never remove one from `default`: that
+is a breaking change to the published surface, not a size win.
+
+Adding a domain module means adding its feature, and the `#![cfg_attr(…,
+allow(dead_code))]` list at the top of `src/wasm_client.rs` has to name it too
+— that allow is scoped so the *default* build still reports a shared helper
+that has lost its last caller.
+
 ## Build and test
 
 ```
@@ -142,6 +161,12 @@ bun run build:dev     same, with a --dev wasm build
 bun test              both test directories
 bun run test:rust     wasm-pack test --node
 ```
+
+`benches/wasm-module-rss/` measures what an artifact costs a process that
+imports it — `build-variant.sh` produces one artifact per feature set,
+`measure.mjs` prints the size-to-memory table, `attribute.mjs` says which crate
+the code section belongs to. It needs `wasm-bindgen` and `wasm-opt` on PATH and
+does not go through `wasm-pack`.
 
 Build order matters: `pkg/` must exist before the TypeScript bundling that copies out of it.
 
