@@ -10,9 +10,9 @@ Short answer: two designs pay and they are the same order of magnitude.
 Generating the codec for only the types a consumer declares is worth **−3.88
 MiB (v22)** and **−1.61 MiB of retained memory**, and is an API change.
 Deferring construction **per type** is worth **−1.91 MiB (v22) / −0.93 (v26)**
-after realistic use, and the eight differences a consumer can observe — a property
-descriptor, the order `Object.keys` returns, and six corners of writing to or
-redefining a property — are declared below.
+after realistic use, and the nine differences a consumer can observe — a
+property descriptor, the order `Object.keys` returns, and seven corners of
+writing to or redefining a property — are declared below.
 
 Those two are the only *shippable* shapes measured. Two others save real memory
 but cannot be shipped in any form: `textcut` and `cut` leave the removed types
@@ -448,7 +448,7 @@ in a different order, which is the second declared difference below. First
 access writes the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-Eight differences are observable, and all eight are inherent to an accessor
+Nine differences are observable, and all nine are inherent to an accessor
 rather than defects to fix:
 
 - until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
@@ -489,11 +489,16 @@ rather than defects to fix:
   and reports `false`, while the setter tries to define it and throws. Third
   face of the same root, and the reason the receiver fix in the setter closes
   the ordinary overlay case but not this one;
+- `Reflect.set(proto, "Message", value, overlay)` where the overlay has its own
+  accessor for that name. Neither runs the overlay's setter and neither touches
+  the shared namespace — the spec fails the `[[Set]]` rather than delegating —
+  but stock reports that failure as `false` where a setter that ran to
+  completion reports `true`;
 - `Object.defineProperty(proto, "Message", { writable: false })` — a descriptor
   with no `value` — before the type is read. Redefining stock's data property
   flips the flag and keeps the codec; converting an accessor supplies the
   missing attributes from their defaults, so **the property becomes
-  `undefined`**. This is the sharpest of the eight: the others change how a
+  `undefined`**. This is the sharpest of the nine: the others change how a
   write behaves, this one loses the codec.
 
 Not on the list, because it was a defect and is fixed: a write through an
@@ -557,7 +562,7 @@ bounds the two together rather than pricing them.
 **Recommendation: take the lazy design.** It is half the cut's private memory
 on v22, within a fifth of its retained memory on node 26, and the only arm that
 never changes sign or reads worse than stock in any configuration measured — for
-a change a consumer can only observe through the eight corners declared above. The
+a change a consumer can only observe through the nine corners declared above. The
 cut is worth reopening only if someone is willing to
 ship a codec generated per consumer, and against a ~61 MiB floor for a WhatsApp
 client in Node, another megabyte on node 22 does not obviously buy that.
@@ -576,7 +581,8 @@ bun run benches/codec-memory/slice.ts   # the reachability counts
 `REPS`, `NODE_BIN` and `NODE_FLAGS` override the defaults; the tables above are
 the defaults on both node versions, plus `NODE_FLAGS=--predictable` and
 `NODE_FLAGS="--predictable-gc-schedule --single-threaded-gc"`. `slice.ts` also self-checks that a slice keeping
-every codec reproduces the generated file byte for byte — every count in this
+every codec reproduces the generated file byte for byte, and that the block
+boundaries match the declarations the source actually has — every count in this
 document rests on that parse.
 
 ## Not covered

@@ -232,6 +232,26 @@ function lazify(block: Block, codecs: Map<string, Block>): string {
  * shift every block boundary and every measurement built on them.
  */
 export function assertRoundTrip(parsed: Parsed, source = readFileSync(SOURCE, "utf8")): void {
+  // Concatenation alone proves no text was lost or reordered — not that the
+  // boundaries are right. A block that ended early would still rejoin
+  // perfectly, and every closure built on it would be wrong. So the counts and
+  // the shape of each block are checked against the source independently.
+  // `\s*`: prettier wraps 16 of the 657 declarations onto a second line.
+  const declared = (source.match(/^export const [A-Za-z0-9_]+:\s*MessageFns</gm) ?? []).length;
+  if (declared !== parsed.codecs.size) {
+    throw new Error(`parsed ${parsed.codecs.size} codecs, source declares ${declared}`);
+  }
+  const bases = (source.match(/^function createBase[A-Za-z0-9_]+\(/gm) ?? []).length;
+  const parsedBases = parsed.blocks.filter((block) => block.kind === "createBase").length;
+  if (bases !== parsedBases) throw new Error(`parsed ${parsedBases} createBase, source declares ${bases}`);
+  for (const block of parsed.blocks) {
+    if (block.kind !== "codec" && block.kind !== "createBase") continue;
+    const text = block.text.trimEnd();
+    if (!text.endsWith("};") && !text.endsWith("}")) {
+      throw new Error(`block ${block.name} does not end at a declaration boundary`);
+    }
+  }
+
   const rebuilt = emit(parsed, new Set(parsed.codecs.keys()), "eager");
   const roundTrip = rebuilt.slice(0, rebuilt.lastIndexOf("\nexport const codecs")).trimEnd();
   if (roundTrip !== source.trimEnd()) throw new Error("slicer does not round-trip the generated codec");
