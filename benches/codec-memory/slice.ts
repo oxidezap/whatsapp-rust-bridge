@@ -92,6 +92,8 @@ export function parseBlocks(source: string): Block[] {
 
 export interface Parsed {
   blocks: Block[];
+  /** Enum and codec names in generated-source order — `Object.entries(gen)`. */
+  exportOrder: string[];
   codecs: Map<string, Block>;
   bases: Map<string, Block>;
   interfaces: Map<string, Block>;
@@ -126,7 +128,10 @@ export function parse(source = readFileSync(SOURCE, "utf8")): Parsed {
     }
     deps.set(name, set);
   }
-  return { blocks, codecs, bases, interfaces, enums, deps };
+  const exportOrder = blocks
+    .filter((b) => b.kind === "enum" || b.kind === "codec")
+    .map((b) => b.name!);
+  return { blocks, exportOrder, codecs, bases, interfaces, enums, deps };
 }
 
 export function closure(parsed: Parsed, roots: readonly string[]): Set<string> {

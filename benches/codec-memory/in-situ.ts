@@ -184,22 +184,27 @@ const rewriteNamespacePerType = (source: string, fromGetterObject: boolean): str
     ? "(codecs as Record<string, any>)[flatName]"
     : "(gen as Record<string, any>)[flatName]";
   return `${head}const defineLazy = (target: Record<string, any>, key: string, make: () => any): void => {
+  // A consumer may have sealed or frozen the namespace before reading a type,
+  // which makes this accessor non-configurable and the write-back impossible.
+  // The eager namespace stays readable after a freeze and assignable after a
+  // seal, so this one holds the value in the closure instead of throwing.
+  let held: { value: any } | undefined;
+  const keep = (value: any) => {
+    try {
+      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+    } catch {
+      held = { value };
+    }
+    return value;
+  };
   Object.defineProperty(target, key, {
     configurable: true,
     enumerable: true,
     get() {
-      const value = make();
-      // A consumer may have frozen or sealed the namespace before reading it,
-      // which makes this accessor non-configurable. The eager namespace stays
-      // readable after that, so this one has to as well: keep the memoized
-      // value and skip the write-back rather than throwing.
-      try {
-        Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
-      } catch {}
-      return value;
+      return held ? held.value : keep(make());
     },
     set(value: any) {
-      Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+      keep(value);
     },
   });
 };
@@ -237,7 +242,17 @@ const buildNamespace = (): Record<string, any> => {
 
   // Memoized per flat name so an alias and its target share one wrapper.
   const wrappers = new Map<string, () => any>();
-  for (const flatName of codecNames) {
+  // Generated-source order, interleaving enums and codecs exactly as
+  // Object.entries(gen) does: Object.keys(proto) is observable, and building
+  // all the codecs first would reorder it.
+  for (const flatName of exportOrder) {
+    if (!codecNameSet.has(flatName)) {
+      const value = (gen as Record<string, any>)[flatName];
+      if (!isVisibleGeneratedExport(flatName, value) || !isEnumLike(value)) continue;
+      const [enumCursor, enumLeaf] = place(flatName);
+      enumCursor[enumLeaf] = Object.assign({}, childrenOf(flatName), value);
+      continue;
+    }
     const [cursor, leaf] = place(flatName);
     const children = childrenOf(flatName);
     let built: any;
@@ -250,12 +265,6 @@ const buildNamespace = (): Record<string, any> => {
     };
     wrappers.set(flatName, make);
     defineLazy(cursor, leaf, make);
-  }
-
-  for (const [flatName, value] of Object.entries(gen)) {
-    if (flatName === "codecs" || !isVisibleGeneratedExport(flatName, value) || !isEnumLike(value)) continue;
-    const [cursor, leaf] = place(flatName);
-    cursor[leaf] = Object.assign({}, childrenOf(flatName), value);
   }
 
   for (const [alias, target] of Object.entries(HISTORICAL_ALIASES)) {
@@ -323,7 +332,7 @@ export const proto: Record<string, any> = new Proxy(Object.create(null) as Recor
 };
 
 const IMPORT_GEN = 'import * as gen from "./generated/whatsapp";';
-const IMPORT_LAZY = `${IMPORT_GEN}\nimport { codecs } from "./generated/whatsapp";\nimport { codecNames } from "./codec-names";`;
+const IMPORT_LAZY = `${IMPORT_GEN}\nimport { codecs } from "./generated/whatsapp";\nimport { codecNames, exportOrder } from "./codec-names";`;
 
 interface Arm {
   name: string;
@@ -420,7 +429,8 @@ for (const arm of arms) {
   if (lazyCodecs) {
     writeFileSync(
       join(tree, "ts", "codec-names.ts"),
-      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
+      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n` +
+        `export const exportOrder: readonly string[] = [\n${parsed.exportOrder.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
     );
     writeFileSync(join(tree, "ts", "proto.ts"), rewriteProtoTs(readFileSync(join(tree, "ts", "proto.ts"), "utf8")));
   }
@@ -433,11 +443,12 @@ for (const arm of arms) {
     // codec module itself stayed eager.
     writeFileSync(
       join(tree, "ts", "codec-names.ts"),
-      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
+      `export const codecNames: readonly string[] = [\n${CODEC_NAMES.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n` +
+        `export const exportOrder: readonly string[] = [\n${parsed.exportOrder.map((n) => `  ${JSON.stringify(n)},`).join("\n")}\n];\n`,
     );
     namespaceSource = namespaceSource.replace(
       IMPORT_GEN,
-      `${IMPORT_GEN}\nimport { codecNames } from "./codec-names";`,
+      `${IMPORT_GEN}\nimport { codecNames, exportOrder } from "./codec-names";`,
     );
   }
   if (arm.lazyNamespace === "whole") {

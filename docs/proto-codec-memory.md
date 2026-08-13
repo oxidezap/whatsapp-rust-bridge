@@ -323,10 +323,11 @@ library. Against the stock bundle it checks:
 - the registry's non-generated spellings (`AdvSignedDeviceIdentity`), the
   `ADVSignedKeyIndexList` alias, and the synthesized-unknown-child behaviour of
   the four forward-compatible carriers;
-- a type read for the first time *after* `Object.freeze(proto)`, which a getter
-  that insists on writing itself back would fail, and the same object handed out
-  twice from a frozen namespace, which an unmemoized forward-compatible wrapper
-  would fail;
+- a type read for the first time *after* `Object.freeze(proto)`, the same object
+  handed out twice from a frozen namespace, and assignment after
+  `Object.seal(proto)` — a getter that insists on writing itself back fails the
+  first, an unmemoized forward-compatible wrapper the second, and a setter that
+  insists on redefining a sealed accessor the third;
 - 250 of 270 top-level types still unmaterialized after import, 247 after a
   ping-pong exchange.
 
@@ -336,23 +337,35 @@ untouched, and the getters are enumerable and configurable, so `Object.keys`,
 the value back as a plain property — on the namespace and in the codec module
 both — so nothing pays a factory call twice.
 
-One difference is observable, and it is inherent rather than a defect to fix:
-until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
-returns an accessor where the eager namespace returns a writable data
-descriptor. Reading, calling, enumerating, spreading and freezing all behave
-identically; a consumer that inspects descriptors would see the difference. That
-is the whole of what "transparent" means here.
+Two differences are observable, and both are inherent rather than defects to
+fix:
 
-Five details any implementation has to get right, all five found by getting them
+- until a type is first read, `Object.getOwnPropertyDescriptor(proto, "Message")`
+  returns an accessor where the eager namespace returns a writable data
+  descriptor — an accessor is how a deferral is expressed, and a Proxy trapping
+  the descriptor would have to materialize the property to answer honestly;
+- `Object.keys(proto)` comes out in a different order. Today's order is the
+  bundler's, over 869 individual exports of the generated module — bun emits
+  them descending, so the namespace starts at `mentionMentionType` rather than
+  at the first declaration. Any design that moves the codecs into one bag loses
+  that, whatever order it builds in.
+
+Everything else behaves identically: reading, calling, enumerating, spreading,
+`JSON.stringify`, freezing, and assigning after a seal. That is the whole of
+what "transparent" means here, and `bench:codec-memory:equivalence` prints the
+key-order divergence on every run rather than hiding it in a set comparison.
+
+Six details any implementation has to get right, all six found by getting them
 wrong first: walking to a parent with `cursor[segment] ??= {}` *reads* the
 parent, which materializes every type that has children (106 of 270 in the first
 attempt); merging a child namespace with `Object.assign` reads the children, so
 descriptors have to be copied instead; a rewrite that redirects `X.decode(` to a
 factory has to allow for the name and the call sitting on separate lines, which
 is how prettier emits the long ones — 11 cross-codec edges hide there; a
-getter that cannot write itself back, because the consumer froze the namespace,
-has to return the value anyway; and the wrapper it returns has to be memoized,
-or a frozen namespace hands out a new object per read.
+getter that cannot write itself back, because the consumer froze or sealed the
+namespace, has to hold the value in its closure rather than throw — for reads
+*and* for assignments; and the wrapper it returns has to be memoized, or a
+frozen namespace hands out a new object per read.
 
 This is not implemented here. It changes the shape `scripts/gen-ts-proto.ts`
 emits and the way `ts/proto-namespace.ts` assembles the package's most

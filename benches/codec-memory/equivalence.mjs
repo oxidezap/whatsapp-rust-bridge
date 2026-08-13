@@ -12,11 +12,13 @@
  * of cross-codec calls the rewrite touched. `ts/generated/whatsapp-surface.txt`
  * says which fields those are.
  *
- * What this does not cover: scalar field values (the payloads set message
- * fields only), and nesting past one level. And one difference it does not
- * check because it is real: before a type is first read its property is an
- * accessor, where the eager namespace has a data descriptor. Reading, calling,
- * enumerating and spreading are identical; `getOwnPropertyDescriptor` is not.
+ * What this does not cover: scalar field values beyond map entries (the
+ * payloads set message and map fields), and nesting past one level. Two
+ * differences it reports rather than asserts, because both are inherent to any
+ * lazy namespace: before a type is first read its property is an accessor
+ * where the eager namespace has a data descriptor, and the key order differs —
+ * today's comes from the bundler's namespace object over 869 individual
+ * exports, which a design that moves the codecs into one bag cannot reproduce.
  *
  * Run `bun run bench:codec-memory:in-situ` first — it builds the bundles.
  * Then: bun run bench:codec-memory:equivalence
@@ -37,18 +39,25 @@ for (const line of readFileSync(join(ROOT, "ts", "generated", "whatsapp-surface.
   if (!line || line.startsWith("#")) continue;
   const [path, field, , label, type] = line.split("\t");
   if (!field || !type) continue;
-  const isMessage = type === "message" || type.startsWith("map<") ? type.endsWith("message>") || type === "message" : false;
-  if (!isMessage) continue;
+  // Maps go in whatever their value type is: ts-proto routes every map through
+  // a generated `…MapEntry` codec, so a `map<string,string>` is a cross-codec
+  // edge the lazy rewrite touched just as much as a message field is.
+  if (type !== "message" && !type.startsWith("map<")) continue;
   const fields = messageFields.get(path) ?? [];
-  fields.push({ field, label });
+  // ts-proto emits lowerCamelCase, and a few fields are declared snake_case.
+  fields.push({
+    field: field.replace(/_([a-z])/g, (_, c) => c.toUpperCase()),
+    label,
+    scalarMap: type.startsWith("map<") && !type.endsWith("message>"),
+  });
   messageFields.set(path, fields);
 }
 
 /** One empty instance of every message field — every cross-codec edge, once. */
 const payloadFor = (path) => {
   const payload = {};
-  for (const { field, label } of messageFields.get(path) ?? []) {
-    payload[field] = label === "repeated" ? [{}] : label === "map" ? { 1: {} } : {};
+  for (const { field, label, scalarMap } of messageFields.get(path) ?? []) {
+    payload[field] = scalarMap ? { k: "v" } : label === "repeated" ? [{}] : label === "map" ? { 1: {} } : {};
   }
   return payload;
 };
@@ -57,7 +66,7 @@ const walk = (node, path, out, depth = 0) => {
   if (!node || typeof node !== "object" || depth > 8) return;
   for (const key of Object.keys(node)) {
     const next = path ? `${path}.${key}` : key;
-    out.add(next);
+    out.push(next);
     walk(node[key], next, out, depth + 1);
   }
 };
@@ -104,7 +113,7 @@ const check = (label, ok) => {
 
 const codecPaths = [];
 {
-  const paths = new Set();
+  const paths = [];
   walk(stock.proto, "", paths);
   for (const path of paths) {
     // A codec's own methods are functions, not codecs; only collect the nodes.
@@ -120,15 +129,30 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   console.log(`\n${arm} vs stock`);
   const mod = await load(arm);
 
-  const expected = new Set();
+  // Ordered, not a set: `Object.keys`, spread and `JSON.stringify` all expose
+  // insertion order, so a tree built codecs-first would read differently.
+  const expected = [];
   walk(stock.proto, "", expected);
-  const actual = new Set();
+  const actual = [];
   walk(mod.proto, "", actual);
-  const missing = [...expected].filter((p) => !actual.has(p));
-  const extra = [...actual].filter((p) => !expected.has(p));
-  check(`namespace paths (${expected.size}) — missing ${missing.length}, extra ${extra.length}`, !missing.length && !extra.length);
+  const expectedSet = new Set(expected);
+  const actualSet = new Set(actual);
+  const missing = expected.filter((p) => !actualSet.has(p));
+  const extra = actual.filter((p) => !expectedSet.has(p));
+  check(`namespace paths (${expected.length}) — missing ${missing.length}, extra ${extra.length}`, !missing.length && !extra.length);
   if (missing.length) console.log("    missing:", missing.slice(0, 5));
   if (extra.length) console.log("    extra:", extra.slice(0, 5));
+
+  // Reported, not asserted. Today's key order is bun's order over 869
+  // individual exports of the generated module; a design that moves the codecs
+  // into one bag cannot reproduce it, whatever order it builds in. It is the
+  // second inherent difference, alongside the descriptor shape.
+  const firstDivergence = expected.findIndex((path, index) => actual[index] !== path);
+  console.log(
+    firstDivergence < 0
+      ? "  note key order matches stock"
+      : `  note key order differs from stock at ${firstDivergence}: ${expected[firstDivergence]} vs ${actual[firstDivergence]} — inherent, see docs/proto-codec-memory.md`,
+  );
 
   const broken = [];
   for (const path of codecPaths) {
@@ -190,6 +214,26 @@ for (const arm of ["lazyns-pertype", "lazyboth-pertype"]) {
   console.log("\nfrozen namespace");
   check("a type read for the first time after Object.freeze(proto) still resolves", ok);
   check("a frozen namespace hands out the same object twice", stable);
+}
+
+// `Object.seal` leaves data properties writable, so assigning a type still
+// works on the eager namespace. A lazy one whose setter insists on redefining
+// the now non-configurable accessor would throw instead.
+{
+  const sealed = await load("lazyboth-pertype", "?sealed=1");
+  const eager = await load("stock", "?sealed=1");
+  const assign = (mod) => {
+    Object.seal(mod.proto);
+    try {
+      mod.proto.HistorySync = { marker: true };
+      return mod.proto.HistorySync?.marker === true;
+    } catch (error) {
+      return error.message;
+    }
+  };
+  const lazyResult = assign(sealed);
+  const eagerResult = assign(eager);
+  check(`assignment after Object.seal(proto) behaves as stock does (${eagerResult})`, lazyResult === eagerResult);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
