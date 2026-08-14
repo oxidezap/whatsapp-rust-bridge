@@ -29,6 +29,7 @@ use whatsapp_rust::handshake::HandshakeError;
 use whatsapp_rust::pair_code::{PairCodeError, PairError};
 use whatsapp_rust::request::IqError;
 use whatsapp_rust::socket::error::SocketError;
+use whatsapp_rust::wacore::send::NoRecipientDeviceError;
 use whatsapp_rust::{
     CallError, ConnectError, MexError, SendError, SignalMaintenanceError, wacore, wacore_binary,
 };
@@ -96,6 +97,13 @@ pub enum BridgeError {
     /// SQLite was busy/locked, etc.
     #[error("storage operation failed: {operation}")]
     Storage { operation: String },
+
+    /// A send produced no `<enc>` for its recipient, so nothing was
+    /// transmitted. `attempted` is how many of the recipient's devices were
+    /// tried; `0` means the fan-out held none to try. The device list is the
+    /// suspect, so a retry with a forced device refresh is the useful answer.
+    #[error("no recipient device could be encrypted for ({attempted} attempted)")]
+    NoRecipientDevice { attempted: u32 },
 
     /// Catch-all for cases not yet mapped. The full `Display` chain is in
     /// `message` so JS-side debugging is still possible.
@@ -218,6 +226,18 @@ impl BridgeError {
 /// is the reason and `field` stays the request.
 fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
     invalid_arg("request", detail.to_string())
+}
+
+/// The core's enum is `#[non_exhaustive]`; a variant added later reports zero
+/// attempts rather than a guess, which reads the same as "none to try".
+fn no_recipient_device(cause: &NoRecipientDeviceError) -> BridgeError {
+    let attempted = match cause {
+        NoRecipientDeviceError::EncryptionFailed { attempted, .. } => {
+            u32::try_from(*attempted).unwrap_or(u32::MAX)
+        }
+        _ => 0,
+    };
+    BridgeError::NoRecipientDevice { attempted }
 }
 
 /// The two IQ types spell the same condition, so the wording lives once.
@@ -580,6 +600,7 @@ classify! {
     SendError {
         SendError::NotLoggedIn => BridgeError::NotConnected,
         SendError::InvalidRequest(detail) => invalid_request(detail),
+        SendError::NoRecipientDevice(cause) => no_recipient_device(cause),
     }
 
     BlockingError {
@@ -1198,10 +1219,7 @@ mod tests {
             ),
             (
                 "SendError::NoRecipientDevice",
-                SendError::NoRecipientDevice(
-                    whatsapp_rust::wacore::send::NoRecipientDeviceError::Unresolved,
-                )
-                .into(),
+                SendError::NoRecipientDevice(NoRecipientDeviceError::Unresolved).into(),
                 "no-recipient-device",
             ),
             (
@@ -1350,6 +1368,25 @@ mod tests {
             wrong.len(),
             wrong.join("\n")
         );
+    }
+
+    #[test]
+    fn no_recipient_device_carries_how_many_devices_were_tried() {
+        // The count is what separates "the device list is stale" from "there was
+        // nothing to try", which is the branch a caller acts on.
+        let failed: BridgeError =
+            SendError::NoRecipientDevice(NoRecipientDeviceError::EncryptionFailed {
+                attempted: 3,
+                source: anyhow::anyhow!("no session"),
+            })
+            .into();
+        let payload = payload_of(&failed);
+        assert_eq!(payload["kind"], "no-recipient-device");
+        assert_eq!(payload["attempted"], 3);
+
+        let unresolved: BridgeError =
+            SendError::NoRecipientDevice(NoRecipientDeviceError::Unresolved).into();
+        assert_eq!(payload_of(&unresolved)["attempted"], 0);
     }
 
     #[test]
