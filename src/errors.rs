@@ -1197,6 +1197,14 @@ mod tests {
                 "invalid-argument:request",
             ),
             (
+                "SendError::NoRecipientDevice",
+                SendError::NoRecipientDevice(
+                    whatsapp_rust::wacore::send::NoRecipientDeviceError::Unresolved,
+                )
+                .into(),
+                "no-recipient-device",
+            ),
+            (
                 "BlockingError::InvalidJid",
                 BlockingError::InvalidJid("g.us".into()).into(),
                 "invalid-argument:jid",
