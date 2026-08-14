@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.12.0...v0.13.0) (2026-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a stranded participant recovers, and report a send that reached nobody ([#64](https://github.com/oxidezap/whatsapp-rust-bridge/issues/64))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a stranded participant recovers, and report a send that reached nobody ([#64](https://github.com/oxidezap/whatsapp-rust-bridge/issues/64)) ([472e6d8](https://github.com/oxidezap/whatsapp-rust-bridge/commit/472e6d80acf45d7e63e2f34f19ad64522a6ed571))
+
 ## [0.12.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.11.0...v0.12.0) (2026-08-13)
 
 
