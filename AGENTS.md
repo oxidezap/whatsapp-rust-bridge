@@ -98,6 +98,32 @@ the way protobufjs does; `tests/proto-message-merge.test.ts` pins it. This is no
 a robustness allowance for damaged input — a length that moved a frame boundary
 still frames, and two parsers disagreeing about framed bytes is the defect.
 
+**A wire type the schema does not declare makes the field unknown.** A tag
+carries a field number *and* a wire type, and the wire type is half of what says
+where the field's bytes stop. A number the schema knows, carrying a wire type it
+does not declare for that number, is not that field: it is skipped by its wire
+type like any unknown field, and reading resumes at the byte after it. Reading
+it as the declared field instead consumes a different count and moves every
+boundary that follows — in the payload `tests/proto-field-boundaries.test.ts`
+pins, two bytes of difference swallow the next two fields whole. ts-proto opens
+each case with an exact-tag guard and that guard is the whole of the behaviour,
+so `scripts/gen-ts-proto.ts` asserts every case still has one rather than
+trusting the generator to keep emitting it. A repeated numeric field is the one
+place two wire types are both the schema's, and ts-proto emits a branch for each.
+
+**Framing that cannot frame anything is reported.** An unknown field is skipped
+and reading goes on, but a tag that names no field and delimits nothing is not a
+field to skip: field number 0 does not exist, and the end-group wire type has no
+opening group in a schema that declares none. ts-proto leaves the read loop
+there and hands back what it has, which a caller cannot tell from a message that
+never carried the rest — so `scripts/gen-ts-proto.ts` rewrites that epilogue to
+throw, which is what every reference parser does. The four wire types that do
+say where they end are still skipped, not reported.
+
+Nothing here caps nesting depth. A message nests until the JavaScript stack
+gives out, and that throws; a decode never comes back short, which a caller
+could not tell from a message that never carried those levels.
+
 **Text on the wire.** A protobuf `string` is UTF-8; a JavaScript string is UTF-16. Neither conversion is total, and the two directions deliberately fail differently.
 
 *Decoding* substitutes U+FFFD for bytes that are not valid UTF-8 and keeps the message. Those bytes come from a peer this side does not control, so throwing would let one bad byte cost the whole message — and hand anyone who wanted it a cheap way to arrange that. The substitution is still a change to the peer's data, so it is reported rather than hidden: pass a `ProtoDecodeReport` to `decodeProto` / `decodeProtoBatch` and read `invalidUtf8Fields`. Ask for no report and nothing is measured — the counting lives in `InvalidUtf8CountingReader`, a separate class, so the ordinary decode path carries neither the flag nor the branch. A caller who wants strictness rejects on that count; Buf's throwing decoder remains reachable as `BinaryReader#string(true)`, and the generated codecs never pass it.
@@ -108,6 +134,25 @@ Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode n
 
 **Comments.** A comment says why. If it has grown past about three lines describing what the code does, cut it.
 
+## Cargo features
+
+`default` is what the published artifact carries, and `bun run build` passes no
+`--features` — so anything not in `default` has never shipped. That includes
+`audio`, `image`, `sticker` and `memory-profiling`.
+
+The `client-*` features and `legacy-session` are the other direction: all of
+them are in `default`, and a consumer building from source subtracts with
+`--no-default-features --features …`. Each one gates one `#[wasm_bindgen]`
+domain, and the core paths only that domain could reach go with it — the whole
+set is worth 1.23 MiB of `Private_Dirty` per process, measured in
+`docs/wasm-artifact-private-memory.md`. Never remove one from `default`: that
+is a breaking change to the published surface, not a size win.
+
+Adding a domain module means adding its feature, and the `#![cfg_attr(…,
+allow(dead_code))]` list at the top of `src/wasm_client.rs` has to name it too
+— that allow is scoped so the *default* build still reports a shared helper
+that has lost its last caller.
+
 ## Build and test
 
 ```
@@ -117,11 +162,23 @@ bun test              both test directories
 bun run test:rust     wasm-pack test --node
 ```
 
+`benches/wasm-module-rss/` measures what an artifact costs a process that
+imports it — `build-variant.sh` produces one artifact per feature set,
+`measure.mjs` prints the size-to-memory table, `attribute.mjs` says which crate
+the code section belongs to. It needs `wasm-bindgen` and `wasm-opt` on PATH and
+does not go through `wasm-pack`.
+
 Build order matters: `pkg/` must exist before the TypeScript bundling that copies out of it.
 
 The release wasm build runs `wasm-opt` and is memory-hungry — it can be killed on a small machine. Building with `build:wasm:dev` locally and letting CI run the real thing is fine; say so in the PR when you do.
 
-`bun run build` regenerates `src/generated_types.rs` and `ts/generated/` — the ts-proto codec plus `whatsapp-surface.txt`, one line per field the schema declares. CI fails if the result differs from what is committed. Commit the regenerated files rather than reverting them: the manifest is what `tests/proto-schema-surface.test.ts` checks the codec against, and it puts an upstream renumbering or rename in the diff.
+`check:size` measures the package; `measure:fn-sizes` and `measure:zone-peak` measure the shape inside it — how the wasm's bytes are distributed across functions, and what compiling it costs V8 the first time a host touches the code. Both are Node scripts, because the second reads a V8 statistic under V8 flags. `docs/wasm-compile-zone-peak.md` records what they say about the current artifact, and why the largest functions in it cannot be split from the Rust side.
+
+That distribution is a consumer's memory, and it hangs off one wasm-opt flag: `--one-caller-inline-max-function-size` in the `Cargo.toml` pass list holds the largest function at ~87 KB instead of ~177 KB, worth 18.4 MiB of the consumer's private memory after connect. Nothing about dropping it would look wrong — same exports, same behaviour, same size to a few hundred bytes — so `check:wasm-shape` gates the largest body, and CI runs it beside `check:size`. Its budget moves in the commit that earns the bytes, with the connect-window cost measured rather than assumed.
+
+`bun run build` regenerates `src/generated_types.rs` and `ts/generated/` — the ts-proto codec plus `whatsapp-surface.txt`, one line per field the schema declares, plus a line for each declaration no field line would name — a message with no fields, and every enum. CI fails if the result differs from what is committed. Commit the regenerated files rather than reverting them: the manifest is what `tests/proto-schema-surface.test.ts` checks the codec against, and it puts an upstream renumbering or rename in the diff.
+
+`gen` runs in that dependency order — codec, then `proto-types.d.ts`, then the bridge types — because a generated declaration naming a waproto type resolves it against that manifest and emits `import('./proto-types').proto.…`, the same reference the `history_sync` event entry uses. A named type the generator cannot place (not waproto, not a `pub type` alias, not something it or the bridge declares) fails the generation rather than emitting a name nothing declares. That check sees one `typescript_custom_section`; `tests/published-dts.test.ts` checks the concatenated `.d.ts` with `skipLibCheck: false`, which is the whole of it — every consumer tsconfig leaves that flag on, so a dangling name reaches them as a silent `any`.
 
 ## Tests
 

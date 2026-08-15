@@ -226,18 +226,56 @@ fn to_camel_case(s: &str) -> String {
 // Serializer
 // ---------------------------------------------------------------------------
 
+/// What a top-level struct field does with a value equal to its type's default.
+///
+/// Absent is absent either way: `None` never crosses. This is only about a
+/// value the wire did supply that happens to equal the default.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Defaults {
+    /// protobufjs: a default-valued field is indistinguishable from an unset
+    /// one, so it is omitted.
+    Skip,
+    /// Every supplied value crosses, `0` and `false` and `""` alike.
+    Keep,
+    /// Every value the wire supplied crosses — `false`, `0` and `""` alike,
+    /// since an unpin is `pinned: false` and dropping it loses the transition.
+    /// A repeated field with no elements is still omitted: protobuf gives it no
+    /// presence, so an empty one is the same as one never set.
+    ///
+    /// Applies all the way down, unlike [`Keep`](Self::Keep). A message nested
+    /// in a mutation carries presence too — `messageRange.messages[].key.fromMe`
+    /// is what identifies the message an archive covers — and it is `None`, not
+    /// `Some(false)`, that the wire left out.
+    KeepPresent,
+}
+
+impl Defaults {
+    /// What a nested value is serialized with. Only [`KeepPresent`](Self::KeepPresent)
+    /// recurses; the envelope mode preserves its own scalars and leaves protobuf
+    /// nested inside it to protobufjs semantics.
+    fn nested(self) -> CamelSerializer {
+        match self {
+            Defaults::KeepPresent => CamelSerializer::PRESERVE_TOP_LEVEL_PRESENCE,
+            Defaults::Skip | Defaults::Keep => CamelSerializer::PROTO,
+        }
+    }
+}
+
 /// Serializes Rust values to JsValue with camelCase keys and proto-friendly output.
 #[derive(Clone, Copy)]
 pub struct CamelSerializer {
-    skip_struct_defaults: bool,
+    struct_defaults: Defaults,
 }
 
 impl CamelSerializer {
     const PROTO: Self = Self {
-        skip_struct_defaults: true,
+        struct_defaults: Defaults::Skip,
     };
     const PRESERVE_TOP_LEVEL_DEFAULTS: Self = Self {
-        skip_struct_defaults: false,
+        struct_defaults: Defaults::Keep,
+    };
+    const PRESERVE_TOP_LEVEL_PRESENCE: Self = Self {
+        struct_defaults: Defaults::KeepPresent,
     };
 }
 
@@ -343,6 +381,7 @@ impl ser::Serializer for CamelSerializer {
             items: SeqItems::Unknown {
                 capacity: len.unwrap_or(0),
             },
+            defaults: self.struct_defaults,
         })
     }
     fn serialize_tuple(self, len: usize) -> Result<SeqSerializer, Error> {
@@ -373,7 +412,7 @@ impl ser::Serializer for CamelSerializer {
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<StructSerializer, Error> {
         Ok(StructSerializer {
             obj: Object::new(),
-            skip_defaults: self.skip_struct_defaults,
+            defaults: self.struct_defaults,
         })
     }
     fn serialize_struct_variant(
@@ -387,7 +426,7 @@ impl ser::Serializer for CamelSerializer {
             variant,
             inner: StructSerializer {
                 obj: Object::new(),
-                skip_defaults: self.skip_struct_defaults,
+                defaults: self.struct_defaults,
             },
         })
     }
@@ -410,6 +449,7 @@ enum SeqItems {
 
 pub struct SeqSerializer {
     items: SeqItems,
+    defaults: Defaults,
 }
 
 #[inline]
@@ -424,7 +464,7 @@ impl ser::SerializeSeq for SeqSerializer {
     type Error = Error;
 
     fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
-        let js = value.serialize(CamelSerializer::PROTO)?;
+        let js = value.serialize(self.defaults.nested())?;
         let byte = js_u8(&js);
         match &mut self.items {
             SeqItems::Unknown { capacity } => {
@@ -509,7 +549,7 @@ impl ser::SerializeTupleVariant for SeqSerializer {
 
 pub struct StructSerializer {
     obj: Object,
-    skip_defaults: bool,
+    defaults: Defaults,
 }
 
 impl ser::SerializeStruct for StructSerializer {
@@ -521,13 +561,11 @@ impl ser::SerializeStruct for StructSerializer {
         key: &'static str,
         value: &T,
     ) -> Result<(), Error> {
-        let js_val = value.serialize(CamelSerializer::PROTO)?;
-        let skip = if self.skip_defaults {
-            should_skip(&js_val)
-        } else {
-            // Envelope mode preserves meaningful scalar defaults (`0` and
-            // `false`) but still omits absent Option fields.
-            js_val.is_null() || js_val.is_undefined()
+        let js_val = value.serialize(self.defaults.nested())?;
+        let skip = match self.defaults {
+            Defaults::Skip => should_skip(&js_val),
+            Defaults::Keep => js_val.is_null() || js_val.is_undefined(),
+            Defaults::KeepPresent => is_absent(&js_val),
         };
         if skip {
             return Ok(());
@@ -608,6 +646,50 @@ impl ser::SerializeMap for MapSerializer {
 // Skip logic — matches protobufjs behavior (only output set fields)
 // ---------------------------------------------------------------------------
 
+/// Nothing was supplied. `null` is an absent `Option`; an empty repeated field
+/// is the one other shape protobuf cannot tell from one never set, so `""` and
+/// `{}` — which only a `Some` produces — are not absent.
+fn is_absent(val: &JsValue) -> bool {
+    if val.is_null() || val.is_undefined() {
+        return true;
+    }
+    is_empty_sequence(val)
+}
+
+/// `[]` or an empty `Uint8Array`.
+fn is_empty_sequence(val: &JsValue) -> bool {
+    if !val.is_object() {
+        return false;
+    }
+    if val.is_instance_of::<js_sys::Array>() {
+        let arr: js_sys::Array = js_sys::Array::unchecked_from_js(val.clone());
+        return arr.length() == 0;
+    }
+    if val.is_instance_of::<Uint8Array>() {
+        let arr: Uint8Array = Uint8Array::unchecked_from_js(val.clone());
+        return arr.length() == 0;
+    }
+    false
+}
+
+/// `[]`, an empty `Uint8Array`, or a message with no fields.
+fn is_empty_collection(val: &JsValue) -> bool {
+    if !val.is_object() {
+        return false;
+    }
+    if is_empty_sequence(val) {
+        return true;
+    }
+    if val.is_instance_of::<js_sys::Array>() || val.is_instance_of::<Uint8Array>() {
+        return false;
+    }
+    if is_zero_long(val) {
+        return false;
+    }
+    let obj: Object = Object::unchecked_from_js(val.clone());
+    js_sys::Object::keys(&obj).length() == 0
+}
+
 fn should_skip(val: &JsValue) -> bool {
     if val.is_null() || val.is_undefined() {
         return true;
@@ -628,19 +710,7 @@ fn should_skip(val: &JsValue) -> bool {
         return true;
     }
     // Expensive checks only for objects — avoid clone when possible
-    if val.is_object() {
-        if val.is_instance_of::<js_sys::Array>() {
-            let arr: js_sys::Array = js_sys::Array::unchecked_from_js(val.clone());
-            return arr.length() == 0;
-        }
-        if val.is_instance_of::<Uint8Array>() {
-            let arr: Uint8Array = Uint8Array::unchecked_from_js(val.clone());
-            return arr.length() == 0;
-        }
-        let obj: Object = Object::unchecked_from_js(val.clone());
-        return js_sys::Object::keys(&obj).length() == 0;
-    }
-    false
+    is_empty_collection(val)
 }
 
 // ---------------------------------------------------------------------------
@@ -662,6 +732,16 @@ pub fn to_js_value_camel_preserve_top_level_defaults<T: Serialize>(
     val: &T,
 ) -> Result<JsValue, JsValue> {
     val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_DEFAULTS)
+        .map_err(|e| e.into())
+}
+
+/// Same JS representation as [`to_js_value_camel`], but every value the wire
+/// supplied crosses even at its default — see [`Defaults::KeepPresent`]. For a
+/// protobuf value whose `false` or `0` is the thing being reported.
+pub fn to_js_value_camel_preserve_top_level_presence<T: Serialize>(
+    val: &T,
+) -> Result<JsValue, JsValue> {
+    val.serialize(CamelSerializer::PRESERVE_TOP_LEVEL_PRESENCE)
         .map_err(|e| e.into())
 }
 

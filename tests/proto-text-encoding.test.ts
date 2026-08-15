@@ -27,6 +27,22 @@ describe("decoding a string field whose bytes are not UTF-8", () => {
     expect(hex(new TextEncoder().encode(conversationOf(decoded) as string))).toBe("efbfbd2841");
   });
 
+  /**
+   * One U+FFFD per maximal subpart, not one per run: 0xff never opens a
+   * sequence, so each of the four is ill-formed on its own and the 0x0f after
+   * them is an ordinary character. A decoder that lets a lead byte swallow the
+   * bytes after it reads the same field as a shorter string.
+   */
+  test("substitutes once per ill-formed byte, not once per run", () => {
+    const decoded = conversationOf(
+      decodeProto("Message", conversationFrame([0xff, 0xff, 0xff, 0xff, 0x0f])),
+    ) as string;
+
+    expect([...decoded].map((unit) => unit.codePointAt(0))).toEqual([
+      0xfffd, 0xfffd, 0xfffd, 0xfffd, 0x0f,
+    ]);
+  });
+
   test("reports the substitution to a caller that asks for it", () => {
     const report: ProtoDecodeReport = { invalidUtf8Fields: 0 };
     decodeProto("Message", conversationFrame([0xc3, 0x28, 0x41]), report);

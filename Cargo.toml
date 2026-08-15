@@ -13,7 +13,6 @@ exclude = ["codegen"]
 [workspace.dependencies]
 whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = [
     "danger-skip-cert-chain-verify",
-    "legacy-session-interop",
 ] }
 whatsapp-rust-bridge-core = { path = "crates/bridge-core" }
 
@@ -44,6 +43,18 @@ wasm-opt = [
     # into shared parameterized ones. Only cold, structurally-similar code
     # merges, so speed-critical paths keep their dedicated bodies.
     "--merge-similar-functions",
+    # Caps single-caller inlining, which defaults to -1: every function
+    # referenced exactly once folds into its caller, at any size. Rust emits
+    # long chains of those (serde monomorphizations, per-field proto decoders,
+    # async poll fns), and uncapped they collapse into a few enormous bodies —
+    # the protobuf Message decoder alone reaches 177 KB. V8 pays per function
+    # it compiles, so those bodies are what a consumer's connect step is
+    # buying: capping here is worth 18.4 MiB of its private memory, against
+    # ~1% on each message decode and 158 more bytes of code. 2000 is where the
+    # memory stops improving; docs/wasm-compile-zone-peak.md has the sweep, and
+    # `check:wasm-shape` fails if this line goes missing.
+    "--one-caller-inline-max-function-size",
+    "2000",
     "--strip-debug",
 ]
 
@@ -54,10 +65,40 @@ wasm-opt = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = []
+# Everything the published artifact carries today. A consumer who wants a
+# smaller one turns features off from here with `--no-default-features` plus
+# the ones it keeps; `default` itself stays the surface that shipped, so
+# nothing is ever removed from this list without a major bump.
+default = [
+    "client-business",
+    "client-chat-actions",
+    "client-contacts",
+    "client-groups",
+    "client-media",
+    "client-newsletter",
+    "client-signal",
+    "legacy-session",
+]
 audio = ["dep:symphonia"]
 image = ["dep:image"]
 sticker = ["dep:img-parts"]
+
+# One per `#[wasm_bindgen]` domain in `src/wasm_client/`. Connection and
+# messaging have no feature: a client that cannot connect or send is not a
+# client, and everything else in the graph hangs off those two anyway.
+client-business = []
+client-chat-actions = []
+client-contacts = []
+client-groups = []
+client-media = []
+client-newsletter = []
+# The standalone Signal record codecs and the group-message crypto exports.
+client-signal = []
+# Typed interop with the decoded libsignal SessionRecord v1 model, for
+# migrating externally produced auth state. The core keeps this off by default
+# so a client carries no migration surface; the bridge turns it on for the
+# consumers that migrate from a JS implementation.
+legacy-session = ["whatsapp-rust/legacy-session-interop"]
 # Diagnostics-only counting allocator and scoped history-sync attribution.
 # Kept out of production builds because every allocation pays counter overhead.
 # The core's own tracing metadata supplies task names; the bridge never mirrors

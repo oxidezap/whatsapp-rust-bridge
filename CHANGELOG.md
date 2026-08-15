@@ -1,5 +1,93 @@
 # Changelog
 
+## [0.13.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.12.0...v0.13.0) (2026-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a stranded participant recovers, and report a send that reached nobody ([#64](https://github.com/oxidezap/whatsapp-rust-bridge/issues/64))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a stranded participant recovers, and report a send that reached nobody ([#64](https://github.com/oxidezap/whatsapp-rust-bridge/issues/64)) ([472e6d8](https://github.com/oxidezap/whatsapp-rust-bridge/commit/472e6d80acf45d7e63e2f34f19ad64522a6ed571))
+
+## [0.12.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.11.0...v0.12.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **wire:** hold the message string table across batches, as the receipt one does ([#58](https://github.com/oxidezap/whatsapp-rust-bridge/issues/58))
+
+### Bug Fixes
+
+* **wire:** read the packed string region in the unit the wire writes ([#57](https://github.com/oxidezap/whatsapp-rust-bridge/issues/57)) ([c1c0fb0](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c1c0fb081d895d818a88ecaca0a39b2f0ef89d5e))
+
+
+### Performance
+
+* let a source build drop the domains it does not use ([#62](https://github.com/oxidezap/whatsapp-rust-bridge/issues/62)) ([a7aabec](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a7aabec500c02af4b012a1ce36080d490fec6a31))
+* **proto:** measure what the 657 generated codecs cost, and which fix pays ([#60](https://github.com/oxidezap/whatsapp-rust-bridge/issues/60)) ([5383497](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5383497a0abd5bd3faac551cc983333a6ebce636))
+* pull the inlining lever [#61](https://github.com/oxidezap/whatsapp-rust-bridge/issues/61) measured, and take the core's msg_secrets bound ([#63](https://github.com/oxidezap/whatsapp-rust-bridge/issues/63)) ([80c36cc](https://github.com/oxidezap/whatsapp-rust-bridge/commit/80c36cc957dd28fdc01a77fd4c11a0b8ed1613b6))
+* **wasm:** name the three functions that dominate V8's compile-zone peak, and price the one lever ([#61](https://github.com/oxidezap/whatsapp-rust-bridge/issues/61)) ([5d10541](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5d105418bf88e37e5372d7e5836287857a87c1b9))
+* **wire:** hold the message string table across batches, as the receipt one does ([#58](https://github.com/oxidezap/whatsapp-rust-bridge/issues/58)) ([d5b6b38](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d5b6b38c5028fef53d0d5cdd7c262b89afe4d2ef))
+
+## [0.11.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.10.0...v0.11.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a caller's <biz> no longer duplicates the derived one ([#55](https://github.com/oxidezap/whatsapp-rust-bridge/issues/55))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a caller's &lt;biz&gt; no longer duplicates the derived one ([#55](https://github.com/oxidezap/whatsapp-rust-bridge/issues/55)) ([7355996](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7355996ab80348edf19d6fc2a25b30ac37de4434))
+
+## [0.10.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.9.0...v0.10.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **events:** deliver the core events the bridge was dropping ([#54](https://github.com/oxidezap/whatsapp-rust-bridge/issues/54))
+* **deps:** update whatsapp-rust so a degraded sync still announces the connection ([#51](https://github.com/oxidezap/whatsapp-rust-bridge/issues/51))
+
+### Features
+
+* **events:** deliver the core events the bridge was dropping ([#54](https://github.com/oxidezap/whatsapp-rust-bridge/issues/54)) ([2a27217](https://github.com/oxidezap/whatsapp-rust-bridge/commit/2a27217587292e044be7b5647d661e065090cd62))
+
+
+### Bug Fixes
+
+* **codegen:** point generated declarations at the proto types they name ([#52](https://github.com/oxidezap/whatsapp-rust-bridge/issues/52)) ([4f5eccd](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4f5eccdbc9dee649da6b9770ccaccee9ec994c83))
+* **deps:** update whatsapp-rust so a degraded sync still announces the connection ([#51](https://github.com/oxidezap/whatsapp-rust-bridge/issues/51)) ([5b2a9d0](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5b2a9d00c1b600972d92b6c2764e645fb17018de))
+
+## [0.9.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.1...v0.9.0) (2026-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **proto:** agree on where a field ends and how deep a message goes ([#49](https://github.com/oxidezap/whatsapp-rust-bridge/issues/49))
+
+### Bug Fixes
+
+* **proto:** agree on where a field ends and how deep a message goes ([#49](https://github.com/oxidezap/whatsapp-rust-bridge/issues/49)) ([0bddd55](https://github.com/oxidezap/whatsapp-rust-bridge/commit/0bddd558eadb33806d493622abb9e940d5e16999))
+
+## [0.8.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.8.0...v0.8.1) (2026-08-10)
+
+
+### Features
+
+* **build:** add a BoltFFI-generated WASM artifact alongside wasm-bindgen ([#33](https://github.com/oxidezap/whatsapp-rust-bridge/issues/33)) ([5ca9cf9](https://github.com/oxidezap/whatsapp-rust-bridge/commit/5ca9cf94b8cc10888663de9a69eff9a897d058e9))
+
+
+### Bug Fixes
+
+* **proto:** read framed payloads the way the wire format defines them ([#44](https://github.com/oxidezap/whatsapp-rust-bridge/issues/44)) ([470d554](https://github.com/oxidezap/whatsapp-rust-bridge/commit/470d554ba23e007be0c0b26911bb49b00d8d74d1))
+
+
+### Chores
+
+* release 0.8.1 ([13e18f6](https://github.com/oxidezap/whatsapp-rust-bridge/commit/13e18f61d3975bb42eb438caa55f89ba2f4d02c8))
+
 ## [0.8.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.7.2...v0.8.0) (2026-08-10)
 
 

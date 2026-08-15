@@ -17,12 +17,20 @@ import { packedContents } from "./pack";
  * drift above — enough that ordinary work does not trip it, tight enough that
  * a jump does.
  *
- * Raised once, deliberately: the package now ships a second WASM artifact
- * (the BoltFFI backend under `dist/boltffi/`), which is bytes the budget was
- * never sized for. The wasm-bindgen artifact's own drift is still measured
- * against the same slope.
+ * Raised from 7,500,000 when the core regenerated its whatspec bundle at
+ * 2.3000.1044659339: a WhatsApp schema release adds messages and enums across
+ * the proto, and the derived declarations and codec grow with it. That is the
+ * one kind of growth this budget cannot ask anyone to trim, so it buys the same
+ * headroom again over the new floor rather than tracking it.
+ *
+ * Raised again for the second WASM artifact: the package now also ships the
+ * BoltFFI backend under `dist/boltffi/`, which is bytes the budget was never
+ * sized for. That artifact measures 297,185 bytes, so this is the previous
+ * 7,900,000 plus 300,000 — the headroom over the wasm-bindgen floor is the
+ * same as before, and that artifact's own drift is still measured against the
+ * same slope rather than hidden by the increase.
  */
-const MAX_UNPACKED_BYTES = 8_000_000;
+const MAX_UNPACKED_BYTES = 8_200_000;
 
 const { files, unpackedSize: total } = packedContents();
 

@@ -18,6 +18,7 @@ import {
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertWireTypeGuards } from './proto-wire-type-guards'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT_DIR = join(ROOT, 'ts', 'generated')
@@ -172,6 +173,35 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
+const DECODE_LOOP_EPILOGUE =
+	/^([ \t]+)if \(\(tag & 7\) === 4 \|\| tag === 0\) \{\n[ \t]+break;\n[ \t]+\}$/gm
+
+/**
+ * Field number 0 — which no wire type makes legal — or the end-group wire type
+ * where the schema declares no groups, is not a field to skip: it is malformed
+ * framing, and
+ * every reference parser rejects the message. ts-proto leaves the read loop
+ * instead and hands back everything read so far, which a caller cannot tell
+ * from a message that never carried the rest. Reporting it is the only reading
+ * that does not lose bytes silently.
+ */
+const rejectIllegalTags = (source: string): string => {
+	let replaced = 0
+	const rejected = source.replace(DECODE_LOOP_EPILOGUE, (_match, indent: string) => {
+		replaced++
+		return (
+			`${indent}if (tag >>> 3 === 0 || (tag & 7) === 4) {\n` +
+			`${indent}  throw new RangeError(\`illegal protobuf tag \${tag} at offset \${reader.pos}\`);\n` +
+			`${indent}}`
+		)
+	})
+	const loops = source.split('reader.skip(tag & 7);').length - 1
+	if (replaced === 0 || replaced !== loops) {
+		throw new Error(`ts-proto emitted a decode loop in an unhandled shape (${replaced}/${loops})`)
+	}
+	return rejected
+}
+
 const TS_PROTO_OPTIONS = [
 	'outputJsonMethods=false',
 	'useExactTypes=false',
@@ -207,6 +237,7 @@ const HEADER = [
 	'# <message>\t<field>\t<number>\t<label>\t<type>[\t<enum probe values or message type>]',
 	'# <label> is optional | required | repeated | repeated packed | map.',
 	'# A line with only <message> is a message the schema declares with no fields.',
+	'# A line "<enum>\\tenum" declares an enum, whether or not a field references it.',
 	''
 ].join('\n')
 
@@ -245,6 +276,9 @@ const replaceGeneratedContract = (source: string, expected: string, replacement:
  * Flatten the compiled schema into one tab-separated line per field:
  *
  *   <message path>  <declared name>  <number>  <label>  <type>  [type ref]
+ *
+ * Plus one line per declaration that no field line would name: `<message path>`
+ * alone for a message with no fields, and `<enum path>\tenum` for every enum.
  *
  * `tests/proto-schema-surface.test.ts` replays this against the generated
  * codec, so the schema — not the generator's own output — is what says which
@@ -327,6 +361,13 @@ const buildSurface = (descriptor: Uint8Array): string => {
 	for (const file of set.file) {
 		const root = `.${file.package}`
 		const local = (path: string): string => (path.startsWith(`${root}.`) ? path.slice(root.length + 1) : path)
+		// An enum is otherwise only named where a field references one, so an
+		// enum nothing references has no line — and a reader cannot tell it from
+		// one the schema does not declare. `codegen/` resolves a Rust waproto
+		// path against this file and refuses to emit a reference it cannot find.
+		for (const path of enumProbes.keys()) {
+			if (path.startsWith(`${root}.`)) lines.push(`${local(path)}\tenum`)
+		}
 		for (const message of file.messageType) emit(root, local, message)
 	}
 
@@ -375,8 +416,11 @@ try {
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
+	generatedSource = rejectIllegalTags(generatedSource)
+	const descriptor = readFileSync(descriptorFile)
+	assertWireTypeGuards(generatedSource, descriptor)
 	writeFileSync(generatedFile, generatedSource)
-	writeFileSync(SURFACE_FILE, buildSurface(readFileSync(descriptorFile)))
+	writeFileSync(SURFACE_FILE, buildSurface(descriptor))
 	renameSync(generatedFile, OUTPUT_FILE)
 } finally {
 	rmSync(tempDir, { recursive: true, force: true })

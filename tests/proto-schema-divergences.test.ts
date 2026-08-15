@@ -47,7 +47,6 @@ const REPORTED_UNWRITTEN: ReadonlyArray<readonly [string, string]> = [
   ["Message.StickerMessage", "mediaKeyDomain"],
   ["Message.VideoMessage", "mediaKeyDomain"],
   ["Message.MessageHistoryMetadata", "oldestMessageTimestamp"],
-  ["Message.PaymentExtendedMetadata", "messageParamsJson"],
   ["SyncActionValue", "businessBroadcastAssociationAction"],
   ["SyncActionValue.AgentAction", "deviceID"],
   ["SyncActionValue.ChatAssignmentAction", "deviceAgentID"],
@@ -65,9 +64,20 @@ beforeAll(() => {
 });
 
 describe("reported divergences against the consumed schema", () => {
-  test("the schema declares none of the eleven fields reported as unwritten", () => {
+  test("the schema declares none of the ten fields still reported as unwritten", () => {
     const declared = REPORTED_UNWRITTEN.filter(([message, field]) => declares(message, field));
     expect(declared).toEqual([]);
+  });
+
+  // The eleventh arrived with WhatsApp 2.3000.1044659339. The report claimed the
+  // encoder never writes it; now that the schema has the field, that is a
+  // question the codec can answer for itself rather than one the surface pins.
+  test("messageParamsJson is declared and the codec writes it", () => {
+    expect(declares("Message.PaymentExtendedMetadata", "messageParamsJson")).toBe(true);
+    expect(numberOf("Message.PaymentExtendedMetadata", "messageParamsJson")).toBe(3);
+    const encoded = encodeProto("Message.PaymentExtendedMetadata", { messageParamsJson: '{"a":1}' });
+    expect(hex(encoded)).toBe("1a077b2261223a317d");
+    expect(decodeProto("Message.PaymentExtendedMetadata", encoded).messageParamsJson).toBe('{"a":1}');
   });
 
   test("the reported renames are the spellings the schema itself declares", () => {
