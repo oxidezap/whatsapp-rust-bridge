@@ -210,7 +210,7 @@ wasm-bindgen figures they should be read against.
   `unsupported(...)` reasons are only discoverable by reading
   `boltffi_backend/src/target/typescript/`.
 
-## Upstream summary — all fixed
+## Upstream summary, as it stood at `0f5d7421` (A–C fixed, D still open)
 
 | # | limit | file | fix |
 |---|---|---|---|
@@ -219,11 +219,16 @@ wasm-bindgen figures they should be read against.
 | B | fallible callback returning bytes traps at runtime | encoder/decoder disagreement on the fallible callback-return path | make the TypeScript writer and the Rust reader agree for byte payloads |
 | C | skipped declarations do not fail the command | `boltffi generate` | a `--deny-skipped` (or non-zero exit) so CI cannot ship a silently truncated binding |
 
-All four are fixed at `0f5d7421`. One found afterwards is still open:
+A–C were fixed by `0f5d7421`. One found afterwards was still open at that
+point:
 
 | # | limit | file | fix |
 |---|---|---|---|
 | D | a callback method named with a JS keyword is uncallable — declared `delete`, invoked `_delete` | `boltffi_backend/src/target/typescript/render/callback.rs:206`, `:469` | call through `Name::member()`, as the declaration does; a keyword is legal after a dot |
+
+D was closed later, and reaches this repository through the released `0.30.0`
+that the update at the top of this file describes. Nothing in this table is
+outstanding against the version this PR pins.
 
 C is the one worth fixing first: A and B are recoverable once seen, but a build
 that reports success while dropping a trait is how a gap reaches production.

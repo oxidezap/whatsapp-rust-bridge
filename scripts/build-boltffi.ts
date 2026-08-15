@@ -174,6 +174,31 @@ if (missing.length > 0) {
   throw new Error(`boltffi pack did not emit: ${missing.join(", ")}`);
 }
 
+/**
+ * Loading it is the last check, and the only one that can catch the failure
+ * this backend actually hits.
+ *
+ * The module declares a wasm ABI version and `@boltffi/runtime` refuses to
+ * instantiate anything else, so a `package.json` pinning a runtime from a
+ * different release than `crates/bridge-boltffi/Cargo.toml` produces an
+ * artifact that packs, passes every file check, and then dies on import with
+ * `BoltFFI ABI version mismatch`. Nothing else on the publish path opens it:
+ * `prepublishOnly` runs the build, `prepack` runs `check-pack`, and neither
+ * imports the result. The suites do, but a publish does not run them.
+ */
+const smoke = Bun.spawnSync({
+  cmd: [process.execPath, "-e", `await import(${JSON.stringify(join(PKG, "node.js"))})`],
+  stdout: "pipe",
+  stderr: "pipe",
+});
+if (smoke.exitCode !== 0) {
+  throw new Error(
+    `the artifact does not load. The \`@boltffi/runtime\` version in ` +
+      `package.json and the \`boltffi\` pin in crates/bridge-boltffi/Cargo.toml ` +
+      `have to come from the same release.\n${smoke.stderr.toString()}`,
+  );
+}
+
 console.log(
   `BoltFFI artifact written to dist/boltffi/pkg ` +
     `(${Bun.file(join(PKG, `${MODULE}_bg.wasm`)).size} bytes of wasm)`,
