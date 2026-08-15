@@ -2,7 +2,7 @@
     "name": "@oxidezap/whatsapp-rust-bridge",
     "version": "0.13.0",
     "description": "A high-performance utilities for WhatsApp, powered by Rust and WebAssembly.",
-    "author": "João Lucas <jlucaso@hotmail.com>",
+    "author": "Jo\u00e3o Lucas <jlucaso@hotmail.com>",
     "license": "MIT",
     "repository": {
         "type": "git",
@@ -19,12 +19,16 @@
     ],
     "exports": {
         ".": {
-            "import": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
         },
         "./proto-types": {
-            "import": "./dist/proto-types.js",
-            "types": "./dist/proto-types.d.ts"
+            "types": "./dist/proto-types.d.ts",
+            "import": "./dist/proto-types.js"
+        },
+        "./boltffi": {
+            "types": "./dist/boltffi/pkg/whatsapp_rust_bridge_boltffi_node.d.ts",
+            "import": "./dist/boltffi/pkg/node.js"
         }
     },
     "scripts": {
@@ -44,9 +48,10 @@
         "build:wasm": "wasm-pack build --target web --out-dir pkg --no-pack",
         "build:wasm:dev": "wasm-pack build --target web --out-dir pkg --no-pack --dev",
         "build:ts": "bun build ts/index.ts --minify --outfile dist/index.js --target node && cp pkg/whatsapp_rust_bridge_bg.wasm dist/ && cp ts/proto-types.d.ts dist/proto-types.d.ts && cp ts/proto-types.d.ts pkg/proto-types.d.ts && printf 'export { proto } from \"./index.js\";\\n' > dist/proto-types.js",
+        "build:boltffi": "bun run scripts/build-boltffi.ts",
         "postbuild": "tsc -p tsconfig.json --outDir dist && rm -f dist/macro.d.ts && rm -rf dist/generated && bun run scripts/finalize-dist.ts",
-        "build": "bun run gen && bun run build:wasm && bun run build:ts && bun run postbuild",
-        "build:dev": "bun run gen && bun run build:wasm:dev && bun run build:ts && bun run postbuild",
+        "build": "bun run gen && bun run build:wasm && bun run build:ts && bun run postbuild && bun run build:boltffi",
+        "build:dev": "bun run gen && bun run build:wasm:dev && bun run build:ts && bun run postbuild && bun run build:boltffi",
         "build:profile": "cargo build --profile profiling --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run postbuild",
         "build:memory-profile": "cargo build --profile profiling --target wasm32-unknown-unknown --features memory-profiling && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run postbuild",
         "bump:wacore": "cargo update -p whatsapp-rust && bun run build",
@@ -66,5 +71,8 @@
         "ts-proto": "^2.11.6",
         "typescript": "^6.0.3"
     },
-    "private": false
+    "private": false,
+    "dependencies": {
+        "@boltffi/runtime": "0.30.0"
+    }
 }

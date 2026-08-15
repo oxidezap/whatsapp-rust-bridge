@@ -1,0 +1,26 @@
+[package]
+name = "whatsapp-rust-bridge-boltffi"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# 0.30.0 is the first release carrying everything this backend needs: a
+# fallible callback that returns nothing renders, one returning bytes crosses
+# without trapping, a thrown callback arrives as the declared error, and a
+# callback method named with a JS keyword is invoked under its declared name.
+# Before it, this pinned a main revision because no release had them.
+#
+# The CLI must be the same version: the generator and the macro agree on wasm
+# symbol names only within a version, and a drift produces an artifact whose
+# exports the emitted JavaScript cannot find. `@boltffi/runtime` in
+# package.json is the third side of that pin — it holds the wasm ABI version
+# the module declares.
+#
+# Default features add `uuid` and `url`; neither is on this surface, and `url`
+# drags in a dependency that refuses to compile for wasm32-unknown-unknown.
+boltffi = { version = "0.30.0", default-features = false }
+whatsapp-rust-bridge-core = { workspace = true }

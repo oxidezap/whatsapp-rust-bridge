@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# TypeScript 6 refuses files named on the command line while a tsconfig.json is
+# in scope (TS5112), and BoltFFI's pack step invokes tsc exactly that way. This
+# shim supplies the flags that make the invocation legal; `--types node` is
+# needed because --ignoreConfig also drops the repo tsconfig's `types`.
+exec "$(dirname "${BASH_SOURCE[0]}")/../../node_modules/.bin/tsc" --ignoreConfig --types node "$@"
