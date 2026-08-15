@@ -227,7 +227,7 @@ jobs:
       # the backend compiles against: the generator and the macro agree on wasm
       # symbol names only within a version.
       - name: Install boltffi
-        run: cargo install --git https://github.com/boltffi/boltffi --rev 0f5d7421a22572a4639c89043f36f854ae5ad141 boltffi_cli --locked
+        run: cargo install boltffi_cli --version 0.30.0 --locked
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -311,7 +311,7 @@ jobs:
       # much as verify does. Without it `build:boltffi` skips, and `check-pack`
       # then refuses to publish a package whose `./boltffi` export is missing.
       - name: Install boltffi
-        run: cargo install --git https://github.com/boltffi/boltffi --rev 0f5d7421a22572a4639c89043f36f854ae5ad141 boltffi_cli --locked
+        run: cargo install boltffi_cli --version 0.30.0 --locked
 
       # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
       # npm, so a floating version would change the published bytes without a

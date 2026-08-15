@@ -27,20 +27,24 @@ export const BOLTFFI_DTS = join(
 export const boltffiAvailable = existsSync(BOLTFFI_ENTRY) && existsSync(BOLTFFI_DTS);
 
 if (!boltffiAvailable) {
-  // The revision is read from the pin rather than repeated here: the CLI and
-  // the macro agree on wasm symbol names only within a revision, and a hint
-  // naming a stale one sends a contributor to a build whose exports the
-  // generated JavaScript cannot find.
-  const pin = join(ROOT, "crates", "bridge-boltffi", "Cargo.toml");
-  const rev = readFileSync(pin, "utf8").match(/rev\s*=\s*"([0-9a-f]+)"/)?.[1];
-  // Falling back to an install without `--rev` would name the one command that
-  // cannot work — it resolves to whatever main happens to be. Say so instead.
-  // Reachable without anything being broken: once the pin moves back to a
-  // published version, there is no `rev` to read.
-  const install = rev
-    ? `\`cargo install --git https://github.com/boltffi/boltffi --rev ${rev} boltffi_cli --locked\``
-    : "the CLI built from whatever `crates/bridge-boltffi/Cargo.toml` pins — " +
-      "no `rev` was found there, so read the pin rather than installing latest";
+  // The pin is read rather than repeated here: the CLI and the macro agree on
+  // wasm symbol names only within a version, and a hint naming a stale one
+  // sends a contributor to a build whose exports the generated JavaScript
+  // cannot find. Either form of pin is understood, because this pinned a main
+  // revision for as long as no release carried the fixes the backend needs.
+  const pin = readFileSync(join(ROOT, "crates", "bridge-boltffi", "Cargo.toml"), "utf8");
+  const version = pin.match(/^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"([^"]+)"/m)?.[1];
+  const rev = pin.match(/^boltffi\s*=\s*\{[^}]*\brev\s*=\s*"([0-9a-f]+)"/m)?.[1];
+  // Naming neither would name the one command that cannot work: an install
+  // without a pin resolves to whatever is latest, which is the mismatch this
+  // whole hint exists to avoid.
+  const install = version
+    ? `\`cargo install boltffi_cli --version ${version} --locked\``
+    : rev
+      ? `\`cargo install --git https://github.com/boltffi/boltffi --rev ${rev} boltffi_cli --locked\``
+      : "the CLI matching whatever `crates/bridge-boltffi/Cargo.toml` pins — " +
+        "neither a version nor a `rev` was found there, so read the pin rather " +
+        "than installing latest";
   console.warn(
     `dist/boltffi is absent — BoltFFI suites skipped. Install ${install} and rebuild to run them.`,
   );

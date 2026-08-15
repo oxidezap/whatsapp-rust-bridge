@@ -5,7 +5,7 @@
     "": {
       "name": "whatsapp-binary-protocol",
       "dependencies": {
-        "@boltffi/runtime": "0.29.3",
+        "@boltffi/runtime": "0.30.0",
       },
       "devDependencies": {
         "@bufbuild/protobuf": "^2.12.0",
@@ -17,7 +17,7 @@
     },
   },
   "packages": {
-    "@boltffi/runtime": ["@boltffi/runtime@0.29.3", "", {}, "sha512-sISMTrEQxGsKmD/QVRLI0U8C22z2UkDSv5/+PfIrkT+Vfj8Q3lyFDv9FjHwhII/Zc3swlVCS8PlD7hcvC5s1RA=="],
+    "@boltffi/runtime": ["@boltffi/runtime@0.30.0", "", {}, "sha512-83vzDqPArc8sc3IIn//41sVSOKhgjgkc4DN0HdH1QhYLG66gQbqz+94c8DXQmO0hDk8A0bWPTHIbKjnG1ed60w=="],
 
     "@bufbuild/protobuf": ["@bufbuild/protobuf@2.12.0", "", {}, "sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA=="],
 

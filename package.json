@@ -73,6 +73,6 @@
     },
     "private": false,
     "dependencies": {
-        "@boltffi/runtime": "0.29.3"
+        "@boltffi/runtime": "0.30.0"
     }
 }

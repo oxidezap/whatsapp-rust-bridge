@@ -46,18 +46,27 @@ const HOST_TARGET =
 
 /**
  * The generator and the `boltffi` macro agree on wasm symbol names only within
- * a revision. Mixing them produces a module whose exports the emitted
+ * a version. Mixing them produces a module whose exports the emitted
  * JavaScript looks for and does not find — at runtime, not at build time.
  *
- * `boltffi --version` reports the crate version, which is the same string on
- * either side of the pin, so the version alone cannot catch the case that
- * matters. What can is cargo's own install record: a `cargo install --git …
- * --rev X` writes that revision into `$CARGO_HOME/.crates.toml`.
+ * Both sides are read from the manifest rather than repeated here, so moving
+ * the pin is one edit. While this pinned a main revision, the version could not
+ * tell the two apart — every revision reported the same `0.29.3` — and the
+ * revision from cargo's install record was the only usable fingerprint. On a
+ * released version the version string is the fingerprint again; the revision
+ * check stays for whenever the pin goes back to a `rev`.
  */
-const REQUIRED_CLI_VERSION = "0.29.3";
-const PINNED_REV = readFileSync(join(CRATE, "Cargo.toml"), "utf8").match(
-  /rev\s*=\s*"([0-9a-f]{7,40})"/,
+const CRATE_MANIFEST = readFileSync(join(CRATE, "Cargo.toml"), "utf8");
+const REQUIRED_CLI_VERSION = CRATE_MANIFEST.match(
+  /^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"([^"]+)"/m,
 )?.[1];
+const PINNED_REV = CRATE_MANIFEST.match(/^boltffi\s*=\s*\{[^}]*\brev\s*=\s*"([0-9a-f]{7,40})"/m)?.[1];
+if (REQUIRED_CLI_VERSION === undefined && PINNED_REV === undefined) {
+  throw new Error(
+    "crates/bridge-boltffi/Cargo.toml pins `boltffi` by neither version nor " +
+      "revision, so the installed CLI cannot be checked against it.",
+  );
+}
 
 // Cleared before anything can bail out. A skipped or rejected build that left
 // the previous `dist/boltffi` behind would hand the tests and `check-pack` an
@@ -104,13 +113,12 @@ if (available.exitCode !== 0) {
 }
 
 const version = available.stdout.toString().trim().split(/\s+/).pop();
-if (version !== REQUIRED_CLI_VERSION) {
+if (REQUIRED_CLI_VERSION !== undefined && version !== REQUIRED_CLI_VERSION) {
   throw new Error(
     `boltffi ${version} is installed, but this backend compiles against ` +
       `${REQUIRED_CLI_VERSION}. Mismatched versions emit JavaScript that looks ` +
-      `for wasm exports the module does not have. ` +
-      `Install it from the revision the workflows pin — see the ` +
-      `\`boltffi\` dependency in crates/bridge-boltffi/Cargo.toml.`,
+      `for wasm exports the module does not have. Install it with ` +
+      `\`cargo install boltffi_cli --version ${REQUIRED_CLI_VERSION} --locked\`.`,
   );
 }
 // Cargo may record a short revision where the manifest pins a full one, or the
@@ -118,10 +126,7 @@ if (version !== REQUIRED_CLI_VERSION) {
 const sameRevision = (a: string, b: string) =>
   a.startsWith(b.slice(0, Math.min(a.length, b.length)));
 if (PINNED_REV === undefined) {
-  console.warn(
-    "no `rev` in crates/bridge-boltffi/Cargo.toml — the installed CLI cannot be " +
-      "checked against the pin.",
-  );
+  // Pinned by version, which the check above already enforced.
 } else if (installedRev === null || !installedRev.git) {
   console.warn(
     `boltffi was not installed by \`cargo install --git\`, so its revision is ` +

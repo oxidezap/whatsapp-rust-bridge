@@ -3,79 +3,41 @@
 Measured against `boltffi` at `b9272fb7` (workspace version `0.29.3`, the version
 published on crates.io) and this repository at `v0.7.0`.
 
-> **Update — re-measured at `0f5d7421` (main), which this PR pins.** Both gaps
-> below are closed, and **no callback shape aborts the module any more**. A
-> fallible callback returning bytes crosses and returns correctly; `Result<(),
-> E>` renders rather than being skipped; and a callback that throws, or whose
-> handle is gone, now arrives as the declared error through
-> `From<UnexpectedFfiCallbackError>` instead of a `RuntimeError: unreachable`.
+> **Update — this PR pins the released `0.30.0`, and every gap below is
+> closed.** Phase 0 was measured against `b9272fb7`, when nothing but a main
+> revision carried the fixes; `0.30.0` is the first release that carries them
+> all, so the pin is a version again rather than a commit.
 >
-> One defect remains, and it is a naming defect rather than a shape one. An
-> earlier revision of this note blamed `delete(store, key)` on "a fallible
-> callback with no byte payload in its parameters". That was wrong: a `remove`
-> method of the identical shape works. The TypeScript renderer escapes JS
-> keywords at the call site but not in the interface declaration, so it emits
+> What changed upstream, in the order it landed:
 >
-> ```ts
-> export interface AsyncStore { delete(store: string, key: string): …; }
-> …
-> .then(() => callback._delete(store, key))
-> ```
+> | gap, as first measured | closed by |
+> |---|---|
+> | `Result<(), E>` from a callback skipped, sync and async | `ReturnPlan::Void` arms in both fallible-success matches |
+> | a fallible callback returning bytes traps at runtime | encoder and decoder agreed for byte payloads |
+> | a thrown callback, or one whose handle is gone, aborts the module | tagged and converted through `From<UnexpectedFfiCallbackError>` (#803) |
+> | a callback method named with a JS keyword is uncallable — declared `delete`, invoked `_delete` | called through the declared name (#801) |
+> | a skipped declaration exits 0 | `--deny-skipped` reaches `pack` |
 >
-> `callback._delete` is `undefined`. It applies to every name in the renderer's
-> keyword list, and at `0f5d7421` it surfaces as a catchable typed error rather
-> than an abort. Reported upstream with a patch; `Expression::call` at
-> `render/callback.rs:206` and `:469` takes `Name::identifier()`, which escapes,
-> where the declaration takes `Name::member()`, which does not.
+> **Nothing in the storage boundary is blocked any more.** The two members that
+> collided with the renderer's keyword list — `JsStoreCallbacks.delete`
+> (`src/wasm_client.rs:396`) and `JsCacheStore.delete` (`:483`) — cross under
+> their own names, so a BoltFFI client would ask consumers for the same
+> `delete` the wasm-bindgen one does. No naming divergence remains.
 >
-> What it costs until that lands: the Rust trait method has to be named
-> something outside the keyword list, and the JS member is named after it.
-> Matching every member name declared on an inbound interface in `src/` against
-> the renderer's keyword list gives **two** collisions, both spelled `delete`:
+> The runtime is no longer a separate problem either. `@boltffi/runtime@0.30.0`
+> is published at wasm ABI 3, which is what a module built from `0.30.0`
+> declares, so `package.json` pins it as an ordinary dependency. While this
+> tracked a main revision, no published runtime could load the artifact at all
+> — the module refused to instantiate with `BoltFFI ABI version mismatch:
+> expected 2, got 3` — and vendoring the runtime was the only way to ship. That
+> is not needed and not done.
 >
-> - `JsStoreCallbacks.delete(store, key)` — `src/wasm_client.rs:396`, one of the
->   three mandatory storage callbacks
-> - `JsCacheStore.delete(namespace, key)` — `src/wasm_client.rs:483`, read back
->   by `Reflect::get` at `src/js_cache_store.rs:33`
->
-> Nothing else collides. `deleteMany`, `deletePrefix`, `deleteIdentity`,
-> `deleteSession` and the rest are not keywords — only the bare word is. So a
-> BoltFFI client would ask consumers for `remove` on both interfaces where the
-> wasm-bindgen client asks for `delete`: a divergence between the two backends'
-> consumer contracts, not an operation that cannot cross, and it disappears the
-> moment the renderer stops escaping the call site.
->
-> One further keyword member exists — `ServerAck.class`
-> (`src/generated_types.rs:1187`) — but it is an outbound record field, and
-> record fields render through `PropertyKey`, not through the callback
-> invocation path this defect lives on.
->
-> Two things this batch changes for the build. `--deny-skipped` now exists on
-> `pack`, so `scripts/build-boltffi.ts` uses the flag instead of scanning
-> output. And the thrown-callback fix lives in `@boltffi/runtime`
-> (`writeUnexpectedCallbackError`), which is not in the published `0.29.3` —
-> this artifact is unaffected because it declares no callbacks, so the import is
-> not emitted, but **the client surface cannot land until that runtime is
-> published**.
->
-> **Why the pin stops at `0f5d7421`.** `c7f92e80` is newer and drops the length
-> prefix from byte returns, but it also raises the wasm ABI from 2 to 3, and the
-> published runtime is still on 2. Built against it, the module refuses to
-> instantiate:
->
-> ```text
-> BoltFFI ABI version mismatch: expected 2, got 3
-> ```
->
-> That is the whole artifact, not one operation, so the pin moves when
-> `@boltffi/runtime` is published at ABI 3 and the dependency in `package.json`
-> moves with it.
->
-> A caveat that cost two false reports here: the generated JavaScript and the
-> `@boltffi/runtime` package must come from the same revision. Linking the
-> published runtime against bindings generated from main reproduces the *old*
-> trap exactly, so a stale runtime is indistinguishable from the bug unless you
-> check.
+> One caveat still holds, and it cost two false reports during this work: the
+> generated JavaScript and the `@boltffi/runtime` package must come from the
+> same version. They are pinned in two files — `crates/bridge-boltffi/Cargo.toml`
+> and `package.json` — and both have to move together. A stale runtime
+> reproduces old symptoms exactly, so it is indistinguishable from a generator
+> bug unless you check.
 >
 > The sections below are left as originally measured against `b9272fb7`.
 
