@@ -5,11 +5,14 @@
  * for the `skipLibCheck: true` consumers this package actually has, so a check
  * that only asks "does it resolve" would pass on the very thing being fixed.
  *
- * One entry per shape the core writes a waproto type behind.
+ * One entry per shape the core writes a waproto type behind, plus the error
+ * union, whose usefulness is a property of these declarations rather than of
+ * anything the Rust side can assert.
  */
 
 import type {
   ArchiveUpdate,
+  BridgeError,
   InboundMessage,
   JsonValue,
   MessageInfo,
@@ -69,6 +72,18 @@ type _Receipt = Assert<Resolves<Receipt["type"], ReceiptType>>;
 // The widening controls use `Uint8Array` rather than a proto interface on
 // purpose: protobufjs declares every field optional, so `object` is assignable
 // to `proto.IMessage` in both directions and no assertion can tell them apart.
+/**
+ * A rejected caller narrows on `kind` and then reads the delay the server
+ * directed. Both halves are checked here because both are this file's doing:
+ * the Rust tests pin the payload's keys, not whether the declaration lets a
+ * consumer branch on one.
+ */
+type Rejection = Extract<BridgeError, { kind: "server" }>;
+type _RejectionNarrows = Assert<Resolves<Rejection["serverCode"], number>>;
+type _RejectionCarriesTheDelay = Assert<
+  Resolves<Rejection["backoffSeconds"], number | undefined>
+>;
+
 type _RejectsAny = Assert<
   Resolves<any, proto.IMessage> extends false ? true : false
 >;
@@ -81,6 +96,8 @@ type _RejectsUnknown = Assert<
 
 export type Checked = [
   _Boxed,
+  _RejectionNarrows,
+  _RejectionCarriesTheDelay,
   _Shared,
   _Optional,
   _Aliased,
