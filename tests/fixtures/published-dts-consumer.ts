@@ -83,6 +83,9 @@ type _RejectionNarrows = Assert<Resolves<Rejection["serverCode"], number>>;
 type _RejectionCarriesTheDelay = Assert<
   Resolves<Rejection["backoffSeconds"], number | undefined>
 >;
+type _RejectionCarriesTheClass = Assert<
+  Resolves<Rejection["errorType"], string | undefined>
+>;
 
 type _RejectsAny = Assert<
   Resolves<any, proto.IMessage> extends false ? true : false
@@ -98,6 +101,7 @@ export type Checked = [
   _Boxed,
   _RejectionNarrows,
   _RejectionCarriesTheDelay,
+  _RejectionCarriesTheClass,
   _Shared,
   _Optional,
   _Aliased,
