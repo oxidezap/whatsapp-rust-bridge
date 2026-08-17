@@ -210,7 +210,6 @@ bridge_events! {
         ContactNumberChanged     => "contact_number_changed"        => "ContactNumberChanged",
         ContactSyncRequested     => "contact_sync_requested"        => "ContactSyncRequested",
         GroupUpdate              => "group_update"                  => "GroupUpdate",
-        PushNameUpdate           => "push_name_update"              => "PushNameUpdate",
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
@@ -234,6 +233,7 @@ bridge_events! {
         AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
         ContactRemoved           => "contact_removed"               => "ContactRemoved",
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
+        ClientExpirationChanged  => "client_expiration_changed"     => "ClientExpirationChanged",
     }
     // Events carrying a protobuf field beside their own. That field crosses in
     // the protobufjs shape its declaration names, keeping an explicit `false` or
@@ -299,6 +299,13 @@ const UNDISPATCHED_EVENT_VARIANTS: &[(&str, &str)] = &[
         "SentFrame",
         "its one field is the marshaled stanza, also #[serde(skip)], so the event \
          would cross as an empty object. Lease-gated like DecryptedPayload.",
+    ),
+    (
+        "RetiredPushNameUpdate",
+        "retired upstream: nothing dispatches it and nothing can, and its payload \
+         is now an empty struct. The variant survives only to hold its position \
+         in the core's index-keyed Serialize format. The current push name is on \
+         MessageInfo::push_name.",
     ),
     (
         "EncDecryptFailed",
@@ -4341,15 +4348,20 @@ mod dispatched_event_tests {
     use super::*;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::sync::Arc;
     use std::time::Duration;
     use wasm_bindgen::closure::Closure;
     use wasm_bindgen_test::wasm_bindgen_test as test;
     use whatsapp_rust::wacore::chrono::{DateTime, Utc};
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
-        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ContactRemoved, ContactUpdate,
-        DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError,
-        PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
+        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
+        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate,
+        MuteUpdate, PairingCodeError, PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
+        UnavailableType, UndecryptableMessage,
+    };
+    use whatsapp_rust::wacore::types::message::{
+        EncMediaType, MessageInfo, PollType, StanzaMessageType,
     };
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
         ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
@@ -4745,6 +4757,122 @@ mod dispatched_event_tests {
 
         assert!(field(&data, "backoff").is_undefined());
         assert!(field(&data, "rejection").is_undefined());
+    }
+
+    /// A deadline the consumer is the only one who can act on: the core keeps
+    /// connecting until the server refuses, so this event is the whole notice.
+    #[test]
+    async fn a_client_expiration_changed_carries_the_deadline_and_the_build() {
+        let (name, data) = deliver(Event::ClientExpirationChanged(
+            ClientExpirationChanged::builder()
+                .expires_at(1_763_000_000)
+                .version((2, 3000, 1044659339))
+                .withdrawn(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "client_expiration_changed");
+        assert_eq!(field(&data, "expires_at").as_f64(), Some(1_763_000_000.0));
+        assert_eq!(field(&data, "withdrawn").as_bool(), Some(false));
+        let version = js_sys::Array::from(&field(&data, "version"));
+        assert_eq!(version.get(0).as_f64(), Some(2.0));
+        assert_eq!(version.get(1).as_f64(), Some(3000.0));
+        assert_eq!(version.get(2).as_f64(), Some(1_044_659_339.0));
+    }
+
+    /// A withdrawal retracts the deadline, so there is no date to cross. The
+    /// key is absent rather than zero: a zero reads as 1970, which is a deadline
+    /// already past.
+    #[test]
+    async fn a_withdrawn_client_expiration_omits_the_deadline() {
+        let (_, data) = deliver(Event::ClientExpirationChanged(
+            ClientExpirationChanged::builder()
+                .version((2, 3000, 1044659339))
+                .withdrawn(true)
+                .build(),
+        ))
+        .await;
+
+        assert!(field(&data, "expires_at").is_undefined());
+        assert_eq!(field(&data, "withdrawn").as_bool(), Some(true));
+    }
+
+    /// `type` and `media_type` were `String` and are now the wire vocabularies
+    /// the core models. The strings a consumer switched on are unchanged; what
+    /// changed is that a value outside the set no longer reads as one of them.
+    #[test]
+    async fn an_undecryptable_message_carries_the_envelope_type_and_the_enc_mediatype() {
+        let mut info = MessageInfo::default();
+        info.source.chat = jid("120363000000000001@g.us");
+        info.source.sender = jid("5511999:7@s.whatsapp.net");
+        info.id = "3EB0C1D2E3F4".into();
+        info.push_name = "Alice".into();
+        info.timestamp = timestamp();
+        info.r#type = Some(StanzaMessageType::Poll);
+        info.media_type = Some(EncMediaType::Ptt);
+        info.meta_info.poll_type = Some(PollType::Vote);
+
+        let (name, data) = deliver(Event::UndecryptableMessage(
+            UndecryptableMessage::builder()
+                .info(Arc::new(info))
+                .is_unavailable(false)
+                .unavailable_type(UnavailableType::Unknown)
+                .decrypt_fail_mode(DecryptFailMode::Show)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "undecryptable_message");
+        let info = field(&data, "info");
+        assert_eq!(field(&info, "type").as_string().as_deref(), Some("poll"));
+        assert_eq!(
+            field(&info, "media_type").as_string().as_deref(),
+            Some("ptt")
+        );
+        assert_eq!(
+            field(&field(&info, "meta_info"), "poll_type")
+                .as_string()
+                .as_deref(),
+            Some("vote")
+        );
+    }
+
+    /// Neither attribute is mandatory on the wire, and an absent one is now
+    /// absent rather than `""` — the empty string was this bridge inventing a
+    /// value for something the stanza never carried.
+    #[test]
+    async fn an_undecryptable_message_omits_an_envelope_type_the_stanza_did_not_carry() {
+        let mut info = MessageInfo::default();
+        info.source.chat = jid("5511999@s.whatsapp.net");
+        info.source.sender = jid("5511999:7@s.whatsapp.net");
+        info.id = "3EB0AAAABBBB".into();
+        info.timestamp = timestamp();
+
+        let (_, data) = deliver(Event::UndecryptableMessage(
+            UndecryptableMessage::builder()
+                .info(Arc::new(info))
+                .is_unavailable(true)
+                .unavailable_type(UnavailableType::ViewOnce)
+                .decrypt_fail_mode(DecryptFailMode::Hide)
+                .build(),
+        ))
+        .await;
+
+        let info = field(&data, "info");
+        assert!(field(&info, "type").is_undefined());
+        assert!(field(&info, "media_type").is_undefined());
+        assert!(field(&field(&info, "meta_info"), "poll_type").is_undefined());
+        // The two enums the core rebuilt from the catalog keep their wire
+        // spellings, which is the whole of what crosses here.
+        assert_eq!(
+            field(&data, "unavailable_type").as_string().as_deref(),
+            Some("view_once")
+        );
+        assert_eq!(
+            field(&data, "decrypt_fail_mode").as_string().as_deref(),
+            Some("hide")
+        );
     }
 }
 
