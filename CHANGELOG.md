@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.13.0...v0.14.0) (2026-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** a message's envelope type and mediatype cross typed, and a build retirement deadline becomes an event ([#67](https://github.com/oxidezap/whatsapp-rust-bridge/issues/67))
+
+### Features
+
+* **deps:** a message's envelope type and mediatype cross typed, and a build retirement deadline becomes an event ([#67](https://github.com/oxidezap/whatsapp-rust-bridge/issues/67)) ([7df72f8](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7df72f8e2e104954829d5d4879e0d91e967b8b83))
+* **errors:** carry the server's retry delay on a rejection ([#66](https://github.com/oxidezap/whatsapp-rust-bridge/issues/66)) ([e95d64c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/e95d64c371f42d08009b187c207ead1f9edabca9))
+
 ## [0.13.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.12.0...v0.13.0) (2026-08-14)
 
 
