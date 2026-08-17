@@ -928,6 +928,97 @@ mod tests {
         }
     }
 
+    /// The reported failure: the server answered a `groupFetchAllParticipating`
+    /// with `429 rate-overlimit` and a `backoff`, and the host had no way to
+    /// read the delay it was told to wait — so it reconnected instead, which is
+    /// the one thing the server was rate-limiting.
+    #[test]
+    fn a_rejection_carries_the_delay_the_server_asked_for() {
+        let iq = IqError::ServerError {
+            code: 429,
+            text: "rate-overlimit".into(),
+            error_type: Some("wait".into()),
+            backoff: Some(30),
+            response: rejection_stanza(),
+        };
+        let payload = payload_of(&BridgeError::from(iq));
+
+        assert_eq!(payload["kind"], "server");
+        assert_eq!(payload["serverCode"], 429);
+        assert_eq!(payload["serverText"], "rate-overlimit");
+        assert_eq!(payload["errorType"], "wait");
+        assert_eq!(payload["backoffSeconds"], 30);
+    }
+
+    /// The same rejection reaching the bridge by each of the three carriers the
+    /// core spells it in. They have to agree field for field: a host cannot see
+    /// `backoffSeconds` on a group call and not on a pairing one because the
+    /// rejection took a different route out of the core.
+    #[test]
+    fn every_carrier_of_a_rejection_reports_it_identically() {
+        let direct = payload_of(&BridgeError::from(IqError::ServerError {
+            code: 429,
+            text: "rate-overlimit".into(),
+            error_type: Some("wait".into()),
+            backoff: Some(30),
+            response: rejection_stanza(),
+        }));
+
+        let wacore_iq = payload_of(&BridgeError::from_error_chain(
+            &wacore::request::IqError::ServerError {
+                code: 429,
+                text: "rate-overlimit".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(30),
+            },
+        ));
+
+        let carrier = payload_of(&BridgeError::from_error_chain(
+            &wacore::request::ServerErrorCode {
+                code: 429,
+                text: "rate-overlimit".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(30),
+            },
+        ));
+
+        assert_eq!(direct, wacore_iq, "the two IqError paths disagree");
+        assert_eq!(direct, carrier, "the anyhow carrier disagrees");
+        // Agreement on a shape that drops the delay would be agreement on the
+        // defect, so the shape they agree on is pinned too.
+        assert_eq!(direct["backoffSeconds"], 30);
+        assert_eq!(direct["errorType"], "wait");
+    }
+
+    /// Absence stays absent, so `if (e.backoffSeconds)` on a rejection that
+    /// carried none reads `undefined` rather than a delay nobody was told.
+    /// Both halves in one test: a key that is never emitted is absent for the
+    /// wrong reason, and only the first assertion tells the two apart.
+    #[test]
+    fn a_delay_the_server_did_not_send_is_an_absent_key() {
+        let carried = payload_of(&BridgeError::from(IqError::ServerError {
+            code: 403,
+            text: "forbidden".into(),
+            error_type: Some("cancel".into()),
+            backoff: Some(5),
+            response: rejection_stanza(),
+        }));
+        assert_eq!(carried["backoffSeconds"], 5);
+        assert_eq!(carried["errorType"], "cancel");
+
+        let bare = payload_of(&BridgeError::from(rejected(403)));
+        assert_eq!(bare["serverCode"], 403);
+        assert_eq!(bare["serverText"], "forbidden");
+        assert!(
+            bare.get("backoffSeconds").is_none(),
+            "an absent backoff must not become a key, got {bare}"
+        );
+        assert!(
+            bare.get("errorType").is_none(),
+            "an absent error type must not become a key, got {bare}"
+        );
+    }
+
     /// A wrapping variant renders exactly what it wraps, so a naive join would
     /// repeat the same sentence once per layer.
     #[test]
