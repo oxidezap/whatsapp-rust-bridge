@@ -51,7 +51,7 @@ The kind is a contract, not a label. All nine:
 | kind | means |
 |---|---|
 | `invalid-argument` | the caller's own doing. Set `field` to the argument that was wrong, and use the same value everywhere that argument can be wrong |
-| `server` | a typed `<error>` stanza, with `serverCode` / `serverText` |
+| `server` | a typed `<error>` stanza, with `serverCode` / `serverText`, plus `errorType` and `backoffSeconds` when the stanza carried them |
 | `timeout` | no response inside the window |
 | `not-connected` | no socket, or not logged in |
 | `disconnected` | the server ended the stream mid-flight |
