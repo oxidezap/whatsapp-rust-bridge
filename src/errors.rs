@@ -52,12 +52,26 @@ pub enum BridgeError {
     /// The WhatsApp server returned a structured `<error code="..." text="..."/>`
     /// stanza in response to an IQ. `code`/`text` are the server-supplied
     /// fields; consumers usually branch on `code` (400/401/404/406/...).
+    ///
+    /// The other two are the rest of what the core's `ServerRejection` recovers
+    /// from a rejection, and they answer the two questions a rejected caller
+    /// has: whether retrying can help, and when. Both absent when the stanza
+    /// carried no such attribute — the server omits rather than blanks.
     #[error("server error {server_code}: {server_text}")]
     Server {
         #[serde(rename = "serverCode")]
         server_code: u16,
         #[serde(rename = "serverText")]
         server_text: String,
+        /// The XMPP error class from the `type` attribute — `wait` is worth
+        /// retrying, `cancel` is not, whatever the code happens to be.
+        #[serde(rename = "errorType", skip_serializing_if = "Option::is_none")]
+        error_type: Option<String>,
+        /// The `backoff` attribute. Named for its unit because a bare duration
+        /// on a JS object reads as milliseconds, and `setTimeout(retry,
+        /// e.backoff)` would wait a thousandth of what the server asked for.
+        #[serde(rename = "backoffSeconds", skip_serializing_if = "Option::is_none")]
+        backoff_seconds: Option<u32>,
     },
 
     /// The IQ request did not get a response within the timeout window.
@@ -162,10 +176,12 @@ impl BridgeError {
                 // The carrier the core uses to move a server rejection across a
                 // crate boundary inside `anyhow`. Reachable since whatsapp-rust
                 // #1100 exposed the head of an `anyhow` chain as `source()`.
-                return BridgeError::Server {
-                    server_code: server.code,
-                    server_text: server.text.clone(),
-                };
+                return server_rejection(
+                    server.code,
+                    &server.text,
+                    server.error_type.as_deref(),
+                    server.backoff,
+                );
             } else if let Some(pc) = c.downcast_ref::<PairCodeError>() {
                 return paircode_to_bridge(pc);
             } else if let Some(jc) = c.downcast_ref::<crate::js_backend::JsCallbackError>() {
@@ -257,6 +273,23 @@ fn missing_attribute(attr: &str) -> BridgeError {
     invalid_arg("stanza", format!("missing the '{attr}' attribute"))
 }
 
+/// The one place a rejection becomes a `Server`, so the three shapes the core
+/// spells one in — the two `IqError`s and the `ServerErrorCode` an `anyhow`
+/// chain carries across a crate boundary — cannot report it differently.
+fn server_rejection(
+    code: u16,
+    text: &str,
+    error_type: Option<&str>,
+    backoff: Option<u32>,
+) -> BridgeError {
+    BridgeError::Server {
+        server_code: code,
+        server_text: text.to_owned(),
+        error_type: error_type.map(ToOwned::to_owned),
+        backoff_seconds: backoff,
+    }
+}
+
 /// Match a high-level `IqError` against variants whose fields are themselves
 /// the user-actionable signal. Wrapper variants (`Socket`, `EncryptSend`,
 /// `ClientState`, `EncodeError`, `ParseError`) return `None` so the chain
@@ -264,12 +297,15 @@ fn missing_attribute(attr: &str) -> BridgeError {
 /// below worth surfacing.
 fn iq_to_bridge(e: &IqError) -> Option<BridgeError> {
     Some(match e {
-        // `..` ignores the `error_type`/`backoff` fields added in whatsapp-rust #747;
-        // BridgeError::Server surfaces only code/text. Surface them here if ever needed.
-        IqError::ServerError { code, text, .. } => BridgeError::Server {
-            server_code: *code,
-            server_text: text.clone(),
-        },
+        // `..` is the `response` field alone: the whole rejection stanza, which
+        // the core's own `ServerRejection` view also stops short of.
+        IqError::ServerError {
+            code,
+            text,
+            error_type,
+            backoff,
+            ..
+        } => server_rejection(*code, text, error_type.as_deref(), *backoff),
         IqError::Timeout => BridgeError::Timeout,
         IqError::NotConnected => BridgeError::NotConnected,
         IqError::Disconnected(node) => BridgeError::Disconnected {
@@ -322,10 +358,12 @@ fn handshake_to_bridge(e: &HandshakeError) -> Option<BridgeError> {
 
 fn wacore_iq_to_bridge(e: &wacore::request::IqError) -> Option<BridgeError> {
     Some(match e {
-        wacore::request::IqError::ServerError { code, text, .. } => BridgeError::Server {
-            server_code: *code,
-            server_text: text.clone(),
-        },
+        wacore::request::IqError::ServerError {
+            code,
+            text,
+            error_type,
+            backoff,
+        } => server_rejection(*code, text, error_type.as_deref(), *backoff),
         wacore::request::IqError::Timeout => BridgeError::Timeout,
         wacore::request::IqError::NotConnected => BridgeError::NotConnected,
         wacore::request::IqError::Disconnected(node) => BridgeError::Disconnected {
@@ -572,10 +610,7 @@ classify! {
     // text="conflict"/>` on a description update, mapped back to the server
     // error it stands for.
     GroupError {
-        GroupError::DescriptionConflict => BridgeError::Server {
-            server_code: 409,
-            server_text: "conflict".into(),
-        },
+        GroupError::DescriptionConflict => server_rejection(409, "conflict", None, None),
         GroupError::InvalidRequest(detail) => invalid_request(detail),
     }
 
@@ -808,6 +843,7 @@ mod tests {
             BridgeError::Server {
                 server_code,
                 server_text,
+                ..
             } => {
                 assert_eq!(server_code, 400);
                 assert_eq!(server_text, "bad-request");
@@ -831,6 +867,7 @@ mod tests {
             BridgeError::Server {
                 server_code,
                 server_text,
+                ..
             } => {
                 assert_eq!(server_code, 400);
                 assert_eq!(server_text, "bad-request");
@@ -846,6 +883,7 @@ mod tests {
             BridgeError::Server {
                 server_code,
                 server_text,
+                ..
             } => {
                 assert_eq!(server_code, 409);
                 assert_eq!(server_text, "conflict");
@@ -920,6 +958,7 @@ mod tests {
             BridgeError::Server {
                 server_code,
                 server_text,
+                ..
             } => {
                 assert_eq!(server_code, 409);
                 assert_eq!(server_text, "conflict");
