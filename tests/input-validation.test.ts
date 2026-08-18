@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { initWasmEngine, createWhatsAppClient } from "../dist/index.js";
+import { initWasmEngine, createWhatsAppClient, encodeProto } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
 
 beforeAll(() => {
@@ -160,6 +160,21 @@ describe("a well-formed parameter still crosses", () => {
         client.readMessages([{ remoteJid: CHAT, id: "MSG1" }])
       );
       expect(keys.kind).not.toBe("invalid-argument");
+
+      // The edit's optional stanza id: a supplied id passes the bridge's own
+      // check and stops at the connection, and the three-argument form keeps
+      // meaning "the engine mints a fresh id" — same outcome as before the
+      // parameter existed.
+      const editBytes = encodeProto("Message", { conversation: "edited" });
+      const pinned = await rejection(
+        client.editMessageBytes(CHAT, "3EB0AAAAAAAAAAAAAAAAAA", editBytes, "3EB0CALLERSUPPLIED00")
+      );
+      expect(pinned.kind).toBe("not-connected");
+
+      const fresh = await rejection(
+        client.editMessageBytes(CHAT, "3EB0AAAAAAAAAAAAAAAAAA", editBytes)
+      );
+      expect(fresh.kind).toBe("not-connected");
     } finally {
       client.free();
     }
