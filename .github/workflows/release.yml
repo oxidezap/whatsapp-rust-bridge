@@ -103,9 +103,10 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # Split from publish on purpose: this is where the test suites and the wasm
-  # toolchain run, and none of it should be able to reach an OIDC token. The job
-  # below still has to build (dist/ is gitignored and is the whole package), but
-  # it runs nothing beyond that build and the publish itself.
+  # toolchain run, and none of it should be able to reach an OIDC token. It is
+  # also where the published tree is built — `publish` downloads it rather than
+  # rebuilding, so the job holding the token runs no compiler and no build
+  # script at all.
   verify:
     name: Verify the tag
     needs: release-please
@@ -234,33 +235,97 @@ jobs:
 
       # Whether or not the release PR got its checks approved, the tag faces the
       # same bar as a normal pull request before anything reaches npm.
+      #
+      # That bar is this job alone now. ci.yml skips a diff that is only a
+      # version bump, which is exactly what release-please's commit is, so the
+      # checks below are no longer a second opinion running beside CI's — they
+      # are the only opinion on the commit being published. Everything ci.yml
+      # runs is therefore run here too, including the reduced feature sets and
+      # the codegen package that used to be CI's alone.
       - name: Cargo fmt --check
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      - name: Cargo clippy (reduced feature sets)
+        run: |
+          cargo clippy --all-targets --no-default-features -- -D warnings
+          cargo clippy --all-targets --no-default-features \
+            --features client-signal,client-media -- -D warnings
+
+      - name: Codegen format, lints and unit tests
+        run: |
+          HOST=$(rustc -vV | sed -n 's/^host: //p')
+          cargo fmt --manifest-path codegen/Cargo.toml --all -- --check
+          cargo clippy --manifest-path codegen/Cargo.toml --all-targets --target "$HOST" -- -D warnings
+          cargo test --manifest-path codegen/Cargo.toml --target "$HOST"
+
+      # This is the build that ships. `publish` used to run its own; it now
+      # takes the tree this step produced, so the artifact the checks below
+      # measure is the artifact npm receives rather than a second build of the
+      # same source. That distinction is not academic here — two builds of an
+      # unchanged tree differ by tens of kilobytes (#62), so every number
+      # measured before was measured on bytes nobody shipped.
       - name: Build the wasm package
         run: bun run build
 
-      # `bun run build` regenerates the type file. If what it produced differs
-      # from what is committed, the tarball's .d.ts would not be the reviewed
-      # one — which is how a build with missing sources shipped a .d.ts
-      # referencing types it no longer declared.
+      # `bun run build` regenerates these. If what it produced differs from what
+      # is committed, the tarball's .d.ts would not be the reviewed one — which
+      # is how a build with missing sources shipped a .d.ts referencing types it
+      # no longer declared. `ts/generated` is checked for the same reason ci.yml
+      # checks it: an upstream schema change has to show up in a diff.
       - name: Fail if the generated types drifted
-        run: git diff --exit-code -- src/generated_types.rs
+        run: |
+          git add --intent-to-add -- src/generated_types.rs ts/generated
+          git diff --exit-code -- src/generated_types.rs ts/generated
 
       - run: bun test
 
       - name: Rust unit tests (wasm32 in Node)
         run: bun run test:rust
 
+      # The three publish guards, run here because here is where the bytes are
+      # made. `check:size` and `check:wasm-shape` also run in `publish` against
+      # the downloaded tree; they are cheap, and a gate on the artifact is worth
+      # having on both sides of the hand-off.
+      - name: Check the tarball contents
+        run: bun run scripts/check-pack.ts
+
+      - name: Check the tarball size
+        run: bun run check:size
+
+      - name: Check the wasm's largest function
+        run: bun run check:wasm-shape
+
+      # What `publish` has to receive intact. `dist/` is the whole package
+      # (`files` is `dist/**/*`), so this digest set is the tarball, and
+      # comparing it after the download is what makes "publish ships what
+      # verify vouched for" a checked claim rather than a description of the
+      # plumbing.
+      - name: Record the tree publish must ship
+        run: |
+          (cd dist && find . -type f -print0 | sort -z | xargs -0r sha256sum) > dist.sha256
+          cat dist.sha256
+
+      - name: Hand the verified build to publish
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: npm-tarball
+          path: |
+            dist
+            dist.sha256
+          if-no-files-found: error
+          # Long enough to survive a `npm-publish` approval that waits
+          # overnight, short enough that a build nobody published expires.
+          retention-days: 7
+
   publish:
     name: Publish to npm
     needs: [release-please, verify]
     if: ${{ !cancelled() && needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     # Gate for the publish step: add required reviewers here to make releases
     # need a second pair of eyes, and to scope the OIDC trust on npm.
     environment: npm-publish
@@ -277,32 +342,27 @@ jobs:
           # approval cannot change what gets published.
           ref: ${{ needs.release-please.outputs.sha || github.sha }}
           # Nothing here talks to the remote after checkout, and the steps below
-          # run cargo, bun and third-party build scripts in a job holding OIDC
-          # publish rights. Don't leave the token in .git/config for them.
+          # run bun and npm in a job holding OIDC publish rights. Don't leave the
+          # token in .git/config for them.
           persist-credentials: false
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+      # This job used to rebuild the wasm from scratch — 7m12s of the 7m47s it
+      # took at 0.15.0, and the whole Rust and wasm toolchain executing next to the
+      # OIDC token because `files` ships `dist/` and `dist/` is gitignored.
+      # Taking verify's tree instead is both faster and narrower: no cargo, no
+      # wasm-pack, no protoc, no build scripts in the privileged job, and the
+      # bytes npm receives are the bytes that passed the tests.
+      #
+      # Provenance is unaffected. npm attests the workflow, repository, ref and
+      # commit of the run that published — and `verify` is a job in this run, at
+      # this commit. If anything, it is now more accurate: it used to attest a
+      # build nothing had tested.
+      - name: Take the build verify vouched for
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
-          targets: wasm32-unknown-unknown
+          name: npm-tarball
+          path: .
 
-      - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
-
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
-        with:
-          # protoc is needed because `bun run build` regenerates the proto
-          # codec. Pinned to the same versions ci.yml uses, so a break shows up
-          # on a pull request; and pinned at all because publish can start much
-          # later than verify, behind the environment gate, where a new default
-          # would generate one codec for the tests and another for the tarball.
-          tool: wasm-pack,protoc@3.35.1
-
-      # Pinned, unlike ci.yml: this bun builds the wasm artifact that ships to
-      # npm, so a floating version would change the published bytes without a
-      # change to this repository.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
@@ -318,22 +378,17 @@ jobs:
       - name: Ensure npm supports trusted publishing
         run: npm install -g npm@11.19.0
 
-      # Everything already passed in `verify`; this job re-runs only the build,
-      # because `files` ships dist/ and dist/ is gitignored — the tarball is
-      # whatever this step produces. That does mean the build toolchain still
-      # executes alongside the token: publishing a package whose entire content
-      # is generated cannot avoid that without handing a prebuilt tarball to
-      # npm, which is not the shape npm documents provenance against.
+      # An artifact round-trip is a zip and an unzip, and neither is something
+      # to take on trust when the output is a published version. Same digests,
+      # same file set, or nothing is published.
+      - name: Fail unless the tree is byte-for-byte verify's
+        run: |
+          set -euo pipefail
+          (cd dist && find . -type f -print0 | sort -z | xargs -0r sha256sum) > dist.actual
+          diff -u dist.sha256 dist.actual
+          echo "publish: $(wc -l < dist.actual) files match the digests verify recorded"
+
       - run: bun install --ignore-scripts
-
-      - name: Build the wasm package
-        run: bun run build
-
-      # The tarball is built from this step's output, so the same drift
-      # check applies here: publish what was reviewed, not what a runner
-      # happened to regenerate.
-      - name: Fail if the generated types drifted
-        run: git diff --exit-code -- src/generated_types.rs
 
       # `--ignore-scripts` below suppresses the prepack hook, and prepack is
       # where the tarball guard lives — run it directly so a build that leaks
@@ -341,18 +396,16 @@ jobs:
       - name: Check the tarball contents
         run: bun run scripts/check-pack.ts
 
-      # And its size. CI measures the artifact its own build produced; this
-      # step measures the one about to be published, which is the only
-      # measurement that can stop an oversized release.
+      # And its size, measured on the tree about to be packed.
       - name: Check the tarball size
         run: bun run check:size
 
-      # And the shape inside it, for the same reason: this job rebuilds the
-      # wasm rather than carrying CI's, so a toolchain difference here — a
-      # wasm-pack that dropped the pass list, a wasm-opt that ignored it —
-      # would ship the uncapped function shape past a green CI run.
+      # And the shape inside it: `dist/whatsapp_rust_bridge_bg.wasm` rather than
+      # the `pkg/` copy the script defaults to, because `pkg/` is a build
+      # artifact this job no longer produces. `build:ts` copies one to the
+      # other, so it is the same wasm — and this one is the one that ships.
       - name: Check the wasm's largest function
-        run: bun run check:wasm-shape
+        run: bun run check:wasm-shape dist/whatsapp_rust_bridge_bg.wasm
 
       # No NODE_AUTH_TOKEN and no --provenance: trusted publishing authenticates
       # over OIDC and attaches provenance on its own.
