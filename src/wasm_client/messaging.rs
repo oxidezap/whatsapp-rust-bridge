@@ -48,6 +48,23 @@ fn group_receipt_keys(
         .collect()
 }
 
+/// The core's [`whatsapp_rust::EditOptions`] from the edit's optional
+/// caller-supplied stanza id. Empty or whitespace is refused rather than
+/// coerced to absent: absent means "mint a fresh id", and silently un-pinning
+/// an id the caller meant to pin is what a best-effort override cannot surface.
+fn edit_options(
+    stanza_id: Option<String>,
+) -> Result<whatsapp_rust::EditOptions, crate::errors::BridgeError> {
+    match stanza_id {
+        None => Ok(whatsapp_rust::EditOptions::default()),
+        Some(id) if id.trim().is_empty() => Err(crate::errors::invalid_arg(
+            "stanzaId",
+            "must not be empty or whitespace; omit it to have a fresh id minted",
+        )),
+        Some(id) => Ok(whatsapp_rust::EditOptions::default().with_stanza_id(id)),
+    }
+}
+
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
     // ── Sending messages ─────────────────────────────────────────────────
@@ -138,16 +155,23 @@ impl WasmWhatsAppClient {
     // ── Message management ──────────────────────────────────────────────
 
     /// Edit a previously sent message from protobuf bytes.
+    ///
+    /// `stanzaId` overrides the edit's outer stanza id; omitted, the engine
+    /// mints a fresh one. Pinning an existing message's id is best-effort —
+    /// the server may dedupe against the outer id — so the visible outcome is
+    /// not guaranteed. Returns the edited message's id, as before.
     #[wasm_bindgen(js_name = editMessageBytes)]
     pub async fn edit_message_bytes(
         &self,
         jid: &str,
         message_id: &str,
         bytes: &[u8],
+        stanza_id: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
+        let options = edit_options(stanza_id)?;
         self.client
-            .edit_message(to, message_id, msg)
+            .edit_message_with_options(to, message_id, msg, options)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -352,5 +376,34 @@ impl WasmWhatsAppClient {
             ..Default::default()
         };
         send_status_message_with_options(&self.client, bytes, recipients, options).await
+    }
+}
+
+#[cfg(test)]
+mod edit_options_tests {
+    use super::edit_options;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn absent_stays_absent() {
+        assert!(edit_options(None).unwrap().stanza_id.is_none());
+    }
+
+    #[test]
+    fn a_supplied_id_crosses_unchanged() {
+        let options = edit_options(Some("3EB0CALLERSUPPLIED00".into())).unwrap();
+        assert_eq!(options.stanza_id.as_deref(), Some("3EB0CALLERSUPPLIED00"));
+    }
+
+    #[test]
+    fn empty_or_whitespace_is_refused_not_coerced() {
+        for id in ["", "   ", "\t\n"] {
+            match edit_options(Some(id.into())) {
+                Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                    assert_eq!(field, "stanzaId");
+                }
+                other => panic!("expected InvalidArgument, got {other:?}"),
+            }
+        }
     }
 }
