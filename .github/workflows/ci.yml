@@ -83,17 +83,33 @@ jobs:
               .filename == "CHANGELOG.md"
               or .filename == ".release-please-manifest.json";
 
+            # The +/- lines of the patch itself, minus the ---/+++ file headers.
+            def patch_lines:
+              [ (.patch // "") | split("\n")[]
+                | select(test("^[+-]") and (test("^(\\+\\+\\+|---)") | not)) ];
+
+            # `additions` and `deletions` are counted by GitHub from the whole
+            # diff; `patch` is a rendering of it the API is free to shorten or
+            # omit. If the two disagree, this is looking at part of a change and
+            # has no business classifying it.
+            def patch_is_whole:
+              ([ patch_lines[] | select(startswith("+")) ] | length) == (.additions // -1)
+              and ([ patch_lines[] | select(startswith("-")) ] | length) == (.deletions // -1);
+
             # These two do feed the build — scripts, dependencies, the `files`
             # list — so they cannot be waved through by name. A release bump
             # rewrites the "version" string in them and nothing else, and that
             # string is read by npm at publish, never by anything CI runs.
-            # Decided from the patch, so a change hiding anything else in these
-            # files is a build.
+            #
+            # Every changed line must be a whole version property. Anchoring
+            # only the start would read `"version": "0.15.0", "scripts": {…}`
+            # as a version bump, and JSON is free to put both on one line.
             def version_bump_only:
               (.filename == "package.json" or .filename == "package-lock.json")
-              and ([ (.patch // "") | split("\n")[]
-                     | select(test("^[+-]") and (test("^(\\+\\+\\+|---)") | not)) ]
-                   | length > 0 and all(test("^[+-][ \t]*\"version\": ")));
+              and patch_is_whole
+              and (patch_lines
+                   | length > 0
+                     and all(test("^[+-][ \t]*\"version\": \"[^\"]*\",?[ \t]*$")));
 
             [ .files[]
               | (.status == "modified" or .status == "added")
