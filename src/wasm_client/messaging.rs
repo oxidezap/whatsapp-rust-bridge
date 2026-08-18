@@ -138,18 +138,43 @@ impl WasmWhatsAppClient {
     // ── Message management ──────────────────────────────────────────────
 
     /// Edit a previously sent message from protobuf bytes.
+    ///
+    /// `stanza_id` is optional and maps to
+    /// [`whatsapp_rust::EditOptions::with_stanza_id`]: it overrides the outer
+    /// stanza id so callers can collide the edit with an existing message and
+    /// have clients re-render that slot. Without it, JS callers cannot reach
+    /// that capability at all — `sendMessage`'s `messageId` option is dropped
+    /// on the edit path, so the edit always goes out under the anchor's own id.
+    ///
+    /// Same contract as the Rust API: best-effort, no id-keyed local state is
+    /// bound to the borrowed id, and honoring the collision is server/client
+    /// dependent. Omitting the argument keeps the previous behavior exactly.
     #[wasm_bindgen(js_name = editMessageBytes)]
     pub async fn edit_message_bytes(
         &self,
         jid: &str,
         message_id: &str,
         bytes: &[u8],
+        stanza_id: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
-        self.client
-            .edit_message(to, message_id, msg)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+        match stanza_id {
+            Some(id) => self
+                .client
+                .edit_message_with_options(
+                    to,
+                    message_id,
+                    msg,
+                    whatsapp_rust::EditOptions::default().with_stanza_id(id),
+                )
+                .await
+                .map_err(crate::errors::BridgeError::from),
+            None => self
+                .client
+                .edit_message(to, message_id, msg)
+                .await
+                .map_err(crate::errors::BridgeError::from),
+        }
     }
 
     /// Revoke (delete) a sent message.
