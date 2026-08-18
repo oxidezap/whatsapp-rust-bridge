@@ -139,16 +139,8 @@ impl WasmWhatsAppClient {
 
     /// Edit a previously sent message from protobuf bytes.
     ///
-    /// `stanza_id` is optional and maps to
-    /// [`whatsapp_rust::EditOptions::with_stanza_id`]: it overrides the outer
-    /// stanza id so callers can collide the edit with an existing message and
-    /// have clients re-render that slot. Without it, JS callers cannot reach
-    /// that capability at all — `sendMessage`'s `messageId` option is dropped
-    /// on the edit path, so the edit always goes out under the anchor's own id.
-    ///
-    /// Same contract as the Rust API: best-effort, no id-keyed local state is
-    /// bound to the borrowed id, and honoring the collision is server/client
-    /// dependent. Omitting the argument keeps the previous behavior exactly.
+    /// `stanza_id` maps to [`whatsapp_rust::EditOptions::with_stanza_id`], which
+    /// JS callers could not reach otherwise; omitting it keeps `edit_message`.
     #[wasm_bindgen(js_name = editMessageBytes)]
     pub async fn edit_message_bytes(
         &self,
