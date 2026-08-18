@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.14.0...v0.15.0) (2026-08-18)
+
+
+### Features
+
+* **messaging:** let an edit carry a caller-supplied stanza id ([#70](https://github.com/oxidezap/whatsapp-rust-bridge/issues/70)) ([4f4ba2e](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4f4ba2e4e92011b5943f2e90f24ef2df23c5bd70))
+
 ## [0.14.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.13.0...v0.14.0) (2026-08-17)
 
 
