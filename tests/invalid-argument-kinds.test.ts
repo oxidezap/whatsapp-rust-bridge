@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { initWasmEngine, createWhatsAppClient } from "../dist/index.js";
+import { initWasmEngine, createWhatsAppClient, encodeProto } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
 
 beforeAll(() => {
@@ -91,6 +91,26 @@ describe("the bridge's own checks name the argument", () => {
       );
       expect(error.kind).toBe("invalid-argument");
       expect(error.field).toBe("msgType");
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
+  // Every earlier argument is well-formed, so the rejection can only come
+  // from the stanza id. Refused rather than treated as absent: coercing ""
+  // to "mint a fresh id" would silently un-pin the very id the caller meant
+  // to pin, and the override's best-effort semantics would hide it.
+  test("an edit's stanza id that is empty or whitespace", async () => {
+    const client = await offlineClient();
+    const bytes = encodeProto("Message", { conversation: "edited" });
+    try {
+      for (const stanzaId of ["", "   ", "\t"]) {
+        const error = await rejection(
+          client.editMessageBytes(USER, "3EB0AAAAAAAAAAAAAAAAAA", bytes, stanzaId)
+        );
+        expect(error.kind).toBe("invalid-argument");
+        expect(error.field).toBe("stanzaId");
+      }
     } finally {
       client.free();
     }

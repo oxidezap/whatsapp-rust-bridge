@@ -20,6 +20,7 @@ import type {
   MsgSecretEntry,
   Receipt,
   ReceiptType,
+  WasmWhatsAppClient,
 } from "../../dist/index.js";
 import type { proto } from "../../dist/proto-types.js";
 
@@ -97,6 +98,16 @@ type _RejectsUnknown = Assert<
   Resolves<unknown, Uint8Array> extends false ? true : false
 >;
 
+// The edit's optional caller-supplied stanza id: a fourth parameter a caller
+// may omit, so the three-argument form keeps compiling. Indexing at 3 fails
+// outright while the declaration has only three parameters.
+type _EditPinsAStanzaId = Assert<
+  Resolves<
+    Parameters<WasmWhatsAppClient["editMessageBytes"]>[3],
+    string | null | undefined
+  >
+>;
+
 export type Checked = [
   _Boxed,
   _RejectionNarrows,
@@ -110,4 +121,5 @@ export type Checked = [
   _RejectsAny,
   _RejectsObject,
   _RejectsUnknown,
+  _EditPinsAStanzaId,
 ];
