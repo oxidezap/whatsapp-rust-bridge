@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.16.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.15.0...v0.16.0) (2026-08-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a stranded group member is keyed again ([#73](https://github.com/oxidezap/whatsapp-rust-bridge/issues/73))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a stranded group member is keyed again ([#73](https://github.com/oxidezap/whatsapp-rust-bridge/issues/73)) ([c2e5d33](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c2e5d33e95c1922cc7762ecadeb779ee2e72a307))
+
 ## [0.15.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.14.0...v0.15.0) (2026-08-18)
 
 
