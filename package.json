@@ -1,6 +1,6 @@
 {
     "name": "@oxidezap/whatsapp-rust-bridge",
-    "version": "0.15.0",
+    "version": "0.16.0",
     "description": "A high-performance utilities for WhatsApp, powered by Rust and WebAssembly.",
     "author": "João Lucas <jlucaso@hotmail.com>",
     "license": "MIT",
