@@ -1764,9 +1764,11 @@ mod tests {
             .collect();
         assert_eq!(definitions, ["5511999", "s.whatsapp.net", kind]);
 
-        // Record: u8 flags | 8 x u16 slots | f64 timestamp | u8 id count | u16
+        // Record: u8 flags | 8 x u16 slots | f64 timestamp | u16 id count | u16
         // id length. The inline values follow the definitions in the region.
-        let id_length = u16_at(records_at + 1 + 8 * 2 + 8 + 1);
+        // The id count is two bytes, not one: a receipt aggregates every message
+        // it acknowledges and an active group clears past 255 in one go.
+        let id_length = u16_at(records_at + 1 + 8 * 2 + 8 + 2);
         assert_eq!(id_length, id.len(), "an inline length counts UTF-8 bytes");
         assert_eq!(&out[cursor..cursor + id_length], id.as_bytes());
         assert_eq!(cursor + id_length, out.len(), "the region ends with it");
