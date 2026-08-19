@@ -36,7 +36,12 @@ const messageBatch = encodeMessageWireBatch([
 const receiptBatch = encodeReceiptWireBatch([
   {
     source: { chat: jid, sender: jid, is_from_me: false, is_group: false },
-    message_ids: ["M1"],
+    // "M1x" and not "M1": the fixture has to leave the receipt segment at a
+    // length that is not a multiple of 8, which is what makes the padding
+    // assertion below meaningful. The id count moved from u8 to u16 (see
+    // wire-receipt-id-count.test.ts), so the record grew by one byte and the
+    // old id landed the segment exactly on the boundary, defeating the test.
+    message_ids: ["M1x"],
     timestamp: 1700000001,
     type: "Delivered",
     offline: false,
@@ -65,7 +70,7 @@ describe("event wire envelope", () => {
   test("each segment decodes with the codec its kind names", () => {
     const [message, receipt, ack] = decodeEventWireEnvelope(encodeEventWireEnvelope(turn));
     expect(decodeMessageWireBatch(message!.batch).infos[0]!.id).toBe("M1");
-    expect(decodeReceiptWireBatch(receipt!.batch)[0]!.message_ids).toEqual(["M1"]);
+    expect(decodeReceiptWireBatch(receipt!.batch)[0]!.message_ids).toEqual(["M1x"]);
     expect(decodeServerAckWireBatch(ack!.batch)[0]!.id).toBe("M1");
   });
 
