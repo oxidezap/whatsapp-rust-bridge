@@ -162,6 +162,42 @@ describe("message wire table", () => {
   });
 
   /**
+   * The definitions are cut with one cursor now, so an offset table that does
+   * not ascend from zero moves every value behind it rather than spoiling one
+   * definition. A batch carrying one is rejected, and rejected before the
+   * standing table is touched: it is the one failure the reader can see before
+   * installing anything, so the run it interrupts carries on intact.
+   */
+  test("a definition table that does not ascend is rejected before it is installed", () => {
+    const encoder = new MessageWireBatchEncoder();
+    const opening = encoder.encode([entry({ id: "M1" })]);
+    expect(decodeMessageWireBatch(opening).infos[0]).toMatchObject({ pushName: "Peer", id: "M1" });
+
+    const poisoned = encoder.encode([
+      entry({ id: "M2", chat: "second@g.us", sender: "second@g.us", pushName: "Second" }),
+    ]);
+    expect(header(poisoned, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    // Header, then one record, then the payload offsets, then this table.
+    const offsets = new Uint32Array(
+      poisoned.buffer,
+      poisoned.byteOffset + 24 + MESSAGE_WIRE_INFO_RECORD_WIDTH * 8 + 2 * 4,
+      3,
+    );
+    // The second definition now ends a byte before it starts.
+    offsets[2] = offsets[1]! - 1;
+    expect(() => decodeMessageWireBatch(poisoned)).toThrow(RangeError);
+
+    // The opening batch's entries are still where it put them.
+    const next = encoder.encode([entry({ id: "M3" })]);
+    expect(header(next, HEADER_SLOT_DEFINITIONS)).toBe(0);
+    expect(decodeMessageWireBatch(next).infos[0]).toMatchObject({
+      chat: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M3",
+    });
+  });
+
+  /**
    * Definitions and inline values share one string region, and the reader cuts
    * it with a cursor rather than a view per value, so a value whose UTF-8
    * width differs from its UTF-16 width moves every value behind it if the cut

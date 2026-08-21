@@ -388,6 +388,19 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   if (definitionBytes > stringBytes) {
     throw new RangeError("message wire batch string definitions run past its string region");
   }
+  // The definitions are cut with one cursor rather than a view per value, so a
+  // table that does not ascend from zero does not delimit them: it moves every
+  // value behind it, this batch's inline ids included. Checked here, before the
+  // first definition is installed, because a table the reader rejects has to
+  // leave the standing one exactly as it found it.
+  if (definitionOffsets[0] !== 0) {
+    throw new RangeError("message wire batch definition offsets must start at zero");
+  }
+  for (let i = 0; i < definitionCount; i++) {
+    if (definitionOffsets[i + 1]! < definitionOffsets[i]!) {
+      throw new RangeError("message wire batch definition offsets do not ascend");
+    }
+  }
   // Installed before the records are read, and kept even if reading them
   // fails. The writer counts a definition as held the moment it writes the
   // batch out, so rolling these back on a rejected batch is what would put the
