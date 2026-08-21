@@ -2562,6 +2562,10 @@ mod core_client {
         /// The method returns before anything is sent, so there is no call to hold.
         /// Whatever it hands back reports its own failure.
         Deferred,
+        /// The socket is needed only when a cache the bridge cannot see is
+        /// cold, and the core decides that per call. Holding it would park an
+        /// HTTP transfer that a warm cache serves with no socket at all.
+        Cached,
     }
 
     /// The core client, reachable only by saying what this call is.

@@ -72,7 +72,7 @@ client is alive and briefly unreachable. `self.client` is a `CoreClient`, not
 the client: a method gets at it through `online().await`, which holds the call
 while a reconnect is in flight, or `unwaited(Unwaited::…)`, which does not and
 names why — `Local`, `ConnectionBound`, `ThisSocket`, `Redriven`, `Opaque`,
-`Deferred`. There is no third way in, so a method added later cannot inherit
+`Deferred`, `Cached`. There is no third way in, so a method added later cannot inherit
 either behaviour by accident; picking wrong is still possible, but it is
 written at the call site rather than absent from it.
 

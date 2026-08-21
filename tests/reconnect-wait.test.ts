@@ -175,6 +175,20 @@ describe("calls a reconnect cannot help", () => {
   }, 20000);
 
   /**
+   * A media transfer routes through the core's media-conn cache, and only a
+   * cold one issues an IQ. Holding the call would park an HTTP download that a
+   * warm cache serves without touching the socket at all — so whether the
+   * socket is needed stays the core's call, made per invocation.
+   */
+  test("getMediaConn still fails at once", async () => {
+    const client = await reconnectingClient();
+
+    const call = client.getMediaConn(false);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
+  /**
    * Signed-key rotation stages its candidate before the upload precisely so a
    * refusal can be re-issued without minting a new id — the core says as much
    * on the way out ("keeping the staged key, will retry on a later connect").

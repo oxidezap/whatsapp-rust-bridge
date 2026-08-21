@@ -19,7 +19,11 @@ impl WasmWhatsAppClient {
         &self,
         force: bool,
     ) -> Result<crate::result_types::MediaConnResult, crate::errors::BridgeError> {
-        let conn = self.client.online().await.refresh_media_conn(force).await?;
+        let conn = self
+            .client
+            .unwaited(Unwaited::Cached)
+            .refresh_media_conn(force)
+            .await?;
 
         Ok(crate::result_types::MediaConnResult {
             auth: conn.auth.clone(),
@@ -52,8 +56,7 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let data = self
             .client
-            .online()
-            .await
+            .unwaited(Unwaited::Cached)
             .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
                 direct_path,
                 media_key,
@@ -148,8 +151,7 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let resp = self
             .client
-            .online()
-            .await
+            .unwaited(Unwaited::Cached)
             .upload(data.to_vec(), mt, Default::default())
             .await?;
         Ok(crate::result_types::UploadMediaResult {
@@ -275,10 +277,10 @@ impl WasmWhatsAppClient {
         let mut force_refresh = false;
 
         for attempt in 0..=1u32 {
-            // One gate for the attempt: the media-conn IQ is the part that needs
-            // the WhatsApp socket, and the HTTP calls below reuse the same
-            // reference rather than re-asking per request.
-            let client = self.client.online().await;
+            // One reference for the attempt, and no gate on it: the media-conn
+            // cache decides whether the socket is touched at all, and the HTTP
+            // calls below never touch it.
+            let client = self.client.unwaited(Unwaited::Cached);
             let media_conn = client.refresh_media_conn(force_refresh).await?;
 
             let mut retry_auth = false;
