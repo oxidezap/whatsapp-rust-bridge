@@ -20,7 +20,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .create(name, description.as_deref())
             .await?;
@@ -39,7 +39,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .get_metadata(&target)
             .await?;
@@ -58,7 +58,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .join(&target)
             .await?;
@@ -75,7 +75,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .leave(&target)
             .await
@@ -100,7 +100,7 @@ impl WasmWhatsAppClient {
         })?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .send_reaction(&target, sid, reaction.as_deref().unwrap_or(""))
             .await
@@ -134,7 +134,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .set_follower_mute(&target, muted)
             .await
@@ -152,7 +152,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .set_admin_mute(&target, muted)
             .await
@@ -168,7 +168,7 @@ impl WasmWhatsAppClient {
         let list = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .list_subscribed()
             .await?;
@@ -184,7 +184,7 @@ impl WasmWhatsAppClient {
         let meta = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .get_metadata_by_invite(invite_code)
             .await?;
@@ -204,7 +204,7 @@ impl WasmWhatsAppClient {
         let meta = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .update(&target, name.as_deref(), description.as_deref())
             .await?;
@@ -217,7 +217,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .delete(&target)
             .await
@@ -238,7 +238,7 @@ impl WasmWhatsAppClient {
         let user_jid = parse_jid(user)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .change_owner(&target, &user_jid)
             .await
@@ -256,7 +256,7 @@ impl WasmWhatsAppClient {
         let user_jid = parse_jid(user)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .demote_admin(&target, &user_jid)
             .await
@@ -275,7 +275,7 @@ impl WasmWhatsAppClient {
         let meta = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .set_picture(&target, jpeg)
             .await?;
@@ -292,7 +292,7 @@ impl WasmWhatsAppClient {
         let meta = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .remove_picture(&target)
             .await?;
@@ -309,7 +309,7 @@ impl WasmWhatsAppClient {
         let info = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .get_admin_info(&target)
             .await?;
@@ -335,7 +335,7 @@ impl WasmWhatsAppClient {
         let followers = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .get_followers(&target, count)
             .await?;
@@ -378,7 +378,7 @@ impl WasmWhatsAppClient {
         let messages = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .get_messages(target, count, before_id)
             .await?;
@@ -418,7 +418,7 @@ impl WasmWhatsAppClient {
         let duration = self
             .client
             .online()
-            .await
+            .await?
             .newsletter()
             .subscribe_live_updates(target)
             .await?;
@@ -437,7 +437,7 @@ impl WasmWhatsAppClient {
         let (target, new_content) = parse_jid_and_msg_bytes(jid, message)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .edit_message(&target, message_id, new_content)
             .await
@@ -455,7 +455,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .newsletter()
             .revoke_message(&target, message_id)
             .await

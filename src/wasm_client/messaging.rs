@@ -78,7 +78,7 @@ impl WasmWhatsAppClient {
         bytes: &[u8],
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let result = self.client.online().await.send_message(to, msg).await?;
+        let result = self.client.online().await?.send_message(to, msg).await?;
         Ok(result.message_id)
     }
 
@@ -95,7 +95,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(message_id);
         }
-        send_message_with_options(self.client.online().await, to, msg, options).await
+        send_message_with_options(self.client.online().await?, to, msg, options).await
     }
 
     /// Send an E2E message with neutral core-owned controls.
@@ -120,7 +120,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(message_id);
         }
-        send_message_with_options(self.client.online().await, to, msg, options).await
+        send_message_with_options(self.client.online().await?, to, msg, options).await
     }
 
     /// Retransmit an existing message to one requesting device.
@@ -175,7 +175,7 @@ impl WasmWhatsAppClient {
         let options = edit_options(stanza_id)?;
         self.client
             .online()
-            .await
+            .await?
             .edit_message_with_options(to, message_id, msg, options)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -202,7 +202,7 @@ impl WasmWhatsAppClient {
         };
         self.client
             .online()
-            .await
+            .await?
             .revoke_message(to, message_id, revoke_type)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -226,7 +226,7 @@ impl WasmWhatsAppClient {
         let msg_id = self
             .client
             .online()
-            .await
+            .await?
             .fetch_message_history(
                 &chat,
                 oldest_msg_id,
@@ -244,20 +244,28 @@ impl WasmWhatsAppClient {
     ///
     /// Held per chat rather than once for the batch: the core stamps the
     /// receipt's timestamp inside `mark_as_read`, so each one is sampled after
-    /// its own wait rather than at the call the host made.
+    /// its own wait rather than at the call the host made. Only the first of
+    /// them can be withdrawn — after that the call has already sent something.
     #[wasm_bindgen(js_name = readMessages)]
     pub async fn read_messages(
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let mut sent = false;
         for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_read now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-            self.client
-                .online()
-                .await
+            // Once one read receipt has gone out the call cannot be taken back, so the
+            // rest of the batch waits without being withdrawable.
+            let client = if sent {
+                self.client.online_committed().await
+            } else {
+                self.client.online().await?
+            };
+            client
                 .mark_as_read(&chat, participant.as_ref(), &id_refs)
                 .await?;
+            sent = true;
         }
 
         Ok(())
@@ -273,14 +281,21 @@ impl WasmWhatsAppClient {
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let mut sent = false;
         for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_played now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-            self.client
-                .online()
-                .await
+            // Once one played receipt has gone out the call cannot be taken back, so the
+            // rest of the batch waits without being withdrawable.
+            let client = if sent {
+                self.client.online_committed().await
+            } else {
+                self.client.online().await?
+            };
+            client
                 .mark_as_played(&chat, participant.as_ref(), &id_refs)
                 .await?;
+            sent = true;
         }
 
         Ok(())
@@ -329,7 +344,7 @@ impl WasmWhatsAppClient {
         let (result, message_secret) = self
             .client
             .online()
-            .await
+            .await?
             .polls()
             .create(&to, name, &options, selectable_count)
             .await?;
@@ -354,7 +369,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .polls()
             .vote(&chat, poll_msg_id, &creator, message_secret, &option_names)
             .await?;
@@ -371,7 +386,7 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let (msg, recipients) = status_message_input(bytes, &recipients)?;
         send_status_message_with_options(
-            self.client.online().await,
+            self.client.online().await?,
             msg,
             recipients,
             whatsapp_rust::StatusSendOptions::default(),
@@ -397,7 +412,8 @@ impl WasmWhatsAppClient {
             ..Default::default()
         };
         let (msg, recipients) = status_message_input(bytes, &recipients)?;
-        send_status_message_with_options(self.client.online().await, msg, recipients, options).await
+        send_status_message_with_options(self.client.online().await?, msg, recipients, options)
+            .await
     }
 }
 

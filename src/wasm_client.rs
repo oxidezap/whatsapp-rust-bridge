@@ -2531,6 +2531,8 @@ pub async fn create_whatsapp_client(
 /// `wasm_client/*.rs`, and `online()` or `unwaited(…)` is the only way in.
 mod core_client {
     use super::Arc;
+    use std::collections::BTreeMap;
+    use std::sync::Mutex;
 
     /// Why a call reaches the core without waiting for a reconnect in flight.
     ///
@@ -2573,11 +2575,84 @@ mod core_client {
     /// [`online`](Self::online) holds the call while a reconnect is in flight;
     /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
     /// in and no plain field, so a method added later has to pick one.
-    pub(crate) struct CoreClient(Arc<whatsapp_rust::Client>);
+    pub(crate) struct CoreClient {
+        client: Arc<whatsapp_rust::Client>,
+        parked: Parked,
+    }
+
+    /// The calls waiting at the gate, and the only way to let them go.
+    ///
+    /// A parked call leaves a sender here and holds the other end; dropping the
+    /// sender is what wakes it. Entries are keyed so a call that leaves on its
+    /// own takes its own with it.
+    #[derive(Default)]
+    struct Parked {
+        state: Mutex<ParkedState>,
+    }
+
+    #[derive(Default)]
+    struct ParkedState {
+        next: u64,
+        waiting: BTreeMap<u64, async_channel::Sender<()>>,
+    }
+
+    impl Parked {
+        fn enrol(&self) -> (u64, async_channel::Receiver<()>) {
+            let (tx, rx) = async_channel::bounded(1);
+            let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+            let id = state.next;
+            state.next += 1;
+            state.waiting.insert(id, tx);
+            (id, rx)
+        }
+
+        /// Leaves the waiting set, and says whether this call was still in it.
+        /// `release_all` takes what it counts, so a `false` is the same fact as
+        /// having been counted.
+        fn leave(&self, id: u64) -> bool {
+            self.state
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .waiting
+                .remove(&id)
+                .is_some()
+        }
+
+        fn release_all(&self) -> u32 {
+            let released = {
+                let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+                core::mem::take(&mut state.waiting)
+            };
+            let count = released.len() as u32;
+            drop(released);
+            count
+        }
+    }
+
+    /// Takes a call out of the waiting set however its park ends.
+    struct LeaveOnDrop<'a> {
+        parked: &'a Parked,
+        id: u64,
+    }
+
+    impl LeaveOnDrop<'_> {
+        fn leave(&self) -> bool {
+            self.parked.leave(self.id)
+        }
+    }
+
+    impl Drop for LeaveOnDrop<'_> {
+        fn drop(&mut self) {
+            self.parked.leave(self.id);
+        }
+    }
 
     impl CoreClient {
         pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
-            Self(client)
+            Self {
+                client,
+                parked: Parked::default(),
+            }
         }
     }
 
@@ -2595,44 +2670,99 @@ mod core_client {
         /// allocated, no boundary is crossed, and the future that does the waiting
         /// is built only once one is needed.
         ///
-        /// A parked call cannot be withdrawn. wasm-bindgen drives an exported
-        /// async method to completion whether or not JS still holds its
-        /// promise, so racing that promise against a deadline bounds the
-        /// host's waiting and not the work: the call still goes out when the
-        /// reconnect lands. A host that needs a bound on the work itself reads
-        /// `reachability()` first, or races `waitUntilReachable()`, and only
-        /// then decides to issue the call.
+        /// The error is the caller's own doing: it arrives only after
+        /// [`withdraw_parked`](Self::withdraw_parked), and it means the call
+        /// stopped here rather than reaching the core.
         #[inline]
-        pub(crate) async fn online(&self) -> &Arc<whatsapp_rust::Client> {
-            if self.0.reachability().recovers_on_its_own() {
-                self.park().await;
+        pub(crate) async fn online(
+            &self,
+        ) -> Result<&Arc<whatsapp_rust::Client>, crate::errors::BridgeError> {
+            if self.client.reachability().recovers_on_its_own() {
+                self.park().await?;
             }
-            &self.0
+            Ok(&self.client)
         }
 
         /// The client as it is right now.
         #[inline]
         pub(crate) fn unwaited(&self, _why: Unwaited) -> &Arc<whatsapp_rust::Client> {
-            &self.0
+            &self.client
         }
 
         /// What work handed to the client right now can expect.
         pub(crate) fn reachability(&self) -> crate::result_types::Reachability {
-            self.0.reachability().into()
+            self.client.reachability().into()
         }
 
         /// Wait out a reconnect, and report whatever ended the wait.
         pub(crate) async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
-            self.0.wait_until_reachable().await.into()
+            self.client.wait_until_reachable().await.into()
+        }
+
+        /// The client, once a reconnect has landed, for a call that has already
+        /// had an effect and so cannot be taken back.
+        ///
+        /// It does not enrol, so `withdraw_parked` neither counts nor releases
+        /// it — which is what keeps the count meaning what it says.
+        #[inline]
+        pub(crate) async fn online_committed(&self) -> &Arc<whatsapp_rust::Client> {
+            if self.client.reachability().recovers_on_its_own() {
+                self.wait().await;
+            }
+            &self.client
+        }
+
+        /// Let go of every call waiting at the gate right now, and say how many.
+        ///
+        /// The core delegates cancellation to the caller — drop the future, or
+        /// bound it — and a JS caller cannot do either: wasm-bindgen drives an
+        /// exported method to completion whether or not its promise is still
+        /// held. This is that drop, in the one form that crosses the boundary.
+        /// Released calls stop at the gate without reaching the core, and a call
+        /// issued afterwards parks like any other.
+        pub(crate) fn withdraw_parked(&self) -> u32 {
+            self.parked.release_all()
+        }
+
+        /// The wait with no way out of it, for [`online_committed`](Self::online_committed).
+        #[cold]
+        #[inline(never)]
+        fn wait(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+            Box::pin(async move {
+                let _ = self.client.wait_until_reachable().await;
+            })
         }
 
         /// Off the hot path in its own future, so the check above costs one branch
         /// in each of the callers rather than a wait's worth of state machine.
         #[cold]
         #[inline(never)]
-        fn park(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+        fn park(
+            &self,
+        ) -> std::pin::Pin<
+            Box<dyn core::future::Future<Output = Result<(), crate::errors::BridgeError>> + '_>,
+        > {
             Box::pin(async move {
-                let _ = self.0.wait_until_reachable().await;
+                let (id, withdrawn) = self.parked.enrol();
+                let leave = LeaveOnDrop {
+                    parked: &self.parked,
+                    id,
+                };
+                let reachable = std::pin::pin!(self.client.wait_until_reachable());
+                let withdrawn = std::pin::pin!(withdrawn.recv());
+                let ended = futures::future::select(reachable, withdrawn).await;
+                // The count is the promise: a call `withdraw_parked` counted is a
+                // call that does not reach the core, whichever of the two landed
+                // first. Both can be ready before this future is polled again —
+                // `withdraw_parked` is synchronous, so it runs between polls by
+                // construction — and leaving is what says which happened.
+                if !leave.leave() {
+                    return Err(crate::errors::BridgeError::Withdrawn);
+                }
+                match ended {
+                    futures::future::Either::Left(_) => Ok(()),
+                    futures::future::Either::Right(_) => Err(crate::errors::BridgeError::Withdrawn),
+                }
             })
         }
     }

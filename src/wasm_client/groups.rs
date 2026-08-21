@@ -21,7 +21,7 @@ impl WasmWhatsAppClient {
         let metadata = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .get_metadata(&group_jid)
             .await?;
@@ -55,7 +55,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .create_group(options)
             .await?;
@@ -75,7 +75,7 @@ impl WasmWhatsAppClient {
         let group_subject = whatsapp_rust::features::GroupSubject::new(subject)?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .set_subject(&group_jid, group_subject)
             .await
@@ -97,7 +97,7 @@ impl WasmWhatsAppClient {
             .transpose()?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             // The caller holds no description id, so the core reads the current
             // one before sending: without that token the server rejects every
@@ -117,7 +117,7 @@ impl WasmWhatsAppClient {
         let group_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .leave(&group_jid)
             .await
@@ -137,7 +137,7 @@ impl WasmWhatsAppClient {
         let parsed = parse_jid(group_jid)?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .update_member_label_with_id(&parsed, label)
             .await
@@ -156,7 +156,7 @@ impl WasmWhatsAppClient {
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
         participants_update(
-            self.client.online().await,
+            self.client.online().await?,
             group_jid,
             participant_jids,
             action,
@@ -173,7 +173,7 @@ impl WasmWhatsAppClient {
         let groups = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .get_participating()
             .await?;
@@ -194,7 +194,7 @@ impl WasmWhatsAppClient {
         let group_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .get_invite_link(&group_jid, false)
             .await
@@ -217,7 +217,7 @@ impl WasmWhatsAppClient {
             GroupSetting::Locked => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .groups()
                     .set_locked(&group_jid, value)
                     .await?
@@ -225,7 +225,7 @@ impl WasmWhatsAppClient {
             GroupSetting::Announce => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .groups()
                     .set_announce(&group_jid, value)
                     .await?
@@ -238,7 +238,7 @@ impl WasmWhatsAppClient {
                 };
                 self.client
                     .online()
-                    .await
+                    .await?
                     .groups()
                     .set_membership_approval(&group_jid, mode)
                     .await?;
@@ -258,7 +258,7 @@ impl WasmWhatsAppClient {
         let group_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .set_ephemeral(&group_jid, expiration)
             .await
@@ -275,7 +275,7 @@ impl WasmWhatsAppClient {
         let new_code = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .get_invite_link(&group_jid, true)
             .await?;
@@ -302,7 +302,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .create(options)
             .await?;
@@ -325,7 +325,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .create_subgroup(name, &participants, parent)
             .await?;
@@ -338,7 +338,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .community()
             .deactivate(target)
             .await?;
@@ -360,7 +360,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .link_subgroups(parent, &subgroups)
             .await?;
@@ -386,7 +386,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .unlink_subgroups(parent, &subgroups, remove_orphan_members)
             .await?;
@@ -406,7 +406,7 @@ impl WasmWhatsAppClient {
         let groups = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .get_subgroups(&parent)
             .await?;
@@ -432,7 +432,7 @@ impl WasmWhatsAppClient {
         let communities = self
             .client
             .online()
-            .await
+            .await?
             .community()
             .get_participating()
             .await?;
@@ -457,7 +457,7 @@ impl WasmWhatsAppClient {
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
         participants_update(
-            self.client.online().await,
+            self.client.online().await?,
             group_jid,
             participant_jids,
             action,
@@ -477,7 +477,7 @@ impl WasmWhatsAppClient {
         let jid = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .join_with_invite_code(code)
             .await?;
@@ -498,7 +498,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .join_with_invite_v4(&group, code, expiration as i64, &admin)
             .await?;
@@ -517,7 +517,7 @@ impl WasmWhatsAppClient {
         let responses = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .revoke_request_code(&group, &[invited])
             .await?;
@@ -534,7 +534,7 @@ impl WasmWhatsAppClient {
         let metadata = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .get_invite_info(code)
             .await?;
@@ -551,7 +551,7 @@ impl WasmWhatsAppClient {
         let list = self
             .client
             .online()
-            .await
+            .await?
             .groups()
             .get_membership_requests(&group_jid)
             .await?;
@@ -584,7 +584,7 @@ impl WasmWhatsAppClient {
             GroupRequestAction::Approve => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .groups()
                     .approve_membership_requests(&group_jid, &participant_jids)
                     .await?
@@ -592,7 +592,7 @@ impl WasmWhatsAppClient {
             GroupRequestAction::Reject => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .groups()
                     .reject_membership_requests(&group_jid, &participant_jids)
                     .await?
@@ -619,7 +619,7 @@ impl WasmWhatsAppClient {
         };
         self.client
             .online()
-            .await
+            .await?
             .groups()
             .set_member_add_mode(&group_jid, add_mode)
             .await

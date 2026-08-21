@@ -119,7 +119,7 @@ impl WasmWhatsAppClient {
         let payload = self
             .client
             .online()
-            .await
+            .await?
             .mex()
             .fetch_reachout_timelock()
             .await?;
@@ -266,6 +266,25 @@ impl WasmWhatsAppClient {
         self.client.wait_until_reachable().await
     }
 
+    /// Let go of every call waiting out a reconnect right now, and return how
+    /// many were let go.
+    ///
+    /// A held call cannot be taken back by dropping its promise: wasm-bindgen
+    /// drives the method to completion either way, so racing it against a
+    /// deadline bounds the waiting and not the call — it still goes out when
+    /// the reconnect lands, and asking again sends the same thing twice. This
+    /// is how giving up is said instead: each released call rejects with
+    /// `kind: 'withdrawn'` without reaching the core, so nothing it was about
+    /// to do happened and re-issuing it is not a repeat.
+    ///
+    /// Releases what is waiting at the moment of the call and nothing else. It
+    /// is not a mode — the next call waits like any other — and it does not
+    /// touch the calls that never wait.
+    #[wasm_bindgen(js_name = withdrawParkedCalls)]
+    pub fn withdraw_parked_calls(&self) -> u32 {
+        self.client.withdraw_parked()
+    }
+
     /// Check if the client is logged in (paired).
     #[wasm_bindgen(js_name = isLoggedIn)]
     pub fn is_logged_in(&self) -> bool {
@@ -339,7 +358,7 @@ impl WasmWhatsAppClient {
         };
         self.client
             .online()
-            .await
+            .await?
             .clean_dirty_bits(bit)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -353,7 +372,7 @@ impl WasmWhatsAppClient {
     pub async fn get_bot_list(
         &self,
     ) -> Result<crate::result_types::BotListResult, crate::errors::BridgeError> {
-        let list = self.client.online().await.bots().list().await?;
+        let list = self.client.online().await?.bots().list().await?;
         Ok(bot_list_to_result(&list))
     }
 
@@ -365,7 +384,7 @@ impl WasmWhatsAppClient {
         let capping = self
             .client
             .online()
-            .await
+            .await?
             .mex()
             .fetch_new_chat_message_capping_info()
             .await?;

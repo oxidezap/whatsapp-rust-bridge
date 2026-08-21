@@ -18,14 +18,14 @@ impl WasmWhatsAppClient {
         if pin {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .pin_chat(&chat_jid)
                 .await
         } else {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .unpin_chat(&chat_jid)
                 .await
@@ -53,7 +53,7 @@ impl WasmWhatsAppClient {
             Some(until) => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .chat_actions()
                     .mute_chat_until(&chat_jid, until)
                     .await
@@ -61,7 +61,7 @@ impl WasmWhatsAppClient {
             None => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .chat_actions()
                     .unmute_chat(&chat_jid)
                     .await
@@ -82,14 +82,14 @@ impl WasmWhatsAppClient {
         if archive {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .archive_chat(&chat_jid, None)
                 .await
         } else {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .unarchive_chat(&chat_jid, None)
                 .await
@@ -111,7 +111,7 @@ impl WasmWhatsAppClient {
         let contact_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .save_contact(
                 &contact_jid,
@@ -136,14 +136,14 @@ impl WasmWhatsAppClient {
         if star {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .star_message(&chat_jid, None, message_id, true)
                 .await
         } else {
             self.client
                 .online()
-                .await
+                .await?
                 .chat_actions()
                 .unstar_message(&chat_jid, None, message_id, true)
                 .await
@@ -177,7 +177,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .send_reaction(chat, target_key, emoji.as_deref().unwrap_or(""))
             .await
             .map_err(crate::errors::BridgeError::from)?;
@@ -220,7 +220,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .comments()
             .send_message(chat, key, body)
             .await
@@ -239,7 +239,7 @@ impl WasmWhatsAppClient {
         let chat_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .mark_chat_as_read(&chat_jid, read, None)
             .await
@@ -252,7 +252,7 @@ impl WasmWhatsAppClient {
         let chat_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .delete_chat(&chat_jid, true, None)
             .await
@@ -274,7 +274,7 @@ impl WasmWhatsAppClient {
         let chat_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .clear_chat(&chat_jid, delete_starred, delete_media, None)
             .await
@@ -292,7 +292,7 @@ impl WasmWhatsAppClient {
         let chat_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .delete_message_for_me(&chat_jid, None, message_id, from_me, true, None)
             .await
@@ -309,7 +309,7 @@ impl WasmWhatsAppClient {
         let user_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .set_user_status_mute(&user_jid, muted)
             .await
@@ -327,7 +327,7 @@ impl WasmWhatsAppClient {
         let contact_jid = parse_jid(jid)?;
         self.client
             .online()
-            .await
+            .await?
             .chat_actions()
             .remove_contact(&contact_jid)
             .await
@@ -348,7 +348,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .create_label(label_id, name, color)
             .await
@@ -360,7 +360,7 @@ impl WasmWhatsAppClient {
     pub async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .delete_label(label_id)
             .await
@@ -377,7 +377,7 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .add_chat_label(label_id, &chat)
             .await
@@ -394,7 +394,7 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .remove_chat_label(label_id, &chat)
             .await
@@ -415,7 +415,7 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .add_message_label(label_id, &chat, message_id)
             .await
@@ -433,7 +433,7 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         self.client
             .online()
-            .await
+            .await?
             .labels()
             .remove_message_label(label_id, &chat, message_id)
             .await
@@ -458,7 +458,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .quick_replies()
             .set_quick_reply(id, shortcut, message, keywords, count)
             .await
@@ -470,7 +470,7 @@ impl WasmWhatsAppClient {
     pub async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .quick_replies()
             .delete_quick_reply(id)
             .await
@@ -491,7 +491,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .app_state_settings()
             .set_link_previews_disabled(disabled)
             .await

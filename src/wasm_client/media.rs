@@ -22,7 +22,7 @@ impl WasmWhatsAppClient {
         // `force` is the one case where the bridge knows: it bypasses the
         // cache, so the socket is certain to be needed.
         let client = if force {
-            self.client.online().await
+            self.client.online().await?
         } else {
             self.client.unwaited(Unwaited::Cached)
         };
@@ -282,9 +282,11 @@ impl WasmWhatsAppClient {
         for attempt in 0..=1u32 {
             // The cache decides whether the socket is touched at all, and the
             // HTTP calls below never touch it — except on the retry, where
-            // `force_refresh` bypasses the cache and the IQ is certain.
+            // `force_refresh` bypasses the cache and the IQ is certain. Still
+            // withdrawable there: the retry is reached only after the CDN
+            // refused an attempt, so nothing that attempt did stands.
             let client = if force_refresh {
-                self.client.online().await
+                self.client.online().await?
             } else {
                 self.client.unwaited(Unwaited::Cached)
             };
@@ -417,7 +419,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .media_reupload()
             .request(&req)
             .await?;

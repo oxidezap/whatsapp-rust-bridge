@@ -21,7 +21,7 @@ impl WasmWhatsAppClient {
         let profile = self
             .client
             .online()
-            .await
+            .await?
             .get_business_profile(&target_jid)
             .await?;
         Ok(profile.map(|p| business_profile_to_result(&p)))
@@ -66,7 +66,7 @@ impl WasmWhatsAppClient {
         let catalog = self
             .client
             .online()
-            .await
+            .await?
             .business()
             .get_catalog(&target, &opts)
             .await?;
@@ -111,7 +111,7 @@ impl WasmWhatsAppClient {
         let collections = self
             .client
             .online()
-            .await
+            .await?
             .business()
             .get_collections(&target, &opts)
             .await?;
@@ -148,7 +148,7 @@ impl WasmWhatsAppClient {
         let order = self
             .client
             .online()
-            .await
+            .await?
             .business()
             .get_order(&target, order_id, token)
             .await?;
@@ -254,7 +254,7 @@ impl WasmWhatsAppClient {
         };
         self.client
             .online()
-            .await
+            .await?
             .business()
             .update_profile(&delta)
             .await
@@ -282,7 +282,7 @@ impl WasmWhatsAppClient {
         })?;
         self.client
             .online()
-            .await
+            .await?
             .business()
             .set_cover_photo(wacore::iq::business::CoverPhotoUpload {
                 id: upload.id,
@@ -301,7 +301,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .business()
             .remove_cover_photo(id)
             .await
