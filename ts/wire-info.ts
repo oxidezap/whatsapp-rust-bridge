@@ -24,6 +24,8 @@
  * it is counted in.
  */
 const utf8Decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+/** Stand-in so a `StringRegion` holds a `Uint8Array` before its first batch. */
+const EMPTY_BYTES = new Uint8Array(0);
 const utf8Encoder = new TextEncoder();
 
 // ---------------------------------------------------------------------------
@@ -184,6 +186,151 @@ export interface MessageWireBatchView {
 }
 
 /**
+ * One decode of a batch's string region, cut into values by a cursor.
+ *
+ * Every packed transport writes the region as its values in the order they are
+ * read, so cutting it needs a cursor and nothing else: no value gets a typed
+ * array view of its own, and a batch pays one decode instead of one per value.
+ *
+ * The walk is exact because the region is valid UTF-8 (every value a writer
+ * packs is a Rust `&str`) and affordable because it advances with the cursor,
+ * so a batch walks its region once however many values it holds.
+ */
+class StringRegion {
+  /** One decode of the whole region, cut per value by `take`. */
+  private region = "";
+  /** Byte offset of the next unread value inside the region. */
+  private cursor = 0;
+  /** UTF-16 index into `region` matching `cursor`; equal while ASCII. */
+  private units = 0;
+  private isAscii = true;
+  /** The batch, for the values `read` leaves for `take` to decode one by one. */
+  private bytes: Uint8Array = EMPTY_BYTES;
+  /** Byte offset of the region inside `bytes`. */
+  private at = 0;
+  /** Bytes the region spans, which is what every value has to fit inside. */
+  private length = 0;
+  /** Whether the region was decoded whole, or is cut value by value. */
+  private whole = false;
+
+  /**
+   * Prepare `length` bytes of `bytes` at `at`, which `values` values will be
+   * cut from, and record whether the decoded region is ASCII: the one case
+   * where a byte length off the wire also indexes the decoded string, and so
+   * the case `take` can cut with nothing but `substring`.
+   *
+   * A region holding one short value is left undecoded: one value is one
+   * decode whichever way it is read, and cutting it back out of a decoded
+   * region only adds to that. From two values up, or from a region long
+   * enough that decoding it whole beats a decode per value, the one decode
+   * pays for itself and no value needs a view of its own. Past
+   * `REGION_SHARED_MAX_BYTES` it stops paying for itself in memory, whatever
+   * it saves in time.
+   */
+  read(bytes: Uint8Array, at: number, length: number, values: number): void {
+    this.cursor = 0;
+    this.units = 0;
+    this.region = "";
+    this.isAscii = true;
+    this.bytes = bytes;
+    this.at = at;
+    this.length = length;
+    this.whole =
+      length > 0 && length <= REGION_SHARED_MAX_BYTES && (values > 1 || length >= TINY_STRING_LIMIT);
+    if (!this.whole) return;
+
+    if (length >= TINY_STRING_LIMIT) {
+      this.region = utf8Decoder.decode(bytes.subarray(at, at + length));
+      // Every code point outside ASCII spends more UTF-8 bytes than UTF-16
+      // units, so equal counts is exactly an ASCII region — no second pass.
+      this.isAscii = this.region.length === length;
+      return;
+    }
+
+    // Short region: read four bytes at a time and skip both the decoder's
+    // constant cost and the subarray allocation. Those reads are latin1, which
+    // is UTF-8 only while no byte has its high bit set — so the first one that
+    // does abandons the attempt for the decoder, rather than finishing a string
+    // that would have to be thrown away.
+    let out = "";
+    let p = at;
+    const end = at + length;
+    const wordEnd = at + ((length / 4) | 0) * 4;
+    while (p < wordEnd) {
+      const first = bytes[p]!;
+      const second = bytes[p + 1]!;
+      const third = bytes[p + 2]!;
+      const fourth = bytes[p + 3]!;
+      if (((first | second | third | fourth) & 0x80) !== 0) break;
+      out += String.fromCharCode(first, second, third, fourth);
+      p += 4;
+    }
+    if (p === wordEnd) {
+      while (p < end) {
+        const byte = bytes[p]!;
+        if (byte >= 0x80) break;
+        out += String.fromCharCode(byte);
+        p++;
+      }
+    }
+    if (p === end) {
+      this.region = out;
+      return;
+    }
+    this.isAscii = false;
+    this.region = utf8Decoder.decode(bytes.subarray(at, at + length));
+  }
+
+  /**
+   * Take the next `length` bytes of the region as one value.
+   *
+   * A length the region cannot hold frames nothing, so it is reported rather
+   * than clipped: a value cut short is one a caller cannot tell from a value
+   * the writer sent short. Both of the cuts below would clip — `subarray` and
+   * `substring` each clamp to what they have — so the check is here rather
+   * than left to them. Records carry these lengths as `f64`, which is why a
+   * whole number is part of what makes one framable at all.
+   */
+  take(length: number): string {
+    if (length === 0) return "";
+    if (!Number.isInteger(length) || length < 0 || this.cursor + length > this.length) {
+      throw new RangeError("packed batch value runs past its string region");
+    }
+    const start = this.cursor;
+    this.cursor += length;
+    if (!this.whole) {
+      return utf8Decoder.decode(this.bytes.subarray(this.at + start, this.at + this.cursor));
+    }
+    if (this.isAscii) return this.region.substring(start, this.cursor);
+
+    const region = this.region;
+    const from = this.units;
+    let at = from;
+    let consumed = 0;
+    while (consumed < length && at < region.length) {
+      const unit = region.charCodeAt(at);
+      if (unit < 0x80) {
+        consumed += 1;
+        at += 1;
+      } else if (unit < 0x800) {
+        consumed += 2;
+        at += 1;
+      } else if (unit >= 0xd800 && unit < 0xdc00) {
+        // A high surrogate is always paired here: `TextDecoder` substitutes
+        // U+FFFD for anything that has no code point of its own.
+        consumed += 4;
+        at += 2;
+      } else {
+        consumed += 3;
+        at += 1;
+      }
+    }
+    this.units = at;
+    return region.substring(from, at);
+  }
+}
+
+/**
  * Typed-array views need their byte offset aligned to the element size. The
  * bridge always crosses a freshly allocated `Uint8Array` (byteOffset 0), so the
  * layout is aligned by construction; a caller-built batch over a subarray may
@@ -245,36 +392,69 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   cursor += definitionOffsetBytes;
   const messageData = buffer.subarray(cursor, cursor + messageBytes);
   cursor += messageBytes;
-  const stringData = buffer.subarray(cursor, cursor + stringBytes);
+  const stringsAt = cursor;
 
-  // Clearing before the definitions land is the whole of the protocol: the
-  // batch that rolls the table is also the batch that rebuilds it.
-  if ((batchFlags & PACKED_FLAG_RESET_CACHES) !== 0) messageTable.length = 0;
+  // This table delimits the definitions, and the inline values start where it
+  // ends, so a table that does not ascend from zero frames nothing: its
+  // definitions overlap or run backwards, and the inline cursor starts
+  // somewhere the writer did not put it.
+  //
+  // Every check that can reject the batch runs before anything the standing
+  // table can see, the reset included, so a batch the reader turns away leaves
+  // that table exactly as it found it. Only a failure past this point, where a
+  // record indexes or measures something the header did not frame, can leave
+  // the table changed.
   const definitionBytes = definitionOffsets[definitionCount]!;
   if (definitionBytes > stringBytes) {
     throw new RangeError("message wire batch string definitions run past its string region");
   }
+  if (definitionOffsets[0] !== 0) {
+    throw new RangeError("message wire batch definition offsets must start at zero");
+  }
+  for (let i = 0; i < definitionCount; i++) {
+    if (definitionOffsets[i + 1]! < definitionOffsets[i]!) {
+      throw new RangeError("message wire batch definition offsets do not ascend");
+    }
+  }
+
+  // Clearing before the definitions land is the whole of the protocol: the
+  // batch that rolls the table is also the batch that rebuilds it.
+  if ((batchFlags & PACKED_FLAG_RESET_CACHES) !== 0) messageTable.length = 0;
   // Installed before the records are read, and kept even if reading them
   // fails. The writer counts a definition as held the moment it writes the
   // batch out, so rolling these back on a rejected batch is what would put the
   // two sides out of step: a later batch referencing one of these slots would
   // land past the end of a rolled-back table, or on whatever took its index.
   // Nothing wrong is read either way — a batch that throws returns nothing.
+  //
+  // Each is decoded on its own, unlike the inline values below. A definition
+  // outlives its batch, and a substring is backed by the string it was cut
+  // from on the engines this package runs on, so a definition cut out of a
+  // decoded region would hold that whole region (a peer-sized inline id and
+  // all) for as long as the table stood. A definition is also the rare value:
+  // the table exists so that one is written once and referenced after.
   for (let i = 0; i < definitionCount; i++) {
-    messageTable.push(utf8Decoder.decode(stringData.subarray(definitionOffsets[i]!, definitionOffsets[i + 1]!)));
+    messageTable.push(
+      utf8Decoder.decode(
+        buffer.subarray(stringsAt + definitionOffsets[i]!, stringsAt + definitionOffsets[i + 1]!),
+      ),
+    );
   }
 
   // Inline values are read in record order, so their offsets are a cursor
-  // rather than a table: only their byte length rides in the record.
+  // rather than a table: only their byte length rides in the record. They are
+  // the batch's own, and every record carries at least an id, so this is the
+  // region worth cutting with one decode (see `StringRegion`).
+  const strings = new StringRegion();
+  strings.read(buffer, stringsAt + definitionBytes, stringBytes - definitionBytes, messageCount);
   let inlineAt = definitionBytes;
   const inlineValue = (length: number): string => {
     const end = inlineAt + length;
     if (end > stringBytes) {
       throw new RangeError("message wire batch inline value runs past its string region");
     }
-    const value = utf8Decoder.decode(stringData.subarray(inlineAt, end));
     inlineAt = end;
-    return value;
+    return strings.take(length);
   };
   const inlineOptional = (raw: number): string | undefined =>
     raw === 0 ? undefined : inlineValue(raw - 1);
@@ -529,6 +709,21 @@ const PACKED_HEADER_BYTES = 20;
  * ASCII: the byte-at-a-time read is latin1, which is the same thing only there. */
 const TINY_STRING_LIMIT = 100;
 
+/**
+ * Region bytes above which values are decoded one by one instead of cut out of
+ * one decoded region.
+ *
+ * A substring is backed by the string it was cut from on the engines this
+ * package runs on, so every value cut from a region holds that whole region
+ * for as long as a consumer keeps it. Sharing is the cheaper side of that
+ * trade while the region is the size a batch of ids actually is: a host that
+ * keeps all of them pays for one backing string instead of one per value. It
+ * is the wrong side when a single peer-sized value lands in the same region,
+ * because then one ordinary id a host filed away pins the outlier with it.
+ * Above this the region is not shared and no value can pin more than itself.
+ */
+const REGION_SHARED_MAX_BYTES = 4 * 1024;
+
 /** Ceiling of the 16-bit id count a receipt record carries. */
 const MAX_RECEIPT_MESSAGE_IDS = 0xffff;
 
@@ -553,19 +748,11 @@ class PackedBatchReader {
   private readonly strings: string[] = [];
   private readonly jids: WireJid[] = [];
   private view!: DataView;
-  private bytes!: Uint8Array;
   private cursor = 0;
-  /** Byte offset of the next unread value inside the string region. */
-  private inlineCursor = 0;
-  /** One decode of the whole string region, cut per value by `take`. */
-  private region = "";
-  /** UTF-16 index into `region` matching `inlineCursor`; equal while ASCII. */
-  private regionUnits = 0;
-  private regionIsAscii = true;
+  private readonly stringRegion = new StringRegion();
 
   /** Read the header, apply cache definitions and position at the records. */
   begin(buffer: Uint8Array): number {
-    this.bytes = buffer;
     this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     if (buffer.byteLength < PACKED_HEADER_BYTES) {
       throw new RangeError("packed batch is shorter than its header");
@@ -589,12 +776,14 @@ class PackedBatchReader {
     const stringsAt = buffer.byteLength - stringBytes;
     if (stringsAt < recordsAt) throw new RangeError("packed batch regions overlap");
 
-    this.readRegion(stringsAt, stringBytes);
+    // A record carries at least its own inline values, so the batch cuts at
+    // least one per record on top of the definitions.
+    this.stringRegion.read(buffer, stringsAt, stringBytes, newStringCount + recordCount);
 
     for (let i = 0; i < newStringCount; i++) {
       const at = newStringsAt + i * 4;
       const slot = this.view.getUint16(at, true);
-      this.strings[slot] = this.take(this.view.getUint16(at + 2, true));
+      this.strings[slot] = this.stringRegion.take(this.view.getUint16(at + 2, true));
     }
     for (let i = 0; i < newJidCount; i++) {
       const at = newJidsAt + i * 11;
@@ -617,94 +806,6 @@ class PackedBatchReader {
     return recordCount;
   }
 
-  /**
-   * Take the next `length` bytes of the string region as one value.
-   *
-   * The walk is affordable because values are taken in the order the region was
-   * written, and exact because that region is valid UTF-8 — every value the
-   * writer packs is a Rust `&str`.
-   */
-  private take(length: number): string {
-    const start = this.inlineCursor;
-    this.inlineCursor += length;
-    if (this.regionIsAscii) return this.region.substring(start, this.inlineCursor);
-
-    const region = this.region;
-    const from = this.regionUnits;
-    let at = from;
-    let consumed = 0;
-    while (consumed < length && at < region.length) {
-      const unit = region.charCodeAt(at);
-      if (unit < 0x80) {
-        consumed += 1;
-        at += 1;
-      } else if (unit < 0x800) {
-        consumed += 2;
-        at += 1;
-      } else if (unit >= 0xd800 && unit < 0xdc00) {
-        // A high surrogate is always paired here: `TextDecoder` substitutes
-        // U+FFFD for anything that has no code point of its own.
-        consumed += 4;
-        at += 2;
-      } else {
-        consumed += 3;
-        at += 1;
-      }
-    }
-    this.regionUnits = at;
-    return region.substring(from, at);
-  }
-
-  /**
-   * Decode the batch's string region once, and record whether it is ASCII —
-   * the one case where a byte length off the wire also indexes the decoded
-   * string, and so the case `take` can cut with nothing but `substring`.
-   */
-  private readRegion(at: number, length: number): void {
-    this.inlineCursor = 0;
-    this.regionUnits = 0;
-    this.region = "";
-    this.regionIsAscii = true;
-    if (length === 0) return;
-
-    if (length >= TINY_STRING_LIMIT) {
-      this.region = utf8Decoder.decode(this.bytes.subarray(at, at + length));
-      // Every code point outside ASCII spends more UTF-8 bytes than UTF-16
-      // units, so equal counts is exactly an ASCII region — no second pass.
-      this.regionIsAscii = this.region.length === length;
-      return;
-    }
-
-    // Short region: read four bytes at a time and skip both the decoder's
-    // constant cost and the subarray allocation. Those reads are latin1, which
-    // is UTF-8 only while no byte has its high bit set — so the first one that
-    // does abandons the attempt for the decoder, rather than finishing a string
-    // that would have to be thrown away.
-    let out = "";
-    let p = at;
-    const wordEnd = at + ((length / 4) | 0) * 4;
-    while (p < wordEnd) {
-      const word = this.view.getUint32(p, true);
-      if ((word & 0x80808080) !== 0) break;
-      out += String.fromCharCode(word & 255, (word >> 8) & 255, (word >> 16) & 255, word >>> 24);
-      p += 4;
-    }
-    if (p === wordEnd) {
-      while (p < at + length) {
-        const byte = this.view.getUint8(p);
-        if (byte >= 0x80) break;
-        out += String.fromCharCode(byte);
-        p++;
-      }
-    }
-    if (p === at + length) {
-      this.region = out;
-      return;
-    }
-    this.regionIsAscii = false;
-    this.region = utf8Decoder.decode(this.bytes.subarray(at, at + length));
-  }
-
   u8(): number {
     return this.view.getUint8(this.cursor++);
   }
@@ -719,7 +820,7 @@ class PackedBatchReader {
   inline(): string {
     const length = this.view.getUint16(this.cursor, true);
     this.cursor += 2;
-    return this.take(length);
+    return this.stringRegion.take(length);
   }
 
   /** A count written with the same 16-bit little-endian shape as a slot. */

@@ -648,7 +648,7 @@ const EVENT_CHANNEL_CAPACITY: usize = 16_384;
 /// Upper bound for object trees handed across the JS/WASM boundary at once.
 /// This is a host-boundary resource limit shared by every batched event path,
 /// not a WhatsApp protocol rule.
-const EVENT_BATCH_CAPACITY: usize = 32;
+pub(crate) const EVENT_BATCH_CAPACITY: usize = 32;
 /// Whether an isolated live message spends one cooperative I/O turn trying to
 /// collect an adjacent frame before dispatching. Measured: disabling it drops
 /// coalescing to 1.00 messages per batch and the extra batches cost more than

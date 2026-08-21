@@ -8,6 +8,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
+use crate::wasm_client::EVENT_BATCH_CAPACITY;
 use wasm_bindgen::JsValue;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::types::events::Event;
@@ -67,6 +68,17 @@ const MESSAGE_WIRE_RETAINED_PAYLOAD_BYTES: usize = 4 * crate::WASM_PAGE_BYTES;
 /// Metadata capacity the reused string table keeps. A full batch of addresses,
 /// ids and push names fits well inside it; the cap is what an outlier hits.
 const WIRE_STRING_TABLE_RETAINED_BYTES: usize = 16 * 1024;
+/// Capacity the string table's byte buffers and the encoder's payload buffer
+/// start with. The encoder is built on the first batch a client receives and
+/// then reused for the session, so the ladder from zero is walked once and
+/// bought back on every batch after it; a client that never receives a message
+/// never builds one.
+const WIRE_STRING_TABLE_INITIAL_BYTES: usize = 1024;
+const MESSAGE_WIRE_INITIAL_PAYLOAD_BYTES: usize = 8 * 1024;
+/// Definitions a first batch is sized for. A batch defines at most one address,
+/// push name and edit attribute per message, and only the ones the host does
+/// not already hold.
+const WIRE_STRING_TABLE_INITIAL_DEFINITIONS: usize = 64;
 /// Bytes the message table's cross-batch cache may hold before it rolls. A push
 /// name comes from a peer, so without this one oversized value would sit in the
 /// table — and in the host's mirror of it — until the entry ceiling was reached.
@@ -149,10 +161,10 @@ impl Default for WireStringTable {
             cache: HashMap::new(),
             held: 0,
             cache_bytes: 0,
-            definitions: Vec::new(),
-            definition_offsets: Vec::new(),
+            definitions: Vec::with_capacity(WIRE_STRING_TABLE_INITIAL_BYTES),
+            definition_offsets: Vec::with_capacity(WIRE_STRING_TABLE_INITIAL_DEFINITIONS + 1),
             defined: 0,
-            inline: Vec::new(),
+            inline: Vec::with_capacity(WIRE_STRING_TABLE_INITIAL_BYTES),
             scratch: String::new(),
             flags: PACKED_FLAG_RESET_CACHES,
         }
@@ -447,7 +459,6 @@ fn write_offsets(out: &mut Vec<u8>, offsets: &[u32]) {
 /// numeric records plus a string table that outlives the batch: an address or a
 /// push name is decoded once on the host and referenced by index for as long as
 /// the table stands, instead of being materialized again every batch.
-#[derive(Default)]
 pub(crate) struct MessageWireBatch {
     /// Concatenated `proto.Message` payloads in event order.
     message_data: Vec<u8>,
@@ -459,6 +470,20 @@ pub(crate) struct MessageWireBatch {
     /// a table index (optional slots are index + 1, 0 = absent); an inline slot
     /// holds its value's byte length (optional slots are length + 1).
     info_records: Vec<f64>,
+}
+
+impl Default for MessageWireBatch {
+    /// Sized for a full batch up front. Every buffer here outlives the batch by
+    /// design, so the capacity a first batch would grow into one rung at a time
+    /// is capacity every later batch reuses.
+    fn default() -> Self {
+        Self {
+            message_data: Vec::with_capacity(MESSAGE_WIRE_INITIAL_PAYLOAD_BYTES),
+            message_offsets: Vec::with_capacity(EVENT_BATCH_CAPACITY + 1),
+            strings: WireStringTable::default(),
+            info_records: Vec::with_capacity(EVENT_BATCH_CAPACITY * MESSAGE_WIRE_INFO_RECORD_WIDTH),
+        }
+    }
 }
 
 impl MessageWireBatch {
