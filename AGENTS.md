@@ -54,7 +54,7 @@ The kind is a contract, not a label. All eleven:
 | `server` | a typed `<error>` stanza, with `serverCode` / `serverText`, plus `errorType` and `backoffSeconds` when the stanza carried them |
 | `timeout` | no response inside the window |
 | `not-connected` | no socket, or not logged in |
-| `withdrawn` | the caller let go of a call that was waiting out a reconnect. It never reached the core, so nothing was sent |
+| `withdrawn` | the caller let go of a call that was waiting out a reconnect. It never reached the core, so nothing it was about to do happened |
 | `disconnected` | the server ended the stream mid-flight |
 | `protocol-violation` | a remote peer sent something unparseable |
 | `crypto` | a key, agreement or AEAD step failed |
@@ -95,11 +95,12 @@ same thing twice. Withdrawing first is what makes asking again safe. It
 releases what is waiting and nothing else: it is not a mode, and the calls
 reaching the core through `unwaited` never wait, so it cannot touch them.
 
-A call that sends more than once — `readMessages` and `markPlayed` walk a batch
-— can only be withdrawn before its first send. After that it waits through
-`online_committed()`, which does not enrol and so is neither counted nor
-released, because a call that has already sent something cannot be taken back
-and saying otherwise would make the count wrong.
+A call that can already have had an effect is the exception. `readMessages` and
+`markPlayed` walk a batch, so after their first receipt goes out they wait
+through `online_committed()`, which does not enrol and so is neither counted nor
+released. What decides this is effect, not traffic: `uploadEncryptedMediaStream`
+reaches its second gate only after an attempt the CDN refused, so nothing it did
+stands and it stays withdrawable — which is where a host most wants to give up.
 
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 

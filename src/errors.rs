@@ -84,8 +84,8 @@ pub enum BridgeError {
     NotConnected,
 
     /// The caller stopped waiting for a reconnect, so the call was let go at
-    /// the gate and never reached the core. Nothing was sent, which is the
-    /// part that matters: re-issuing it repeats a request that was never made.
+    /// the gate and never reached the core. Nothing it was about to do
+    /// happened, which is the part that matters: re-issuing it is not a repeat.
     #[error("withdrawn while waiting for a reconnect")]
     Withdrawn,
 

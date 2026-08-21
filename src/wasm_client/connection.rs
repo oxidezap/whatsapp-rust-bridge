@@ -274,8 +274,8 @@ impl WasmWhatsAppClient {
     /// deadline bounds the waiting and not the call — it still goes out when
     /// the reconnect lands, and asking again sends the same thing twice. This
     /// is how giving up is said instead: each released call rejects with
-    /// `kind: 'withdrawn'` without reaching the core, so nothing was sent and
-    /// re-issuing repeats a request that was never made.
+    /// `kind: 'withdrawn'` without reaching the core, so nothing it was about
+    /// to do happened and re-issuing it is not a repeat.
     ///
     /// Releases what is waiting at the moment of the call and nothing else. It
     /// is not a mode — the next call waits like any other — and it does not

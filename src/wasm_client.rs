@@ -2700,7 +2700,7 @@ mod core_client {
         }
 
         /// The client, once a reconnect has landed, for a call that has already
-        /// sent something and so cannot be taken back.
+        /// had an effect and so cannot be taken back.
         ///
         /// It does not enrol, so `withdraw_parked` neither counts nor releases
         /// it — which is what keeps the count meaning what it says.
