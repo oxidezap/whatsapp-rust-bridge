@@ -17,6 +17,7 @@
 import { describe, test, expect, beforeAll, afterEach } from "bun:test";
 import { initWasmEngine, createWhatsAppClient } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
+import { aCallThatDoesNotPark, watch } from "./parked-calls.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 
 beforeAll(() => {
@@ -33,9 +34,6 @@ const GROUP = "120363000000000000@g.us";
  * into the other.
  */
 const FAILS_FAST_BUDGET = 5000;
-
-/** How long a call that waits is watched before concluding it is holding. */
-const HOLDS_BUDGET = 500;
 
 /** Never completes a connection, so `run()` stays in its reconnect backoff. */
 function failingTransport() {
@@ -105,12 +103,13 @@ describe("the reconnect window", () => {
     const client = await reconnectingClient();
     expect(client.reachability()).toBe("reconnecting");
 
-    const call = client.fetchPrivacySettings();
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(client.fetchPrivacySettings());
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
 
     // Release it: a disconnect is terminal, which is what ends the wait.
     await client.disconnect();
-    expect((await rejection(call)).kind).toBe("not-connected");
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
   }, 20000);
 
   test("a finished client is reported, not waited on", async () => {
@@ -139,21 +138,23 @@ describe("the reconnect window", () => {
     // discards it nor re-issues it. A replacement socket answers it the same.
     const client = await reconnectingClient();
 
-    const call = client.newsletterSubscribeLiveUpdates("123456@newsletter");
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(client.newsletterSubscribeLiveUpdates("123456@newsletter"));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
 
     await client.disconnect();
-    expect((await rejection(call)).kind).toBe("not-connected");
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
   }, 20000);
 
   test("waitUntilReachable reports what ended the wait", async () => {
     const client = await reconnectingClient();
 
-    const waiting = client.waitUntilReachable();
-    expect(await settlesWithin(waiting, HOLDS_BUDGET)).toBe(false);
+    const waiting = watch(client.waitUntilReachable());
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(waiting.settled()).toBe(false);
 
     await client.disconnect();
-    expect(await waiting).toBe("finished");
+    expect(await waiting.promise).toBe("finished");
   }, 20000);
 });
 
@@ -213,7 +214,7 @@ describe("a parked call is not cancellable", () => {
     );
 
     // What a host's own deadline would do: stop awaiting, and move on.
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    await aCallThatDoesNotPark(client, CHAT);
     expect(settled).toBeNull();
 
     // The host has given up, but the call has not: it runs to completion once

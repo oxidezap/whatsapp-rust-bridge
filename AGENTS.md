@@ -226,6 +226,8 @@ There is **no mock server in CI**, so no test here proves an end-to-end response
 
 Say which of these a test does, and do not let a test's name claim more than it checks. A test that would still pass with the fix reverted is not a test of the fix — revert it and watch it fail.
 
+**Prove a negative by ordering, not by a timer.** "This call has not settled in 500ms" is exhaustion: it costs wall clock, it never rules out a call that was merely slow, and shortening the window weakens it without turning anything red. `tests/parked-calls.ts` is the shape to copy: establish the state with something that must happen first, then release and show that only then does it settle.
+
 ## Pull requests
 
 Explain the failure the change prevents, not the lines it touches. Show the evidence — the failing output before, the passing output after. Name what you did *not* verify.
