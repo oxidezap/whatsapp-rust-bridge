@@ -141,9 +141,8 @@ function refusedFree(client: WasmWhatsAppClient): Error {
   try {
     client.free();
   } catch (error) {
-    return error as Error;
-  } finally {
     handle.__wbg_ptr = pointer;
+    return error as Error;
   }
   throw new Error("expected free() to be refused while a call was parked");
 }
@@ -200,7 +199,8 @@ describe("tearing down a client that is holding parked calls", () => {
     const client = await reconnectingClient(store);
 
     const calls = Array.from({ length: A_CROWD }, () => park(client));
-    expect(await settlesWithin(calls[0]!, HOLDS_BUDGET)).toBe(false);
+    const held = await Promise.all(calls.map((call) => settlesWithin(call, HOLDS_BUDGET)));
+    expect(held).toEqual(Array(A_CROWD).fill(false));
 
     expect(refusedFree(client).message).toMatch(/borrowed/);
 
