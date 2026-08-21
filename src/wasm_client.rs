@@ -2738,7 +2738,15 @@ impl Drop for WasmWhatsAppClient {
 fn participants_update_input(
     jid: &str,
     participants: &[String],
+    action: crate::result_types::GroupParticipantAction,
 ) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
+    if matches!(action, crate::result_types::GroupParticipantAction::Modify) {
+        return Err(crate::errors::BridgeError::InvalidArgument {
+            field: "action".into(),
+            reason: "modify represents a received participant identity change and cannot be sent"
+                .into(),
+        });
+    }
     let group_jid = parse_jid(jid)?;
     let participant_jids = participants
         .iter()
@@ -2787,14 +2795,9 @@ async fn participants_update(
                 .demote_participants(&group_jid, &participant_jids)
                 .await?
         }
-        GroupParticipantAction::Modify => {
-            return Err(crate::errors::BridgeError::InvalidArgument {
-                field: "action".into(),
-                reason:
-                    "modify represents a received participant identity change and cannot be sent"
-                        .into(),
-            });
-        }
+        // Rejected in `participants_update_input`, above the gate, so a caller
+        // is told at once rather than after a reconnect.
+        GroupParticipantAction::Modify => unreachable!("rejected before the gate"),
     };
 
     Ok(responses.iter().map(participant_change_to_result).collect())

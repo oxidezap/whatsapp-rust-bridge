@@ -154,7 +154,7 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        let (group_jid, participant_jids) = participants_update_input(jid, &participants)?;
+        let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
         participants_update(
             self.client.online().await,
             group_jid,
@@ -455,7 +455,7 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        let (group_jid, participant_jids) = participants_update_input(jid, &participants)?;
+        let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
         participants_update(
             self.client.online().await,
             group_jid,

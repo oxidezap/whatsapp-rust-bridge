@@ -175,6 +175,9 @@ describe("a caller's own mistake", () => {
       // These two validate inside a bridge helper the gate used to run first.
       ["groupParticipantsUpdate", client.groupParticipantsUpdate(GROUP, ["not a jid"], "add")],
       ["sendStatusMessageBytes", client.sendStatusMessageBytes(new Uint8Array(0), ["not a jid"])],
+      // `modify` is a received identity change, not something a client sends;
+      // the bridge rejects it, and that rejection was behind the gate too.
+      ["groupParticipantsUpdate modify", client.groupParticipantsUpdate(GROUP, [CHAT], "modify")],
     ];
 
     for (const [name, call] of calls) {
