@@ -244,20 +244,28 @@ impl WasmWhatsAppClient {
     ///
     /// Held per chat rather than once for the batch: the core stamps the
     /// receipt's timestamp inside `mark_as_read`, so each one is sampled after
-    /// its own wait rather than at the call the host made.
+    /// its own wait rather than at the call the host made. Only the first of
+    /// them can be withdrawn — after that the call has already sent something.
     #[wasm_bindgen(js_name = readMessages)]
     pub async fn read_messages(
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let mut sent = false;
         for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_read now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-            self.client
-                .online()
-                .await?
+            // Once one read receipt has gone out the call cannot be taken back, so the
+            // rest of the batch waits without being withdrawable.
+            let client = if sent {
+                self.client.online_committed().await
+            } else {
+                self.client.online().await?
+            };
+            client
                 .mark_as_read(&chat, participant.as_ref(), &id_refs)
                 .await?;
+            sent = true;
         }
 
         Ok(())
@@ -273,14 +281,21 @@ impl WasmWhatsAppClient {
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadMessageKey[]")] keys: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
+        let mut sent = false;
         for (chat, participant, ids) in group_receipt_keys("keys", keys)? {
             // #775: mark_as_played now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-            self.client
-                .online()
-                .await?
+            // Once one played receipt has gone out the call cannot be taken back, so the
+            // rest of the batch waits without being withdrawable.
+            let client = if sent {
+                self.client.online_committed().await
+            } else {
+                self.client.online().await?
+            };
+            client
                 .mark_as_played(&chat, participant.as_ref(), &id_refs)
                 .await?;
+            sent = true;
         }
 
         Ok(())

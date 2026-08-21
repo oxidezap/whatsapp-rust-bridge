@@ -2699,6 +2699,19 @@ mod core_client {
             self.client.wait_until_reachable().await.into()
         }
 
+        /// The client, once a reconnect has landed, for a call that has already
+        /// sent something and so cannot be taken back.
+        ///
+        /// It does not enrol, so `withdraw_parked` neither counts nor releases
+        /// it — which is what keeps the count meaning what it says.
+        #[inline]
+        pub(crate) async fn online_committed(&self) -> &Arc<whatsapp_rust::Client> {
+            if self.client.reachability().recovers_on_its_own() {
+                self.wait().await;
+            }
+            &self.client
+        }
+
         /// Let go of every call waiting at the gate right now, and say how many.
         ///
         /// The core delegates cancellation to the caller — drop the future, or
@@ -2709,6 +2722,15 @@ mod core_client {
         /// issued afterwards parks like any other.
         pub(crate) fn withdraw_parked(&self) -> u32 {
             self.parked.release_all()
+        }
+
+        /// The wait with no way out of it, for [`online_committed`](Self::online_committed).
+        #[cold]
+        #[inline(never)]
+        fn wait(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+            Box::pin(async move {
+                let _ = self.client.wait_until_reachable().await;
+            })
         }
 
         /// Off the hot path in its own future, so the check above costs one branch
