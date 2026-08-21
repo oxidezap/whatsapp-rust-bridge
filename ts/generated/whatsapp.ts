@@ -153,6 +153,114 @@ export enum CollectionName {
   UNRECOGNIZED = -1,
 }
 
+export enum extendedContentMessageCtaButtonType {
+  OPEN_NATIVE = 11,
+  UNRECOGNIZED = -1,
+}
+
+export enum extendedContentMessageExtendedContentType {
+  UNSUPPORTED = -1,
+  IG_STORY_PHOTO_MENTION = 4,
+  IG_SINGLE_IMAGE_POST_SHARE = 9,
+  IG_MULTIPOST_SHARE = 10,
+  IG_SINGLE_VIDEO_POST_SHARE = 11,
+  IG_STORY_PHOTO_SHARE = 12,
+  IG_STORY_VIDEO_SHARE = 13,
+  IG_CLIPS_SHARE = 14,
+  IG_IGTV_SHARE = 15,
+  IG_SHOP_SHARE = 16,
+  IG_PROFILE_SHARE = 19,
+  IG_STORY_PHOTO_HIGHLIGHT_SHARE = 20,
+  IG_STORY_VIDEO_HIGHLIGHT_SHARE = 21,
+  IG_STORY_REPLY = 22,
+  IG_STORY_REACTION = 23,
+  IG_STORY_VIDEO_MENTION = 24,
+  IG_STORY_HIGHLIGHT_REPLY = 25,
+  IG_STORY_HIGHLIGHT_REACTION = 26,
+  IG_EXTERNAL_LINK = 27,
+  IG_RECEIVER_FETCH = 28,
+  FB_FEED_SHARE = 1000,
+  FB_STORY_REPLY = 1001,
+  FB_STORY_SHARE = 1002,
+  FB_STORY_MENTION = 1003,
+  FB_FEED_VIDEO_SHARE = 1004,
+  FB_GAMING_CUSTOM_UPDATE = 1005,
+  FB_PRODUCER_STORY_REPLY = 1006,
+  FB_EVENT = 1007,
+  FB_FEED_POST_PRIVATE_REPLY = 1008,
+  FB_SHORT = 1009,
+  FB_COMMENT_MENTION_SHARE = 1010,
+  FB_POST_MENTION = 1011,
+  FB_PROFILE_DIRECTORY_ITEM = 1013,
+  FB_FEED_POST_REACTION_REPLY = 1014,
+  FB_QUICKSNAP_REPLY = 1015,
+  MSG_EXTERNAL_LINK_SHARE = 2000,
+  MSG_P2P_PAYMENT = 2001,
+  MSG_LOCATION_SHARING = 2002,
+  MSG_LOCATION_SHARING_V2 = 2003,
+  MSG_HIGHLIGHTS_TAB_FRIEND_UPDATES_REPLY = 2004,
+  MSG_HIGHLIGHTS_TAB_LOCAL_EVENT_REPLY = 2005,
+  MSG_RECEIVER_FETCH = 2006,
+  MSG_IG_MEDIA_SHARE = 2007,
+  MSG_GEN_AI_SEARCH_PLUGIN_RESPONSE = 2008,
+  MSG_REELS_LIST = 2009,
+  MSG_CONTACT = 2010,
+  MSG_THREADS_POST_SHARE = 2011,
+  MSG_FILE = 2012,
+  MSG_AVATAR_DETAILS = 2013,
+  MSG_AI_CONTACT = 2014,
+  MSG_MEMORIES_SHARE = 2015,
+  MSG_SHARED_ALBUM_REPLY = 2016,
+  MSG_SHARED_ALBUM = 2017,
+  MSG_OCCAMADILLO_XMA = 2018,
+  MSG_GEN_AI_SUBSCRIPTION = 2021,
+  MSG_GEN_AI_REMINDER = 2022,
+  MSG_GEN_AI_MEMU_ONBOARDING_RESPONSE = 2023,
+  MSG_NOTE_REPLY = 2024,
+  MSG_NOTE_MENTION = 2025,
+  GEN_AI_ENTITY = 2026,
+  MSG_OPG_P2P_PAYMENT = 2027,
+  GEN_AI_RICH_RESPONSE = 2028,
+  MSG_MUSIC_STICKER = 2029,
+  MSG_PHONE_NUMBER = 2030,
+  AI_ACTIVITY_SHARE = 2031,
+  MSG_PRIVATE_XMA = 2032,
+  MSG_SOCIAL_CUE_MEMORIES = 2033,
+  MSG_MANUS_GROWTH_REFERRAL = 2060,
+  MSG_MOMENT_LINK = 2061,
+  MSG_HORIZON_WEEL = 2062,
+  MSG_MOMENT_ADDED = 2063,
+  RTC_AUDIO_CALL = 3000,
+  RTC_VIDEO_CALL = 3001,
+  RTC_MISSED_AUDIO_CALL = 3002,
+  RTC_MISSED_VIDEO_CALL = 3003,
+  RTC_GROUP_AUDIO_CALL = 3004,
+  RTC_GROUP_VIDEO_CALL = 3005,
+  RTC_MISSED_GROUP_AUDIO_CALL = 3006,
+  RTC_MISSED_GROUP_VIDEO_CALL = 3007,
+  RTC_ONGOING_AUDIO_CALL = 3008,
+  RTC_ONGOING_VIDEO_CALL = 3009,
+  MSG_RECEIVER_FETCH_FALLBACK = 3025,
+  DATACLASS_SENDER_COPY = 4000,
+}
+
+export enum extendedContentMessageXmaDataclassType {
+  SENDER_COPY = 0,
+  SERVER = 1,
+  SIGNED_CLIENT = 2,
+  UNRECOGNIZED = -1,
+}
+
+export enum extendedContentMessageXmaLayoutType {
+  SINGLE = 0,
+  HSCROLL = 1,
+  PORTRAIT = 3,
+  STANDARD_DXMA = 12,
+  LIST_DXMA = 15,
+  GRID = 16,
+  UNRECOGNIZED = -1,
+}
+
 export enum futureProofBehavior {
   PLACEHOLDER = 0,
   NO_PLACEHOLDER = 1,
@@ -273,6 +381,7 @@ export enum MutationProps {
   BUBBLE_LOCK_MESSAGE_ACTION = 90,
   LABEL_SUBLIST_ACTION = 91,
   DEVICE_CAPABILITIES_V2 = 92,
+  CTWA_MESSAGE_RECEIVED_ACTION = 93,
   SHARE_OWN_PN = 10001,
   BUSINESS_BROADCAST_ACTION = 10002,
   AI_THREAD_DELETE_ACTION = 10003,
@@ -600,6 +709,12 @@ export interface AutoDownloadSettings {
 export interface AvatarUserSettings {
   fbid?: string | undefined;
   password?: string | undefined;
+}
+
+export interface BackwardEdge {
+  encryptedPrevEpochAnonId?: Uint8Array | undefined;
+  encryptedPrevEpochRootKey?: Uint8Array | undefined;
+  prevEpochRootKeyFingerprint?: Uint8Array | undefined;
 }
 
 export interface BizAccountLinkInfo {
@@ -2386,6 +2501,55 @@ export interface CreateBackupOutput {
   error?: string | undefined;
 }
 
+export interface DecryptMekForDistributionFromTransportSenderInput {
+  mekDistribution?:
+    | DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
+    | undefined;
+  mekId?: Uint8Array | undefined;
+  rosterHash?: Uint8Array | undefined;
+  recipientEncSk?: Uint8Array | undefined;
+  version?: Int64 | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
+  encryptedMek?: Uint8Array | undefined;
+  ephemeralEncryptionPk?: Uint8Array | undefined;
+  signingPk?: Uint8Array | undefined;
+  signature?: Uint8Array | undefined;
+  recipientEpochHead?: Uint8Array | undefined;
+}
+
+export interface DecryptMekForDistributionFromTransportSenderResult {
+  success?: DecryptMekForDistributionFromTransportSenderSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface DecryptMekForDistributionFromTransportSenderSuccess {
+  mek?: Uint8Array | undefined;
+}
+
+export interface DecryptMekForDistributionInput {
+  toMailboxSk?: Uint8Array | undefined;
+  fromPk?: Uint8Array | undefined;
+  mekId?: Uint8Array | undefined;
+  senderEpochHead?: Uint8Array | undefined;
+  rosterHash?: Uint8Array | undefined;
+  ciphertext?: Uint8Array | undefined;
+  toEpochHead?: Uint8Array | undefined;
+  mekEncryptionVersion?: number | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface DecryptMekForDistributionResult {
+  success?: DecryptMekForDistributionSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface DecryptMekForDistributionSuccess {
+  mek?: Uint8Array | undefined;
+}
+
 export interface DecryptMessageInput {
   epochRootKey?: Uint8Array | undefined;
   epochAnonId?: Uint8Array | undefined;
@@ -2399,6 +2563,72 @@ export interface DecryptMessageOutput {
   error?: string | undefined;
 }
 
+export interface DecryptSelfMmkDistributionInput {
+  encryptedMmk?: Uint8Array | undefined;
+  exportRootKey?: Uint8Array | undefined;
+  mailboxHeadHash?: Uint8Array | undefined;
+}
+
+export interface DecryptSelfMmkDistributionResult {
+  success?: DecryptSelfMmkDistributionSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface DecryptSelfMmkDistributionSuccess {
+  mmkSeed?: Uint8Array | undefined;
+}
+
+export interface DeriveAttachmentAccessTokenSecretInput {
+  mediaKey?: Uint8Array | undefined;
+}
+
+export interface DeriveAttachmentAccessTokenSecretResult {
+  attachmentAccessTokenSecret?: Uint8Array | undefined;
+}
+
+export interface DeriveAttachmentPrimaryKeySecretInput {
+  mediaKey?: Uint8Array | undefined;
+}
+
+export interface DeriveAttachmentPrimaryKeySecretResult {
+  attachmentPrimaryKeySecret?: Uint8Array | undefined;
+}
+
+export interface DeriveMailboxAuthKeypairInput {
+  exportRootKey?: Uint8Array | undefined;
+  epochNumber?: Int64 | undefined;
+}
+
+export interface DeriveMailboxAuthKeypairResult {
+  mailboxAuthPublicKey?: Uint8Array | undefined;
+  mailboxAuthPrivateKey?: Uint8Array | undefined;
+}
+
+export interface DeriveMailboxEncryptionKeypairInput {
+  exportRootKey?: Uint8Array | undefined;
+  epochNumber?: Int64 | undefined;
+}
+
+export interface DeriveMailboxEncryptionKeypairResult {
+  mailboxEncryptionPublicKey?: Uint8Array | undefined;
+  mailboxEncryptionPrivateKey?: Uint8Array | undefined;
+}
+
+export interface DeriveMailboxSigningKeypairInput {
+  exportRootKey?: Uint8Array | undefined;
+  epochNumber?: Int64 | undefined;
+}
+
+export interface DeriveMailboxSigningKeypairResult {
+  success?: DeriveMailboxSigningKeypairSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface DeriveMailboxSigningKeypairSuccess {
+  mailboxSigningPublicKey?: Uint8Array | undefined;
+  mailboxSigningPrivateKey?: Uint8Array | undefined;
+}
+
 export interface DeriveMessageKeyInput {
   epochRootKey?: Uint8Array | undefined;
   epochAnonId?: Uint8Array | undefined;
@@ -2410,6 +2640,31 @@ export interface DeriveMessageKeyOutput {
   error?: string | undefined;
 }
 
+export interface DeriveMessagingMailboxKeypairsInput {
+  mmkSeed?: Uint8Array | undefined;
+}
+
+export interface DeriveMessagingMailboxKeypairsResult {
+  success?: DeriveMessagingMailboxKeypairsSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface DeriveMessagingMailboxKeypairsSuccess {
+  encSk?: Uint8Array | undefined;
+  encPk?: Uint8Array | undefined;
+  authSk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+}
+
+export interface DetachedDevicePublicData {
+  deviceId?: Int64 | undefined;
+  name?: Uint8Array | undefined;
+  sigPk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+  encPk?: Uint8Array | undefined;
+  signature?: Uint8Array | undefined;
+}
+
 export interface DeviceCapabilities {
   chatLockSupportLevel?: DeviceCapabilities_ChatLockSupportLevel | undefined;
   lidMigration?: DeviceCapabilities_LIDMigration | undefined;
@@ -2418,6 +2673,8 @@ export interface DeviceCapabilities {
   memberNameTagPrimarySupport?: DeviceCapabilities_MemberNameTagPrimarySupport | undefined;
   aiThread?: DeviceCapabilities_AiThread | undefined;
   aiFbidMigration?: DeviceCapabilities_AiFbidMigration | undefined;
+  bizAiSettingsSync?: DeviceCapabilities_BizAiSettingsSync | undefined;
+  contactRefresh?: DeviceCapabilities_ContactRefresh | undefined;
 }
 
 export enum DeviceCapabilities_ChatLockSupportLevel {
@@ -2449,12 +2706,20 @@ export enum DeviceCapabilities_AiThread_SupportLevel {
   UNRECOGNIZED = -1,
 }
 
+export interface DeviceCapabilities_BizAiSettingsSync {
+  handoffRemovalTimingEnabled?: boolean | undefined;
+}
+
 export interface DeviceCapabilities_BusinessBroadcast {
   importListEnabled?: boolean | undefined;
   companionSupportEnabled?: boolean | undefined;
   campaignSyncEnabled?: boolean | undefined;
   insightsSyncEnabled?: boolean | undefined;
   recipientLimit?: number | undefined;
+}
+
+export interface DeviceCapabilities_ContactRefresh {
+  refreshSupported?: boolean | undefined;
 }
 
 export interface DeviceCapabilities_LIDMigration {
@@ -2491,6 +2756,7 @@ export interface DeviceOutput {
   encryptionVersionSignature?: Uint8Array | undefined;
   clientVersion?: number | undefined;
   ocmfClientState?: Uint8Array | undefined;
+  epochStoragePrivateKey?: Uint8Array | undefined;
 }
 
 export interface DeviceProps {
@@ -2619,6 +2885,46 @@ export interface EmbeddedMusic {
   overlapDurationInMs?: Int64 | undefined;
 }
 
+export interface EncryptMekForDistributionInput {
+  senderEpochHead?: Uint8Array | undefined;
+  toMailboxPk?: Uint8Array | undefined;
+  fromKeypair?: EncryptMekForDistributionInput_MailboxAuthKP | undefined;
+  mek?: MekBundle | undefined;
+  toEpochHead?: Uint8Array | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface EncryptMekForDistributionInput_MailboxAuthKP {
+  sk?: Uint8Array | undefined;
+  pk?: Uint8Array | undefined;
+}
+
+export interface EncryptMekForDistributionResult {
+  ciphertext?: Uint8Array | undefined;
+  version?: Int64 | undefined;
+}
+
+export interface EncryptMeksForDistributionFromTransportSenderInput {
+  mek?: MekBundle | undefined;
+  transportSigningKp?: EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP | undefined;
+  recipientMailboxEncryptionPks?: Uint8Array[] | undefined;
+  recipientEpochHeads?: Uint8Array[] | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
+  sk?: Uint8Array | undefined;
+  pk?: Uint8Array | undefined;
+}
+
+export interface EncryptMeksForDistributionFromTransportSenderResult {
+  encryptedMeks?: Uint8Array[] | undefined;
+  ephemeralEncryptionPk?: Uint8Array | undefined;
+  signingPk?: Uint8Array | undefined;
+  signature?: Uint8Array | undefined;
+  version?: Int64 | undefined;
+}
+
 export interface EncryptMessageInput {
   epochRootKey?: Uint8Array | undefined;
   mailboxRootKey?: Uint8Array | undefined;
@@ -2673,6 +2979,20 @@ export interface Epoch0Output {
   epochRootKey?: Uint8Array | undefined;
 }
 
+export interface EpochPublicData {
+  epochNumber?: Int64 | undefined;
+  userFbid?: string | undefined;
+  mailboxSigningPk?: Uint8Array | undefined;
+  mailboxEncryptionPk?: Uint8Array | undefined;
+  mailboxAuthPk?: Uint8Array | undefined;
+  previousEpochHead?: Uint8Array | undefined;
+}
+
+export interface EpochSignatures {
+  selfSignature?: Uint8Array | undefined;
+  prevSignature?: Uint8Array | undefined;
+}
+
 export interface EventAdditionalMetadata {
   isStale?: boolean | undefined;
 }
@@ -2687,6 +3007,61 @@ export interface EventResponse {
 export interface ExitCode {
   code?: Int64 | undefined;
   text?: string | undefined;
+}
+
+export interface ExtendedContentMessage {
+  associatedMessage?: SubProtocol | undefined;
+  targetType?: extendedContentMessageExtendedContentType | undefined;
+  targetUsername?: string | undefined;
+  targetId?: string | undefined;
+  targetExpiringAtSec?: Int64 | undefined;
+  xmaLayoutType?: extendedContentMessageXmaLayoutType | undefined;
+  ctas?: ExtendedContentMessage_CTA[] | undefined;
+  previews?: SubProtocol[] | undefined;
+  titleText?: string | undefined;
+  subtitleText?: string | undefined;
+  maxTitleNumOfLines?: number | undefined;
+  maxSubtitleNumOfLines?: number | undefined;
+  favicon?: SubProtocol | undefined;
+  headerImage?: SubProtocol | undefined;
+  headerTitle?: string | undefined;
+  overlayIconGlyph?: ExtendedContentMessage_extendedContentMessageOverlayIconGlyph | undefined;
+  overlayTitle?: string | undefined;
+  overlayDescription?: string | undefined;
+  sentWithMessageId?: string | undefined;
+  messageText?: string | undefined;
+  headerSubtitle?: string | undefined;
+  xmaDataclass?: string | undefined;
+  contentRef?: string | undefined;
+  mentionedJid?: string[] | undefined;
+  commands?: Command[] | undefined;
+  mentions?: Mention[] | undefined;
+  xmaDataclassType?: extendedContentMessageXmaDataclassType | undefined;
+  signedXmaDataclassValidation?: string | undefined;
+  featureSharedSessionId?: string | undefined;
+}
+
+export enum ExtendedContentMessage_extendedContentMessageOverlayIconGlyph {
+  INFO = 0,
+  EYE_OFF = 1,
+  NEWS_OFF = 2,
+  WARNING = 3,
+  PRIVATE = 4,
+  NONE = 5,
+  MEDIA_LABEL = 6,
+  POST_COVER = 7,
+  POST_LABEL = 8,
+  WARNING_SCREENS = 9,
+  UNRECOGNIZED = -1,
+}
+
+export interface ExtendedContentMessage_CTA {
+  buttonType?: extendedContentMessageCtaButtonType | undefined;
+  title?: string | undefined;
+  actionUrl?: string | undefined;
+  nativeUrl?: string | undefined;
+  ctaType?: string | undefined;
+  actionContentBlob?: string | undefined;
 }
 
 export interface ExternalBlobReference {
@@ -2730,6 +3105,22 @@ export interface ForwardedAIBotMessageInfo {
   botName?: string | undefined;
   botJid?: string | undefined;
   creatorName?: string | undefined;
+}
+
+export interface GenerateMekInput {
+  epochHeads?: Uint8Array[] | undefined;
+}
+
+export interface GenerateMekResult {
+  mek?: MekBundle | undefined;
+}
+
+export interface GenerateMekRosterHashInput {
+  epochHeads?: Uint8Array[] | undefined;
+}
+
+export interface GenerateMekRosterHashResult {
+  rosterHash?: Uint8Array | undefined;
 }
 
 export interface GlobalSettings {
@@ -3109,6 +3500,143 @@ export interface Location {
   name?: string | undefined;
 }
 
+export interface MandrakeDecryptMekInput {
+  encryptedMek?: Uint8Array | undefined;
+  recipientsHash?: Uint8Array | undefined;
+  recipientEncSk?: Uint8Array | undefined;
+  mekEncryptionVersion?: Int64 | undefined;
+  conf?: MinosClientConfig | undefined;
+  recipientMmk?: MessagingMailboxPublicData | undefined;
+  mekId?: Uint8Array | undefined;
+  recipientMembershipProof?: MerkleMembershipProof | undefined;
+  mmkSender?: MandrakeDecryptMekInput_MmkSenderPublicData | undefined;
+  epochSender?: MandrakeDecryptMekInput_EpochSenderPublicData | undefined;
+  precomputedEpochSender?: MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData | undefined;
+}
+
+export interface MandrakeDecryptMekInput_EpochSenderPublicData {
+  epochPublicData?: EpochPublicData | undefined;
+}
+
+export interface MandrakeDecryptMekInput_MmkSenderPublicData {
+  mmkPublicData?: MessagingMailboxPublicData | undefined;
+}
+
+export interface MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
+  authPk?: Uint8Array | undefined;
+  epochHead?: Uint8Array | undefined;
+}
+
+export interface MandrakeDecryptMekResult {
+  success?: MandrakeDecryptMekSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MandrakeDecryptMekSuccess {
+  mek?: Uint8Array | undefined;
+}
+
+export interface MandrakeEncryptMekInput {
+  mek?: MandrakeMekBundle | undefined;
+  recipients?: MessagingMailboxPublicData[] | undefined;
+  conf?: MinosClientConfig | undefined;
+  mmkSender?: MandrakeEncryptMekInput_MmkSender | undefined;
+  epochSender?: MandrakeEncryptMekInput_EpochSender | undefined;
+  detachedDeviceSender?: MandrakeEncryptMekInput_DetachedDeviceSender | undefined;
+}
+
+export interface MandrakeEncryptMekInput_DetachedDeviceSender {
+  detachedDevicePublicData?: DetachedDevicePublicData | undefined;
+  authSk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+}
+
+export interface MandrakeEncryptMekInput_EpochSender {
+  epochPublicData?: EpochPublicData | undefined;
+  authSk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+}
+
+export interface MandrakeEncryptMekInput_MmkSender {
+  mmkPublicData?: MessagingMailboxPublicData | undefined;
+  authSk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+}
+
+export interface MandrakeEncryptMekResult {
+  success?: MandrakeEncryptMekSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MandrakeEncryptMekSuccess {
+  distributions?: MandrakeEncryptMekSuccess_MekDistributionSingleRecipient[] | undefined;
+  recipientsHash?: Uint8Array | undefined;
+  version?: Int64 | undefined;
+}
+
+export interface MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
+  encryptedMek?: Uint8Array | undefined;
+  toMmk?: MessagingMailboxPublicData | undefined;
+  recipientMembershipProof?: MerkleMembershipProof | undefined;
+}
+
+export interface MandrakeMekBundle {
+  key?: Uint8Array | undefined;
+  mekId?: Uint8Array | undefined;
+  mailboxHeadHash?: Uint8Array | undefined;
+}
+
+export interface MandrakeOpenEpochInput {
+  userFbid?: string | undefined;
+  epochNumber?: Int64 | undefined;
+  exportRootKey?: Uint8Array | undefined;
+  previousExportRootKey?: Uint8Array | undefined;
+  previousEpochNumber?: Int64 | undefined;
+  previousEpochHead?: Uint8Array | undefined;
+  previousMmk?: MessagingMailboxPublicData | undefined;
+  detachedDevices?: DetachedDevicePublicData[] | undefined;
+}
+
+export interface MandrakeOpenEpochResult {
+  success?: MandrakeOpenEpochSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MandrakeOpenEpochSuccess {
+  minosSignedEpoch?: MinosSignedEpoch | undefined;
+  signedMmkDistribution?: SignedMmkDistributionFromMailbox | undefined;
+}
+
+export interface MandrakeOpenInitialEpochInput {
+  userFbid?: string | undefined;
+  epochNumber?: Int64 | undefined;
+  exportRootKey?: Uint8Array | undefined;
+  detachedDevices?: DetachedDevicePublicData[] | undefined;
+}
+
+export interface MandrakeOpenInitialEpochResult {
+  success?: MandrakeOpenEpochSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MandrakeValidateNewMmkFromDetachedDeviceInput {
+  mmkFromDevice?: MmkFromDetachedDevice | undefined;
+  signature?: Uint8Array | undefined;
+  prevMmk?: MessagingMailboxPublicData | undefined;
+}
+
+export interface MandrakeValidateNewMmkFromMailboxInput {
+  newMmk?: MessagingMailboxPublicData | undefined;
+  signature?: Uint8Array | undefined;
+  prevMmk?: MessagingMailboxPublicData | undefined;
+  epochPublicData?: EpochPublicData | undefined;
+}
+
+export interface MandrakeValidateNewMmkResult {
+  valid?: boolean | undefined;
+  errorMessage?: string | undefined;
+}
+
 export interface MediaData {
   localPath?: string | undefined;
 }
@@ -3173,6 +3701,12 @@ export enum MediaRetryNotification_ResultType {
   UNRECOGNIZED = -1,
 }
 
+export interface MekBundle {
+  key?: Uint8Array | undefined;
+  mekId?: Uint8Array | undefined;
+  rosterHash?: Uint8Array | undefined;
+}
+
 export interface MemberLabel {
   label?: string | undefined;
   labelTimestamp?: Int64 | undefined;
@@ -3183,6 +3717,13 @@ export interface Mention {
   mentionedJid?: string | undefined;
   offset?: number | undefined;
   length?: number | undefined;
+}
+
+export interface MerkleMembershipProof {
+  proof?: Uint8Array | undefined;
+  root?: Uint8Array | undefined;
+  leafIndex?: Int64 | undefined;
+  totalLeaves?: Int64 | undefined;
 }
 
 export interface Message {
@@ -4263,6 +4804,7 @@ export interface Message_MusicMessage {
 
 export enum Message_MusicMessage_MusicMessageStyle {
   UNKNOWN = 0,
+  VINYL = 1,
   UNRECOGNIZED = -1,
 }
 
@@ -5302,6 +5844,181 @@ export interface MessageText {
   mentions?: Mention[] | undefined;
 }
 
+export interface MessagingMailboxPublicData {
+  epochHead?: Uint8Array | undefined;
+  deviceRosterHash?: Uint8Array | undefined;
+  sequenceNumber?: Int64 | undefined;
+  sigPk?: Uint8Array | undefined;
+  encPk?: Uint8Array | undefined;
+  authPk?: Uint8Array | undefined;
+}
+
+export interface MinosClientConfig {
+  preferredMessageEncryptionVersion?: number | undefined;
+  preferredMekEncryptionVersion?: number | undefined;
+}
+
+export interface MinosCommand {
+  encryptAndSignMessage?: MinosEncryptAndSignMessageInput | undefined;
+  decryptAndVerifyMessage?: MinosDecryptAndVerifyMessageInput | undefined;
+  generateMek?: GenerateMekInput | undefined;
+  generateMekRosterHash?: GenerateMekRosterHashInput | undefined;
+  encryptMekForDistribution?: EncryptMekForDistributionInput | undefined;
+  decryptMekForDistribution?: DecryptMekForDistributionInput | undefined;
+  encryptMeksForDistributionFromTransportSender?: EncryptMeksForDistributionFromTransportSenderInput | undefined;
+  decryptMekForDistributionFromTransportSender?: DecryptMekForDistributionFromTransportSenderInput | undefined;
+  wrapTransportSigningPublicKey?: WrapTransportSigningPublicKeyInput | undefined;
+  wrapTransportSigningSecretKey?: WrapTransportSigningSecretKeyInput | undefined;
+  deriveMailboxSigningKeypair?: DeriveMailboxSigningKeypairInput | undefined;
+  deriveMailboxEncryptionKeypair?: DeriveMailboxEncryptionKeypairInput | undefined;
+  deriveMailboxAuthKeypair?: DeriveMailboxAuthKeypairInput | undefined;
+  deriveAttachmentAccessTokenSecret?: DeriveAttachmentAccessTokenSecretInput | undefined;
+  deriveAttachmentPrimaryKeySecret?: DeriveAttachmentPrimaryKeySecretInput | undefined;
+  minosOpenInitialEpoch?: MinosOpenInitialEpochInput | undefined;
+  minosOpenEpoch?: MinosOpenEpochInput | undefined;
+  minosValidateEpoch?: MinosValidateEpochInput | undefined;
+  minosVerifySingleEpoch?: MinosVerifySingleEpochInput | undefined;
+  minosThreadIdFromOneToOneThread?: MinosThreadIdFromOneToOneThreadInput | undefined;
+  minosThreadIdFromActThreadId?: MinosThreadIdFromActThreadIdInput | undefined;
+  mandrakeOpenEpoch?: MandrakeOpenEpochInput | undefined;
+  mandrakeEncryptMek?: MandrakeEncryptMekInput | undefined;
+  mandrakeDecryptMek?: MandrakeDecryptMekInput | undefined;
+  mandrakeOpenInitialEpoch?: MandrakeOpenInitialEpochInput | undefined;
+  mandrakeValidateNewMmkFromMailbox?: MandrakeValidateNewMmkFromMailboxInput | undefined;
+  mandrakeValidateNewMmkFromDetachedDevice?: MandrakeValidateNewMmkFromDetachedDeviceInput | undefined;
+  deriveMessagingMailboxKeypairs?: DeriveMessagingMailboxKeypairsInput | undefined;
+  decryptSelfMmkDistribution?: DecryptSelfMmkDistributionInput | undefined;
+}
+
+export interface MinosDecryptAndVerifyMessageInput {
+  transportSigningPk?: Uint8Array | undefined;
+  mek?: Uint8Array | undefined;
+  encryptedMessageCiphertext?: Uint8Array | undefined;
+  encryptedMessageSignature?: Uint8Array | undefined;
+  metadata?: MinosMessageMetadata | undefined;
+  messageEncryptionVersion?: number | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface MinosDecryptAndVerifyMessageResult {
+  success?: MinosDecryptAndVerifyMessageSuccess | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MinosDecryptAndVerifyMessageSuccess {
+  plaintext?: Uint8Array | undefined;
+}
+
+export interface MinosEncryptAndSignMessageInput {
+  transportSigningSk?: Uint8Array | undefined;
+  mek?: Uint8Array | undefined;
+  plaintext?: Uint8Array | undefined;
+  metadata?: MinosMessageMetadata | undefined;
+  transportSigningPk?: Uint8Array | undefined;
+  conf?: MinosClientConfig | undefined;
+}
+
+export interface MinosEncryptAndSignMessageResult {
+  ciphertext?: Uint8Array | undefined;
+  signature?: Uint8Array | undefined;
+  version?: number | undefined;
+}
+
+export interface MinosMessageMetadata {
+  mekId?: Uint8Array | undefined;
+  timestamp?: Int64 | undefined;
+  messageId?: string | undefined;
+  threadId?: Uint8Array | undefined;
+}
+
+export interface MinosOpenEpochInput {
+  userFbid?: string | undefined;
+  epochNumber?: Int64 | undefined;
+  exportRootKey?: Uint8Array | undefined;
+  previousExportRootKey?: Uint8Array | undefined;
+  previousEpochNumber?: Int64 | undefined;
+  previousEpochHead?: Uint8Array | undefined;
+}
+
+export interface MinosOpenEpochResult {
+  minosSignedEpoch?: MinosSignedEpoch | undefined;
+}
+
+export interface MinosOpenInitialEpochInput {
+  userFbid?: string | undefined;
+  epochNumber?: Int64 | undefined;
+  exportRootKey?: Uint8Array | undefined;
+}
+
+export interface MinosOpenInitialEpochResult {
+  minosSignedEpoch?: MinosSignedEpoch | undefined;
+}
+
+export interface MinosSignedEpoch {
+  epochPublicData?: EpochPublicData | undefined;
+  signatures?: EpochSignatures | undefined;
+  epochHead?: Uint8Array | undefined;
+}
+
+export interface MinosThreadIdFromActThreadIdInput {
+  actThreadId?: string | undefined;
+}
+
+export interface MinosThreadIdFromActThreadIdResult {
+  threadId?: Uint8Array | undefined;
+}
+
+export interface MinosThreadIdFromOneToOneThreadInput {
+  actThreadId?: string | undefined;
+  selfFbid?: string | undefined;
+}
+
+export interface MinosThreadIdFromOneToOneThreadResult {
+  threadId?: Uint8Array | undefined;
+}
+
+export interface MinosValidateEpochInput {
+  epochPublicData?: EpochPublicData | undefined;
+  previousEpochPublicData?: EpochPublicData | undefined;
+  signatures?: EpochSignatures | undefined;
+}
+
+export interface MinosValidateEpochResult {
+  valid?: boolean | undefined;
+  errorMessage?: string | undefined;
+}
+
+export interface MinosVerifySingleEpochInput {
+  epochPublicData?: EpochPublicData | undefined;
+  signature?: Uint8Array | undefined;
+}
+
+export interface MinosVerifySingleEpochResult {
+  valid?: boolean | undefined;
+}
+
+export interface MmkDistribution {
+  toDetachedDevices?: MmkDistributionToDetachedDevice[] | undefined;
+  toMailbox?: MmkDistributionToMailbox | undefined;
+  version?: Int64 | undefined;
+}
+
+export interface MmkDistributionToDetachedDevice {
+  encryptedMmk?: Uint8Array | undefined;
+  recipDeviceHash?: Uint8Array | undefined;
+}
+
+export interface MmkDistributionToMailbox {
+  encryptedMmk?: Uint8Array | undefined;
+  recipMailboxHeadHash?: Uint8Array | undefined;
+}
+
+export interface MmkFromDetachedDevice {
+  mmk?: MessagingMailboxPublicData | undefined;
+  fromDetachedDevice?: DetachedDevicePublicData | undefined;
+  membershipProof?: MerkleMembershipProof | undefined;
+}
+
 export interface Money {
   value?: Int64 | undefined;
   offset?: number | undefined;
@@ -5801,9 +6518,8 @@ export interface ReportingTokenInfo {
 
 export interface RotateEpochInput {
   currentEpochRootKey?: Uint8Array | undefined;
-  currentEpochAnonId?: Int64 | undefined;
+  currentEpochAnonId?: Uint8Array | undefined;
   currentEpochFbid?: Int64 | undefined;
-  newEpochFbid?: Int64 | undefined;
   epochStoragePrivateKey?: Uint8Array | undefined;
   members?: RotateEpochMemberInput[] | undefined;
 }
@@ -5823,8 +6539,9 @@ export interface RotateEpochMemberInput {
 export interface RotateEpochOutput {
   newEpochRootKey?: Uint8Array | undefined;
   newEpochAnonId?: Int64 | undefined;
+  newEpochFbid?: Int64 | undefined;
   epochAnonId?: Uint8Array | undefined;
-  epochData?: Uint8Array | undefined;
+  backwardEdge?: BackwardEdge | undefined;
   memberEdges?: RotateEpochMemberEdge[] | undefined;
   epochRootKeyFingerprint?: Uint8Array | undefined;
   error?: string | undefined;
@@ -5952,6 +6669,12 @@ export interface SignalMessage {
   counter?: number | undefined;
   previousCounter?: number | undefined;
   ciphertext?: Uint8Array | undefined;
+}
+
+export interface SignedMmkDistributionFromMailbox {
+  mmkDistribution?: MmkDistribution | undefined;
+  signature?: Uint8Array | undefined;
+  fromMailbox?: MessagingMailboxPublicData | undefined;
 }
 
 export interface SignedPreKeyRecordStructure {
@@ -6197,6 +6920,7 @@ export interface SyncActionValue {
   bubbleLockMessageAction?: SyncActionValue_BubbleLockMessageAction | undefined;
   labelSublistAction?: SyncActionValue_LabelSublistAction | undefined;
   deviceCapabilitiesV2?: DeviceCapabilities | undefined;
+  ctwaMessageReceivedAction?: SyncActionValue_CtwaMessageReceivedAction | undefined;
 }
 
 export enum SyncActionValue_BusinessBroadcastCampaignStatus {
@@ -6335,6 +7059,10 @@ export interface SyncActionValue_ContactAction {
   username?: string | undefined;
 }
 
+export interface SyncActionValue_CtwaMessageReceivedAction {
+  isCtwaMessageReceived?: boolean | undefined;
+}
+
 export interface SyncActionValue_CtwaPerCustomerDataSharingAction {
   isCtwaPerCustomerDataSharingEnabled?: boolean | undefined;
 }
@@ -6448,6 +7176,7 @@ export enum SyncActionValue_LabelEditAction_ListType {
   INVITES = 14,
   THIRD_PARTY = 15,
   LEAD = 16,
+  MENTIONS_AND_REPLIES = 17,
   UNRECOGNIZED = -1,
 }
 
@@ -7505,6 +8234,22 @@ export interface WebNotificationsInfo {
   unreadChats?: number | undefined;
   notifyMessageCount?: number | undefined;
   notifyMessages?: WebMessageInfo[] | undefined;
+}
+
+export interface WrapTransportSigningPublicKeyInput {
+  keyBytes?: Uint8Array | undefined;
+}
+
+export interface WrapTransportSigningPublicKeyResult {
+  prefixedKey?: Uint8Array | undefined;
+}
+
+export interface WrapTransportSigningSecretKeyInput {
+  keyBytes?: Uint8Array | undefined;
+}
+
+export interface WrapTransportSigningSecretKeyResult {
+  prefixedKey?: Uint8Array | undefined;
 }
 
 function createBaseADVDeviceIdentity(): ADVDeviceIdentity {
@@ -10704,6 +11449,76 @@ export const AvatarUserSettings: MessageFns<AvatarUserSettings> = {
     const message = createBaseAvatarUserSettings();
     message.fbid = object.fbid ?? undefined;
     message.password = object.password ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBackwardEdge(): BackwardEdge {
+  return {};
+}
+
+export const BackwardEdge: MessageFns<BackwardEdge> = {
+  encode(message: BackwardEdge, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptedPrevEpochAnonId !== undefined) {
+      writer.uint32(10).bytes(message.encryptedPrevEpochAnonId);
+    }
+    if (message.encryptedPrevEpochRootKey !== undefined) {
+      writer.uint32(18).bytes(message.encryptedPrevEpochRootKey);
+    }
+    if (message.prevEpochRootKeyFingerprint !== undefined) {
+      writer.uint32(26).bytes(message.prevEpochRootKeyFingerprint);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: BackwardEdge): BackwardEdge {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseBackwardEdge();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedPrevEpochAnonId = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.encryptedPrevEpochRootKey = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.prevEpochRootKeyFingerprint = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<BackwardEdge>): BackwardEdge {
+    return BackwardEdge.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<BackwardEdge>): BackwardEdge {
+    const message = createBaseBackwardEdge();
+    message.encryptedPrevEpochAnonId = object.encryptedPrevEpochAnonId ?? undefined;
+    message.encryptedPrevEpochRootKey = object.encryptedPrevEpochRootKey ?? undefined;
+    message.prevEpochRootKeyFingerprint = object.prevEpochRootKeyFingerprint ?? undefined;
     return message;
   },
 };
@@ -25195,6 +26010,614 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
   },
 };
 
+function createBaseDecryptMekForDistributionFromTransportSenderInput(): DecryptMekForDistributionFromTransportSenderInput {
+  return {};
+}
+
+export const DecryptMekForDistributionFromTransportSenderInput: MessageFns<
+  DecryptMekForDistributionFromTransportSenderInput
+> = {
+  encode(
+    message: DecryptMekForDistributionFromTransportSenderInput,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.mekDistribution !== undefined) {
+      DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient.encode(
+        message.mekDistribution,
+        writer.uint32(10).fork(),
+      ).join();
+    }
+    if (message.mekId !== undefined) {
+      writer.uint32(18).bytes(message.mekId);
+    }
+    if (message.rosterHash !== undefined) {
+      writer.uint32(26).bytes(message.rosterHash);
+    }
+    if (message.recipientEncSk !== undefined) {
+      writer.uint32(34).bytes(message.recipientEncSk);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(40).uint64(message.version);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(50).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionFromTransportSenderInput): DecryptMekForDistributionFromTransportSenderInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionFromTransportSenderInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mekDistribution =
+            DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient.decode(reader, reader.uint32(), message.mekDistribution);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.rosterHash = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.recipientEncSk = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.version = reader.uint64Value();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<DecryptMekForDistributionFromTransportSenderInput>,
+  ): DecryptMekForDistributionFromTransportSenderInput {
+    return DecryptMekForDistributionFromTransportSenderInput.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<DecryptMekForDistributionFromTransportSenderInput>,
+  ): DecryptMekForDistributionFromTransportSenderInput {
+    const message = createBaseDecryptMekForDistributionFromTransportSenderInput();
+    message.mekDistribution = (object.mekDistribution !== undefined && object.mekDistribution !== null)
+      ? DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient.fromPartial(
+        object.mekDistribution,
+      )
+      : undefined;
+    message.mekId = object.mekId ?? undefined;
+    message.rosterHash = object.rosterHash ?? undefined;
+    message.recipientEncSk = object.recipientEncSk ?? undefined;
+    message.version = object.version ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient(): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
+  return {};
+}
+
+export const DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient:
+  MessageFns<DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient> = {
+    encode(
+      message: DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient,
+      writer: BinaryWriter = new BinaryWriter(),
+    ): BinaryWriter {
+      if (message.encryptedMek !== undefined) {
+        writer.uint32(10).bytes(message.encryptedMek);
+      }
+      if (message.ephemeralEncryptionPk !== undefined) {
+        writer.uint32(18).bytes(message.ephemeralEncryptionPk);
+      }
+      if (message.signingPk !== undefined) {
+        writer.uint32(26).bytes(message.signingPk);
+      }
+      if (message.signature !== undefined) {
+        writer.uint32(34).bytes(message.signature);
+      }
+      if (message.recipientEpochHead !== undefined) {
+        writer.uint32(42).bytes(message.recipientEpochHead);
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message =
+        into ?? createBaseDecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.encryptedMek = reader.bytes();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.ephemeralEncryptionPk = reader.bytes();
+            continue;
+          }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.signingPk = reader.bytes();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.signature = reader.bytes();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.recipientEpochHead = reader.bytes();
+            continue;
+          }
+        }
+        if (tag >>> 3 === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    create(
+      base?: DeepPartial<
+        DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
+      >,
+    ): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
+      return DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
+        .fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<
+        DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
+      >,
+    ): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
+      const message =
+        createBaseDecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient();
+      message.encryptedMek = object.encryptedMek ?? undefined;
+      message.ephemeralEncryptionPk = object.ephemeralEncryptionPk ?? undefined;
+      message.signingPk = object.signingPk ?? undefined;
+      message.signature = object.signature ?? undefined;
+      message.recipientEpochHead = object.recipientEpochHead ?? undefined;
+      return message;
+    },
+  };
+
+function createBaseDecryptMekForDistributionFromTransportSenderResult(): DecryptMekForDistributionFromTransportSenderResult {
+  return {};
+}
+
+export const DecryptMekForDistributionFromTransportSenderResult: MessageFns<
+  DecryptMekForDistributionFromTransportSenderResult
+> = {
+  encode(
+    message: DecryptMekForDistributionFromTransportSenderResult,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.success !== undefined) {
+      DecryptMekForDistributionFromTransportSenderSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionFromTransportSenderResult): DecryptMekForDistributionFromTransportSenderResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionFromTransportSenderResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = DecryptMekForDistributionFromTransportSenderSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<DecryptMekForDistributionFromTransportSenderResult>,
+  ): DecryptMekForDistributionFromTransportSenderResult {
+    return DecryptMekForDistributionFromTransportSenderResult.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<DecryptMekForDistributionFromTransportSenderResult>,
+  ): DecryptMekForDistributionFromTransportSenderResult {
+    const message = createBaseDecryptMekForDistributionFromTransportSenderResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? DecryptMekForDistributionFromTransportSenderSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptMekForDistributionFromTransportSenderSuccess(): DecryptMekForDistributionFromTransportSenderSuccess {
+  return {};
+}
+
+export const DecryptMekForDistributionFromTransportSenderSuccess: MessageFns<
+  DecryptMekForDistributionFromTransportSenderSuccess
+> = {
+  encode(
+    message: DecryptMekForDistributionFromTransportSenderSuccess,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.mek !== undefined) {
+      writer.uint32(10).bytes(message.mek);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionFromTransportSenderSuccess): DecryptMekForDistributionFromTransportSenderSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionFromTransportSenderSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<DecryptMekForDistributionFromTransportSenderSuccess>,
+  ): DecryptMekForDistributionFromTransportSenderSuccess {
+    return DecryptMekForDistributionFromTransportSenderSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<DecryptMekForDistributionFromTransportSenderSuccess>,
+  ): DecryptMekForDistributionFromTransportSenderSuccess {
+    const message = createBaseDecryptMekForDistributionFromTransportSenderSuccess();
+    message.mek = object.mek ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptMekForDistributionInput(): DecryptMekForDistributionInput {
+  return {};
+}
+
+export const DecryptMekForDistributionInput: MessageFns<DecryptMekForDistributionInput> = {
+  encode(message: DecryptMekForDistributionInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.toMailboxSk !== undefined) {
+      writer.uint32(10).bytes(message.toMailboxSk);
+    }
+    if (message.fromPk !== undefined) {
+      writer.uint32(18).bytes(message.fromPk);
+    }
+    if (message.mekId !== undefined) {
+      writer.uint32(26).bytes(message.mekId);
+    }
+    if (message.senderEpochHead !== undefined) {
+      writer.uint32(34).bytes(message.senderEpochHead);
+    }
+    if (message.rosterHash !== undefined) {
+      writer.uint32(42).bytes(message.rosterHash);
+    }
+    if (message.ciphertext !== undefined) {
+      writer.uint32(50).bytes(message.ciphertext);
+    }
+    if (message.toEpochHead !== undefined) {
+      writer.uint32(58).bytes(message.toEpochHead);
+    }
+    if (message.mekEncryptionVersion !== undefined) {
+      writer.uint32(64).int32(message.mekEncryptionVersion);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(74).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionInput): DecryptMekForDistributionInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.toMailboxSk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fromPk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.senderEpochHead = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.rosterHash = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.ciphertext = reader.bytes();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.toEpochHead = reader.bytes();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.mekEncryptionVersion = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptMekForDistributionInput>): DecryptMekForDistributionInput {
+    return DecryptMekForDistributionInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptMekForDistributionInput>): DecryptMekForDistributionInput {
+    const message = createBaseDecryptMekForDistributionInput();
+    message.toMailboxSk = object.toMailboxSk ?? undefined;
+    message.fromPk = object.fromPk ?? undefined;
+    message.mekId = object.mekId ?? undefined;
+    message.senderEpochHead = object.senderEpochHead ?? undefined;
+    message.rosterHash = object.rosterHash ?? undefined;
+    message.ciphertext = object.ciphertext ?? undefined;
+    message.toEpochHead = object.toEpochHead ?? undefined;
+    message.mekEncryptionVersion = object.mekEncryptionVersion ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptMekForDistributionResult(): DecryptMekForDistributionResult {
+  return {};
+}
+
+export const DecryptMekForDistributionResult: MessageFns<DecryptMekForDistributionResult> = {
+  encode(message: DecryptMekForDistributionResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      DecryptMekForDistributionSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionResult): DecryptMekForDistributionResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = DecryptMekForDistributionSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptMekForDistributionResult>): DecryptMekForDistributionResult {
+    return DecryptMekForDistributionResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptMekForDistributionResult>): DecryptMekForDistributionResult {
+    const message = createBaseDecryptMekForDistributionResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? DecryptMekForDistributionSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptMekForDistributionSuccess(): DecryptMekForDistributionSuccess {
+  return {};
+}
+
+export const DecryptMekForDistributionSuccess: MessageFns<DecryptMekForDistributionSuccess> = {
+  encode(message: DecryptMekForDistributionSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mek !== undefined) {
+      writer.uint32(10).bytes(message.mek);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptMekForDistributionSuccess): DecryptMekForDistributionSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptMekForDistributionSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptMekForDistributionSuccess>): DecryptMekForDistributionSuccess {
+    return DecryptMekForDistributionSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptMekForDistributionSuccess>): DecryptMekForDistributionSuccess {
+    const message = createBaseDecryptMekForDistributionSuccess();
+    message.mek = object.mek ?? undefined;
+    return message;
+  },
+};
+
 function createBaseDecryptMessageInput(): DecryptMessageInput {
   return {};
 }
@@ -25347,6 +26770,774 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
   },
 };
 
+function createBaseDecryptSelfMmkDistributionInput(): DecryptSelfMmkDistributionInput {
+  return {};
+}
+
+export const DecryptSelfMmkDistributionInput: MessageFns<DecryptSelfMmkDistributionInput> = {
+  encode(message: DecryptSelfMmkDistributionInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptedMmk !== undefined) {
+      writer.uint32(10).bytes(message.encryptedMmk);
+    }
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(18).bytes(message.exportRootKey);
+    }
+    if (message.mailboxHeadHash !== undefined) {
+      writer.uint32(26).bytes(message.mailboxHeadHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptSelfMmkDistributionInput): DecryptSelfMmkDistributionInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptSelfMmkDistributionInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedMmk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.mailboxHeadHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptSelfMmkDistributionInput>): DecryptSelfMmkDistributionInput {
+    return DecryptSelfMmkDistributionInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptSelfMmkDistributionInput>): DecryptSelfMmkDistributionInput {
+    const message = createBaseDecryptSelfMmkDistributionInput();
+    message.encryptedMmk = object.encryptedMmk ?? undefined;
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.mailboxHeadHash = object.mailboxHeadHash ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptSelfMmkDistributionResult(): DecryptSelfMmkDistributionResult {
+  return {};
+}
+
+export const DecryptSelfMmkDistributionResult: MessageFns<DecryptSelfMmkDistributionResult> = {
+  encode(message: DecryptSelfMmkDistributionResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      DecryptSelfMmkDistributionSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptSelfMmkDistributionResult): DecryptSelfMmkDistributionResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptSelfMmkDistributionResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = DecryptSelfMmkDistributionSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptSelfMmkDistributionResult>): DecryptSelfMmkDistributionResult {
+    return DecryptSelfMmkDistributionResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptSelfMmkDistributionResult>): DecryptSelfMmkDistributionResult {
+    const message = createBaseDecryptSelfMmkDistributionResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? DecryptSelfMmkDistributionSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDecryptSelfMmkDistributionSuccess(): DecryptSelfMmkDistributionSuccess {
+  return {};
+}
+
+export const DecryptSelfMmkDistributionSuccess: MessageFns<DecryptSelfMmkDistributionSuccess> = {
+  encode(message: DecryptSelfMmkDistributionSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mmkSeed !== undefined) {
+      writer.uint32(10).bytes(message.mmkSeed);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DecryptSelfMmkDistributionSuccess): DecryptSelfMmkDistributionSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDecryptSelfMmkDistributionSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmkSeed = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DecryptSelfMmkDistributionSuccess>): DecryptSelfMmkDistributionSuccess {
+    return DecryptSelfMmkDistributionSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DecryptSelfMmkDistributionSuccess>): DecryptSelfMmkDistributionSuccess {
+    const message = createBaseDecryptSelfMmkDistributionSuccess();
+    message.mmkSeed = object.mmkSeed ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveAttachmentAccessTokenSecretInput(): DeriveAttachmentAccessTokenSecretInput {
+  return {};
+}
+
+export const DeriveAttachmentAccessTokenSecretInput: MessageFns<DeriveAttachmentAccessTokenSecretInput> = {
+  encode(message: DeriveAttachmentAccessTokenSecretInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mediaKey !== undefined) {
+      writer.uint32(10).bytes(message.mediaKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveAttachmentAccessTokenSecretInput): DeriveAttachmentAccessTokenSecretInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveAttachmentAccessTokenSecretInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mediaKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveAttachmentAccessTokenSecretInput>): DeriveAttachmentAccessTokenSecretInput {
+    return DeriveAttachmentAccessTokenSecretInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveAttachmentAccessTokenSecretInput>): DeriveAttachmentAccessTokenSecretInput {
+    const message = createBaseDeriveAttachmentAccessTokenSecretInput();
+    message.mediaKey = object.mediaKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveAttachmentAccessTokenSecretResult(): DeriveAttachmentAccessTokenSecretResult {
+  return {};
+}
+
+export const DeriveAttachmentAccessTokenSecretResult: MessageFns<DeriveAttachmentAccessTokenSecretResult> = {
+  encode(message: DeriveAttachmentAccessTokenSecretResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.attachmentAccessTokenSecret !== undefined) {
+      writer.uint32(10).bytes(message.attachmentAccessTokenSecret);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveAttachmentAccessTokenSecretResult): DeriveAttachmentAccessTokenSecretResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveAttachmentAccessTokenSecretResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.attachmentAccessTokenSecret = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveAttachmentAccessTokenSecretResult>): DeriveAttachmentAccessTokenSecretResult {
+    return DeriveAttachmentAccessTokenSecretResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveAttachmentAccessTokenSecretResult>): DeriveAttachmentAccessTokenSecretResult {
+    const message = createBaseDeriveAttachmentAccessTokenSecretResult();
+    message.attachmentAccessTokenSecret = object.attachmentAccessTokenSecret ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveAttachmentPrimaryKeySecretInput(): DeriveAttachmentPrimaryKeySecretInput {
+  return {};
+}
+
+export const DeriveAttachmentPrimaryKeySecretInput: MessageFns<DeriveAttachmentPrimaryKeySecretInput> = {
+  encode(message: DeriveAttachmentPrimaryKeySecretInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mediaKey !== undefined) {
+      writer.uint32(10).bytes(message.mediaKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveAttachmentPrimaryKeySecretInput): DeriveAttachmentPrimaryKeySecretInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveAttachmentPrimaryKeySecretInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mediaKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveAttachmentPrimaryKeySecretInput>): DeriveAttachmentPrimaryKeySecretInput {
+    return DeriveAttachmentPrimaryKeySecretInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveAttachmentPrimaryKeySecretInput>): DeriveAttachmentPrimaryKeySecretInput {
+    const message = createBaseDeriveAttachmentPrimaryKeySecretInput();
+    message.mediaKey = object.mediaKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveAttachmentPrimaryKeySecretResult(): DeriveAttachmentPrimaryKeySecretResult {
+  return {};
+}
+
+export const DeriveAttachmentPrimaryKeySecretResult: MessageFns<DeriveAttachmentPrimaryKeySecretResult> = {
+  encode(message: DeriveAttachmentPrimaryKeySecretResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.attachmentPrimaryKeySecret !== undefined) {
+      writer.uint32(10).bytes(message.attachmentPrimaryKeySecret);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveAttachmentPrimaryKeySecretResult): DeriveAttachmentPrimaryKeySecretResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveAttachmentPrimaryKeySecretResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.attachmentPrimaryKeySecret = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveAttachmentPrimaryKeySecretResult>): DeriveAttachmentPrimaryKeySecretResult {
+    return DeriveAttachmentPrimaryKeySecretResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveAttachmentPrimaryKeySecretResult>): DeriveAttachmentPrimaryKeySecretResult {
+    const message = createBaseDeriveAttachmentPrimaryKeySecretResult();
+    message.attachmentPrimaryKeySecret = object.attachmentPrimaryKeySecret ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxAuthKeypairInput(): DeriveMailboxAuthKeypairInput {
+  return {};
+}
+
+export const DeriveMailboxAuthKeypairInput: MessageFns<DeriveMailboxAuthKeypairInput> = {
+  encode(message: DeriveMailboxAuthKeypairInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(10).bytes(message.exportRootKey);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxAuthKeypairInput): DeriveMailboxAuthKeypairInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxAuthKeypairInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxAuthKeypairInput>): DeriveMailboxAuthKeypairInput {
+    return DeriveMailboxAuthKeypairInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairInput>): DeriveMailboxAuthKeypairInput {
+    const message = createBaseDeriveMailboxAuthKeypairInput();
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxAuthKeypairResult(): DeriveMailboxAuthKeypairResult {
+  return {};
+}
+
+export const DeriveMailboxAuthKeypairResult: MessageFns<DeriveMailboxAuthKeypairResult> = {
+  encode(message: DeriveMailboxAuthKeypairResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mailboxAuthPublicKey !== undefined) {
+      writer.uint32(10).bytes(message.mailboxAuthPublicKey);
+    }
+    if (message.mailboxAuthPrivateKey !== undefined) {
+      writer.uint32(18).bytes(message.mailboxAuthPrivateKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxAuthKeypairResult): DeriveMailboxAuthKeypairResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxAuthKeypairResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mailboxAuthPublicKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mailboxAuthPrivateKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxAuthKeypairResult>): DeriveMailboxAuthKeypairResult {
+    return DeriveMailboxAuthKeypairResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairResult>): DeriveMailboxAuthKeypairResult {
+    const message = createBaseDeriveMailboxAuthKeypairResult();
+    message.mailboxAuthPublicKey = object.mailboxAuthPublicKey ?? undefined;
+    message.mailboxAuthPrivateKey = object.mailboxAuthPrivateKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxEncryptionKeypairInput(): DeriveMailboxEncryptionKeypairInput {
+  return {};
+}
+
+export const DeriveMailboxEncryptionKeypairInput: MessageFns<DeriveMailboxEncryptionKeypairInput> = {
+  encode(message: DeriveMailboxEncryptionKeypairInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(10).bytes(message.exportRootKey);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxEncryptionKeypairInput): DeriveMailboxEncryptionKeypairInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxEncryptionKeypairInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxEncryptionKeypairInput>): DeriveMailboxEncryptionKeypairInput {
+    return DeriveMailboxEncryptionKeypairInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairInput>): DeriveMailboxEncryptionKeypairInput {
+    const message = createBaseDeriveMailboxEncryptionKeypairInput();
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxEncryptionKeypairResult(): DeriveMailboxEncryptionKeypairResult {
+  return {};
+}
+
+export const DeriveMailboxEncryptionKeypairResult: MessageFns<DeriveMailboxEncryptionKeypairResult> = {
+  encode(message: DeriveMailboxEncryptionKeypairResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mailboxEncryptionPublicKey !== undefined) {
+      writer.uint32(10).bytes(message.mailboxEncryptionPublicKey);
+    }
+    if (message.mailboxEncryptionPrivateKey !== undefined) {
+      writer.uint32(18).bytes(message.mailboxEncryptionPrivateKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxEncryptionKeypairResult): DeriveMailboxEncryptionKeypairResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxEncryptionKeypairResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mailboxEncryptionPublicKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mailboxEncryptionPrivateKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxEncryptionKeypairResult>): DeriveMailboxEncryptionKeypairResult {
+    return DeriveMailboxEncryptionKeypairResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairResult>): DeriveMailboxEncryptionKeypairResult {
+    const message = createBaseDeriveMailboxEncryptionKeypairResult();
+    message.mailboxEncryptionPublicKey = object.mailboxEncryptionPublicKey ?? undefined;
+    message.mailboxEncryptionPrivateKey = object.mailboxEncryptionPrivateKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxSigningKeypairInput(): DeriveMailboxSigningKeypairInput {
+  return {};
+}
+
+export const DeriveMailboxSigningKeypairInput: MessageFns<DeriveMailboxSigningKeypairInput> = {
+  encode(message: DeriveMailboxSigningKeypairInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(10).bytes(message.exportRootKey);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxSigningKeypairInput): DeriveMailboxSigningKeypairInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxSigningKeypairInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxSigningKeypairInput>): DeriveMailboxSigningKeypairInput {
+    return DeriveMailboxSigningKeypairInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairInput>): DeriveMailboxSigningKeypairInput {
+    const message = createBaseDeriveMailboxSigningKeypairInput();
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxSigningKeypairResult(): DeriveMailboxSigningKeypairResult {
+  return {};
+}
+
+export const DeriveMailboxSigningKeypairResult: MessageFns<DeriveMailboxSigningKeypairResult> = {
+  encode(message: DeriveMailboxSigningKeypairResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      DeriveMailboxSigningKeypairSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxSigningKeypairResult): DeriveMailboxSigningKeypairResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxSigningKeypairResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = DeriveMailboxSigningKeypairSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxSigningKeypairResult>): DeriveMailboxSigningKeypairResult {
+    return DeriveMailboxSigningKeypairResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairResult>): DeriveMailboxSigningKeypairResult {
+    const message = createBaseDeriveMailboxSigningKeypairResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? DeriveMailboxSigningKeypairSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMailboxSigningKeypairSuccess(): DeriveMailboxSigningKeypairSuccess {
+  return {};
+}
+
+export const DeriveMailboxSigningKeypairSuccess: MessageFns<DeriveMailboxSigningKeypairSuccess> = {
+  encode(message: DeriveMailboxSigningKeypairSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mailboxSigningPublicKey !== undefined) {
+      writer.uint32(10).bytes(message.mailboxSigningPublicKey);
+    }
+    if (message.mailboxSigningPrivateKey !== undefined) {
+      writer.uint32(18).bytes(message.mailboxSigningPrivateKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMailboxSigningKeypairSuccess): DeriveMailboxSigningKeypairSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMailboxSigningKeypairSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mailboxSigningPublicKey = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mailboxSigningPrivateKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMailboxSigningKeypairSuccess>): DeriveMailboxSigningKeypairSuccess {
+    return DeriveMailboxSigningKeypairSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairSuccess>): DeriveMailboxSigningKeypairSuccess {
+    const message = createBaseDeriveMailboxSigningKeypairSuccess();
+    message.mailboxSigningPublicKey = object.mailboxSigningPublicKey ?? undefined;
+    message.mailboxSigningPrivateKey = object.mailboxSigningPrivateKey ?? undefined;
+    return message;
+  },
+};
+
 function createBaseDeriveMessageKeyInput(): DeriveMessageKeyInput {
   return {};
 }
@@ -25475,6 +27666,300 @@ export const DeriveMessageKeyOutput: MessageFns<DeriveMessageKeyOutput> = {
   },
 };
 
+function createBaseDeriveMessagingMailboxKeypairsInput(): DeriveMessagingMailboxKeypairsInput {
+  return {};
+}
+
+export const DeriveMessagingMailboxKeypairsInput: MessageFns<DeriveMessagingMailboxKeypairsInput> = {
+  encode(message: DeriveMessagingMailboxKeypairsInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mmkSeed !== undefined) {
+      writer.uint32(10).bytes(message.mmkSeed);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMessagingMailboxKeypairsInput): DeriveMessagingMailboxKeypairsInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMessagingMailboxKeypairsInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmkSeed = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMessagingMailboxKeypairsInput>): DeriveMessagingMailboxKeypairsInput {
+    return DeriveMessagingMailboxKeypairsInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsInput>): DeriveMessagingMailboxKeypairsInput {
+    const message = createBaseDeriveMessagingMailboxKeypairsInput();
+    message.mmkSeed = object.mmkSeed ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMessagingMailboxKeypairsResult(): DeriveMessagingMailboxKeypairsResult {
+  return {};
+}
+
+export const DeriveMessagingMailboxKeypairsResult: MessageFns<DeriveMessagingMailboxKeypairsResult> = {
+  encode(message: DeriveMessagingMailboxKeypairsResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      DeriveMessagingMailboxKeypairsSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMessagingMailboxKeypairsResult): DeriveMessagingMailboxKeypairsResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMessagingMailboxKeypairsResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = DeriveMessagingMailboxKeypairsSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMessagingMailboxKeypairsResult>): DeriveMessagingMailboxKeypairsResult {
+    return DeriveMessagingMailboxKeypairsResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsResult>): DeriveMessagingMailboxKeypairsResult {
+    const message = createBaseDeriveMessagingMailboxKeypairsResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? DeriveMessagingMailboxKeypairsSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeriveMessagingMailboxKeypairsSuccess(): DeriveMessagingMailboxKeypairsSuccess {
+  return {};
+}
+
+export const DeriveMessagingMailboxKeypairsSuccess: MessageFns<DeriveMessagingMailboxKeypairsSuccess> = {
+  encode(message: DeriveMessagingMailboxKeypairsSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encSk !== undefined) {
+      writer.uint32(10).bytes(message.encSk);
+    }
+    if (message.encPk !== undefined) {
+      writer.uint32(18).bytes(message.encPk);
+    }
+    if (message.authSk !== undefined) {
+      writer.uint32(26).bytes(message.authSk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(34).bytes(message.authPk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeriveMessagingMailboxKeypairsSuccess): DeriveMessagingMailboxKeypairsSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeriveMessagingMailboxKeypairsSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encSk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.encPk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.authSk = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeriveMessagingMailboxKeypairsSuccess>): DeriveMessagingMailboxKeypairsSuccess {
+    return DeriveMessagingMailboxKeypairsSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsSuccess>): DeriveMessagingMailboxKeypairsSuccess {
+    const message = createBaseDeriveMessagingMailboxKeypairsSuccess();
+    message.encSk = object.encSk ?? undefined;
+    message.encPk = object.encPk ?? undefined;
+    message.authSk = object.authSk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDetachedDevicePublicData(): DetachedDevicePublicData {
+  return {};
+}
+
+export const DetachedDevicePublicData: MessageFns<DetachedDevicePublicData> = {
+  encode(message: DetachedDevicePublicData, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deviceId !== undefined) {
+      writer.uint32(8).uint64(message.deviceId);
+    }
+    if (message.name !== undefined) {
+      writer.uint32(18).bytes(message.name);
+    }
+    if (message.sigPk !== undefined) {
+      writer.uint32(26).bytes(message.sigPk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(34).bytes(message.authPk);
+    }
+    if (message.encPk !== undefined) {
+      writer.uint32(42).bytes(message.encPk);
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(50).bytes(message.signature);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DetachedDevicePublicData): DetachedDevicePublicData {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDetachedDevicePublicData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deviceId = reader.uint64Value();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.sigPk = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.encPk = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DetachedDevicePublicData>): DetachedDevicePublicData {
+    return DetachedDevicePublicData.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DetachedDevicePublicData>): DetachedDevicePublicData {
+    const message = createBaseDetachedDevicePublicData();
+    message.deviceId = object.deviceId ?? undefined;
+    message.name = object.name ?? undefined;
+    message.sigPk = object.sigPk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    message.encPk = object.encPk ?? undefined;
+    message.signature = object.signature ?? undefined;
+    return message;
+  },
+};
+
 function createBaseDeviceCapabilities(): DeviceCapabilities {
   return {};
 }
@@ -25501,6 +27986,12 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
     }
     if (message.aiFbidMigration !== undefined) {
       DeviceCapabilities_AiFbidMigration.encode(message.aiFbidMigration, writer.uint32(58).fork()).join();
+    }
+    if (message.bizAiSettingsSync !== undefined) {
+      DeviceCapabilities_BizAiSettingsSync.encode(message.bizAiSettingsSync, writer.uint32(66).fork()).join();
+    }
+    if (message.contactRefresh !== undefined) {
+      DeviceCapabilities_ContactRefresh.encode(message.contactRefresh, writer.uint32(74).fork()).join();
     }
     return writer;
   },
@@ -25568,6 +28059,22 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
           message.aiFbidMigration = DeviceCapabilities_AiFbidMigration.decode(reader, reader.uint32(), message.aiFbidMigration);
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.bizAiSettingsSync = DeviceCapabilities_BizAiSettingsSync.decode(reader, reader.uint32(), message.bizAiSettingsSync);
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.contactRefresh = DeviceCapabilities_ContactRefresh.decode(reader, reader.uint32(), message.contactRefresh);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -25598,6 +28105,12 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
       : undefined;
     message.aiFbidMigration = (object.aiFbidMigration !== undefined && object.aiFbidMigration !== null)
       ? DeviceCapabilities_AiFbidMigration.fromPartial(object.aiFbidMigration)
+      : undefined;
+    message.bizAiSettingsSync = (object.bizAiSettingsSync !== undefined && object.bizAiSettingsSync !== null)
+      ? DeviceCapabilities_BizAiSettingsSync.fromPartial(object.bizAiSettingsSync)
+      : undefined;
+    message.contactRefresh = (object.contactRefresh !== undefined && object.contactRefresh !== null)
+      ? DeviceCapabilities_ContactRefresh.fromPartial(object.contactRefresh)
       : undefined;
     return message;
   },
@@ -25695,6 +28208,52 @@ export const DeviceCapabilities_AiThread: MessageFns<DeviceCapabilities_AiThread
   },
 };
 
+function createBaseDeviceCapabilities_BizAiSettingsSync(): DeviceCapabilities_BizAiSettingsSync {
+  return {};
+}
+
+export const DeviceCapabilities_BizAiSettingsSync: MessageFns<DeviceCapabilities_BizAiSettingsSync> = {
+  encode(message: DeviceCapabilities_BizAiSettingsSync, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.handoffRemovalTimingEnabled !== undefined) {
+      writer.uint32(8).bool(message.handoffRemovalTimingEnabled);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_BizAiSettingsSync): DeviceCapabilities_BizAiSettingsSync {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeviceCapabilities_BizAiSettingsSync();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.handoffRemovalTimingEnabled = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeviceCapabilities_BizAiSettingsSync>): DeviceCapabilities_BizAiSettingsSync {
+    return DeviceCapabilities_BizAiSettingsSync.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeviceCapabilities_BizAiSettingsSync>): DeviceCapabilities_BizAiSettingsSync {
+    const message = createBaseDeviceCapabilities_BizAiSettingsSync();
+    message.handoffRemovalTimingEnabled = object.handoffRemovalTimingEnabled ?? undefined;
+    return message;
+  },
+};
+
 function createBaseDeviceCapabilities_BusinessBroadcast(): DeviceCapabilities_BusinessBroadcast {
   return {};
 }
@@ -25785,6 +28344,52 @@ export const DeviceCapabilities_BusinessBroadcast: MessageFns<DeviceCapabilities
     message.campaignSyncEnabled = object.campaignSyncEnabled ?? undefined;
     message.insightsSyncEnabled = object.insightsSyncEnabled ?? undefined;
     message.recipientLimit = object.recipientLimit ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeviceCapabilities_ContactRefresh(): DeviceCapabilities_ContactRefresh {
+  return {};
+}
+
+export const DeviceCapabilities_ContactRefresh: MessageFns<DeviceCapabilities_ContactRefresh> = {
+  encode(message: DeviceCapabilities_ContactRefresh, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.refreshSupported !== undefined) {
+      writer.uint32(8).bool(message.refreshSupported);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: DeviceCapabilities_ContactRefresh): DeviceCapabilities_ContactRefresh {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseDeviceCapabilities_ContactRefresh();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.refreshSupported = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<DeviceCapabilities_ContactRefresh>): DeviceCapabilities_ContactRefresh {
+    return DeviceCapabilities_ContactRefresh.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<DeviceCapabilities_ContactRefresh>): DeviceCapabilities_ContactRefresh {
+    const message = createBaseDeviceCapabilities_ContactRefresh();
+    message.refreshSupported = object.refreshSupported ?? undefined;
     return message;
   },
 };
@@ -26144,6 +28749,9 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
     if (message.ocmfClientState !== undefined) {
       writer.uint32(74).bytes(message.ocmfClientState);
     }
+    if (message.epochStoragePrivateKey !== undefined) {
+      writer.uint32(82).bytes(message.epochStoragePrivateKey);
+    }
     return writer;
   },
 
@@ -26242,6 +28850,14 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
           message.ocmfClientState = reader.bytes();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.epochStoragePrivateKey = reader.bytes();
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -26265,6 +28881,7 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
     message.encryptionVersionSignature = object.encryptionVersionSignature ?? undefined;
     message.clientVersion = object.clientVersion ?? undefined;
     message.ocmfClientState = object.ocmfClientState ?? undefined;
+    message.epochStoragePrivateKey = object.epochStoragePrivateKey ?? undefined;
     return message;
   },
 };
@@ -27209,6 +29826,543 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
   },
 };
 
+function createBaseEncryptMekForDistributionInput(): EncryptMekForDistributionInput {
+  return {};
+}
+
+export const EncryptMekForDistributionInput: MessageFns<EncryptMekForDistributionInput> = {
+  encode(message: EncryptMekForDistributionInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.senderEpochHead !== undefined) {
+      writer.uint32(10).bytes(message.senderEpochHead);
+    }
+    if (message.toMailboxPk !== undefined) {
+      writer.uint32(18).bytes(message.toMailboxPk);
+    }
+    if (message.fromKeypair !== undefined) {
+      EncryptMekForDistributionInput_MailboxAuthKP.encode(message.fromKeypair, writer.uint32(26).fork()).join();
+    }
+    if (message.mek !== undefined) {
+      MekBundle.encode(message.mek, writer.uint32(34).fork()).join();
+    }
+    if (message.toEpochHead !== undefined) {
+      writer.uint32(42).bytes(message.toEpochHead);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(50).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMekForDistributionInput): EncryptMekForDistributionInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMekForDistributionInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.senderEpochHead = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.toMailboxPk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fromKeypair = EncryptMekForDistributionInput_MailboxAuthKP.decode(reader, reader.uint32(), message.fromKeypair);
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.mek = MekBundle.decode(reader, reader.uint32(), message.mek);
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.toEpochHead = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<EncryptMekForDistributionInput>): EncryptMekForDistributionInput {
+    return EncryptMekForDistributionInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EncryptMekForDistributionInput>): EncryptMekForDistributionInput {
+    const message = createBaseEncryptMekForDistributionInput();
+    message.senderEpochHead = object.senderEpochHead ?? undefined;
+    message.toMailboxPk = object.toMailboxPk ?? undefined;
+    message.fromKeypair = (object.fromKeypair !== undefined && object.fromKeypair !== null)
+      ? EncryptMekForDistributionInput_MailboxAuthKP.fromPartial(object.fromKeypair)
+      : undefined;
+    message.mek = (object.mek !== undefined && object.mek !== null) ? MekBundle.fromPartial(object.mek) : undefined;
+    message.toEpochHead = object.toEpochHead ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEncryptMekForDistributionInput_MailboxAuthKP(): EncryptMekForDistributionInput_MailboxAuthKP {
+  return {};
+}
+
+export const EncryptMekForDistributionInput_MailboxAuthKP: MessageFns<EncryptMekForDistributionInput_MailboxAuthKP> = {
+  encode(
+    message: EncryptMekForDistributionInput_MailboxAuthKP,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.sk !== undefined) {
+      writer.uint32(10).bytes(message.sk);
+    }
+    if (message.pk !== undefined) {
+      writer.uint32(18).bytes(message.pk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMekForDistributionInput_MailboxAuthKP): EncryptMekForDistributionInput_MailboxAuthKP {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMekForDistributionInput_MailboxAuthKP();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.pk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<EncryptMekForDistributionInput_MailboxAuthKP>,
+  ): EncryptMekForDistributionInput_MailboxAuthKP {
+    return EncryptMekForDistributionInput_MailboxAuthKP.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<EncryptMekForDistributionInput_MailboxAuthKP>,
+  ): EncryptMekForDistributionInput_MailboxAuthKP {
+    const message = createBaseEncryptMekForDistributionInput_MailboxAuthKP();
+    message.sk = object.sk ?? undefined;
+    message.pk = object.pk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEncryptMekForDistributionResult(): EncryptMekForDistributionResult {
+  return {};
+}
+
+export const EncryptMekForDistributionResult: MessageFns<EncryptMekForDistributionResult> = {
+  encode(message: EncryptMekForDistributionResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ciphertext !== undefined) {
+      writer.uint32(10).bytes(message.ciphertext);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(16).uint64(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMekForDistributionResult): EncryptMekForDistributionResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMekForDistributionResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ciphertext = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.version = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<EncryptMekForDistributionResult>): EncryptMekForDistributionResult {
+    return EncryptMekForDistributionResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EncryptMekForDistributionResult>): EncryptMekForDistributionResult {
+    const message = createBaseEncryptMekForDistributionResult();
+    message.ciphertext = object.ciphertext ?? undefined;
+    message.version = object.version ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEncryptMeksForDistributionFromTransportSenderInput(): EncryptMeksForDistributionFromTransportSenderInput {
+  return {};
+}
+
+export const EncryptMeksForDistributionFromTransportSenderInput: MessageFns<
+  EncryptMeksForDistributionFromTransportSenderInput
+> = {
+  encode(
+    message: EncryptMeksForDistributionFromTransportSenderInput,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.mek !== undefined) {
+      MekBundle.encode(message.mek, writer.uint32(10).fork()).join();
+    }
+    if (message.transportSigningKp !== undefined) {
+      EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP.encode(
+        message.transportSigningKp,
+        writer.uint32(18).fork(),
+      ).join();
+    }
+    if (message.recipientMailboxEncryptionPks !== undefined && message.recipientMailboxEncryptionPks.length !== 0) {
+      for (const v of message.recipientMailboxEncryptionPks) {
+        writer.uint32(26).bytes(v!);
+      }
+    }
+    if (message.recipientEpochHeads !== undefined && message.recipientEpochHeads.length !== 0) {
+      for (const v of message.recipientEpochHeads) {
+        writer.uint32(34).bytes(v!);
+      }
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMeksForDistributionFromTransportSenderInput): EncryptMeksForDistributionFromTransportSenderInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMeksForDistributionFromTransportSenderInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = MekBundle.decode(reader, reader.uint32(), message.mek);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.transportSigningKp = EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP.decode(reader, reader.uint32(), message.transportSigningKp);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          if (message.recipientMailboxEncryptionPks === undefined) {
+            message.recipientMailboxEncryptionPks = [];
+          }
+          const el = reader.bytes();
+          if (el !== undefined) {
+            message.recipientMailboxEncryptionPks!.push(el);
+          }
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          if (message.recipientEpochHeads === undefined) {
+            message.recipientEpochHeads = [];
+          }
+          const el = reader.bytes();
+          if (el !== undefined) {
+            message.recipientEpochHeads!.push(el);
+          }
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput>,
+  ): EncryptMeksForDistributionFromTransportSenderInput {
+    return EncryptMeksForDistributionFromTransportSenderInput.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput>,
+  ): EncryptMeksForDistributionFromTransportSenderInput {
+    const message = createBaseEncryptMeksForDistributionFromTransportSenderInput();
+    message.mek = (object.mek !== undefined && object.mek !== null) ? MekBundle.fromPartial(object.mek) : undefined;
+    message.transportSigningKp = (object.transportSigningKp !== undefined && object.transportSigningKp !== null)
+      ? EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP.fromPartial(object.transportSigningKp)
+      : undefined;
+    message.recipientMailboxEncryptionPks = object.recipientMailboxEncryptionPks?.map((e) => e) || undefined;
+    message.recipientEpochHeads = object.recipientEpochHeads?.map((e) => e) || undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP(): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
+  return {};
+}
+
+export const EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP: MessageFns<
+  EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP
+> = {
+  encode(
+    message: EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.sk !== undefined) {
+      writer.uint32(10).bytes(message.sk);
+    }
+    if (message.pk !== undefined) {
+      writer.uint32(18).bytes(message.pk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.pk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP>,
+  ): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
+    return EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP>,
+  ): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
+    const message = createBaseEncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP();
+    message.sk = object.sk ?? undefined;
+    message.pk = object.pk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEncryptMeksForDistributionFromTransportSenderResult(): EncryptMeksForDistributionFromTransportSenderResult {
+  return {};
+}
+
+export const EncryptMeksForDistributionFromTransportSenderResult: MessageFns<
+  EncryptMeksForDistributionFromTransportSenderResult
+> = {
+  encode(
+    message: EncryptMeksForDistributionFromTransportSenderResult,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.encryptedMeks !== undefined && message.encryptedMeks.length !== 0) {
+      for (const v of message.encryptedMeks) {
+        writer.uint32(10).bytes(v!);
+      }
+    }
+    if (message.ephemeralEncryptionPk !== undefined) {
+      writer.uint32(18).bytes(message.ephemeralEncryptionPk);
+    }
+    if (message.signingPk !== undefined) {
+      writer.uint32(26).bytes(message.signingPk);
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(34).bytes(message.signature);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(40).uint64(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EncryptMeksForDistributionFromTransportSenderResult): EncryptMeksForDistributionFromTransportSenderResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEncryptMeksForDistributionFromTransportSenderResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.encryptedMeks === undefined) {
+            message.encryptedMeks = [];
+          }
+          const el = reader.bytes();
+          if (el !== undefined) {
+            message.encryptedMeks!.push(el);
+          }
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.ephemeralEncryptionPk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.signingPk = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.version = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderResult>,
+  ): EncryptMeksForDistributionFromTransportSenderResult {
+    return EncryptMeksForDistributionFromTransportSenderResult.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<EncryptMeksForDistributionFromTransportSenderResult>,
+  ): EncryptMeksForDistributionFromTransportSenderResult {
+    const message = createBaseEncryptMeksForDistributionFromTransportSenderResult();
+    message.encryptedMeks = object.encryptedMeks?.map((e) => e) || undefined;
+    message.ephemeralEncryptionPk = object.ephemeralEncryptionPk ?? undefined;
+    message.signingPk = object.signingPk ?? undefined;
+    message.signature = object.signature ?? undefined;
+    message.version = object.version ?? undefined;
+    return message;
+  },
+};
+
 function createBaseEncryptMessageInput(): EncryptMessageInput {
   return {};
 }
@@ -27845,6 +30999,170 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
   },
 };
 
+function createBaseEpochPublicData(): EpochPublicData {
+  return {};
+}
+
+export const EpochPublicData: MessageFns<EpochPublicData> = {
+  encode(message: EpochPublicData, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochNumber !== undefined) {
+      writer.uint32(8).uint64(message.epochNumber);
+    }
+    if (message.userFbid !== undefined) {
+      writer.uint32(18).string(message.userFbid);
+    }
+    if (message.mailboxSigningPk !== undefined) {
+      writer.uint32(26).bytes(message.mailboxSigningPk);
+    }
+    if (message.mailboxEncryptionPk !== undefined) {
+      writer.uint32(34).bytes(message.mailboxEncryptionPk);
+    }
+    if (message.mailboxAuthPk !== undefined) {
+      writer.uint32(42).bytes(message.mailboxAuthPk);
+    }
+    if (message.previousEpochHead !== undefined) {
+      writer.uint32(50).bytes(message.previousEpochHead);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EpochPublicData): EpochPublicData {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEpochPublicData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userFbid = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.mailboxSigningPk = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.mailboxEncryptionPk = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.mailboxAuthPk = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.previousEpochHead = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<EpochPublicData>): EpochPublicData {
+    return EpochPublicData.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EpochPublicData>): EpochPublicData {
+    const message = createBaseEpochPublicData();
+    message.epochNumber = object.epochNumber ?? undefined;
+    message.userFbid = object.userFbid ?? undefined;
+    message.mailboxSigningPk = object.mailboxSigningPk ?? undefined;
+    message.mailboxEncryptionPk = object.mailboxEncryptionPk ?? undefined;
+    message.mailboxAuthPk = object.mailboxAuthPk ?? undefined;
+    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEpochSignatures(): EpochSignatures {
+  return {};
+}
+
+export const EpochSignatures: MessageFns<EpochSignatures> = {
+  encode(message: EpochSignatures, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.selfSignature !== undefined) {
+      writer.uint32(10).bytes(message.selfSignature);
+    }
+    if (message.prevSignature !== undefined) {
+      writer.uint32(18).bytes(message.prevSignature);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: EpochSignatures): EpochSignatures {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseEpochSignatures();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.selfSignature = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.prevSignature = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<EpochSignatures>): EpochSignatures {
+    return EpochSignatures.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<EpochSignatures>): EpochSignatures {
+    const message = createBaseEpochSignatures();
+    message.selfSignature = object.selfSignature ?? undefined;
+    message.prevSignature = object.prevSignature ?? undefined;
+    return message;
+  },
+};
+
 function createBaseEventAdditionalMetadata(): EventAdditionalMetadata {
   return {};
 }
@@ -28032,6 +31350,540 @@ export const ExitCode: MessageFns<ExitCode> = {
     const message = createBaseExitCode();
     message.code = object.code ?? undefined;
     message.text = object.text ?? undefined;
+    return message;
+  },
+};
+
+function createBaseExtendedContentMessage(): ExtendedContentMessage {
+  return {};
+}
+
+export const ExtendedContentMessage: MessageFns<ExtendedContentMessage> = {
+  encode(message: ExtendedContentMessage, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.associatedMessage !== undefined) {
+      SubProtocol.encode(message.associatedMessage, writer.uint32(10).fork()).join();
+    }
+    if (message.targetType !== undefined) {
+      writer.uint32(16).int32(message.targetType);
+    }
+    if (message.targetUsername !== undefined) {
+      writer.uint32(26).string(message.targetUsername);
+    }
+    if (message.targetId !== undefined) {
+      writer.uint32(34).string(message.targetId);
+    }
+    if (message.targetExpiringAtSec !== undefined) {
+      writer.uint32(40).int64(message.targetExpiringAtSec);
+    }
+    if (message.xmaLayoutType !== undefined) {
+      writer.uint32(48).int32(message.xmaLayoutType);
+    }
+    if (message.ctas !== undefined && message.ctas.length !== 0) {
+      for (const v of message.ctas) {
+        ExtendedContentMessage_CTA.encode(v!, writer.uint32(58).fork()).join();
+      }
+    }
+    if (message.previews !== undefined && message.previews.length !== 0) {
+      for (const v of message.previews) {
+        SubProtocol.encode(v!, writer.uint32(66).fork()).join();
+      }
+    }
+    if (message.titleText !== undefined) {
+      writer.uint32(74).string(message.titleText);
+    }
+    if (message.subtitleText !== undefined) {
+      writer.uint32(82).string(message.subtitleText);
+    }
+    if (message.maxTitleNumOfLines !== undefined) {
+      writer.uint32(88).uint32(message.maxTitleNumOfLines);
+    }
+    if (message.maxSubtitleNumOfLines !== undefined) {
+      writer.uint32(96).uint32(message.maxSubtitleNumOfLines);
+    }
+    if (message.favicon !== undefined) {
+      SubProtocol.encode(message.favicon, writer.uint32(106).fork()).join();
+    }
+    if (message.headerImage !== undefined) {
+      SubProtocol.encode(message.headerImage, writer.uint32(114).fork()).join();
+    }
+    if (message.headerTitle !== undefined) {
+      writer.uint32(122).string(message.headerTitle);
+    }
+    if (message.overlayIconGlyph !== undefined) {
+      writer.uint32(128).int32(message.overlayIconGlyph);
+    }
+    if (message.overlayTitle !== undefined) {
+      writer.uint32(138).string(message.overlayTitle);
+    }
+    if (message.overlayDescription !== undefined) {
+      writer.uint32(146).string(message.overlayDescription);
+    }
+    if (message.sentWithMessageId !== undefined) {
+      writer.uint32(154).string(message.sentWithMessageId);
+    }
+    if (message.messageText !== undefined) {
+      writer.uint32(162).string(message.messageText);
+    }
+    if (message.headerSubtitle !== undefined) {
+      writer.uint32(170).string(message.headerSubtitle);
+    }
+    if (message.xmaDataclass !== undefined) {
+      writer.uint32(178).string(message.xmaDataclass);
+    }
+    if (message.contentRef !== undefined) {
+      writer.uint32(186).string(message.contentRef);
+    }
+    if (message.mentionedJid !== undefined && message.mentionedJid.length !== 0) {
+      for (const v of message.mentionedJid) {
+        writer.uint32(194).string(v!);
+      }
+    }
+    if (message.commands !== undefined && message.commands.length !== 0) {
+      for (const v of message.commands) {
+        Command.encode(v!, writer.uint32(202).fork()).join();
+      }
+    }
+    if (message.mentions !== undefined && message.mentions.length !== 0) {
+      for (const v of message.mentions) {
+        Mention.encode(v!, writer.uint32(210).fork()).join();
+      }
+    }
+    if (message.xmaDataclassType !== undefined) {
+      writer.uint32(216).int32(message.xmaDataclassType);
+    }
+    if (message.signedXmaDataclassValidation !== undefined) {
+      writer.uint32(226).string(message.signedXmaDataclassValidation);
+    }
+    if (message.featureSharedSessionId !== undefined) {
+      writer.uint32(234).string(message.featureSharedSessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ExtendedContentMessage): ExtendedContentMessage {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseExtendedContentMessage();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.associatedMessage = SubProtocol.decode(reader, reader.uint32(), message.associatedMessage);
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.targetType = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.targetUsername = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.targetId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.targetExpiringAtSec = reader.int64Value();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.xmaLayoutType = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          if (message.ctas === undefined) {
+            message.ctas = [];
+          }
+          const el = ExtendedContentMessage_CTA.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.ctas!.push(el);
+          }
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          if (message.previews === undefined) {
+            message.previews = [];
+          }
+          const el = SubProtocol.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.previews!.push(el);
+          }
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.titleText = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.subtitleText = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.maxTitleNumOfLines = reader.uint32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.maxSubtitleNumOfLines = reader.uint32();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.favicon = SubProtocol.decode(reader, reader.uint32(), message.favicon);
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.headerImage = SubProtocol.decode(reader, reader.uint32(), message.headerImage);
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.headerTitle = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.overlayIconGlyph = reader.int32() as any;
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.overlayTitle = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.overlayDescription = reader.string();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.sentWithMessageId = reader.string();
+          continue;
+        }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.messageText = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.headerSubtitle = reader.string();
+          continue;
+        }
+        case 22: {
+          if (tag !== 178) {
+            break;
+          }
+
+          message.xmaDataclass = reader.string();
+          continue;
+        }
+        case 23: {
+          if (tag !== 186) {
+            break;
+          }
+
+          message.contentRef = reader.string();
+          continue;
+        }
+        case 24: {
+          if (tag !== 194) {
+            break;
+          }
+
+          if (message.mentionedJid === undefined) {
+            message.mentionedJid = [];
+          }
+          const el = reader.string();
+          if (el !== undefined) {
+            message.mentionedJid!.push(el);
+          }
+          continue;
+        }
+        case 25: {
+          if (tag !== 202) {
+            break;
+          }
+
+          if (message.commands === undefined) {
+            message.commands = [];
+          }
+          const el = Command.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.commands!.push(el);
+          }
+          continue;
+        }
+        case 26: {
+          if (tag !== 210) {
+            break;
+          }
+
+          if (message.mentions === undefined) {
+            message.mentions = [];
+          }
+          const el = Mention.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.mentions!.push(el);
+          }
+          continue;
+        }
+        case 27: {
+          if (tag !== 216) {
+            break;
+          }
+
+          message.xmaDataclassType = reader.int32() as any;
+          continue;
+        }
+        case 28: {
+          if (tag !== 226) {
+            break;
+          }
+
+          message.signedXmaDataclassValidation = reader.string();
+          continue;
+        }
+        case 29: {
+          if (tag !== 234) {
+            break;
+          }
+
+          message.featureSharedSessionId = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<ExtendedContentMessage>): ExtendedContentMessage {
+    return ExtendedContentMessage.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExtendedContentMessage>): ExtendedContentMessage {
+    const message = createBaseExtendedContentMessage();
+    message.associatedMessage = (object.associatedMessage !== undefined && object.associatedMessage !== null)
+      ? SubProtocol.fromPartial(object.associatedMessage)
+      : undefined;
+    message.targetType = object.targetType ?? undefined;
+    message.targetUsername = object.targetUsername ?? undefined;
+    message.targetId = object.targetId ?? undefined;
+    message.targetExpiringAtSec = object.targetExpiringAtSec ?? undefined;
+    message.xmaLayoutType = object.xmaLayoutType ?? undefined;
+    message.ctas = object.ctas?.map((e) => ExtendedContentMessage_CTA.fromPartial(e)) || undefined;
+    message.previews = object.previews?.map((e) => SubProtocol.fromPartial(e)) || undefined;
+    message.titleText = object.titleText ?? undefined;
+    message.subtitleText = object.subtitleText ?? undefined;
+    message.maxTitleNumOfLines = object.maxTitleNumOfLines ?? undefined;
+    message.maxSubtitleNumOfLines = object.maxSubtitleNumOfLines ?? undefined;
+    message.favicon = (object.favicon !== undefined && object.favicon !== null)
+      ? SubProtocol.fromPartial(object.favicon)
+      : undefined;
+    message.headerImage = (object.headerImage !== undefined && object.headerImage !== null)
+      ? SubProtocol.fromPartial(object.headerImage)
+      : undefined;
+    message.headerTitle = object.headerTitle ?? undefined;
+    message.overlayIconGlyph = object.overlayIconGlyph ?? undefined;
+    message.overlayTitle = object.overlayTitle ?? undefined;
+    message.overlayDescription = object.overlayDescription ?? undefined;
+    message.sentWithMessageId = object.sentWithMessageId ?? undefined;
+    message.messageText = object.messageText ?? undefined;
+    message.headerSubtitle = object.headerSubtitle ?? undefined;
+    message.xmaDataclass = object.xmaDataclass ?? undefined;
+    message.contentRef = object.contentRef ?? undefined;
+    message.mentionedJid = object.mentionedJid?.map((e) => e) || undefined;
+    message.commands = object.commands?.map((e) => Command.fromPartial(e)) || undefined;
+    message.mentions = object.mentions?.map((e) => Mention.fromPartial(e)) || undefined;
+    message.xmaDataclassType = object.xmaDataclassType ?? undefined;
+    message.signedXmaDataclassValidation = object.signedXmaDataclassValidation ?? undefined;
+    message.featureSharedSessionId = object.featureSharedSessionId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseExtendedContentMessage_CTA(): ExtendedContentMessage_CTA {
+  return {};
+}
+
+export const ExtendedContentMessage_CTA: MessageFns<ExtendedContentMessage_CTA> = {
+  encode(message: ExtendedContentMessage_CTA, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.buttonType !== undefined) {
+      writer.uint32(8).int32(message.buttonType);
+    }
+    if (message.title !== undefined) {
+      writer.uint32(18).string(message.title);
+    }
+    if (message.actionUrl !== undefined) {
+      writer.uint32(26).string(message.actionUrl);
+    }
+    if (message.nativeUrl !== undefined) {
+      writer.uint32(34).string(message.nativeUrl);
+    }
+    if (message.ctaType !== undefined) {
+      writer.uint32(42).string(message.ctaType);
+    }
+    if (message.actionContentBlob !== undefined) {
+      writer.uint32(50).string(message.actionContentBlob);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: ExtendedContentMessage_CTA): ExtendedContentMessage_CTA {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseExtendedContentMessage_CTA();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.buttonType = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.actionUrl = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.nativeUrl = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.ctaType = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.actionContentBlob = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<ExtendedContentMessage_CTA>): ExtendedContentMessage_CTA {
+    return ExtendedContentMessage_CTA.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExtendedContentMessage_CTA>): ExtendedContentMessage_CTA {
+    const message = createBaseExtendedContentMessage_CTA();
+    message.buttonType = object.buttonType ?? undefined;
+    message.title = object.title ?? undefined;
+    message.actionUrl = object.actionUrl ?? undefined;
+    message.nativeUrl = object.nativeUrl ?? undefined;
+    message.ctaType = object.ctaType ?? undefined;
+    message.actionContentBlob = object.actionContentBlob ?? undefined;
     return message;
   },
 };
@@ -28482,6 +32334,206 @@ export const ForwardedAIBotMessageInfo: MessageFns<ForwardedAIBotMessageInfo> = 
     message.botName = object.botName ?? undefined;
     message.botJid = object.botJid ?? undefined;
     message.creatorName = object.creatorName ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGenerateMekInput(): GenerateMekInput {
+  return {};
+}
+
+export const GenerateMekInput: MessageFns<GenerateMekInput> = {
+  encode(message: GenerateMekInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochHeads !== undefined && message.epochHeads.length !== 0) {
+      for (const v of message.epochHeads) {
+        writer.uint32(10).bytes(v!);
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GenerateMekInput): GenerateMekInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseGenerateMekInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.epochHeads === undefined) {
+            message.epochHeads = [];
+          }
+          const el = reader.bytes();
+          if (el !== undefined) {
+            message.epochHeads!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<GenerateMekInput>): GenerateMekInput {
+    return GenerateMekInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GenerateMekInput>): GenerateMekInput {
+    const message = createBaseGenerateMekInput();
+    message.epochHeads = object.epochHeads?.map((e) => e) || undefined;
+    return message;
+  },
+};
+
+function createBaseGenerateMekResult(): GenerateMekResult {
+  return {};
+}
+
+export const GenerateMekResult: MessageFns<GenerateMekResult> = {
+  encode(message: GenerateMekResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mek !== undefined) {
+      MekBundle.encode(message.mek, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GenerateMekResult): GenerateMekResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseGenerateMekResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = MekBundle.decode(reader, reader.uint32(), message.mek);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<GenerateMekResult>): GenerateMekResult {
+    return GenerateMekResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GenerateMekResult>): GenerateMekResult {
+    const message = createBaseGenerateMekResult();
+    message.mek = (object.mek !== undefined && object.mek !== null) ? MekBundle.fromPartial(object.mek) : undefined;
+    return message;
+  },
+};
+
+function createBaseGenerateMekRosterHashInput(): GenerateMekRosterHashInput {
+  return {};
+}
+
+export const GenerateMekRosterHashInput: MessageFns<GenerateMekRosterHashInput> = {
+  encode(message: GenerateMekRosterHashInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochHeads !== undefined && message.epochHeads.length !== 0) {
+      for (const v of message.epochHeads) {
+        writer.uint32(10).bytes(v!);
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GenerateMekRosterHashInput): GenerateMekRosterHashInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseGenerateMekRosterHashInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.epochHeads === undefined) {
+            message.epochHeads = [];
+          }
+          const el = reader.bytes();
+          if (el !== undefined) {
+            message.epochHeads!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<GenerateMekRosterHashInput>): GenerateMekRosterHashInput {
+    return GenerateMekRosterHashInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GenerateMekRosterHashInput>): GenerateMekRosterHashInput {
+    const message = createBaseGenerateMekRosterHashInput();
+    message.epochHeads = object.epochHeads?.map((e) => e) || undefined;
+    return message;
+  },
+};
+
+function createBaseGenerateMekRosterHashResult(): GenerateMekRosterHashResult {
+  return {};
+}
+
+export const GenerateMekRosterHashResult: MessageFns<GenerateMekRosterHashResult> = {
+  encode(message: GenerateMekRosterHashResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rosterHash !== undefined) {
+      writer.uint32(10).bytes(message.rosterHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: GenerateMekRosterHashResult): GenerateMekRosterHashResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseGenerateMekRosterHashResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rosterHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<GenerateMekRosterHashResult>): GenerateMekRosterHashResult {
+    return GenerateMekRosterHashResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<GenerateMekRosterHashResult>): GenerateMekRosterHashResult {
+    const message = createBaseGenerateMekRosterHashResult();
+    message.rosterHash = object.rosterHash ?? undefined;
     return message;
   },
 };
@@ -32340,6 +36392,1755 @@ export const Location: MessageFns<Location> = {
   },
 };
 
+function createBaseMandrakeDecryptMekInput(): MandrakeDecryptMekInput {
+  return {};
+}
+
+export const MandrakeDecryptMekInput: MessageFns<MandrakeDecryptMekInput> = {
+  encode(message: MandrakeDecryptMekInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptedMek !== undefined) {
+      writer.uint32(10).bytes(message.encryptedMek);
+    }
+    if (message.recipientsHash !== undefined) {
+      writer.uint32(34).bytes(message.recipientsHash);
+    }
+    if (message.recipientEncSk !== undefined) {
+      writer.uint32(42).bytes(message.recipientEncSk);
+    }
+    if (message.mekEncryptionVersion !== undefined) {
+      writer.uint32(48).uint64(message.mekEncryptionVersion);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(58).fork()).join();
+    }
+    if (message.recipientMmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.recipientMmk, writer.uint32(66).fork()).join();
+    }
+    if (message.mekId !== undefined) {
+      writer.uint32(74).bytes(message.mekId);
+    }
+    if (message.recipientMembershipProof !== undefined) {
+      MerkleMembershipProof.encode(message.recipientMembershipProof, writer.uint32(82).fork()).join();
+    }
+    if (message.mmkSender !== undefined) {
+      MandrakeDecryptMekInput_MmkSenderPublicData.encode(message.mmkSender, writer.uint32(18).fork()).join();
+    }
+    if (message.epochSender !== undefined) {
+      MandrakeDecryptMekInput_EpochSenderPublicData.encode(message.epochSender, writer.uint32(26).fork()).join();
+    }
+    if (message.precomputedEpochSender !== undefined) {
+      MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData.encode(
+        message.precomputedEpochSender,
+        writer.uint32(90).fork(),
+      ).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekInput): MandrakeDecryptMekInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeDecryptMekInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedMek = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.recipientsHash = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.recipientEncSk = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.mekEncryptionVersion = reader.uint64Value();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.recipientMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.recipientMmk);
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.recipientMembershipProof = MerkleMembershipProof.decode(reader, reader.uint32(), message.recipientMembershipProof);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mmkSender = MandrakeDecryptMekInput_MmkSenderPublicData.decode(reader, reader.uint32(), message.mmkSender);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.epochSender = MandrakeDecryptMekInput_EpochSenderPublicData.decode(reader, reader.uint32(), message.epochSender);
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.precomputedEpochSender = MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData.decode(reader, reader.uint32(), message.precomputedEpochSender);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeDecryptMekInput>): MandrakeDecryptMekInput {
+    return MandrakeDecryptMekInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeDecryptMekInput>): MandrakeDecryptMekInput {
+    const message = createBaseMandrakeDecryptMekInput();
+    message.encryptedMek = object.encryptedMek ?? undefined;
+    message.recipientsHash = object.recipientsHash ?? undefined;
+    message.recipientEncSk = object.recipientEncSk ?? undefined;
+    message.mekEncryptionVersion = object.mekEncryptionVersion ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    message.recipientMmk = (object.recipientMmk !== undefined && object.recipientMmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.recipientMmk)
+      : undefined;
+    message.mekId = object.mekId ?? undefined;
+    message.recipientMembershipProof =
+      (object.recipientMembershipProof !== undefined && object.recipientMembershipProof !== null)
+        ? MerkleMembershipProof.fromPartial(object.recipientMembershipProof)
+        : undefined;
+    message.mmkSender = (object.mmkSender !== undefined && object.mmkSender !== null)
+      ? MandrakeDecryptMekInput_MmkSenderPublicData.fromPartial(object.mmkSender)
+      : undefined;
+    message.epochSender = (object.epochSender !== undefined && object.epochSender !== null)
+      ? MandrakeDecryptMekInput_EpochSenderPublicData.fromPartial(object.epochSender)
+      : undefined;
+    message.precomputedEpochSender =
+      (object.precomputedEpochSender !== undefined && object.precomputedEpochSender !== null)
+        ? MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData.fromPartial(object.precomputedEpochSender)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeDecryptMekInput_EpochSenderPublicData(): MandrakeDecryptMekInput_EpochSenderPublicData {
+  return {};
+}
+
+export const MandrakeDecryptMekInput_EpochSenderPublicData: MessageFns<MandrakeDecryptMekInput_EpochSenderPublicData> =
+  {
+    encode(
+      message: MandrakeDecryptMekInput_EpochSenderPublicData,
+      writer: BinaryWriter = new BinaryWriter(),
+    ): BinaryWriter {
+      if (message.epochPublicData !== undefined) {
+        EpochPublicData.encode(message.epochPublicData, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekInput_EpochSenderPublicData): MandrakeDecryptMekInput_EpochSenderPublicData {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = into ?? createBaseMandrakeDecryptMekInput_EpochSenderPublicData();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+            continue;
+          }
+        }
+        if (tag >>> 3 === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    create(
+      base?: DeepPartial<MandrakeDecryptMekInput_EpochSenderPublicData>,
+    ): MandrakeDecryptMekInput_EpochSenderPublicData {
+      return MandrakeDecryptMekInput_EpochSenderPublicData.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<MandrakeDecryptMekInput_EpochSenderPublicData>,
+    ): MandrakeDecryptMekInput_EpochSenderPublicData {
+      const message = createBaseMandrakeDecryptMekInput_EpochSenderPublicData();
+      message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+        ? EpochPublicData.fromPartial(object.epochPublicData)
+        : undefined;
+      return message;
+    },
+  };
+
+function createBaseMandrakeDecryptMekInput_MmkSenderPublicData(): MandrakeDecryptMekInput_MmkSenderPublicData {
+  return {};
+}
+
+export const MandrakeDecryptMekInput_MmkSenderPublicData: MessageFns<MandrakeDecryptMekInput_MmkSenderPublicData> = {
+  encode(
+    message: MandrakeDecryptMekInput_MmkSenderPublicData,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.mmkPublicData !== undefined) {
+      MessagingMailboxPublicData.encode(message.mmkPublicData, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekInput_MmkSenderPublicData): MandrakeDecryptMekInput_MmkSenderPublicData {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeDecryptMekInput_MmkSenderPublicData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmkPublicData = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.mmkPublicData);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeDecryptMekInput_MmkSenderPublicData>): MandrakeDecryptMekInput_MmkSenderPublicData {
+    return MandrakeDecryptMekInput_MmkSenderPublicData.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<MandrakeDecryptMekInput_MmkSenderPublicData>,
+  ): MandrakeDecryptMekInput_MmkSenderPublicData {
+    const message = createBaseMandrakeDecryptMekInput_MmkSenderPublicData();
+    message.mmkPublicData = (object.mmkPublicData !== undefined && object.mmkPublicData !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.mmkPublicData)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeDecryptMekInput_PrecomputedEpochSenderPublicData(): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
+  return {};
+}
+
+export const MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData: MessageFns<
+  MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData
+> = {
+  encode(
+    message: MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.authPk !== undefined) {
+      writer.uint32(10).bytes(message.authPk);
+    }
+    if (message.epochHead !== undefined) {
+      writer.uint32(18).bytes(message.epochHead);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeDecryptMekInput_PrecomputedEpochSenderPublicData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.epochHead = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData>,
+  ): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
+    return MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData>,
+  ): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
+    const message = createBaseMandrakeDecryptMekInput_PrecomputedEpochSenderPublicData();
+    message.authPk = object.authPk ?? undefined;
+    message.epochHead = object.epochHead ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeDecryptMekResult(): MandrakeDecryptMekResult {
+  return {};
+}
+
+export const MandrakeDecryptMekResult: MessageFns<MandrakeDecryptMekResult> = {
+  encode(message: MandrakeDecryptMekResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      MandrakeDecryptMekSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekResult): MandrakeDecryptMekResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeDecryptMekResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = MandrakeDecryptMekSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeDecryptMekResult>): MandrakeDecryptMekResult {
+    return MandrakeDecryptMekResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeDecryptMekResult>): MandrakeDecryptMekResult {
+    const message = createBaseMandrakeDecryptMekResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? MandrakeDecryptMekSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeDecryptMekSuccess(): MandrakeDecryptMekSuccess {
+  return {};
+}
+
+export const MandrakeDecryptMekSuccess: MessageFns<MandrakeDecryptMekSuccess> = {
+  encode(message: MandrakeDecryptMekSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mek !== undefined) {
+      writer.uint32(10).bytes(message.mek);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeDecryptMekSuccess): MandrakeDecryptMekSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeDecryptMekSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeDecryptMekSuccess>): MandrakeDecryptMekSuccess {
+    return MandrakeDecryptMekSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeDecryptMekSuccess>): MandrakeDecryptMekSuccess {
+    const message = createBaseMandrakeDecryptMekSuccess();
+    message.mek = object.mek ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekInput(): MandrakeEncryptMekInput {
+  return {};
+}
+
+export const MandrakeEncryptMekInput: MessageFns<MandrakeEncryptMekInput> = {
+  encode(message: MandrakeEncryptMekInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mek !== undefined) {
+      MandrakeMekBundle.encode(message.mek, writer.uint32(10).fork()).join();
+    }
+    if (message.recipients !== undefined && message.recipients.length !== 0) {
+      for (const v of message.recipients) {
+        MessagingMailboxPublicData.encode(v!, writer.uint32(18).fork()).join();
+      }
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(42).fork()).join();
+    }
+    if (message.mmkSender !== undefined) {
+      MandrakeEncryptMekInput_MmkSender.encode(message.mmkSender, writer.uint32(26).fork()).join();
+    }
+    if (message.epochSender !== undefined) {
+      MandrakeEncryptMekInput_EpochSender.encode(message.epochSender, writer.uint32(34).fork()).join();
+    }
+    if (message.detachedDeviceSender !== undefined) {
+      MandrakeEncryptMekInput_DetachedDeviceSender.encode(message.detachedDeviceSender, writer.uint32(50).fork())
+        .join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekInput): MandrakeEncryptMekInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mek = MandrakeMekBundle.decode(reader, reader.uint32(), message.mek);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          if (message.recipients === undefined) {
+            message.recipients = [];
+          }
+          const el = MessagingMailboxPublicData.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.recipients!.push(el);
+          }
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.mmkSender = MandrakeEncryptMekInput_MmkSender.decode(reader, reader.uint32(), message.mmkSender);
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.epochSender = MandrakeEncryptMekInput_EpochSender.decode(reader, reader.uint32(), message.epochSender);
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.detachedDeviceSender = MandrakeEncryptMekInput_DetachedDeviceSender.decode(reader, reader.uint32(), message.detachedDeviceSender);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeEncryptMekInput>): MandrakeEncryptMekInput {
+    return MandrakeEncryptMekInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeEncryptMekInput>): MandrakeEncryptMekInput {
+    const message = createBaseMandrakeEncryptMekInput();
+    message.mek = (object.mek !== undefined && object.mek !== null)
+      ? MandrakeMekBundle.fromPartial(object.mek)
+      : undefined;
+    message.recipients = object.recipients?.map((e) => MessagingMailboxPublicData.fromPartial(e)) || undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    message.mmkSender = (object.mmkSender !== undefined && object.mmkSender !== null)
+      ? MandrakeEncryptMekInput_MmkSender.fromPartial(object.mmkSender)
+      : undefined;
+    message.epochSender = (object.epochSender !== undefined && object.epochSender !== null)
+      ? MandrakeEncryptMekInput_EpochSender.fromPartial(object.epochSender)
+      : undefined;
+    message.detachedDeviceSender = (object.detachedDeviceSender !== undefined && object.detachedDeviceSender !== null)
+      ? MandrakeEncryptMekInput_DetachedDeviceSender.fromPartial(object.detachedDeviceSender)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekInput_DetachedDeviceSender(): MandrakeEncryptMekInput_DetachedDeviceSender {
+  return {};
+}
+
+export const MandrakeEncryptMekInput_DetachedDeviceSender: MessageFns<MandrakeEncryptMekInput_DetachedDeviceSender> = {
+  encode(
+    message: MandrakeEncryptMekInput_DetachedDeviceSender,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.detachedDevicePublicData !== undefined) {
+      DetachedDevicePublicData.encode(message.detachedDevicePublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.authSk !== undefined) {
+      writer.uint32(18).bytes(message.authSk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(26).bytes(message.authPk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekInput_DetachedDeviceSender): MandrakeEncryptMekInput_DetachedDeviceSender {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekInput_DetachedDeviceSender();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.detachedDevicePublicData = DetachedDevicePublicData.decode(reader, reader.uint32(), message.detachedDevicePublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.authSk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<MandrakeEncryptMekInput_DetachedDeviceSender>,
+  ): MandrakeEncryptMekInput_DetachedDeviceSender {
+    return MandrakeEncryptMekInput_DetachedDeviceSender.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<MandrakeEncryptMekInput_DetachedDeviceSender>,
+  ): MandrakeEncryptMekInput_DetachedDeviceSender {
+    const message = createBaseMandrakeEncryptMekInput_DetachedDeviceSender();
+    message.detachedDevicePublicData =
+      (object.detachedDevicePublicData !== undefined && object.detachedDevicePublicData !== null)
+        ? DetachedDevicePublicData.fromPartial(object.detachedDevicePublicData)
+        : undefined;
+    message.authSk = object.authSk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekInput_EpochSender(): MandrakeEncryptMekInput_EpochSender {
+  return {};
+}
+
+export const MandrakeEncryptMekInput_EpochSender: MessageFns<MandrakeEncryptMekInput_EpochSender> = {
+  encode(message: MandrakeEncryptMekInput_EpochSender, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochPublicData !== undefined) {
+      EpochPublicData.encode(message.epochPublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.authSk !== undefined) {
+      writer.uint32(18).bytes(message.authSk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(26).bytes(message.authPk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekInput_EpochSender): MandrakeEncryptMekInput_EpochSender {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekInput_EpochSender();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.authSk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeEncryptMekInput_EpochSender>): MandrakeEncryptMekInput_EpochSender {
+    return MandrakeEncryptMekInput_EpochSender.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeEncryptMekInput_EpochSender>): MandrakeEncryptMekInput_EpochSender {
+    const message = createBaseMandrakeEncryptMekInput_EpochSender();
+    message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+      ? EpochPublicData.fromPartial(object.epochPublicData)
+      : undefined;
+    message.authSk = object.authSk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekInput_MmkSender(): MandrakeEncryptMekInput_MmkSender {
+  return {};
+}
+
+export const MandrakeEncryptMekInput_MmkSender: MessageFns<MandrakeEncryptMekInput_MmkSender> = {
+  encode(message: MandrakeEncryptMekInput_MmkSender, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mmkPublicData !== undefined) {
+      MessagingMailboxPublicData.encode(message.mmkPublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.authSk !== undefined) {
+      writer.uint32(18).bytes(message.authSk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(26).bytes(message.authPk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekInput_MmkSender): MandrakeEncryptMekInput_MmkSender {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekInput_MmkSender();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmkPublicData = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.mmkPublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.authSk = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeEncryptMekInput_MmkSender>): MandrakeEncryptMekInput_MmkSender {
+    return MandrakeEncryptMekInput_MmkSender.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeEncryptMekInput_MmkSender>): MandrakeEncryptMekInput_MmkSender {
+    const message = createBaseMandrakeEncryptMekInput_MmkSender();
+    message.mmkPublicData = (object.mmkPublicData !== undefined && object.mmkPublicData !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.mmkPublicData)
+      : undefined;
+    message.authSk = object.authSk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekResult(): MandrakeEncryptMekResult {
+  return {};
+}
+
+export const MandrakeEncryptMekResult: MessageFns<MandrakeEncryptMekResult> = {
+  encode(message: MandrakeEncryptMekResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      MandrakeEncryptMekSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekResult): MandrakeEncryptMekResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = MandrakeEncryptMekSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeEncryptMekResult>): MandrakeEncryptMekResult {
+    return MandrakeEncryptMekResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeEncryptMekResult>): MandrakeEncryptMekResult {
+    const message = createBaseMandrakeEncryptMekResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? MandrakeEncryptMekSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekSuccess(): MandrakeEncryptMekSuccess {
+  return {};
+}
+
+export const MandrakeEncryptMekSuccess: MessageFns<MandrakeEncryptMekSuccess> = {
+  encode(message: MandrakeEncryptMekSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.distributions !== undefined && message.distributions.length !== 0) {
+      for (const v of message.distributions) {
+        MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.encode(v!, writer.uint32(10).fork()).join();
+      }
+    }
+    if (message.recipientsHash !== undefined) {
+      writer.uint32(18).bytes(message.recipientsHash);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(24).uint64(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekSuccess): MandrakeEncryptMekSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.distributions === undefined) {
+            message.distributions = [];
+          }
+          const el = MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.distributions!.push(el);
+          }
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.recipientsHash = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.version = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeEncryptMekSuccess>): MandrakeEncryptMekSuccess {
+    return MandrakeEncryptMekSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeEncryptMekSuccess>): MandrakeEncryptMekSuccess {
+    const message = createBaseMandrakeEncryptMekSuccess();
+    message.distributions =
+      object.distributions?.map((e) => MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.fromPartial(e)) ||
+      undefined;
+    message.recipientsHash = object.recipientsHash ?? undefined;
+    message.version = object.version ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeEncryptMekSuccess_MekDistributionSingleRecipient(): MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
+  return {};
+}
+
+export const MandrakeEncryptMekSuccess_MekDistributionSingleRecipient: MessageFns<
+  MandrakeEncryptMekSuccess_MekDistributionSingleRecipient
+> = {
+  encode(
+    message: MandrakeEncryptMekSuccess_MekDistributionSingleRecipient,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.encryptedMek !== undefined) {
+      writer.uint32(10).bytes(message.encryptedMek);
+    }
+    if (message.toMmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.toMmk, writer.uint32(18).fork()).join();
+    }
+    if (message.recipientMembershipProof !== undefined) {
+      MerkleMembershipProof.encode(message.recipientMembershipProof, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeEncryptMekSuccess_MekDistributionSingleRecipient): MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeEncryptMekSuccess_MekDistributionSingleRecipient();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedMek = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.toMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.toMmk);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.recipientMembershipProof = MerkleMembershipProof.decode(reader, reader.uint32(), message.recipientMembershipProof);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<MandrakeEncryptMekSuccess_MekDistributionSingleRecipient>,
+  ): MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
+    return MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<MandrakeEncryptMekSuccess_MekDistributionSingleRecipient>,
+  ): MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
+    const message = createBaseMandrakeEncryptMekSuccess_MekDistributionSingleRecipient();
+    message.encryptedMek = object.encryptedMek ?? undefined;
+    message.toMmk = (object.toMmk !== undefined && object.toMmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.toMmk)
+      : undefined;
+    message.recipientMembershipProof =
+      (object.recipientMembershipProof !== undefined && object.recipientMembershipProof !== null)
+        ? MerkleMembershipProof.fromPartial(object.recipientMembershipProof)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeMekBundle(): MandrakeMekBundle {
+  return {};
+}
+
+export const MandrakeMekBundle: MessageFns<MandrakeMekBundle> = {
+  encode(message: MandrakeMekBundle, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== undefined) {
+      writer.uint32(10).bytes(message.key);
+    }
+    if (message.mekId !== undefined) {
+      writer.uint32(18).bytes(message.mekId);
+    }
+    if (message.mailboxHeadHash !== undefined) {
+      writer.uint32(26).bytes(message.mailboxHeadHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeMekBundle): MandrakeMekBundle {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeMekBundle();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.mailboxHeadHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeMekBundle>): MandrakeMekBundle {
+    return MandrakeMekBundle.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeMekBundle>): MandrakeMekBundle {
+    const message = createBaseMandrakeMekBundle();
+    message.key = object.key ?? undefined;
+    message.mekId = object.mekId ?? undefined;
+    message.mailboxHeadHash = object.mailboxHeadHash ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeOpenEpochInput(): MandrakeOpenEpochInput {
+  return {};
+}
+
+export const MandrakeOpenEpochInput: MessageFns<MandrakeOpenEpochInput> = {
+  encode(message: MandrakeOpenEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userFbid !== undefined) {
+      writer.uint32(10).string(message.userFbid);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(26).bytes(message.exportRootKey);
+    }
+    if (message.previousExportRootKey !== undefined) {
+      writer.uint32(34).bytes(message.previousExportRootKey);
+    }
+    if (message.previousEpochNumber !== undefined) {
+      writer.uint32(40).uint64(message.previousEpochNumber);
+    }
+    if (message.previousEpochHead !== undefined) {
+      writer.uint32(50).bytes(message.previousEpochHead);
+    }
+    if (message.previousMmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.previousMmk, writer.uint32(58).fork()).join();
+    }
+    if (message.detachedDevices !== undefined && message.detachedDevices.length !== 0) {
+      for (const v of message.detachedDevices) {
+        DetachedDevicePublicData.encode(v!, writer.uint32(66).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeOpenEpochInput): MandrakeOpenEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeOpenEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userFbid = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.previousExportRootKey = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.previousEpochNumber = reader.uint64Value();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.previousEpochHead = reader.bytes();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.previousMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.previousMmk);
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          if (message.detachedDevices === undefined) {
+            message.detachedDevices = [];
+          }
+          const el = DetachedDevicePublicData.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.detachedDevices!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeOpenEpochInput>): MandrakeOpenEpochInput {
+    return MandrakeOpenEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeOpenEpochInput>): MandrakeOpenEpochInput {
+    const message = createBaseMandrakeOpenEpochInput();
+    message.userFbid = object.userFbid ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.previousExportRootKey = object.previousExportRootKey ?? undefined;
+    message.previousEpochNumber = object.previousEpochNumber ?? undefined;
+    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    message.previousMmk = (object.previousMmk !== undefined && object.previousMmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.previousMmk)
+      : undefined;
+    message.detachedDevices = object.detachedDevices?.map((e) => DetachedDevicePublicData.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeOpenEpochResult(): MandrakeOpenEpochResult {
+  return {};
+}
+
+export const MandrakeOpenEpochResult: MessageFns<MandrakeOpenEpochResult> = {
+  encode(message: MandrakeOpenEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      MandrakeOpenEpochSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeOpenEpochResult): MandrakeOpenEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeOpenEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = MandrakeOpenEpochSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeOpenEpochResult>): MandrakeOpenEpochResult {
+    return MandrakeOpenEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeOpenEpochResult>): MandrakeOpenEpochResult {
+    const message = createBaseMandrakeOpenEpochResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? MandrakeOpenEpochSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeOpenEpochSuccess(): MandrakeOpenEpochSuccess {
+  return {};
+}
+
+export const MandrakeOpenEpochSuccess: MessageFns<MandrakeOpenEpochSuccess> = {
+  encode(message: MandrakeOpenEpochSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.minosSignedEpoch !== undefined) {
+      MinosSignedEpoch.encode(message.minosSignedEpoch, writer.uint32(10).fork()).join();
+    }
+    if (message.signedMmkDistribution !== undefined) {
+      SignedMmkDistributionFromMailbox.encode(message.signedMmkDistribution, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeOpenEpochSuccess): MandrakeOpenEpochSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeOpenEpochSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.minosSignedEpoch = MinosSignedEpoch.decode(reader, reader.uint32(), message.minosSignedEpoch);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signedMmkDistribution = SignedMmkDistributionFromMailbox.decode(reader, reader.uint32(), message.signedMmkDistribution);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeOpenEpochSuccess>): MandrakeOpenEpochSuccess {
+    return MandrakeOpenEpochSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeOpenEpochSuccess>): MandrakeOpenEpochSuccess {
+    const message = createBaseMandrakeOpenEpochSuccess();
+    message.minosSignedEpoch = (object.minosSignedEpoch !== undefined && object.minosSignedEpoch !== null)
+      ? MinosSignedEpoch.fromPartial(object.minosSignedEpoch)
+      : undefined;
+    message.signedMmkDistribution =
+      (object.signedMmkDistribution !== undefined && object.signedMmkDistribution !== null)
+        ? SignedMmkDistributionFromMailbox.fromPartial(object.signedMmkDistribution)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeOpenInitialEpochInput(): MandrakeOpenInitialEpochInput {
+  return {};
+}
+
+export const MandrakeOpenInitialEpochInput: MessageFns<MandrakeOpenInitialEpochInput> = {
+  encode(message: MandrakeOpenInitialEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userFbid !== undefined) {
+      writer.uint32(10).string(message.userFbid);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(26).bytes(message.exportRootKey);
+    }
+    if (message.detachedDevices !== undefined && message.detachedDevices.length !== 0) {
+      for (const v of message.detachedDevices) {
+        DetachedDevicePublicData.encode(v!, writer.uint32(34).fork()).join();
+      }
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeOpenInitialEpochInput): MandrakeOpenInitialEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeOpenInitialEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userFbid = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          if (message.detachedDevices === undefined) {
+            message.detachedDevices = [];
+          }
+          const el = DetachedDevicePublicData.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.detachedDevices!.push(el);
+          }
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeOpenInitialEpochInput>): MandrakeOpenInitialEpochInput {
+    return MandrakeOpenInitialEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeOpenInitialEpochInput>): MandrakeOpenInitialEpochInput {
+    const message = createBaseMandrakeOpenInitialEpochInput();
+    message.userFbid = object.userFbid ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.detachedDevices = object.detachedDevices?.map((e) => DetachedDevicePublicData.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeOpenInitialEpochResult(): MandrakeOpenInitialEpochResult {
+  return {};
+}
+
+export const MandrakeOpenInitialEpochResult: MessageFns<MandrakeOpenInitialEpochResult> = {
+  encode(message: MandrakeOpenInitialEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      MandrakeOpenEpochSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeOpenInitialEpochResult): MandrakeOpenInitialEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeOpenInitialEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = MandrakeOpenEpochSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeOpenInitialEpochResult>): MandrakeOpenInitialEpochResult {
+    return MandrakeOpenInitialEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeOpenInitialEpochResult>): MandrakeOpenInitialEpochResult {
+    const message = createBaseMandrakeOpenInitialEpochResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? MandrakeOpenEpochSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeValidateNewMmkFromDetachedDeviceInput(): MandrakeValidateNewMmkFromDetachedDeviceInput {
+  return {};
+}
+
+export const MandrakeValidateNewMmkFromDetachedDeviceInput: MessageFns<MandrakeValidateNewMmkFromDetachedDeviceInput> =
+  {
+    encode(
+      message: MandrakeValidateNewMmkFromDetachedDeviceInput,
+      writer: BinaryWriter = new BinaryWriter(),
+    ): BinaryWriter {
+      if (message.mmkFromDevice !== undefined) {
+        MmkFromDetachedDevice.encode(message.mmkFromDevice, writer.uint32(10).fork()).join();
+      }
+      if (message.signature !== undefined) {
+        writer.uint32(18).bytes(message.signature);
+      }
+      if (message.prevMmk !== undefined) {
+        MessagingMailboxPublicData.encode(message.prevMmk, writer.uint32(26).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeValidateNewMmkFromDetachedDeviceInput): MandrakeValidateNewMmkFromDetachedDeviceInput {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = into ?? createBaseMandrakeValidateNewMmkFromDetachedDeviceInput();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.mmkFromDevice = MmkFromDetachedDevice.decode(reader, reader.uint32(), message.mmkFromDevice);
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.signature = reader.bytes();
+            continue;
+          }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.prevMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.prevMmk);
+            continue;
+          }
+        }
+        if (tag >>> 3 === 0 || (tag & 7) === 4) {
+          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    create(
+      base?: DeepPartial<MandrakeValidateNewMmkFromDetachedDeviceInput>,
+    ): MandrakeValidateNewMmkFromDetachedDeviceInput {
+      return MandrakeValidateNewMmkFromDetachedDeviceInput.fromPartial(base ?? {});
+    },
+    fromPartial(
+      object: DeepPartial<MandrakeValidateNewMmkFromDetachedDeviceInput>,
+    ): MandrakeValidateNewMmkFromDetachedDeviceInput {
+      const message = createBaseMandrakeValidateNewMmkFromDetachedDeviceInput();
+      message.mmkFromDevice = (object.mmkFromDevice !== undefined && object.mmkFromDevice !== null)
+        ? MmkFromDetachedDevice.fromPartial(object.mmkFromDevice)
+        : undefined;
+      message.signature = object.signature ?? undefined;
+      message.prevMmk = (object.prevMmk !== undefined && object.prevMmk !== null)
+        ? MessagingMailboxPublicData.fromPartial(object.prevMmk)
+        : undefined;
+      return message;
+    },
+  };
+
+function createBaseMandrakeValidateNewMmkFromMailboxInput(): MandrakeValidateNewMmkFromMailboxInput {
+  return {};
+}
+
+export const MandrakeValidateNewMmkFromMailboxInput: MessageFns<MandrakeValidateNewMmkFromMailboxInput> = {
+  encode(message: MandrakeValidateNewMmkFromMailboxInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.newMmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.newMmk, writer.uint32(10).fork()).join();
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(18).bytes(message.signature);
+    }
+    if (message.prevMmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.prevMmk, writer.uint32(26).fork()).join();
+    }
+    if (message.epochPublicData !== undefined) {
+      EpochPublicData.encode(message.epochPublicData, writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeValidateNewMmkFromMailboxInput): MandrakeValidateNewMmkFromMailboxInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeValidateNewMmkFromMailboxInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.newMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.newMmk);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.prevMmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.prevMmk);
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeValidateNewMmkFromMailboxInput>): MandrakeValidateNewMmkFromMailboxInput {
+    return MandrakeValidateNewMmkFromMailboxInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeValidateNewMmkFromMailboxInput>): MandrakeValidateNewMmkFromMailboxInput {
+    const message = createBaseMandrakeValidateNewMmkFromMailboxInput();
+    message.newMmk = (object.newMmk !== undefined && object.newMmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.newMmk)
+      : undefined;
+    message.signature = object.signature ?? undefined;
+    message.prevMmk = (object.prevMmk !== undefined && object.prevMmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.prevMmk)
+      : undefined;
+    message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+      ? EpochPublicData.fromPartial(object.epochPublicData)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMandrakeValidateNewMmkResult(): MandrakeValidateNewMmkResult {
+  return {};
+}
+
+export const MandrakeValidateNewMmkResult: MessageFns<MandrakeValidateNewMmkResult> = {
+  encode(message: MandrakeValidateNewMmkResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.valid !== undefined) {
+      writer.uint32(8).bool(message.valid);
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MandrakeValidateNewMmkResult): MandrakeValidateNewMmkResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMandrakeValidateNewMmkResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.valid = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MandrakeValidateNewMmkResult>): MandrakeValidateNewMmkResult {
+    return MandrakeValidateNewMmkResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MandrakeValidateNewMmkResult>): MandrakeValidateNewMmkResult {
+    const message = createBaseMandrakeValidateNewMmkResult();
+    message.valid = object.valid ?? undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
 function createBaseMediaData(): MediaData {
   return {};
 }
@@ -33022,6 +38823,76 @@ export const MediaRetryNotification: MessageFns<MediaRetryNotification> = {
   },
 };
 
+function createBaseMekBundle(): MekBundle {
+  return {};
+}
+
+export const MekBundle: MessageFns<MekBundle> = {
+  encode(message: MekBundle, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== undefined) {
+      writer.uint32(10).bytes(message.key);
+    }
+    if (message.mekId !== undefined) {
+      writer.uint32(18).bytes(message.mekId);
+    }
+    if (message.rosterHash !== undefined) {
+      writer.uint32(26).bytes(message.rosterHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MekBundle): MekBundle {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMekBundle();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.rosterHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MekBundle>): MekBundle {
+    return MekBundle.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MekBundle>): MekBundle {
+    const message = createBaseMekBundle();
+    message.key = object.key ?? undefined;
+    message.mekId = object.mekId ?? undefined;
+    message.rosterHash = object.rosterHash ?? undefined;
+    return message;
+  },
+};
+
 function createBaseMemberLabel(): MemberLabel {
   return {};
 }
@@ -33158,6 +39029,88 @@ export const Mention: MessageFns<Mention> = {
     message.mentionedJid = object.mentionedJid ?? undefined;
     message.offset = object.offset ?? undefined;
     message.length = object.length ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMerkleMembershipProof(): MerkleMembershipProof {
+  return {};
+}
+
+export const MerkleMembershipProof: MessageFns<MerkleMembershipProof> = {
+  encode(message: MerkleMembershipProof, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.proof !== undefined) {
+      writer.uint32(10).bytes(message.proof);
+    }
+    if (message.root !== undefined) {
+      writer.uint32(18).bytes(message.root);
+    }
+    if (message.leafIndex !== undefined) {
+      writer.uint32(24).uint64(message.leafIndex);
+    }
+    if (message.totalLeaves !== undefined) {
+      writer.uint32(32).uint64(message.totalLeaves);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MerkleMembershipProof): MerkleMembershipProof {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMerkleMembershipProof();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.proof = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.root = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.leafIndex = reader.uint64Value();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalLeaves = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MerkleMembershipProof>): MerkleMembershipProof {
+    return MerkleMembershipProof.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MerkleMembershipProof>): MerkleMembershipProof {
+    const message = createBaseMerkleMembershipProof();
+    message.proof = object.proof ?? undefined;
+    message.root = object.root ?? undefined;
+    message.leafIndex = object.leafIndex ?? undefined;
+    message.totalLeaves = object.totalLeaves ?? undefined;
     return message;
   },
 };
@@ -53470,6 +59423,2207 @@ export const MessageText: MessageFns<MessageText> = {
   },
 };
 
+function createBaseMessagingMailboxPublicData(): MessagingMailboxPublicData {
+  return {};
+}
+
+export const MessagingMailboxPublicData: MessageFns<MessagingMailboxPublicData> = {
+  encode(message: MessagingMailboxPublicData, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochHead !== undefined) {
+      writer.uint32(10).bytes(message.epochHead);
+    }
+    if (message.deviceRosterHash !== undefined) {
+      writer.uint32(18).bytes(message.deviceRosterHash);
+    }
+    if (message.sequenceNumber !== undefined) {
+      writer.uint32(24).uint64(message.sequenceNumber);
+    }
+    if (message.sigPk !== undefined) {
+      writer.uint32(34).bytes(message.sigPk);
+    }
+    if (message.encPk !== undefined) {
+      writer.uint32(42).bytes(message.encPk);
+    }
+    if (message.authPk !== undefined) {
+      writer.uint32(50).bytes(message.authPk);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MessagingMailboxPublicData): MessagingMailboxPublicData {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMessagingMailboxPublicData();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochHead = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.deviceRosterHash = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.sequenceNumber = reader.uint64Value();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.sigPk = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.encPk = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.authPk = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MessagingMailboxPublicData>): MessagingMailboxPublicData {
+    return MessagingMailboxPublicData.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MessagingMailboxPublicData>): MessagingMailboxPublicData {
+    const message = createBaseMessagingMailboxPublicData();
+    message.epochHead = object.epochHead ?? undefined;
+    message.deviceRosterHash = object.deviceRosterHash ?? undefined;
+    message.sequenceNumber = object.sequenceNumber ?? undefined;
+    message.sigPk = object.sigPk ?? undefined;
+    message.encPk = object.encPk ?? undefined;
+    message.authPk = object.authPk ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosClientConfig(): MinosClientConfig {
+  return {};
+}
+
+export const MinosClientConfig: MessageFns<MinosClientConfig> = {
+  encode(message: MinosClientConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferredMessageEncryptionVersion !== undefined) {
+      writer.uint32(8).int32(message.preferredMessageEncryptionVersion);
+    }
+    if (message.preferredMekEncryptionVersion !== undefined) {
+      writer.uint32(16).int32(message.preferredMekEncryptionVersion);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosClientConfig): MinosClientConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosClientConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.preferredMessageEncryptionVersion = reader.int32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.preferredMekEncryptionVersion = reader.int32();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosClientConfig>): MinosClientConfig {
+    return MinosClientConfig.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosClientConfig>): MinosClientConfig {
+    const message = createBaseMinosClientConfig();
+    message.preferredMessageEncryptionVersion = object.preferredMessageEncryptionVersion ?? undefined;
+    message.preferredMekEncryptionVersion = object.preferredMekEncryptionVersion ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosCommand(): MinosCommand {
+  return {};
+}
+
+export const MinosCommand: MessageFns<MinosCommand> = {
+  encode(message: MinosCommand, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptAndSignMessage !== undefined) {
+      MinosEncryptAndSignMessageInput.encode(message.encryptAndSignMessage, writer.uint32(10).fork()).join();
+    }
+    if (message.decryptAndVerifyMessage !== undefined) {
+      MinosDecryptAndVerifyMessageInput.encode(message.decryptAndVerifyMessage, writer.uint32(18).fork()).join();
+    }
+    if (message.generateMek !== undefined) {
+      GenerateMekInput.encode(message.generateMek, writer.uint32(26).fork()).join();
+    }
+    if (message.generateMekRosterHash !== undefined) {
+      GenerateMekRosterHashInput.encode(message.generateMekRosterHash, writer.uint32(34).fork()).join();
+    }
+    if (message.encryptMekForDistribution !== undefined) {
+      EncryptMekForDistributionInput.encode(message.encryptMekForDistribution, writer.uint32(42).fork()).join();
+    }
+    if (message.decryptMekForDistribution !== undefined) {
+      DecryptMekForDistributionInput.encode(message.decryptMekForDistribution, writer.uint32(50).fork()).join();
+    }
+    if (message.encryptMeksForDistributionFromTransportSender !== undefined) {
+      EncryptMeksForDistributionFromTransportSenderInput.encode(
+        message.encryptMeksForDistributionFromTransportSender,
+        writer.uint32(58).fork(),
+      ).join();
+    }
+    if (message.decryptMekForDistributionFromTransportSender !== undefined) {
+      DecryptMekForDistributionFromTransportSenderInput.encode(
+        message.decryptMekForDistributionFromTransportSender,
+        writer.uint32(66).fork(),
+      ).join();
+    }
+    if (message.wrapTransportSigningPublicKey !== undefined) {
+      WrapTransportSigningPublicKeyInput.encode(message.wrapTransportSigningPublicKey, writer.uint32(74).fork()).join();
+    }
+    if (message.wrapTransportSigningSecretKey !== undefined) {
+      WrapTransportSigningSecretKeyInput.encode(message.wrapTransportSigningSecretKey, writer.uint32(82).fork()).join();
+    }
+    if (message.deriveMailboxSigningKeypair !== undefined) {
+      DeriveMailboxSigningKeypairInput.encode(message.deriveMailboxSigningKeypair, writer.uint32(90).fork()).join();
+    }
+    if (message.deriveMailboxEncryptionKeypair !== undefined) {
+      DeriveMailboxEncryptionKeypairInput.encode(message.deriveMailboxEncryptionKeypair, writer.uint32(98).fork())
+        .join();
+    }
+    if (message.deriveMailboxAuthKeypair !== undefined) {
+      DeriveMailboxAuthKeypairInput.encode(message.deriveMailboxAuthKeypair, writer.uint32(106).fork()).join();
+    }
+    if (message.deriveAttachmentAccessTokenSecret !== undefined) {
+      DeriveAttachmentAccessTokenSecretInput.encode(
+        message.deriveAttachmentAccessTokenSecret,
+        writer.uint32(114).fork(),
+      ).join();
+    }
+    if (message.deriveAttachmentPrimaryKeySecret !== undefined) {
+      DeriveAttachmentPrimaryKeySecretInput.encode(message.deriveAttachmentPrimaryKeySecret, writer.uint32(122).fork())
+        .join();
+    }
+    if (message.minosOpenInitialEpoch !== undefined) {
+      MinosOpenInitialEpochInput.encode(message.minosOpenInitialEpoch, writer.uint32(130).fork()).join();
+    }
+    if (message.minosOpenEpoch !== undefined) {
+      MinosOpenEpochInput.encode(message.minosOpenEpoch, writer.uint32(138).fork()).join();
+    }
+    if (message.minosValidateEpoch !== undefined) {
+      MinosValidateEpochInput.encode(message.minosValidateEpoch, writer.uint32(146).fork()).join();
+    }
+    if (message.minosVerifySingleEpoch !== undefined) {
+      MinosVerifySingleEpochInput.encode(message.minosVerifySingleEpoch, writer.uint32(154).fork()).join();
+    }
+    if (message.minosThreadIdFromOneToOneThread !== undefined) {
+      MinosThreadIdFromOneToOneThreadInput.encode(message.minosThreadIdFromOneToOneThread, writer.uint32(162).fork())
+        .join();
+    }
+    if (message.minosThreadIdFromActThreadId !== undefined) {
+      MinosThreadIdFromActThreadIdInput.encode(message.minosThreadIdFromActThreadId, writer.uint32(170).fork()).join();
+    }
+    if (message.mandrakeOpenEpoch !== undefined) {
+      MandrakeOpenEpochInput.encode(message.mandrakeOpenEpoch, writer.uint32(178).fork()).join();
+    }
+    if (message.mandrakeEncryptMek !== undefined) {
+      MandrakeEncryptMekInput.encode(message.mandrakeEncryptMek, writer.uint32(186).fork()).join();
+    }
+    if (message.mandrakeDecryptMek !== undefined) {
+      MandrakeDecryptMekInput.encode(message.mandrakeDecryptMek, writer.uint32(194).fork()).join();
+    }
+    if (message.mandrakeOpenInitialEpoch !== undefined) {
+      MandrakeOpenInitialEpochInput.encode(message.mandrakeOpenInitialEpoch, writer.uint32(202).fork()).join();
+    }
+    if (message.mandrakeValidateNewMmkFromMailbox !== undefined) {
+      MandrakeValidateNewMmkFromMailboxInput.encode(
+        message.mandrakeValidateNewMmkFromMailbox,
+        writer.uint32(218).fork(),
+      ).join();
+    }
+    if (message.mandrakeValidateNewMmkFromDetachedDevice !== undefined) {
+      MandrakeValidateNewMmkFromDetachedDeviceInput.encode(
+        message.mandrakeValidateNewMmkFromDetachedDevice,
+        writer.uint32(226).fork(),
+      ).join();
+    }
+    if (message.deriveMessagingMailboxKeypairs !== undefined) {
+      DeriveMessagingMailboxKeypairsInput.encode(message.deriveMessagingMailboxKeypairs, writer.uint32(234).fork())
+        .join();
+    }
+    if (message.decryptSelfMmkDistribution !== undefined) {
+      DecryptSelfMmkDistributionInput.encode(message.decryptSelfMmkDistribution, writer.uint32(242).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosCommand): MinosCommand {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosCommand();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptAndSignMessage = MinosEncryptAndSignMessageInput.decode(reader, reader.uint32(), message.encryptAndSignMessage);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.decryptAndVerifyMessage = MinosDecryptAndVerifyMessageInput.decode(reader, reader.uint32(), message.decryptAndVerifyMessage);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.generateMek = GenerateMekInput.decode(reader, reader.uint32(), message.generateMek);
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.generateMekRosterHash = GenerateMekRosterHashInput.decode(reader, reader.uint32(), message.generateMekRosterHash);
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.encryptMekForDistribution = EncryptMekForDistributionInput.decode(reader, reader.uint32(), message.encryptMekForDistribution);
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.decryptMekForDistribution = DecryptMekForDistributionInput.decode(reader, reader.uint32(), message.decryptMekForDistribution);
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.encryptMeksForDistributionFromTransportSender = EncryptMeksForDistributionFromTransportSenderInput
+            .decode(reader, reader.uint32(), message.encryptMeksForDistributionFromTransportSender);
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.decryptMekForDistributionFromTransportSender = DecryptMekForDistributionFromTransportSenderInput
+            .decode(reader, reader.uint32(), message.decryptMekForDistributionFromTransportSender);
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.wrapTransportSigningPublicKey = WrapTransportSigningPublicKeyInput.decode(reader, reader.uint32(), message.wrapTransportSigningPublicKey);
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.wrapTransportSigningSecretKey = WrapTransportSigningSecretKeyInput.decode(reader, reader.uint32(), message.wrapTransportSigningSecretKey);
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.deriveMailboxSigningKeypair = DeriveMailboxSigningKeypairInput.decode(reader, reader.uint32(), message.deriveMailboxSigningKeypair);
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.deriveMailboxEncryptionKeypair = DeriveMailboxEncryptionKeypairInput.decode(reader, reader.uint32(), message.deriveMailboxEncryptionKeypair);
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.deriveMailboxAuthKeypair = DeriveMailboxAuthKeypairInput.decode(reader, reader.uint32(), message.deriveMailboxAuthKeypair);
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.deriveAttachmentAccessTokenSecret = DeriveAttachmentAccessTokenSecretInput.decode(reader, reader.uint32(), message.deriveAttachmentAccessTokenSecret);
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.deriveAttachmentPrimaryKeySecret = DeriveAttachmentPrimaryKeySecretInput.decode(reader, reader.uint32(), message.deriveAttachmentPrimaryKeySecret);
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.minosOpenInitialEpoch = MinosOpenInitialEpochInput.decode(reader, reader.uint32(), message.minosOpenInitialEpoch);
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.minosOpenEpoch = MinosOpenEpochInput.decode(reader, reader.uint32(), message.minosOpenEpoch);
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.minosValidateEpoch = MinosValidateEpochInput.decode(reader, reader.uint32(), message.minosValidateEpoch);
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.minosVerifySingleEpoch = MinosVerifySingleEpochInput.decode(reader, reader.uint32(), message.minosVerifySingleEpoch);
+          continue;
+        }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.minosThreadIdFromOneToOneThread = MinosThreadIdFromOneToOneThreadInput.decode(reader, reader.uint32(), message.minosThreadIdFromOneToOneThread);
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.minosThreadIdFromActThreadId = MinosThreadIdFromActThreadIdInput.decode(reader, reader.uint32(), message.minosThreadIdFromActThreadId);
+          continue;
+        }
+        case 22: {
+          if (tag !== 178) {
+            break;
+          }
+
+          message.mandrakeOpenEpoch = MandrakeOpenEpochInput.decode(reader, reader.uint32(), message.mandrakeOpenEpoch);
+          continue;
+        }
+        case 23: {
+          if (tag !== 186) {
+            break;
+          }
+
+          message.mandrakeEncryptMek = MandrakeEncryptMekInput.decode(reader, reader.uint32(), message.mandrakeEncryptMek);
+          continue;
+        }
+        case 24: {
+          if (tag !== 194) {
+            break;
+          }
+
+          message.mandrakeDecryptMek = MandrakeDecryptMekInput.decode(reader, reader.uint32(), message.mandrakeDecryptMek);
+          continue;
+        }
+        case 25: {
+          if (tag !== 202) {
+            break;
+          }
+
+          message.mandrakeOpenInitialEpoch = MandrakeOpenInitialEpochInput.decode(reader, reader.uint32(), message.mandrakeOpenInitialEpoch);
+          continue;
+        }
+        case 27: {
+          if (tag !== 218) {
+            break;
+          }
+
+          message.mandrakeValidateNewMmkFromMailbox = MandrakeValidateNewMmkFromMailboxInput.decode(reader, reader.uint32(), message.mandrakeValidateNewMmkFromMailbox);
+          continue;
+        }
+        case 28: {
+          if (tag !== 226) {
+            break;
+          }
+
+          message.mandrakeValidateNewMmkFromDetachedDevice = MandrakeValidateNewMmkFromDetachedDeviceInput.decode(reader, reader.uint32(), message.mandrakeValidateNewMmkFromDetachedDevice);
+          continue;
+        }
+        case 29: {
+          if (tag !== 234) {
+            break;
+          }
+
+          message.deriveMessagingMailboxKeypairs = DeriveMessagingMailboxKeypairsInput.decode(reader, reader.uint32(), message.deriveMessagingMailboxKeypairs);
+          continue;
+        }
+        case 30: {
+          if (tag !== 242) {
+            break;
+          }
+
+          message.decryptSelfMmkDistribution = DecryptSelfMmkDistributionInput.decode(reader, reader.uint32(), message.decryptSelfMmkDistribution);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosCommand>): MinosCommand {
+    return MinosCommand.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosCommand>): MinosCommand {
+    const message = createBaseMinosCommand();
+    message.encryptAndSignMessage =
+      (object.encryptAndSignMessage !== undefined && object.encryptAndSignMessage !== null)
+        ? MinosEncryptAndSignMessageInput.fromPartial(object.encryptAndSignMessage)
+        : undefined;
+    message.decryptAndVerifyMessage =
+      (object.decryptAndVerifyMessage !== undefined && object.decryptAndVerifyMessage !== null)
+        ? MinosDecryptAndVerifyMessageInput.fromPartial(object.decryptAndVerifyMessage)
+        : undefined;
+    message.generateMek = (object.generateMek !== undefined && object.generateMek !== null)
+      ? GenerateMekInput.fromPartial(object.generateMek)
+      : undefined;
+    message.generateMekRosterHash =
+      (object.generateMekRosterHash !== undefined && object.generateMekRosterHash !== null)
+        ? GenerateMekRosterHashInput.fromPartial(object.generateMekRosterHash)
+        : undefined;
+    message.encryptMekForDistribution =
+      (object.encryptMekForDistribution !== undefined && object.encryptMekForDistribution !== null)
+        ? EncryptMekForDistributionInput.fromPartial(object.encryptMekForDistribution)
+        : undefined;
+    message.decryptMekForDistribution =
+      (object.decryptMekForDistribution !== undefined && object.decryptMekForDistribution !== null)
+        ? DecryptMekForDistributionInput.fromPartial(object.decryptMekForDistribution)
+        : undefined;
+    message.encryptMeksForDistributionFromTransportSender =
+      (object.encryptMeksForDistributionFromTransportSender !== undefined &&
+          object.encryptMeksForDistributionFromTransportSender !== null)
+        ? EncryptMeksForDistributionFromTransportSenderInput.fromPartial(
+          object.encryptMeksForDistributionFromTransportSender,
+        )
+        : undefined;
+    message.decryptMekForDistributionFromTransportSender =
+      (object.decryptMekForDistributionFromTransportSender !== undefined &&
+          object.decryptMekForDistributionFromTransportSender !== null)
+        ? DecryptMekForDistributionFromTransportSenderInput.fromPartial(
+          object.decryptMekForDistributionFromTransportSender,
+        )
+        : undefined;
+    message.wrapTransportSigningPublicKey =
+      (object.wrapTransportSigningPublicKey !== undefined && object.wrapTransportSigningPublicKey !== null)
+        ? WrapTransportSigningPublicKeyInput.fromPartial(object.wrapTransportSigningPublicKey)
+        : undefined;
+    message.wrapTransportSigningSecretKey =
+      (object.wrapTransportSigningSecretKey !== undefined && object.wrapTransportSigningSecretKey !== null)
+        ? WrapTransportSigningSecretKeyInput.fromPartial(object.wrapTransportSigningSecretKey)
+        : undefined;
+    message.deriveMailboxSigningKeypair =
+      (object.deriveMailboxSigningKeypair !== undefined && object.deriveMailboxSigningKeypair !== null)
+        ? DeriveMailboxSigningKeypairInput.fromPartial(object.deriveMailboxSigningKeypair)
+        : undefined;
+    message.deriveMailboxEncryptionKeypair =
+      (object.deriveMailboxEncryptionKeypair !== undefined && object.deriveMailboxEncryptionKeypair !== null)
+        ? DeriveMailboxEncryptionKeypairInput.fromPartial(object.deriveMailboxEncryptionKeypair)
+        : undefined;
+    message.deriveMailboxAuthKeypair =
+      (object.deriveMailboxAuthKeypair !== undefined && object.deriveMailboxAuthKeypair !== null)
+        ? DeriveMailboxAuthKeypairInput.fromPartial(object.deriveMailboxAuthKeypair)
+        : undefined;
+    message.deriveAttachmentAccessTokenSecret =
+      (object.deriveAttachmentAccessTokenSecret !== undefined && object.deriveAttachmentAccessTokenSecret !== null)
+        ? DeriveAttachmentAccessTokenSecretInput.fromPartial(object.deriveAttachmentAccessTokenSecret)
+        : undefined;
+    message.deriveAttachmentPrimaryKeySecret =
+      (object.deriveAttachmentPrimaryKeySecret !== undefined && object.deriveAttachmentPrimaryKeySecret !== null)
+        ? DeriveAttachmentPrimaryKeySecretInput.fromPartial(object.deriveAttachmentPrimaryKeySecret)
+        : undefined;
+    message.minosOpenInitialEpoch =
+      (object.minosOpenInitialEpoch !== undefined && object.minosOpenInitialEpoch !== null)
+        ? MinosOpenInitialEpochInput.fromPartial(object.minosOpenInitialEpoch)
+        : undefined;
+    message.minosOpenEpoch = (object.minosOpenEpoch !== undefined && object.minosOpenEpoch !== null)
+      ? MinosOpenEpochInput.fromPartial(object.minosOpenEpoch)
+      : undefined;
+    message.minosValidateEpoch = (object.minosValidateEpoch !== undefined && object.minosValidateEpoch !== null)
+      ? MinosValidateEpochInput.fromPartial(object.minosValidateEpoch)
+      : undefined;
+    message.minosVerifySingleEpoch =
+      (object.minosVerifySingleEpoch !== undefined && object.minosVerifySingleEpoch !== null)
+        ? MinosVerifySingleEpochInput.fromPartial(object.minosVerifySingleEpoch)
+        : undefined;
+    message.minosThreadIdFromOneToOneThread =
+      (object.minosThreadIdFromOneToOneThread !== undefined && object.minosThreadIdFromOneToOneThread !== null)
+        ? MinosThreadIdFromOneToOneThreadInput.fromPartial(object.minosThreadIdFromOneToOneThread)
+        : undefined;
+    message.minosThreadIdFromActThreadId =
+      (object.minosThreadIdFromActThreadId !== undefined && object.minosThreadIdFromActThreadId !== null)
+        ? MinosThreadIdFromActThreadIdInput.fromPartial(object.minosThreadIdFromActThreadId)
+        : undefined;
+    message.mandrakeOpenEpoch = (object.mandrakeOpenEpoch !== undefined && object.mandrakeOpenEpoch !== null)
+      ? MandrakeOpenEpochInput.fromPartial(object.mandrakeOpenEpoch)
+      : undefined;
+    message.mandrakeEncryptMek = (object.mandrakeEncryptMek !== undefined && object.mandrakeEncryptMek !== null)
+      ? MandrakeEncryptMekInput.fromPartial(object.mandrakeEncryptMek)
+      : undefined;
+    message.mandrakeDecryptMek = (object.mandrakeDecryptMek !== undefined && object.mandrakeDecryptMek !== null)
+      ? MandrakeDecryptMekInput.fromPartial(object.mandrakeDecryptMek)
+      : undefined;
+    message.mandrakeOpenInitialEpoch =
+      (object.mandrakeOpenInitialEpoch !== undefined && object.mandrakeOpenInitialEpoch !== null)
+        ? MandrakeOpenInitialEpochInput.fromPartial(object.mandrakeOpenInitialEpoch)
+        : undefined;
+    message.mandrakeValidateNewMmkFromMailbox =
+      (object.mandrakeValidateNewMmkFromMailbox !== undefined && object.mandrakeValidateNewMmkFromMailbox !== null)
+        ? MandrakeValidateNewMmkFromMailboxInput.fromPartial(object.mandrakeValidateNewMmkFromMailbox)
+        : undefined;
+    message.mandrakeValidateNewMmkFromDetachedDevice =
+      (object.mandrakeValidateNewMmkFromDetachedDevice !== undefined &&
+          object.mandrakeValidateNewMmkFromDetachedDevice !== null)
+        ? MandrakeValidateNewMmkFromDetachedDeviceInput.fromPartial(object.mandrakeValidateNewMmkFromDetachedDevice)
+        : undefined;
+    message.deriveMessagingMailboxKeypairs =
+      (object.deriveMessagingMailboxKeypairs !== undefined && object.deriveMessagingMailboxKeypairs !== null)
+        ? DeriveMessagingMailboxKeypairsInput.fromPartial(object.deriveMessagingMailboxKeypairs)
+        : undefined;
+    message.decryptSelfMmkDistribution =
+      (object.decryptSelfMmkDistribution !== undefined && object.decryptSelfMmkDistribution !== null)
+        ? DecryptSelfMmkDistributionInput.fromPartial(object.decryptSelfMmkDistribution)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosDecryptAndVerifyMessageInput(): MinosDecryptAndVerifyMessageInput {
+  return {};
+}
+
+export const MinosDecryptAndVerifyMessageInput: MessageFns<MinosDecryptAndVerifyMessageInput> = {
+  encode(message: MinosDecryptAndVerifyMessageInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.transportSigningPk !== undefined) {
+      writer.uint32(10).bytes(message.transportSigningPk);
+    }
+    if (message.mek !== undefined) {
+      writer.uint32(18).bytes(message.mek);
+    }
+    if (message.encryptedMessageCiphertext !== undefined) {
+      writer.uint32(26).bytes(message.encryptedMessageCiphertext);
+    }
+    if (message.encryptedMessageSignature !== undefined) {
+      writer.uint32(34).bytes(message.encryptedMessageSignature);
+    }
+    if (message.metadata !== undefined) {
+      MinosMessageMetadata.encode(message.metadata, writer.uint32(42).fork()).join();
+    }
+    if (message.messageEncryptionVersion !== undefined) {
+      writer.uint32(48).int32(message.messageEncryptionVersion);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(58).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosDecryptAndVerifyMessageInput): MinosDecryptAndVerifyMessageInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosDecryptAndVerifyMessageInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.transportSigningPk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mek = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.encryptedMessageCiphertext = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.encryptedMessageSignature = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.metadata = MinosMessageMetadata.decode(reader, reader.uint32(), message.metadata);
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.messageEncryptionVersion = reader.int32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosDecryptAndVerifyMessageInput>): MinosDecryptAndVerifyMessageInput {
+    return MinosDecryptAndVerifyMessageInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageInput>): MinosDecryptAndVerifyMessageInput {
+    const message = createBaseMinosDecryptAndVerifyMessageInput();
+    message.transportSigningPk = object.transportSigningPk ?? undefined;
+    message.mek = object.mek ?? undefined;
+    message.encryptedMessageCiphertext = object.encryptedMessageCiphertext ?? undefined;
+    message.encryptedMessageSignature = object.encryptedMessageSignature ?? undefined;
+    message.metadata = (object.metadata !== undefined && object.metadata !== null)
+      ? MinosMessageMetadata.fromPartial(object.metadata)
+      : undefined;
+    message.messageEncryptionVersion = object.messageEncryptionVersion ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosDecryptAndVerifyMessageResult(): MinosDecryptAndVerifyMessageResult {
+  return {};
+}
+
+export const MinosDecryptAndVerifyMessageResult: MessageFns<MinosDecryptAndVerifyMessageResult> = {
+  encode(message: MinosDecryptAndVerifyMessageResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== undefined) {
+      MinosDecryptAndVerifyMessageSuccess.encode(message.success, writer.uint32(10).fork()).join();
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosDecryptAndVerifyMessageResult): MinosDecryptAndVerifyMessageResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosDecryptAndVerifyMessageResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.success = MinosDecryptAndVerifyMessageSuccess.decode(reader, reader.uint32(), message.success);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosDecryptAndVerifyMessageResult>): MinosDecryptAndVerifyMessageResult {
+    return MinosDecryptAndVerifyMessageResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageResult>): MinosDecryptAndVerifyMessageResult {
+    const message = createBaseMinosDecryptAndVerifyMessageResult();
+    message.success = (object.success !== undefined && object.success !== null)
+      ? MinosDecryptAndVerifyMessageSuccess.fromPartial(object.success)
+      : undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosDecryptAndVerifyMessageSuccess(): MinosDecryptAndVerifyMessageSuccess {
+  return {};
+}
+
+export const MinosDecryptAndVerifyMessageSuccess: MessageFns<MinosDecryptAndVerifyMessageSuccess> = {
+  encode(message: MinosDecryptAndVerifyMessageSuccess, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.plaintext !== undefined) {
+      writer.uint32(10).bytes(message.plaintext);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosDecryptAndVerifyMessageSuccess): MinosDecryptAndVerifyMessageSuccess {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosDecryptAndVerifyMessageSuccess();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.plaintext = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosDecryptAndVerifyMessageSuccess>): MinosDecryptAndVerifyMessageSuccess {
+    return MinosDecryptAndVerifyMessageSuccess.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageSuccess>): MinosDecryptAndVerifyMessageSuccess {
+    const message = createBaseMinosDecryptAndVerifyMessageSuccess();
+    message.plaintext = object.plaintext ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosEncryptAndSignMessageInput(): MinosEncryptAndSignMessageInput {
+  return {};
+}
+
+export const MinosEncryptAndSignMessageInput: MessageFns<MinosEncryptAndSignMessageInput> = {
+  encode(message: MinosEncryptAndSignMessageInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.transportSigningSk !== undefined) {
+      writer.uint32(10).bytes(message.transportSigningSk);
+    }
+    if (message.mek !== undefined) {
+      writer.uint32(18).bytes(message.mek);
+    }
+    if (message.plaintext !== undefined) {
+      writer.uint32(26).bytes(message.plaintext);
+    }
+    if (message.metadata !== undefined) {
+      MinosMessageMetadata.encode(message.metadata, writer.uint32(34).fork()).join();
+    }
+    if (message.transportSigningPk !== undefined) {
+      writer.uint32(42).bytes(message.transportSigningPk);
+    }
+    if (message.conf !== undefined) {
+      MinosClientConfig.encode(message.conf, writer.uint32(50).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosEncryptAndSignMessageInput): MinosEncryptAndSignMessageInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosEncryptAndSignMessageInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.transportSigningSk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mek = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.plaintext = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.metadata = MinosMessageMetadata.decode(reader, reader.uint32(), message.metadata);
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.transportSigningPk = reader.bytes();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.conf = MinosClientConfig.decode(reader, reader.uint32(), message.conf);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosEncryptAndSignMessageInput>): MinosEncryptAndSignMessageInput {
+    return MinosEncryptAndSignMessageInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosEncryptAndSignMessageInput>): MinosEncryptAndSignMessageInput {
+    const message = createBaseMinosEncryptAndSignMessageInput();
+    message.transportSigningSk = object.transportSigningSk ?? undefined;
+    message.mek = object.mek ?? undefined;
+    message.plaintext = object.plaintext ?? undefined;
+    message.metadata = (object.metadata !== undefined && object.metadata !== null)
+      ? MinosMessageMetadata.fromPartial(object.metadata)
+      : undefined;
+    message.transportSigningPk = object.transportSigningPk ?? undefined;
+    message.conf = (object.conf !== undefined && object.conf !== null)
+      ? MinosClientConfig.fromPartial(object.conf)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosEncryptAndSignMessageResult(): MinosEncryptAndSignMessageResult {
+  return {};
+}
+
+export const MinosEncryptAndSignMessageResult: MessageFns<MinosEncryptAndSignMessageResult> = {
+  encode(message: MinosEncryptAndSignMessageResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ciphertext !== undefined) {
+      writer.uint32(10).bytes(message.ciphertext);
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(18).bytes(message.signature);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(24).int32(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosEncryptAndSignMessageResult): MinosEncryptAndSignMessageResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosEncryptAndSignMessageResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ciphertext = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.version = reader.int32();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosEncryptAndSignMessageResult>): MinosEncryptAndSignMessageResult {
+    return MinosEncryptAndSignMessageResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosEncryptAndSignMessageResult>): MinosEncryptAndSignMessageResult {
+    const message = createBaseMinosEncryptAndSignMessageResult();
+    message.ciphertext = object.ciphertext ?? undefined;
+    message.signature = object.signature ?? undefined;
+    message.version = object.version ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosMessageMetadata(): MinosMessageMetadata {
+  return {};
+}
+
+export const MinosMessageMetadata: MessageFns<MinosMessageMetadata> = {
+  encode(message: MinosMessageMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mekId !== undefined) {
+      writer.uint32(10).bytes(message.mekId);
+    }
+    if (message.timestamp !== undefined) {
+      writer.uint32(16).uint64(message.timestamp);
+    }
+    if (message.messageId !== undefined) {
+      writer.uint32(26).string(message.messageId);
+    }
+    if (message.threadId !== undefined) {
+      writer.uint32(34).bytes(message.threadId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosMessageMetadata): MinosMessageMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosMessageMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mekId = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.timestamp = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.messageId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.threadId = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosMessageMetadata>): MinosMessageMetadata {
+    return MinosMessageMetadata.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosMessageMetadata>): MinosMessageMetadata {
+    const message = createBaseMinosMessageMetadata();
+    message.mekId = object.mekId ?? undefined;
+    message.timestamp = object.timestamp ?? undefined;
+    message.messageId = object.messageId ?? undefined;
+    message.threadId = object.threadId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosOpenEpochInput(): MinosOpenEpochInput {
+  return {};
+}
+
+export const MinosOpenEpochInput: MessageFns<MinosOpenEpochInput> = {
+  encode(message: MinosOpenEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userFbid !== undefined) {
+      writer.uint32(10).string(message.userFbid);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(26).bytes(message.exportRootKey);
+    }
+    if (message.previousExportRootKey !== undefined) {
+      writer.uint32(34).bytes(message.previousExportRootKey);
+    }
+    if (message.previousEpochNumber !== undefined) {
+      writer.uint32(40).uint64(message.previousEpochNumber);
+    }
+    if (message.previousEpochHead !== undefined) {
+      writer.uint32(50).bytes(message.previousEpochHead);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosOpenEpochInput): MinosOpenEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosOpenEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userFbid = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.previousExportRootKey = reader.bytes();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.previousEpochNumber = reader.uint64Value();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.previousEpochHead = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosOpenEpochInput>): MinosOpenEpochInput {
+    return MinosOpenEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosOpenEpochInput>): MinosOpenEpochInput {
+    const message = createBaseMinosOpenEpochInput();
+    message.userFbid = object.userFbid ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    message.previousExportRootKey = object.previousExportRootKey ?? undefined;
+    message.previousEpochNumber = object.previousEpochNumber ?? undefined;
+    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosOpenEpochResult(): MinosOpenEpochResult {
+  return {};
+}
+
+export const MinosOpenEpochResult: MessageFns<MinosOpenEpochResult> = {
+  encode(message: MinosOpenEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.minosSignedEpoch !== undefined) {
+      MinosSignedEpoch.encode(message.minosSignedEpoch, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosOpenEpochResult): MinosOpenEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosOpenEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.minosSignedEpoch = MinosSignedEpoch.decode(reader, reader.uint32(), message.minosSignedEpoch);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosOpenEpochResult>): MinosOpenEpochResult {
+    return MinosOpenEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosOpenEpochResult>): MinosOpenEpochResult {
+    const message = createBaseMinosOpenEpochResult();
+    message.minosSignedEpoch = (object.minosSignedEpoch !== undefined && object.minosSignedEpoch !== null)
+      ? MinosSignedEpoch.fromPartial(object.minosSignedEpoch)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosOpenInitialEpochInput(): MinosOpenInitialEpochInput {
+  return {};
+}
+
+export const MinosOpenInitialEpochInput: MessageFns<MinosOpenInitialEpochInput> = {
+  encode(message: MinosOpenInitialEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userFbid !== undefined) {
+      writer.uint32(10).string(message.userFbid);
+    }
+    if (message.epochNumber !== undefined) {
+      writer.uint32(16).uint64(message.epochNumber);
+    }
+    if (message.exportRootKey !== undefined) {
+      writer.uint32(26).bytes(message.exportRootKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosOpenInitialEpochInput): MinosOpenInitialEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosOpenInitialEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userFbid = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.epochNumber = reader.uint64Value();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.exportRootKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosOpenInitialEpochInput>): MinosOpenInitialEpochInput {
+    return MinosOpenInitialEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosOpenInitialEpochInput>): MinosOpenInitialEpochInput {
+    const message = createBaseMinosOpenInitialEpochInput();
+    message.userFbid = object.userFbid ?? undefined;
+    message.epochNumber = object.epochNumber ?? undefined;
+    message.exportRootKey = object.exportRootKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosOpenInitialEpochResult(): MinosOpenInitialEpochResult {
+  return {};
+}
+
+export const MinosOpenInitialEpochResult: MessageFns<MinosOpenInitialEpochResult> = {
+  encode(message: MinosOpenInitialEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.minosSignedEpoch !== undefined) {
+      MinosSignedEpoch.encode(message.minosSignedEpoch, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosOpenInitialEpochResult): MinosOpenInitialEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosOpenInitialEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.minosSignedEpoch = MinosSignedEpoch.decode(reader, reader.uint32(), message.minosSignedEpoch);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosOpenInitialEpochResult>): MinosOpenInitialEpochResult {
+    return MinosOpenInitialEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosOpenInitialEpochResult>): MinosOpenInitialEpochResult {
+    const message = createBaseMinosOpenInitialEpochResult();
+    message.minosSignedEpoch = (object.minosSignedEpoch !== undefined && object.minosSignedEpoch !== null)
+      ? MinosSignedEpoch.fromPartial(object.minosSignedEpoch)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosSignedEpoch(): MinosSignedEpoch {
+  return {};
+}
+
+export const MinosSignedEpoch: MessageFns<MinosSignedEpoch> = {
+  encode(message: MinosSignedEpoch, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochPublicData !== undefined) {
+      EpochPublicData.encode(message.epochPublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.signatures !== undefined) {
+      EpochSignatures.encode(message.signatures, writer.uint32(18).fork()).join();
+    }
+    if (message.epochHead !== undefined) {
+      writer.uint32(26).bytes(message.epochHead);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosSignedEpoch): MinosSignedEpoch {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosSignedEpoch();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signatures = EpochSignatures.decode(reader, reader.uint32(), message.signatures);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.epochHead = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosSignedEpoch>): MinosSignedEpoch {
+    return MinosSignedEpoch.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosSignedEpoch>): MinosSignedEpoch {
+    const message = createBaseMinosSignedEpoch();
+    message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+      ? EpochPublicData.fromPartial(object.epochPublicData)
+      : undefined;
+    message.signatures = (object.signatures !== undefined && object.signatures !== null)
+      ? EpochSignatures.fromPartial(object.signatures)
+      : undefined;
+    message.epochHead = object.epochHead ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosThreadIdFromActThreadIdInput(): MinosThreadIdFromActThreadIdInput {
+  return {};
+}
+
+export const MinosThreadIdFromActThreadIdInput: MessageFns<MinosThreadIdFromActThreadIdInput> = {
+  encode(message: MinosThreadIdFromActThreadIdInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.actThreadId !== undefined) {
+      writer.uint32(10).string(message.actThreadId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosThreadIdFromActThreadIdInput): MinosThreadIdFromActThreadIdInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosThreadIdFromActThreadIdInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.actThreadId = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosThreadIdFromActThreadIdInput>): MinosThreadIdFromActThreadIdInput {
+    return MinosThreadIdFromActThreadIdInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosThreadIdFromActThreadIdInput>): MinosThreadIdFromActThreadIdInput {
+    const message = createBaseMinosThreadIdFromActThreadIdInput();
+    message.actThreadId = object.actThreadId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosThreadIdFromActThreadIdResult(): MinosThreadIdFromActThreadIdResult {
+  return {};
+}
+
+export const MinosThreadIdFromActThreadIdResult: MessageFns<MinosThreadIdFromActThreadIdResult> = {
+  encode(message: MinosThreadIdFromActThreadIdResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.threadId !== undefined) {
+      writer.uint32(10).bytes(message.threadId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosThreadIdFromActThreadIdResult): MinosThreadIdFromActThreadIdResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosThreadIdFromActThreadIdResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.threadId = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosThreadIdFromActThreadIdResult>): MinosThreadIdFromActThreadIdResult {
+    return MinosThreadIdFromActThreadIdResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosThreadIdFromActThreadIdResult>): MinosThreadIdFromActThreadIdResult {
+    const message = createBaseMinosThreadIdFromActThreadIdResult();
+    message.threadId = object.threadId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosThreadIdFromOneToOneThreadInput(): MinosThreadIdFromOneToOneThreadInput {
+  return {};
+}
+
+export const MinosThreadIdFromOneToOneThreadInput: MessageFns<MinosThreadIdFromOneToOneThreadInput> = {
+  encode(message: MinosThreadIdFromOneToOneThreadInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.actThreadId !== undefined) {
+      writer.uint32(10).string(message.actThreadId);
+    }
+    if (message.selfFbid !== undefined) {
+      writer.uint32(18).string(message.selfFbid);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosThreadIdFromOneToOneThreadInput): MinosThreadIdFromOneToOneThreadInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosThreadIdFromOneToOneThreadInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.actThreadId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.selfFbid = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosThreadIdFromOneToOneThreadInput>): MinosThreadIdFromOneToOneThreadInput {
+    return MinosThreadIdFromOneToOneThreadInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosThreadIdFromOneToOneThreadInput>): MinosThreadIdFromOneToOneThreadInput {
+    const message = createBaseMinosThreadIdFromOneToOneThreadInput();
+    message.actThreadId = object.actThreadId ?? undefined;
+    message.selfFbid = object.selfFbid ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosThreadIdFromOneToOneThreadResult(): MinosThreadIdFromOneToOneThreadResult {
+  return {};
+}
+
+export const MinosThreadIdFromOneToOneThreadResult: MessageFns<MinosThreadIdFromOneToOneThreadResult> = {
+  encode(message: MinosThreadIdFromOneToOneThreadResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.threadId !== undefined) {
+      writer.uint32(10).bytes(message.threadId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosThreadIdFromOneToOneThreadResult): MinosThreadIdFromOneToOneThreadResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosThreadIdFromOneToOneThreadResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.threadId = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosThreadIdFromOneToOneThreadResult>): MinosThreadIdFromOneToOneThreadResult {
+    return MinosThreadIdFromOneToOneThreadResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosThreadIdFromOneToOneThreadResult>): MinosThreadIdFromOneToOneThreadResult {
+    const message = createBaseMinosThreadIdFromOneToOneThreadResult();
+    message.threadId = object.threadId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosValidateEpochInput(): MinosValidateEpochInput {
+  return {};
+}
+
+export const MinosValidateEpochInput: MessageFns<MinosValidateEpochInput> = {
+  encode(message: MinosValidateEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochPublicData !== undefined) {
+      EpochPublicData.encode(message.epochPublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.previousEpochPublicData !== undefined) {
+      EpochPublicData.encode(message.previousEpochPublicData, writer.uint32(18).fork()).join();
+    }
+    if (message.signatures !== undefined) {
+      EpochSignatures.encode(message.signatures, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosValidateEpochInput): MinosValidateEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosValidateEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.previousEpochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.previousEpochPublicData);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.signatures = EpochSignatures.decode(reader, reader.uint32(), message.signatures);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosValidateEpochInput>): MinosValidateEpochInput {
+    return MinosValidateEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosValidateEpochInput>): MinosValidateEpochInput {
+    const message = createBaseMinosValidateEpochInput();
+    message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+      ? EpochPublicData.fromPartial(object.epochPublicData)
+      : undefined;
+    message.previousEpochPublicData =
+      (object.previousEpochPublicData !== undefined && object.previousEpochPublicData !== null)
+        ? EpochPublicData.fromPartial(object.previousEpochPublicData)
+        : undefined;
+    message.signatures = (object.signatures !== undefined && object.signatures !== null)
+      ? EpochSignatures.fromPartial(object.signatures)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseMinosValidateEpochResult(): MinosValidateEpochResult {
+  return {};
+}
+
+export const MinosValidateEpochResult: MessageFns<MinosValidateEpochResult> = {
+  encode(message: MinosValidateEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.valid !== undefined) {
+      writer.uint32(8).bool(message.valid);
+    }
+    if (message.errorMessage !== undefined) {
+      writer.uint32(18).string(message.errorMessage);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosValidateEpochResult): MinosValidateEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosValidateEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.valid = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.errorMessage = reader.string();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosValidateEpochResult>): MinosValidateEpochResult {
+    return MinosValidateEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosValidateEpochResult>): MinosValidateEpochResult {
+    const message = createBaseMinosValidateEpochResult();
+    message.valid = object.valid ?? undefined;
+    message.errorMessage = object.errorMessage ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosVerifySingleEpochInput(): MinosVerifySingleEpochInput {
+  return {};
+}
+
+export const MinosVerifySingleEpochInput: MessageFns<MinosVerifySingleEpochInput> = {
+  encode(message: MinosVerifySingleEpochInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.epochPublicData !== undefined) {
+      EpochPublicData.encode(message.epochPublicData, writer.uint32(10).fork()).join();
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(18).bytes(message.signature);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosVerifySingleEpochInput): MinosVerifySingleEpochInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosVerifySingleEpochInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.epochPublicData = EpochPublicData.decode(reader, reader.uint32(), message.epochPublicData);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosVerifySingleEpochInput>): MinosVerifySingleEpochInput {
+    return MinosVerifySingleEpochInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosVerifySingleEpochInput>): MinosVerifySingleEpochInput {
+    const message = createBaseMinosVerifySingleEpochInput();
+    message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
+      ? EpochPublicData.fromPartial(object.epochPublicData)
+      : undefined;
+    message.signature = object.signature ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMinosVerifySingleEpochResult(): MinosVerifySingleEpochResult {
+  return {};
+}
+
+export const MinosVerifySingleEpochResult: MessageFns<MinosVerifySingleEpochResult> = {
+  encode(message: MinosVerifySingleEpochResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.valid !== undefined) {
+      writer.uint32(8).bool(message.valid);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MinosVerifySingleEpochResult): MinosVerifySingleEpochResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMinosVerifySingleEpochResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.valid = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MinosVerifySingleEpochResult>): MinosVerifySingleEpochResult {
+    return MinosVerifySingleEpochResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MinosVerifySingleEpochResult>): MinosVerifySingleEpochResult {
+    const message = createBaseMinosVerifySingleEpochResult();
+    message.valid = object.valid ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMmkDistribution(): MmkDistribution {
+  return {};
+}
+
+export const MmkDistribution: MessageFns<MmkDistribution> = {
+  encode(message: MmkDistribution, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.toDetachedDevices !== undefined && message.toDetachedDevices.length !== 0) {
+      for (const v of message.toDetachedDevices) {
+        MmkDistributionToDetachedDevice.encode(v!, writer.uint32(10).fork()).join();
+      }
+    }
+    if (message.toMailbox !== undefined) {
+      MmkDistributionToMailbox.encode(message.toMailbox, writer.uint32(18).fork()).join();
+    }
+    if (message.version !== undefined) {
+      writer.uint32(24).uint64(message.version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MmkDistribution): MmkDistribution {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMmkDistribution();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          if (message.toDetachedDevices === undefined) {
+            message.toDetachedDevices = [];
+          }
+          const el = MmkDistributionToDetachedDevice.decode(reader, reader.uint32());
+          if (el !== undefined) {
+            message.toDetachedDevices!.push(el);
+          }
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.toMailbox = MmkDistributionToMailbox.decode(reader, reader.uint32(), message.toMailbox);
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.version = reader.uint64Value();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MmkDistribution>): MmkDistribution {
+    return MmkDistribution.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MmkDistribution>): MmkDistribution {
+    const message = createBaseMmkDistribution();
+    message.toDetachedDevices = object.toDetachedDevices?.map((e) => MmkDistributionToDetachedDevice.fromPartial(e)) ||
+      undefined;
+    message.toMailbox = (object.toMailbox !== undefined && object.toMailbox !== null)
+      ? MmkDistributionToMailbox.fromPartial(object.toMailbox)
+      : undefined;
+    message.version = object.version ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMmkDistributionToDetachedDevice(): MmkDistributionToDetachedDevice {
+  return {};
+}
+
+export const MmkDistributionToDetachedDevice: MessageFns<MmkDistributionToDetachedDevice> = {
+  encode(message: MmkDistributionToDetachedDevice, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptedMmk !== undefined) {
+      writer.uint32(10).bytes(message.encryptedMmk);
+    }
+    if (message.recipDeviceHash !== undefined) {
+      writer.uint32(18).bytes(message.recipDeviceHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MmkDistributionToDetachedDevice): MmkDistributionToDetachedDevice {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMmkDistributionToDetachedDevice();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedMmk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.recipDeviceHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MmkDistributionToDetachedDevice>): MmkDistributionToDetachedDevice {
+    return MmkDistributionToDetachedDevice.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MmkDistributionToDetachedDevice>): MmkDistributionToDetachedDevice {
+    const message = createBaseMmkDistributionToDetachedDevice();
+    message.encryptedMmk = object.encryptedMmk ?? undefined;
+    message.recipDeviceHash = object.recipDeviceHash ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMmkDistributionToMailbox(): MmkDistributionToMailbox {
+  return {};
+}
+
+export const MmkDistributionToMailbox: MessageFns<MmkDistributionToMailbox> = {
+  encode(message: MmkDistributionToMailbox, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.encryptedMmk !== undefined) {
+      writer.uint32(10).bytes(message.encryptedMmk);
+    }
+    if (message.recipMailboxHeadHash !== undefined) {
+      writer.uint32(18).bytes(message.recipMailboxHeadHash);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MmkDistributionToMailbox): MmkDistributionToMailbox {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMmkDistributionToMailbox();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.encryptedMmk = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.recipMailboxHeadHash = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MmkDistributionToMailbox>): MmkDistributionToMailbox {
+    return MmkDistributionToMailbox.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MmkDistributionToMailbox>): MmkDistributionToMailbox {
+    const message = createBaseMmkDistributionToMailbox();
+    message.encryptedMmk = object.encryptedMmk ?? undefined;
+    message.recipMailboxHeadHash = object.recipMailboxHeadHash ?? undefined;
+    return message;
+  },
+};
+
+function createBaseMmkFromDetachedDevice(): MmkFromDetachedDevice {
+  return {};
+}
+
+export const MmkFromDetachedDevice: MessageFns<MmkFromDetachedDevice> = {
+  encode(message: MmkFromDetachedDevice, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mmk !== undefined) {
+      MessagingMailboxPublicData.encode(message.mmk, writer.uint32(10).fork()).join();
+    }
+    if (message.fromDetachedDevice !== undefined) {
+      DetachedDevicePublicData.encode(message.fromDetachedDevice, writer.uint32(18).fork()).join();
+    }
+    if (message.membershipProof !== undefined) {
+      MerkleMembershipProof.encode(message.membershipProof, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: MmkFromDetachedDevice): MmkFromDetachedDevice {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseMmkFromDetachedDevice();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmk = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.mmk);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fromDetachedDevice = DetachedDevicePublicData.decode(reader, reader.uint32(), message.fromDetachedDevice);
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.membershipProof = MerkleMembershipProof.decode(reader, reader.uint32(), message.membershipProof);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<MmkFromDetachedDevice>): MmkFromDetachedDevice {
+    return MmkFromDetachedDevice.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<MmkFromDetachedDevice>): MmkFromDetachedDevice {
+    const message = createBaseMmkFromDetachedDevice();
+    message.mmk = (object.mmk !== undefined && object.mmk !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.mmk)
+      : undefined;
+    message.fromDetachedDevice = (object.fromDetachedDevice !== undefined && object.fromDetachedDevice !== null)
+      ? DetachedDevicePublicData.fromPartial(object.fromDetachedDevice)
+      : undefined;
+    message.membershipProof = (object.membershipProof !== undefined && object.membershipProof !== null)
+      ? MerkleMembershipProof.fromPartial(object.membershipProof)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseMoney(): Money {
   return {};
 }
@@ -57778,20 +65932,17 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
       writer.uint32(10).bytes(message.currentEpochRootKey);
     }
     if (message.currentEpochAnonId !== undefined) {
-      writer.uint32(16).uint64(message.currentEpochAnonId);
+      writer.uint32(18).bytes(message.currentEpochAnonId);
     }
     if (message.currentEpochFbid !== undefined) {
       writer.uint32(24).uint64(message.currentEpochFbid);
     }
-    if (message.newEpochFbid !== undefined) {
-      writer.uint32(32).uint64(message.newEpochFbid);
-    }
     if (message.epochStoragePrivateKey !== undefined) {
-      writer.uint32(42).bytes(message.epochStoragePrivateKey);
+      writer.uint32(34).bytes(message.epochStoragePrivateKey);
     }
     if (message.members !== undefined && message.members.length !== 0) {
       for (const v of message.members) {
-        RotateEpochMemberInput.encode(v!, writer.uint32(50).fork()).join();
+        RotateEpochMemberInput.encode(v!, writer.uint32(42).fork()).join();
       }
     }
     return writer;
@@ -57813,11 +65964,11 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
           continue;
         }
         case 2: {
-          if (tag !== 16) {
+          if (tag !== 18) {
             break;
           }
 
-          message.currentEpochAnonId = reader.uint64Value();
+          message.currentEpochAnonId = reader.bytes();
           continue;
         }
         case 3: {
@@ -57829,23 +65980,15 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
           continue;
         }
         case 4: {
-          if (tag !== 32) {
-            break;
-          }
-
-          message.newEpochFbid = reader.uint64Value();
-          continue;
-        }
-        case 5: {
-          if (tag !== 42) {
+          if (tag !== 34) {
             break;
           }
 
           message.epochStoragePrivateKey = reader.bytes();
           continue;
         }
-        case 6: {
-          if (tag !== 50) {
+        case 5: {
+          if (tag !== 42) {
             break;
           }
 
@@ -57875,7 +66018,6 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
     message.currentEpochRootKey = object.currentEpochRootKey ?? undefined;
     message.currentEpochAnonId = object.currentEpochAnonId ?? undefined;
     message.currentEpochFbid = object.currentEpochFbid ?? undefined;
-    message.newEpochFbid = object.newEpochFbid ?? undefined;
     message.epochStoragePrivateKey = object.epochStoragePrivateKey ?? undefined;
     message.members = object.members?.map((e) => RotateEpochMemberInput.fromPartial(e)) || undefined;
     return message;
@@ -58034,11 +66176,14 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
     if (message.newEpochAnonId !== undefined) {
       writer.uint32(16).uint64(message.newEpochAnonId);
     }
+    if (message.newEpochFbid !== undefined) {
+      writer.uint32(64).uint64(message.newEpochFbid);
+    }
     if (message.epochAnonId !== undefined) {
       writer.uint32(26).bytes(message.epochAnonId);
     }
-    if (message.epochData !== undefined) {
-      writer.uint32(34).bytes(message.epochData);
+    if (message.backwardEdge !== undefined) {
+      BackwardEdge.encode(message.backwardEdge, writer.uint32(34).fork()).join();
     }
     if (message.memberEdges !== undefined && message.memberEdges.length !== 0) {
       for (const v of message.memberEdges) {
@@ -58077,6 +66222,14 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
           message.newEpochAnonId = reader.uint64Value();
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.newEpochFbid = reader.uint64Value();
+          continue;
+        }
         case 3: {
           if (tag !== 26) {
             break;
@@ -58090,7 +66243,7 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
             break;
           }
 
-          message.epochData = reader.bytes();
+          message.backwardEdge = BackwardEdge.decode(reader, reader.uint32(), message.backwardEdge);
           continue;
         }
         case 5: {
@@ -58139,8 +66292,11 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
     const message = createBaseRotateEpochOutput();
     message.newEpochRootKey = object.newEpochRootKey ?? undefined;
     message.newEpochAnonId = object.newEpochAnonId ?? undefined;
+    message.newEpochFbid = object.newEpochFbid ?? undefined;
     message.epochAnonId = object.epochAnonId ?? undefined;
-    message.epochData = object.epochData ?? undefined;
+    message.backwardEdge = (object.backwardEdge !== undefined && object.backwardEdge !== null)
+      ? BackwardEdge.fromPartial(object.backwardEdge)
+      : undefined;
     message.memberEdges = object.memberEdges?.map((e) => RotateEpochMemberEdge.fromPartial(e)) || undefined;
     message.epochRootKeyFingerprint = object.epochRootKeyFingerprint ?? undefined;
     message.error = object.error ?? undefined;
@@ -59681,6 +67837,80 @@ export const SignalMessage: MessageFns<SignalMessage> = {
   },
 };
 
+function createBaseSignedMmkDistributionFromMailbox(): SignedMmkDistributionFromMailbox {
+  return {};
+}
+
+export const SignedMmkDistributionFromMailbox: MessageFns<SignedMmkDistributionFromMailbox> = {
+  encode(message: SignedMmkDistributionFromMailbox, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.mmkDistribution !== undefined) {
+      MmkDistribution.encode(message.mmkDistribution, writer.uint32(10).fork()).join();
+    }
+    if (message.signature !== undefined) {
+      writer.uint32(18).bytes(message.signature);
+    }
+    if (message.fromMailbox !== undefined) {
+      MessagingMailboxPublicData.encode(message.fromMailbox, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SignedMmkDistributionFromMailbox): SignedMmkDistributionFromMailbox {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseSignedMmkDistributionFromMailbox();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.mmkDistribution = MmkDistribution.decode(reader, reader.uint32(), message.mmkDistribution);
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signature = reader.bytes();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fromMailbox = MessagingMailboxPublicData.decode(reader, reader.uint32(), message.fromMailbox);
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SignedMmkDistributionFromMailbox>): SignedMmkDistributionFromMailbox {
+    return SignedMmkDistributionFromMailbox.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SignedMmkDistributionFromMailbox>): SignedMmkDistributionFromMailbox {
+    const message = createBaseSignedMmkDistributionFromMailbox();
+    message.mmkDistribution = (object.mmkDistribution !== undefined && object.mmkDistribution !== null)
+      ? MmkDistribution.fromPartial(object.mmkDistribution)
+      : undefined;
+    message.signature = object.signature ?? undefined;
+    message.fromMailbox = (object.fromMailbox !== undefined && object.fromMailbox !== null)
+      ? MessagingMailboxPublicData.fromPartial(object.fromMailbox)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseSignedPreKeyRecordStructure(): SignedPreKeyRecordStructure {
   return {};
 }
@@ -61151,6 +69381,10 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
     if (message.deviceCapabilitiesV2 !== undefined) {
       DeviceCapabilities.encode(message.deviceCapabilitiesV2, writer.uint32(738).fork()).join();
     }
+    if (message.ctwaMessageReceivedAction !== undefined) {
+      SyncActionValue_CtwaMessageReceivedAction.encode(message.ctwaMessageReceivedAction, writer.uint32(746).fork())
+        .join();
+    }
     return writer;
   },
 
@@ -61828,6 +70062,14 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           message.deviceCapabilitiesV2 = DeviceCapabilities.decode(reader, reader.uint32(), message.deviceCapabilitiesV2);
           continue;
         }
+        case 93: {
+          if (tag !== 746) {
+            break;
+          }
+
+          message.ctwaMessageReceivedAction = SyncActionValue_CtwaMessageReceivedAction.decode(reader, reader.uint32(), message.ctwaMessageReceivedAction);
+          continue;
+        }
       }
       if (tag >>> 3 === 0 || (tag & 7) === 4) {
         throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
@@ -62134,6 +70376,10 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
     message.deviceCapabilitiesV2 = (object.deviceCapabilitiesV2 !== undefined && object.deviceCapabilitiesV2 !== null)
       ? DeviceCapabilities.fromPartial(object.deviceCapabilitiesV2)
       : undefined;
+    message.ctwaMessageReceivedAction =
+      (object.ctwaMessageReceivedAction !== undefined && object.ctwaMessageReceivedAction !== null)
+        ? SyncActionValue_CtwaMessageReceivedAction.fromPartial(object.ctwaMessageReceivedAction)
+        : undefined;
     return message;
   },
 };
@@ -63486,6 +71732,54 @@ export const SyncActionValue_ContactAction: MessageFns<SyncActionValue_ContactAc
     message.saveOnPrimaryAddressbook = object.saveOnPrimaryAddressbook ?? undefined;
     message.pnJid = object.pnJid ?? undefined;
     message.username = object.username ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSyncActionValue_CtwaMessageReceivedAction(): SyncActionValue_CtwaMessageReceivedAction {
+  return {};
+}
+
+export const SyncActionValue_CtwaMessageReceivedAction: MessageFns<SyncActionValue_CtwaMessageReceivedAction> = {
+  encode(message: SyncActionValue_CtwaMessageReceivedAction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.isCtwaMessageReceived !== undefined) {
+      writer.uint32(8).bool(message.isCtwaMessageReceived);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: SyncActionValue_CtwaMessageReceivedAction): SyncActionValue_CtwaMessageReceivedAction {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseSyncActionValue_CtwaMessageReceivedAction();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.isCtwaMessageReceived = reader.bool();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SyncActionValue_CtwaMessageReceivedAction>): SyncActionValue_CtwaMessageReceivedAction {
+    return SyncActionValue_CtwaMessageReceivedAction.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<SyncActionValue_CtwaMessageReceivedAction>,
+  ): SyncActionValue_CtwaMessageReceivedAction {
+    const message = createBaseSyncActionValue_CtwaMessageReceivedAction();
+    message.isCtwaMessageReceived = object.isCtwaMessageReceived ?? undefined;
     return message;
   },
 };
@@ -72518,6 +80812,190 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
     message.unreadChats = object.unreadChats ?? undefined;
     message.notifyMessageCount = object.notifyMessageCount ?? undefined;
     message.notifyMessages = object.notifyMessages?.map((e) => WebMessageInfo.fromPartial(e)) || undefined;
+    return message;
+  },
+};
+
+function createBaseWrapTransportSigningPublicKeyInput(): WrapTransportSigningPublicKeyInput {
+  return {};
+}
+
+export const WrapTransportSigningPublicKeyInput: MessageFns<WrapTransportSigningPublicKeyInput> = {
+  encode(message: WrapTransportSigningPublicKeyInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.keyBytes !== undefined) {
+      writer.uint32(10).bytes(message.keyBytes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WrapTransportSigningPublicKeyInput): WrapTransportSigningPublicKeyInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseWrapTransportSigningPublicKeyInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.keyBytes = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<WrapTransportSigningPublicKeyInput>): WrapTransportSigningPublicKeyInput {
+    return WrapTransportSigningPublicKeyInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<WrapTransportSigningPublicKeyInput>): WrapTransportSigningPublicKeyInput {
+    const message = createBaseWrapTransportSigningPublicKeyInput();
+    message.keyBytes = object.keyBytes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseWrapTransportSigningPublicKeyResult(): WrapTransportSigningPublicKeyResult {
+  return {};
+}
+
+export const WrapTransportSigningPublicKeyResult: MessageFns<WrapTransportSigningPublicKeyResult> = {
+  encode(message: WrapTransportSigningPublicKeyResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.prefixedKey !== undefined) {
+      writer.uint32(10).bytes(message.prefixedKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WrapTransportSigningPublicKeyResult): WrapTransportSigningPublicKeyResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseWrapTransportSigningPublicKeyResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.prefixedKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<WrapTransportSigningPublicKeyResult>): WrapTransportSigningPublicKeyResult {
+    return WrapTransportSigningPublicKeyResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<WrapTransportSigningPublicKeyResult>): WrapTransportSigningPublicKeyResult {
+    const message = createBaseWrapTransportSigningPublicKeyResult();
+    message.prefixedKey = object.prefixedKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseWrapTransportSigningSecretKeyInput(): WrapTransportSigningSecretKeyInput {
+  return {};
+}
+
+export const WrapTransportSigningSecretKeyInput: MessageFns<WrapTransportSigningSecretKeyInput> = {
+  encode(message: WrapTransportSigningSecretKeyInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.keyBytes !== undefined) {
+      writer.uint32(10).bytes(message.keyBytes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WrapTransportSigningSecretKeyInput): WrapTransportSigningSecretKeyInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseWrapTransportSigningSecretKeyInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.keyBytes = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<WrapTransportSigningSecretKeyInput>): WrapTransportSigningSecretKeyInput {
+    return WrapTransportSigningSecretKeyInput.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<WrapTransportSigningSecretKeyInput>): WrapTransportSigningSecretKeyInput {
+    const message = createBaseWrapTransportSigningSecretKeyInput();
+    message.keyBytes = object.keyBytes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseWrapTransportSigningSecretKeyResult(): WrapTransportSigningSecretKeyResult {
+  return {};
+}
+
+export const WrapTransportSigningSecretKeyResult: MessageFns<WrapTransportSigningSecretKeyResult> = {
+  encode(message: WrapTransportSigningSecretKeyResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.prefixedKey !== undefined) {
+      writer.uint32(10).bytes(message.prefixedKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number, into?: WrapTransportSigningSecretKeyResult): WrapTransportSigningSecretKeyResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = into ?? createBaseWrapTransportSigningSecretKeyResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.prefixedKey = reader.bytes();
+          continue;
+        }
+      }
+      if (tag >>> 3 === 0 || (tag & 7) === 4) {
+        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<WrapTransportSigningSecretKeyResult>): WrapTransportSigningSecretKeyResult {
+    return WrapTransportSigningSecretKeyResult.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<WrapTransportSigningSecretKeyResult>): WrapTransportSigningSecretKeyResult {
+    const message = createBaseWrapTransportSigningSecretKeyResult();
+    message.prefixedKey = object.prefixedKey ?? undefined;
     return message;
   },
 };

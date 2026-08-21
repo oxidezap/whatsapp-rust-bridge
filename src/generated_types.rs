@@ -988,6 +988,7 @@ export interface MsgBotInfo {
   edit_sender_timestamp_ms?: string | null;
 }
 
+/** The short `<meta>` attributes are `CompactString`: a message id is 22 wire characters and the rest are short keywords ("add_on", "default"), so all of them live in the 24 inline bytes and parsing a `<meta>` child allocates nothing for them. */
 export interface MsgMetaInfo {
   target_id?: string | null;
   target_sender?: Jid | null;
