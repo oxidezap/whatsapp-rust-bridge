@@ -42,10 +42,26 @@ const EXEMPT: Record<string, { ms: number; why: string }> = {
   },
 };
 
+/**
+ * Unattributed wall: everything the suite spent that no test body accounts for,
+ * which is module loading and `beforeAll`/`afterEach` hooks. Bun's junit report
+ * charges none of it to anything — a 1.5s `beforeAll` leaves its testcase at
+ * 0.0002s and its enclosing testsuite at 0 — so without this a slow fixture is
+ * the one way past the budget above. It is one number for the whole run because
+ * that is the only level the report measures it at. 15s against the 0.9s a full
+ * suite spends today, so it catches a fixture that ran away and nothing else.
+ */
+const MS_SETUP_BUDGET = 15_000;
+
 const report = join(tmpdir(), `whatsapp-rust-bridge-test-clock-${process.pid}.xml`);
 
+// A caller can forward `bun test` arguments, which may select a subset. The
+// checks that only make sense over the whole suite are skipped when they do.
+const forwarded = Bun.argv.slice(2);
+const wholeSuite = forwarded.length === 0;
+
 const proc = Bun.spawn(
-  ["bun", "test", "--reporter=junit", `--reporter-outfile=${report}`, ...Bun.argv.slice(2)],
+  ["bun", "test", "--reporter=junit", `--reporter-outfile=${report}`, ...forwarded],
   { stdout: "inherit", stderr: "inherit", env: process.env }
 );
 const status = await proc.exited;
@@ -94,16 +110,29 @@ if (seen.size === 0) {
   problems.push(`check-test-clock: no <testcase> durations in bun's junit report.`);
 }
 
-for (const [name, { why }] of Object.entries(EXEMPT)) {
-  if (!seen.has(name)) {
-    problems.push(`check-test-clock: exempt test is no longer in the suite: ${name} (${why})`);
+if (wholeSuite) {
+  for (const [name, { why }] of Object.entries(EXEMPT)) {
+    if (!seen.has(name)) {
+      problems.push(`check-test-clock: exempt test is no longer in the suite: ${name} (${why})`);
+    }
   }
 }
 
-const total = [...seen.values()].reduce((sum, ms) => sum + ms, 0);
+const attributed = [...seen.values()].reduce((sum, ms) => sum + ms, 0);
+const suiteTotal = Number(/<testsuites\b[^>]*\btime="([\d.]+)"/.exec(xml)?.[1] ?? 0) * 1000;
+const setup = suiteTotal - attributed;
 console.log(
-  `check-test-clock: ${seen.size} tests, ${(total / 1000).toFixed(1)}s of measured wall`
+  `check-test-clock: ${seen.size} tests, ${(attributed / 1000).toFixed(1)}s in test bodies, ` +
+    `${(setup / 1000).toFixed(1)}s in loading and fixtures`
 );
+if (setup > MS_SETUP_BUDGET) {
+  problems.push(
+    `check-test-clock: ${(setup / 1000).toFixed(1)}s of the run went to module loading and ` +
+      `fixtures, over the ${MS_SETUP_BUDGET / 1000}s budget.\n` +
+      `check-test-clock: bun charges hook time to no test, so look for a slow beforeAll or a ` +
+      `module that does work at import.`
+  );
+}
 const ranked = [...seen].sort((a, b) => b[1] - a[1]);
 for (const [name, ms] of ranked.slice(0, 5)) {
   console.log(`check-test-clock:   ${(ms / 1000).toFixed(2).padStart(7)}s  ${name}`);
