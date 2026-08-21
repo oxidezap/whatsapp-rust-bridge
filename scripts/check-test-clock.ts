@@ -88,8 +88,14 @@ try {
 }
 rmSync(report, { force: true });
 
-/** Worst duration seen per test, since a name can repeat across files. */
-const seen = new Map<string, number>();
+/**
+ * One entry per testcase, never collapsed by name. Two files can declare the
+ * same `describe > test` (`emitted types > every new operation is declared` is
+ * in both the business and newsletter surfaces), and keying on the name alone
+ * dropped one of the two durations out of the attributed total, where it then
+ * reappeared as fixture time the suite had not spent.
+ */
+const seen: Array<{ display: string; file: string; ms: number }> = [];
 for (const testcase of xml.matchAll(/<testcase\b([^>]*)>/g)) {
   const attrs = new Map(
     [...testcase[1].matchAll(/([\w:-]+)="([^"]*)"/g)].map(([, key, value]) => [key, unescape(value)])
@@ -97,32 +103,41 @@ for (const testcase of xml.matchAll(/<testcase\b([^>]*)>/g)) {
   const name = attrs.get("name");
   if (name === undefined) continue;
   const suite = attrs.get("classname");
-  const full = suite ? `${suite} > ${name}` : name;
-  const ms = Number(attrs.get("time") ?? 0) * 1000;
-  seen.set(full, Math.max(seen.get(full) ?? 0, ms));
+  seen.push({
+    display: suite ? `${suite} > ${name}` : name,
+    file: attrs.get("file") ?? "",
+    ms: Number(attrs.get("time") ?? 0) * 1000,
+  });
 }
+
+/** How a test is named in a message: with its file only when the name repeats. */
+const ambiguous = new Set(
+  seen.filter((t, i) => seen.findIndex((o) => o.display === t.display) !== i).map((t) => t.display)
+);
+const label = (t: { display: string; file: string }) =>
+  ambiguous.has(t.display) ? `${t.display} (${t.file})` : t.display;
 
 const problems: string[] = [];
 
 // Nothing parsed means the report moved and this measured an empty suite: a
 // pass that proves nothing, which is the failure mode a budget gate has.
-if (seen.size === 0) {
+if (seen.length === 0) {
   problems.push(`check-test-clock: no <testcase> durations in bun's junit report.`);
 }
 
 if (wholeSuite) {
   for (const [name, { why }] of Object.entries(EXEMPT)) {
-    if (!seen.has(name)) {
+    if (!seen.some((t) => t.display === name)) {
       problems.push(`check-test-clock: exempt test is no longer in the suite: ${name} (${why})`);
     }
   }
 }
 
-const attributed = [...seen.values()].reduce((sum, ms) => sum + ms, 0);
+const attributed = seen.reduce((sum, t) => sum + t.ms, 0);
 const suiteTotal = Number(/<testsuites\b[^>]*\btime="([\d.]+)"/.exec(xml)?.[1] ?? 0) * 1000;
 const setup = suiteTotal - attributed;
 console.log(
-  `check-test-clock: ${seen.size} tests, ${(attributed / 1000).toFixed(1)}s in test bodies, ` +
+  `check-test-clock: ${seen.length} tests, ${(attributed / 1000).toFixed(1)}s in test bodies, ` +
     `${(setup / 1000).toFixed(1)}s in loading and fixtures`
 );
 if (setup > MS_SETUP_BUDGET) {
@@ -133,16 +148,17 @@ if (setup > MS_SETUP_BUDGET) {
       `module that does work at import.`
   );
 }
-const ranked = [...seen].sort((a, b) => b[1] - a[1]);
-for (const [name, ms] of ranked.slice(0, 5)) {
-  console.log(`check-test-clock:   ${(ms / 1000).toFixed(2).padStart(7)}s  ${name}`);
+const ranked = [...seen].sort((a, b) => b.ms - a.ms);
+for (const test of ranked.slice(0, 5)) {
+  console.log(`check-test-clock:   ${(test.ms / 1000).toFixed(2).padStart(7)}s  ${label(test)}`);
 }
 
-for (const [name, ms] of ranked) {
-  const budget = EXEMPT[name]?.ms ?? MS_BUDGET;
+for (const test of ranked) {
+  const ms = test.ms;
+  const budget = EXEMPT[test.display]?.ms ?? MS_BUDGET;
   if (ms <= budget) continue;
   problems.push(
-    `check-test-clock: ${(ms / 1000).toFixed(2)}s for "${name}", over its ` +
+    `check-test-clock: ${(ms / 1000).toFixed(2)}s for "${label(test)}", over its ` +
       `${(budget / 1000).toFixed(1)}s budget.\n` +
       `check-test-clock: the suite is serial, so that is wall clock on every run. Make it ` +
       `cheaper, or add it to EXEMPT in scripts/check-test-clock.ts with a reason and a ceiling.`
