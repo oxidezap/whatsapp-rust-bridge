@@ -25,6 +25,17 @@ beforeAll(() => {
 
 const CHAT = "5511999999999@s.whatsapp.net";
 
+/**
+ * How long a call that does not wait is given to come back. Generous on
+ * purpose: a call that waits never settles at all, so the two are told apart by
+ * whether it settles rather than by how fast, and a slow worker cannot turn one
+ * into the other.
+ */
+const FAILS_FAST_BUDGET = 5000;
+
+/** How long a call that waits is watched before concluding it is holding. */
+const HOLDS_BUDGET = 500;
+
 /** Never completes a connection, so `run()` stays in its reconnect backoff. */
 function failingTransport() {
   return {
@@ -51,9 +62,16 @@ async function reconnectingClient(): Promise<WasmWhatsAppClient> {
   const client = await createWhatsAppClient(failingTransport(), createHttp());
   live.push(client);
   client.run();
-  // Let `run()` reach its first failed attempt, so the client is between
-  // connections rather than merely not started yet.
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  // Wait on the state rather than on a duration: `run()` reaching its first
+  // failed attempt is what puts the client between connections, and how long
+  // that takes is the worker's business.
+  const deadline = Date.now() + 10000;
+  while (client.reachability() !== "reconnecting") {
+    if (Date.now() > deadline) {
+      throw new Error(`client never started reconnecting (${client.reachability()})`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
   return client;
 }
 
@@ -87,7 +105,7 @@ describe("the reconnect window", () => {
     expect(client.reachability()).toBe("reconnecting");
 
     const call = client.fetchPrivacySettings();
-    expect(await settlesWithin(call, 500)).toBe(false);
+    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
 
     // Release it: a disconnect is terminal, which is what ends the wait.
     await client.disconnect();
@@ -100,7 +118,7 @@ describe("the reconnect window", () => {
     expect(client.reachability()).toBe("finished");
 
     const call = client.fetchPrivacySettings();
-    expect(await settlesWithin(call, 300)).toBe(true);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
@@ -110,7 +128,7 @@ describe("the reconnect window", () => {
     expect(client.reachability()).toBe("unsupervised");
 
     const call = client.fetchPrivacySettings();
-    expect(await settlesWithin(call, 300)).toBe(true);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
@@ -118,7 +136,7 @@ describe("the reconnect window", () => {
     const client = await reconnectingClient();
 
     const waiting = client.waitUntilReachable();
-    expect(await settlesWithin(waiting, 400)).toBe(false);
+    expect(await settlesWithin(waiting, HOLDS_BUDGET)).toBe(false);
 
     await client.disconnect();
     expect(await waiting).toBe("finished");
@@ -136,7 +154,7 @@ describe("calls a reconnect cannot help", () => {
     const client = await reconnectingClient();
 
     const call = client.sendChatState(CHAT, "composing");
-    expect(await settlesWithin(call, 500)).toBe(true);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
@@ -152,7 +170,7 @@ describe("calls a reconnect cannot help", () => {
       { tag: "iq", attrs: { type: "get", to: "s.whatsapp.net", xmlns: "w" } },
       500
     );
-    expect(await settlesWithin(call, 500)).toBe(true);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
@@ -166,7 +184,7 @@ describe("calls a reconnect cannot help", () => {
     const client = await reconnectingClient();
 
     const call = client.rotateSignedKey();
-    expect(await settlesWithin(call, 500)).toBe(true);
+    expect(await settlesWithin(call, FAILS_FAST_BUDGET)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 });

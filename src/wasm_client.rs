@@ -2507,7 +2507,7 @@ pub async fn create_whatsapp_client(
     };
 
     Ok(WasmWhatsAppClient {
-        client: CoreClient(client),
+        client: CoreClient::new(client),
         runtime,
         sync_rx: Some(sync_rx),
         saver_handle: Mutex::new(Some(saver_handle)),
@@ -2524,92 +2524,109 @@ pub async fn create_whatsapp_client(
 // Client wrapper
 // ---------------------------------------------------------------------------
 
-/// Why a call reaches the core without waiting for a reconnect in flight.
+/// Home of [`CoreClient`], and the only place its inner client is nameable.
 ///
-/// A `#[wasm_bindgen]` method cannot get at the client without saying one of
-/// these or asking for [`CoreClient::online`], which is what keeps the next
-/// method added here from landing in a bucket nobody chose for it. The value is
-/// never read: it exists so the choice is written down where the call is, and
-/// so the set below can be found by name rather than kept in a list somewhere
-/// else that would drift.
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum Unwaited {
-    /// Nothing crosses the wire, so there is no connection to wait for.
-    Local,
-    /// The core discards this on a lost connection rather than retrying it. A
-    /// receipt, an ack or a presence held back until the next socket says
-    /// something about a moment that has passed.
-    ConnectionBound,
-    /// The socket itself is the subject — establishing one, driving one, or
-    /// reporting on one.
-    ThisSocket,
-    /// The operation re-drives itself, or is built so its caller can re-issue
-    /// it. Waiting would sit in front of a retry that already exists.
-    Redriven,
-    /// An opaque node from the caller. The bridge cannot tell an IQ that
-    /// survives a reconnect from an ack that does not, so it does not guess;
-    /// `reachability()` and `waitUntilReachable()` put the choice with the
-    /// caller, who knows what the node is.
-    Opaque,
-    /// The method returns before anything is sent, so there is no call to hold.
-    /// Whatever it hands back reports its own failure.
-    Deferred,
-}
+/// The domain modules are siblings of this one rather than descendants, so the
+/// field below is out of their reach: `self.client.0` does not compile from
+/// `wasm_client/*.rs`, and `online()` or `unwaited(…)` is the only way in.
+mod core_client {
+    use super::Arc;
 
-/// The core client, reachable only by saying what this call is.
-///
-/// [`online`](Self::online) holds the call while a reconnect is in flight;
-/// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
-/// in and no plain field, so a method added later has to pick one.
-pub(crate) struct CoreClient(Arc<whatsapp_rust::Client>);
+    /// Why a call reaches the core without waiting for a reconnect in flight.
+    ///
+    /// A `#[wasm_bindgen]` method cannot get at the client without saying one of
+    /// these or asking for [`CoreClient::online`], which is what keeps the next
+    /// method added here from landing in a bucket nobody chose for it. The value is
+    /// never read: it exists so the choice is written down where the call is, and
+    /// so the set below can be found by name rather than kept in a list somewhere
+    /// else that would drift.
+    #[derive(Debug, Clone, Copy)]
+    pub(crate) enum Unwaited {
+        /// Nothing crosses the wire, so there is no connection to wait for.
+        Local,
+        /// The core discards this on a lost connection rather than retrying it. A
+        /// receipt, an ack or a presence held back until the next socket says
+        /// something about a moment that has passed.
+        ConnectionBound,
+        /// The socket itself is the subject — establishing one, driving one, or
+        /// reporting on one.
+        ThisSocket,
+        /// The operation re-drives itself, or is built so its caller can re-issue
+        /// it. Waiting would sit in front of a retry that already exists.
+        Redriven,
+        /// An opaque node from the caller. The bridge cannot tell an IQ that
+        /// survives a reconnect from an ack that does not, so it does not guess;
+        /// `reachability()` and `waitUntilReachable()` put the choice with the
+        /// caller, who knows what the node is.
+        Opaque,
+        /// The method returns before anything is sent, so there is no call to hold.
+        /// Whatever it hands back reports its own failure.
+        Deferred,
+    }
 
-impl CoreClient {
-    /// The client, once any reconnect in flight has landed.
+    /// The core client, reachable only by saying what this call is.
     ///
-    /// Only `Reconnecting` is waited out — the one state the core says
-    /// comes back with nothing further from the caller. Every other
-    /// answer falls straight through to the core, which reports what it always
-    /// reported: a finished client fails now, a paused one fails now, and a
-    /// client nothing is reading fails now. Waiting restores the ability to
-    /// ask, never the request that was refused, so nothing is re-sent here.
-    ///
-    /// Connected, this is a few relaxed loads and a branch. Nothing is
-    /// allocated, no boundary is crossed, and the future that does the waiting
-    /// is built only once one is needed.
-    #[inline]
-    pub(crate) async fn online(&self) -> &Arc<whatsapp_rust::Client> {
-        if self.0.reachability().recovers_on_its_own() {
-            self.park().await;
+    /// [`online`](Self::online) holds the call while a reconnect is in flight;
+    /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
+    /// in and no plain field, so a method added later has to pick one.
+    pub(crate) struct CoreClient(Arc<whatsapp_rust::Client>);
+
+    impl CoreClient {
+        pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
+            Self(client)
         }
-        &self.0
     }
 
-    /// The client as it is right now.
-    #[inline]
-    pub(crate) fn unwaited(&self, _why: Unwaited) -> &Arc<whatsapp_rust::Client> {
-        &self.0
-    }
+    impl CoreClient {
+        /// The client, once any reconnect in flight has landed.
+        ///
+        /// Only `Reconnecting` is waited out — the one state the core says
+        /// comes back with nothing further from the caller. Every other
+        /// answer falls straight through to the core, which reports what it always
+        /// reported: a finished client fails now, a paused one fails now, and a
+        /// client nothing is reading fails now. Waiting restores the ability to
+        /// ask, never the request that was refused, so nothing is re-sent here.
+        ///
+        /// Connected, this is a few relaxed loads and a branch. Nothing is
+        /// allocated, no boundary is crossed, and the future that does the waiting
+        /// is built only once one is needed.
+        #[inline]
+        pub(crate) async fn online(&self) -> &Arc<whatsapp_rust::Client> {
+            if self.0.reachability().recovers_on_its_own() {
+                self.park().await;
+            }
+            &self.0
+        }
 
-    /// What work handed to the client right now can expect.
-    pub(crate) fn reachability(&self) -> crate::result_types::Reachability {
-        self.0.reachability().into()
-    }
+        /// The client as it is right now.
+        #[inline]
+        pub(crate) fn unwaited(&self, _why: Unwaited) -> &Arc<whatsapp_rust::Client> {
+            &self.0
+        }
 
-    /// Wait out a reconnect, and report whatever ended the wait.
-    pub(crate) async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
-        self.0.wait_until_reachable().await.into()
-    }
+        /// What work handed to the client right now can expect.
+        pub(crate) fn reachability(&self) -> crate::result_types::Reachability {
+            self.0.reachability().into()
+        }
 
-    /// Off the hot path in its own future, so the check above costs one branch
-    /// in each of the callers rather than a wait's worth of state machine.
-    #[cold]
-    #[inline(never)]
-    fn park(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
-        Box::pin(async move {
-            let _ = self.0.wait_until_reachable().await;
-        })
+        /// Wait out a reconnect, and report whatever ended the wait.
+        pub(crate) async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
+            self.0.wait_until_reachable().await.into()
+        }
+
+        /// Off the hot path in its own future, so the check above costs one branch
+        /// in each of the callers rather than a wait's worth of state machine.
+        #[cold]
+        #[inline(never)]
+        fn park(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+            Box::pin(async move {
+                let _ = self.0.wait_until_reachable().await;
+            })
+        }
     }
 }
+
+pub(crate) use core_client::{CoreClient, Unwaited};
 
 /// Opaque handle to the WhatsApp client.
 #[wasm_bindgen]
