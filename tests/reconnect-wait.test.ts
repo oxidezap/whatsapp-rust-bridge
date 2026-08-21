@@ -24,6 +24,7 @@ beforeAll(() => {
 });
 
 const CHAT = "5511999999999@s.whatsapp.net";
+const GROUP = "120363000000000000@g.us";
 
 /**
  * How long a call that does not wait is given to come back. Generous on
@@ -132,6 +133,19 @@ describe("the reconnect window", () => {
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
+  test("a plain IQ waits, even one the sweep had grouped with the receipts", async () => {
+    // `newsletterSubscribeLiveUpdates` is an IQ set asking for future updates,
+    // not an ack tied to the socket that just died, and the core neither
+    // discards it nor re-issues it. A replacement socket answers it the same.
+    const client = await reconnectingClient();
+
+    const call = client.newsletterSubscribeLiveUpdates("123456@newsletter");
+    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+
+    await client.disconnect();
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
   test("waitUntilReachable reports what ended the wait", async () => {
     const client = await reconnectingClient();
 
@@ -158,6 +172,9 @@ describe("a caller's own mistake", () => {
       ["muteChat", client.muteChat(CHAT, Number.NaN)],
       ["profilePictureUrl", client.profilePictureUrl(CHAT, "preview", Number.NaN)],
       ["deactivateCommunity", client.deactivateCommunity("not a jid")],
+      // These two validate inside a bridge helper the gate used to run first.
+      ["groupParticipantsUpdate", client.groupParticipantsUpdate(GROUP, ["not a jid"], "add")],
+      ["sendStatusMessageBytes", client.sendStatusMessageBytes(new Uint8Array(0), ["not a jid"])],
     ];
 
     for (const [name, call] of calls) {

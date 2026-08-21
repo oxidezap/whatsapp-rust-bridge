@@ -378,7 +378,7 @@ impl WasmWhatsAppClient {
     pub async fn presence_subscribe(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         self.client
-            .unwaited(Unwaited::ConnectionBound)
+            .unwaited(Unwaited::Redriven)
             .presence()
             .subscribe(&target)
             .await

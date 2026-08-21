@@ -19,11 +19,14 @@ impl WasmWhatsAppClient {
         &self,
         force: bool,
     ) -> Result<crate::result_types::MediaConnResult, crate::errors::BridgeError> {
-        let conn = self
-            .client
-            .unwaited(Unwaited::Cached)
-            .refresh_media_conn(force)
-            .await?;
+        // `force` is the one case where the bridge knows: it bypasses the
+        // cache, so the socket is certain to be needed.
+        let client = if force {
+            self.client.online().await
+        } else {
+            self.client.unwaited(Unwaited::Cached)
+        };
+        let conn = client.refresh_media_conn(force).await?;
 
         Ok(crate::result_types::MediaConnResult {
             auth: conn.auth.clone(),

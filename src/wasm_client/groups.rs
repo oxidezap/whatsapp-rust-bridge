@@ -154,7 +154,15 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        participants_update(self.client.online().await, jid, participants, action, false).await
+        let (group_jid, participant_jids) = participants_update_input(jid, &participants)?;
+        participants_update(
+            self.client.online().await,
+            group_jid,
+            participant_jids,
+            action,
+            false,
+        )
+        .await
     }
 
     /// Fetch all groups the user is participating in.
@@ -447,7 +455,15 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        participants_update(self.client.online().await, jid, participants, action, true).await
+        let (group_jid, participant_jids) = participants_update_input(jid, &participants)?;
+        participants_update(
+            self.client.online().await,
+            group_jid,
+            participant_jids,
+            action,
+            true,
+        )
+        .await
     }
 
     // ── Group invite ────────────────────────────────────────────────────

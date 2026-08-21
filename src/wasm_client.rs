@@ -2733,20 +2733,28 @@ impl Drop for WasmWhatsAppClient {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn participants_update(
-    client: &whatsapp_rust::Client,
+/// Parse what a participant update needs, so its caller can reject a bad JID
+/// before deciding whether to wait for a connection.
+fn participants_update_input(
     jid: &str,
-    participants: Vec<String>,
-    action: crate::result_types::GroupParticipantAction,
-    include_linked_groups_on_remove: bool,
-) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
-    use crate::result_types::GroupParticipantAction;
-
+    participants: &[String],
+) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
     let group_jid = parse_jid(jid)?;
     let participant_jids = participants
         .iter()
         .map(|participant| parse_jid(participant))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((group_jid, participant_jids))
+}
+
+async fn participants_update(
+    client: &whatsapp_rust::Client,
+    group_jid: wacore_binary::jid::Jid,
+    participant_jids: Vec<wacore_binary::jid::Jid>,
+    action: crate::result_types::GroupParticipantAction,
+    include_linked_groups_on_remove: bool,
+) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    use crate::result_types::GroupParticipantAction;
 
     let responses = match action {
         GroupParticipantAction::Add => {
@@ -3402,18 +3410,28 @@ async fn send_message_with_options(
     Ok(result.message_id)
 }
 
-async fn send_status_message_with_options(
-    client: &whatsapp_rust::Client,
+/// Decode and parse what a status send needs, so its caller can reject bad
+/// input before deciding whether to wait for a connection.
+fn status_message_input(
     bytes: &[u8],
-    recipients: Vec<String>,
-    options: whatsapp_rust::StatusSendOptions,
-) -> Result<String, crate::errors::BridgeError> {
+    recipients: &[String],
+) -> Result<(waproto::whatsapp::Message, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError>
+{
     let msg = waproto::codec::message_decode(bytes)
         .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
     let recipients = recipients
         .iter()
         .map(|jid| parse_jid(jid))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((msg, recipients))
+}
+
+async fn send_status_message_with_options(
+    client: &whatsapp_rust::Client,
+    msg: waproto::whatsapp::Message,
+    recipients: Vec<wacore_binary::jid::Jid>,
+    options: whatsapp_rust::StatusSendOptions,
+) -> Result<String, crate::errors::BridgeError> {
     let result = client.status().send_raw(msg, &recipients, options).await?;
     Ok(result.message_id)
 }

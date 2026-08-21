@@ -417,7 +417,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let duration = self
             .client
-            .unwaited(Unwaited::ConnectionBound)
+            .online()
+            .await
             .newsletter()
             .subscribe_live_updates(target)
             .await?;

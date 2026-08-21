@@ -369,9 +369,10 @@ impl WasmWhatsAppClient {
         bytes: &[u8],
         recipients: Vec<String>,
     ) -> Result<String, crate::errors::BridgeError> {
+        let (msg, recipients) = status_message_input(bytes, &recipients)?;
         send_status_message_with_options(
             self.client.online().await,
-            bytes,
+            msg,
             recipients,
             whatsapp_rust::StatusSendOptions::default(),
         )
@@ -395,8 +396,8 @@ impl WasmWhatsAppClient {
             device_freshness: freshness(refresh_devices),
             ..Default::default()
         };
-        send_status_message_with_options(self.client.online().await, bytes, recipients, options)
-            .await
+        let (msg, recipients) = status_message_input(bytes, &recipients)?;
+        send_status_message_with_options(self.client.online().await, msg, recipients, options).await
     }
 }
 
