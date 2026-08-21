@@ -48,6 +48,7 @@ opt_passes=(
   --ignore-implicit-traps
   --traps-never-happen
   --coalesce-locals-learning
+  --converge
   --enable-simd
   --enable-bulk-memory
   --enable-nontrapping-float-to-int
