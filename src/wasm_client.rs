@@ -2803,9 +2803,19 @@ async fn participants_update(
                 .demote_participants(&group_jid, &participant_jids)
                 .await?
         }
-        // Rejected in `participants_update_input`, above the gate, so a caller
-        // is told at once rather than after a reconnect.
-        GroupParticipantAction::Modify => unreachable!("rejected before the gate"),
+        // `participants_update_input` rejects this above the gate, so a caller
+        // hears it at once rather than after a reconnect. Kept as a real error
+        // rather than a trap: a trap does not cross as a `WhatsAppError` with
+        // a `.kind`, and a later caller reaching here without the helper would
+        // get no usable failure at all.
+        GroupParticipantAction::Modify => {
+            return Err(crate::errors::BridgeError::InvalidArgument {
+                field: "action".into(),
+                reason:
+                    "modify represents a received participant identity change and cannot be sent"
+                        .into(),
+            });
+        }
     };
 
     Ok(responses.iter().map(participant_change_to_result).collect())

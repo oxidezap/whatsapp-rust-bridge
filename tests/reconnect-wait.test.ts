@@ -219,7 +219,7 @@ describe("a parked call is not cancellable", () => {
     // The host has given up, but the call has not: it runs to completion once
     // the wait ends.
     await client.disconnect();
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect((await rejection(call)).kind).toBe("not-connected");
     expect(settled).toBe("not-connected");
   }, 20000);
 });
