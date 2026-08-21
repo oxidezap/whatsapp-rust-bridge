@@ -254,8 +254,11 @@ jobs:
       - name: Fail if the wasm's largest function regrew
         run: bun run check:wasm-shape
 
-      - name: Run Tests with Bun
-        run: bun test
+      # Runs the suite, and fails if one test outgrew its clock budget. Not in
+      # release.yml: a slow test is stopped where it lands, and a release must
+      # not be blocked by a runner that ran slow.
+      - name: Run tests, and fail if one outgrew its clock budget
+        run: bun run check:test-clock
         env:
           # Optional: make test output clearer
           CI: true

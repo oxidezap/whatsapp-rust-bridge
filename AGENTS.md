@@ -226,6 +226,8 @@ There is **no mock server in CI**, so no test here proves an end-to-end response
 
 Say which of these a test does, and do not let a test's name claim more than it checks. A test that would still pass with the fix reverted is not a test of the fix — revert it and watch it fail.
 
+**A test's duration is wall clock, and the bill is the repository's.** `bun test` runs serially, so a slow test costs its full wall on every run for everyone. `check:test-clock` runs the suite and fails when one test goes over 8 seconds; CI runs it in place of a bare `bun test`. An exemption lives in the script with its reason and its own ceiling; the offline-sync gate is the one that has one, and it is a debt rather than a pardon.
+
 **Prove a negative by ordering, not by a timer.** "This call has not settled in 500ms" is exhaustion: it costs wall clock, it never rules out a call that was merely slow, and shortening the window weakens it without turning anything red. `tests/parked-calls.ts` is the shape to copy: establish the state with something that must happen first, then release and show that only then does it settle.
 
 ## Pull requests
