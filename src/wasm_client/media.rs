@@ -391,7 +391,6 @@ impl WasmWhatsAppClient {
 
     /// Request the server to re-upload expired media.
     ///
-
     /// Returns the new `directPath` on success.
     /// Throws on failure (not found, decryption error, timeout, etc.).
     #[wasm_bindgen(js_name = requestMediaReupload)]
