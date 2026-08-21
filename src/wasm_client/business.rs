@@ -18,7 +18,12 @@ impl WasmWhatsAppClient {
     ) -> Result<Option<crate::result_types::BusinessProfileResult>, crate::errors::BridgeError>
     {
         let target_jid = parse_jid(jid)?;
-        let profile = self.client.get_business_profile(&target_jid).await?;
+        let profile = self
+            .client
+            .online()
+            .await
+            .get_business_profile(&target_jid)
+            .await?;
         Ok(profile.map(|p| business_profile_to_result(&p)))
     }
 
@@ -58,7 +63,13 @@ impl WasmWhatsAppClient {
         }
         opts.after = input.after;
 
-        let catalog = self.client.business().get_catalog(&target, &opts).await?;
+        let catalog = self
+            .client
+            .online()
+            .await
+            .business()
+            .get_catalog(&target, &opts)
+            .await?;
         Ok(crate::result_types::CatalogResult {
             products: catalog.products.iter().map(product_to_result).collect(),
             after_cursor: catalog.after_cursor.clone(),
@@ -99,6 +110,8 @@ impl WasmWhatsAppClient {
 
         let collections = self
             .client
+            .online()
+            .await
             .business()
             .get_collections(&target, &opts)
             .await?;
@@ -134,6 +147,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let order = self
             .client
+            .online()
+            .await
             .business()
             .get_order(&target, order_id, token)
             .await?;
@@ -237,8 +252,9 @@ impl WasmWhatsAppClient {
             categories: update.categories,
             business_hours,
         };
-
         self.client
+            .online()
+            .await
             .business()
             .update_profile(&delta)
             .await
@@ -264,8 +280,9 @@ impl WasmWhatsAppClient {
                 reason: format!("must be the upload's ts: {e}"),
             }
         })?;
-
         self.client
+            .online()
+            .await
             .business()
             .set_cover_photo(wacore::iq::business::CoverPhotoUpload {
                 id: upload.id,
@@ -283,6 +300,8 @@ impl WasmWhatsAppClient {
         id: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await
             .business()
             .remove_cover_photo(id)
             .await

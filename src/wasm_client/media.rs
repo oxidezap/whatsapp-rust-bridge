@@ -19,7 +19,7 @@ impl WasmWhatsAppClient {
         &self,
         force: bool,
     ) -> Result<crate::result_types::MediaConnResult, crate::errors::BridgeError> {
-        let conn = self.client.refresh_media_conn(force).await?;
+        let conn = self.client.online().await.refresh_media_conn(force).await?;
 
         Ok(crate::result_types::MediaConnResult {
             auth: conn.auth.clone(),
@@ -52,6 +52,8 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let data = self
             .client
+            .online()
+            .await
             .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
                 direct_path,
                 media_key,
@@ -85,7 +87,7 @@ impl WasmWhatsAppClient {
     ) -> Result<web_sys::ReadableStream, crate::errors::BridgeError> {
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
-        let client = self.client.clone();
+        let client = self.client.unwaited(Unwaited::Deferred).clone();
         let direct_path = direct_path.to_string();
         let media_key = media_key.to_vec();
         let file_sha256 = file_sha256.to_vec();
@@ -146,6 +148,8 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let resp = self
             .client
+            .online()
+            .await
             .upload(data.to_vec(), mt, Default::default())
             .await?;
         Ok(crate::result_types::UploadMediaResult {
@@ -271,7 +275,11 @@ impl WasmWhatsAppClient {
         let mut force_refresh = false;
 
         for attempt in 0..=1u32 {
-            let media_conn = self.client.refresh_media_conn(force_refresh).await?;
+            // One gate for the attempt: the media-conn IQ is the part that needs
+            // the WhatsApp socket, and the HTTP calls below reuse the same
+            // reference rather than re-asking per request.
+            let client = self.client.online().await;
+            let media_conn = client.refresh_media_conn(force_refresh).await?;
 
             let mut retry_auth = false;
 
@@ -284,7 +292,7 @@ impl WasmWhatsAppClient {
                     );
                     let check_req = wacore::net::HttpRequest::post(check_url)
                         .with_header("Origin", "https://web.whatsapp.com");
-                    if let Ok(resp) = self.client.http_client.execute(check_req).await
+                    if let Ok(resp) = client.http_client.execute(check_req).await
                         && resp.status_code < 400
                         && let Ok(parsed) = serde_json::from_slice::<serde_json::Value>(&resp.body)
                         && parsed.get("resume").and_then(|v| v.as_str()) == Some("complete")
@@ -315,7 +323,7 @@ impl WasmWhatsAppClient {
                     .map_err(|e| crate::errors::internal(format!("getBody() failed: {e:?}")))?;
 
                 // Try streaming upload via JS HTTP client
-                let result = stream_upload_via_js(&self.client, &upload_url, body_stream).await;
+                let result = stream_upload_via_js(client, &upload_url, body_stream).await;
 
                 match result {
                     Ok(resp) if resp.status_code < 400 => {
@@ -374,6 +382,10 @@ impl WasmWhatsAppClient {
 
     /// Request the server to re-upload expired media.
     ///
+    /// Not held for a reconnect: this sends a `server-error` receipt and then
+    /// waits for a `mediaretry` notification matched on the current
+    /// connection, so a new socket is not where the answer would arrive.
+    ///
     /// Returns the new `directPath` on success.
     /// Throws on failure (not found, decryption error, timeout, etc.).
     #[wasm_bindgen(js_name = requestMediaReupload)]
@@ -397,7 +409,12 @@ impl WasmWhatsAppClient {
             participant: participant_jid.as_ref(),
         };
 
-        let result = self.client.media_reupload().request(&req).await?;
+        let result = self
+            .client
+            .unwaited(Unwaited::ConnectionBound)
+            .media_reupload()
+            .request(&req)
+            .await?;
 
         match result {
             whatsapp_rust::MediaRetryResult::Success { direct_path } => Ok(direct_path),

@@ -22,7 +22,7 @@ impl WasmWhatsAppClient {
         if self.sync_rx.is_none() {
             return Err(crate::errors::internal("run() has already been called"));
         }
-        let client = self.client.clone();
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
         let runtime = self.runtime.clone();
         let sync_rx = self.sync_rx.take();
 
@@ -59,7 +59,7 @@ impl WasmWhatsAppClient {
     /// that decodes nothing until it is driven, so without that reader no event
     /// would ever fire and every request would time out.
     pub async fn connect(&self) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.clone();
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
         let (handshake_tx, handshake_rx) = async_channel::bounded(1);
 
         // Connecting and reading live in one task because `Connection` borrows
@@ -116,14 +116,23 @@ impl WasmWhatsAppClient {
     /// Callers map snake_case → idiomatic shape themselves.
     #[wasm_bindgen(js_name = "fetchReachoutTimelock")]
     pub async fn fetch_reachout_timelock(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let payload = self.client.mex().fetch_reachout_timelock().await?;
+        let payload = self
+            .client
+            .online()
+            .await
+            .mex()
+            .fetch_reachout_timelock()
+            .await?;
         serde_wasm_bindgen::to_value(&payload)
             .map_err(|e| crate::errors::internal(format!("serialize reachout payload: {e}")))
     }
 
     /// Disconnect the client and flush pending state to storage.
     pub async fn disconnect(&self) {
-        self.client.disconnect().await;
+        self.client
+            .unwaited(Unwaited::ThisSocket)
+            .disconnect()
+            .await;
         // Core disconnect owns the final persistence flush. Abort the bridge
         // background saver afterwards so its pending timer cannot keep the
         // host event loop alive.
@@ -161,7 +170,7 @@ impl WasmWhatsAppClient {
     /// then disconnects. Does NOT clear stored keys — the caller should
     /// delete the store to fully clear credentials.
     pub async fn logout(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.logout().await;
+        self.client.unwaited(Unwaited::ThisSocket).logout().await;
         if let Some(handle) = self
             .saver_handle
             .lock()
@@ -195,6 +204,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = setAutoReconnect)]
     pub fn set_auto_reconnect(&self, enabled: bool) {
         self.client
+            .unwaited(Unwaited::Local)
             .enable_auto_reconnect
             .store(enabled, std::sync::atomic::Ordering::Relaxed);
     }
@@ -204,19 +214,57 @@ impl WasmWhatsAppClient {
     /// The `run()` loop continues — only the in-flight WebSocket is reset.
     #[wasm_bindgen(js_name = reconnect)]
     pub async fn reconnect(&self) {
-        self.client.reconnect_immediately().await;
+        self.client
+            .unwaited(Unwaited::ThisSocket)
+            .reconnect_immediately()
+            .await;
     }
 
     /// Check if the client is connected.
     #[wasm_bindgen(js_name = isConnected)]
     pub fn is_connected(&self) -> bool {
-        self.client.is_connected()
+        self.client.unwaited(Unwaited::ThisSocket).is_connected()
+    }
+
+    /// What work handed to the client right now can expect.
+    ///
+    /// `isConnected()` and `isLoggedIn()` each answer half of it; this answers
+    /// the question a refused caller actually has, which is whether asking
+    /// again is worth it. `reconnecting` comes back on its own, `paused` comes
+    /// back on `resume`, `unsupervised` needs a `run()`, and `finished` needs a
+    /// new client.
+    ///
+    /// Read when the question comes up rather than carried on the error: a
+    /// refusal is a fact about one instant, and a connection can be lost right
+    /// after a call was admitted or restored right after one was refused.
+    #[wasm_bindgen(js_name = reachability)]
+    pub fn reachability(&self) -> crate::result_types::Reachability {
+        self.client.reachability()
+    }
+
+    /// Wait until the client can reach the server again, and report what ended
+    /// the wait.
+    ///
+    /// Never resolves to `reconnecting` — that is the one state it waits out.
+    /// Bounded by the client's lifetime rather than a duration, because the
+    /// reconnect backoff is jittered and followed by a handshake; a caller that
+    /// wants a deadline races this against one of its own.
+    ///
+    /// The calls that hold themselves need none of this. It is for the ones
+    /// that do not — `sendNode`, `queryNode`, `sendRawMessage` — where only the
+    /// caller knows whether the node it is holding survives a new socket.
+    ///
+    /// Not from an event handler: the core dispatches on its read loop, so a
+    /// handler that waits here waits on the connection it is blocking.
+    #[wasm_bindgen(js_name = waitUntilReachable)]
+    pub async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
+        self.client.wait_until_reachable().await
     }
 
     /// Check if the client is logged in (paired).
     #[wasm_bindgen(js_name = isLoggedIn)]
     pub fn is_logged_in(&self) -> bool {
-        self.client.is_logged_in()
+        self.client.unwaited(Unwaited::ThisSocket).is_logged_in()
     }
 
     /// Wait until the socket is connected, or the timeout elapses.
@@ -228,6 +276,7 @@ impl WasmWhatsAppClient {
     pub async fn wait_for_socket(&self, timeout_ms: f64) -> Result<(), crate::errors::BridgeError> {
         let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
         self.client
+            .unwaited(Unwaited::ThisSocket)
             .wait_for_socket(timeout)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -244,6 +293,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
         self.client
+            .unwaited(Unwaited::ThisSocket)
             .wait_for_connected(timeout)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -282,8 +332,9 @@ impl WasmWhatsAppClient {
             }
             None => DirtyBit::new(kind),
         };
-
         self.client
+            .online()
+            .await
             .clean_dirty_bits(bit)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -297,7 +348,7 @@ impl WasmWhatsAppClient {
     pub async fn get_bot_list(
         &self,
     ) -> Result<crate::result_types::BotListResult, crate::errors::BridgeError> {
-        let list = self.client.bots().list().await?;
+        let list = self.client.online().await.bots().list().await?;
         Ok(bot_list_to_result(&list))
     }
 
@@ -308,6 +359,8 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::NewChatMessageCappingResult, crate::errors::BridgeError> {
         let capping = self
             .client
+            .online()
+            .await
             .mex()
             .fetch_new_chat_message_capping_info()
             .await?;
@@ -337,6 +390,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = setInitialPushName)]
     pub async fn set_initial_push_name(&self, name: String) {
         self.client
+            .unwaited(Unwaited::Local)
             .persistence_manager()
             .process_command(whatsapp_rust::wacore::store::DeviceCommand::SetPushName(
                 name,
@@ -361,7 +415,10 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "DevicePropsInput")] input: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let input = from_js_input::<crate::device_props::DevicePropsInput>("input", input)?;
-        self.client.set_device_props(input.into()).await;
+        self.client
+            .unwaited(Unwaited::Local)
+            .set_device_props(input.into())
+            .await;
         Ok(())
     }
 
@@ -381,7 +438,10 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "ClientProfileInput")] input: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let input = from_js_input::<crate::client_profile::ClientProfileInput>("input", input)?;
-        self.client.set_client_profile(input.into()).await;
+        self.client
+            .unwaited(Unwaited::Local)
+            .set_client_profile(input.into())
+            .await;
         Ok(())
     }
 
@@ -404,7 +464,11 @@ impl WasmWhatsAppClient {
             custom_code,
             ..Default::default()
         };
-        let code = self.client.pair_with_code(options).await?;
+        let code = self
+            .client
+            .unwaited(Unwaited::ThisSocket)
+            .pair_with_code(options)
+            .await?;
         Ok(code)
     }
 
@@ -415,7 +479,7 @@ impl WasmWhatsAppClient {
     pub async fn get_push_name(&self) -> String {
         // Sync since whatsapp-rust #808 (cached Arc<Device> snapshot); kept
         // async so the JS surface stays Promise-based.
-        self.client.push_name()
+        self.client.unwaited(Unwaited::Local).push_name()
     }
 
     /// Get the own JID (phone number JID) if logged in.
@@ -424,7 +488,10 @@ impl WasmWhatsAppClient {
     /// This is the JID used for addressing in messages.
     #[wasm_bindgen(js_name = getJid)]
     pub async fn get_jid(&self) -> Option<String> {
-        self.client.pn().map(|j| j.to_non_ad().to_string())
+        self.client
+            .unwaited(Unwaited::Local)
+            .pn()
+            .map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the own LID (linked identity) if available.
@@ -432,14 +499,21 @@ impl WasmWhatsAppClient {
     /// Returns the non-AD LID (without device suffix), e.g. "100000012345678@lid".
     #[wasm_bindgen(js_name = getLid)]
     pub async fn get_lid(&self) -> Option<String> {
-        self.client.lid().map(|j| j.to_non_ad().to_string())
+        self.client
+            .unwaited(Unwaited::Local)
+            .lid()
+            .map(|j| j.to_non_ad().to_string())
     }
 
     /// Get the ADV signed device identity (account), if available.
     /// Exposes the persisted account identity to credential consumers.
     #[wasm_bindgen(js_name = getAccount)]
     pub async fn get_account(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let snapshot = self.client.persistence_manager().get_device_snapshot();
+        let snapshot = self
+            .client
+            .unwaited(Unwaited::Local)
+            .persistence_manager()
+            .get_device_snapshot();
         match &snapshot.account {
             Some(account) => crate::camel_serializer::to_js_value_camel(account)
                 .map_err(|e| crate::errors::internal(format!("account serialization: {e:?}"))),
@@ -450,7 +524,11 @@ impl WasmWhatsAppClient {
     /// Returns a snapshot of internal memory diagnostics (cache sizes, session counts, etc.).
     #[wasm_bindgen(js_name = getMemoryDiagnostics)]
     pub async fn get_memory_diagnostics(&self) -> crate::result_types::MemoryDiagnosticsResult {
-        let report = self.client.resource_report().await;
+        let report = self
+            .client
+            .unwaited(Unwaited::Local)
+            .resource_report()
+            .await;
         let d = &report.client;
         crate::result_types::MemoryDiagnosticsResult {
             group_cache: d.group_cache.entries as f64,

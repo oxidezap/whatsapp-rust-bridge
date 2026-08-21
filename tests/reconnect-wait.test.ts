@@ -84,6 +84,7 @@ async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: st
 describe("the reconnect window", () => {
   test("a call that a reconnect would answer waits for it", async () => {
     const client = await reconnectingClient();
+    expect(client.reachability()).toBe("reconnecting");
 
     const call = client.fetchPrivacySettings();
     expect(await settlesWithin(call, 500)).toBe(false);
@@ -93,12 +94,79 @@ describe("the reconnect window", () => {
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 
-  test("a finished client is not waited on — it fails at once", async () => {
+  test("a finished client is reported, not waited on", async () => {
     const client = await reconnectingClient();
     await client.disconnect();
+    expect(client.reachability()).toBe("finished");
 
     const call = client.fetchPrivacySettings();
     expect(await settlesWithin(call, 300)).toBe(true);
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
+  test("a client nothing is reading is reported, not waited on", async () => {
+    const client = await createWhatsAppClient(failingTransport(), createHttp());
+    live.push(client);
+    expect(client.reachability()).toBe("unsupervised");
+
+    const call = client.fetchPrivacySettings();
+    expect(await settlesWithin(call, 300)).toBe(true);
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
+  test("waitUntilReachable reports what ended the wait", async () => {
+    const client = await reconnectingClient();
+
+    const waiting = client.waitUntilReachable();
+    expect(await settlesWithin(waiting, 400)).toBe(false);
+
+    await client.disconnect();
+    expect(await waiting).toBe("finished");
+  }, 20000);
+});
+
+describe("calls a reconnect cannot help", () => {
+  /**
+   * A typing indicator is about the instant it was sent, and the core discards
+   * it on a lost connection rather than retrying it. Holding it would deliver
+   * something the caller no longer means. Moving it to the waiting side hangs
+   * this test rather than changing its answer.
+   */
+  test("sendChatState still fails at once", async () => {
+    const client = await reconnectingClient();
+
+    const call = client.sendChatState(CHAT, "composing");
+    expect(await settlesWithin(call, 500)).toBe(true);
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
+  /**
+   * The bridge is handed an opaque node here and cannot tell an IQ that
+   * survives a reconnect from an ack that does not, so it does not guess. A
+   * caller that knows waits for itself with `waitUntilReachable()`.
+   */
+  test("queryNode still fails at once", async () => {
+    const client = await reconnectingClient();
+
+    const call = client.queryNode(
+      { tag: "iq", attrs: { type: "get", to: "s.whatsapp.net", xmlns: "w" } },
+      500
+    );
+    expect(await settlesWithin(call, 500)).toBe(true);
+    expect((await rejection(call)).kind).toBe("not-connected");
+  }, 20000);
+
+  /**
+   * Signed-key rotation stages its candidate before the upload precisely so a
+   * refusal can be re-issued without minting a new id — the core says as much
+   * on the way out ("keeping the staged key, will retry on a later connect").
+   * A wait here would park in front of a retry that already exists.
+   */
+  test("rotateSignedKey still fails at once", async () => {
+    const client = await reconnectingClient();
+
+    const call = client.rotateSignedKey();
+    expect(await settlesWithin(call, 500)).toBe(true);
     expect((await rejection(call)).kind).toBe("not-connected");
   }, 20000);
 });

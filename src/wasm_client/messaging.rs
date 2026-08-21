@@ -78,7 +78,7 @@ impl WasmWhatsAppClient {
         bytes: &[u8],
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let result = self.client.send_message(to, msg).await?;
+        let result = self.client.online().await.send_message(to, msg).await?;
         Ok(result.message_id)
     }
 
@@ -95,7 +95,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(message_id);
         }
-        send_message_with_options(&self.client, to, msg, options).await
+        send_message_with_options(self.client.online().await, to, msg, options).await
     }
 
     /// Send an E2E message with neutral core-owned controls.
@@ -120,7 +120,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(message_id);
         }
-        send_message_with_options(&self.client, to, msg, options).await
+        send_message_with_options(self.client.online().await, to, msg, options).await
     }
 
     /// Retransmit an existing message to one requesting device.
@@ -148,7 +148,10 @@ impl WasmWhatsAppClient {
         if let Some(recipient_jid) = input.recipient_jid {
             request = request.with_recipient(parse_jid(&recipient_jid)?);
         }
-        self.client.retransmit_message(request).await?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .retransmit_message(request)
+            .await?;
         Ok(())
     }
 
@@ -171,6 +174,8 @@ impl WasmWhatsAppClient {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let options = edit_options(stanza_id)?;
         self.client
+            .online()
+            .await
             .edit_message_with_options(to, message_id, msg, options)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -195,8 +200,9 @@ impl WasmWhatsAppClient {
             }
             None => whatsapp_rust::RevokeType::Sender,
         };
-
         self.client
+            .online()
+            .await
             .revoke_message(to, message_id, revoke_type)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -219,6 +225,8 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         let msg_id = self
             .client
+            .online()
+            .await
             .fetch_message_history(
                 &chat,
                 oldest_msg_id,
@@ -233,6 +241,10 @@ impl WasmWhatsAppClient {
     // ── Read receipts ─────────────────────────────────────────────────
 
     /// Mark messages as read by sending read receipts.
+    ///
+    /// Held per chat rather than once for the batch: the core stamps the
+    /// receipt's timestamp inside `mark_as_read`, so each one is sampled after
+    /// its own wait rather than at the call the host made.
     #[wasm_bindgen(js_name = readMessages)]
     pub async fn read_messages(
         &self,
@@ -242,6 +254,8 @@ impl WasmWhatsAppClient {
             // #775: mark_as_read now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             self.client
+                .online()
+                .await
                 .mark_as_read(&chat, participant.as_ref(), &id_refs)
                 .await?;
         }
@@ -263,6 +277,8 @@ impl WasmWhatsAppClient {
             // #775: mark_as_played now takes &[&str] (alloc-aware); borrow the owned ids.
             let id_refs: Vec<&str> = ids.iter().map(String::as_str).collect();
             self.client
+                .online()
+                .await
                 .mark_as_played(&chat, participant.as_ref(), &id_refs)
                 .await?;
         }
@@ -288,8 +304,8 @@ impl WasmWhatsAppClient {
             ChatState::Recording => whatsapp_rust::features::ChatStateType::Recording,
             ChatState::Paused => whatsapp_rust::features::ChatStateType::Paused,
         };
-
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .chatstate()
             .send(&to, chat_state)
             .await
@@ -312,6 +328,8 @@ impl WasmWhatsAppClient {
         let to = parse_jid(jid)?;
         let (result, message_secret) = self
             .client
+            .online()
+            .await
             .polls()
             .create(&to, name, &options, selectable_count)
             .await?;
@@ -335,6 +353,8 @@ impl WasmWhatsAppClient {
         let creator = parse_jid(poll_creator_jid)?;
         let result = self
             .client
+            .online()
+            .await
             .polls()
             .vote(&chat, poll_msg_id, &creator, message_secret, &option_names)
             .await?;
@@ -350,7 +370,7 @@ impl WasmWhatsAppClient {
         recipients: Vec<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         send_status_message_with_options(
-            &self.client,
+            self.client.online().await,
             bytes,
             recipients,
             whatsapp_rust::StatusSendOptions::default(),
@@ -375,7 +395,8 @@ impl WasmWhatsAppClient {
             device_freshness: freshness(refresh_devices),
             ..Default::default()
         };
-        send_status_message_with_options(&self.client, bytes, recipients, options).await
+        send_status_message_with_options(self.client.online().await, bytes, recipients, options)
+            .await
     }
 }
 

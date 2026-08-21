@@ -37,7 +37,13 @@ impl WasmWhatsAppClient {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let results = self.client.contacts().is_on_whatsapp(&jids).await?;
+        let results = self
+            .client
+            .online()
+            .await
+            .contacts()
+            .is_on_whatsapp(&jids)
+            .await?;
 
         // Use `Jid::push_to` instead of `to_string()` — bypasses the
         // `fmt::Display` / `dyn Write` dispatch path the core ships a specialized
@@ -84,6 +90,8 @@ impl WasmWhatsAppClient {
 
         let result = self
             .client
+            .online()
+            .await
             .contacts()
             .get_profile_picture_with_timeout(
                 &target,
@@ -111,7 +119,13 @@ impl WasmWhatsAppClient {
             .map(|j| parse_jid(j))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let result = self.client.contacts().get_user_info(&parsed_jids).await?;
+        let result = self
+            .client
+            .online()
+            .await
+            .contacts()
+            .get_user_info(&parsed_jids)
+            .await?;
 
         let obj = js_sys::Object::new();
         for (jid, info) in &result {
@@ -136,6 +150,8 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = setPushName)]
     pub async fn set_push_name(&self, name: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await
             .profile()
             .set_push_name(name)
             .await
@@ -148,7 +164,13 @@ impl WasmWhatsAppClient {
         &self,
         img_data: Vec<u8>,
     ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
-        let result = self.client.profile().set_profile_picture(img_data).await?;
+        let result = self
+            .client
+            .online()
+            .await
+            .profile()
+            .set_profile_picture(img_data)
+            .await?;
 
         Ok(crate::result_types::ProfilePictureResult { id: result.id })
     }
@@ -158,7 +180,13 @@ impl WasmWhatsAppClient {
     pub async fn remove_profile_picture(
         &self,
     ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
-        let result = self.client.profile().remove_profile_picture().await?;
+        let result = self
+            .client
+            .online()
+            .await
+            .profile()
+            .remove_profile_picture()
+            .await?;
 
         Ok(crate::result_types::ProfilePictureResult { id: result.id })
     }
@@ -184,6 +212,8 @@ impl WasmWhatsAppClient {
         }
         let result = self
             .client
+            .online()
+            .await
             .execute(wacore::iq::contacts::SetProfilePictureSpec::set_group(
                 &target, img_data,
             ))
@@ -207,6 +237,8 @@ impl WasmWhatsAppClient {
         }
         let result = self
             .client
+            .online()
+            .await
             .execute(wacore::iq::contacts::SetProfilePictureSpec::remove_group(
                 &target,
             ))
@@ -221,6 +253,8 @@ impl WasmWhatsAppClient {
         status: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await
             .profile()
             .set_status_text(status)
             .await
@@ -241,8 +275,15 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
 
         match action {
-            BlockAction::Block => self.client.blocking().block(&target).await?,
-            BlockAction::Unblock => self.client.blocking().unblock(&target).await?,
+            BlockAction::Block => self.client.online().await.blocking().block(&target).await?,
+            BlockAction::Unblock => {
+                self.client
+                    .online()
+                    .await
+                    .blocking()
+                    .unblock(&target)
+                    .await?
+            }
         }
         Ok(())
     }
@@ -252,7 +293,13 @@ impl WasmWhatsAppClient {
     pub async fn fetch_blocklist(
         &self,
     ) -> Result<Vec<crate::result_types::BlocklistEntryResult>, crate::errors::BridgeError> {
-        let entries = self.client.blocking().get_blocklist().await?;
+        let entries = self
+            .client
+            .online()
+            .await
+            .blocking()
+            .get_blocklist()
+            .await?;
 
         Ok(entries
             .iter()
@@ -268,7 +315,7 @@ impl WasmWhatsAppClient {
     /// Fetch all privacy settings.
     #[wasm_bindgen(js_name = fetchPrivacySettings)]
     pub async fn fetch_privacy_settings(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let response = self.client.fetch_privacy_settings().await?;
+        let response = self.client.online().await.fetch_privacy_settings().await?;
         let map: std::collections::HashMap<&str, &str> = response
             .settings
             .iter()
@@ -285,6 +332,8 @@ impl WasmWhatsAppClient {
         value: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await
             .set_privacy_setting(category.into(), value.into())
             .await?;
         Ok(())
@@ -297,6 +346,8 @@ impl WasmWhatsAppClient {
         duration: u32,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await
             .set_default_disappearing_mode(duration)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -316,8 +367,8 @@ impl WasmWhatsAppClient {
             PresenceStatus::Available => whatsapp_rust::features::PresenceStatus::Available,
             PresenceStatus::Unavailable => whatsapp_rust::features::PresenceStatus::Unavailable,
         };
-
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .presence()
             .set(presence_status)
             .await
@@ -328,8 +379,8 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = presenceSubscribe)]
     pub async fn presence_subscribe(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .presence()
             .subscribe(&target)
             .await
@@ -348,7 +399,13 @@ impl WasmWhatsAppClient {
             .iter()
             .map(|s| parse_jid(s))
             .collect::<Result<_, _>>()?;
-        let infos = self.client.contacts().get_user_info(&parsed_jids).await?;
+        let infos = self
+            .client
+            .online()
+            .await
+            .contacts()
+            .get_user_info(&parsed_jids)
+            .await?;
         Ok(infos
             .values()
             .map(|info| crate::result_types::FetchStatusResult {

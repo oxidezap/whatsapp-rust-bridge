@@ -66,6 +66,23 @@ A caller-input failure reported as `internal` sends a consumer looking for a bug
 
 It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
 
+**Reaching the core says whether the call survives a reconnect.** The core
+reconnects on its own, so between two sockets there is a window where the
+client is alive and briefly unreachable. `self.client` is a `CoreClient`, not
+the client: a method gets at it through `online().await`, which holds the call
+while a reconnect is in flight, or `unwaited(Unwaited::…)`, which does not and
+names why — `Local`, `ConnectionBound`, `ThisSocket`, `Redriven`, `Opaque`,
+`Deferred`. There is no third way in, so a method added later cannot inherit
+either behaviour by accident; picking wrong is still possible, but it is
+written at the call site rather than absent from it.
+
+Only `Reconnecting` is waited out. Every other state — finished, paused, or
+nothing reading the client — falls straight through, and the core reports what
+it always reported. Nothing is re-sent: waiting restores the ability to ask,
+not the request that was refused. `reachability()` and `waitUntilReachable()`
+expose the same state to the host, which is where an opaque-node caller makes
+the call the bridge cannot.
+
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
 `tests/exported-surface.test.ts` sweeps the whole surface for this: every exported method must settle.
