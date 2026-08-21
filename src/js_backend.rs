@@ -97,6 +97,14 @@ mod compound_store_key_tests {
     }
 }
 
+/// View a slice of owned pairs as the borrowed `(key, value)` iterator
+/// [`JsBackend::js_put_many`] takes, so a batch the core already holds crosses
+/// without a `(String, Vec<u8>)` copy of itself being built first.
+#[inline]
+fn pair_refs<K, V>(entries: &[(K, V)]) -> impl Iterator<Item = (&K, &V)> + Clone {
+    entries.iter().map(|(key, value)| (key, value))
+}
+
 #[inline]
 fn signal_address_matches_user(address: &str, user: &str) -> bool {
     address
@@ -231,14 +239,25 @@ impl JsBackend {
         self.js_delete_raw(store, key).await
     }
 
-    /// Persist an owned byte batch, degrading to the per-key write-through
-    /// primitive only when the host has no batch capability.
-    async fn js_put_many_owned(&self, store: &str, entries: Vec<(String, Vec<u8>)>) -> Result<()> {
-        if self.js_set_many_raw(store, &entries).await? {
+    /// Persist a batch of `(key, value)` pairs, degrading to the per-key
+    /// write-through primitive only when the host has no batch capability.
+    ///
+    /// The pairs stay borrowed from whatever the caller already holds, such as
+    /// a `&[(Arc<str>, Bytes)]` handed down by the core, so nothing between
+    /// that slice and the JS array is copied. The iterator is `Clone` because
+    /// the fallback needs its own pass; cloning one is two words, and only the
+    /// batch path is hot.
+    async fn js_put_many<K, V, I>(&self, store: &str, entries: I) -> Result<()>
+    where
+        I: IntoIterator<Item = (K, V)> + Clone,
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
+    {
+        if self.js_set_many_raw(store, entries.clone()).await? {
             return Ok(());
         }
         for (key, value) in entries {
-            self.js_set_raw(store, &key, &value).await?;
+            self.js_set_raw(store, key.as_ref(), value.as_ref()).await?;
         }
         Ok(())
     }
@@ -276,7 +295,7 @@ impl JsBackend {
         }
 
         if let Some(arr) = resolved.dyn_ref::<Uint8Array>() {
-            Ok(Some(arr.to_vec()))
+            Ok(Some(crate::js_bytes::to_vec(arr)))
         } else {
             Ok(None)
         }
@@ -309,23 +328,34 @@ impl JsBackend {
         Ok(())
     }
 
-    /// Batch-write `[(key, value)]` into one store via the host's `setMany`
+    /// Batch-write `(key, value)` pairs into one store via the host's `setMany`
     /// callback. Returns `Ok(true)` when the host provided `setMany` (the whole
     /// batch crossed the FFI boundary once); `Ok(false)` when no batch handle
     /// exists, so the caller must fall back to per-key `js_set`.
+    ///
+    /// Pairs arrive as references and are pushed into the JS array as they are
+    /// walked, so a caller holding the values already allocates nothing here.
     #[cfg_attr(
         feature = "memory-profiling",
         tracing::instrument(name = "bridge.store.set_many_ffi", level = "trace", skip_all)
     )]
-    async fn js_set_many_raw(&self, store: &str, entries: &[(String, Vec<u8>)]) -> Result<bool> {
+    async fn js_set_many_raw<K, V>(
+        &self,
+        store: &str,
+        entries: impl IntoIterator<Item = (K, V)>,
+    ) -> Result<bool>
+    where
+        K: AsRef<str>,
+        V: AsRef<[u8]>,
+    {
         let Some(f) = self.set_many_fn.as_ref() else {
             return Ok(false);
         };
         let arr = js_sys::Array::new();
         for (k, v) in entries {
             let tuple = js_sys::Array::new();
-            tuple.push(&JsValue::from_str(k));
-            let value = Uint8Array::from(v.as_slice());
+            tuple.push(&JsValue::from_str(k.as_ref()));
+            let value = Uint8Array::from(v.as_ref());
             tuple.push(&value.into());
             arr.push(&tuple);
         }
@@ -603,11 +633,8 @@ impl SignalStore for JsBackend {
     }
 
     async fn put_identities_batch(&self, identities: &[(Arc<str>, [u8; 32])]) -> Result<()> {
-        let entries = identities
-            .iter()
-            .map(|(address, key)| (address.to_string(), key.to_vec()))
-            .collect::<Vec<_>>();
-        self.js_put_many_owned(STORE_IDENTITY, entries).await
+        self.js_put_many(STORE_IDENTITY, pair_refs(identities))
+            .await
     }
 
     async fn load_identity(&self, address: &str) -> Result<Option<[u8; 32]>> {
@@ -635,11 +662,7 @@ impl SignalStore for JsBackend {
     }
 
     async fn put_sessions_batch(&self, sessions: &[(Arc<str>, Bytes)]) -> Result<()> {
-        let entries = sessions
-            .iter()
-            .map(|(address, session)| (address.to_string(), session.to_vec()))
-            .collect::<Vec<_>>();
-        self.js_put_many_owned(STORE_SESSION, entries).await
+        self.js_put_many(STORE_SESSION, pair_refs(sessions)).await
     }
 
     async fn delete_session(&self, address: &str) -> Result<()> {
@@ -718,11 +741,14 @@ impl SignalStore for JsBackend {
 
     async fn store_prekeys_batch(&self, keys: &[(u32, Bytes)], uploaded: bool) -> Result<()> {
         let _ = uploaded;
-        let entries = keys
-            .iter()
-            .map(|(id, record)| (id.to_string(), record.to_vec()))
-            .collect::<Vec<_>>();
-        self.js_put_many_owned(STORE_PREKEY, entries).await?;
+        // A pre-key id has no `&str` form of its own, so the key is rendered
+        // per entry; the record itself still crosses straight from the core's
+        // slice.
+        self.js_put_many(
+            STORE_PREKEY,
+            keys.iter().map(|(id, record)| (id.to_string(), record)),
+        )
+        .await?;
         let max_id = keys
             .iter()
             .map(|(id, _)| *id)
@@ -783,11 +809,8 @@ impl SignalStore for JsBackend {
     }
 
     async fn put_sender_keys_batch(&self, sender_keys: &[(Arc<str>, Bytes)]) -> Result<()> {
-        let entries = sender_keys
-            .iter()
-            .map(|(address, record)| (address.to_string(), record.to_vec()))
-            .collect::<Vec<_>>();
-        self.js_put_many_owned(STORE_SENDER_KEY, entries).await
+        self.js_put_many(STORE_SENDER_KEY, pair_refs(sender_keys))
+            .await
     }
 
     async fn get_sender_key(&self, address: &str) -> Result<Option<Vec<u8>>> {
@@ -1481,7 +1504,8 @@ impl MsgSecretStore for JsBackend {
             }
         }
 
-        self.js_put_many_owned(STORE_MSG_SECRET, batch).await?;
+        self.js_put_many(STORE_MSG_SECRET, pair_refs(&batch))
+            .await?;
         Ok(stored)
     }
 
@@ -1609,7 +1633,7 @@ fn parse_entry_array(value: JsValue, context: &'static str) -> Result<Vec<(Strin
             .get(1)
             .dyn_into::<Uint8Array>()
             .map_err(|_| malformed())?;
-        out.push((key, val.to_vec()));
+        out.push((key, crate::js_bytes::to_vec(&val)));
     }
     Ok(out)
 }
@@ -1678,6 +1702,107 @@ mod js_callback_error_tests {
             store_error.source().map(ToString::to_string).as_deref(),
             Some("JS setMany: session projection failed")
         );
+    }
+}
+
+#[cfg(test)]
+mod batch_store_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    /// A backend whose `setMany` records `[store, entries]` on `globalThis`
+    /// under `slot`, and whose per-key handles throw if the batch path is not
+    /// the one taken.
+    fn recording_backend(slot: &str) -> JsBackend {
+        let refuse = js_sys::Function::new_no_args("throw new Error('per-key write')");
+        JsBackend::new(JsBackendHandles {
+            get_fn: refuse.clone(),
+            set_fn: refuse.clone(),
+            delete_fn: refuse,
+            set_many_fn: Some(js_sys::Function::new_with_args(
+                "store, entries",
+                &format!("globalThis[{slot:?}] = [store, entries];"),
+            )),
+            delete_many_fn: None,
+            get_many_fn: None,
+            list_keys_fn: None,
+            delete_prefix_fn: None,
+            cap_enumerate: false,
+            cap_prefix_delete: false,
+        })
+    }
+
+    fn recorded(slot: &str) -> (String, js_sys::Array) {
+        let call = js_sys::Reflect::get(&js_sys::global(), &JsValue::from_str(slot))
+            .expect("recorded call")
+            .dyn_into::<js_sys::Array>()
+            .expect("call is [store, entries]");
+        let entries = call
+            .get(1)
+            .dyn_into::<js_sys::Array>()
+            .expect("entries is an array");
+        (call.get(0).as_string().expect("store name"), entries)
+    }
+
+    fn pair(entries: &js_sys::Array, index: u32) -> (String, Vec<u8>) {
+        let tuple = entries
+            .get(index)
+            .dyn_into::<js_sys::Array>()
+            .expect("entry is [key, value]");
+        (
+            tuple.get(0).as_string().expect("key"),
+            crate::js_bytes::to_vec(&tuple.get(1).dyn_into::<Uint8Array>().expect("value")),
+        )
+    }
+
+    /// The batch methods hand `setMany` the pairs the core already holds rather
+    /// than a copy of them, so what crosses is what those slices carry: every
+    /// key, every value, in the caller's order.
+    #[test]
+    async fn an_identity_batch_crosses_as_the_pairs_the_core_holds() {
+        let backend = recording_backend("__identityBatch");
+        let identities = [
+            (Arc::from("5511999@s.whatsapp.net:0"), [7u8; 32]),
+            (Arc::from("5511888@s.whatsapp.net:3"), [9u8; 32]),
+        ];
+
+        backend
+            .put_identities_batch(&identities)
+            .await
+            .expect("batch write");
+
+        let (store, entries) = recorded("__identityBatch");
+        assert_eq!(store, STORE_IDENTITY);
+        assert_eq!(entries.length(), 2);
+        for (index, (address, key)) in identities.iter().enumerate() {
+            let (crossed_key, crossed_value) = pair(&entries, index as u32);
+            assert_eq!(crossed_key, address.as_ref());
+            assert_eq!(crossed_value, key.as_slice());
+        }
+    }
+
+    /// A pre-key id has no `&str` form, so its key is rendered per entry while
+    /// the record crosses borrowed. Both halves have to land intact.
+    #[test]
+    async fn a_prekey_batch_renders_its_ids_and_keeps_its_records() {
+        let backend = recording_backend("__prekeyBatch");
+        let records = [
+            (11u32, Bytes::from_static(b"first record")),
+            (12u32, Bytes::from_static(b"second record")),
+        ];
+
+        // `store_prekeys_batch` also writes the max id through `js_set`, which
+        // this backend refuses, so only the batch crossing is asserted.
+        let _ = backend.store_prekeys_batch(&records, false).await;
+
+        let (store, entries) = recorded("__prekeyBatch");
+        assert_eq!(store, STORE_PREKEY);
+        assert_eq!(entries.length(), 2);
+        for (index, (id, record)) in records.iter().enumerate() {
+            let (crossed_key, crossed_value) = pair(&entries, index as u32);
+            assert_eq!(crossed_key, id.to_string());
+            assert_eq!(crossed_value, record.as_ref());
+        }
     }
 }
 
