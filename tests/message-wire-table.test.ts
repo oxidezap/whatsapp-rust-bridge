@@ -16,6 +16,8 @@ import {
  */
 
 const HEADER_SLOT_DEFINITIONS = 4;
+/** Mirrors the decoder's region sharing ceiling in `ts/wire-info.ts`. */
+const REGION_SHARED_MAX_BYTES = 4 * 1024;
 const HEADER_SLOT_FLAGS = 20;
 const PACKED_FLAG_RESET_CACHES = 1;
 const PACKED_FLAG_CLEAR_AFTER = 1 << 1;
@@ -251,6 +253,13 @@ describe("message wire table", () => {
   test("an oversized inline region returns the same values as a shared one", () => {
     const ids = Array.from({ length: 8 }, (_, index) => `${index}-${"x".repeat(700)}-é`);
     const entries = ids.map(id => entry({ id, unavailableRequestId: `req-${id}` }));
+
+    // Pins the case this covers to the branch it means to cover: raise the
+    // ceiling in the decoder without this and the test quietly stops reaching
+    // the path it is named for.
+    const utf8 = (value: string): number => new TextEncoder().encode(value).length;
+    const inlineBytes = ids.reduce((total, id) => total + utf8(id) + utf8(`req-${id}`), 0);
+    expect(inlineBytes).toBeGreaterThan(REGION_SHARED_MAX_BYTES);
 
     const decoded = decodeMessageWireBatch(encodeMessageWireBatch(entries)).infos;
     expect(decoded).toHaveLength(ids.length);
