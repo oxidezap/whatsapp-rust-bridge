@@ -143,6 +143,30 @@ describe("the reconnect window", () => {
   }, 20000);
 });
 
+describe("a caller's own mistake", () => {
+  /**
+   * `invalid-argument` is the caller's own doing, and none of these three
+   * arguments needs a connection to be judged. Holding one behind the gate
+   * would make a host wait out a reconnect to be told it passed a bad value —
+   * so the validation runs before the gate, and this fails if it moves back
+   * behind it.
+   */
+  test("is reported at once, even mid-reconnect", async () => {
+    const client = await reconnectingClient();
+
+    const calls: Array<[string, Promise<unknown>]> = [
+      ["muteChat", client.muteChat(CHAT, Number.NaN)],
+      ["profilePictureUrl", client.profilePictureUrl(CHAT, "preview", Number.NaN)],
+      ["deactivateCommunity", client.deactivateCommunity("not a jid")],
+    ];
+
+    for (const [name, call] of calls) {
+      expect(await settlesWithin(call, FAILS_FAST_BUDGET), name).toBe(true);
+      expect((await rejection(call)).kind, name).toBe("invalid-argument");
+    }
+  }, 20000);
+});
+
 describe("calls a reconnect cannot help", () => {
   /**
    * A typing indicator is about the instant it was sent, and the core discards

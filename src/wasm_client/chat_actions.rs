@@ -43,14 +43,19 @@ impl WasmWhatsAppClient {
         mute_until: Option<f64>,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
+        // Before the gate: a bad timestamp is the caller's own doing, and it
+        // should not sit out a reconnect to be told so.
+        let mute_until = mute_until
+            .map(|ts| parse_timestamp_ms("muteUntil", ts))
+            .transpose()?;
 
         match mute_until {
-            Some(ts) => {
+            Some(until) => {
                 self.client
                     .online()
                     .await
                     .chat_actions()
-                    .mute_chat_until(&chat_jid, parse_timestamp_ms("muteUntil", ts)?)
+                    .mute_chat_until(&chat_jid, until)
                     .await
             }
             None => {

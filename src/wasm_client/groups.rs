@@ -327,11 +327,12 @@ impl WasmWhatsAppClient {
     /// Deactivate a parent group without deleting its former subgroups.
     #[wasm_bindgen(js_name = deactivateCommunity)]
     pub async fn deactivate_community(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
+        let target = parse_jid(jid)?;
         self.client
             .online()
             .await
             .community()
-            .deactivate(parse_jid(jid)?)
+            .deactivate(target)
             .await?;
         Ok(())
     }

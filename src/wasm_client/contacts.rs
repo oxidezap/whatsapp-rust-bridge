@@ -88,16 +88,14 @@ impl WasmWhatsAppClient {
             PictureType::Image => false,
         };
 
+        let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
+
         let result = self
             .client
             .online()
             .await
             .contacts()
-            .get_profile_picture_with_timeout(
-                &target,
-                preview,
-                parse_optional_timeout_ms("timeoutMs", timeout_ms)?,
-            )
+            .get_profile_picture_with_timeout(&target, preview, timeout)
             .await?;
 
         Ok(result.map(|pic| crate::result_types::ProfilePictureInfo {
