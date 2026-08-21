@@ -237,6 +237,29 @@ describe("giving up on a parked call", () => {
   }, 20000);
 
   /**
+   * The count is the promise the host acts on: it says the call did not go
+   * out, so asking again is safe. A wait that ends in the same turn as the
+   * withdrawal must not take that back — and it is an ordinary turn, not a
+   * narrow one, because `withdrawParkedCalls()` is synchronous and therefore
+   * always runs between two polls of the parked call.
+   */
+  test("a counted call stays withdrawn even when the wait ended in the same turn", async () => {
+    const store = countingStore();
+    const client = await reconnectingClient(store);
+
+    const call = park(client);
+    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+
+    // End the wait and withdraw without yielding in between.
+    const ending = client.disconnect();
+    expect(client.withdrawParkedCalls()).toBe(1);
+    await ending;
+
+    expect((await rejection(call)).kind).toBe("withdrawn");
+    expect(store.counts.deviceReads).toBe(0);
+  }, 20000);
+
+  /**
    * The 19 calls that do not wait reach the core immediately, so there is
    * nothing at the gate to withdraw and their answer is unchanged.
    */
