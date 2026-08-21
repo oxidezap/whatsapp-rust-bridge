@@ -15,6 +15,7 @@
 import { describe, test, expect, beforeAll, afterEach } from "bun:test";
 import { initWasmEngine, createWhatsAppClient, encodeProto } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
+import { aCallThatDoesNotPark, watch } from "./parked-calls.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 
 beforeAll(() => {
@@ -22,9 +23,6 @@ beforeAll(() => {
 });
 
 const CHAT = "5511999999999@s.whatsapp.net";
-
-/** How long a parked call is watched before concluding it is holding. */
-const HOLDS_BUDGET = 500;
 
 /** Enough parked calls that they cannot all be resumed by one poll. */
 const A_CROWD = 8;
@@ -100,21 +98,6 @@ async function reconnectingClient(store: ReturnType<typeof countingStore>) {
   return client;
 }
 
-/** Whether `promise` settles inside `ms`, without leaving it unhandled. */
-async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
-  let settled = false;
-  const watched = promise.then(
-    () => {
-      settled = true;
-    },
-    () => {
-      settled = true;
-    }
-  );
-  await Promise.race([watched, new Promise((resolve) => setTimeout(resolve, ms))]);
-  return settled;
-}
-
 async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string }> {
   try {
     await promise;
@@ -157,14 +140,16 @@ describe("tearing down a client that is holding parked calls", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const call = park(client);
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
+    expect(store.counts.deviceReads).toBe(0);
 
     await client.disconnect();
 
     // `not-connected`, not `withdrawn`: the teardown releases what it is
     // holding, it does not withdraw it.
-    expect((await rejection(call)).kind).toBe("not-connected");
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
     expect(store.counts.deviceReads).toBe(1);
   }, 20000);
 
@@ -178,14 +163,16 @@ describe("tearing down a client that is holding parked calls", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const call = park(client);
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
+    expect(store.counts.deviceReads).toBe(0);
 
     expect(refusedFree(client).message).toMatch(/borrowed/);
 
     // Nothing was dropped: the same client answers the released call.
     await client.disconnect();
-    expect((await rejection(call)).kind).toBe("not-connected");
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
     expect(store.counts.deviceReads).toBe(1);
   }, 20000);
 
@@ -198,15 +185,16 @@ describe("tearing down a client that is holding parked calls", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const calls = Array.from({ length: A_CROWD }, () => park(client));
-    const held = await Promise.all(calls.map((call) => settlesWithin(call, HOLDS_BUDGET)));
-    expect(held).toEqual(Array(A_CROWD).fill(false));
+    const calls = Array.from({ length: A_CROWD }, () => watch(park(client)));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(calls.map((call) => call.settled())).toEqual(Array(A_CROWD).fill(false));
+    expect(store.counts.deviceReads).toBe(0);
 
     expect(refusedFree(client).message).toMatch(/borrowed/);
 
     await client.disconnect();
     for (const call of calls) {
-      expect((await rejection(call)).kind).toBe("not-connected");
+      expect((await rejection(call.promise)).kind).toBe("not-connected");
     }
     expect(store.counts.deviceReads).toBe(A_CROWD);
   }, 20000);

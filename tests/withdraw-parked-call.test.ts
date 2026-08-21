@@ -17,6 +17,7 @@
 import { describe, test, expect, beforeAll, afterEach } from "bun:test";
 import { initWasmEngine, createWhatsAppClient, encodeProto } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
+import { aCallThatDoesNotPark, watch } from "./parked-calls.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 
 beforeAll(() => {
@@ -24,9 +25,6 @@ beforeAll(() => {
 });
 
 const CHAT = "5511999999999@s.whatsapp.net";
-
-/** How long a parked call is watched before concluding it is holding. */
-const HOLDS_BUDGET = 500;
 
 /** How long a call that does not park is given to come back. */
 const FAILS_FAST_BUDGET = 5000;
@@ -142,14 +140,16 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const abandoned = park(client);
-    expect(await settlesWithin(abandoned, HOLDS_BUDGET)).toBe(false);
+    const abandoned = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(abandoned.settled()).toBe(false);
+    expect(store.counts.deviceReads).toBe(0);
 
     // The host concluded it failed, and asked again.
     const reissued = park(client);
 
     await client.disconnect();
-    await Promise.allSettled([abandoned, reissued]);
+    await Promise.allSettled([abandoned.promise, reissued]);
 
     // Two calls reached the core for one intention.
     expect(store.counts.deviceReads).toBe(2);
@@ -159,11 +159,13 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const call = park(client);
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
 
+    // And the count says where it is: at the gate, not merely slow.
     expect(client.withdrawParkedCalls()).toBe(1);
-    expect((await rejection(call)).kind).toBe("withdrawn");
+    expect((await rejection(call.promise)).kind).toBe("withdrawn");
 
     // The absence is the point: the core never got as far as its first read.
     expect(store.counts.deviceReads).toBe(0);
@@ -173,12 +175,13 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const abandoned = park(client);
-    expect(await settlesWithin(abandoned, HOLDS_BUDGET)).toBe(false);
+    const abandoned = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(abandoned.settled()).toBe(false);
 
     // Giving up, said out loud.
-    client.withdrawParkedCalls();
-    expect((await rejection(abandoned)).kind).toBe("withdrawn");
+    expect(client.withdrawParkedCalls()).toBe(1);
+    expect((await rejection(abandoned.promise)).kind).toBe("withdrawn");
 
     const reissued = park(client);
     await client.disconnect();
@@ -191,19 +194,21 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const first = park(client);
-    const second = park(client);
-    expect(await settlesWithin(first, HOLDS_BUDGET)).toBe(false);
+    const first = watch(park(client));
+    const second = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect([first.settled(), second.settled()]).toEqual([false, false]);
 
     expect(client.withdrawParkedCalls()).toBe(2);
-    expect((await rejection(first)).kind).toBe("withdrawn");
-    expect((await rejection(second)).kind).toBe("withdrawn");
+    expect((await rejection(first.promise)).kind).toBe("withdrawn");
+    expect((await rejection(second.promise)).kind).toBe("withdrawn");
 
     // Not a mode: the next call parks like any other.
-    const later = park(client);
-    expect(await settlesWithin(later, HOLDS_BUDGET)).toBe(false);
+    const later = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(later.settled()).toBe(false);
     expect(client.withdrawParkedCalls()).toBe(1);
-    expect((await rejection(later)).kind).toBe("withdrawn");
+    expect((await rejection(later.promise)).kind).toBe("withdrawn");
   }, 20000);
 
   test("withdrawing with nothing parked releases nothing", async () => {
@@ -213,9 +218,11 @@ describe("giving up on a parked call", () => {
     expect(client.withdrawParkedCalls()).toBe(0);
 
     // And a call issued afterwards still parks.
-    const call = park(client);
-    call.catch(() => {});
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
+    expect(client.withdrawParkedCalls()).toBe(1);
+    expect((await rejection(call.promise)).kind).toBe("withdrawn");
   }, 20000);
 
   /**
@@ -226,12 +233,14 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const call = park(client);
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
+    expect(store.counts.deviceReads).toBe(0);
 
     // A disconnect is terminal, which is what ends the wait.
     await client.disconnect();
-    expect((await rejection(call)).kind).toBe("not-connected");
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
 
     expect(client.withdrawParkedCalls()).toBe(0);
   }, 20000);
@@ -247,15 +256,16 @@ describe("giving up on a parked call", () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
-    const call = park(client);
-    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
 
     // End the wait and withdraw without yielding in between.
     const ending = client.disconnect();
     expect(client.withdrawParkedCalls()).toBe(1);
     await ending;
 
-    expect((await rejection(call)).kind).toBe("withdrawn");
+    expect((await rejection(call.promise)).kind).toBe("withdrawn");
     expect(store.counts.deviceReads).toBe(0);
   }, 20000);
 

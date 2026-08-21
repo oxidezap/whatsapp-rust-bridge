@@ -238,6 +238,73 @@ a short text. The decode penalty is per inbound message and the memory saving is
 once per process, so a profile that decodes far more per connect trades
 differently than the one below.
 
+## What `--converge` costs, and why it stays
+
+`--converge` re-runs the whole pass list until the module stops changing. It
+carried no measured justification, and it is the single most expensive thing in
+the list, so it was measured as a candidate for removal. It survived, and the
+reason it survived is the reason it looked removable in the first place.
+
+One `wasm-bindgen` output feeds every arm, so the arms differ by the named flag
+and nothing else. binaryen 117, four cores, on a machine about twice as slow as
+a CI runner, so read the ratios rather than the seconds. The two full-list runs
+are byte for byte identical, which puts the timing noise floor at 1.6%.
+
+| arm | wasm-opt | package bytes | functions | code bytes | largest body |
+|---|---:|---:|---:|---:|---:|
+| full list | 459.3s | 5,614,492 | 11,965 | 5,079,513 | 87,791 B |
+| full list, again | 452.2s | 5,614,492 | 11,965 | 5,079,513 | 87,791 B |
+| minus `--converge` | **281.6s** | **5,599,273** | 12,697 | 5,062,831 | **87,687 B** |
+| minus `--gufa-optimizing` | 403.5s | 5,616,893 | 11,975 | 5,081,883 | 87,791 B |
+| minus `--inlining-optimizing` | 450.8s | 5,614,670 | 11,967 | 5,079,686 | 87,791 B |
+| minus `--merge-similar-functions` | 497.2s | 5,671,645 | 12,368 | 5,136,045 | 87,687 B |
+
+On those columns alone it reads as free money: dropping it takes 38% off the
+optimizer, 15,219 bytes off the package, and leaves 732 more functions and a
+104-byte smaller worst body, which is the direction the cap above pushes.
+
+### What those columns do not show
+
+The extra rounds are extra *inlining* rounds, and inlining is a speed
+optimization. Priced on the per-message decode path with the harness under "What
+it costs per message": a temporary export over `waproto::codec::message_decode`,
+present in both arms and reverted before committing, a 430-byte
+`ExtendedTextMessage` with context info, 20,000 decodes per sample, 15 samples
+per round, arms rotated, and the full-list module entered twice under two names
+as a control:
+
+| arm | best ns/decode | paired median vs full | rounds slower |
+|---|---:|---:|---:|
+| full list | 1,294.3 | | |
+| *control: full list, twice* | 1,282.2 | +0.1 % | 24/45 |
+| minus `--converge` | 1,324.5 | **+2.6 %** | **31/45** |
+
+The control lands on a coin flip, so the harness has no bias of its own; against
+it the uncapped-round module is **+1.6 %, slower in 33 of 45 rounds**. Read the
+cost of removing `--converge` as roughly 2 % on every inbound message decode.
+
+### Why that settles it
+
+The repository has already priced this exact trade once, and at a much better
+rate. `--one-caller-inline-max-function-size 2000` costs ~1–2 % per decode and
+buys **18.41 MiB** of a consumer's private memory after connect. Removing
+`--converge` costs about the same ~2 % and buys 104 bytes on the worst body,
+which is nothing on that scale, plus 15,219 bytes of download. The 38 % is
+build-time, and build time is CI's, not the consumer's.
+
+So `--converge` stays, and this section is here so the next person to notice
+that it is 58 % of the longest CI job finds the decode number before spending
+the week. If CI's wall clock has to come down, the lever is caching the
+optimizer's output, which is deterministic byte for byte over the same input
+and flags, and not this pass list.
+
+The other three arms are the contrast that keeps this from reading as "fewer
+passes is faster". `--gufa-optimizing` costs 11.5 % of the runtime and pays for
+it: without it the artifact is 2,401 bytes larger. `--merge-similar-functions`
+is worth 57,153 bytes and does not even cost time, since a smaller module makes
+the rounds after it cheaper. `--inlining-optimizing` moves the runtime 1.1 %,
+inside the noise floor, for 178 bytes, so there is nothing there either way.
+
 ## What the eager number is, and is not
 
 The tables above are a **whole-module eager compile**: every function, all at

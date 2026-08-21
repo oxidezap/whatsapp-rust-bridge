@@ -11,6 +11,9 @@ wasm-opt = [
     "--ignore-implicit-traps",
     "--traps-never-happen",
     "--coalesce-locals-learning",
+    # Costs 38% of wasm-opt and 15,219 bytes of artifact, and is kept anyway:
+    # the extra rounds are worth ~2% on each inbound message decode, which is
+    # the trade docs/wasm-compile-zone-peak.md measured and takes.
     "--converge",
     # Enable modern WASM features for better optimization
     "--enable-simd",
