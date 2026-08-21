@@ -529,6 +529,9 @@ const PACKED_HEADER_BYTES = 20;
  * ASCII: the byte-at-a-time read is latin1, which is the same thing only there. */
 const TINY_STRING_LIMIT = 100;
 
+/** Ceiling of the 16-bit id count a receipt record carries. */
+const MAX_RECEIPT_MESSAGE_IDS = 0xffff;
+
 const RECEIPT_FLAG_FROM_ME = 1 << 0;
 const RECEIPT_FLAG_GROUP = 1 << 1;
 const RECEIPT_FLAG_OFFLINE = 1 << 2;
@@ -719,6 +722,11 @@ class PackedBatchReader {
     return this.take(length);
   }
 
+  /** A count written with the same 16-bit little-endian shape as a slot. */
+  u16(): number {
+    return this.slot()
+  }
+
   private slot(): number {
     const slot = this.view.getUint16(this.cursor, true);
     this.cursor += 2;
@@ -771,7 +779,7 @@ export function decodeReceiptWireBatch(batch: PackedWireBatch): ReceiptWireData[
     const addressingMode = receiptReader.strOptional();
     const type = receiptReader.str();
     const timestamp = receiptReader.f64();
-    const idCount = receiptReader.u8();
+    const idCount = receiptReader.u16();
     const messageIds: string[] = new Array(idCount);
     for (let j = 0; j < idCount; j++) messageIds[j] = receiptReader.inline();
     receipts[i] = {
@@ -959,7 +967,12 @@ export function encodeReceiptWireBatch(receipts: readonly ReceiptWireData[]): Pa
       builder.slot(slot);
     }
     builder.f64(receipt.timestamp);
-    builder.u8(receipt.message_ids.length);
+    // `u8` here truncated silently: 300 ids wrote 44, and the decode walked
+    // off the end of the record. The count shares the slot's 16-bit shape.
+    if (receipt.message_ids.length > MAX_RECEIPT_MESSAGE_IDS) {
+      throw new RangeError('receipt carries more message ids than the wire format holds')
+    }
+    builder.slot(receipt.message_ids.length);
     for (const id of receipt.message_ids) builder.writeInline(id);
     builder.endRecord();
   }

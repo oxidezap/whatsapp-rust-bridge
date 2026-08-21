@@ -1068,6 +1068,20 @@ impl PackedEventBatch for ReceiptWireBatch {
             .cache_str_optional(source.addressing_mode.as_ref().map(|mode| mode.as_str()));
         let type_slot = self.writer.cache_str(type_repr);
 
+        // Validated BEFORE the first byte goes out, and that ordering is the
+        // point. `records` is one flat buffer the reader walks sequentially
+        // against the header's `record_count`; bytes from a record that failed
+        // halfway are not a lost record — the reader takes them as the start of
+        // the next one and everything after decodes shifted. Failing here
+        // leaves the batch untouched, so a rejected receipt costs only itself.
+        //
+        // u16, not u8. A read receipt aggregates every message it acknowledges,
+        // and an active group clears well past 255 in one go, so the old ceiling
+        // was reachable in ordinary use — and reaching it took the batch with it.
+        let id_count = u16::try_from(receipt.message_ids.len()).map_err(|_| {
+            JsValue::from_str("receipt carries more message ids than the wire format holds")
+        })?;
+
         self.writer.records.push(flags);
         for slot in [
             chat,
@@ -1082,10 +1096,7 @@ impl PackedEventBatch for ReceiptWireBatch {
             self.writer.write_slot(slot);
         }
         self.writer.write_f64(receipt.timestamp.timestamp() as f64);
-        let id_count = u8::try_from(receipt.message_ids.len()).map_err(|_| {
-            JsValue::from_str("receipt carries more message ids than the wire format holds")
-        })?;
-        self.writer.records.push(id_count);
+        self.writer.write_slot(id_count);
         for id in &receipt.message_ids {
             self.writer.write_inline(id);
         }
@@ -1753,9 +1764,11 @@ mod tests {
             .collect();
         assert_eq!(definitions, ["5511999", "s.whatsapp.net", kind]);
 
-        // Record: u8 flags | 8 x u16 slots | f64 timestamp | u8 id count | u16
+        // Record: u8 flags | 8 x u16 slots | f64 timestamp | u16 id count | u16
         // id length. The inline values follow the definitions in the region.
-        let id_length = u16_at(records_at + 1 + 8 * 2 + 8 + 1);
+        // The id count is two bytes, not one: a receipt aggregates every message
+        // it acknowledges and an active group clears past 255 in one go.
+        let id_length = u16_at(records_at + 1 + 8 * 2 + 8 + 2);
         assert_eq!(id_length, id.len(), "an inline length counts UTF-8 bytes");
         assert_eq!(&out[cursor..cursor + id_length], id.as_bytes());
         assert_eq!(cursor + id_length, out.len(), "the region ends with it");
