@@ -148,7 +148,7 @@ impl WasmWhatsAppClient {
     ) -> Result<JsUsyncResponse, crate::errors::BridgeError> {
         let query =
             crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(query.into(), "query")?;
-        let response = self.client.online().await.query_usync(query).await?;
+        let response = self.client.online().await?.query_usync(query).await?;
         Ok(crate::proto::to_js_value(&response)?.unchecked_into())
     }
 
@@ -168,7 +168,7 @@ impl WasmWhatsAppClient {
             .collect::<Result<_, _>>()?;
         self.client
             .online()
-            .await
+            .await?
             .signal()
             .assert_sessions(&parsed)
             .await?;
@@ -194,7 +194,7 @@ impl WasmWhatsAppClient {
         let devices = self
             .client
             .online()
-            .await
+            .await?
             .signal()
             .get_user_devices(&parsed)
             .await?;
@@ -694,7 +694,7 @@ impl WasmWhatsAppClient {
         let (nodes, should_include_device_identity) = self
             .client
             .online()
-            .await
+            .await?
             .signal()
             .create_participant_nodes(&recipient_jids, &msg)
             .await?;

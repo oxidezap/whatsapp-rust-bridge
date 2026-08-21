@@ -83,6 +83,12 @@ pub enum BridgeError {
     #[error("not connected")]
     NotConnected,
 
+    /// The caller stopped waiting for a reconnect, so the call was let go at
+    /// the gate and never reached the core. Nothing was sent, which is the
+    /// part that matters: re-issuing it repeats a request that was never made.
+    #[error("withdrawn while waiting for a reconnect")]
+    Withdrawn,
+
     /// Server pushed a `<stream:error>` / disconnect node mid-flight. The raw
     /// reason text (when available) is on `reason`.
     #[error("disconnected by server: {reason}")]

@@ -40,7 +40,7 @@ impl WasmWhatsAppClient {
         let results = self
             .client
             .online()
-            .await
+            .await?
             .contacts()
             .is_on_whatsapp(&jids)
             .await?;
@@ -93,7 +93,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .contacts()
             .get_profile_picture_with_timeout(&target, preview, timeout)
             .await?;
@@ -120,7 +120,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .contacts()
             .get_user_info(&parsed_jids)
             .await?;
@@ -149,7 +149,7 @@ impl WasmWhatsAppClient {
     pub async fn set_push_name(&self, name: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .profile()
             .set_push_name(name)
             .await
@@ -165,7 +165,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .profile()
             .set_profile_picture(img_data)
             .await?;
@@ -181,7 +181,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .profile()
             .remove_profile_picture()
             .await?;
@@ -211,7 +211,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .execute(wacore::iq::contacts::SetProfilePictureSpec::set_group(
                 &target, img_data,
             ))
@@ -236,7 +236,7 @@ impl WasmWhatsAppClient {
         let result = self
             .client
             .online()
-            .await
+            .await?
             .execute(wacore::iq::contacts::SetProfilePictureSpec::remove_group(
                 &target,
             ))
@@ -252,7 +252,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .profile()
             .set_status_text(status)
             .await
@@ -273,11 +273,18 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
 
         match action {
-            BlockAction::Block => self.client.online().await.blocking().block(&target).await?,
+            BlockAction::Block => {
+                self.client
+                    .online()
+                    .await?
+                    .blocking()
+                    .block(&target)
+                    .await?
+            }
             BlockAction::Unblock => {
                 self.client
                     .online()
-                    .await
+                    .await?
                     .blocking()
                     .unblock(&target)
                     .await?
@@ -294,7 +301,7 @@ impl WasmWhatsAppClient {
         let entries = self
             .client
             .online()
-            .await
+            .await?
             .blocking()
             .get_blocklist()
             .await?;
@@ -313,7 +320,7 @@ impl WasmWhatsAppClient {
     /// Fetch all privacy settings.
     #[wasm_bindgen(js_name = fetchPrivacySettings)]
     pub async fn fetch_privacy_settings(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let response = self.client.online().await.fetch_privacy_settings().await?;
+        let response = self.client.online().await?.fetch_privacy_settings().await?;
         let map: std::collections::HashMap<&str, &str> = response
             .settings
             .iter()
@@ -331,7 +338,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .set_privacy_setting(category.into(), value.into())
             .await?;
         Ok(())
@@ -345,7 +352,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
             .online()
-            .await
+            .await?
             .set_default_disappearing_mode(duration)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -400,7 +407,7 @@ impl WasmWhatsAppClient {
         let infos = self
             .client
             .online()
-            .await
+            .await?
             .contacts()
             .get_user_info(&parsed_jids)
             .await?;
