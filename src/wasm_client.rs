@@ -2507,7 +2507,7 @@ pub async fn create_whatsapp_client(
     };
 
     Ok(WasmWhatsAppClient {
-        client,
+        client: CoreClient::new(client),
         runtime,
         sync_rx: Some(sync_rx),
         saver_handle: Mutex::new(Some(saver_handle)),
@@ -2524,10 +2524,126 @@ pub async fn create_whatsapp_client(
 // Client wrapper
 // ---------------------------------------------------------------------------
 
+/// Home of [`CoreClient`], and the only place its inner client is nameable.
+///
+/// The domain modules are siblings of this one rather than descendants, so the
+/// field below is out of their reach: `self.client.0` does not compile from
+/// `wasm_client/*.rs`, and `online()` or `unwaited(…)` is the only way in.
+mod core_client {
+    use super::Arc;
+
+    /// Why a call reaches the core without waiting for a reconnect in flight.
+    ///
+    /// A `#[wasm_bindgen]` method cannot get at the client without saying one of
+    /// these or asking for [`CoreClient::online`], which is what keeps the next
+    /// method added here from landing in a bucket nobody chose for it. The value is
+    /// never read: it exists so the choice is written down where the call is, and
+    /// so the set below can be found by name rather than kept in a list somewhere
+    /// else that would drift.
+    #[derive(Debug, Clone, Copy)]
+    pub(crate) enum Unwaited {
+        /// Nothing crosses the wire, so there is no connection to wait for.
+        Local,
+        /// The core discards this on a lost connection rather than retrying it. A
+        /// receipt, an ack or a presence held back until the next socket says
+        /// something about a moment that has passed.
+        ConnectionBound,
+        /// The socket itself is the subject — establishing one, driving one, or
+        /// reporting on one.
+        ThisSocket,
+        /// The operation re-drives itself, or is built so its caller can re-issue
+        /// it. Waiting would sit in front of a retry that already exists.
+        Redriven,
+        /// An opaque node from the caller. The bridge cannot tell an IQ that
+        /// survives a reconnect from an ack that does not, so it does not guess;
+        /// `reachability()` and `waitUntilReachable()` put the choice with the
+        /// caller, who knows what the node is.
+        Opaque,
+        /// The method returns before anything is sent, so there is no call to hold.
+        /// Whatever it hands back reports its own failure.
+        Deferred,
+        /// The socket is needed only when a cache the bridge cannot see is
+        /// cold, and the core decides that per call. Holding it would park an
+        /// HTTP transfer that a warm cache serves with no socket at all.
+        Cached,
+    }
+
+    /// The core client, reachable only by saying what this call is.
+    ///
+    /// [`online`](Self::online) holds the call while a reconnect is in flight;
+    /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
+    /// in and no plain field, so a method added later has to pick one.
+    pub(crate) struct CoreClient(Arc<whatsapp_rust::Client>);
+
+    impl CoreClient {
+        pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
+            Self(client)
+        }
+    }
+
+    impl CoreClient {
+        /// The client, once any reconnect in flight has landed.
+        ///
+        /// Only `Reconnecting` is waited out — the one state the core says
+        /// comes back with nothing further from the caller. Every other
+        /// answer falls straight through to the core, which reports what it always
+        /// reported: a finished client fails now, a paused one fails now, and a
+        /// client nothing is reading fails now. Waiting restores the ability to
+        /// ask, never the request that was refused, so nothing is re-sent here.
+        ///
+        /// Connected, this is a few relaxed loads and a branch. Nothing is
+        /// allocated, no boundary is crossed, and the future that does the waiting
+        /// is built only once one is needed.
+        ///
+        /// A parked call cannot be withdrawn. wasm-bindgen drives an exported
+        /// async method to completion whether or not JS still holds its
+        /// promise, so racing that promise against a deadline bounds the
+        /// host's waiting and not the work: the call still goes out when the
+        /// reconnect lands. A host that needs a bound on the work itself reads
+        /// `reachability()` first, or races `waitUntilReachable()`, and only
+        /// then decides to issue the call.
+        #[inline]
+        pub(crate) async fn online(&self) -> &Arc<whatsapp_rust::Client> {
+            if self.0.reachability().recovers_on_its_own() {
+                self.park().await;
+            }
+            &self.0
+        }
+
+        /// The client as it is right now.
+        #[inline]
+        pub(crate) fn unwaited(&self, _why: Unwaited) -> &Arc<whatsapp_rust::Client> {
+            &self.0
+        }
+
+        /// What work handed to the client right now can expect.
+        pub(crate) fn reachability(&self) -> crate::result_types::Reachability {
+            self.0.reachability().into()
+        }
+
+        /// Wait out a reconnect, and report whatever ended the wait.
+        pub(crate) async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
+            self.0.wait_until_reachable().await.into()
+        }
+
+        /// Off the hot path in its own future, so the check above costs one branch
+        /// in each of the callers rather than a wait's worth of state machine.
+        #[cold]
+        #[inline(never)]
+        fn park(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+            Box::pin(async move {
+                let _ = self.0.wait_until_reachable().await;
+            })
+        }
+    }
+}
+
+pub(crate) use core_client::{CoreClient, Unwaited};
+
 /// Opaque handle to the WhatsApp client.
 #[wasm_bindgen]
 pub struct WasmWhatsAppClient {
-    client: Arc<whatsapp_rust::Client>,
+    client: CoreClient,
     #[allow(dead_code)]
     runtime: Arc<dyn wacore::runtime::Runtime>,
     sync_rx: Option<async_channel::Receiver<whatsapp_rust::sync_task::MajorSyncTask>>,
@@ -2589,7 +2705,9 @@ impl Drop for WasmWhatsAppClient {
         // (every `.detach()` in `whatsapp_rust/src/client.rs` — keepalive
         // loop, message processors, retry loops, …) observe `is_running` /
         // `shutdown_notifier` and exit on their next poll.
-        self.client.signal_shutdown_sync();
+        self.client
+            .unwaited(Unwaited::ThisSocket)
+            .signal_shutdown_sync();
 
         // Abort the bridge-owned wrappers (run loop + sync worker + saver).
         // The async cleanup task spawned below holds `Arc<Client>` so the
@@ -2610,7 +2728,7 @@ impl Drop for WasmWhatsAppClient {
         // `outbound_flush` to drain pending writes. `done` is awaited by the
         // next `create_whatsapp_client` so a new client can't start sharing
         // the heap until this completes.
-        let client = self.client.clone();
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
         let done = register_drop_cleanup();
         wasm_bindgen_futures::spawn_local(async move {
             client.disconnect().await;
@@ -2623,20 +2741,36 @@ impl Drop for WasmWhatsAppClient {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn participants_update(
-    client: &whatsapp_rust::Client,
+/// Parse what a participant update needs, so its caller can reject a bad JID
+/// before deciding whether to wait for a connection.
+fn participants_update_input(
     jid: &str,
-    participants: Vec<String>,
+    participants: &[String],
     action: crate::result_types::GroupParticipantAction,
-    include_linked_groups_on_remove: bool,
-) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
-    use crate::result_types::GroupParticipantAction;
-
+) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
+    if matches!(action, crate::result_types::GroupParticipantAction::Modify) {
+        return Err(crate::errors::BridgeError::InvalidArgument {
+            field: "action".into(),
+            reason: "modify represents a received participant identity change and cannot be sent"
+                .into(),
+        });
+    }
     let group_jid = parse_jid(jid)?;
     let participant_jids = participants
         .iter()
         .map(|participant| parse_jid(participant))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((group_jid, participant_jids))
+}
+
+async fn participants_update(
+    client: &whatsapp_rust::Client,
+    group_jid: wacore_binary::jid::Jid,
+    participant_jids: Vec<wacore_binary::jid::Jid>,
+    action: crate::result_types::GroupParticipantAction,
+    include_linked_groups_on_remove: bool,
+) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    use crate::result_types::GroupParticipantAction;
 
     let responses = match action {
         GroupParticipantAction::Add => {
@@ -2669,6 +2803,11 @@ async fn participants_update(
                 .demote_participants(&group_jid, &participant_jids)
                 .await?
         }
+        // `participants_update_input` rejects this above the gate, so a caller
+        // hears it at once rather than after a reconnect. Kept as a real error
+        // rather than a trap: a trap does not cross as a `WhatsAppError` with
+        // a `.kind`, and a later caller reaching here without the helper would
+        // get no usable failure at all.
         GroupParticipantAction::Modify => {
             return Err(crate::errors::BridgeError::InvalidArgument {
                 field: "action".into(),
@@ -3292,18 +3431,28 @@ async fn send_message_with_options(
     Ok(result.message_id)
 }
 
-async fn send_status_message_with_options(
-    client: &whatsapp_rust::Client,
+/// Decode and parse what a status send needs, so its caller can reject bad
+/// input before deciding whether to wait for a connection.
+fn status_message_input(
     bytes: &[u8],
-    recipients: Vec<String>,
-    options: whatsapp_rust::StatusSendOptions,
-) -> Result<String, crate::errors::BridgeError> {
+    recipients: &[String],
+) -> Result<(waproto::whatsapp::Message, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError>
+{
     let msg = waproto::codec::message_decode(bytes)
         .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
     let recipients = recipients
         .iter()
         .map(|jid| parse_jid(jid))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((msg, recipients))
+}
+
+async fn send_status_message_with_options(
+    client: &whatsapp_rust::Client,
+    msg: waproto::whatsapp::Message,
+    recipients: Vec<wacore_binary::jid::Jid>,
+    options: whatsapp_rust::StatusSendOptions,
+) -> Result<String, crate::errors::BridgeError> {
     let result = client.status().send_raw(msg, &recipients, options).await?;
     Ok(result.message_id)
 }

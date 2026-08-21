@@ -19,6 +19,8 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let result = self
             .client
+            .online()
+            .await
             .newsletter()
             .create(name, description.as_deref())
             .await?;
@@ -34,7 +36,13 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
 
-        let result = self.client.newsletter().get_metadata(&target).await?;
+        let result = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .get_metadata(&target)
+            .await?;
 
         Ok(newsletter_metadata_to_result(&result))
     }
@@ -47,7 +55,13 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
 
-        let result = self.client.newsletter().join(&target).await?;
+        let result = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .join(&target)
+            .await?;
 
         Ok(newsletter_metadata_to_result(&result))
     }
@@ -59,8 +73,9 @@ impl WasmWhatsAppClient {
         jid: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-
         self.client
+            .online()
+            .await
             .newsletter()
             .leave(&target)
             .await
@@ -84,6 +99,8 @@ impl WasmWhatsAppClient {
             crate::errors::invalid_arg("serverId", e.to_string())
         })?;
         self.client
+            .online()
+            .await
             .newsletter()
             .send_reaction(&target, sid, reaction.as_deref().unwrap_or(""))
             .await
@@ -116,6 +133,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .set_follower_mute(&target, muted)
             .await
@@ -132,6 +151,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .set_admin_mute(&target, muted)
             .await
@@ -144,7 +165,13 @@ impl WasmWhatsAppClient {
         &self,
     ) -> Result<Vec<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError>
     {
-        let list = self.client.newsletter().list_subscribed().await?;
+        let list = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .list_subscribed()
+            .await?;
         Ok(list.iter().map(newsletter_metadata_to_result).collect())
     }
 
@@ -156,6 +183,8 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let meta = self
             .client
+            .online()
+            .await
             .newsletter()
             .get_metadata_by_invite(invite_code)
             .await?;
@@ -174,6 +203,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let meta = self
             .client
+            .online()
+            .await
             .newsletter()
             .update(&target, name.as_deref(), description.as_deref())
             .await?;
@@ -185,6 +216,8 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_delete(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .delete(&target)
             .await
@@ -204,6 +237,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let user_jid = parse_jid(user)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .change_owner(&target, &user_jid)
             .await
@@ -220,6 +255,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let user_jid = parse_jid(user)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .demote_admin(&target, &user_jid)
             .await
@@ -235,7 +272,13 @@ impl WasmWhatsAppClient {
         jpeg: &[u8],
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-        let meta = self.client.newsletter().set_picture(&target, jpeg).await?;
+        let meta = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .set_picture(&target, jpeg)
+            .await?;
         Ok(newsletter_metadata_to_result(&meta))
     }
 
@@ -246,7 +289,13 @@ impl WasmWhatsAppClient {
         jid: &str,
     ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-        let meta = self.client.newsletter().remove_picture(&target).await?;
+        let meta = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .remove_picture(&target)
+            .await?;
         Ok(newsletter_metadata_to_result(&meta))
     }
 
@@ -257,7 +306,13 @@ impl WasmWhatsAppClient {
         jid: &str,
     ) -> Result<crate::result_types::NewsletterAdminInfoResult, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-        let info = self.client.newsletter().get_admin_info(&target).await?;
+        let info = self
+            .client
+            .online()
+            .await
+            .newsletter()
+            .get_admin_info(&target)
+            .await?;
         Ok(crate::result_types::NewsletterAdminInfoResult {
             admin_count: info.admin_count.map(f64::from),
             admin_profile: info.admin_profile.as_ref().map(admin_profile_to_result),
@@ -279,6 +334,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let followers = self
             .client
+            .online()
+            .await
             .newsletter()
             .get_followers(&target, count)
             .await?;
@@ -320,6 +377,8 @@ impl WasmWhatsAppClient {
 
         let messages = self
             .client
+            .online()
+            .await
             .newsletter()
             .get_messages(target, count, before_id)
             .await?;
@@ -358,6 +417,8 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let duration = self
             .client
+            .online()
+            .await
             .newsletter()
             .subscribe_live_updates(target)
             .await?;
@@ -375,6 +436,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let (target, new_content) = parse_jid_and_msg_bytes(jid, message)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .edit_message(&target, message_id, new_content)
             .await
@@ -391,6 +454,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         self.client
+            .online()
+            .await
             .newsletter()
             .revoke_message(&target, message_id)
             .await
