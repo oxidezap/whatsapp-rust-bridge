@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.17.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.16.0...v0.17.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** hold a call through a reconnect instead of refusing it ([#76](https://github.com/oxidezap/whatsapp-rust-bridge/issues/76))
+
+### Features
+
+* **client:** hold a call through a reconnect instead of refusing it ([#76](https://github.com/oxidezap/whatsapp-rust-bridge/issues/76)) ([9bfd7ee](https://github.com/oxidezap/whatsapp-rust-bridge/commit/9bfd7ee24fbcf0ccacb1f9659b3ae699a279752a))
+* **client:** let a host withdraw the calls waiting out a reconnect ([#78](https://github.com/oxidezap/whatsapp-rust-bridge/issues/78)) ([d147cb9](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d147cb975e1fd44504ab5d136a62847561f6f8a4))
+
+
+### Bug Fixes
+
+* **wire:** a receipt's id count outgrew the byte it was written in ([#75](https://github.com/oxidezap/whatsapp-rust-bridge/issues/75)) ([34d425c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/34d425c510ec5c542ffa31640807e27c47c13445))
+
 ## [0.16.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.15.0...v0.16.0) (2026-08-19)
 
 
