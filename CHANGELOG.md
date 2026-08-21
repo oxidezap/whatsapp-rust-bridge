@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.18.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.17.0...v0.18.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** take the 2.3000.1045368834 spec bundle, and name the core's inline byte types ([#84](https://github.com/oxidezap/whatsapp-rust-bridge/issues/84))
+
+### Features
+
+* **deps:** take the 2.3000.1045368834 spec bundle, and name the core's inline byte types ([#84](https://github.com/oxidezap/whatsapp-rust-bridge/issues/84)) ([ddf084b](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ddf084b0d8a88dbd652973b4b18ecd45e0e8100f))
+
+
+### Performance
+
+* **core:** eliminate intermediate batch allocations and optimize wire decode ([#82](https://github.com/oxidezap/whatsapp-rust-bridge/issues/82)) ([a8f2766](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a8f2766ebd455b0e0093f1a8931e5cda0662345f))
+
 ## [0.17.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.16.0...v0.17.0) (2026-08-21)
 
 
