@@ -280,10 +280,14 @@ impl WasmWhatsAppClient {
         let mut force_refresh = false;
 
         for attempt in 0..=1u32 {
-            // One reference for the attempt, and no gate on it: the media-conn
-            // cache decides whether the socket is touched at all, and the HTTP
-            // calls below never touch it.
-            let client = self.client.unwaited(Unwaited::Cached);
+            // The cache decides whether the socket is touched at all, and the
+            // HTTP calls below never touch it — except on the retry, where
+            // `force_refresh` bypasses the cache and the IQ is certain.
+            let client = if force_refresh {
+                self.client.online().await
+            } else {
+                self.client.unwaited(Unwaited::Cached)
+            };
             let media_conn = client.refresh_media_conn(force_refresh).await?;
 
             let mut retry_auth = false;
@@ -387,10 +391,7 @@ impl WasmWhatsAppClient {
 
     /// Request the server to re-upload expired media.
     ///
-    /// Not held for a reconnect: this sends a `server-error` receipt and then
-    /// waits for a `mediaretry` notification matched on the current
-    /// connection, so a new socket is not where the answer would arrive.
-    ///
+
     /// Returns the new `directPath` on success.
     /// Throws on failure (not found, decryption error, timeout, etc.).
     #[wasm_bindgen(js_name = requestMediaReupload)]
@@ -416,7 +417,8 @@ impl WasmWhatsAppClient {
 
         let result = self
             .client
-            .unwaited(Unwaited::ConnectionBound)
+            .online()
+            .await
             .media_reupload()
             .request(&req)
             .await?;

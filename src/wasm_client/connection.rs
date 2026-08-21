@@ -254,6 +254,11 @@ impl WasmWhatsAppClient {
     /// that do not — `sendNode`, `queryNode`, `sendRawMessage` — where only the
     /// caller knows whether the node it is holding survives a new socket.
     ///
+    /// It is also how a caller bounds work rather than waiting. Racing a
+    /// parked call against a timer abandons the promise but not the call, so a
+    /// send still goes out when the reconnect lands; racing this instead
+    /// leaves the decision to issue it with the caller.
+    ///
     /// Not from an event handler: the core dispatches on its read loop, so a
     /// handler that waits here waits on the connection it is blocking.
     #[wasm_bindgen(js_name = waitUntilReachable)]

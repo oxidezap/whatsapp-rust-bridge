@@ -187,6 +187,43 @@ describe("a caller's own mistake", () => {
   }, 20000);
 });
 
+describe("a parked call is not cancellable", () => {
+  /**
+   * wasm-bindgen drives an exported async method to completion whether or not
+   * JS still holds its promise, so racing the promise bounds the host's
+   * waiting and not the work. This pins that, because it is the part a host
+   * has to design around: a `sendMessageBytes` abandoned at a deadline still
+   * goes out when the reconnect lands, and a retry would duplicate it.
+   *
+   * If someone adds a cancellable path later, this test is the notice that the
+   * contract changed rather than a silent behaviour swap.
+   */
+  test("abandoning the promise does not withdraw the call", async () => {
+    const client = await reconnectingClient();
+
+    let settled: string | null = null;
+    const call = client.fetchPrivacySettings();
+    call.then(
+      () => {
+        settled = "resolved";
+      },
+      (error: Error & { kind?: string }) => {
+        settled = error.kind ?? "rejected";
+      }
+    );
+
+    // What a host's own deadline would do: stop awaiting, and move on.
+    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+    expect(settled).toBeNull();
+
+    // The host has given up, but the call has not: it runs to completion once
+    // the wait ends.
+    await client.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(settled).toBe("not-connected");
+  }, 20000);
+});
+
 describe("calls a reconnect cannot help", () => {
   /**
    * A typing indicator is about the instant it was sent, and the core discards

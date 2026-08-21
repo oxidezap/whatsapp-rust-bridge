@@ -2594,6 +2594,14 @@ mod core_client {
         /// Connected, this is a few relaxed loads and a branch. Nothing is
         /// allocated, no boundary is crossed, and the future that does the waiting
         /// is built only once one is needed.
+        ///
+        /// A parked call cannot be withdrawn. wasm-bindgen drives an exported
+        /// async method to completion whether or not JS still holds its
+        /// promise, so racing that promise against a deadline bounds the
+        /// host's waiting and not the work: the call still goes out when the
+        /// reconnect lands. A host that needs a bound on the work itself reads
+        /// `reachability()` first, or races `waitUntilReachable()`, and only
+        /// then decides to issue the call.
         #[inline]
         pub(crate) async fn online(&self) -> &Arc<whatsapp_rust::Client> {
             if self.0.reachability().recovers_on_its_own() {
