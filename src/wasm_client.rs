@@ -2606,12 +2606,16 @@ mod core_client {
             (id, rx)
         }
 
-        fn leave(&self, id: u64) {
+        /// Leaves the waiting set, and says whether this call was still in it.
+        /// `release_all` takes what it counts, so a `false` is the same fact as
+        /// having been counted.
+        fn leave(&self, id: u64) -> bool {
             self.state
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .waiting
-                .remove(&id);
+                .remove(&id)
+                .is_some()
         }
 
         fn release_all(&self) -> u32 {
@@ -2629,6 +2633,12 @@ mod core_client {
     struct LeaveOnDrop<'a> {
         parked: &'a Parked,
         id: u64,
+    }
+
+    impl LeaveOnDrop<'_> {
+        fn leave(&self) -> bool {
+            self.parked.leave(self.id)
+        }
     }
 
     impl Drop for LeaveOnDrop<'_> {
@@ -2712,13 +2722,22 @@ mod core_client {
         > {
             Box::pin(async move {
                 let (id, withdrawn) = self.parked.enrol();
-                let _leave = LeaveOnDrop {
+                let leave = LeaveOnDrop {
                     parked: &self.parked,
                     id,
                 };
                 let reachable = std::pin::pin!(self.client.wait_until_reachable());
                 let withdrawn = std::pin::pin!(withdrawn.recv());
-                match futures::future::select(reachable, withdrawn).await {
+                let ended = futures::future::select(reachable, withdrawn).await;
+                // The count is the promise: a call `withdraw_parked` counted is a
+                // call that does not reach the core, whichever of the two landed
+                // first. Both can be ready before this future is polled again —
+                // `withdraw_parked` is synchronous, so it runs between polls by
+                // construction — and leaving is what says which happened.
+                if !leave.leave() {
+                    return Err(crate::errors::BridgeError::Withdrawn);
+                }
+                match ended {
                     futures::future::Either::Left(_) => Ok(()),
                     futures::future::Either::Right(_) => Err(crate::errors::BridgeError::Withdrawn),
                 }
