@@ -221,7 +221,9 @@ class StringRegion {
    * decode whichever way it is read, and cutting it back out of a decoded
    * region only adds to that. From two values up, or from a region long
    * enough that decoding it whole beats a decode per value, the one decode
-   * pays for itself and no value needs a view of its own.
+   * pays for itself and no value needs a view of its own. Past
+   * `REGION_SHARED_MAX_BYTES` it stops paying for itself in memory, whatever
+   * it saves in time.
    */
   read(bytes: Uint8Array, at: number, length: number, values: number): void {
     this.cursor = 0;
@@ -230,7 +232,8 @@ class StringRegion {
     this.isAscii = true;
     this.bytes = bytes;
     this.at = at;
-    this.whole = length > 0 && (values > 1 || length >= TINY_STRING_LIMIT);
+    this.whole =
+      length > 0 && length <= REGION_SHARED_MAX_BYTES && (values > 1 || length >= TINY_STRING_LIMIT);
     if (!this.whole) return;
 
     if (length >= TINY_STRING_LIMIT) {
@@ -376,19 +379,20 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   cursor += messageBytes;
   const stringsAt = cursor;
 
-  // Clearing before the definitions land is the whole of the protocol: the
-  // batch that rolls the table is also the batch that rebuilds it.
-  if ((batchFlags & PACKED_FLAG_RESET_CACHES) !== 0) messageTable.length = 0;
+  // This table delimits the definitions, and the inline values start where it
+  // ends, so a table that does not ascend from zero frames nothing: its
+  // definitions overlap or run backwards, and the inline cursor starts
+  // somewhere the writer did not put it.
+  //
+  // Every check that can reject the batch runs before anything the standing
+  // table can see, the reset included, so a batch the reader turns away leaves
+  // that table exactly as it found it. Only a failure past this point, where a
+  // record indexes or measures something the header did not frame, can leave
+  // the table changed.
   const definitionBytes = definitionOffsets[definitionCount]!;
   if (definitionBytes > stringBytes) {
     throw new RangeError("message wire batch string definitions run past its string region");
   }
-  // This table delimits the definitions and the inline values start where it
-  // ends, so a table that does not ascend from zero delimits nothing: its
-  // definitions overlap or run backwards, and the inline cursor starts
-  // somewhere the writer did not put it. Checked here, before the first
-  // definition is installed, because a table the reader rejects has to leave
-  // the standing one exactly as it found it.
   if (definitionOffsets[0] !== 0) {
     throw new RangeError("message wire batch definition offsets must start at zero");
   }
@@ -397,6 +401,10 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
       throw new RangeError("message wire batch definition offsets do not ascend");
     }
   }
+
+  // Clearing before the definitions land is the whole of the protocol: the
+  // batch that rolls the table is also the batch that rebuilds it.
+  if ((batchFlags & PACKED_FLAG_RESET_CACHES) !== 0) messageTable.length = 0;
   // Installed before the records are read, and kept even if reading them
   // fails. The writer counts a definition as held the moment it writes the
   // batch out, so rolling these back on a rejected batch is what would put the
@@ -685,6 +693,21 @@ const PACKED_HEADER_BYTES = 20;
  * `TextDecoder`, whose constant cost dominates for short inputs. Reserved for
  * ASCII: the byte-at-a-time read is latin1, which is the same thing only there. */
 const TINY_STRING_LIMIT = 100;
+
+/**
+ * Region bytes above which values are decoded one by one instead of cut out of
+ * one decoded region.
+ *
+ * A substring is backed by the string it was cut from on the engines this
+ * package runs on, so every value cut from a region holds that whole region
+ * for as long as a consumer keeps it. Sharing is the cheaper side of that
+ * trade while the region is the size a batch of ids actually is: a host that
+ * keeps all of them pays for one backing string instead of one per value. It
+ * is the wrong side when a single peer-sized value lands in the same region,
+ * because then one ordinary id a host filed away pins the outlier with it.
+ * Above this the region is not shared and no value can pin more than itself.
+ */
+const REGION_SHARED_MAX_BYTES = 4 * 1024;
 
 /** Ceiling of the 16-bit id count a receipt record carries. */
 const MAX_RECEIPT_MESSAGE_IDS = 0xffff;

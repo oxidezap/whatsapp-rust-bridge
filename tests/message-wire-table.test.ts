@@ -43,6 +43,17 @@ function entry(overrides: Partial<MessageWireInfo> & { id: string }): MessageWir
 const header = (batch: Uint8Array, slot: number): number =>
   new DataView(batch.buffer, batch.byteOffset, batch.byteLength).getUint32(slot, true);
 
+/**
+ * The definition offset table of a one-message batch: header, then that
+ * message's record, then the payload offsets, then this.
+ */
+const definitionOffsetsOf = (batch: Uint8Array): Uint32Array =>
+  new Uint32Array(
+    batch.buffer,
+    batch.byteOffset + 24 + MESSAGE_WIRE_INFO_RECORD_WIDTH * 8 + 2 * 4,
+    header(batch, HEADER_SLOT_DEFINITIONS) + 1,
+  );
+
 describe("message wire table", () => {
   test("a repeated address is defined once and referenced afterwards", () => {
     const encoder = new MessageWireBatchEncoder();
@@ -162,11 +173,50 @@ describe("message wire table", () => {
   });
 
   /**
-   * The definitions are cut with one cursor now, so an offset table that does
-   * not ascend from zero moves every value behind it rather than spoiling one
-   * definition. A batch carrying one is rejected, and rejected before the
-   * standing table is touched: it is the one failure the reader can see before
-   * installing anything, so the run it interrupts carries on intact.
+   * A batch that asks the reader to clear is still a batch that has to frame
+   * its own definitions, and the clear is the one thing a rejected batch could
+   * still have done to the standing table. So the framing checks run first: a
+   * malformed batch carrying the flag leaves the table for whoever indexes it
+   * next.
+   */
+  test("a rejected batch does not clear the table on its way out", () => {
+    const standing = new MessageWireBatchEncoder();
+    expect(decodeMessageWireBatch(standing.encode([entry({ id: "M1" })])).infos[0]).toMatchObject({
+      pushName: "Peer",
+      id: "M1",
+    });
+
+    // A second run's first batch always asks for a clear, which is what this
+    // one must not get to do.
+    const poisoned = new MessageWireBatchEncoder().encode([
+      entry({ id: "M2", chat: "second@g.us", sender: "second@g.us", pushName: "Second" }),
+    ]);
+    expect(header(poisoned, HEADER_SLOT_FLAGS) & PACKED_FLAG_RESET_CACHES).toBe(
+      PACKED_FLAG_RESET_CACHES,
+    );
+    expect(header(poisoned, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    // Same shape the test below rejects: a definition ending before it starts.
+    const offsets = definitionOffsetsOf(poisoned);
+    offsets[2] = offsets[1]! - 1;
+    expect(() => decodeMessageWireBatch(poisoned)).toThrow(RangeError);
+
+    // The standing run's slots are still the standing run's.
+    const next = standing.encode([entry({ id: "M3" })]);
+    expect(header(next, HEADER_SLOT_DEFINITIONS)).toBe(0);
+    expect(decodeMessageWireBatch(next).infos[0]).toMatchObject({
+      chat: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M3",
+    });
+  });
+
+  /**
+   * The offset table frames the definitions and marks where the inline values
+   * begin, so one that does not ascend from zero frames neither: its
+   * definitions overlap or run backwards and the inline cursor starts
+   * somewhere the writer did not put it. A batch carrying one is rejected, and
+   * rejected before anything the standing table can see, so the run it
+   * interrupts carries on intact.
    */
   test("a definition table that does not ascend is rejected before it is installed", () => {
     const encoder = new MessageWireBatchEncoder();
@@ -177,13 +227,8 @@ describe("message wire table", () => {
       entry({ id: "M2", chat: "second@g.us", sender: "second@g.us", pushName: "Second" }),
     ]);
     expect(header(poisoned, HEADER_SLOT_DEFINITIONS)).toBe(2);
-    // Header, then one record, then the payload offsets, then this table.
-    const offsets = new Uint32Array(
-      poisoned.buffer,
-      poisoned.byteOffset + 24 + MESSAGE_WIRE_INFO_RECORD_WIDTH * 8 + 2 * 4,
-      3,
-    );
     // The second definition now ends a byte before it starts.
+    const offsets = definitionOffsetsOf(poisoned);
     offsets[2] = offsets[1]! - 1;
     expect(() => decodeMessageWireBatch(poisoned)).toThrow(RangeError);
 
@@ -194,6 +239,24 @@ describe("message wire table", () => {
       chat: "5511999@s.whatsapp.net",
       pushName: "Peer",
       id: "M3",
+    });
+  });
+
+  /**
+   * An inline region past the sharing ceiling is decoded value by value, so
+   * that a consumer keeping one ordinary id cannot pin an outlier that shared
+   * its batch. What comes back has to be the same either way, so this drives a
+   * region well past the ceiling and asks for every value back.
+   */
+  test("an oversized inline region returns the same values as a shared one", () => {
+    const ids = Array.from({ length: 8 }, (_, index) => `${index}-${"x".repeat(700)}-é`);
+    const entries = ids.map(id => entry({ id, unavailableRequestId: `req-${id}` }));
+
+    const decoded = decodeMessageWireBatch(encodeMessageWireBatch(entries)).infos;
+    expect(decoded).toHaveLength(ids.length);
+    decoded.forEach((info, index) => {
+      expect(info.id).toBe(ids[index]!);
+      expect(info.unavailableRequestId).toBe(`req-${ids[index]!}`);
     });
   });
 
