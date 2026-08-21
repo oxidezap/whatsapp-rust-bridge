@@ -374,12 +374,7 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   cursor += definitionOffsetBytes;
   const messageData = buffer.subarray(cursor, cursor + messageBytes);
   cursor += messageBytes;
-  // The definitions run the region from its start and the inline values follow
-  // them in record order, so one cursor cuts the whole of it (see
-  // `StringRegion`). Every record carries an inline id, so the values a batch
-  // cuts are its definitions and at least one per message.
-  const strings = new StringRegion();
-  strings.read(buffer, cursor, stringBytes, definitionCount + messageCount);
+  const stringsAt = cursor;
 
   // Clearing before the definitions land is the whole of the protocol: the
   // batch that rolls the table is also the batch that rebuilds it.
@@ -388,11 +383,12 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   if (definitionBytes > stringBytes) {
     throw new RangeError("message wire batch string definitions run past its string region");
   }
-  // The definitions are cut with one cursor rather than a view per value, so a
-  // table that does not ascend from zero does not delimit them: it moves every
-  // value behind it, this batch's inline ids included. Checked here, before the
-  // first definition is installed, because a table the reader rejects has to
-  // leave the standing one exactly as it found it.
+  // This table delimits the definitions and the inline values start where it
+  // ends, so a table that does not ascend from zero delimits nothing: its
+  // definitions overlap or run backwards, and the inline cursor starts
+  // somewhere the writer did not put it. Checked here, before the first
+  // definition is installed, because a table the reader rejects has to leave
+  // the standing one exactly as it found it.
   if (definitionOffsets[0] !== 0) {
     throw new RangeError("message wire batch definition offsets must start at zero");
   }
@@ -407,12 +403,27 @@ export function decodeMessageWireBatch(batch: PackedWireBatch): MessageWireBatch
   // two sides out of step: a later batch referencing one of these slots would
   // land past the end of a rolled-back table, or on whatever took its index.
   // Nothing wrong is read either way — a batch that throws returns nothing.
+  //
+  // Each is decoded on its own, unlike the inline values below. A definition
+  // outlives its batch, and a substring is backed by the string it was cut
+  // from on the engines this package runs on, so a definition cut out of a
+  // decoded region would hold that whole region (a peer-sized inline id and
+  // all) for as long as the table stood. A definition is also the rare value:
+  // the table exists so that one is written once and referenced after.
   for (let i = 0; i < definitionCount; i++) {
-    messageTable.push(strings.take(definitionOffsets[i + 1]! - definitionOffsets[i]!));
+    messageTable.push(
+      utf8Decoder.decode(
+        buffer.subarray(stringsAt + definitionOffsets[i]!, stringsAt + definitionOffsets[i + 1]!),
+      ),
+    );
   }
 
   // Inline values are read in record order, so their offsets are a cursor
-  // rather than a table: only their byte length rides in the record.
+  // rather than a table: only their byte length rides in the record. They are
+  // the batch's own, and every record carries at least an id, so this is the
+  // region worth cutting with one decode (see `StringRegion`).
+  const strings = new StringRegion();
+  strings.read(buffer, stringsAt + definitionBytes, stringBytes - definitionBytes, messageCount);
   let inlineAt = definitionBytes;
   const inlineValue = (length: number): string => {
     const end = inlineAt + length;
