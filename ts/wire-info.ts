@@ -208,6 +208,8 @@ class StringRegion {
   private bytes: Uint8Array = EMPTY_BYTES;
   /** Byte offset of the region inside `bytes`. */
   private at = 0;
+  /** Bytes the region spans, which is what every value has to fit inside. */
+  private length = 0;
   /** Whether the region was decoded whole, or is cut value by value. */
   private whole = false;
 
@@ -232,6 +234,7 @@ class StringRegion {
     this.isAscii = true;
     this.bytes = bytes;
     this.at = at;
+    this.length = length;
     this.whole =
       length > 0 && length <= REGION_SHARED_MAX_BYTES && (values > 1 || length >= TINY_STRING_LIMIT);
     if (!this.whole) return;
@@ -278,9 +281,21 @@ class StringRegion {
     this.region = utf8Decoder.decode(bytes.subarray(at, at + length));
   }
 
-  /** Take the next `length` bytes of the region as one value. */
+  /**
+   * Take the next `length` bytes of the region as one value.
+   *
+   * A length the region cannot hold frames nothing, so it is reported rather
+   * than clipped: a value cut short is one a caller cannot tell from a value
+   * the writer sent short. Both of the cuts below would clip — `subarray` and
+   * `substring` each clamp to what they have — so the check is here rather
+   * than left to them. Records carry these lengths as `f64`, which is why a
+   * whole number is part of what makes one framable at all.
+   */
   take(length: number): string {
-    if (length <= 0) return "";
+    if (length === 0) return "";
+    if (!Number.isInteger(length) || length < 0 || this.cursor + length > this.length) {
+      throw new RangeError("packed batch value runs past its string region");
+    }
     const start = this.cursor;
     this.cursor += length;
     if (!this.whole) {

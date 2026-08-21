@@ -24,6 +24,8 @@ import {
 
 /** Mirrors the decoder's short-region threshold in `ts/wire-info.ts`. */
 const TINY_STRING_LIMIT = 100;
+/** Mirrors the packed header in `ts/wire-info.ts`: six u32 fields. */
+const PACKED_HEADER_BYTES = 20;
 
 const pn: WireJid = { user: "5511999", server: "s.whatsapp.net", agent: 0, device: 0, integrator: 0 };
 const group: WireJid = { user: "120363", server: "g.us", agent: 0, device: 0, integrator: 0 };
@@ -115,6 +117,24 @@ describe("packed batch string region", () => {
         `LAST${pad}`,
       ]);
     }
+  });
+
+  /**
+   * A length the region cannot hold frames nothing, and both ways of cutting a
+   * region clamp rather than fail, so a value would come back short and read
+   * exactly like one the writer sent short. The reader reports it instead.
+   *
+   * The ack record is three slots, a timestamp and then the id's byte length,
+   * so with nothing cached the length sits at a fixed offset in the batch.
+   */
+  test("an inline length the region cannot hold is reported, not clipped", () => {
+    const batch = encodeServerAckWireBatch([{ id: "ABC" }]);
+    expect(regionBytes(batch)).toBe(3);
+
+    const inlineLengthAt = batch.byteOffset + PACKED_HEADER_BYTES + 3 * 2 + 8;
+    new DataView(batch.buffer).setUint16(inlineLengthAt, 500, true);
+
+    expect(() => decodeServerAckWireBatch(batch)).toThrow(RangeError);
   });
 
   test("a value opening with U+FEFF keeps it, and keeps the region aligned", () => {
