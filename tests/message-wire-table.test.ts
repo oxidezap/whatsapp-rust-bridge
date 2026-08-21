@@ -162,6 +162,40 @@ describe("message wire table", () => {
   });
 
   /**
+   * Definitions and inline values share one string region, and the reader cuts
+   * it with a cursor rather than a view per value, so a value whose UTF-8
+   * width differs from its UTF-16 width moves every value behind it if the cut
+   * is wrong. This batch is long enough (over 100 bytes of region) to take the
+   * decode-the-whole-region path, and mixes 2, 3 and 4 byte code points across
+   * definitions and inline ids alike.
+   */
+  test("a long non-ASCII region cuts every value where it starts", () => {
+    const names = ["José 🇧🇷", "Ünïcödé Ñame", "日本語の名前", "Ω→∞ señor"];
+    const ids = ["não-1", "ідентифікатор", "🆔-3", "id-é-4"];
+    const entries = names.map((pushName, index) =>
+      entry({
+        id: ids[index]!,
+        pushName,
+        chat: `55119${index}@s.whatsapp.net`,
+        sender: `55119${index}@s.whatsapp.net`,
+        unavailableRequestId: `réq-${index}`,
+      }),
+    );
+
+    const batch = encodeMessageWireBatch(entries);
+    const decoded = decodeMessageWireBatch(batch).infos;
+    expect(decoded).toHaveLength(entries.length);
+    decoded.forEach((decodedInfo, index) => {
+      expect(decodedInfo).toMatchObject({
+        id: ids[index]!,
+        pushName: names[index]!,
+        chat: `55119${index}@s.whatsapp.net`,
+        unavailableRequestId: `réq-${index}`,
+      });
+    });
+  });
+
+  /**
    * The two writers are hand-mirrored, so one fixture is pinned byte for byte
    * on both sides. The same literal is asserted against `write_flat` in
    * `message_wire_batch_matches_the_host_encoder_byte_for_byte`
