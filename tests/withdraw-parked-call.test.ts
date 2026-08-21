@@ -219,6 +219,24 @@ describe("giving up on a parked call", () => {
   }, 20000);
 
   /**
+   * A call whose wait ended on its own is no longer at the gate, so there is
+   * nothing left of it to release.
+   */
+  test("a call released by the wait ending is no longer withdrawable", async () => {
+    const store = countingStore();
+    const client = await reconnectingClient(store);
+
+    const call = park(client);
+    expect(await settlesWithin(call, HOLDS_BUDGET)).toBe(false);
+
+    // A disconnect is terminal, which is what ends the wait.
+    await client.disconnect();
+    expect((await rejection(call)).kind).toBe("not-connected");
+
+    expect(client.withdrawParkedCalls()).toBe(0);
+  }, 20000);
+
+  /**
    * The 19 calls that do not wait reach the core immediately, so there is
    * nothing at the gate to withdraw and their answer is unchanged.
    */
