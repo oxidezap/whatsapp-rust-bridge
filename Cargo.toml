@@ -11,7 +11,10 @@ wasm-opt = [
     "--ignore-implicit-traps",
     "--traps-never-happen",
     "--coalesce-locals-learning",
-    "--converge",
+    # No `--converge`. Re-running the list to a fixpoint re-applies inlining
+    # each round, which walks the cap below back: it cost 38% of wasm-opt for
+    # 15,219 more bytes and a larger worst function. The sweep is in
+    # docs/wasm-compile-zone-peak.md.
     # Enable modern WASM features for better optimization
     "--enable-simd",
     "--enable-bulk-memory",

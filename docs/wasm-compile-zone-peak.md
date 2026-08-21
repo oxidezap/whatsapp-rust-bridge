@@ -238,6 +238,43 @@ a short text. The decode penalty is per inbound message and the memory saving is
 once per process, so a profile that decodes far more per connect trades
 differently than the one below.
 
+## The pass that was undoing it
+
+`--converge` re-runs the whole pass list until the module stops changing. It
+carried no measured justification, and measuring it found it working against
+the cap above: each round re-applies inlining, so single-caller chains the cap
+had split get folded back together.
+
+One `wasm-bindgen` output feeds every arm below, so the arms differ by the named
+flag and nothing else. binaryen 117, four cores, on a machine about twice as
+slow as a CI runner, so read the ratios rather than the seconds. The two
+full-list runs are byte for byte identical, which puts the timing noise floor at
+1.6%.
+
+| arm | wasm-opt | package bytes | functions | code bytes | largest body |
+|---|---:|---:|---:|---:|---:|
+| full list | 459.3s | 5,614,492 | 11,965 | 5,079,513 | 87,791 B |
+| full list, again | 452.2s | 5,614,492 | 11,965 | 5,079,513 | 87,791 B |
+| **minus `--converge`** | **281.6s** | **5,599,273** | **12,697** | 5,062,831 | **87,687 B** |
+| minus `--gufa-optimizing` | 403.5s | 5,616,893 | 11,975 | 5,081,883 | 87,791 B |
+| minus `--inlining-optimizing` | 450.8s | 5,614,670 | 11,967 | 5,079,686 | 87,791 B |
+
+Converging bought 177 seconds of optimizer time, 15,219 bytes of package and
+732 functions folded into their callers, in the direction the cap exists to
+prevent. It is out of the list.
+
+The other two arms are the contrast that makes that readable. `--gufa-optimizing`
+also costs real time (11.5%) and pays for it: without it the artifact is 2,401
+bytes larger, so it stays. `--inlining-optimizing` moves the runtime by 1.1%,
+inside the noise floor, and costs 178 bytes, so there is nothing there either
+way. "Fewer passes is faster" is not the finding; `--converge` specifically was
+paying to make the artifact worse.
+
+What this did not measure: the per-message decode cost of the resulting module.
+The harness under "What it costs per message" could price it, and the change is
+in the opposite direction from the cap's own cost, since fewer inlining rounds
+is what the cap was already asking for.
+
 ## What the eager number is, and is not
 
 The tables above are a **whole-module eager compile**: every function, all at
