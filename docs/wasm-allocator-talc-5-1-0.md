@@ -205,7 +205,8 @@ Three readings:
 - **The two size features are expensive in memory.** Turning off in-place
   growth costs 4.44 MiB on `inflate` and **26.57 MiB** on `retention`, because
   a buffer that grows by doubling has to be copied to a new chunk each time
-  instead of extending into the gap above it. They buy 90 and 168 bytes.
+  instead of extending into the gap above it. They buy 128 and 206 bytes of
+  artifact off `talc-extend`.
 
 `after peak` is `committedAfterPeak`, which `retention()` reports as
 `committedFinal - afterPeak`, and it is 0.00
