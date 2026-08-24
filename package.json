@@ -52,6 +52,7 @@
         "bump:wacore": "cargo update -p whatsapp-rust && bun run build",
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
         "test:rust": "wasm-pack test --node",
+        "test:talc-repro": "cd benches/talc-repro && CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner WASM_BINDGEN_TEST_ONLY_NODE=1 cargo test --target wasm32-unknown-unknown",
         "check:size": "bun run scripts/check-size.ts",
         "check:wasm-shape": "node scripts/check-wasm-shape.mjs",
         "check:test-clock": "bun run scripts/check-test-clock.ts",
