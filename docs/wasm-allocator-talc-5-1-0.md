@@ -158,7 +158,11 @@ nothing to say about any of these.
 ### Per-process memory
 
 `Private_Dirty` after compiling the module and dropping the wire bytes,
-9 repetitions, round-robin.
+9 repetitions, round-robin. This is `measure.mjs`'s default `compile` mode, so
+it prices the **compiled module** and never creates a linear memory. That is the
+right isolation for an artifact-size question and the wrong one for an arm whose
+whole cost is its heap, which is why `talc-arena` gets its own instantiated
+measurement below.
 
 | arm | code MiB | file MiB | retained ΔPriv_Dirty MiB |
 |---|---:|---:|---:|
@@ -177,11 +181,33 @@ on every row is ±0.03 MiB, four times larger, and `dlmalloc` and `control` are
 the same artifact 0.01 MiB apart. Take the size saving from the size table,
 where it is exact, and read this table only as "nothing here got worse".
 
+The same three arms with `--mode=instantiate`, which brings the linear memory
+in, 9 repetitions:
+
+| arm | retained ΔPriv_Dirty MiB | retained ΔUSS MiB |
+|---|---:|---:|
+| `dlmalloc` | 7.55 ±0.03 | 8.30 ±0.03 |
+| `talc-extend` | 7.57 ±0.04 | 8.32 ±0.04 |
+| `talc-arena` | 7.62 ±0.03 | 8.37 ±0.03 |
+
+**The arena's 128 MiB is address space, not resident memory.** Instantiating it
+costs 0.07 MiB more than `dlmalloc`, not 128 MiB: the host maps the linear
+memory and the pages the arena never writes to are never faulted in. The
+committed-memory table below reports what `getWasmMemoryBytes()` reports, which
+is the memory's logical page count, and for this arm those two numbers differ by
+three orders of magnitude. The dlmalloc-to-talc-extend tie survives instantiation
+too, 7.55 against 7.57 inside ±0.04.
+
 ### Committed linear memory
 
 Peak and final, medians of 14 rounds. Every arm reported the same value in every
 round on every workload, hence ±0.00: committed pages are a step function of the
 allocation pattern, and the pattern is deterministic.
+
+`getWasmMemoryBytes()` is `memory.buffer.byteLength`, so this table is **logical
+size, not residency**. For the dynamic arms the two travel together, because a
+page is only added when something is about to be written into it. For
+`talc-arena` they do not, per the instantiated measurement above.
 
 | arm | `inflate` peak | `historySync` peak | `retention` peak | after peak |
 |---|---:|---:|---:|---:|
@@ -198,10 +224,14 @@ Three readings:
 - **talc and dlmalloc commit exactly the same memory, to the page**, on all
   three shapes. This is the finding that decides the question, and it is the one
   the reopening was betting against.
-- **`talc-arena` commits 128 MiB before the first message.** It is the arm that
-  cannot be argued with a percentage: 129.50 MiB against 6.81 on a 4 MiB
-  inflate. A fleet pays that per process, so it is disqualified on the metric
-  that matters most here rather than on intuition.
+- **`talc-arena` reserves 128 MiB before the first message**, but does not pay
+  for it in resident memory: 129.50 MiB of logical linear memory against 6.81
+  for a 4 MiB inflate, and 0.07 MiB of measured `Private_Dirty` against
+  `dlmalloc`. What disqualifies it is not the per-process bill, which is what an
+  earlier draft of this claimed without instantiating anything. It is that the
+  arena is a hard ceiling rather than a high-water mark: an allocation past
+  128 MiB fails where every dynamic arm grows. It also needs a `static mut`,
+  costs 2,465 bytes more artifact than `talc-extend`, and is no faster.
 - **The two size features are expensive in memory.** Turning off in-place
   growth costs 4.44 MiB on `inflate` and **26.57 MiB** on `retention`, because
   a buffer that grows by doubling has to be copied to a new chunk each time
