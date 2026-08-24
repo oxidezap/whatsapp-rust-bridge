@@ -9,29 +9,15 @@ It is a standalone crate on purpose: showing a fix means running the same test
 bodies against two versions of talc, and the bridge's own manifest pins one.
 
 Every command below runs from this directory, so that cargo picks up this
-manifest and the `.cargo/config.toml` beside it rather than the bridge's:
-
-```sh
-cd benches/talc-repro
-
-# green, the version the bridge would take
-cargo update -p talc --precise 5.1.0
-CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
-  WASM_BINDGEN_TEST_ONLY_NODE=1 cargo test --target wasm32-unknown-unknown
-
-# red, the version that broke
-cargo update -p talc --precise 5.0.3
-
-# back to what the lockfile is committed at, or the tree stays dirty and the
-# next plain `bun run test:talc-repro` runs the broken version and fails
-cargo update -p talc --precise 5.1.0
-```
+manifest and the `.cargo/config.toml` beside it rather than the bridge's.
 
 Run each test on its own. The tests share one wasm instance and one linear
 memory, so a test that exhausts memory takes the next ones down with it, and a
 failure read off a whole-suite run can belong to another test:
 
 ```sh
+cd benches/talc-repro
+
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
   WASM_BINDGEN_TEST_ONLY_NODE=1 \
   cargo test --target wasm32-unknown-unknown --lib \
@@ -39,7 +25,32 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
 ```
 
 The runner variables are not optional and `.cargo/config.toml` does not set
-them: without them cargo tries to execute the wasm artifact directly.
+them: without them cargo tries to execute the wasm artifact directly. The runner
+also has to be the one the bridge's own suite uses, which is why
+`wasm-bindgen-test` is pinned here rather than left as a range: a runner rejects
+an artifact whose generated schema version it does not match.
+
+That is the green run, on the version the lockfile is committed at. The red run
+is the same three invocations against 5.0.3:
+
+```sh
+cd benches/talc-repro
+export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
+export WASM_BINDGEN_TEST_ONLY_NODE=1
+
+cargo update -p talc --precise 5.0.3
+for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
+         repro::tests::extending_over_a_16_mib_gap_reuses_it \
+         repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size; do
+  cargo test --target wasm32-unknown-unknown --lib -- --exact "$t"
+done
+
+# back to what the lockfile is committed at, or the tree stays dirty and the
+# next plain `bun run test:talc-repro` runs the broken version and fails
+cargo update -p talc --precise 5.1.0
+```
+
+Each of those three exits non-zero on 5.0.3 and zero after the restore.
 
 `--exact` matches the **registered** name, which carries the module path. A bare
 `aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still

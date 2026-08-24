@@ -16,7 +16,10 @@ crate-type = ["cdylib", "rlib"]
 talc = { version = "5", default-features = false }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3"
+# Pinned to the version the bridge's own lockfile resolves. The test runner
+# rejects an artifact whose generated wasm-bindgen schema it does not match, so
+# one installed runner has to serve both this crate and `bun run test:rust`.
+wasm-bindgen-test = "=0.3.76"
 
 [profile.release]
 opt-level = "z"
