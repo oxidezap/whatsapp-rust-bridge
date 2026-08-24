@@ -8,7 +8,12 @@ reopen the question starts from a red/green run instead of a changelog entry.
 It is a standalone crate on purpose: showing a fix means running the same test
 bodies against two versions of talc, and the bridge's own manifest pins one.
 
+Every command below runs from this directory, so that cargo picks up this
+manifest and the `.cargo/config.toml` beside it rather than the bridge's:
+
 ```sh
+cd benches/talc-repro
+
 # green, the version the bridge would take
 cargo update -p talc --precise 5.1.0
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
