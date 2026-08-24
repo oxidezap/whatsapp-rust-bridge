@@ -140,11 +140,21 @@ mod tests {
     /// Headroom for the 16 MiB inflate round under the crate's 256 MiB cap.
     const LIVE_BUDGET_BYTES: usize = 48 * 1024 * 1024;
 
+    /// Enough that `live` never reallocates, which the assertion at the end
+    /// checks rather than assumes. 6 rounds of 3,000 actions allocate on 55% of
+    /// them, so the run cannot push more than 9,900 blocks even if it frees
+    /// none.
+    const LIVE_CAPACITY: usize = 16 * 1024;
+
     fn churn_and_sync<A: GlobalAlloc>(alloc: &A, seed: u64) -> usize {
+        // Both of these live on the *global* allocator, not on `alloc`, so they
+        // are sized before the window opens: a `Vec` that grows inside it
+        // charges dlmalloc's pages to whichever allocator is being measured.
+        let mut live: Vec<Block> = Vec::with_capacity(LIVE_CAPACITY);
+        let mut batch: Vec<Block> = Vec::with_capacity(BATCH_BLOCKS);
+
         let before = crate::repro::memory_pages();
         let mut rng = Lcg(seed);
-        let mut live: Vec<Block> = Vec::new();
-        let mut batch: Vec<Block> = Vec::with_capacity(BATCH_BLOCKS);
         let mut live_bytes = 0usize;
 
         for round in 0..6u64 {
@@ -194,15 +204,29 @@ mod tests {
             history_sync_round(alloc, &mut rng, 4 << (20 + round % 3), &mut batch);
         }
 
+        let pages = crate::repro::memory_pages() - before;
+
+        assert_eq!(
+            live.capacity(),
+            LIVE_CAPACITY,
+            "the live vector reallocated inside the measurement window, so its \
+             pages are charged to the allocator under test"
+        );
+        assert_eq!(
+            batch.capacity(),
+            BATCH_BLOCKS,
+            "the batch vector reallocated"
+        );
+
         for block in live.drain(..) {
             free_verified(alloc, block);
         }
 
-        crate::repro::memory_pages() - before
+        pages
     }
 
-    /// A guard rather than a repro: this passes on 5.0.3 as well (1,617 pages
-    /// against 5.1.0's 1,605), so it proves nothing about the two fixes. It is
+    /// A guard rather than a repro: this passes on 5.0.3 as well (1,615 pages
+    /// against 5.1.0's 1,603), so it proves nothing about the two fixes. It is
     /// here so the next allocator change has something shaped like the load
     /// that broke this bridge to fail against.
     #[test]

@@ -200,7 +200,8 @@ Three readings:
   a buffer that grows by doubling has to be copied to a new chunk each time
   instead of extending into the gap above it. They buy 90 and 168 bytes.
 
-`after peak` is `committedFinal - committedAfterPeakPhase`, and it is 0.00
+`after peak` is `committedAfterPeak`, which `retention()` reports as
+`committedFinal - afterPeak`, and it is 0.00
 everywhere: no arm asked the host for a page after the peak had been reached and
 released, so nothing here separates the allocators on reuse
 either. That is the fragmentation question, and on this workload it has no

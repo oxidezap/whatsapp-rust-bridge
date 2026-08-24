@@ -53,7 +53,7 @@ runaway walks to 4 GiB before it gives up.
 | `repro::tests::extending_over_a_16_mib_gap_reuses_it` | fails: the 40 MiB request lands at `0x1550000` instead of the freed `0x130160` | passes |
 | `repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size` | fails: the gap's recorded size gains 33,554,432 bytes | passes |
 | `repro::tests::aes_gcm_plaintext_size_does_not_run_away_when_extending` | passes | passes |
-| `stress::tests::grow_and_extend_survives_history_sync_churn` | passes (1,617 pages) | passes (1,605 pages) |
+| `stress::tests::grow_and_extend_survives_history_sync_churn` | passes (1,615 pages) | passes (1,603 pages) |
 | `stress::tests::extend_commits_less_than_claim_on_a_growing_buffer` | passes | passes |
 | `upstream::tests::a_doubling_buffer_is_copied_about_once_in_full` | passes | passes |
 | `upstream::tests::memory_grow_hands_back_zeroed_pages` | passes | passes |

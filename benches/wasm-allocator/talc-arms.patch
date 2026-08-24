@@ -20,7 +20,7 @@ index ea68aba..f484457 100644
      "ogg",
  ], optional = true }
 +# Measurement-arm dependency; `alloc-talc` is not in `default`.
-+talc = { version = "5.1.0", default-features = false, optional = true }
++talc = { version = "=5.1.0", default-features = false, optional = true }
  thiserror = { version = "2.0.18", default-features = false }
  tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
  tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
