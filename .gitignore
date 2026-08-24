@@ -6,3 +6,4 @@ pkg
 *.xml
 codegen/target/
 /benches/talc-repro/target
+/benches/wasm-module-rss/artifacts

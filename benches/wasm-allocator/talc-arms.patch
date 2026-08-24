@@ -1,0 +1,167 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index ea68aba..f484457 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -69,6 +69,12 @@ default = [
+     "client-signal",
+     "legacy-session",
+ ]
++# Measurement arms for docs/wasm-allocator-talc-5-1-0.md. None is in `default`,
++# so none has ever shipped; `alloc-talc` installs talc as the global allocator
++# and the other two pick a non-default source.
++alloc-talc = ["dep:talc"]
++alloc-talc-claim = ["alloc-talc"]
++alloc-talc-arena = ["alloc-talc"]
+ audio = ["dep:symphonia"]
+ image = ["dep:image"]
+ sticker = ["dep:img-parts"]
+@@ -127,6 +133,8 @@ symphonia = { version = "0.6.0", default-features = false, features = [
+     "isomp4",
+     "ogg",
+ ], optional = true }
++# Measurement-arm dependency; `alloc-talc` is not in `default`.
++talc = { version = "5.1.0", default-features = false, optional = true }
+ thiserror = { version = "2.0.18", default-features = false }
+ tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
+ tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
+diff --git a/src/lib.rs b/src/lib.rs
+index 8bca6c7..f175108 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -9,6 +9,7 @@ pub mod image_utils;
+ pub mod sticker_metadata;
+ 
+ pub mod addon_crypto;
++mod allocator;
+ pub mod camel_serializer;
+ pub mod client_profile;
+ pub mod compression;
+diff --git a/src/memory_profile.rs b/src/memory_profile.rs
+index 4c1f157..7cfec99 100644
+--- a/src/memory_profile.rs
++++ b/src/memory_profile.rs
+@@ -161,7 +161,7 @@ mod imp {
+     use core::future::Future;
+     use core::pin::Pin;
+     use core::sync::atomic::{AtomicU64, Ordering};
+-    use std::alloc::{GlobalAlloc, Layout, System};
++    use std::alloc::{GlobalAlloc, Layout};
+     use std::sync::Arc;
+     use std::time::Duration;
+     use tracing::Instrument as _;
+@@ -635,9 +635,18 @@ mod imp {
+ 
+     struct ProfilingAllocator;
+ 
++    /// What the counters wrap. Only one allocator can hold the
++    /// `#[global_allocator]` slot, so when talc is built in it goes underneath
++    /// these counters rather than beside them, and the attribution below is of
++    /// talc's calls instead of the target default's.
++    #[cfg(not(feature = "alloc-talc"))]
++    use std::alloc::System as Inner;
++    #[cfg(feature = "alloc-talc")]
++    use crate::allocator::talc_instance::TALC as Inner;
++
+     unsafe impl GlobalAlloc for ProfilingAllocator {
+         unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+-            let ptr = unsafe { System.alloc(layout) };
++            let ptr = unsafe { Inner.alloc(layout) };
+             if !ptr.is_null() {
+                 record_alloc(layout.size());
+             }
+@@ -645,7 +654,7 @@ mod imp {
+         }
+ 
+         unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+-            let ptr = unsafe { System.alloc_zeroed(layout) };
++            let ptr = unsafe { Inner.alloc_zeroed(layout) };
+             if !ptr.is_null() {
+                 record_alloc(layout.size());
+             }
+@@ -654,11 +663,11 @@ mod imp {
+ 
+         unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+             record_dealloc(layout.size());
+-            unsafe { System.dealloc(ptr, layout) };
++            unsafe { Inner.dealloc(ptr, layout) };
+         }
+ 
+         unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+-            let next = unsafe { System.realloc(ptr, layout, new_size) };
++            let next = unsafe { Inner.realloc(ptr, layout, new_size) };
+             if !next.is_null() {
+                 record_dealloc(layout.size());
+                 record_alloc(new_size);
+diff --git a/src/allocator.rs b/src/allocator.rs
+new file mode 100644
+index 0000000..9573514
+--- /dev/null
++++ b/src/allocator.rs
+@@ -0,0 +1,67 @@
++//! The global allocator, and the one place that decides which one it is.
++//!
++//! Without `alloc-talc` this module is empty and the target's default stays
++//! installed (dlmalloc, through `std`). With it, talc is installed instead, or
++//! handed to `memory_profile`'s counting wrapper when that is also on: a crate
++//! declares exactly one `#[global_allocator]`, so the two cannot both be it.
++//!
++//! The `cfg` mirrors upstream's: a `TalcSyncCell` is only sound where nothing
++//! can interrupt an allocation, so a build with atomics keeps the default.
++//! `codegen/` and any other host tooling build for the host and never see this.
++
++#[cfg(all(
++    feature = "alloc-talc",
++    not(target_feature = "atomics"),
++    target_family = "wasm"
++))]
++pub(crate) mod talc_instance {
++    #[cfg(feature = "alloc-talc-arena")]
++    mod chosen {
++        /// 128 MiB, the size upstream's arena example uses. Committed on the
++        /// first allocation and never given back.
++        const ARENA_BYTES: usize = 0x800_0000;
++
++        pub(crate) type Allocator = talc::wasm::WasmArenaTalc;
++
++        pub(crate) const fn new() -> Allocator {
++            use core::mem::MaybeUninit;
++            static mut ARENA: [MaybeUninit<u8>; ARENA_BYTES] = [MaybeUninit::uninit(); ARENA_BYTES];
++            // SAFETY: `ARENA` is named nowhere else in the crate, so nothing
++            // but the allocator reads or writes it for the whole life of the
++            // module, which is what `Claim::array` requires of the region it is
++            // handed. `new_wasm_arena_allocator` is additionally sound only on
++            // single-threaded wasm, which this module's `cfg` establishes.
++            unsafe { talc::wasm::new_wasm_arena_allocator(&raw mut ARENA) }
++        }
++    }
++
++    #[cfg(all(not(feature = "alloc-talc-arena"), feature = "alloc-talc-claim"))]
++    mod chosen {
++        pub(crate) type Allocator =
++            talc::cell::TalcSyncCell<talc::wasm::WasmGrowAndClaim, talc::wasm::WasmBinning>;
++
++        pub(crate) const fn new() -> Allocator {
++            talc::cell::TalcSyncCell::new_wasm(talc::wasm::WasmGrowAndClaim)
++        }
++    }
++
++    #[cfg(all(
++        not(feature = "alloc-talc-arena"),
++        not(feature = "alloc-talc-claim")
++    ))]
++    mod chosen {
++        pub(crate) type Allocator = talc::wasm::WasmDynamicTalc;
++
++        pub(crate) const fn new() -> Allocator {
++            talc::wasm::new_wasm_dynamic_allocator()
++        }
++    }
++
++    pub(crate) use chosen::Allocator;
++
++    /// `memory_profile` takes the `#[global_allocator]` slot when it is built
++    /// and delegates here, so the attribute is conditional and the static is
++    /// not.
++    #[cfg_attr(not(feature = "memory-profiling"), global_allocator)]
++    pub(crate) static TALC: Allocator = chosen::new();
++}
