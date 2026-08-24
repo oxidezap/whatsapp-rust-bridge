@@ -3,22 +3,22 @@
 //! Both are `WasmGrowAndClaim`/`WasmGrowAndExtend` bugs, so both need a real
 //! `memory.grow`: they only run on wasm32.
 
-use core::alloc::{GlobalAlloc, Layout};
-
-use talc::base::Talc;
-use talc::cell::TalcCell;
-use talc::wasm::{WasmBinning, WasmGrowAndClaim, WasmGrowAndExtend};
-
-pub fn memory_pages() -> usize {
+pub(crate) fn memory_pages() -> usize {
     core::arch::wasm32::memory_size::<0>()
 }
 
-pub fn fill(ptr: *mut u8, len: usize, pattern: u8) {
+/// Writes `pattern` over `len` bytes at `ptr`.
+pub(crate) fn fill(ptr: *mut u8, len: usize, pattern: u8) {
+    // SAFETY: every caller here passes a live allocation and the size it was
+    // allocated with, so the whole range is owned and writable.
     unsafe { core::ptr::write_bytes(ptr, pattern, len) }
 }
 
+/// Panics naming the first byte at `ptr` that is not `pattern`.
 #[track_caller]
-pub fn verify(ptr: *const u8, len: usize, pattern: u8) {
+pub(crate) fn verify(ptr: *const u8, len: usize, pattern: u8) {
+    // SAFETY: every caller passes a live allocation and the size it was
+    // allocated with, so the whole range is owned and readable.
     let buf = unsafe { core::slice::from_raw_parts(ptr, len) };
     if let Some(pos) = buf.iter().position(|&b| b != pattern) {
         panic!(
@@ -32,6 +32,10 @@ pub fn verify(ptr: *const u8, len: usize, pattern: u8) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::alloc::{GlobalAlloc, Layout};
+    use talc::base::Talc;
+    use talc::cell::TalcCell;
+    use talc::wasm::{WasmBinning, WasmGrowAndClaim, WasmGrowAndExtend};
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     /// An AES-GCM plaintext is `payload - 16`, so a payload that is a whole
@@ -142,7 +146,8 @@ mod tests {
 
         let after = unsafe { tail.read() };
         assert_eq!(
-            after, before,
+            after,
+            before,
             "the gap's recorded size moved by {} bytes",
             after.wrapping_sub(before) as isize
         );

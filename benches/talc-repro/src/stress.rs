@@ -11,7 +11,7 @@ use core::alloc::{GlobalAlloc, Layout};
 pub struct Lcg(pub u64);
 
 impl Lcg {
-    pub fn next(&mut self) -> u64 {
+    pub fn next_u64(&mut self) -> u64 {
         self.0 = self
             .0
             .wrapping_mul(6364136223846793005)
@@ -20,7 +20,7 @@ impl Lcg {
     }
 
     pub fn below(&mut self, n: u64) -> u64 {
-        self.next() % n
+        self.next_u64() % n
     }
 }
 
@@ -83,7 +83,7 @@ pub fn history_sync_round<A: GlobalAlloc>(alloc: &A, rng: &mut Lcg, inflated_byt
             alloc,
             size,
             1 << rng.below(4),
-            (rng.next() & 0xff) as u8,
+            (rng.next_u64() & 0xff) as u8,
         ));
     }
     for block in batch.drain(..) {
@@ -146,7 +146,12 @@ mod tests {
                         };
                         let align = 1 << rng.below(4);
                         live_bytes += size;
-                        live.push(alloc_filled(alloc, size, align, (rng.next() & 0xff) as u8));
+                        live.push(alloc_filled(
+                            alloc,
+                            size,
+                            align,
+                            (rng.next_u64() & 0xff) as u8,
+                        ));
                     }
                     55..=89 if !live.is_empty() => {
                         let at = rng.below(live.len() as u64) as usize;
