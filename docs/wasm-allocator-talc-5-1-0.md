@@ -81,12 +81,13 @@ row closer to the base than the control is evidence. An earlier pass of this
 work read a 3.6% "regression" on `inflate` that the control reproduced exactly.
 
 Runtime: one process per sample, arms measured round-robin with the order
-rotated every round pair and reversed on the odd round of each pair; each table
-below states its own round count. Rotation on its own moves every arm together,
-so an arm two launches after the base arm stays two launches after it in almost
-every round, and the paired ratio absorbs within-round drift rather than
-cancelling it. Mirroring makes each arm's mean and median signed distance from
-the base exactly zero, which is why the round counts are even.
+rotated every round pair and reversed on the odd round of each pair, 16 rounds
+for the fast workloads and 14 for the heavy ones. Rotation on its own moves
+every arm together, so an arm two launches after the base arm stays two
+launches after it in almost every round, and the paired ratio absorbs
+within-round drift rather than cancelling it. Mirroring makes each arm's mean
+and median signed distance from the base exactly zero, which is why the round
+counts are even.
 
 Per-operation time is the **fastest of seven batches** inside a sample rather
 than the mean of one, because a batch that lost the CPU reports the scheduler.
@@ -178,7 +179,7 @@ where it is exact, and read this table only as "nothing here got worse".
 
 ### Committed linear memory
 
-Peak and final, medians of 13 rounds. Every arm reported the same value in every
+Peak and final, medians of 14 rounds. Every arm reported the same value in every
 round on every workload, hence ±0.00: committed pages are a step function of the
 allocation pattern, and the pattern is deterministic.
 
@@ -235,7 +236,9 @@ not allocate does not care which allocator is installed, which is the check that
 says the next table is measuring the allocator and not the boundary.
 
 **`churn` — `md5` of 16 bytes: the same crossing, plus `__wbindgen_malloc`,
-the result allocation and `__wbindgen_free`:**
+the copy in and `__wbindgen_free`. The digest coming back is not part of it:
+`byte_array` builds it with `Uint8Array::new_with_length`, which is the JS
+engine's heap, so every row here prices the inbound half of a crossing:**
 
 | arm | ns/op | paired | slower |
 |---|---:|---:|---:|
@@ -271,37 +274,37 @@ kilobyte. The direction survives (14 of 16), the magnitude does not.
 
 ### CPU, per message and on allocation-heavy load
 
-13 rounds.
+14 rounds.
 
 | workload | arm | ns/op | paired | slower |
 |---|---|---:|---:|---:|
-| `ratchet` | `dlmalloc` | 174,993.5 ±2,541.2 | | |
-| | `control` | 177,438.1 ±2,641.2 | +1.2% | 10/13 |
-| | `talc-extend` | 177,200.4 ±3,019.5 | +1.3% | 9/13 |
-| | `talc-claim` | 175,187.8 ±1,921.2 | −0.3% | 6/13 |
-| | `talc-arena` | 178,125.9 ±2,991.1 | +1.5% | 10/13 |
-| `inflate` | `dlmalloc` | 3,147,259 ±163,411 | | |
-| | `control` | 3,064,824 ±116,682 | −0.0% | 6/13 |
-| | `talc-extend` | 3,144,523 ±134,148 | −0.1% | 6/13 |
-| | `talc-claim` | 3,069,809 ±97,040 | −1.5% | 5/13 |
-| | `talc-arena` | 3,065,342 ±126,319 | +0.2% | 7/13 |
-| `historySync` | `dlmalloc` | 8,224,506 ±182,068 | | |
-| | `control` | 8,038,112 ±176,707 | −1.7% | 3/13 |
-| | `talc-extend` | 8,136,721 ±163,298 | −1.1% | 2/13 |
-| | `talc-claim` | 8,431,947 ±140,734 | **+1.9%** | **12/13** |
-| | `talc-arena` | 8,136,907 ±161,852 | −1.9% | 4/13 |
-| `retention` | `dlmalloc` | 4,199,643 ±55,817 | | |
-| | `control` | 4,238,977 ±66,001 | +0.8% | 10/13 |
-| | `talc-extend` | 4,271,490 ±50,486 | +1.8% | 9/13 |
-| | `talc-claim` | 4,194,967 ±64,449 | +0.3% | 8/13 |
-| | `talc-arena` | 4,276,222 ±72,748 | +1.3% | 10/13 |
+| `ratchet` | `dlmalloc` | 175,215.7 ±6,033.2 | | |
+| | `control` | 176,536.5 ±4,818.9 | +0.0% | 7/14 |
+| | `talc-extend` | 177,754.7 ±2,869.6 | +0.7% | 9/14 |
+| | `talc-claim` | 176,990.6 ±4,901.8 | +0.3% | 10/14 |
+| | `talc-arena` | 176,812.5 ±4,042.9 | +0.4% | 9/14 |
+| `inflate` | `dlmalloc` | 3,114,340.7 ±160,583.2 | | |
+| | `control` | 3,074,596.4 ±220,719.3 | +1.2% | 8/14 |
+| | `talc-extend` | 3,099,552.1 ±154,969.2 | −1.0% | 6/14 |
+| | `talc-claim` | 3,034,134.2 ±109,326.8 | −2.8% | 3/14 |
+| | `talc-arena` | 3,081,092.8 ±83,792.3 | −1.1% | 6/14 |
+| `historySync` | `dlmalloc` | 8,069,911.8 ±157,026.7 | | |
+| | `control` | 8,054,518.2 ±207,841.9 | −0.3% | 7/14 |
+| | `talc-extend` | 8,013,780.4 ±162,178.3 | +0.2% | 7/14 |
+| | `talc-claim` | 8,408,798.6 ±226,779.6 | **+4.0%** | **14/14** |
+| | `talc-arena` | 8,055,983.1 ±101,936.1 | −0.7% | 5/14 |
+| `retention` | `dlmalloc` | 4,211,455.1 ±61,795.8 | | |
+| | `control` | 4,238,021.6 ±89,186.9 | +0.6% | 9/14 |
+| | `talc-extend` | 4,253,690.6 ±109,551.4 | +1.4% | 11/14 |
+| | `talc-claim` | 4,222,169.5 ±71,689.4 | +0.3% | 9/14 |
+| | `talc-arena` | 4,245,130.8 ±86,497.6 | +0.9% | 9/14 |
 
 `ratchet` is 175 µs of curve arithmetic per message and the allocator is
-invisible in it: `talc-extend` at +1.3% and 9 of 13 is `control` at +1.2% and
-10 of 13. `inflate` and `retention` say the same in a wider band.
+invisible in it: `talc-extend` at +0.7% and 9 of 14 is `control` at +0.0% and
+7 of 14. `inflate` and `retention` say the same in a wider band.
 
-The one row that clears its control is `talc-claim` on `historySync`: +1.9% and
-12 of 13, against a control of −1.7% and 3 of 13. That is grow-and-claim paying
+The one row that clears its control is `talc-claim` on `historySync`: +4.0% and
+**14 of 14**, against a control of −0.3% and 7 of 14. That is grow-and-claim paying
 for the fragmentation upstream's issue #51 describes, on the workload where a
 buffer grows by doubling. It does not show up in the committed-memory table
 because the 64 MiB inflate ceiling caps the buffer before the 10x can

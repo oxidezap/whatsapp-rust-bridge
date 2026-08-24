@@ -56,7 +56,7 @@ is a finding. Without it a 1% row reads like a result.
 
 ```sh
 node benches/wasm-allocator/sizes.mjs dlmalloc talc-extend …
-node benches/wasm-allocator/run.mjs --rounds=15 dlmalloc control talc-extend …
+node benches/wasm-allocator/run.mjs --rounds=16 dlmalloc control talc-extend …
 node --expose-gc benches/wasm-module-rss/measure.mjs --reps=9 \
   benches/wasm-module-rss/artifacts/*.wasm
 ```
@@ -82,8 +82,8 @@ Two of them exist to separate the allocator from the work around it:
 | workload | what it is | why |
 |---|---|---|
 | `callOnly` | `getWasmMemoryBytes()` | a crossing with no allocation at all: the floor under the next row |
-| `churn` | `md5` of 16 bytes | the same crossing with `__wbindgen_malloc`/`free` and almost nothing else |
-| `boundary` | `md5` of 1 KiB | the same again with real work behind it |
+| `churn` | `md5` of 16 bytes | the same crossing with `__wbindgen_malloc`/`free` on the way in and almost nothing else |
+| `boundary` | `md5` of 1 KiB | the same again with real work behind it; the digest out is the JS engine's heap, not the allocator under test |
 | `ratchet` | `calculateAgreement` + `calculateSignature` | the two curve operations every message pays |
 | `inflate` | `inflateZlib` of a 4 MiB blob | the history-sync inflate, allocation-heavy |
 | `historySync` | 256 KiB to 16 MiB blobs inflated in turn, with crossings between | the load that broke this bridge under talc 5.0.3 |

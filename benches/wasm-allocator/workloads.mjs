@@ -63,10 +63,11 @@ const bench = (iterations, fn, samples = 7) => {
 };
 
 /**
- * One `&[u8]` in, one `Uint8Array` out, 1 KiB each way. This is the allocator
- * on the boundary itself: `__wbindgen_malloc`, the copy in, the hash, the
- * result allocation, `__wbindgen_free`. Nothing else in the bridge's hot path
- * calls the allocator more often than a crossing does.
+ * A 1 KiB `&[u8]` in, a 16-byte digest out. The allocator under test is on the
+ * inbound half only: `__wbindgen_malloc`, the copy in, the hash,
+ * `__wbindgen_free`. The result is not its work, because `byte_array` builds
+ * the `Uint8Array` through `Uint8Array::new_with_length`, which is the JS
+ * engine's heap and not the global allocator.
  */
 export function boundary(wasm, { iterations = 200_000 } = {}) {
   const payload = historyBlob(1024, 11);
@@ -78,10 +79,11 @@ export function boundary(wasm, { iterations = 200_000 } = {}) {
 }
 
 /**
- * The same crossing with almost no work behind it: 16 bytes in, 16 out. What
- * separates this from `boundary` is how much of the call the allocator is,
- * and that is the point of running both. An allocator that is faster shows up
- * here first, and is diluted by whatever real work the export does.
+ * The same crossing with almost no work behind it: 16 bytes in, and the same
+ * 16-byte digest out. What separates this from `boundary` is how much of the
+ * call the inbound allocation is, and that is the point of running both. An
+ * allocator that is faster shows up here first, and is diluted by whatever
+ * real work the export does.
  */
 export function churn(wasm, { iterations = 700_000 } = {}) {
   const payload = historyBlob(16, 99);
@@ -93,7 +95,7 @@ export function churn(wasm, { iterations = 700_000 } = {}) {
 /**
  * The same call with no allocation at all: no arguments, an `f64` back. The
  * floor under `churn`, so the two together price what `__wbindgen_malloc` and
- * `__wbindgen_free` are worth on a crossing.
+ * `__wbindgen_free` are worth on the inbound half of a crossing.
  */
 export function callOnly(wasm, { iterations = 2_000_000 } = {}) {
   bench(200_000, () => wasm.getWasmMemoryBytes(), 1);
