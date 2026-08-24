@@ -1,10 +1,10 @@
 /**
  * What each global-allocator arm costs on this bridge's own load.
  *
- * Artifacts are measured round-robin and the order rotates every round, so
- * neither a warming machine nor a fixed position can favour one arm. Each cell
- * reports a median and the spread around it; a difference smaller than the
- * spread is not a difference.
+ * Artifacts are measured round-robin, and the order rotates and then mirrors
+ * every round pair, so each arm spends as many launches before the base arm as
+ * after it. Each cell reports a median and the spread around it; a difference
+ * smaller than the spread is not a difference.
  *
  *   node benches/wasm-allocator/run.mjs [--rounds=9] [--workload=boundary,...] a b c
  *
@@ -20,7 +20,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const probe = join(here, "probe.mjs");
 
 const argv = process.argv.slice(2);
-const rounds = Number(argv.find((a) => a.startsWith("--rounds="))?.slice(9) ?? 9);
+// Rounded up to even: the counterbalancing below pairs each round with its
+// mirror, and an odd count leaves one arm's position uncancelled.
+const rounds = 2 * Math.ceil(Number(argv.find((a) => a.startsWith("--rounds="))?.slice(9) ?? 9) / 2);
 const selected = (argv.find((a) => a.startsWith("--workload="))?.slice(11) ?? "").split(",").filter(Boolean);
 const artifacts = argv.filter((a) => !a.startsWith("--"));
 const chosen = selected.length ? selected : Object.keys(workloads);
@@ -48,9 +50,15 @@ for (const workload of chosen) {
 }
 
 for (let round = 0; round < rounds; round++) {
-  // rotate: an arm that is always measured first is always measured on a
-  // colder machine, which reads exactly like a small win
-  const order = artifacts.map((_, i) => artifacts[(i + round) % artifacts.length]);
+  // Rotate so no arm is always measured on a cold machine, and reverse on odd
+  // rounds so each arm sits as far before the base arm as it sat after it.
+  // Rotation alone cannot do that: it moves every arm together, so an arm two
+  // launches after the base stays two launches after it in almost every round,
+  // and the paired ratio then absorbs within-round drift instead of cancelling
+  // it. Rounds are consumed in pairs, hence the halved rotation index.
+  const rot = Math.floor(round / 2) % artifacts.length;
+  const order = artifacts.map((_, i) => artifacts[(i + rot) % artifacts.length]);
+  if (round % 2 === 1) order.reverse();
   for (const workload of chosen) {
     for (const artifact of order) {
       const out = execFileSync(process.execPath, [probe, artifact, workload], {
@@ -116,4 +124,6 @@ for (const workload of chosen) {
   }
 }
 
-console.log(`\nnode ${process.versions.node}, ${rounds} rounds, one process per sample, order rotated per round`);
+console.log(
+  `\nnode ${process.versions.node}, ${rounds} rounds, one process per sample, order rotated and mirrored per round pair`
+);

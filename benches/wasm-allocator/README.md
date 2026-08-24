@@ -62,12 +62,18 @@ node --expose-gc benches/wasm-module-rss/measure.mjs --reps=9 \
 ```
 
 `run.mjs` puts each sample in its own process, measures the arms round-robin,
-and rotates the order every round, so neither a warming machine nor a fixed
-position can favour one arm. Per-operation time is the fastest of seven batches
-rather than the mean of one: a batch that lost the CPU reports the scheduler,
-and a mean cannot tell those apart. The `paired` column compares each arm to the
-base arm **within** a round, and `slower` counts the rounds it lost outright,
-which is the column to read when the medians are close.
+and rotates the order every round pair, reversing it on the odd round of each
+pair. Rotation alone is not enough: it moves every arm together, so an arm two
+launches after the base arm stays two launches after it in almost every round,
+and the paired ratio then absorbs within-round drift rather than cancelling it.
+Mirroring puts each arm as far before the base as it sat after it, which is why
+the round count is rounded up to even.
+
+Per-operation time is the fastest of seven batches rather than the mean of one:
+a batch that lost the CPU reports the scheduler, and a mean cannot tell those
+apart. The `paired` column compares each arm to the base arm **within** a round,
+and `slower` counts the rounds it lost outright, which is the column to read
+when the medians are close.
 
 ## The workloads
 

@@ -7,8 +7,8 @@ reopening.
 
 **It is not worth taking back, and the reason is not the bugs.** The bugs are
 gone: `benches/talc-repro/` runs them red on 5.0.3 and green on 5.1.0. What
-stops it is that talc costs **4.6% on an allocation-dominated crossing**
-(14 of 15 rounds, against a control arm that is a coin flip) and returns
+stops it is that talc costs **5.0% on an allocation-dominated crossing**
+(16 of 16 rounds, against a control arm that is a coin flip) and returns
 **nothing** for it: committed linear memory is identical to dlmalloc's on every
 workload measured, to the page. The artifact is 6,895 bytes smaller, which is
 below what the per-process memory harness can resolve.
@@ -81,7 +81,13 @@ row closer to the base than the control is evidence. An earlier pass of this
 work read a 3.6% "regression" on `inflate` that the control reproduced exactly.
 
 Runtime: one process per sample, arms measured round-robin with the order
-rotated every round, 15 rounds for the fast workloads and 13 for the heavy ones.
+rotated every round pair and reversed on the odd round of each pair; each table
+below states its own round count. Rotation on its own moves every arm together,
+so an arm two launches after the base arm stays two launches after it in almost
+every round, and the paired ratio absorbs within-round drift rather than
+cancelling it. Mirroring makes each arm's mean and median signed distance from
+the base exactly zero, which is why the round counts are even.
+
 Per-operation time is the **fastest of seven batches** inside a sample rather
 than the mean of one, because a batch that lost the CPU reports the scheduler.
 The `paired` column compares an arm to the base arm within the same round, which
@@ -209,22 +215,22 @@ answer because no allocator failed it.
 
 ### CPU, per crossing
 
-15 rounds. `paired` is the median of the per-round ratio against `dlmalloc`;
+16 rounds. `paired` is the median of the per-round ratio against `dlmalloc`;
 `slower` is the rounds the arm lost.
 
 **`callOnly` — `getWasmMemoryBytes()`, no allocation at all:**
 
 | arm | ns/op | paired | slower |
 |---|---:|---:|---:|
-| `dlmalloc` | 6.7 ±0.5 | | |
-| `control` | 6.9 ±0.5 | +3.6% | 9/15 |
-| `talc-extend` | 6.9 ±0.2 | +2.2% | 9/15 |
-| `talc-claim` | 6.8 ±0.2 | +0.9% | 8/15 |
-| `talc-arena` | 6.8 ±0.2 | +1.2% | 10/15 |
-| `talc-extend-nogrow` | 6.8 ±0.2 | −0.0% | 7/15 |
-| `talc-extend-norealloc` | 6.8 ±0.4 | +0.8% | 8/15 |
+| `dlmalloc` | 6.9 ±0.2 | | |
+| `control` | 6.9 ±0.7 | +1.1% | 9/16 |
+| `talc-extend` | 6.9 ±1.1 | +0.4% | 9/16 |
+| `talc-claim` | 6.8 ±0.7 | −0.3% | 7/16 |
+| `talc-arena` | 7.0 ±0.5 | +0.9% | 10/16 |
+| `talc-extend-nogrow` | 6.9 ±0.3 | +1.2% | 9/16 |
+| `talc-extend-norealloc` | 6.8 ±0.7 | −1.4% | 7/16 |
 
-Every arm inside a control that is itself +3.6% and 9/15. A crossing that does
+Every arm inside a control that is itself +1.1% and 9/16. A crossing that does
 not allocate does not care which allocator is installed, which is the check that
 says the next table is measuring the allocator and not the boundary.
 
@@ -233,35 +239,35 @@ the result allocation and `__wbindgen_free`:**
 
 | arm | ns/op | paired | slower |
 |---|---:|---:|---:|
-| `dlmalloc` | 316.0 ±9.4 | | |
-| `control` | 314.7 ±7.4 | −0.9% | 7/15 |
-| `talc-extend` | 328.9 ±6.2 | **+4.6%** | **14/15** |
-| `talc-claim` | 326.9 ±6.6 | +3.5% | 14/15 |
-| `talc-arena` | 329.6 ±5.0 | +4.4% | 14/15 |
-| `talc-extend-nogrow` | 328.5 ±5.7 | +4.2% | 14/15 |
-| `talc-extend-norealloc` | 329.7 ±6.6 | +4.3% | 14/15 |
+| `dlmalloc` | 319.1 ±7.6 | | |
+| `control` | 317.6 ±48.6 | +0.5% | 9/16 |
+| `talc-extend` | 334.4 ±31.9 | **+5.0%** | **16/16** |
+| `talc-claim` | 332.2 ±36.9 | +4.5% | 16/16 |
+| `talc-arena` | 329.1 ±5.0 | +2.8% | 15/16 |
+| `talc-extend-nogrow` | 331.9 ±11.8 | +5.1% | 16/16 |
+| `talc-extend-norealloc` | 333.9 ±8.7 | +4.9% | 15/16 |
 
-**This is the result.** The control lands on a coin flip, 7 of 15 and −0.9%, so
-the harness has no bias of its own; against it, every talc arm is 3.5–4.6%
-slower and loses 14 rounds of 15. The old comment this bridge carried said talc
-was "~2x faster than dlmalloc"; on this profile, on this workload, it is not
-faster at all.
+**This is the result.** The control lands on a coin flip, 9 of 16 and +0.5%, so
+the harness has no bias of its own; against it, every talc arm is 2.8–5.1%
+slower and every one of them loses at least 15 rounds of 16. The old comment
+this bridge carried said talc was "~2x faster than dlmalloc"; on this profile,
+on this workload, it is not faster at all.
 
 **`boundary` — `md5` of 1 KiB: the same again, with real work behind it:**
 
 | arm | ns/op | paired | slower |
 |---|---:|---:|---:|
-| `dlmalloc` | 1954.6 ±19.3 | | |
-| `control` | 1952.8 ±17.8 | −0.5% | 6/15 |
-| `talc-extend` | 1981.9 ±26.0 | +1.4% | 13/15 |
-| `talc-claim` | 1972.5 ±43.5 | +0.9% | 10/15 |
-| `talc-arena` | 1958.8 ±28.8 | +0.6% | 10/15 |
-| `talc-extend-nogrow` | 1971.4 ±45.7 | +0.9% | 11/15 |
-| `talc-extend-norealloc` | 1976.3 ±31.5 | +1.1% | 14/15 |
+| `dlmalloc` | 1953.9 ±30.5 | | |
+| `control` | 1956.9 ±23.4 | +0.1% | 9/16 |
+| `talc-extend` | 1991.1 ±34.8 | +1.9% | 14/16 |
+| `talc-claim` | 1977.0 ±40.5 | +2.2% | 14/16 |
+| `talc-arena` | 1975.9 ±48.1 | +2.3% | 11/16 |
+| `talc-extend-nogrow` | 1978.7 ±38.5 | +1.4% | 11/16 |
+| `talc-extend-norealloc` | 1972.1 ±32.0 | +1.3% | 14/16 |
 
-The same regression, diluted: 4.6% at 16 bytes becomes 1.4% at 1 KiB, because
+The same regression, diluted: 5.0% at 16 bytes becomes 1.9% at 1 KiB, because
 the fixed allocator cost is now a smaller share of a call that also hashes a
-kilobyte. The direction survives (13 of 15), the magnitude does not.
+kilobyte. The direction survives (14 of 16), the magnitude does not.
 
 ### CPU, per message and on allocation-heavy load
 
@@ -480,7 +486,7 @@ Where talc lands on that ruler:
 | artifact | **−6,895 B**, worth 7,254 B of `Private_Dirty` per process |
 | committed linear memory | **0 B** on all three workloads, to the page |
 | total returned per process | ~7 KiB |
-| per-message CPU | **+4.6%** at a 16-byte crossing (14/15), +1.4% at 1 KiB (13/15), nothing measurable once a message does real work |
+| per-message CPU | **+5.0%** at a 16-byte crossing (16/16), +1.9% at 1 KiB (14/16), nothing measurable once a message does real work |
 
 7 KiB against the 18.41 MiB the last trade bought is a factor of 2,600. It is
 0.1% of what the module already costs a process, and the harness that measures
@@ -508,7 +514,7 @@ same-sized code section.
 If the answer is ever to change, one of these has to move:
 
 - **A workload where the allocator is a real share of the time.** `churn` says
-  talc is 4.6% slower when allocation is most of the call; the same table says
+  talc is 5.0% slower when allocation is most of the call; the same table says
   allocation is not most of any call this bridge actually makes. A profile that
   crosses the boundary far more often per message, with far smaller payloads,
   would reweight that.
