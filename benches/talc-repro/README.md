@@ -42,25 +42,31 @@ That is the green run, on the version the lockfile is committed at. The red run
 is the same three invocations against 5.0.3:
 
 ```sh
-cd benches/talc-repro
-export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
-export WASM_BINDGEN_TEST_ONLY_NODE=1
+# a subshell, so the trap below fires when the block ends rather than whenever
+# an interactive shell is eventually closed
+(
+  cd benches/talc-repro
+  export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
+  export WASM_BINDGEN_TEST_ONLY_NODE=1
 
-# on any exit, back to what the lockfile is committed at, or the tree stays
-# dirty and the next plain `bun run test:talc-repro` runs the broken version
-trap 'cargo update -p talc --precise 5.1.0' EXIT
-cargo update -p talc --precise 5.0.3 || exit 1
+  # back to what the lockfile is committed at, on any exit including Ctrl-C, or
+  # the tree stays dirty and the next `bun run test:talc-repro` runs the broken
+  # version and fails
+  trap 'cargo update -p talc --precise 5.1.0' EXIT INT
+  cargo update -p talc --precise 5.0.3 || exit 1
 
-for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
-         repro::tests::extending_over_a_16_mib_gap_reuses_it \
-         repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size; do
-  cargo test --target wasm32-unknown-unknown --lib -- --exact "$t"
-done
+  for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
+           repro::tests::extending_over_a_16_mib_gap_reuses_it \
+           repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size; do
+    cargo test --target wasm32-unknown-unknown --lib -- --exact "$t"
+  done
+)
 ```
 
 Each of those three exits non-zero on 5.0.3 and zero after the restore. The
-trap rather than a trailing command because a Ctrl-C partway through the loop
-would otherwise leave the lockfile on the broken version.
+subshell matters: an `EXIT` trap set directly in an interactive shell fires when
+that shell closes, not when the block finishes, so pasting this without the
+parentheses leaves the lockfile on 5.0.3 for the rest of the session.
 
 `--exact` matches the **registered** name, which carries the module path. A bare
 `aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still
