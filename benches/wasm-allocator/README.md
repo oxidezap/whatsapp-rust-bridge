@@ -43,8 +43,9 @@ cargo metadata --format-version 1 >/dev/null
 Copy one artifact under a second name before measuring:
 
 ```sh
-cd benches/wasm-module-rss/artifacts
-for ext in wasm glue.js d.ts; do cp dlmalloc.$ext control.$ext; done
+# a subshell, so the commands under "Running" still resolve from the root
+(cd benches/wasm-module-rss/artifacts &&
+  for ext in wasm glue.js d.ts; do cp dlmalloc.$ext control.$ext; done)
 ```
 
 `control` is the same bytes as `dlmalloc` under a different name. Whatever

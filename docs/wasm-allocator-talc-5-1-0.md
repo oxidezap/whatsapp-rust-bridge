@@ -438,9 +438,14 @@ the same way this repository's own `--converge` note exists so the next person
 finds the number before spending the week.
 
 Exploiting the zeroing is not free either: it needs per-chunk provenance, since a
-chunk that was written and freed is not zero, which is demonstrated in the same
-test. That is a bit of state per chunk, which is exactly the metadata cost talc's
-5.0.4 fix was criticised for adding.
+chunk that was written and freed is not zero. That is a bit of state per chunk,
+which is exactly the metadata cost talc's 5.0.4 fix was criticised for adding.
+
+Only the platform half is testable from here, and the test asserts just that.
+Whether a given `alloc()` happens to land on still-virgin pages is not:
+`GlobalAlloc::alloc` returns uninitialized storage, and reading it to find out
+would be undefined however the bytes look. The redundancy above is established by
+reading `calloc_must_clear`, not by probing the heap.
 
 ### None of this changes the recommendation
 

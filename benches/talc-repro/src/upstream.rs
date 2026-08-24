@@ -16,10 +16,14 @@ mod tests {
     use talc::wasm::{WasmBinning, WasmGrowAndExtend};
     use wasm_bindgen_test::{console_log, wasm_bindgen_test as test};
 
-    fn all_zero(ptr: *const u8, len: usize) -> bool {
-        unsafe { core::slice::from_raw_parts(ptr, len) }
-            .iter()
-            .all(|&b| b == 0)
+    /// Reads `len` bytes at `ptr` volatilely and reports whether all are zero.
+    ///
+    /// Volatile byte reads rather than a `&[u8]`: the caller points at raw
+    /// linear memory that no Rust allocation covers, and building a slice over
+    /// it would be a reference to storage the compiler is entitled to assume
+    /// nothing about.
+    fn all_zero_volatile(ptr: *const u8, len: usize) -> bool {
+        (0..len).all(|i| unsafe { ptr.add(i).read_volatile() } == 0)
     }
 
     /// Bytes copied while growing a buffer by doubling, and how many of the
@@ -87,16 +91,18 @@ mod tests {
     }
 
     /// `dl/src/wasm.rs` reports `allocates_zeros() = true`, and the guarantee is
-    /// real. But `calloc_must_clear` is
+    /// real: this asserts it against `memory.grow` directly. But the only
+    /// consumer is `calloc_must_clear`, which is
     /// `!allocates_zeros() || !Chunk::mmapped(p)`, and dlmalloc-rs has no code
     /// that ever produces an mmapped chunk, so the right-hand side is always
     /// true and `alloc_zeroed` always memsets, including over pages
     /// `memory.grow` just handed back zeroed.
     ///
-    /// Only the first half is asserted. The second reports rather than asserts,
-    /// because whether a given allocation lands on virgin pages depends on what
-    /// ran before it in the same instance, which is the whole difficulty of
-    /// exploiting this.
+    /// Only the platform guarantee is testable from here. Whether a given
+    /// `alloc()` lands on still-virgin pages is not: `GlobalAlloc::alloc`
+    /// returns uninitialized storage, and reading it to find out would be
+    /// undefined however the bytes happen to look. The redundancy is
+    /// established by reading `calloc_must_clear`, not by probing the heap.
     #[test]
     fn memory_grow_hands_back_zeroed_pages() {
         let pages = 8;
@@ -105,18 +111,8 @@ mod tests {
         assert_ne!(prev, usize::MAX, "memory.grow failed");
         let base = (prev * 65536) as *const u8;
         assert!(
-            all_zero(base, pages * 65536),
+            all_zero_volatile(base, pages * 65536),
             "memory.grow handed back non-zero pages"
         );
-
-        let big = Layout::from_size_align(pages * 65536, 1).unwrap();
-        let via_alloc = unsafe { System.alloc(big) };
-        assert!(!via_alloc.is_null());
-        console_log!(
-            "{} KiB via alloc(): already zero without alloc_zeroed = {}",
-            pages * 64,
-            all_zero(via_alloc, big.size())
-        );
-        unsafe { System.dealloc(via_alloc, big) };
     }
 }

@@ -21,6 +21,10 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
 
 # red, the version that broke
 cargo update -p talc --precise 5.0.3
+
+# back to what the lockfile is committed at, or the tree stays dirty and the
+# next plain `bun run test:talc-repro` runs the broken version and fails
+cargo update -p talc --precise 5.1.0
 ```
 
 Run each test on its own. The tests share one wasm instance and one linear
