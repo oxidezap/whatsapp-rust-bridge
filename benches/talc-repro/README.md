@@ -23,9 +23,14 @@ memory, so a test that exhausts memory takes the next ones down with it, and a
 failure read off a whole-suite run can belong to another test:
 
 ```sh
-cargo test --target wasm32-unknown-unknown --lib \
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+  WASM_BINDGEN_TEST_ONLY_NODE=1 \
+  cargo test --target wasm32-unknown-unknown --lib \
   -- --exact repro::tests::aes_gcm_plaintext_size_does_not_run_away
 ```
+
+The runner variables are not optional and `.cargo/config.toml` does not set
+them: without them cargo tries to execute the wasm artifact directly.
 
 `--exact` matches the **registered** name, which carries the module path. A bare
 `aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still

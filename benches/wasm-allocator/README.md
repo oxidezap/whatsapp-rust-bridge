@@ -33,11 +33,12 @@ $V talc-extend-norealloc    --features alloc-talc,talc/disable-realloc-in-place
 # reverse the patch rather than checking the four files out: a worktree with
 # its own edits to any of them keeps them
 git apply -R benches/wasm-allocator/talc-arms.patch
+# the builds above wrote a talc entry into the root Cargo.lock, which the patch
+# does not carry; this is what prunes it back out
+cargo metadata --format-version 1 >/dev/null
 ```
 
-The patch does not carry `Cargo.lock`; adding the dependency writes a talc entry
-into it, and the next cargo command after the reverse prunes it back out, so
-there is nothing to undo there by hand.
+`git status` is clean after that, apart from the artifacts.
 
 Copy one artifact under a second name before measuring:
 
