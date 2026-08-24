@@ -305,6 +305,150 @@ not the arm on offer. It is the clearest confirmation in this run that the
 The `disable-*` arms are omitted from this table because they are already
 disqualified by the committed-memory table above.
 
+## What dlmalloc actually does, and what both of them miss
+
+The measurement above says talc and dlmalloc commit the same memory to the page,
+which is a suspiciously exact tie. Reading `dlmalloc-rs` says why, and turns up
+two things neither allocator does on wasm that the platform would allow.
+
+`benches/talc-repro/src/upstream.rs` is the runnable half of this section, so a
+newer dlmalloc or talc can be rechecked rather than reread.
+
+### dlmalloc already grows and extends
+
+`library/std/src/sys/alloc/wasm.rs` is a thin shim: a `SyncUnsafeCell` around
+`dlmalloc::Dlmalloc`, a no-op lock without `atomics`, and four forwarding
+functions. The interesting code is `dlmalloc-rs`, and its `sys_alloc` has this,
+after the system allocator hands back new memory:
+
+```rust
+let mut sp: *mut Segment = &mut self.seg;
+while !sp.is_null() && tbase != Segment::top(sp) { sp = (*sp).next; }
+if !sp.is_null() && ... && Segment::holds(sp, self.top.cast()) {
+    (*sp).size += tsize;
+    self.init_top(self.top, self.topsize + tsize);
+}
+```
+
+If the new region is contiguous with the segment that holds the current top, the
+top chunk is **extended in place** instead of a new segment being added. On wasm
+`memory.grow` is always contiguous, so this is always the branch taken.
+
+That is `WasmGrowAndExtend`. dlmalloc has had it the whole time. So talc 5.1.0's
+headline change, moving the default off `WasmGrowAndClaim` because grow-and-claim
+can cost 10x on a growing vector, brought talc **to** dlmalloc's behaviour rather
+than past it, and the page-for-page tie in the table above is two implementations
+of one strategy. It also explains the other row: `talc-claim` is the arm that is
+slower on `historySync`, because grow-and-claim is the strategy dlmalloc never
+had.
+
+### The runaway bug class cannot exist there
+
+`sys_alloc` asks for `align_up(size + top_foot_size + malloc_alignment,
+DEFAULT_GRANULARITY)` with `DEFAULT_GRANULARITY = 64 * 1024`, and
+`dl/src/wasm.rs` then does `size.div_ceil(self.page_size())`. The chunk overhead
+is added **before** the page rounding, and both steps round up. talc's bug was a
+floor: `(size + CHUNK_UNIT + PAGE_SIZE - 1) / PAGE_SIZE` computes a page count
+that excludes the tag the chunk also needs. There is no `n*65536 - 16` for
+dlmalloc to get wrong.
+
+### Neither one grows the top for a realloc
+
+This is the gap, and it is in both.
+
+**dlmalloc.** `try_realloc_chunk` has a branch for exactly the right case and
+then declines it:
+
+```rust
+} else if next == self.top {
+    // extend into top
+    if oldsize + self.topsize <= nb {
+        return ptr::null_mut();   // caller falls back to malloc + memcpy + free
+    }
+```
+
+`sys_alloc` is never called from any realloc path. When the chunk being grown is
+the topmost one and the top gap is too small, dlmalloc copies, even though the
+top is the end of linear memory and `memory.grow` would extend it with no copy
+at all, through the same contiguity `sys_alloc` already relies on.
+
+**talc.** `try_grow_in_place` only ever extends into an existing adjacent gap
+(`old_tag.is_above_free()`), and `S::acquire` is called from exactly one place in
+the crate: the `loop` inside `Talc::allocate`. So on wasm the source whose entire
+job is extending the heap is never consulted during a grow, and `realloc` falls
+through to `allocate` plus `copy_from_nonoverlapping` plus `deallocate`.
+
+Measured on a buffer doubling from 64 KiB, which is the shape of an inflate
+output and of every `Vec` that grows:
+
+| to 16 MiB, run alone | doublings that moved | copied |
+|---|---:|---:|
+| dlmalloc (`std` `System`) | 7 of 8 | 16,256 KiB |
+| talc `WasmGrowAndExtend` | 8 of 8 | 16,320 KiB |
+| talc `WasmGrowAndClaim` | 8 of 8 | 16,320 KiB |
+
+**A doubling buffer is copied about once in full to reach its size, and on wasm
+it does not have to be.** dlmalloc is marginally the better of the two here, not
+worse: it caught one in-place grow by absorbing an adjacent free chunk where talc
+caught none. That is the opposite of what reading `try_realloc_chunk` first
+suggested, which is why it is measured rather than argued.
+
+What a fix would need, and what it would cost:
+
+- **dlmalloc**: a capability on the `Allocator` trait, say `fn
+  grows_contiguously(&self) -> bool { false }`, true only in `wasm.rs`; and in
+  the `next == self.top` branch, call `sys_alloc` before giving up when that is
+  set. The default keeps every non-wasm target byte-identical.
+- **talc**: let `try_grow_in_place` call `S::acquire` when the allocation's end
+  is the heap end, which is a state `Talc` already tracks through
+  `TRACK_HEAP_END` and `heap_end_to_gap_base`.
+
+Neither is free. Both make a `realloc` able to grow the heap where before it
+would reuse a lower free chunk, so a heap with a large hole below the top could
+commit a page it currently avoids. On this bridge's shape it looks like a double
+win rather than a trade, because the fallback already commits a second region the
+size of the whole buffer: dlmalloc committed 517 pages, about 33 MiB, to end up
+holding 16 MiB. But "looks like" is not measured, and it is the general dlmalloc
+test suite that would have to say so, not this workload.
+
+### `allocates_zeros` is inert
+
+`dl/src/wasm.rs` reports `allocates_zeros() = true`, and the guarantee holds:
+pages read straight off `memory.grow` are zero, asserted in
+`memory_grow_hands_back_zeroed_pages`. But the only consumer is
+
+```rust
+pub unsafe fn calloc_must_clear(&self, ptr: *mut u8) -> bool {
+    !self.system_allocator.allocates_zeros() || !Chunk::mmapped(Chunk::from_mem(ptr))
+}
+```
+
+and `Chunk::mmapped` is `head & INUSE == 0`, a state **nothing in dlmalloc-rs
+ever produces**: the crate has no `mmap_alloc`, only consumers of the bit. So the
+right-hand side is always true, `calloc_must_clear` is always true, and
+`alloc_zeroed` always memsets, including over pages that are already zero. Every
+`vec![0u8; n]` served from fresh linear memory pays a redundant `n`-byte write.
+
+The same dead bit makes `Allocator::remap` unreachable on every target, so
+`dl/src/wasm.rs`'s `// TODO: I think this can be implemented near the end?` on
+`remap` cannot buy anything: `mmap_resize` is its only caller and it sits behind
+`if Chunk::mmapped(p)`. Recording that here is the cheap part of this section,
+the same way this repository's own `--converge` note exists so the next person
+finds the number before spending the week.
+
+Exploiting the zeroing is not free either: it needs per-chunk provenance, since a
+chunk that was written and freed is not zero, which is demonstrated in the same
+test. That is a bit of state per chunk, which is exactly the metadata cost talc's
+5.0.4 fix was criticised for adding.
+
+### None of this changes the recommendation
+
+Both gaps are shared. Fixing either one upstream would help dlmalloc and talc
+about equally, and neither is a reason to switch this bridge's allocator today.
+They are written down because the measurement pointed at them and because the
+next person to reopen this question should start here rather than at the
+changelog.
+
 ## The exchange rate
 
 The repository has priced this trade once already, at a rate this can be read

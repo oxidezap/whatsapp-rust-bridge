@@ -55,5 +55,11 @@ runaway walks to 4 GiB before it gives up.
 | `repro::tests::aes_gcm_plaintext_size_does_not_run_away_when_extending` | passes | passes |
 | `stress::tests::grow_and_extend_survives_history_sync_churn` | passes (1,617 pages) | passes (1,605 pages) |
 | `stress::tests::extend_commits_less_than_claim_on_a_growing_buffer` | passes | passes |
+| `upstream::tests::a_doubling_buffer_is_copied_about_once_in_full` | passes | passes |
+| `upstream::tests::memory_grow_hands_back_zeroed_pages` | passes | passes |
 
-The last two are guards rather than repros, and say so in their doc comments.
+The last four are not repros and say so in their doc comments. The two stress
+tests are guards for the next allocator change; the two `upstream` ones are the
+runnable half of the "what both of them miss" section of
+`docs/wasm-allocator-talc-5-1-0.md`, which is about gaps shared by dlmalloc and
+talc rather than about anything talc got wrong.
