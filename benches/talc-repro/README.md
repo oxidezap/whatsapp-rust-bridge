@@ -25,10 +25,18 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
 ```
 
 The runner variables are not optional and `.cargo/config.toml` does not set
-them: without them cargo tries to execute the wasm artifact directly. The runner
-also has to be the one the bridge's own suite uses, which is why
-`wasm-bindgen-test` is pinned here rather than left as a range: a runner rejects
-an artifact whose generated schema version it does not match.
+them: without them cargo tries to execute the wasm artifact directly. Unlike
+`bun run test:rust`, which goes through `wasm-pack` and gets a matching runner
+from its own cache, this one takes `wasm-bindgen-test-runner` off `PATH`, so
+install it pinned to the version both lockfiles resolve:
+
+```sh
+cargo install wasm-bindgen-cli --version 0.2.126
+```
+
+That pin is also why `wasm-bindgen-test` is `=0.3.76` here rather than a range:
+a runner rejects an artifact whose generated schema version it does not match,
+and one installed runner has to serve both suites.
 
 That is the green run, on the version the lockfile is committed at. The red run
 is the same three invocations against 5.0.3:
@@ -38,19 +46,21 @@ cd benches/talc-repro
 export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
 export WASM_BINDGEN_TEST_ONLY_NODE=1
 
-cargo update -p talc --precise 5.0.3
+# on any exit, back to what the lockfile is committed at, or the tree stays
+# dirty and the next plain `bun run test:talc-repro` runs the broken version
+trap 'cargo update -p talc --precise 5.1.0' EXIT
+cargo update -p talc --precise 5.0.3 || exit 1
+
 for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
          repro::tests::extending_over_a_16_mib_gap_reuses_it \
          repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size; do
   cargo test --target wasm32-unknown-unknown --lib -- --exact "$t"
 done
-
-# back to what the lockfile is committed at, or the tree stays dirty and the
-# next plain `bun run test:talc-repro` runs the broken version and fails
-cargo update -p talc --precise 5.1.0
 ```
 
-Each of those three exits non-zero on 5.0.3 and zero after the restore.
+Each of those three exits non-zero on 5.0.3 and zero after the restore. The
+trap rather than a trailing command because a Ctrl-C partway through the loop
+would otherwise leave the lockfile on the broken version.
 
 `--exact` matches the **registered** name, which carries the module path. A bare
 `aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still

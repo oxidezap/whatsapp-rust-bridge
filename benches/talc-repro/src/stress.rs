@@ -120,13 +120,22 @@ pub fn history_sync_peak_pages<A: GlobalAlloc>(
     // Reserved before the window opens: this is the global allocator's memory,
     // and pages it commits are not `alloc`'s to answer for.
     let mut batch = Vec::with_capacity(BATCH_BLOCKS);
+    let batch_capacity = batch.capacity();
 
     let before = crate::repro::memory_pages();
     let mut rng = Lcg(seed);
     for _ in 0..rounds {
         history_sync_round(alloc, &mut rng, inflated_bytes, &mut batch);
     }
-    crate::repro::memory_pages() - before
+    let pages = crate::repro::memory_pages() - before;
+
+    assert_eq!(
+        batch.capacity(),
+        batch_capacity,
+        "the batch vector reallocated"
+    );
+
+    pages
 }
 
 #[cfg(test)]
@@ -152,6 +161,9 @@ mod tests {
         // charges dlmalloc's pages to whichever allocator is being measured.
         let mut live: Vec<Block> = Vec::with_capacity(LIVE_CAPACITY);
         let mut batch: Vec<Block> = Vec::with_capacity(BATCH_BLOCKS);
+        // What was actually handed over, not what was asked for: with_capacity
+        // guarantees at least the request, so only growth from here is a fault.
+        let (live_capacity, batch_capacity) = (live.capacity(), batch.capacity());
 
         let before = crate::repro::memory_pages();
         let mut rng = Lcg(seed);
@@ -208,13 +220,13 @@ mod tests {
 
         assert_eq!(
             live.capacity(),
-            LIVE_CAPACITY,
+            live_capacity,
             "the live vector reallocated inside the measurement window, so its \
              pages are charged to the allocator under test"
         );
         assert_eq!(
             batch.capacity(),
-            BATCH_BLOCKS,
+            batch_capacity,
             "the batch vector reallocated"
         );
 
