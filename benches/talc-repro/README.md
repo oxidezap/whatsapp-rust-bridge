@@ -49,10 +49,12 @@ is the same three invocations against 5.0.3:
   export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
   export WASM_BINDGEN_TEST_ONLY_NODE=1
 
-  # back to what the lockfile is committed at, on any exit including Ctrl-C, or
-  # the tree stays dirty and the next `bun run test:talc-repro` runs the broken
-  # version and fails
-  trap 'cargo update -p talc --precise 5.1.0' EXIT INT
+  # back to what the lockfile is committed at on any exit, or the tree stays
+  # dirty and the next `bun run test:talc-repro` runs the broken version. The
+  # INT trap exits rather than returning, because a handler that returns
+  # suppresses the signal and the loop would carry on against 5.1.0
+  trap 'cargo update -p talc --precise 5.1.0' EXIT
+  trap 'exit 130' INT
   cargo update -p talc --precise 5.0.3 || exit 1
 
   for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
