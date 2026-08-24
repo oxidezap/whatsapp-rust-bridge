@@ -18,7 +18,7 @@ target default (dlmalloc, through `std`) is what ships. `talc-arms.patch` adds
 the arms back for a measurement run and is reverted afterwards, which is what
 keeps a feature nobody turns on out of the published manifest.
 
-```
+```sh
 git apply benches/wasm-allocator/talc-arms.patch
 
 export WASM_OPT=/path/to/native/wasm-opt
@@ -30,13 +30,18 @@ $V talc-arena               --features alloc-talc,alloc-talc-arena
 $V talc-extend-nogrow       --features alloc-talc,talc/disable-grow-in-place
 $V talc-extend-norealloc    --features alloc-talc,talc/disable-realloc-in-place
 
-git checkout -- Cargo.toml Cargo.lock src/lib.rs src/memory_profile.rs
-rm src/allocator.rs
+# reverse the patch rather than checking the four files out: a worktree with
+# its own edits to any of them keeps them
+git apply -R benches/wasm-allocator/talc-arms.patch
 ```
+
+The patch does not carry `Cargo.lock`; adding the dependency writes a talc entry
+into it, and the next cargo command after the reverse prunes it back out, so
+there is nothing to undo there by hand.
 
 Copy one artifact under a second name before measuring:
 
-```
+```sh
 cd benches/wasm-module-rss/artifacts
 for ext in wasm glue.js d.ts; do cp dlmalloc.$ext control.$ext; done
 ```
@@ -47,7 +52,7 @@ is a finding. Without it a 1% row reads like a result.
 
 ## Running
 
-```
+```sh
 node benches/wasm-allocator/sizes.mjs dlmalloc talc-extend …
 node benches/wasm-allocator/run.mjs --rounds=15 dlmalloc control talc-extend …
 node --expose-gc benches/wasm-module-rss/measure.mjs --reps=9 \

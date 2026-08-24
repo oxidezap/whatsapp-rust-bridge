@@ -65,9 +65,24 @@ pub fn regrow<A: GlobalAlloc>(alloc: &A, block: Block, new_size: usize) -> Block
     }
 }
 
+/// Blocks one round decodes at once. The caller owns the `Vec` because it lives
+/// on the *global* allocator, not on `alloc`, and growing it inside a
+/// measurement window would charge dlmalloc's bookkeeping to the allocator
+/// being measured.
+pub const BATCH_BLOCKS: usize = 4096;
+
 /// A history-sync round: inflate a blob into a buffer that doubles, decode it
 /// into many small fields, hand the batch over, release it all.
-pub fn history_sync_round<A: GlobalAlloc>(alloc: &A, rng: &mut Lcg, inflated_bytes: usize) {
+///
+/// `batch` must already have `BATCH_BLOCKS` of capacity.
+pub fn history_sync_round<A: GlobalAlloc>(
+    alloc: &A,
+    rng: &mut Lcg,
+    inflated_bytes: usize,
+    batch: &mut Vec<Block>,
+) {
+    debug_assert!(batch.is_empty() && batch.capacity() >= BATCH_BLOCKS);
+
     let compressed = alloc_filled(alloc, 256 * 1024 + rng.below(768 * 1024) as usize, 1, 0xc0);
 
     let mut buffer = alloc_filled(alloc, 64 * 1024, 1, 0x1f);
@@ -76,8 +91,7 @@ pub fn history_sync_round<A: GlobalAlloc>(alloc: &A, rng: &mut Lcg, inflated_byt
         buffer = regrow(alloc, buffer, doubled);
     }
 
-    let mut batch = Vec::with_capacity(4096);
-    for _ in 0..4096 {
+    for _ in 0..BATCH_BLOCKS {
         let size = 16 + rng.below(496) as usize;
         batch.push(alloc_filled(
             alloc,
@@ -103,10 +117,14 @@ pub fn history_sync_peak_pages<A: GlobalAlloc>(
     rounds: usize,
     inflated_bytes: usize,
 ) -> usize {
+    // Reserved before the window opens: this is the global allocator's memory,
+    // and pages it commits are not `alloc`'s to answer for.
+    let mut batch = Vec::with_capacity(BATCH_BLOCKS);
+
     let before = crate::repro::memory_pages();
     let mut rng = Lcg(seed);
     for _ in 0..rounds {
-        history_sync_round(alloc, &mut rng, inflated_bytes);
+        history_sync_round(alloc, &mut rng, inflated_bytes, &mut batch);
     }
     crate::repro::memory_pages() - before
 }
@@ -126,6 +144,7 @@ mod tests {
         let before = crate::repro::memory_pages();
         let mut rng = Lcg(seed);
         let mut live: Vec<Block> = Vec::new();
+        let mut batch: Vec<Block> = Vec::with_capacity(BATCH_BLOCKS);
         let mut live_bytes = 0usize;
 
         for round in 0..6u64 {
@@ -172,7 +191,7 @@ mod tests {
 
             // 4, 8 and 16 MiB inflated: the last two leave top gaps in the size
             // class the pre-5.0.4 tag misread.
-            history_sync_round(alloc, &mut rng, 4 << (20 + round % 3));
+            history_sync_round(alloc, &mut rng, 4 << (20 + round % 3), &mut batch);
         }
 
         for block in live.drain(..) {
@@ -182,8 +201,8 @@ mod tests {
         crate::repro::memory_pages() - before
     }
 
-    /// A guard rather than a repro: this passes on 5.0.3 as well (1,629 pages
-    /// against 5.1.0's 1,612), so it proves nothing about the two fixes. It is
+    /// A guard rather than a repro: this passes on 5.0.3 as well (1,617 pages
+    /// against 5.1.0's 1,605), so it proves nothing about the two fixes. It is
     /// here so the next allocator change has something shaped like the load
     /// that broke this bridge to fail against.
     #[test]

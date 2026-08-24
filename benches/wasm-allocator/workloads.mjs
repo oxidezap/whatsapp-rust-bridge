@@ -186,7 +186,7 @@ export function retention(wasm, { rounds = 7 } = {}) {
   const committedFinal = wasm.getWasmMemoryBytes();
   return {
     ns,
-    committedPeak: afterPeak,
+    committedPeak: Math.max(afterPeak, committedFinal),
     committedFinal,
     // What the tail asked for beyond what the peak already committed. Pages
     // never go back on wasm32, so this is the whole of "did the allocator

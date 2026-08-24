@@ -8,7 +8,7 @@ reopen the question starts from a red/green run instead of a changelog entry.
 It is a standalone crate on purpose: showing a fix means running the same test
 bodies against two versions of talc, and the bridge's own manifest pins one.
 
-```
+```sh
 # green, the version the bridge would take
 cargo update -p talc --precise 5.1.0
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
@@ -18,10 +18,19 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
 cargo update -p talc --precise 5.0.3
 ```
 
-Run each test on its own (`-- --exact <name>`). The tests share one wasm
-instance and one linear memory, so a test that exhausts memory takes the next
-ones down with it, and a failure read off a whole-suite run can belong to
-another test.
+Run each test on its own. The tests share one wasm instance and one linear
+memory, so a test that exhausts memory takes the next ones down with it, and a
+failure read off a whole-suite run can belong to another test:
+
+```sh
+cargo test --target wasm32-unknown-unknown --lib \
+  -- --exact repro::tests::aes_gcm_plaintext_size_does_not_run_away
+```
+
+`--exact` matches the **registered** name, which carries the module path. A bare
+`aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still
+exits 0, which on the broken version reads exactly like a pass. The names in the
+table below are given in full for that reason.
 
 `.cargo/config.toml` caps linear memory at 256 MiB. Without it the 5.0.3
 runaway walks to 4 GiB before it gives up.
@@ -30,11 +39,11 @@ runaway walks to 4 GiB before it gives up.
 
 | test | 5.0.3 | 5.1.0 |
 |---|---|---|
-| `aes_gcm_plaintext_size_does_not_run_away` | fails: allocation of 65,520 bytes fails after growing to the cap | passes |
-| `extending_over_a_16_mib_gap_reuses_it` | fails: the 40 MiB request lands at `0x1550000` instead of the freed `0x130160` | passes |
-| `freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size` | fails: the gap's recorded size gains 33,554,432 bytes | passes |
-| `aes_gcm_plaintext_size_does_not_run_away_when_extending` | passes | passes |
-| `grow_and_extend_survives_history_sync_churn` | passes (1,629 pages) | passes (1,612 pages) |
-| `extend_commits_less_than_claim_on_a_growing_buffer` | passes | passes |
+| `repro::tests::aes_gcm_plaintext_size_does_not_run_away` | fails: allocation of 65,520 bytes fails after growing to the cap | passes |
+| `repro::tests::extending_over_a_16_mib_gap_reuses_it` | fails: the 40 MiB request lands at `0x1550000` instead of the freed `0x130160` | passes |
+| `repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size` | fails: the gap's recorded size gains 33,554,432 bytes | passes |
+| `repro::tests::aes_gcm_plaintext_size_does_not_run_away_when_extending` | passes | passes |
+| `stress::tests::grow_and_extend_survives_history_sync_churn` | passes (1,617 pages) | passes (1,605 pages) |
+| `stress::tests::extend_commits_less_than_claim_on_a_growing_buffer` | passes | passes |
 
 The last two are guards rather than repros, and say so in their doc comments.
