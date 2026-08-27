@@ -263,6 +263,48 @@ jobs:
           # Optional: make test output clearer
           CI: true
 
+      # Continuous releases through pkg.pr.new: every commit on main and every
+      # pull request leaves behind an installable, npm-compatible tarball, so
+      # someone hitting a bug can try the fix from the pull request that carries
+      # it instead of waiting for the release cycle to reach them.
+      #
+      # It publishes from this job rather than from a workflow of its own
+      # because the artifact is the expensive part here — a release wasm build
+      # plus wasm-opt is most of this job's ~9 minutes, and a second workflow
+      # would pay it again for bytes this one already produced. The same reason
+      # release.yml's `publish` downloads verify's tree instead of rebuilding
+      # it. It is also the last step on purpose: everything above has to pass
+      # first, so a preview URL is never a build that failed its own tests.
+      #
+      # Nothing reaches npm here and no secret is involved — the upload is
+      # authorised from the workflow run itself, which is why no permission is
+      # added for it. Fork pull requests publish too, and that is the point of
+      # the feature: the tarball is the code this job just built and tested.
+      #
+      # `continue-on-error` because `success` is the required check. pkg.pr.new
+      # is a third-party service this repository does not run, and it being down
+      # is not a reason a pull request cannot merge — a missing preview is a
+      # warning on the run, not a red branch.
+      #
+      # --previewVersion stamps the tarball 0.0.0-preview-<sha> instead of
+      # leaving it on the released version it was branched from. A preview
+      # calling itself 0.19.0 can stay pinned in a consumer's lockfile as the
+      # answer to `^0.19.0` long after the real 0.19.0 exists; a 0.0.0- prefix
+      # cannot satisfy that range at all.
+      #
+      # --no-template drops the StackBlitz template. It is a browser sandbox,
+      # and this package's tests and examples want a Node runtime for the wasm,
+      # so the template would only lengthen the comment.
+      #
+      # `--no` runs the binary `bun install` put in node_modules and nothing
+      # else: without it a lookup that misses falls back to fetching the latest
+      # release from the registry, which is how "pinned in the lockfile" quietly
+      # stops being true. It packs with `npm pack`, which runs `prepack` — the
+      # same tarball guard a real publish goes through — so the preview is
+      # `dist/` as this job built it, with nothing built twice.
+      - name: Publish a preview package
+        continue-on-error: true
+        run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
 
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
