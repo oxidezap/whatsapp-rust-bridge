@@ -85,7 +85,7 @@ impl HttpClient for JsHttpClientAdapter {
             .map_err(|e| anyhow::anyhow!("get body: {e:?}"))?;
 
         let body = if body_val.is_instance_of::<Uint8Array>() {
-            Uint8Array::unchecked_from_js(body_val).to_vec()
+            crate::js_bytes::to_vec(&Uint8Array::unchecked_from_js(body_val))
         } else {
             Vec::new()
         };

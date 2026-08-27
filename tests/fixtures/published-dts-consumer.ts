@@ -5,11 +5,14 @@
  * for the `skipLibCheck: true` consumers this package actually has, so a check
  * that only asks "does it resolve" would pass on the very thing being fixed.
  *
- * One entry per shape the core writes a waproto type behind.
+ * One entry per shape the core writes a waproto type behind, plus the error
+ * union, whose usefulness is a property of these declarations rather than of
+ * anything the Rust side can assert.
  */
 
 import type {
   ArchiveUpdate,
+  BridgeError,
   InboundMessage,
   JsonValue,
   MessageInfo,
@@ -17,6 +20,7 @@ import type {
   MsgSecretEntry,
   Receipt,
   ReceiptType,
+  WasmWhatsAppClient,
 } from "../../dist/index.js";
 import type { proto } from "../../dist/proto-types.js";
 
@@ -69,6 +73,21 @@ type _Receipt = Assert<Resolves<Receipt["type"], ReceiptType>>;
 // The widening controls use `Uint8Array` rather than a proto interface on
 // purpose: protobufjs declares every field optional, so `object` is assignable
 // to `proto.IMessage` in both directions and no assertion can tell them apart.
+/**
+ * A rejected caller narrows on `kind` and then reads the delay the server
+ * directed. Both halves are checked here because both are this file's doing:
+ * the Rust tests pin the payload's keys, not whether the declaration lets a
+ * consumer branch on one.
+ */
+type Rejection = Extract<BridgeError, { kind: "server" }>;
+type _RejectionNarrows = Assert<Resolves<Rejection["serverCode"], number>>;
+type _RejectionCarriesTheDelay = Assert<
+  Resolves<Rejection["backoffSeconds"], number | undefined>
+>;
+type _RejectionCarriesTheClass = Assert<
+  Resolves<Rejection["errorType"], string | undefined>
+>;
+
 type _RejectsAny = Assert<
   Resolves<any, proto.IMessage> extends false ? true : false
 >;
@@ -79,8 +98,21 @@ type _RejectsUnknown = Assert<
   Resolves<unknown, Uint8Array> extends false ? true : false
 >;
 
+// The edit's optional caller-supplied stanza id: a fourth parameter a caller
+// may omit, so the three-argument form keeps compiling. Indexing at 3 fails
+// outright while the declaration has only three parameters.
+type _EditPinsAStanzaId = Assert<
+  Resolves<
+    Parameters<WasmWhatsAppClient["editMessageBytes"]>[3],
+    string | null | undefined
+  >
+>;
+
 export type Checked = [
   _Boxed,
+  _RejectionNarrows,
+  _RejectionCarriesTheDelay,
+  _RejectionCarriesTheClass,
   _Shared,
   _Optional,
   _Aliased,
@@ -89,4 +121,5 @@ export type Checked = [
   _RejectsAny,
   _RejectsObject,
   _RejectsUnknown,
+  _EditPinsAStanzaId,
 ];

@@ -210,7 +210,6 @@ bridge_events! {
         ContactNumberChanged     => "contact_number_changed"        => "ContactNumberChanged",
         ContactSyncRequested     => "contact_sync_requested"        => "ContactSyncRequested",
         GroupUpdate              => "group_update"                  => "GroupUpdate",
-        PushNameUpdate           => "push_name_update"              => "PushNameUpdate",
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
@@ -234,6 +233,7 @@ bridge_events! {
         AppStateSyncFailed       => "app_state_sync_failed"         => "AppStateSyncFailed",
         ContactRemoved           => "contact_removed"               => "ContactRemoved",
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
+        ClientExpirationChanged  => "client_expiration_changed"     => "ClientExpirationChanged",
     }
     // Events carrying a protobuf field beside their own. That field crosses in
     // the protobufjs shape its declaration names, keeping an explicit `false` or
@@ -299,6 +299,13 @@ const UNDISPATCHED_EVENT_VARIANTS: &[(&str, &str)] = &[
         "SentFrame",
         "its one field is the marshaled stanza, also #[serde(skip)], so the event \
          would cross as an empty object. Lease-gated like DecryptedPayload.",
+    ),
+    (
+        "RetiredPushNameUpdate",
+        "retired upstream: nothing dispatches it and nothing can, and its payload \
+         is now an empty struct. The variant survives only to hold its position \
+         in the core's index-keyed Serialize format. The current push name is on \
+         MessageInfo::push_name.",
     ),
     (
         "EncDecryptFailed",
@@ -641,7 +648,7 @@ const EVENT_CHANNEL_CAPACITY: usize = 16_384;
 /// Upper bound for object trees handed across the JS/WASM boundary at once.
 /// This is a host-boundary resource limit shared by every batched event path,
 /// not a WhatsApp protocol rule.
-const EVENT_BATCH_CAPACITY: usize = 32;
+pub(crate) const EVENT_BATCH_CAPACITY: usize = 32;
 /// Whether an isolated live message spends one cooperative I/O turn trying to
 /// collect an adjacent frame before dispatching. Measured: disabling it drops
 /// coalescing to 1.00 messages per batch and the extra batches cost more than
@@ -2500,7 +2507,7 @@ pub async fn create_whatsapp_client(
     };
 
     Ok(WasmWhatsAppClient {
-        client,
+        client: CoreClient::new(client),
         runtime,
         sync_rx: Some(sync_rx),
         saver_handle: Mutex::new(Some(saver_handle)),
@@ -2517,10 +2524,256 @@ pub async fn create_whatsapp_client(
 // Client wrapper
 // ---------------------------------------------------------------------------
 
+/// Home of [`CoreClient`], and the only place its inner client is nameable.
+///
+/// The domain modules are siblings of this one rather than descendants, so the
+/// field below is out of their reach: `self.client.0` does not compile from
+/// `wasm_client/*.rs`, and `online()` or `unwaited(…)` is the only way in.
+mod core_client {
+    use super::Arc;
+    use std::collections::BTreeMap;
+    use std::sync::Mutex;
+
+    /// Why a call reaches the core without waiting for a reconnect in flight.
+    ///
+    /// A `#[wasm_bindgen]` method cannot get at the client without saying one of
+    /// these or asking for [`CoreClient::online`], which is what keeps the next
+    /// method added here from landing in a bucket nobody chose for it. The value is
+    /// never read: it exists so the choice is written down where the call is, and
+    /// so the set below can be found by name rather than kept in a list somewhere
+    /// else that would drift.
+    #[derive(Debug, Clone, Copy)]
+    pub(crate) enum Unwaited {
+        /// Nothing crosses the wire, so there is no connection to wait for.
+        Local,
+        /// The core discards this on a lost connection rather than retrying it. A
+        /// receipt, an ack or a presence held back until the next socket says
+        /// something about a moment that has passed.
+        ConnectionBound,
+        /// The socket itself is the subject — establishing one, driving one, or
+        /// reporting on one.
+        ThisSocket,
+        /// The operation re-drives itself, or is built so its caller can re-issue
+        /// it. Waiting would sit in front of a retry that already exists.
+        Redriven,
+        /// An opaque node from the caller. The bridge cannot tell an IQ that
+        /// survives a reconnect from an ack that does not, so it does not guess;
+        /// `reachability()` and `waitUntilReachable()` put the choice with the
+        /// caller, who knows what the node is.
+        Opaque,
+        /// The method returns before anything is sent, so there is no call to hold.
+        /// Whatever it hands back reports its own failure.
+        Deferred,
+        /// The socket is needed only when a cache the bridge cannot see is
+        /// cold, and the core decides that per call. Holding it would park an
+        /// HTTP transfer that a warm cache serves with no socket at all.
+        Cached,
+    }
+
+    /// The core client, reachable only by saying what this call is.
+    ///
+    /// [`online`](Self::online) holds the call while a reconnect is in flight;
+    /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
+    /// in and no plain field, so a method added later has to pick one.
+    pub(crate) struct CoreClient {
+        client: Arc<whatsapp_rust::Client>,
+        parked: Parked,
+    }
+
+    /// The calls waiting at the gate, and the only way to let them go.
+    ///
+    /// A parked call leaves a sender here and holds the other end; dropping the
+    /// sender is what wakes it. Entries are keyed so a call that leaves on its
+    /// own takes its own with it.
+    #[derive(Default)]
+    struct Parked {
+        state: Mutex<ParkedState>,
+    }
+
+    #[derive(Default)]
+    struct ParkedState {
+        next: u64,
+        waiting: BTreeMap<u64, async_channel::Sender<()>>,
+    }
+
+    impl Parked {
+        fn enrol(&self) -> (u64, async_channel::Receiver<()>) {
+            let (tx, rx) = async_channel::bounded(1);
+            let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+            let id = state.next;
+            state.next += 1;
+            state.waiting.insert(id, tx);
+            (id, rx)
+        }
+
+        /// Leaves the waiting set, and says whether this call was still in it.
+        /// `release_all` takes what it counts, so a `false` is the same fact as
+        /// having been counted.
+        fn leave(&self, id: u64) -> bool {
+            self.state
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .waiting
+                .remove(&id)
+                .is_some()
+        }
+
+        fn release_all(&self) -> u32 {
+            let released = {
+                let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+                core::mem::take(&mut state.waiting)
+            };
+            let count = released.len() as u32;
+            drop(released);
+            count
+        }
+    }
+
+    /// Takes a call out of the waiting set however its park ends.
+    struct LeaveOnDrop<'a> {
+        parked: &'a Parked,
+        id: u64,
+    }
+
+    impl LeaveOnDrop<'_> {
+        fn leave(&self) -> bool {
+            self.parked.leave(self.id)
+        }
+    }
+
+    impl Drop for LeaveOnDrop<'_> {
+        fn drop(&mut self) {
+            self.parked.leave(self.id);
+        }
+    }
+
+    impl CoreClient {
+        pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
+            Self {
+                client,
+                parked: Parked::default(),
+            }
+        }
+    }
+
+    impl CoreClient {
+        /// The client, once any reconnect in flight has landed.
+        ///
+        /// Only `Reconnecting` is waited out — the one state the core says
+        /// comes back with nothing further from the caller. Every other
+        /// answer falls straight through to the core, which reports what it always
+        /// reported: a finished client fails now, a paused one fails now, and a
+        /// client nothing is reading fails now. Waiting restores the ability to
+        /// ask, never the request that was refused, so nothing is re-sent here.
+        ///
+        /// Connected, this is a few relaxed loads and a branch. Nothing is
+        /// allocated, no boundary is crossed, and the future that does the waiting
+        /// is built only once one is needed.
+        ///
+        /// The error is the caller's own doing: it arrives only after
+        /// [`withdraw_parked`](Self::withdraw_parked), and it means the call
+        /// stopped here rather than reaching the core.
+        #[inline]
+        pub(crate) async fn online(
+            &self,
+        ) -> Result<&Arc<whatsapp_rust::Client>, crate::errors::BridgeError> {
+            if self.client.reachability().recovers_on_its_own() {
+                self.park().await?;
+            }
+            Ok(&self.client)
+        }
+
+        /// The client as it is right now.
+        #[inline]
+        pub(crate) fn unwaited(&self, _why: Unwaited) -> &Arc<whatsapp_rust::Client> {
+            &self.client
+        }
+
+        /// What work handed to the client right now can expect.
+        pub(crate) fn reachability(&self) -> crate::result_types::Reachability {
+            self.client.reachability().into()
+        }
+
+        /// Wait out a reconnect, and report whatever ended the wait.
+        pub(crate) async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
+            self.client.wait_until_reachable().await.into()
+        }
+
+        /// The client, once a reconnect has landed, for a call that has already
+        /// had an effect and so cannot be taken back.
+        ///
+        /// It does not enrol, so `withdraw_parked` neither counts nor releases
+        /// it — which is what keeps the count meaning what it says.
+        #[inline]
+        pub(crate) async fn online_committed(&self) -> &Arc<whatsapp_rust::Client> {
+            if self.client.reachability().recovers_on_its_own() {
+                self.wait().await;
+            }
+            &self.client
+        }
+
+        /// Let go of every call waiting at the gate right now, and say how many.
+        ///
+        /// The core delegates cancellation to the caller — drop the future, or
+        /// bound it — and a JS caller cannot do either: wasm-bindgen drives an
+        /// exported method to completion whether or not its promise is still
+        /// held. This is that drop, in the one form that crosses the boundary.
+        /// Released calls stop at the gate without reaching the core, and a call
+        /// issued afterwards parks like any other.
+        pub(crate) fn withdraw_parked(&self) -> u32 {
+            self.parked.release_all()
+        }
+
+        /// The wait with no way out of it, for [`online_committed`](Self::online_committed).
+        #[cold]
+        #[inline(never)]
+        fn wait(&self) -> std::pin::Pin<Box<dyn core::future::Future<Output = ()> + '_>> {
+            Box::pin(async move {
+                let _ = self.client.wait_until_reachable().await;
+            })
+        }
+
+        /// Off the hot path in its own future, so the check above costs one branch
+        /// in each of the callers rather than a wait's worth of state machine.
+        #[cold]
+        #[inline(never)]
+        fn park(
+            &self,
+        ) -> std::pin::Pin<
+            Box<dyn core::future::Future<Output = Result<(), crate::errors::BridgeError>> + '_>,
+        > {
+            Box::pin(async move {
+                let (id, withdrawn) = self.parked.enrol();
+                let leave = LeaveOnDrop {
+                    parked: &self.parked,
+                    id,
+                };
+                let reachable = std::pin::pin!(self.client.wait_until_reachable());
+                let withdrawn = std::pin::pin!(withdrawn.recv());
+                let ended = futures::future::select(reachable, withdrawn).await;
+                // The count is the promise: a call `withdraw_parked` counted is a
+                // call that does not reach the core, whichever of the two landed
+                // first. Both can be ready before this future is polled again —
+                // `withdraw_parked` is synchronous, so it runs between polls by
+                // construction — and leaving is what says which happened.
+                if !leave.leave() {
+                    return Err(crate::errors::BridgeError::Withdrawn);
+                }
+                match ended {
+                    futures::future::Either::Left(_) => Ok(()),
+                    futures::future::Either::Right(_) => Err(crate::errors::BridgeError::Withdrawn),
+                }
+            })
+        }
+    }
+}
+
+pub(crate) use core_client::{CoreClient, Unwaited};
+
 /// Opaque handle to the WhatsApp client.
 #[wasm_bindgen]
 pub struct WasmWhatsAppClient {
-    client: Arc<whatsapp_rust::Client>,
+    client: CoreClient,
     #[allow(dead_code)]
     runtime: Arc<dyn wacore::runtime::Runtime>,
     sync_rx: Option<async_channel::Receiver<whatsapp_rust::sync_task::MajorSyncTask>>,
@@ -2582,7 +2835,9 @@ impl Drop for WasmWhatsAppClient {
         // (every `.detach()` in `whatsapp_rust/src/client.rs` — keepalive
         // loop, message processors, retry loops, …) observe `is_running` /
         // `shutdown_notifier` and exit on their next poll.
-        self.client.signal_shutdown_sync();
+        self.client
+            .unwaited(Unwaited::ThisSocket)
+            .signal_shutdown_sync();
 
         // Abort the bridge-owned wrappers (run loop + sync worker + saver).
         // The async cleanup task spawned below holds `Arc<Client>` so the
@@ -2603,7 +2858,7 @@ impl Drop for WasmWhatsAppClient {
         // `outbound_flush` to drain pending writes. `done` is awaited by the
         // next `create_whatsapp_client` so a new client can't start sharing
         // the heap until this completes.
-        let client = self.client.clone();
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
         let done = register_drop_cleanup();
         wasm_bindgen_futures::spawn_local(async move {
             client.disconnect().await;
@@ -2616,20 +2871,36 @@ impl Drop for WasmWhatsAppClient {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn participants_update(
-    client: &whatsapp_rust::Client,
+/// Parse what a participant update needs, so its caller can reject a bad JID
+/// before deciding whether to wait for a connection.
+fn participants_update_input(
     jid: &str,
-    participants: Vec<String>,
+    participants: &[String],
     action: crate::result_types::GroupParticipantAction,
-    include_linked_groups_on_remove: bool,
-) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
-    use crate::result_types::GroupParticipantAction;
-
+) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
+    if matches!(action, crate::result_types::GroupParticipantAction::Modify) {
+        return Err(crate::errors::BridgeError::InvalidArgument {
+            field: "action".into(),
+            reason: "modify represents a received participant identity change and cannot be sent"
+                .into(),
+        });
+    }
     let group_jid = parse_jid(jid)?;
     let participant_jids = participants
         .iter()
         .map(|participant| parse_jid(participant))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((group_jid, participant_jids))
+}
+
+async fn participants_update(
+    client: &whatsapp_rust::Client,
+    group_jid: wacore_binary::jid::Jid,
+    participant_jids: Vec<wacore_binary::jid::Jid>,
+    action: crate::result_types::GroupParticipantAction,
+    include_linked_groups_on_remove: bool,
+) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    use crate::result_types::GroupParticipantAction;
 
     let responses = match action {
         GroupParticipantAction::Add => {
@@ -2662,6 +2933,11 @@ async fn participants_update(
                 .demote_participants(&group_jid, &participant_jids)
                 .await?
         }
+        // `participants_update_input` rejects this above the gate, so a caller
+        // hears it at once rather than after a reconnect. Kept as a real error
+        // rather than a trap: a trap does not cross as a `WhatsAppError` with
+        // a `.kind`, and a later caller reaching here without the helper would
+        // get no usable failure at all.
         GroupParticipantAction::Modify => {
             return Err(crate::errors::BridgeError::InvalidArgument {
                 field: "action".into(),
@@ -3285,18 +3561,28 @@ async fn send_message_with_options(
     Ok(result.message_id)
 }
 
-async fn send_status_message_with_options(
-    client: &whatsapp_rust::Client,
+/// Decode and parse what a status send needs, so its caller can reject bad
+/// input before deciding whether to wait for a connection.
+fn status_message_input(
     bytes: &[u8],
-    recipients: Vec<String>,
-    options: whatsapp_rust::StatusSendOptions,
-) -> Result<String, crate::errors::BridgeError> {
+    recipients: &[String],
+) -> Result<(waproto::whatsapp::Message, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError>
+{
     let msg = waproto::codec::message_decode(bytes)
         .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
     let recipients = recipients
         .iter()
         .map(|jid| parse_jid(jid))
         .collect::<Result<Vec<_>, _>>()?;
+    Ok((msg, recipients))
+}
+
+async fn send_status_message_with_options(
+    client: &whatsapp_rust::Client,
+    msg: waproto::whatsapp::Message,
+    recipients: Vec<wacore_binary::jid::Jid>,
+    options: whatsapp_rust::StatusSendOptions,
+) -> Result<String, crate::errors::BridgeError> {
     let result = client.status().send_raw(msg, &recipients, options).await?;
     Ok(result.message_id)
 }
@@ -4341,15 +4627,20 @@ mod dispatched_event_tests {
     use super::*;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::sync::Arc;
     use std::time::Duration;
     use wasm_bindgen::closure::Closure;
     use wasm_bindgen_test::wasm_bindgen_test as test;
     use whatsapp_rust::wacore::chrono::{DateTime, Utc};
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
-        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ContactRemoved, ContactUpdate,
-        DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError,
-        PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
+        AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
+        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate,
+        MuteUpdate, PairingCodeError, PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
+        UnavailableType, UndecryptableMessage,
+    };
+    use whatsapp_rust::wacore::types::message::{
+        EncMediaType, MessageInfo, PollType, StanzaMessageType,
     };
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
         ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
@@ -4745,6 +5036,122 @@ mod dispatched_event_tests {
 
         assert!(field(&data, "backoff").is_undefined());
         assert!(field(&data, "rejection").is_undefined());
+    }
+
+    /// A deadline the consumer is the only one who can act on: the core keeps
+    /// connecting until the server refuses, so this event is the whole notice.
+    #[test]
+    async fn a_client_expiration_changed_carries_the_deadline_and_the_build() {
+        let (name, data) = deliver(Event::ClientExpirationChanged(
+            ClientExpirationChanged::builder()
+                .expires_at(1_763_000_000)
+                .version((2, 3000, 1044659339))
+                .withdrawn(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "client_expiration_changed");
+        assert_eq!(field(&data, "expires_at").as_f64(), Some(1_763_000_000.0));
+        assert_eq!(field(&data, "withdrawn").as_bool(), Some(false));
+        let version = js_sys::Array::from(&field(&data, "version"));
+        assert_eq!(version.get(0).as_f64(), Some(2.0));
+        assert_eq!(version.get(1).as_f64(), Some(3000.0));
+        assert_eq!(version.get(2).as_f64(), Some(1_044_659_339.0));
+    }
+
+    /// A withdrawal retracts the deadline, so there is no date to cross. The
+    /// key is absent rather than zero: a zero reads as 1970, which is a deadline
+    /// already past.
+    #[test]
+    async fn a_withdrawn_client_expiration_omits_the_deadline() {
+        let (_, data) = deliver(Event::ClientExpirationChanged(
+            ClientExpirationChanged::builder()
+                .version((2, 3000, 1044659339))
+                .withdrawn(true)
+                .build(),
+        ))
+        .await;
+
+        assert!(field(&data, "expires_at").is_undefined());
+        assert_eq!(field(&data, "withdrawn").as_bool(), Some(true));
+    }
+
+    /// `type` and `media_type` were `String` and are now the wire vocabularies
+    /// the core models. The strings a consumer switched on are unchanged; what
+    /// changed is that a value outside the set no longer reads as one of them.
+    #[test]
+    async fn an_undecryptable_message_carries_the_envelope_type_and_the_enc_mediatype() {
+        let mut info = MessageInfo::default();
+        info.source.chat = jid("120363000000000001@g.us");
+        info.source.sender = jid("5511999:7@s.whatsapp.net");
+        info.id = "3EB0C1D2E3F4".into();
+        info.push_name = "Alice".into();
+        info.timestamp = timestamp();
+        info.r#type = Some(StanzaMessageType::Poll);
+        info.media_type = Some(EncMediaType::Ptt);
+        info.meta_info.poll_type = Some(PollType::Vote);
+
+        let (name, data) = deliver(Event::UndecryptableMessage(
+            UndecryptableMessage::builder()
+                .info(Arc::new(info))
+                .is_unavailable(false)
+                .unavailable_type(UnavailableType::Unknown)
+                .decrypt_fail_mode(DecryptFailMode::Show)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "undecryptable_message");
+        let info = field(&data, "info");
+        assert_eq!(field(&info, "type").as_string().as_deref(), Some("poll"));
+        assert_eq!(
+            field(&info, "media_type").as_string().as_deref(),
+            Some("ptt")
+        );
+        assert_eq!(
+            field(&field(&info, "meta_info"), "poll_type")
+                .as_string()
+                .as_deref(),
+            Some("vote")
+        );
+    }
+
+    /// Neither attribute is mandatory on the wire, and an absent one is now
+    /// absent rather than `""` — the empty string was this bridge inventing a
+    /// value for something the stanza never carried.
+    #[test]
+    async fn an_undecryptable_message_omits_an_envelope_type_the_stanza_did_not_carry() {
+        let mut info = MessageInfo::default();
+        info.source.chat = jid("5511999@s.whatsapp.net");
+        info.source.sender = jid("5511999:7@s.whatsapp.net");
+        info.id = "3EB0AAAABBBB".into();
+        info.timestamp = timestamp();
+
+        let (_, data) = deliver(Event::UndecryptableMessage(
+            UndecryptableMessage::builder()
+                .info(Arc::new(info))
+                .is_unavailable(true)
+                .unavailable_type(UnavailableType::ViewOnce)
+                .decrypt_fail_mode(DecryptFailMode::Hide)
+                .build(),
+        ))
+        .await;
+
+        let info = field(&data, "info");
+        assert!(field(&info, "type").is_undefined());
+        assert!(field(&info, "media_type").is_undefined());
+        assert!(field(&field(&info, "meta_info"), "poll_type").is_undefined());
+        // The two enums the core rebuilt from the catalog keep their wire
+        // spellings, which is the whole of what crosses here.
+        assert_eq!(
+            field(&data, "unavailable_type").as_string().as_deref(),
+            Some("view_once")
+        );
+        assert_eq!(
+            field(&data, "decrypt_fail_mode").as_string().as_deref(),
+            Some("hide")
+        );
     }
 }
 

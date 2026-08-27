@@ -922,6 +922,25 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IBackwardEdge {
+		encryptedPrevEpochAnonId?: (Uint8Array|null);
+		encryptedPrevEpochRootKey?: (Uint8Array|null);
+		prevEpochRootKeyFingerprint?: (Uint8Array|null);
+	}
+
+	class BackwardEdge implements IBackwardEdge {
+		constructor(p?: IBackwardEdge);
+		public encryptedPrevEpochAnonId?: (Uint8Array|null);
+		public encryptedPrevEpochRootKey?: (Uint8Array|null);
+		public prevEpochRootKeyFingerprint?: (Uint8Array|null);
+		public static create(p?: IBackwardEdge): BackwardEdge;
+		public static fromObject(d: { [k: string]: any }): BackwardEdge;
+		public static toObject(m: BackwardEdge, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IBackwardEdge, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): BackwardEdge;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IBizAccountLinkInfo {
 		whatsappBizAcctFbid?: (Long|null);
 		whatsappAcctNumber?: (string|null);
@@ -5046,6 +5065,152 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IDecryptMekForDistributionFromTransportSenderInput {
+		mekDistribution?: (proto.DecryptMekForDistributionFromTransportSenderInput.ITransportSenderMEKDistributionSingleRecipient|null);
+		mekId?: (Uint8Array|null);
+		rosterHash?: (Uint8Array|null);
+		recipientEncSk?: (Uint8Array|null);
+		version?: (Long|null);
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class DecryptMekForDistributionFromTransportSenderInput implements IDecryptMekForDistributionFromTransportSenderInput {
+		constructor(p?: IDecryptMekForDistributionFromTransportSenderInput);
+		public mekDistribution?: (proto.DecryptMekForDistributionFromTransportSenderInput.ITransportSenderMEKDistributionSingleRecipient|null);
+		public mekId?: (Uint8Array|null);
+		public rosterHash?: (Uint8Array|null);
+		public recipientEncSk?: (Uint8Array|null);
+		public version?: (Long|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IDecryptMekForDistributionFromTransportSenderInput): DecryptMekForDistributionFromTransportSenderInput;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionFromTransportSenderInput;
+		public static toObject(m: DecryptMekForDistributionFromTransportSenderInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionFromTransportSenderInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionFromTransportSenderInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace DecryptMekForDistributionFromTransportSenderInput {
+
+		interface ITransportSenderMEKDistributionSingleRecipient {
+			encryptedMek?: (Uint8Array|null);
+			ephemeralEncryptionPk?: (Uint8Array|null);
+			signingPk?: (Uint8Array|null);
+			signature?: (Uint8Array|null);
+			recipientEpochHead?: (Uint8Array|null);
+		}
+
+		class TransportSenderMEKDistributionSingleRecipient implements ITransportSenderMEKDistributionSingleRecipient {
+			constructor(p?: ITransportSenderMEKDistributionSingleRecipient);
+			public encryptedMek?: (Uint8Array|null);
+			public ephemeralEncryptionPk?: (Uint8Array|null);
+			public signingPk?: (Uint8Array|null);
+			public signature?: (Uint8Array|null);
+			public recipientEpochHead?: (Uint8Array|null);
+			public static create(p?: ITransportSenderMEKDistributionSingleRecipient): TransportSenderMEKDistributionSingleRecipient;
+			public static fromObject(d: { [k: string]: any }): TransportSenderMEKDistributionSingleRecipient;
+			public static toObject(m: TransportSenderMEKDistributionSingleRecipient, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: ITransportSenderMEKDistributionSingleRecipient, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): TransportSenderMEKDistributionSingleRecipient;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IDecryptMekForDistributionFromTransportSenderResult {
+		success?: (proto.IDecryptMekForDistributionFromTransportSenderSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class DecryptMekForDistributionFromTransportSenderResult implements IDecryptMekForDistributionFromTransportSenderResult {
+		constructor(p?: IDecryptMekForDistributionFromTransportSenderResult);
+		public success?: (proto.IDecryptMekForDistributionFromTransportSenderSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IDecryptMekForDistributionFromTransportSenderResult): DecryptMekForDistributionFromTransportSenderResult;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionFromTransportSenderResult;
+		public static toObject(m: DecryptMekForDistributionFromTransportSenderResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionFromTransportSenderResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionFromTransportSenderResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptMekForDistributionFromTransportSenderSuccess {
+		mek?: (Uint8Array|null);
+	}
+
+	class DecryptMekForDistributionFromTransportSenderSuccess implements IDecryptMekForDistributionFromTransportSenderSuccess {
+		constructor(p?: IDecryptMekForDistributionFromTransportSenderSuccess);
+		public mek?: (Uint8Array|null);
+		public static create(p?: IDecryptMekForDistributionFromTransportSenderSuccess): DecryptMekForDistributionFromTransportSenderSuccess;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionFromTransportSenderSuccess;
+		public static toObject(m: DecryptMekForDistributionFromTransportSenderSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionFromTransportSenderSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionFromTransportSenderSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptMekForDistributionInput {
+		toMailboxSk?: (Uint8Array|null);
+		fromPk?: (Uint8Array|null);
+		mekId?: (Uint8Array|null);
+		senderEpochHead?: (Uint8Array|null);
+		rosterHash?: (Uint8Array|null);
+		ciphertext?: (Uint8Array|null);
+		toEpochHead?: (Uint8Array|null);
+		mekEncryptionVersion?: (number|null);
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class DecryptMekForDistributionInput implements IDecryptMekForDistributionInput {
+		constructor(p?: IDecryptMekForDistributionInput);
+		public toMailboxSk?: (Uint8Array|null);
+		public fromPk?: (Uint8Array|null);
+		public mekId?: (Uint8Array|null);
+		public senderEpochHead?: (Uint8Array|null);
+		public rosterHash?: (Uint8Array|null);
+		public ciphertext?: (Uint8Array|null);
+		public toEpochHead?: (Uint8Array|null);
+		public mekEncryptionVersion?: (number|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IDecryptMekForDistributionInput): DecryptMekForDistributionInput;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionInput;
+		public static toObject(m: DecryptMekForDistributionInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptMekForDistributionResult {
+		success?: (proto.IDecryptMekForDistributionSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class DecryptMekForDistributionResult implements IDecryptMekForDistributionResult {
+		constructor(p?: IDecryptMekForDistributionResult);
+		public success?: (proto.IDecryptMekForDistributionSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IDecryptMekForDistributionResult): DecryptMekForDistributionResult;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionResult;
+		public static toObject(m: DecryptMekForDistributionResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptMekForDistributionSuccess {
+		mek?: (Uint8Array|null);
+	}
+
+	class DecryptMekForDistributionSuccess implements IDecryptMekForDistributionSuccess {
+		constructor(p?: IDecryptMekForDistributionSuccess);
+		public mek?: (Uint8Array|null);
+		public static create(p?: IDecryptMekForDistributionSuccess): DecryptMekForDistributionSuccess;
+		public static fromObject(d: { [k: string]: any }): DecryptMekForDistributionSuccess;
+		public static toObject(m: DecryptMekForDistributionSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptMekForDistributionSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptMekForDistributionSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IDecryptMessageInput {
 		epochRootKey?: (Uint8Array|null);
 		epochAnonId?: (Uint8Array|null);
@@ -5086,6 +5251,236 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IDecryptSelfMmkDistributionInput {
+		encryptedMmk?: (Uint8Array|null);
+		exportRootKey?: (Uint8Array|null);
+		mailboxHeadHash?: (Uint8Array|null);
+	}
+
+	class DecryptSelfMmkDistributionInput implements IDecryptSelfMmkDistributionInput {
+		constructor(p?: IDecryptSelfMmkDistributionInput);
+		public encryptedMmk?: (Uint8Array|null);
+		public exportRootKey?: (Uint8Array|null);
+		public mailboxHeadHash?: (Uint8Array|null);
+		public static create(p?: IDecryptSelfMmkDistributionInput): DecryptSelfMmkDistributionInput;
+		public static fromObject(d: { [k: string]: any }): DecryptSelfMmkDistributionInput;
+		public static toObject(m: DecryptSelfMmkDistributionInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptSelfMmkDistributionInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptSelfMmkDistributionInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptSelfMmkDistributionResult {
+		success?: (proto.IDecryptSelfMmkDistributionSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class DecryptSelfMmkDistributionResult implements IDecryptSelfMmkDistributionResult {
+		constructor(p?: IDecryptSelfMmkDistributionResult);
+		public success?: (proto.IDecryptSelfMmkDistributionSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IDecryptSelfMmkDistributionResult): DecryptSelfMmkDistributionResult;
+		public static fromObject(d: { [k: string]: any }): DecryptSelfMmkDistributionResult;
+		public static toObject(m: DecryptSelfMmkDistributionResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptSelfMmkDistributionResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptSelfMmkDistributionResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDecryptSelfMmkDistributionSuccess {
+		mmkSeed?: (Uint8Array|null);
+	}
+
+	class DecryptSelfMmkDistributionSuccess implements IDecryptSelfMmkDistributionSuccess {
+		constructor(p?: IDecryptSelfMmkDistributionSuccess);
+		public mmkSeed?: (Uint8Array|null);
+		public static create(p?: IDecryptSelfMmkDistributionSuccess): DecryptSelfMmkDistributionSuccess;
+		public static fromObject(d: { [k: string]: any }): DecryptSelfMmkDistributionSuccess;
+		public static toObject(m: DecryptSelfMmkDistributionSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDecryptSelfMmkDistributionSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DecryptSelfMmkDistributionSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveAttachmentAccessTokenSecretInput {
+		mediaKey?: (Uint8Array|null);
+	}
+
+	class DeriveAttachmentAccessTokenSecretInput implements IDeriveAttachmentAccessTokenSecretInput {
+		constructor(p?: IDeriveAttachmentAccessTokenSecretInput);
+		public mediaKey?: (Uint8Array|null);
+		public static create(p?: IDeriveAttachmentAccessTokenSecretInput): DeriveAttachmentAccessTokenSecretInput;
+		public static fromObject(d: { [k: string]: any }): DeriveAttachmentAccessTokenSecretInput;
+		public static toObject(m: DeriveAttachmentAccessTokenSecretInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveAttachmentAccessTokenSecretInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveAttachmentAccessTokenSecretInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveAttachmentAccessTokenSecretResult {
+		attachmentAccessTokenSecret?: (Uint8Array|null);
+	}
+
+	class DeriveAttachmentAccessTokenSecretResult implements IDeriveAttachmentAccessTokenSecretResult {
+		constructor(p?: IDeriveAttachmentAccessTokenSecretResult);
+		public attachmentAccessTokenSecret?: (Uint8Array|null);
+		public static create(p?: IDeriveAttachmentAccessTokenSecretResult): DeriveAttachmentAccessTokenSecretResult;
+		public static fromObject(d: { [k: string]: any }): DeriveAttachmentAccessTokenSecretResult;
+		public static toObject(m: DeriveAttachmentAccessTokenSecretResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveAttachmentAccessTokenSecretResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveAttachmentAccessTokenSecretResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveAttachmentPrimaryKeySecretInput {
+		mediaKey?: (Uint8Array|null);
+	}
+
+	class DeriveAttachmentPrimaryKeySecretInput implements IDeriveAttachmentPrimaryKeySecretInput {
+		constructor(p?: IDeriveAttachmentPrimaryKeySecretInput);
+		public mediaKey?: (Uint8Array|null);
+		public static create(p?: IDeriveAttachmentPrimaryKeySecretInput): DeriveAttachmentPrimaryKeySecretInput;
+		public static fromObject(d: { [k: string]: any }): DeriveAttachmentPrimaryKeySecretInput;
+		public static toObject(m: DeriveAttachmentPrimaryKeySecretInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveAttachmentPrimaryKeySecretInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveAttachmentPrimaryKeySecretInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveAttachmentPrimaryKeySecretResult {
+		attachmentPrimaryKeySecret?: (Uint8Array|null);
+	}
+
+	class DeriveAttachmentPrimaryKeySecretResult implements IDeriveAttachmentPrimaryKeySecretResult {
+		constructor(p?: IDeriveAttachmentPrimaryKeySecretResult);
+		public attachmentPrimaryKeySecret?: (Uint8Array|null);
+		public static create(p?: IDeriveAttachmentPrimaryKeySecretResult): DeriveAttachmentPrimaryKeySecretResult;
+		public static fromObject(d: { [k: string]: any }): DeriveAttachmentPrimaryKeySecretResult;
+		public static toObject(m: DeriveAttachmentPrimaryKeySecretResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveAttachmentPrimaryKeySecretResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveAttachmentPrimaryKeySecretResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxAuthKeypairInput {
+		exportRootKey?: (Uint8Array|null);
+		epochNumber?: (Long|null);
+	}
+
+	class DeriveMailboxAuthKeypairInput implements IDeriveMailboxAuthKeypairInput {
+		constructor(p?: IDeriveMailboxAuthKeypairInput);
+		public exportRootKey?: (Uint8Array|null);
+		public epochNumber?: (Long|null);
+		public static create(p?: IDeriveMailboxAuthKeypairInput): DeriveMailboxAuthKeypairInput;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxAuthKeypairInput;
+		public static toObject(m: DeriveMailboxAuthKeypairInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxAuthKeypairInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxAuthKeypairInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxAuthKeypairResult {
+		mailboxAuthPublicKey?: (Uint8Array|null);
+		mailboxAuthPrivateKey?: (Uint8Array|null);
+	}
+
+	class DeriveMailboxAuthKeypairResult implements IDeriveMailboxAuthKeypairResult {
+		constructor(p?: IDeriveMailboxAuthKeypairResult);
+		public mailboxAuthPublicKey?: (Uint8Array|null);
+		public mailboxAuthPrivateKey?: (Uint8Array|null);
+		public static create(p?: IDeriveMailboxAuthKeypairResult): DeriveMailboxAuthKeypairResult;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxAuthKeypairResult;
+		public static toObject(m: DeriveMailboxAuthKeypairResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxAuthKeypairResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxAuthKeypairResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxEncryptionKeypairInput {
+		exportRootKey?: (Uint8Array|null);
+		epochNumber?: (Long|null);
+	}
+
+	class DeriveMailboxEncryptionKeypairInput implements IDeriveMailboxEncryptionKeypairInput {
+		constructor(p?: IDeriveMailboxEncryptionKeypairInput);
+		public exportRootKey?: (Uint8Array|null);
+		public epochNumber?: (Long|null);
+		public static create(p?: IDeriveMailboxEncryptionKeypairInput): DeriveMailboxEncryptionKeypairInput;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxEncryptionKeypairInput;
+		public static toObject(m: DeriveMailboxEncryptionKeypairInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxEncryptionKeypairInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxEncryptionKeypairInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxEncryptionKeypairResult {
+		mailboxEncryptionPublicKey?: (Uint8Array|null);
+		mailboxEncryptionPrivateKey?: (Uint8Array|null);
+	}
+
+	class DeriveMailboxEncryptionKeypairResult implements IDeriveMailboxEncryptionKeypairResult {
+		constructor(p?: IDeriveMailboxEncryptionKeypairResult);
+		public mailboxEncryptionPublicKey?: (Uint8Array|null);
+		public mailboxEncryptionPrivateKey?: (Uint8Array|null);
+		public static create(p?: IDeriveMailboxEncryptionKeypairResult): DeriveMailboxEncryptionKeypairResult;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxEncryptionKeypairResult;
+		public static toObject(m: DeriveMailboxEncryptionKeypairResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxEncryptionKeypairResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxEncryptionKeypairResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxSigningKeypairInput {
+		exportRootKey?: (Uint8Array|null);
+		epochNumber?: (Long|null);
+	}
+
+	class DeriveMailboxSigningKeypairInput implements IDeriveMailboxSigningKeypairInput {
+		constructor(p?: IDeriveMailboxSigningKeypairInput);
+		public exportRootKey?: (Uint8Array|null);
+		public epochNumber?: (Long|null);
+		public static create(p?: IDeriveMailboxSigningKeypairInput): DeriveMailboxSigningKeypairInput;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxSigningKeypairInput;
+		public static toObject(m: DeriveMailboxSigningKeypairInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxSigningKeypairInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxSigningKeypairInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxSigningKeypairResult {
+		success?: (proto.IDeriveMailboxSigningKeypairSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class DeriveMailboxSigningKeypairResult implements IDeriveMailboxSigningKeypairResult {
+		constructor(p?: IDeriveMailboxSigningKeypairResult);
+		public success?: (proto.IDeriveMailboxSigningKeypairSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IDeriveMailboxSigningKeypairResult): DeriveMailboxSigningKeypairResult;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxSigningKeypairResult;
+		public static toObject(m: DeriveMailboxSigningKeypairResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxSigningKeypairResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxSigningKeypairResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMailboxSigningKeypairSuccess {
+		mailboxSigningPublicKey?: (Uint8Array|null);
+		mailboxSigningPrivateKey?: (Uint8Array|null);
+	}
+
+	class DeriveMailboxSigningKeypairSuccess implements IDeriveMailboxSigningKeypairSuccess {
+		constructor(p?: IDeriveMailboxSigningKeypairSuccess);
+		public mailboxSigningPublicKey?: (Uint8Array|null);
+		public mailboxSigningPrivateKey?: (Uint8Array|null);
+		public static create(p?: IDeriveMailboxSigningKeypairSuccess): DeriveMailboxSigningKeypairSuccess;
+		public static fromObject(d: { [k: string]: any }): DeriveMailboxSigningKeypairSuccess;
+		public static toObject(m: DeriveMailboxSigningKeypairSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMailboxSigningKeypairSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMailboxSigningKeypairSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IDeriveMessageKeyInput {
 		epochRootKey?: (Uint8Array|null);
 		epochAnonId?: (Uint8Array|null);
@@ -5122,6 +5517,84 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IDeriveMessagingMailboxKeypairsInput {
+		mmkSeed?: (Uint8Array|null);
+	}
+
+	class DeriveMessagingMailboxKeypairsInput implements IDeriveMessagingMailboxKeypairsInput {
+		constructor(p?: IDeriveMessagingMailboxKeypairsInput);
+		public mmkSeed?: (Uint8Array|null);
+		public static create(p?: IDeriveMessagingMailboxKeypairsInput): DeriveMessagingMailboxKeypairsInput;
+		public static fromObject(d: { [k: string]: any }): DeriveMessagingMailboxKeypairsInput;
+		public static toObject(m: DeriveMessagingMailboxKeypairsInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMessagingMailboxKeypairsInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMessagingMailboxKeypairsInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMessagingMailboxKeypairsResult {
+		success?: (proto.IDeriveMessagingMailboxKeypairsSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class DeriveMessagingMailboxKeypairsResult implements IDeriveMessagingMailboxKeypairsResult {
+		constructor(p?: IDeriveMessagingMailboxKeypairsResult);
+		public success?: (proto.IDeriveMessagingMailboxKeypairsSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IDeriveMessagingMailboxKeypairsResult): DeriveMessagingMailboxKeypairsResult;
+		public static fromObject(d: { [k: string]: any }): DeriveMessagingMailboxKeypairsResult;
+		public static toObject(m: DeriveMessagingMailboxKeypairsResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMessagingMailboxKeypairsResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMessagingMailboxKeypairsResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDeriveMessagingMailboxKeypairsSuccess {
+		encSk?: (Uint8Array|null);
+		encPk?: (Uint8Array|null);
+		authSk?: (Uint8Array|null);
+		authPk?: (Uint8Array|null);
+	}
+
+	class DeriveMessagingMailboxKeypairsSuccess implements IDeriveMessagingMailboxKeypairsSuccess {
+		constructor(p?: IDeriveMessagingMailboxKeypairsSuccess);
+		public encSk?: (Uint8Array|null);
+		public encPk?: (Uint8Array|null);
+		public authSk?: (Uint8Array|null);
+		public authPk?: (Uint8Array|null);
+		public static create(p?: IDeriveMessagingMailboxKeypairsSuccess): DeriveMessagingMailboxKeypairsSuccess;
+		public static fromObject(d: { [k: string]: any }): DeriveMessagingMailboxKeypairsSuccess;
+		public static toObject(m: DeriveMessagingMailboxKeypairsSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDeriveMessagingMailboxKeypairsSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DeriveMessagingMailboxKeypairsSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IDetachedDevicePublicData {
+		deviceId?: (Long|null);
+		name?: (Uint8Array|null);
+		sigPk?: (Uint8Array|null);
+		authPk?: (Uint8Array|null);
+		encPk?: (Uint8Array|null);
+		signature?: (Uint8Array|null);
+	}
+
+	class DetachedDevicePublicData implements IDetachedDevicePublicData {
+		constructor(p?: IDetachedDevicePublicData);
+		public deviceId?: (Long|null);
+		public name?: (Uint8Array|null);
+		public sigPk?: (Uint8Array|null);
+		public authPk?: (Uint8Array|null);
+		public encPk?: (Uint8Array|null);
+		public signature?: (Uint8Array|null);
+		public static create(p?: IDetachedDevicePublicData): DetachedDevicePublicData;
+		public static fromObject(d: { [k: string]: any }): DetachedDevicePublicData;
+		public static toObject(m: DetachedDevicePublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IDetachedDevicePublicData, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DetachedDevicePublicData;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IDeviceCapabilities {
 		chatLockSupportLevel?: (proto.DeviceCapabilities.ChatLockSupportLevel|null);
 		lidMigration?: (proto.DeviceCapabilities.ILIDMigration|null);
@@ -5130,6 +5603,8 @@ export namespace proto {
 		memberNameTagPrimarySupport?: (proto.DeviceCapabilities.MemberNameTagPrimarySupport|null);
 		aiThread?: (proto.DeviceCapabilities.IAiThread|null);
 		aiFbidMigration?: (proto.DeviceCapabilities.IAiFbidMigration|null);
+		bizAiSettingsSync?: (proto.DeviceCapabilities.IBizAiSettingsSync|null);
+		contactRefresh?: (proto.DeviceCapabilities.IContactRefresh|null);
 	}
 
 	class DeviceCapabilities implements IDeviceCapabilities {
@@ -5141,6 +5616,8 @@ export namespace proto {
 		public memberNameTagPrimarySupport?: (proto.DeviceCapabilities.MemberNameTagPrimarySupport|null);
 		public aiThread?: (proto.DeviceCapabilities.IAiThread|null);
 		public aiFbidMigration?: (proto.DeviceCapabilities.IAiFbidMigration|null);
+		public bizAiSettingsSync?: (proto.DeviceCapabilities.IBizAiSettingsSync|null);
+		public contactRefresh?: (proto.DeviceCapabilities.IContactRefresh|null);
 		public static create(p?: IDeviceCapabilities): DeviceCapabilities;
 		public static fromObject(d: { [k: string]: any }): DeviceCapabilities;
 		public static toObject(m: DeviceCapabilities, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5190,6 +5667,21 @@ export namespace proto {
 			}
 		}
 
+		interface IBizAiSettingsSync {
+			handoffRemovalTimingEnabled?: (boolean|null);
+		}
+
+		class BizAiSettingsSync implements IBizAiSettingsSync {
+			constructor(p?: IBizAiSettingsSync);
+			public handoffRemovalTimingEnabled?: (boolean|null);
+			public static create(p?: IBizAiSettingsSync): BizAiSettingsSync;
+			public static fromObject(d: { [k: string]: any }): BizAiSettingsSync;
+			public static toObject(m: BizAiSettingsSync, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IBizAiSettingsSync, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): BizAiSettingsSync;
+			public toJSON(): { [k: string]: any };
+		}
+
 		interface IBusinessBroadcast {
 			importListEnabled?: (boolean|null);
 			companionSupportEnabled?: (boolean|null);
@@ -5217,6 +5709,21 @@ export namespace proto {
 			NONE = 0,
 			MINIMAL = 1,
 			FULL = 2,
+		}
+
+		interface IContactRefresh {
+			refreshSupported?: (boolean|null);
+		}
+
+		class ContactRefresh implements IContactRefresh {
+			constructor(p?: IContactRefresh);
+			public refreshSupported?: (boolean|null);
+			public static create(p?: IContactRefresh): ContactRefresh;
+			public static fromObject(d: { [k: string]: any }): ContactRefresh;
+			public static toObject(m: ContactRefresh, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IContactRefresh, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): ContactRefresh;
+			public toJSON(): { [k: string]: any };
 		}
 
 		interface ILIDMigration {
@@ -5312,6 +5819,7 @@ export namespace proto {
 		encryptionVersionSignature?: (Uint8Array|null);
 		clientVersion?: (number|null);
 		ocmfClientState?: (Uint8Array|null);
+		epochStoragePrivateKey?: (Uint8Array|null);
 	}
 
 	class DeviceOutput implements IDeviceOutput {
@@ -5325,6 +5833,7 @@ export namespace proto {
 		public encryptionVersionSignature?: (Uint8Array|null);
 		public clientVersion?: (number|null);
 		public ocmfClientState?: (Uint8Array|null);
+		public epochStoragePrivateKey?: (Uint8Array|null);
 		public static create(p?: IDeviceOutput): DeviceOutput;
 		public static fromObject(d: { [k: string]: any }): DeviceOutput;
 		public static toObject(m: DeviceOutput, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -5635,6 +6144,134 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IEncryptMekForDistributionInput {
+		senderEpochHead?: (Uint8Array|null);
+		toMailboxPk?: (Uint8Array|null);
+		fromKeypair?: (proto.EncryptMekForDistributionInput.IMailboxAuthKP|null);
+		mek?: (proto.IMekBundle|null);
+		toEpochHead?: (Uint8Array|null);
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class EncryptMekForDistributionInput implements IEncryptMekForDistributionInput {
+		constructor(p?: IEncryptMekForDistributionInput);
+		public senderEpochHead?: (Uint8Array|null);
+		public toMailboxPk?: (Uint8Array|null);
+		public fromKeypair?: (proto.EncryptMekForDistributionInput.IMailboxAuthKP|null);
+		public mek?: (proto.IMekBundle|null);
+		public toEpochHead?: (Uint8Array|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IEncryptMekForDistributionInput): EncryptMekForDistributionInput;
+		public static fromObject(d: { [k: string]: any }): EncryptMekForDistributionInput;
+		public static toObject(m: EncryptMekForDistributionInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEncryptMekForDistributionInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EncryptMekForDistributionInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace EncryptMekForDistributionInput {
+
+		interface IMailboxAuthKP {
+			sk?: (Uint8Array|null);
+			pk?: (Uint8Array|null);
+		}
+
+		class MailboxAuthKP implements IMailboxAuthKP {
+			constructor(p?: IMailboxAuthKP);
+			public sk?: (Uint8Array|null);
+			public pk?: (Uint8Array|null);
+			public static create(p?: IMailboxAuthKP): MailboxAuthKP;
+			public static fromObject(d: { [k: string]: any }): MailboxAuthKP;
+			public static toObject(m: MailboxAuthKP, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IMailboxAuthKP, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MailboxAuthKP;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IEncryptMekForDistributionResult {
+		ciphertext?: (Uint8Array|null);
+		version?: (Long|null);
+	}
+
+	class EncryptMekForDistributionResult implements IEncryptMekForDistributionResult {
+		constructor(p?: IEncryptMekForDistributionResult);
+		public ciphertext?: (Uint8Array|null);
+		public version?: (Long|null);
+		public static create(p?: IEncryptMekForDistributionResult): EncryptMekForDistributionResult;
+		public static fromObject(d: { [k: string]: any }): EncryptMekForDistributionResult;
+		public static toObject(m: EncryptMekForDistributionResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEncryptMekForDistributionResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EncryptMekForDistributionResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IEncryptMeksForDistributionFromTransportSenderInput {
+		mek?: (proto.IMekBundle|null);
+		transportSigningKp?: (proto.EncryptMeksForDistributionFromTransportSenderInput.ITransportSigningKP|null);
+		recipientMailboxEncryptionPks?: Uint8Array[];
+		recipientEpochHeads?: Uint8Array[];
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class EncryptMeksForDistributionFromTransportSenderInput implements IEncryptMeksForDistributionFromTransportSenderInput {
+		constructor(p?: IEncryptMeksForDistributionFromTransportSenderInput);
+		public mek?: (proto.IMekBundle|null);
+		public transportSigningKp?: (proto.EncryptMeksForDistributionFromTransportSenderInput.ITransportSigningKP|null);
+		public recipientMailboxEncryptionPks?: Uint8Array[];
+		public recipientEpochHeads?: Uint8Array[];
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IEncryptMeksForDistributionFromTransportSenderInput): EncryptMeksForDistributionFromTransportSenderInput;
+		public static fromObject(d: { [k: string]: any }): EncryptMeksForDistributionFromTransportSenderInput;
+		public static toObject(m: EncryptMeksForDistributionFromTransportSenderInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEncryptMeksForDistributionFromTransportSenderInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EncryptMeksForDistributionFromTransportSenderInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace EncryptMeksForDistributionFromTransportSenderInput {
+
+		interface ITransportSigningKP {
+			sk?: (Uint8Array|null);
+			pk?: (Uint8Array|null);
+		}
+
+		class TransportSigningKP implements ITransportSigningKP {
+			constructor(p?: ITransportSigningKP);
+			public sk?: (Uint8Array|null);
+			public pk?: (Uint8Array|null);
+			public static create(p?: ITransportSigningKP): TransportSigningKP;
+			public static fromObject(d: { [k: string]: any }): TransportSigningKP;
+			public static toObject(m: TransportSigningKP, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: ITransportSigningKP, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): TransportSigningKP;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IEncryptMeksForDistributionFromTransportSenderResult {
+		encryptedMeks?: Uint8Array[];
+		ephemeralEncryptionPk?: (Uint8Array|null);
+		signingPk?: (Uint8Array|null);
+		signature?: (Uint8Array|null);
+		version?: (Long|null);
+	}
+
+	class EncryptMeksForDistributionFromTransportSenderResult implements IEncryptMeksForDistributionFromTransportSenderResult {
+		constructor(p?: IEncryptMeksForDistributionFromTransportSenderResult);
+		public encryptedMeks?: Uint8Array[];
+		public ephemeralEncryptionPk?: (Uint8Array|null);
+		public signingPk?: (Uint8Array|null);
+		public signature?: (Uint8Array|null);
+		public version?: (Long|null);
+		public static create(p?: IEncryptMeksForDistributionFromTransportSenderResult): EncryptMeksForDistributionFromTransportSenderResult;
+		public static fromObject(d: { [k: string]: any }): EncryptMeksForDistributionFromTransportSenderResult;
+		public static toObject(m: EncryptMeksForDistributionFromTransportSenderResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEncryptMeksForDistributionFromTransportSenderResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EncryptMeksForDistributionFromTransportSenderResult;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IEncryptMessageInput {
 		epochRootKey?: (Uint8Array|null);
 		mailboxRootKey?: (Uint8Array|null);
@@ -5739,6 +6376,48 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IEpochPublicData {
+		epochNumber?: (Long|null);
+		userFbid?: (string|null);
+		mailboxSigningPk?: (Uint8Array|null);
+		mailboxEncryptionPk?: (Uint8Array|null);
+		mailboxAuthPk?: (Uint8Array|null);
+		previousEpochHead?: (Uint8Array|null);
+	}
+
+	class EpochPublicData implements IEpochPublicData {
+		constructor(p?: IEpochPublicData);
+		public epochNumber?: (Long|null);
+		public userFbid?: (string|null);
+		public mailboxSigningPk?: (Uint8Array|null);
+		public mailboxEncryptionPk?: (Uint8Array|null);
+		public mailboxAuthPk?: (Uint8Array|null);
+		public previousEpochHead?: (Uint8Array|null);
+		public static create(p?: IEpochPublicData): EpochPublicData;
+		public static fromObject(d: { [k: string]: any }): EpochPublicData;
+		public static toObject(m: EpochPublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEpochPublicData, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EpochPublicData;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IEpochSignatures {
+		selfSignature?: (Uint8Array|null);
+		prevSignature?: (Uint8Array|null);
+	}
+
+	class EpochSignatures implements IEpochSignatures {
+		constructor(p?: IEpochSignatures);
+		public selfSignature?: (Uint8Array|null);
+		public prevSignature?: (Uint8Array|null);
+		public static create(p?: IEpochSignatures): EpochSignatures;
+		public static fromObject(d: { [k: string]: any }): EpochSignatures;
+		public static toObject(m: EpochSignatures, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IEpochSignatures, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EpochSignatures;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IEventAdditionalMetadata {
 		isStale?: (boolean|null);
 	}
@@ -5790,6 +6469,223 @@ export namespace proto {
 		public static encode(m: IExitCode, w?: $protobuf.Writer): $protobuf.Writer;
 		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): ExitCode;
 		public toJSON(): { [k: string]: any };
+	}
+
+	interface IExtendedContentMessage {
+		associatedMessage?: (proto.ISubProtocol|null);
+		targetType?: (extendedContentMessageExtendedContentType|null);
+		targetUsername?: (string|null);
+		targetId?: (string|null);
+		targetExpiringAtSec?: (Long|null);
+		xmaLayoutType?: (extendedContentMessageXmaLayoutType|null);
+		ctas?: proto.ExtendedContentMessage.ICTA[];
+		previews?: proto.ISubProtocol[];
+		titleText?: (string|null);
+		subtitleText?: (string|null);
+		maxTitleNumOfLines?: (number|null);
+		maxSubtitleNumOfLines?: (number|null);
+		favicon?: (proto.ISubProtocol|null);
+		headerImage?: (proto.ISubProtocol|null);
+		headerTitle?: (string|null);
+		overlayIconGlyph?: (proto.ExtendedContentMessage.extendedContentMessageOverlayIconGlyph|null);
+		overlayTitle?: (string|null);
+		overlayDescription?: (string|null);
+		sentWithMessageId?: (string|null);
+		messageText?: (string|null);
+		headerSubtitle?: (string|null);
+		xmaDataclass?: (string|null);
+		contentRef?: (string|null);
+		mentionedJid?: string[];
+		commands?: proto.ICommand[];
+		mentions?: proto.IMention[];
+		xmaDataclassType?: (extendedContentMessageXmaDataclassType|null);
+		signedXmaDataclassValidation?: (string|null);
+		featureSharedSessionId?: (string|null);
+	}
+
+	class ExtendedContentMessage implements IExtendedContentMessage {
+		constructor(p?: IExtendedContentMessage);
+		public associatedMessage?: (proto.ISubProtocol|null);
+		public targetType?: (extendedContentMessageExtendedContentType|null);
+		public targetUsername?: (string|null);
+		public targetId?: (string|null);
+		public targetExpiringAtSec?: (Long|null);
+		public xmaLayoutType?: (extendedContentMessageXmaLayoutType|null);
+		public ctas?: proto.ExtendedContentMessage.ICTA[];
+		public previews?: proto.ISubProtocol[];
+		public titleText?: (string|null);
+		public subtitleText?: (string|null);
+		public maxTitleNumOfLines?: (number|null);
+		public maxSubtitleNumOfLines?: (number|null);
+		public favicon?: (proto.ISubProtocol|null);
+		public headerImage?: (proto.ISubProtocol|null);
+		public headerTitle?: (string|null);
+		public overlayIconGlyph?: (proto.ExtendedContentMessage.extendedContentMessageOverlayIconGlyph|null);
+		public overlayTitle?: (string|null);
+		public overlayDescription?: (string|null);
+		public sentWithMessageId?: (string|null);
+		public messageText?: (string|null);
+		public headerSubtitle?: (string|null);
+		public xmaDataclass?: (string|null);
+		public contentRef?: (string|null);
+		public mentionedJid?: string[];
+		public commands?: proto.ICommand[];
+		public mentions?: proto.IMention[];
+		public xmaDataclassType?: (extendedContentMessageXmaDataclassType|null);
+		public signedXmaDataclassValidation?: (string|null);
+		public featureSharedSessionId?: (string|null);
+		public static create(p?: IExtendedContentMessage): ExtendedContentMessage;
+		public static fromObject(d: { [k: string]: any }): ExtendedContentMessage;
+		public static toObject(m: ExtendedContentMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IExtendedContentMessage, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): ExtendedContentMessage;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace ExtendedContentMessage {
+
+		interface ICTA {
+			buttonType?: (extendedContentMessageCtaButtonType|null);
+			title?: (string|null);
+			actionUrl?: (string|null);
+			nativeUrl?: (string|null);
+			ctaType?: (string|null);
+			actionContentBlob?: (string|null);
+		}
+
+		class CTA implements ICTA {
+			constructor(p?: ICTA);
+			public buttonType?: (extendedContentMessageCtaButtonType|null);
+			public title?: (string|null);
+			public actionUrl?: (string|null);
+			public nativeUrl?: (string|null);
+			public ctaType?: (string|null);
+			public actionContentBlob?: (string|null);
+			public static create(p?: ICTA): CTA;
+			public static fromObject(d: { [k: string]: any }): CTA;
+			public static toObject(m: CTA, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: ICTA, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): CTA;
+			public toJSON(): { [k: string]: any };
+		}
+
+		enum extendedContentMessageOverlayIconGlyph {
+			INFO = 0,
+			EYE_OFF = 1,
+			NEWS_OFF = 2,
+			WARNING = 3,
+			PRIVATE = 4,
+			NONE = 5,
+			MEDIA_LABEL = 6,
+			POST_COVER = 7,
+			POST_LABEL = 8,
+			WARNING_SCREENS = 9,
+		}
+	}
+
+	enum extendedContentMessageCtaButtonType {
+		OPEN_NATIVE = 11,
+	}
+
+	enum extendedContentMessageExtendedContentType {
+		UNSUPPORTED = -1,
+		IG_STORY_PHOTO_MENTION = 4,
+		IG_SINGLE_IMAGE_POST_SHARE = 9,
+		IG_MULTIPOST_SHARE = 10,
+		IG_SINGLE_VIDEO_POST_SHARE = 11,
+		IG_STORY_PHOTO_SHARE = 12,
+		IG_STORY_VIDEO_SHARE = 13,
+		IG_CLIPS_SHARE = 14,
+		IG_IGTV_SHARE = 15,
+		IG_SHOP_SHARE = 16,
+		IG_PROFILE_SHARE = 19,
+		IG_STORY_PHOTO_HIGHLIGHT_SHARE = 20,
+		IG_STORY_VIDEO_HIGHLIGHT_SHARE = 21,
+		IG_STORY_REPLY = 22,
+		IG_STORY_REACTION = 23,
+		IG_STORY_VIDEO_MENTION = 24,
+		IG_STORY_HIGHLIGHT_REPLY = 25,
+		IG_STORY_HIGHLIGHT_REACTION = 26,
+		IG_EXTERNAL_LINK = 27,
+		IG_RECEIVER_FETCH = 28,
+		FB_FEED_SHARE = 1000,
+		FB_STORY_REPLY = 1001,
+		FB_STORY_SHARE = 1002,
+		FB_STORY_MENTION = 1003,
+		FB_FEED_VIDEO_SHARE = 1004,
+		FB_GAMING_CUSTOM_UPDATE = 1005,
+		FB_PRODUCER_STORY_REPLY = 1006,
+		FB_EVENT = 1007,
+		FB_FEED_POST_PRIVATE_REPLY = 1008,
+		FB_SHORT = 1009,
+		FB_COMMENT_MENTION_SHARE = 1010,
+		FB_POST_MENTION = 1011,
+		FB_PROFILE_DIRECTORY_ITEM = 1013,
+		FB_FEED_POST_REACTION_REPLY = 1014,
+		FB_QUICKSNAP_REPLY = 1015,
+		MSG_EXTERNAL_LINK_SHARE = 2000,
+		MSG_P2P_PAYMENT = 2001,
+		MSG_LOCATION_SHARING = 2002,
+		MSG_LOCATION_SHARING_V2 = 2003,
+		MSG_HIGHLIGHTS_TAB_FRIEND_UPDATES_REPLY = 2004,
+		MSG_HIGHLIGHTS_TAB_LOCAL_EVENT_REPLY = 2005,
+		MSG_RECEIVER_FETCH = 2006,
+		MSG_IG_MEDIA_SHARE = 2007,
+		MSG_GEN_AI_SEARCH_PLUGIN_RESPONSE = 2008,
+		MSG_REELS_LIST = 2009,
+		MSG_CONTACT = 2010,
+		MSG_THREADS_POST_SHARE = 2011,
+		MSG_FILE = 2012,
+		MSG_AVATAR_DETAILS = 2013,
+		MSG_AI_CONTACT = 2014,
+		MSG_MEMORIES_SHARE = 2015,
+		MSG_SHARED_ALBUM_REPLY = 2016,
+		MSG_SHARED_ALBUM = 2017,
+		MSG_OCCAMADILLO_XMA = 2018,
+		MSG_GEN_AI_SUBSCRIPTION = 2021,
+		MSG_GEN_AI_REMINDER = 2022,
+		MSG_GEN_AI_MEMU_ONBOARDING_RESPONSE = 2023,
+		MSG_NOTE_REPLY = 2024,
+		MSG_NOTE_MENTION = 2025,
+		GEN_AI_ENTITY = 2026,
+		MSG_OPG_P2P_PAYMENT = 2027,
+		GEN_AI_RICH_RESPONSE = 2028,
+		MSG_MUSIC_STICKER = 2029,
+		MSG_PHONE_NUMBER = 2030,
+		AI_ACTIVITY_SHARE = 2031,
+		MSG_PRIVATE_XMA = 2032,
+		MSG_SOCIAL_CUE_MEMORIES = 2033,
+		MSG_MANUS_GROWTH_REFERRAL = 2060,
+		MSG_MOMENT_LINK = 2061,
+		MSG_HORIZON_WEEL = 2062,
+		MSG_MOMENT_ADDED = 2063,
+		RTC_AUDIO_CALL = 3000,
+		RTC_VIDEO_CALL = 3001,
+		RTC_MISSED_AUDIO_CALL = 3002,
+		RTC_MISSED_VIDEO_CALL = 3003,
+		RTC_GROUP_AUDIO_CALL = 3004,
+		RTC_GROUP_VIDEO_CALL = 3005,
+		RTC_MISSED_GROUP_AUDIO_CALL = 3006,
+		RTC_MISSED_GROUP_VIDEO_CALL = 3007,
+		RTC_ONGOING_AUDIO_CALL = 3008,
+		RTC_ONGOING_VIDEO_CALL = 3009,
+		MSG_RECEIVER_FETCH_FALLBACK = 3025,
+		DATACLASS_SENDER_COPY = 4000,
+	}
+
+	enum extendedContentMessageXmaDataclassType {
+		SENDER_COPY = 0,
+		SERVER = 1,
+		SIGNED_CLIENT = 2,
+	}
+
+	enum extendedContentMessageXmaLayoutType {
+		SINGLE = 0,
+		HSCROLL = 1,
+		PORTRAIT = 3,
+		STANDARD_DXMA = 12,
+		LIST_DXMA = 15,
+		GRID = 16,
 	}
 
 	interface IExternalBlobReference {
@@ -5916,6 +6812,66 @@ export namespace proto {
 		PLACEHOLDER = 0,
 		NO_PLACEHOLDER = 1,
 		IGNORE = 2,
+	}
+
+	interface IGenerateMekInput {
+		epochHeads?: Uint8Array[];
+	}
+
+	class GenerateMekInput implements IGenerateMekInput {
+		constructor(p?: IGenerateMekInput);
+		public epochHeads?: Uint8Array[];
+		public static create(p?: IGenerateMekInput): GenerateMekInput;
+		public static fromObject(d: { [k: string]: any }): GenerateMekInput;
+		public static toObject(m: GenerateMekInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IGenerateMekInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): GenerateMekInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IGenerateMekResult {
+		mek?: (proto.IMekBundle|null);
+	}
+
+	class GenerateMekResult implements IGenerateMekResult {
+		constructor(p?: IGenerateMekResult);
+		public mek?: (proto.IMekBundle|null);
+		public static create(p?: IGenerateMekResult): GenerateMekResult;
+		public static fromObject(d: { [k: string]: any }): GenerateMekResult;
+		public static toObject(m: GenerateMekResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IGenerateMekResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): GenerateMekResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IGenerateMekRosterHashInput {
+		epochHeads?: Uint8Array[];
+	}
+
+	class GenerateMekRosterHashInput implements IGenerateMekRosterHashInput {
+		constructor(p?: IGenerateMekRosterHashInput);
+		public epochHeads?: Uint8Array[];
+		public static create(p?: IGenerateMekRosterHashInput): GenerateMekRosterHashInput;
+		public static fromObject(d: { [k: string]: any }): GenerateMekRosterHashInput;
+		public static toObject(m: GenerateMekRosterHashInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IGenerateMekRosterHashInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): GenerateMekRosterHashInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IGenerateMekRosterHashResult {
+		rosterHash?: (Uint8Array|null);
+	}
+
+	class GenerateMekRosterHashResult implements IGenerateMekRosterHashResult {
+		constructor(p?: IGenerateMekRosterHashResult);
+		public rosterHash?: (Uint8Array|null);
+		public static create(p?: IGenerateMekRosterHashResult): GenerateMekRosterHashResult;
+		public static fromObject(d: { [k: string]: any }): GenerateMekRosterHashResult;
+		public static toObject(m: GenerateMekRosterHashResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IGenerateMekRosterHashResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): GenerateMekRosterHashResult;
+		public toJSON(): { [k: string]: any };
 	}
 
 	interface IGlobalSettings {
@@ -6899,6 +7855,443 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IMandrakeDecryptMekInput {
+		encryptedMek?: (Uint8Array|null);
+		recipientsHash?: (Uint8Array|null);
+		recipientEncSk?: (Uint8Array|null);
+		mekEncryptionVersion?: (Long|null);
+		conf?: (proto.IMinosClientConfig|null);
+		recipientMmk?: (proto.IMessagingMailboxPublicData|null);
+		mekId?: (Uint8Array|null);
+		recipientMembershipProof?: (proto.IMerkleMembershipProof|null);
+		mmkSender?: (proto.MandrakeDecryptMekInput.IMmkSenderPublicData|null);
+		epochSender?: (proto.MandrakeDecryptMekInput.IEpochSenderPublicData|null);
+		precomputedEpochSender?: (proto.MandrakeDecryptMekInput.IPrecomputedEpochSenderPublicData|null);
+	}
+
+	class MandrakeDecryptMekInput implements IMandrakeDecryptMekInput {
+		constructor(p?: IMandrakeDecryptMekInput);
+		public encryptedMek?: (Uint8Array|null);
+		public recipientsHash?: (Uint8Array|null);
+		public recipientEncSk?: (Uint8Array|null);
+		public mekEncryptionVersion?: (Long|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public recipientMmk?: (proto.IMessagingMailboxPublicData|null);
+		public mekId?: (Uint8Array|null);
+		public recipientMembershipProof?: (proto.IMerkleMembershipProof|null);
+		public mmkSender?: (proto.MandrakeDecryptMekInput.IMmkSenderPublicData|null);
+		public epochSender?: (proto.MandrakeDecryptMekInput.IEpochSenderPublicData|null);
+		public precomputedEpochSender?: (proto.MandrakeDecryptMekInput.IPrecomputedEpochSenderPublicData|null);
+		public static create(p?: IMandrakeDecryptMekInput): MandrakeDecryptMekInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeDecryptMekInput;
+		public static toObject(m: MandrakeDecryptMekInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeDecryptMekInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeDecryptMekInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace MandrakeDecryptMekInput {
+
+		interface IEpochSenderPublicData {
+			epochPublicData?: (proto.IEpochPublicData|null);
+		}
+
+		class EpochSenderPublicData implements IEpochSenderPublicData {
+			constructor(p?: IEpochSenderPublicData);
+			public epochPublicData?: (proto.IEpochPublicData|null);
+			public static create(p?: IEpochSenderPublicData): EpochSenderPublicData;
+			public static fromObject(d: { [k: string]: any }): EpochSenderPublicData;
+			public static toObject(m: EpochSenderPublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IEpochSenderPublicData, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EpochSenderPublicData;
+			public toJSON(): { [k: string]: any };
+		}
+
+		interface IMmkSenderPublicData {
+			mmkPublicData?: (proto.IMessagingMailboxPublicData|null);
+		}
+
+		class MmkSenderPublicData implements IMmkSenderPublicData {
+			constructor(p?: IMmkSenderPublicData);
+			public mmkPublicData?: (proto.IMessagingMailboxPublicData|null);
+			public static create(p?: IMmkSenderPublicData): MmkSenderPublicData;
+			public static fromObject(d: { [k: string]: any }): MmkSenderPublicData;
+			public static toObject(m: MmkSenderPublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IMmkSenderPublicData, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkSenderPublicData;
+			public toJSON(): { [k: string]: any };
+		}
+
+		interface IPrecomputedEpochSenderPublicData {
+			authPk?: (Uint8Array|null);
+			epochHead?: (Uint8Array|null);
+		}
+
+		class PrecomputedEpochSenderPublicData implements IPrecomputedEpochSenderPublicData {
+			constructor(p?: IPrecomputedEpochSenderPublicData);
+			public authPk?: (Uint8Array|null);
+			public epochHead?: (Uint8Array|null);
+			public static create(p?: IPrecomputedEpochSenderPublicData): PrecomputedEpochSenderPublicData;
+			public static fromObject(d: { [k: string]: any }): PrecomputedEpochSenderPublicData;
+			public static toObject(m: PrecomputedEpochSenderPublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IPrecomputedEpochSenderPublicData, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): PrecomputedEpochSenderPublicData;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IMandrakeDecryptMekResult {
+		success?: (proto.IMandrakeDecryptMekSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class MandrakeDecryptMekResult implements IMandrakeDecryptMekResult {
+		constructor(p?: IMandrakeDecryptMekResult);
+		public success?: (proto.IMandrakeDecryptMekSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMandrakeDecryptMekResult): MandrakeDecryptMekResult;
+		public static fromObject(d: { [k: string]: any }): MandrakeDecryptMekResult;
+		public static toObject(m: MandrakeDecryptMekResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeDecryptMekResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeDecryptMekResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeDecryptMekSuccess {
+		mek?: (Uint8Array|null);
+	}
+
+	class MandrakeDecryptMekSuccess implements IMandrakeDecryptMekSuccess {
+		constructor(p?: IMandrakeDecryptMekSuccess);
+		public mek?: (Uint8Array|null);
+		public static create(p?: IMandrakeDecryptMekSuccess): MandrakeDecryptMekSuccess;
+		public static fromObject(d: { [k: string]: any }): MandrakeDecryptMekSuccess;
+		public static toObject(m: MandrakeDecryptMekSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeDecryptMekSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeDecryptMekSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeEncryptMekInput {
+		mek?: (proto.IMandrakeMekBundle|null);
+		recipients?: proto.IMessagingMailboxPublicData[];
+		conf?: (proto.IMinosClientConfig|null);
+		mmkSender?: (proto.MandrakeEncryptMekInput.IMmkSender|null);
+		epochSender?: (proto.MandrakeEncryptMekInput.IEpochSender|null);
+		detachedDeviceSender?: (proto.MandrakeEncryptMekInput.IDetachedDeviceSender|null);
+	}
+
+	class MandrakeEncryptMekInput implements IMandrakeEncryptMekInput {
+		constructor(p?: IMandrakeEncryptMekInput);
+		public mek?: (proto.IMandrakeMekBundle|null);
+		public recipients?: proto.IMessagingMailboxPublicData[];
+		public conf?: (proto.IMinosClientConfig|null);
+		public mmkSender?: (proto.MandrakeEncryptMekInput.IMmkSender|null);
+		public epochSender?: (proto.MandrakeEncryptMekInput.IEpochSender|null);
+		public detachedDeviceSender?: (proto.MandrakeEncryptMekInput.IDetachedDeviceSender|null);
+		public static create(p?: IMandrakeEncryptMekInput): MandrakeEncryptMekInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeEncryptMekInput;
+		public static toObject(m: MandrakeEncryptMekInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeEncryptMekInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeEncryptMekInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace MandrakeEncryptMekInput {
+
+		interface IDetachedDeviceSender {
+			detachedDevicePublicData?: (proto.IDetachedDevicePublicData|null);
+			authSk?: (Uint8Array|null);
+			authPk?: (Uint8Array|null);
+		}
+
+		class DetachedDeviceSender implements IDetachedDeviceSender {
+			constructor(p?: IDetachedDeviceSender);
+			public detachedDevicePublicData?: (proto.IDetachedDevicePublicData|null);
+			public authSk?: (Uint8Array|null);
+			public authPk?: (Uint8Array|null);
+			public static create(p?: IDetachedDeviceSender): DetachedDeviceSender;
+			public static fromObject(d: { [k: string]: any }): DetachedDeviceSender;
+			public static toObject(m: DetachedDeviceSender, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IDetachedDeviceSender, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): DetachedDeviceSender;
+			public toJSON(): { [k: string]: any };
+		}
+
+		interface IEpochSender {
+			epochPublicData?: (proto.IEpochPublicData|null);
+			authSk?: (Uint8Array|null);
+			authPk?: (Uint8Array|null);
+		}
+
+		class EpochSender implements IEpochSender {
+			constructor(p?: IEpochSender);
+			public epochPublicData?: (proto.IEpochPublicData|null);
+			public authSk?: (Uint8Array|null);
+			public authPk?: (Uint8Array|null);
+			public static create(p?: IEpochSender): EpochSender;
+			public static fromObject(d: { [k: string]: any }): EpochSender;
+			public static toObject(m: EpochSender, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IEpochSender, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): EpochSender;
+			public toJSON(): { [k: string]: any };
+		}
+
+		interface IMmkSender {
+			mmkPublicData?: (proto.IMessagingMailboxPublicData|null);
+			authSk?: (Uint8Array|null);
+			authPk?: (Uint8Array|null);
+		}
+
+		class MmkSender implements IMmkSender {
+			constructor(p?: IMmkSender);
+			public mmkPublicData?: (proto.IMessagingMailboxPublicData|null);
+			public authSk?: (Uint8Array|null);
+			public authPk?: (Uint8Array|null);
+			public static create(p?: IMmkSender): MmkSender;
+			public static fromObject(d: { [k: string]: any }): MmkSender;
+			public static toObject(m: MmkSender, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IMmkSender, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkSender;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IMandrakeEncryptMekResult {
+		success?: (proto.IMandrakeEncryptMekSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class MandrakeEncryptMekResult implements IMandrakeEncryptMekResult {
+		constructor(p?: IMandrakeEncryptMekResult);
+		public success?: (proto.IMandrakeEncryptMekSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMandrakeEncryptMekResult): MandrakeEncryptMekResult;
+		public static fromObject(d: { [k: string]: any }): MandrakeEncryptMekResult;
+		public static toObject(m: MandrakeEncryptMekResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeEncryptMekResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeEncryptMekResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeEncryptMekSuccess {
+		distributions?: proto.MandrakeEncryptMekSuccess.IMekDistributionSingleRecipient[];
+		recipientsHash?: (Uint8Array|null);
+		version?: (Long|null);
+	}
+
+	class MandrakeEncryptMekSuccess implements IMandrakeEncryptMekSuccess {
+		constructor(p?: IMandrakeEncryptMekSuccess);
+		public distributions?: proto.MandrakeEncryptMekSuccess.IMekDistributionSingleRecipient[];
+		public recipientsHash?: (Uint8Array|null);
+		public version?: (Long|null);
+		public static create(p?: IMandrakeEncryptMekSuccess): MandrakeEncryptMekSuccess;
+		public static fromObject(d: { [k: string]: any }): MandrakeEncryptMekSuccess;
+		public static toObject(m: MandrakeEncryptMekSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeEncryptMekSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeEncryptMekSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	namespace MandrakeEncryptMekSuccess {
+
+		interface IMekDistributionSingleRecipient {
+			encryptedMek?: (Uint8Array|null);
+			toMmk?: (proto.IMessagingMailboxPublicData|null);
+			recipientMembershipProof?: (proto.IMerkleMembershipProof|null);
+		}
+
+		class MekDistributionSingleRecipient implements IMekDistributionSingleRecipient {
+			constructor(p?: IMekDistributionSingleRecipient);
+			public encryptedMek?: (Uint8Array|null);
+			public toMmk?: (proto.IMessagingMailboxPublicData|null);
+			public recipientMembershipProof?: (proto.IMerkleMembershipProof|null);
+			public static create(p?: IMekDistributionSingleRecipient): MekDistributionSingleRecipient;
+			public static fromObject(d: { [k: string]: any }): MekDistributionSingleRecipient;
+			public static toObject(m: MekDistributionSingleRecipient, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: IMekDistributionSingleRecipient, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MekDistributionSingleRecipient;
+			public toJSON(): { [k: string]: any };
+		}
+	}
+
+	interface IMandrakeMekBundle {
+		key?: (Uint8Array|null);
+		mekId?: (Uint8Array|null);
+		mailboxHeadHash?: (Uint8Array|null);
+	}
+
+	class MandrakeMekBundle implements IMandrakeMekBundle {
+		constructor(p?: IMandrakeMekBundle);
+		public key?: (Uint8Array|null);
+		public mekId?: (Uint8Array|null);
+		public mailboxHeadHash?: (Uint8Array|null);
+		public static create(p?: IMandrakeMekBundle): MandrakeMekBundle;
+		public static fromObject(d: { [k: string]: any }): MandrakeMekBundle;
+		public static toObject(m: MandrakeMekBundle, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeMekBundle, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeMekBundle;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeOpenEpochInput {
+		userFbid?: (string|null);
+		epochNumber?: (Long|null);
+		exportRootKey?: (Uint8Array|null);
+		previousExportRootKey?: (Uint8Array|null);
+		previousEpochNumber?: (Long|null);
+		previousEpochHead?: (Uint8Array|null);
+		previousMmk?: (proto.IMessagingMailboxPublicData|null);
+		detachedDevices?: proto.IDetachedDevicePublicData[];
+	}
+
+	class MandrakeOpenEpochInput implements IMandrakeOpenEpochInput {
+		constructor(p?: IMandrakeOpenEpochInput);
+		public userFbid?: (string|null);
+		public epochNumber?: (Long|null);
+		public exportRootKey?: (Uint8Array|null);
+		public previousExportRootKey?: (Uint8Array|null);
+		public previousEpochNumber?: (Long|null);
+		public previousEpochHead?: (Uint8Array|null);
+		public previousMmk?: (proto.IMessagingMailboxPublicData|null);
+		public detachedDevices?: proto.IDetachedDevicePublicData[];
+		public static create(p?: IMandrakeOpenEpochInput): MandrakeOpenEpochInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeOpenEpochInput;
+		public static toObject(m: MandrakeOpenEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeOpenEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeOpenEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeOpenEpochResult {
+		success?: (proto.IMandrakeOpenEpochSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class MandrakeOpenEpochResult implements IMandrakeOpenEpochResult {
+		constructor(p?: IMandrakeOpenEpochResult);
+		public success?: (proto.IMandrakeOpenEpochSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMandrakeOpenEpochResult): MandrakeOpenEpochResult;
+		public static fromObject(d: { [k: string]: any }): MandrakeOpenEpochResult;
+		public static toObject(m: MandrakeOpenEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeOpenEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeOpenEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeOpenEpochSuccess {
+		minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+		signedMmkDistribution?: (proto.ISignedMmkDistributionFromMailbox|null);
+	}
+
+	class MandrakeOpenEpochSuccess implements IMandrakeOpenEpochSuccess {
+		constructor(p?: IMandrakeOpenEpochSuccess);
+		public minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+		public signedMmkDistribution?: (proto.ISignedMmkDistributionFromMailbox|null);
+		public static create(p?: IMandrakeOpenEpochSuccess): MandrakeOpenEpochSuccess;
+		public static fromObject(d: { [k: string]: any }): MandrakeOpenEpochSuccess;
+		public static toObject(m: MandrakeOpenEpochSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeOpenEpochSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeOpenEpochSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeOpenInitialEpochInput {
+		userFbid?: (string|null);
+		epochNumber?: (Long|null);
+		exportRootKey?: (Uint8Array|null);
+		detachedDevices?: proto.IDetachedDevicePublicData[];
+	}
+
+	class MandrakeOpenInitialEpochInput implements IMandrakeOpenInitialEpochInput {
+		constructor(p?: IMandrakeOpenInitialEpochInput);
+		public userFbid?: (string|null);
+		public epochNumber?: (Long|null);
+		public exportRootKey?: (Uint8Array|null);
+		public detachedDevices?: proto.IDetachedDevicePublicData[];
+		public static create(p?: IMandrakeOpenInitialEpochInput): MandrakeOpenInitialEpochInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeOpenInitialEpochInput;
+		public static toObject(m: MandrakeOpenInitialEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeOpenInitialEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeOpenInitialEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeOpenInitialEpochResult {
+		success?: (proto.IMandrakeOpenEpochSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class MandrakeOpenInitialEpochResult implements IMandrakeOpenInitialEpochResult {
+		constructor(p?: IMandrakeOpenInitialEpochResult);
+		public success?: (proto.IMandrakeOpenEpochSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMandrakeOpenInitialEpochResult): MandrakeOpenInitialEpochResult;
+		public static fromObject(d: { [k: string]: any }): MandrakeOpenInitialEpochResult;
+		public static toObject(m: MandrakeOpenInitialEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeOpenInitialEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeOpenInitialEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeValidateNewMmkFromDetachedDeviceInput {
+		mmkFromDevice?: (proto.IMmkFromDetachedDevice|null);
+		signature?: (Uint8Array|null);
+		prevMmk?: (proto.IMessagingMailboxPublicData|null);
+	}
+
+	class MandrakeValidateNewMmkFromDetachedDeviceInput implements IMandrakeValidateNewMmkFromDetachedDeviceInput {
+		constructor(p?: IMandrakeValidateNewMmkFromDetachedDeviceInput);
+		public mmkFromDevice?: (proto.IMmkFromDetachedDevice|null);
+		public signature?: (Uint8Array|null);
+		public prevMmk?: (proto.IMessagingMailboxPublicData|null);
+		public static create(p?: IMandrakeValidateNewMmkFromDetachedDeviceInput): MandrakeValidateNewMmkFromDetachedDeviceInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeValidateNewMmkFromDetachedDeviceInput;
+		public static toObject(m: MandrakeValidateNewMmkFromDetachedDeviceInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeValidateNewMmkFromDetachedDeviceInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeValidateNewMmkFromDetachedDeviceInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeValidateNewMmkFromMailboxInput {
+		newMmk?: (proto.IMessagingMailboxPublicData|null);
+		signature?: (Uint8Array|null);
+		prevMmk?: (proto.IMessagingMailboxPublicData|null);
+		epochPublicData?: (proto.IEpochPublicData|null);
+	}
+
+	class MandrakeValidateNewMmkFromMailboxInput implements IMandrakeValidateNewMmkFromMailboxInput {
+		constructor(p?: IMandrakeValidateNewMmkFromMailboxInput);
+		public newMmk?: (proto.IMessagingMailboxPublicData|null);
+		public signature?: (Uint8Array|null);
+		public prevMmk?: (proto.IMessagingMailboxPublicData|null);
+		public epochPublicData?: (proto.IEpochPublicData|null);
+		public static create(p?: IMandrakeValidateNewMmkFromMailboxInput): MandrakeValidateNewMmkFromMailboxInput;
+		public static fromObject(d: { [k: string]: any }): MandrakeValidateNewMmkFromMailboxInput;
+		public static toObject(m: MandrakeValidateNewMmkFromMailboxInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeValidateNewMmkFromMailboxInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeValidateNewMmkFromMailboxInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMandrakeValidateNewMmkResult {
+		valid?: (boolean|null);
+		errorMessage?: (string|null);
+	}
+
+	class MandrakeValidateNewMmkResult implements IMandrakeValidateNewMmkResult {
+		constructor(p?: IMandrakeValidateNewMmkResult);
+		public valid?: (boolean|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMandrakeValidateNewMmkResult): MandrakeValidateNewMmkResult;
+		public static fromObject(d: { [k: string]: any }): MandrakeValidateNewMmkResult;
+		public static toObject(m: MandrakeValidateNewMmkResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMandrakeValidateNewMmkResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MandrakeValidateNewMmkResult;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IMediaData {
 		localPath?: (string|null);
 	}
@@ -7085,6 +8478,25 @@ export namespace proto {
 		ON = 2,
 	}
 
+	interface IMekBundle {
+		key?: (Uint8Array|null);
+		mekId?: (Uint8Array|null);
+		rosterHash?: (Uint8Array|null);
+	}
+
+	class MekBundle implements IMekBundle {
+		constructor(p?: IMekBundle);
+		public key?: (Uint8Array|null);
+		public mekId?: (Uint8Array|null);
+		public rosterHash?: (Uint8Array|null);
+		public static create(p?: IMekBundle): MekBundle;
+		public static fromObject(d: { [k: string]: any }): MekBundle;
+		public static toObject(m: MekBundle, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMekBundle, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MekBundle;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IMemberLabel {
 		label?: (string|null);
 		labelTimestamp?: (Long|null);
@@ -7125,6 +8537,27 @@ export namespace proto {
 
 	enum mentionMentionType {
 		PROFILE = 0,
+	}
+
+	interface IMerkleMembershipProof {
+		proof?: (Uint8Array|null);
+		root?: (Uint8Array|null);
+		leafIndex?: (Long|null);
+		totalLeaves?: (Long|null);
+	}
+
+	class MerkleMembershipProof implements IMerkleMembershipProof {
+		constructor(p?: IMerkleMembershipProof);
+		public proof?: (Uint8Array|null);
+		public root?: (Uint8Array|null);
+		public leafIndex?: (Long|null);
+		public totalLeaves?: (Long|null);
+		public static create(p?: IMerkleMembershipProof): MerkleMembershipProof;
+		public static fromObject(d: { [k: string]: any }): MerkleMembershipProof;
+		public static toObject(m: MerkleMembershipProof, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMerkleMembershipProof, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MerkleMembershipProof;
+		public toJSON(): { [k: string]: any };
 	}
 
 	interface IMessage {
@@ -9695,6 +11128,7 @@ export namespace proto {
 
 			enum MusicMessageStyle {
 				UNKNOWN = 0,
+				VINYL = 1,
 			}
 		}
 
@@ -12152,6 +13586,538 @@ export namespace proto {
 		public toJSON(): { [k: string]: any };
 	}
 
+	interface IMessagingMailboxPublicData {
+		epochHead?: (Uint8Array|null);
+		deviceRosterHash?: (Uint8Array|null);
+		sequenceNumber?: (Long|null);
+		sigPk?: (Uint8Array|null);
+		encPk?: (Uint8Array|null);
+		authPk?: (Uint8Array|null);
+	}
+
+	class MessagingMailboxPublicData implements IMessagingMailboxPublicData {
+		constructor(p?: IMessagingMailboxPublicData);
+		public epochHead?: (Uint8Array|null);
+		public deviceRosterHash?: (Uint8Array|null);
+		public sequenceNumber?: (Long|null);
+		public sigPk?: (Uint8Array|null);
+		public encPk?: (Uint8Array|null);
+		public authPk?: (Uint8Array|null);
+		public static create(p?: IMessagingMailboxPublicData): MessagingMailboxPublicData;
+		public static fromObject(d: { [k: string]: any }): MessagingMailboxPublicData;
+		public static toObject(m: MessagingMailboxPublicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMessagingMailboxPublicData, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MessagingMailboxPublicData;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosClientConfig {
+		preferredMessageEncryptionVersion?: (number|null);
+		preferredMekEncryptionVersion?: (number|null);
+	}
+
+	class MinosClientConfig implements IMinosClientConfig {
+		constructor(p?: IMinosClientConfig);
+		public preferredMessageEncryptionVersion?: (number|null);
+		public preferredMekEncryptionVersion?: (number|null);
+		public static create(p?: IMinosClientConfig): MinosClientConfig;
+		public static fromObject(d: { [k: string]: any }): MinosClientConfig;
+		public static toObject(m: MinosClientConfig, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosClientConfig, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosClientConfig;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosCommand {
+		encryptAndSignMessage?: (proto.IMinosEncryptAndSignMessageInput|null);
+		decryptAndVerifyMessage?: (proto.IMinosDecryptAndVerifyMessageInput|null);
+		generateMek?: (proto.IGenerateMekInput|null);
+		generateMekRosterHash?: (proto.IGenerateMekRosterHashInput|null);
+		encryptMekForDistribution?: (proto.IEncryptMekForDistributionInput|null);
+		decryptMekForDistribution?: (proto.IDecryptMekForDistributionInput|null);
+		encryptMeksForDistributionFromTransportSender?: (proto.IEncryptMeksForDistributionFromTransportSenderInput|null);
+		decryptMekForDistributionFromTransportSender?: (proto.IDecryptMekForDistributionFromTransportSenderInput|null);
+		wrapTransportSigningPublicKey?: (proto.IWrapTransportSigningPublicKeyInput|null);
+		wrapTransportSigningSecretKey?: (proto.IWrapTransportSigningSecretKeyInput|null);
+		deriveMailboxSigningKeypair?: (proto.IDeriveMailboxSigningKeypairInput|null);
+		deriveMailboxEncryptionKeypair?: (proto.IDeriveMailboxEncryptionKeypairInput|null);
+		deriveMailboxAuthKeypair?: (proto.IDeriveMailboxAuthKeypairInput|null);
+		deriveAttachmentAccessTokenSecret?: (proto.IDeriveAttachmentAccessTokenSecretInput|null);
+		deriveAttachmentPrimaryKeySecret?: (proto.IDeriveAttachmentPrimaryKeySecretInput|null);
+		minosOpenInitialEpoch?: (proto.IMinosOpenInitialEpochInput|null);
+		minosOpenEpoch?: (proto.IMinosOpenEpochInput|null);
+		minosValidateEpoch?: (proto.IMinosValidateEpochInput|null);
+		minosVerifySingleEpoch?: (proto.IMinosVerifySingleEpochInput|null);
+		minosThreadIdFromOneToOneThread?: (proto.IMinosThreadIdFromOneToOneThreadInput|null);
+		minosThreadIdFromActThreadId?: (proto.IMinosThreadIdFromActThreadIdInput|null);
+		mandrakeOpenEpoch?: (proto.IMandrakeOpenEpochInput|null);
+		mandrakeEncryptMek?: (proto.IMandrakeEncryptMekInput|null);
+		mandrakeDecryptMek?: (proto.IMandrakeDecryptMekInput|null);
+		mandrakeOpenInitialEpoch?: (proto.IMandrakeOpenInitialEpochInput|null);
+		mandrakeValidateNewMmkFromMailbox?: (proto.IMandrakeValidateNewMmkFromMailboxInput|null);
+		mandrakeValidateNewMmkFromDetachedDevice?: (proto.IMandrakeValidateNewMmkFromDetachedDeviceInput|null);
+		deriveMessagingMailboxKeypairs?: (proto.IDeriveMessagingMailboxKeypairsInput|null);
+		decryptSelfMmkDistribution?: (proto.IDecryptSelfMmkDistributionInput|null);
+	}
+
+	class MinosCommand implements IMinosCommand {
+		constructor(p?: IMinosCommand);
+		public encryptAndSignMessage?: (proto.IMinosEncryptAndSignMessageInput|null);
+		public decryptAndVerifyMessage?: (proto.IMinosDecryptAndVerifyMessageInput|null);
+		public generateMek?: (proto.IGenerateMekInput|null);
+		public generateMekRosterHash?: (proto.IGenerateMekRosterHashInput|null);
+		public encryptMekForDistribution?: (proto.IEncryptMekForDistributionInput|null);
+		public decryptMekForDistribution?: (proto.IDecryptMekForDistributionInput|null);
+		public encryptMeksForDistributionFromTransportSender?: (proto.IEncryptMeksForDistributionFromTransportSenderInput|null);
+		public decryptMekForDistributionFromTransportSender?: (proto.IDecryptMekForDistributionFromTransportSenderInput|null);
+		public wrapTransportSigningPublicKey?: (proto.IWrapTransportSigningPublicKeyInput|null);
+		public wrapTransportSigningSecretKey?: (proto.IWrapTransportSigningSecretKeyInput|null);
+		public deriveMailboxSigningKeypair?: (proto.IDeriveMailboxSigningKeypairInput|null);
+		public deriveMailboxEncryptionKeypair?: (proto.IDeriveMailboxEncryptionKeypairInput|null);
+		public deriveMailboxAuthKeypair?: (proto.IDeriveMailboxAuthKeypairInput|null);
+		public deriveAttachmentAccessTokenSecret?: (proto.IDeriveAttachmentAccessTokenSecretInput|null);
+		public deriveAttachmentPrimaryKeySecret?: (proto.IDeriveAttachmentPrimaryKeySecretInput|null);
+		public minosOpenInitialEpoch?: (proto.IMinosOpenInitialEpochInput|null);
+		public minosOpenEpoch?: (proto.IMinosOpenEpochInput|null);
+		public minosValidateEpoch?: (proto.IMinosValidateEpochInput|null);
+		public minosVerifySingleEpoch?: (proto.IMinosVerifySingleEpochInput|null);
+		public minosThreadIdFromOneToOneThread?: (proto.IMinosThreadIdFromOneToOneThreadInput|null);
+		public minosThreadIdFromActThreadId?: (proto.IMinosThreadIdFromActThreadIdInput|null);
+		public mandrakeOpenEpoch?: (proto.IMandrakeOpenEpochInput|null);
+		public mandrakeEncryptMek?: (proto.IMandrakeEncryptMekInput|null);
+		public mandrakeDecryptMek?: (proto.IMandrakeDecryptMekInput|null);
+		public mandrakeOpenInitialEpoch?: (proto.IMandrakeOpenInitialEpochInput|null);
+		public mandrakeValidateNewMmkFromMailbox?: (proto.IMandrakeValidateNewMmkFromMailboxInput|null);
+		public mandrakeValidateNewMmkFromDetachedDevice?: (proto.IMandrakeValidateNewMmkFromDetachedDeviceInput|null);
+		public deriveMessagingMailboxKeypairs?: (proto.IDeriveMessagingMailboxKeypairsInput|null);
+		public decryptSelfMmkDistribution?: (proto.IDecryptSelfMmkDistributionInput|null);
+		public static create(p?: IMinosCommand): MinosCommand;
+		public static fromObject(d: { [k: string]: any }): MinosCommand;
+		public static toObject(m: MinosCommand, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosCommand, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosCommand;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosDecryptAndVerifyMessageInput {
+		transportSigningPk?: (Uint8Array|null);
+		mek?: (Uint8Array|null);
+		encryptedMessageCiphertext?: (Uint8Array|null);
+		encryptedMessageSignature?: (Uint8Array|null);
+		metadata?: (proto.IMinosMessageMetadata|null);
+		messageEncryptionVersion?: (number|null);
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class MinosDecryptAndVerifyMessageInput implements IMinosDecryptAndVerifyMessageInput {
+		constructor(p?: IMinosDecryptAndVerifyMessageInput);
+		public transportSigningPk?: (Uint8Array|null);
+		public mek?: (Uint8Array|null);
+		public encryptedMessageCiphertext?: (Uint8Array|null);
+		public encryptedMessageSignature?: (Uint8Array|null);
+		public metadata?: (proto.IMinosMessageMetadata|null);
+		public messageEncryptionVersion?: (number|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IMinosDecryptAndVerifyMessageInput): MinosDecryptAndVerifyMessageInput;
+		public static fromObject(d: { [k: string]: any }): MinosDecryptAndVerifyMessageInput;
+		public static toObject(m: MinosDecryptAndVerifyMessageInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosDecryptAndVerifyMessageInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosDecryptAndVerifyMessageInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosDecryptAndVerifyMessageResult {
+		success?: (proto.IMinosDecryptAndVerifyMessageSuccess|null);
+		errorMessage?: (string|null);
+	}
+
+	class MinosDecryptAndVerifyMessageResult implements IMinosDecryptAndVerifyMessageResult {
+		constructor(p?: IMinosDecryptAndVerifyMessageResult);
+		public success?: (proto.IMinosDecryptAndVerifyMessageSuccess|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMinosDecryptAndVerifyMessageResult): MinosDecryptAndVerifyMessageResult;
+		public static fromObject(d: { [k: string]: any }): MinosDecryptAndVerifyMessageResult;
+		public static toObject(m: MinosDecryptAndVerifyMessageResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosDecryptAndVerifyMessageResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosDecryptAndVerifyMessageResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosDecryptAndVerifyMessageSuccess {
+		plaintext?: (Uint8Array|null);
+	}
+
+	class MinosDecryptAndVerifyMessageSuccess implements IMinosDecryptAndVerifyMessageSuccess {
+		constructor(p?: IMinosDecryptAndVerifyMessageSuccess);
+		public plaintext?: (Uint8Array|null);
+		public static create(p?: IMinosDecryptAndVerifyMessageSuccess): MinosDecryptAndVerifyMessageSuccess;
+		public static fromObject(d: { [k: string]: any }): MinosDecryptAndVerifyMessageSuccess;
+		public static toObject(m: MinosDecryptAndVerifyMessageSuccess, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosDecryptAndVerifyMessageSuccess, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosDecryptAndVerifyMessageSuccess;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosEncryptAndSignMessageInput {
+		transportSigningSk?: (Uint8Array|null);
+		mek?: (Uint8Array|null);
+		plaintext?: (Uint8Array|null);
+		metadata?: (proto.IMinosMessageMetadata|null);
+		transportSigningPk?: (Uint8Array|null);
+		conf?: (proto.IMinosClientConfig|null);
+	}
+
+	class MinosEncryptAndSignMessageInput implements IMinosEncryptAndSignMessageInput {
+		constructor(p?: IMinosEncryptAndSignMessageInput);
+		public transportSigningSk?: (Uint8Array|null);
+		public mek?: (Uint8Array|null);
+		public plaintext?: (Uint8Array|null);
+		public metadata?: (proto.IMinosMessageMetadata|null);
+		public transportSigningPk?: (Uint8Array|null);
+		public conf?: (proto.IMinosClientConfig|null);
+		public static create(p?: IMinosEncryptAndSignMessageInput): MinosEncryptAndSignMessageInput;
+		public static fromObject(d: { [k: string]: any }): MinosEncryptAndSignMessageInput;
+		public static toObject(m: MinosEncryptAndSignMessageInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosEncryptAndSignMessageInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosEncryptAndSignMessageInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosEncryptAndSignMessageResult {
+		ciphertext?: (Uint8Array|null);
+		signature?: (Uint8Array|null);
+		version?: (number|null);
+	}
+
+	class MinosEncryptAndSignMessageResult implements IMinosEncryptAndSignMessageResult {
+		constructor(p?: IMinosEncryptAndSignMessageResult);
+		public ciphertext?: (Uint8Array|null);
+		public signature?: (Uint8Array|null);
+		public version?: (number|null);
+		public static create(p?: IMinosEncryptAndSignMessageResult): MinosEncryptAndSignMessageResult;
+		public static fromObject(d: { [k: string]: any }): MinosEncryptAndSignMessageResult;
+		public static toObject(m: MinosEncryptAndSignMessageResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosEncryptAndSignMessageResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosEncryptAndSignMessageResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosMessageMetadata {
+		mekId?: (Uint8Array|null);
+		timestamp?: (Long|null);
+		messageId?: (string|null);
+		threadId?: (Uint8Array|null);
+	}
+
+	class MinosMessageMetadata implements IMinosMessageMetadata {
+		constructor(p?: IMinosMessageMetadata);
+		public mekId?: (Uint8Array|null);
+		public timestamp?: (Long|null);
+		public messageId?: (string|null);
+		public threadId?: (Uint8Array|null);
+		public static create(p?: IMinosMessageMetadata): MinosMessageMetadata;
+		public static fromObject(d: { [k: string]: any }): MinosMessageMetadata;
+		public static toObject(m: MinosMessageMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosMessageMetadata, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosMessageMetadata;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosOpenEpochInput {
+		userFbid?: (string|null);
+		epochNumber?: (Long|null);
+		exportRootKey?: (Uint8Array|null);
+		previousExportRootKey?: (Uint8Array|null);
+		previousEpochNumber?: (Long|null);
+		previousEpochHead?: (Uint8Array|null);
+	}
+
+	class MinosOpenEpochInput implements IMinosOpenEpochInput {
+		constructor(p?: IMinosOpenEpochInput);
+		public userFbid?: (string|null);
+		public epochNumber?: (Long|null);
+		public exportRootKey?: (Uint8Array|null);
+		public previousExportRootKey?: (Uint8Array|null);
+		public previousEpochNumber?: (Long|null);
+		public previousEpochHead?: (Uint8Array|null);
+		public static create(p?: IMinosOpenEpochInput): MinosOpenEpochInput;
+		public static fromObject(d: { [k: string]: any }): MinosOpenEpochInput;
+		public static toObject(m: MinosOpenEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosOpenEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosOpenEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosOpenEpochResult {
+		minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+	}
+
+	class MinosOpenEpochResult implements IMinosOpenEpochResult {
+		constructor(p?: IMinosOpenEpochResult);
+		public minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+		public static create(p?: IMinosOpenEpochResult): MinosOpenEpochResult;
+		public static fromObject(d: { [k: string]: any }): MinosOpenEpochResult;
+		public static toObject(m: MinosOpenEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosOpenEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosOpenEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosOpenInitialEpochInput {
+		userFbid?: (string|null);
+		epochNumber?: (Long|null);
+		exportRootKey?: (Uint8Array|null);
+	}
+
+	class MinosOpenInitialEpochInput implements IMinosOpenInitialEpochInput {
+		constructor(p?: IMinosOpenInitialEpochInput);
+		public userFbid?: (string|null);
+		public epochNumber?: (Long|null);
+		public exportRootKey?: (Uint8Array|null);
+		public static create(p?: IMinosOpenInitialEpochInput): MinosOpenInitialEpochInput;
+		public static fromObject(d: { [k: string]: any }): MinosOpenInitialEpochInput;
+		public static toObject(m: MinosOpenInitialEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosOpenInitialEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosOpenInitialEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosOpenInitialEpochResult {
+		minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+	}
+
+	class MinosOpenInitialEpochResult implements IMinosOpenInitialEpochResult {
+		constructor(p?: IMinosOpenInitialEpochResult);
+		public minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
+		public static create(p?: IMinosOpenInitialEpochResult): MinosOpenInitialEpochResult;
+		public static fromObject(d: { [k: string]: any }): MinosOpenInitialEpochResult;
+		public static toObject(m: MinosOpenInitialEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosOpenInitialEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosOpenInitialEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosSignedEpoch {
+		epochPublicData?: (proto.IEpochPublicData|null);
+		signatures?: (proto.IEpochSignatures|null);
+		epochHead?: (Uint8Array|null);
+	}
+
+	class MinosSignedEpoch implements IMinosSignedEpoch {
+		constructor(p?: IMinosSignedEpoch);
+		public epochPublicData?: (proto.IEpochPublicData|null);
+		public signatures?: (proto.IEpochSignatures|null);
+		public epochHead?: (Uint8Array|null);
+		public static create(p?: IMinosSignedEpoch): MinosSignedEpoch;
+		public static fromObject(d: { [k: string]: any }): MinosSignedEpoch;
+		public static toObject(m: MinosSignedEpoch, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosSignedEpoch, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosSignedEpoch;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosThreadIdFromActThreadIdInput {
+		actThreadId?: (string|null);
+	}
+
+	class MinosThreadIdFromActThreadIdInput implements IMinosThreadIdFromActThreadIdInput {
+		constructor(p?: IMinosThreadIdFromActThreadIdInput);
+		public actThreadId?: (string|null);
+		public static create(p?: IMinosThreadIdFromActThreadIdInput): MinosThreadIdFromActThreadIdInput;
+		public static fromObject(d: { [k: string]: any }): MinosThreadIdFromActThreadIdInput;
+		public static toObject(m: MinosThreadIdFromActThreadIdInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosThreadIdFromActThreadIdInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosThreadIdFromActThreadIdInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosThreadIdFromActThreadIdResult {
+		threadId?: (Uint8Array|null);
+	}
+
+	class MinosThreadIdFromActThreadIdResult implements IMinosThreadIdFromActThreadIdResult {
+		constructor(p?: IMinosThreadIdFromActThreadIdResult);
+		public threadId?: (Uint8Array|null);
+		public static create(p?: IMinosThreadIdFromActThreadIdResult): MinosThreadIdFromActThreadIdResult;
+		public static fromObject(d: { [k: string]: any }): MinosThreadIdFromActThreadIdResult;
+		public static toObject(m: MinosThreadIdFromActThreadIdResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosThreadIdFromActThreadIdResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosThreadIdFromActThreadIdResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosThreadIdFromOneToOneThreadInput {
+		actThreadId?: (string|null);
+		selfFbid?: (string|null);
+	}
+
+	class MinosThreadIdFromOneToOneThreadInput implements IMinosThreadIdFromOneToOneThreadInput {
+		constructor(p?: IMinosThreadIdFromOneToOneThreadInput);
+		public actThreadId?: (string|null);
+		public selfFbid?: (string|null);
+		public static create(p?: IMinosThreadIdFromOneToOneThreadInput): MinosThreadIdFromOneToOneThreadInput;
+		public static fromObject(d: { [k: string]: any }): MinosThreadIdFromOneToOneThreadInput;
+		public static toObject(m: MinosThreadIdFromOneToOneThreadInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosThreadIdFromOneToOneThreadInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosThreadIdFromOneToOneThreadInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosThreadIdFromOneToOneThreadResult {
+		threadId?: (Uint8Array|null);
+	}
+
+	class MinosThreadIdFromOneToOneThreadResult implements IMinosThreadIdFromOneToOneThreadResult {
+		constructor(p?: IMinosThreadIdFromOneToOneThreadResult);
+		public threadId?: (Uint8Array|null);
+		public static create(p?: IMinosThreadIdFromOneToOneThreadResult): MinosThreadIdFromOneToOneThreadResult;
+		public static fromObject(d: { [k: string]: any }): MinosThreadIdFromOneToOneThreadResult;
+		public static toObject(m: MinosThreadIdFromOneToOneThreadResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosThreadIdFromOneToOneThreadResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosThreadIdFromOneToOneThreadResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosValidateEpochInput {
+		epochPublicData?: (proto.IEpochPublicData|null);
+		previousEpochPublicData?: (proto.IEpochPublicData|null);
+		signatures?: (proto.IEpochSignatures|null);
+	}
+
+	class MinosValidateEpochInput implements IMinosValidateEpochInput {
+		constructor(p?: IMinosValidateEpochInput);
+		public epochPublicData?: (proto.IEpochPublicData|null);
+		public previousEpochPublicData?: (proto.IEpochPublicData|null);
+		public signatures?: (proto.IEpochSignatures|null);
+		public static create(p?: IMinosValidateEpochInput): MinosValidateEpochInput;
+		public static fromObject(d: { [k: string]: any }): MinosValidateEpochInput;
+		public static toObject(m: MinosValidateEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosValidateEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosValidateEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosValidateEpochResult {
+		valid?: (boolean|null);
+		errorMessage?: (string|null);
+	}
+
+	class MinosValidateEpochResult implements IMinosValidateEpochResult {
+		constructor(p?: IMinosValidateEpochResult);
+		public valid?: (boolean|null);
+		public errorMessage?: (string|null);
+		public static create(p?: IMinosValidateEpochResult): MinosValidateEpochResult;
+		public static fromObject(d: { [k: string]: any }): MinosValidateEpochResult;
+		public static toObject(m: MinosValidateEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosValidateEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosValidateEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosVerifySingleEpochInput {
+		epochPublicData?: (proto.IEpochPublicData|null);
+		signature?: (Uint8Array|null);
+	}
+
+	class MinosVerifySingleEpochInput implements IMinosVerifySingleEpochInput {
+		constructor(p?: IMinosVerifySingleEpochInput);
+		public epochPublicData?: (proto.IEpochPublicData|null);
+		public signature?: (Uint8Array|null);
+		public static create(p?: IMinosVerifySingleEpochInput): MinosVerifySingleEpochInput;
+		public static fromObject(d: { [k: string]: any }): MinosVerifySingleEpochInput;
+		public static toObject(m: MinosVerifySingleEpochInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosVerifySingleEpochInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosVerifySingleEpochInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMinosVerifySingleEpochResult {
+		valid?: (boolean|null);
+	}
+
+	class MinosVerifySingleEpochResult implements IMinosVerifySingleEpochResult {
+		constructor(p?: IMinosVerifySingleEpochResult);
+		public valid?: (boolean|null);
+		public static create(p?: IMinosVerifySingleEpochResult): MinosVerifySingleEpochResult;
+		public static fromObject(d: { [k: string]: any }): MinosVerifySingleEpochResult;
+		public static toObject(m: MinosVerifySingleEpochResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMinosVerifySingleEpochResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MinosVerifySingleEpochResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMmkDistribution {
+		toDetachedDevices?: proto.IMmkDistributionToDetachedDevice[];
+		toMailbox?: (proto.IMmkDistributionToMailbox|null);
+		version?: (Long|null);
+	}
+
+	class MmkDistribution implements IMmkDistribution {
+		constructor(p?: IMmkDistribution);
+		public toDetachedDevices?: proto.IMmkDistributionToDetachedDevice[];
+		public toMailbox?: (proto.IMmkDistributionToMailbox|null);
+		public version?: (Long|null);
+		public static create(p?: IMmkDistribution): MmkDistribution;
+		public static fromObject(d: { [k: string]: any }): MmkDistribution;
+		public static toObject(m: MmkDistribution, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMmkDistribution, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkDistribution;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMmkDistributionToDetachedDevice {
+		encryptedMmk?: (Uint8Array|null);
+		recipDeviceHash?: (Uint8Array|null);
+	}
+
+	class MmkDistributionToDetachedDevice implements IMmkDistributionToDetachedDevice {
+		constructor(p?: IMmkDistributionToDetachedDevice);
+		public encryptedMmk?: (Uint8Array|null);
+		public recipDeviceHash?: (Uint8Array|null);
+		public static create(p?: IMmkDistributionToDetachedDevice): MmkDistributionToDetachedDevice;
+		public static fromObject(d: { [k: string]: any }): MmkDistributionToDetachedDevice;
+		public static toObject(m: MmkDistributionToDetachedDevice, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMmkDistributionToDetachedDevice, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkDistributionToDetachedDevice;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMmkDistributionToMailbox {
+		encryptedMmk?: (Uint8Array|null);
+		recipMailboxHeadHash?: (Uint8Array|null);
+	}
+
+	class MmkDistributionToMailbox implements IMmkDistributionToMailbox {
+		constructor(p?: IMmkDistributionToMailbox);
+		public encryptedMmk?: (Uint8Array|null);
+		public recipMailboxHeadHash?: (Uint8Array|null);
+		public static create(p?: IMmkDistributionToMailbox): MmkDistributionToMailbox;
+		public static fromObject(d: { [k: string]: any }): MmkDistributionToMailbox;
+		public static toObject(m: MmkDistributionToMailbox, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMmkDistributionToMailbox, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkDistributionToMailbox;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IMmkFromDetachedDevice {
+		mmk?: (proto.IMessagingMailboxPublicData|null);
+		fromDetachedDevice?: (proto.IDetachedDevicePublicData|null);
+		membershipProof?: (proto.IMerkleMembershipProof|null);
+	}
+
+	class MmkFromDetachedDevice implements IMmkFromDetachedDevice {
+		constructor(p?: IMmkFromDetachedDevice);
+		public mmk?: (proto.IMessagingMailboxPublicData|null);
+		public fromDetachedDevice?: (proto.IDetachedDevicePublicData|null);
+		public membershipProof?: (proto.IMerkleMembershipProof|null);
+		public static create(p?: IMmkFromDetachedDevice): MmkFromDetachedDevice;
+		public static fromObject(d: { [k: string]: any }): MmkFromDetachedDevice;
+		public static toObject(m: MmkFromDetachedDevice, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IMmkFromDetachedDevice, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): MmkFromDetachedDevice;
+		public toJSON(): { [k: string]: any };
+	}
+
 	interface IMoney {
 		value?: (Long|null);
 		offset?: (number|null);
@@ -12486,6 +14452,7 @@ export namespace proto {
 		BUBBLE_LOCK_MESSAGE_ACTION = 90,
 		LABEL_SUBLIST_ACTION = 91,
 		DEVICE_CAPABILITIES_V2 = 92,
+		CTWA_MESSAGE_RECEIVED_ACTION = 93,
 		SHARE_OWN_PN = 10001,
 		BUSINESS_BROADCAST_ACTION = 10002,
 		AI_THREAD_DELETE_ACTION = 10003,
@@ -13446,9 +15413,8 @@ export namespace proto {
 
 	interface IRotateEpochInput {
 		currentEpochRootKey?: (Uint8Array|null);
-		currentEpochAnonId?: (Long|null);
+		currentEpochAnonId?: (Uint8Array|null);
 		currentEpochFbid?: (Long|null);
-		newEpochFbid?: (Long|null);
 		epochStoragePrivateKey?: (Uint8Array|null);
 		members?: proto.IRotateEpochMemberInput[];
 	}
@@ -13456,9 +15422,8 @@ export namespace proto {
 	class RotateEpochInput implements IRotateEpochInput {
 		constructor(p?: IRotateEpochInput);
 		public currentEpochRootKey?: (Uint8Array|null);
-		public currentEpochAnonId?: (Long|null);
+		public currentEpochAnonId?: (Uint8Array|null);
 		public currentEpochFbid?: (Long|null);
-		public newEpochFbid?: (Long|null);
 		public epochStoragePrivateKey?: (Uint8Array|null);
 		public members?: proto.IRotateEpochMemberInput[];
 		public static create(p?: IRotateEpochInput): RotateEpochInput;
@@ -13510,8 +15475,9 @@ export namespace proto {
 	interface IRotateEpochOutput {
 		newEpochRootKey?: (Uint8Array|null);
 		newEpochAnonId?: (Long|null);
+		newEpochFbid?: (Long|null);
 		epochAnonId?: (Uint8Array|null);
-		epochData?: (Uint8Array|null);
+		backwardEdge?: (proto.IBackwardEdge|null);
 		memberEdges?: proto.IRotateEpochMemberEdge[];
 		epochRootKeyFingerprint?: (Uint8Array|null);
 		error?: (string|null);
@@ -13521,8 +15487,9 @@ export namespace proto {
 		constructor(p?: IRotateEpochOutput);
 		public newEpochRootKey?: (Uint8Array|null);
 		public newEpochAnonId?: (Long|null);
+		public newEpochFbid?: (Long|null);
 		public epochAnonId?: (Uint8Array|null);
-		public epochData?: (Uint8Array|null);
+		public backwardEdge?: (proto.IBackwardEdge|null);
 		public memberEdges?: proto.IRotateEpochMemberEdge[];
 		public epochRootKeyFingerprint?: (Uint8Array|null);
 		public error?: (string|null);
@@ -13919,6 +15886,25 @@ export namespace proto {
 		public static toObject(m: SignalMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
 		public static encode(m: ISignalMessage, w?: $protobuf.Writer): $protobuf.Writer;
 		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): SignalMessage;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface ISignedMmkDistributionFromMailbox {
+		mmkDistribution?: (proto.IMmkDistribution|null);
+		signature?: (Uint8Array|null);
+		fromMailbox?: (proto.IMessagingMailboxPublicData|null);
+	}
+
+	class SignedMmkDistributionFromMailbox implements ISignedMmkDistributionFromMailbox {
+		constructor(p?: ISignedMmkDistributionFromMailbox);
+		public mmkDistribution?: (proto.IMmkDistribution|null);
+		public signature?: (Uint8Array|null);
+		public fromMailbox?: (proto.IMessagingMailboxPublicData|null);
+		public static create(p?: ISignedMmkDistributionFromMailbox): SignedMmkDistributionFromMailbox;
+		public static fromObject(d: { [k: string]: any }): SignedMmkDistributionFromMailbox;
+		public static toObject(m: SignedMmkDistributionFromMailbox, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: ISignedMmkDistributionFromMailbox, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): SignedMmkDistributionFromMailbox;
 		public toJSON(): { [k: string]: any };
 	}
 
@@ -14366,6 +16352,7 @@ export namespace proto {
 		bubbleLockMessageAction?: (proto.SyncActionValue.IBubbleLockMessageAction|null);
 		labelSublistAction?: (proto.SyncActionValue.ILabelSublistAction|null);
 		deviceCapabilitiesV2?: (proto.IDeviceCapabilities|null);
+		ctwaMessageReceivedAction?: (proto.SyncActionValue.ICtwaMessageReceivedAction|null);
 	}
 
 	class SyncActionValue implements ISyncActionValue {
@@ -14453,6 +16440,7 @@ export namespace proto {
 		public bubbleLockMessageAction?: (proto.SyncActionValue.IBubbleLockMessageAction|null);
 		public labelSublistAction?: (proto.SyncActionValue.ILabelSublistAction|null);
 		public deviceCapabilitiesV2?: (proto.IDeviceCapabilities|null);
+		public ctwaMessageReceivedAction?: (proto.SyncActionValue.ICtwaMessageReceivedAction|null);
 		public static create(p?: ISyncActionValue): SyncActionValue;
 		public static fromObject(d: { [k: string]: any }): SyncActionValue;
 		public static toObject(m: SyncActionValue, o?: $protobuf.IConversionOptions): { [k: string]: any };
@@ -14851,6 +16839,21 @@ export namespace proto {
 			public toJSON(): { [k: string]: any };
 		}
 
+		interface ICtwaMessageReceivedAction {
+			isCtwaMessageReceived?: (boolean|null);
+		}
+
+		class CtwaMessageReceivedAction implements ICtwaMessageReceivedAction {
+			constructor(p?: ICtwaMessageReceivedAction);
+			public isCtwaMessageReceived?: (boolean|null);
+			public static create(p?: ICtwaMessageReceivedAction): CtwaMessageReceivedAction;
+			public static fromObject(d: { [k: string]: any }): CtwaMessageReceivedAction;
+			public static toObject(m: CtwaMessageReceivedAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
+			public static encode(m: ICtwaMessageReceivedAction, w?: $protobuf.Writer): $protobuf.Writer;
+			public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): CtwaMessageReceivedAction;
+			public toJSON(): { [k: string]: any };
+		}
+
 		interface ICtwaPerCustomerDataSharingAction {
 			isCtwaPerCustomerDataSharingEnabled?: (boolean|null);
 		}
@@ -15173,6 +17176,7 @@ export namespace proto {
 				INVITES = 14,
 				THIRD_PARTY = 15,
 				LEAD = 16,
+				MENTIONS_AND_REPLIES = 17,
 			}
 		}
 
@@ -17516,6 +19520,66 @@ export namespace proto {
 		public static toObject(m: WebNotificationsInfo, o?: $protobuf.IConversionOptions): { [k: string]: any };
 		public static encode(m: IWebNotificationsInfo, w?: $protobuf.Writer): $protobuf.Writer;
 		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): WebNotificationsInfo;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IWrapTransportSigningPublicKeyInput {
+		keyBytes?: (Uint8Array|null);
+	}
+
+	class WrapTransportSigningPublicKeyInput implements IWrapTransportSigningPublicKeyInput {
+		constructor(p?: IWrapTransportSigningPublicKeyInput);
+		public keyBytes?: (Uint8Array|null);
+		public static create(p?: IWrapTransportSigningPublicKeyInput): WrapTransportSigningPublicKeyInput;
+		public static fromObject(d: { [k: string]: any }): WrapTransportSigningPublicKeyInput;
+		public static toObject(m: WrapTransportSigningPublicKeyInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IWrapTransportSigningPublicKeyInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): WrapTransportSigningPublicKeyInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IWrapTransportSigningPublicKeyResult {
+		prefixedKey?: (Uint8Array|null);
+	}
+
+	class WrapTransportSigningPublicKeyResult implements IWrapTransportSigningPublicKeyResult {
+		constructor(p?: IWrapTransportSigningPublicKeyResult);
+		public prefixedKey?: (Uint8Array|null);
+		public static create(p?: IWrapTransportSigningPublicKeyResult): WrapTransportSigningPublicKeyResult;
+		public static fromObject(d: { [k: string]: any }): WrapTransportSigningPublicKeyResult;
+		public static toObject(m: WrapTransportSigningPublicKeyResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IWrapTransportSigningPublicKeyResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): WrapTransportSigningPublicKeyResult;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IWrapTransportSigningSecretKeyInput {
+		keyBytes?: (Uint8Array|null);
+	}
+
+	class WrapTransportSigningSecretKeyInput implements IWrapTransportSigningSecretKeyInput {
+		constructor(p?: IWrapTransportSigningSecretKeyInput);
+		public keyBytes?: (Uint8Array|null);
+		public static create(p?: IWrapTransportSigningSecretKeyInput): WrapTransportSigningSecretKeyInput;
+		public static fromObject(d: { [k: string]: any }): WrapTransportSigningSecretKeyInput;
+		public static toObject(m: WrapTransportSigningSecretKeyInput, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IWrapTransportSigningSecretKeyInput, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): WrapTransportSigningSecretKeyInput;
+		public toJSON(): { [k: string]: any };
+	}
+
+	interface IWrapTransportSigningSecretKeyResult {
+		prefixedKey?: (Uint8Array|null);
+	}
+
+	class WrapTransportSigningSecretKeyResult implements IWrapTransportSigningSecretKeyResult {
+		constructor(p?: IWrapTransportSigningSecretKeyResult);
+		public prefixedKey?: (Uint8Array|null);
+		public static create(p?: IWrapTransportSigningSecretKeyResult): WrapTransportSigningSecretKeyResult;
+		public static fromObject(d: { [k: string]: any }): WrapTransportSigningSecretKeyResult;
+		public static toObject(m: WrapTransportSigningSecretKeyResult, o?: $protobuf.IConversionOptions): { [k: string]: any };
+		public static encode(m: IWrapTransportSigningSecretKeyResult, w?: $protobuf.Writer): $protobuf.Writer;
+		public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): WrapTransportSigningSecretKeyResult;
 		public toJSON(): { [k: string]: any };
 	}
 	export type IAdvDeviceIdentity = IADVDeviceIdentity;

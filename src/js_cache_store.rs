@@ -85,7 +85,7 @@ impl CacheStore for JsCacheStoreAdapter {
 
         if resolved.is_instance_of::<Uint8Array>() {
             let arr = Uint8Array::unchecked_from_js(resolved);
-            return Ok(Some(arr.to_vec()));
+            return Ok(Some(crate::js_bytes::to_vec(&arr)));
         }
 
         Ok(None)

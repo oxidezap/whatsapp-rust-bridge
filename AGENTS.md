@@ -46,18 +46,20 @@ Two places do not follow that, and both are shape changes to fix rather than thi
 - The free-standing utility exports predate it — `inflateZlib`, the curve/crypto helpers in `src/crypto.rs`, and the signal-record codecs return `Result<_, JsValue>`, usually a plain string from `wasm_utils::error_value`.
 - A **stream** that fails after its method returned. `downloadMediaStream` hands back a `ReadableStream` and then reports a download failure through it as `JsValue::from_str`, so the reader rejects with a bare string carrying no `.kind`.
 
-The kind is a contract, not a label. All nine:
+The kind is a contract, not a label. All eleven:
 
 | kind | means |
 |---|---|
 | `invalid-argument` | the caller's own doing. Set `field` to the argument that was wrong, and use the same value everywhere that argument can be wrong |
-| `server` | a typed `<error>` stanza, with `serverCode` / `serverText` |
+| `server` | a typed `<error>` stanza, with `serverCode` / `serverText`, plus `errorType` and `backoffSeconds` when the stanza carried them |
 | `timeout` | no response inside the window |
 | `not-connected` | no socket, or not logged in |
+| `withdrawn` | the caller let go of a call that was waiting out a reconnect. It never reached the core, so nothing it was about to do happened |
 | `disconnected` | the server ended the stream mid-flight |
 | `protocol-violation` | a remote peer sent something unparseable |
 | `crypto` | a key, agreement or AEAD step failed |
 | `storage` | persistence failed — a JS callback, serde, the store |
+| `no-recipient-device` | a send produced no `<enc>` for its recipient, so nothing was transmitted |
 | `internal` | the bridge broke, and there is nothing the caller can do |
 
 A caller-input failure reported as `internal` sends a consumer looking for a bug that is theirs. Reaching for `internal` because the specific kind takes more thought is the same mistake in slower motion.
@@ -65,6 +67,40 @@ A caller-input failure reported as `internal` sends a consumer looking for a bug
 `field` names an argument where there is one, and the operation where there is not: `connect()` takes nothing and reports `field: "connect"` when the client is already connected, because the call was still the caller's mistake. Don't invent a pseudo-argument to fill the slot.
 
 It is also not yet reliable: `From<JidError>` hard-codes `field: "jid"`, so a method taking several JIDs — `signalDecryptGroupMessage(groupJid, authorJid, …)` — reports the same name whichever one was malformed. Set the real name where you control the error; the shared JID path needs a signature change to do better.
+
+**Reaching the core says whether the call survives a reconnect.** The core
+reconnects on its own, so between two sockets there is a window where the
+client is alive and briefly unreachable. `self.client` is a `CoreClient`, not
+the client: a method gets at it through `online().await`, which holds the call
+while a reconnect is in flight, or `unwaited(Unwaited::…)`, which does not and
+names why — `Local`, `ConnectionBound`, `ThisSocket`, `Redriven`, `Opaque`,
+`Deferred`, `Cached`. There is no third way in, so a method added later cannot inherit
+either behaviour by accident; picking wrong is still possible, but it is
+written at the call site rather than absent from it.
+
+Only `Reconnecting` is waited out. Every other state — finished, paused, or
+nothing reading the client — falls straight through, and the core reports what
+it always reported. Nothing is re-sent: waiting restores the ability to ask,
+not the request that was refused. `reachability()` and `waitUntilReachable()`
+expose the same state to the host, which is where an opaque-node caller makes
+the call the bridge cannot.
+
+**A held call is let go by asking, not by walking away.** `online()` is
+fallible for one reason: `withdrawParkedCalls()` releases everything waiting at
+the gate at that moment, and those calls come back `withdrawn` without reaching
+the core. Dropping a promise never did that and still does not — wasm-bindgen
+drives an exported method to completion whether or not JS holds the promise —
+so a host that races a call against a deadline and then asks again has sent the
+same thing twice. Withdrawing first is what makes asking again safe. It
+releases what is waiting and nothing else: it is not a mode, and the calls
+reaching the core through `unwaited` never wait, so it cannot touch them.
+
+A call that can already have had an effect is the exception. `readMessages` and
+`markPlayed` walk a batch, so after their first receipt goes out they wait
+through `online_committed()`, which does not enrol and so is neither counted nor
+released. What decides this is effect, not traffic: `uploadEncryptedMediaStream`
+reaches its second gate only after an attempt the CDN refused, so nothing it did
+stands and it stays withdrawable — which is where a host most wants to give up.
 
 **Typed parameters take `JsValue`.** `#[tsify(from_wasm_abi)]` generates a `FromWasmAbi` that *throws*, and inside an async shim that throw escapes as an uncaught exception rather than a rejection — the promise then stays pending for good and the host learns nothing. Take the parameter as `JsValue` with `#[wasm_bindgen(unchecked_param_type = "...")]` to keep the declared TypeScript type, and deserialize through `from_js_input`. An imported JS class (`ReadableStream`, `WritableStream`) has the same problem for a different reason — wasm-bindgen casts it unchecked — and goes through `from_js_class`.
 
@@ -189,6 +225,10 @@ There is **no mock server in CI**, so no test here proves an end-to-end response
 - a value crosses the boundary unchanged.
 
 Say which of these a test does, and do not let a test's name claim more than it checks. A test that would still pass with the fix reverted is not a test of the fix — revert it and watch it fail.
+
+**A test's duration is wall clock, and the bill is the repository's.** `bun test` runs serially, so a slow test costs its full wall on every run for everyone. `check:test-clock` runs the suite and fails when a test that is not exempt goes over 8 seconds, and when loading and fixtures together go over 15; CI runs it in place of a bare `bun test`. An exemption lives in the script with its reason and its own ceiling; the offline-sync gate is the one that has one, and it is a debt rather than a pardon.
+
+**Prove a negative by ordering, not by a timer.** "This call has not settled in 500ms" is exhaustion: it costs wall clock, it never rules out a call that was merely slow, and shortening the window weakens it without turning anything red. `tests/parked-calls.ts` is the shape to copy: establish the state with something that must happen first, then release and show that only then does it settle.
 
 ## Pull requests
 

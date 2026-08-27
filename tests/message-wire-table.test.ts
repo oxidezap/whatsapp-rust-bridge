@@ -16,6 +16,8 @@ import {
  */
 
 const HEADER_SLOT_DEFINITIONS = 4;
+/** Mirrors the decoder's region sharing ceiling in `ts/wire-info.ts`. */
+const REGION_SHARED_MAX_BYTES = 4 * 1024;
 const HEADER_SLOT_FLAGS = 20;
 const PACKED_FLAG_RESET_CACHES = 1;
 const PACKED_FLAG_CLEAR_AFTER = 1 << 1;
@@ -42,6 +44,17 @@ function entry(overrides: Partial<MessageWireInfo> & { id: string }): MessageWir
 
 const header = (batch: Uint8Array, slot: number): number =>
   new DataView(batch.buffer, batch.byteOffset, batch.byteLength).getUint32(slot, true);
+
+/**
+ * The definition offset table of a one-message batch: header, then that
+ * message's record, then the payload offsets, then this.
+ */
+const definitionOffsetsOf = (batch: Uint8Array): Uint32Array =>
+  new Uint32Array(
+    batch.buffer,
+    batch.byteOffset + 24 + MESSAGE_WIRE_INFO_RECORD_WIDTH * 8 + 2 * 4,
+    header(batch, HEADER_SLOT_DEFINITIONS) + 1,
+  );
 
 describe("message wire table", () => {
   test("a repeated address is defined once and referenced afterwards", () => {
@@ -158,6 +171,135 @@ describe("message wire table", () => {
     expect(decodeMessageWireBatch(second).infos[0]).toMatchObject({
       id: "não-2",
       pushName: "José 🇧🇷",
+    });
+  });
+
+  /**
+   * A batch that asks the reader to clear is still a batch that has to frame
+   * its own definitions, and the clear is the one thing a rejected batch could
+   * still have done to the standing table. So the framing checks run first: a
+   * malformed batch carrying the flag leaves the table for whoever indexes it
+   * next.
+   */
+  test("a rejected batch does not clear the table on its way out", () => {
+    const standing = new MessageWireBatchEncoder();
+    expect(decodeMessageWireBatch(standing.encode([entry({ id: "M1" })])).infos[0]).toMatchObject({
+      pushName: "Peer",
+      id: "M1",
+    });
+
+    // A second run's first batch always asks for a clear, which is what this
+    // one must not get to do.
+    const poisoned = new MessageWireBatchEncoder().encode([
+      entry({ id: "M2", chat: "second@g.us", sender: "second@g.us", pushName: "Second" }),
+    ]);
+    expect(header(poisoned, HEADER_SLOT_FLAGS) & PACKED_FLAG_RESET_CACHES).toBe(
+      PACKED_FLAG_RESET_CACHES,
+    );
+    expect(header(poisoned, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    // Same shape the test below rejects: a definition ending before it starts.
+    const offsets = definitionOffsetsOf(poisoned);
+    offsets[2] = offsets[1]! - 1;
+    expect(() => decodeMessageWireBatch(poisoned)).toThrow(RangeError);
+
+    // The standing run's slots are still the standing run's.
+    const next = standing.encode([entry({ id: "M3" })]);
+    expect(header(next, HEADER_SLOT_DEFINITIONS)).toBe(0);
+    expect(decodeMessageWireBatch(next).infos[0]).toMatchObject({
+      chat: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M3",
+    });
+  });
+
+  /**
+   * The offset table frames the definitions and marks where the inline values
+   * begin, so one that does not ascend from zero frames neither: its
+   * definitions overlap or run backwards and the inline cursor starts
+   * somewhere the writer did not put it. A batch carrying one is rejected, and
+   * rejected before anything the standing table can see, so the run it
+   * interrupts carries on intact.
+   */
+  test("a definition table that does not ascend is rejected before it is installed", () => {
+    const encoder = new MessageWireBatchEncoder();
+    const opening = encoder.encode([entry({ id: "M1" })]);
+    expect(decodeMessageWireBatch(opening).infos[0]).toMatchObject({ pushName: "Peer", id: "M1" });
+
+    const poisoned = encoder.encode([
+      entry({ id: "M2", chat: "second@g.us", sender: "second@g.us", pushName: "Second" }),
+    ]);
+    expect(header(poisoned, HEADER_SLOT_DEFINITIONS)).toBe(2);
+    // The second definition now ends a byte before it starts.
+    const offsets = definitionOffsetsOf(poisoned);
+    offsets[2] = offsets[1]! - 1;
+    expect(() => decodeMessageWireBatch(poisoned)).toThrow(RangeError);
+
+    // The opening batch's entries are still where it put them.
+    const next = encoder.encode([entry({ id: "M3" })]);
+    expect(header(next, HEADER_SLOT_DEFINITIONS)).toBe(0);
+    expect(decodeMessageWireBatch(next).infos[0]).toMatchObject({
+      chat: "5511999@s.whatsapp.net",
+      pushName: "Peer",
+      id: "M3",
+    });
+  });
+
+  /**
+   * An inline region past the sharing ceiling is decoded value by value, so
+   * that a consumer keeping one ordinary id cannot pin an outlier that shared
+   * its batch. What comes back has to be the same either way, so this drives a
+   * region well past the ceiling and asks for every value back.
+   */
+  test("an oversized inline region returns the same values as a shared one", () => {
+    const ids = Array.from({ length: 8 }, (_, index) => `${index}-${"x".repeat(700)}-é`);
+    const entries = ids.map(id => entry({ id, unavailableRequestId: `req-${id}` }));
+
+    // Pins the case this covers to the branch it means to cover: raise the
+    // ceiling in the decoder without this and the test quietly stops reaching
+    // the path it is named for.
+    const utf8 = (value: string): number => new TextEncoder().encode(value).length;
+    const inlineBytes = ids.reduce((total, id) => total + utf8(id) + utf8(`req-${id}`), 0);
+    expect(inlineBytes).toBeGreaterThan(REGION_SHARED_MAX_BYTES);
+
+    const decoded = decodeMessageWireBatch(encodeMessageWireBatch(entries)).infos;
+    expect(decoded).toHaveLength(ids.length);
+    decoded.forEach((info, index) => {
+      expect(info.id).toBe(ids[index]!);
+      expect(info.unavailableRequestId).toBe(`req-${ids[index]!}`);
+    });
+  });
+
+  /**
+   * Definitions and inline values share one string region, and the reader cuts
+   * it with a cursor rather than a view per value, so a value whose UTF-8
+   * width differs from its UTF-16 width moves every value behind it if the cut
+   * is wrong. This batch is long enough (over 100 bytes of region) to take the
+   * decode-the-whole-region path, and mixes 2, 3 and 4 byte code points across
+   * definitions and inline ids alike.
+   */
+  test("a long non-ASCII region cuts every value where it starts", () => {
+    const names = ["José 🇧🇷", "Ünïcödé Ñame", "日本語の名前", "Ω→∞ señor"];
+    const ids = ["não-1", "ідентифікатор", "🆔-3", "id-é-4"];
+    const entries = names.map((pushName, index) =>
+      entry({
+        id: ids[index]!,
+        pushName,
+        chat: `55119${index}@s.whatsapp.net`,
+        sender: `55119${index}@s.whatsapp.net`,
+        unavailableRequestId: `réq-${index}`,
+      }),
+    );
+
+    const batch = encodeMessageWireBatch(entries);
+    const decoded = decodeMessageWireBatch(batch).infos;
+    expect(decoded).toHaveLength(entries.length);
+    decoded.forEach((decodedInfo, index) => {
+      expect(decodedInfo).toMatchObject({
+        id: ids[index]!,
+        pushName: names[index]!,
+        chat: `55119${index}@s.whatsapp.net`,
+        unavailableRequestId: `réq-${index}`,
+      });
     });
   });
 

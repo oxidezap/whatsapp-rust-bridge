@@ -177,7 +177,7 @@ export interface CallLinkJoin {
   group?: GroupCallUpdate | null;
 }
 
-/** Audio/video mode of a reusable call link. */
+/** Audio/video mode of a reusable call link.  Hand-written rather than generated. The enum catalog holds exactly one `audio`/`video` pair, `MediaType` in the status composer's module, and two two-valued media enums agreeing on their values is not evidence that one owns the other's wire format. Binding it would let a kind added for status composition arrive here, in the type that builds and parses `<call_link>`. */
 export type CallLinkMedia = "audio" | "video";
 
 /** Metadata returned without joining a reusable call link. */
@@ -245,6 +245,16 @@ export interface ClearChatUpdate {
   from_full_sync: boolean;
 }
 
+/** The server pushed a retirement deadline for the running client build, via `<ib><client_expiration>`.  Dispatched only when the deadline actually changed, so a repeated stanza is silent. `expires_at` is the deadline as recorded, which is never sooner than three days out even when the server's own answer is; `withdrawn` marks the stanza that carries no deadline at all, retracting whatever was held.  Consumers own the response. This client keeps connecting until the server refuses it -- the deadline is notice, not an instruction to stop -- so a consumer that cares about uptime should treat this as the cue to move to a newer build before the date arrives. */
+export interface ClientExpirationChanged {
+  /** Unix seconds after which the server expects to stop accepting this build. `None` when the deadline was withdrawn. */
+  expires_at?: number | string | null;
+  /** The build the deadline was issued against. */
+  version: [number, number, number];
+  /** `true` when the server retracted a deadline it had previously set. */
+  withdrawn: boolean;
+}
+
 export interface ClientOutdated {
   /** The whole `<failure>` stanza, so no attribute is lost to a log line. */
   raw?: any | null;
@@ -304,7 +314,8 @@ export interface ContactUpdated {
 
 export type DayOfWeek = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | string;
 
-export type DecryptFailMode = "show" | "hide";
+/** The `decrypt-fail` attribute of an `<enc>` node.  `Hide` is the server asking that a failure to decrypt this stanza not be surfaced to the user.  Generated from `DecryptFailType` in `WAWebBackendJobs.flow`. */
+export type DecryptFailMode = "hide" | "show";
 
 /** Payload of [`Event::DecryptedPayload`]: what Signal produced for one `<enc>`, before this build tried to make sense of it.  The client decodes a plaintext into [`wa::Message`] and dispatches that. A payload it cannot decode — a field this build predates, a message type it does not model — is logged and dropped, and with it goes something that cost a real decryption and advanced the ratchet. Nothing can ask for it back: the ratchet has moved on, so the same ciphertext will never decrypt again.  This event is that payload, handed over before decoding is attempted. It arrives whether or not the decode goes on to succeed.  Reasons to want it: recording traffic for faithful replay (re-encoding a decoded `Message` does not reproduce the original bytes), decoding with a newer protobuf than this build carries, and looking at a payload that failed to decode instead of only reading that it did.  Gated by `Client::acquire_decrypted_payload_forwarding()`: nothing is emitted, and nothing is cloned, while no consumer holds a lease. */
 export interface DecryptedPayload {
@@ -314,6 +325,10 @@ export interface DecryptedPayload {
   enc_index: number;
   /** The `type` attribute the `<enc>` carried: `msg`, `pkmsg`, `skmsg`, … */
   enc_type: string;
+  /** The `state` attribute the `<enc>` carried, verbatim, or `None` when it carried none.  The server's own annotation of the session this copy was encrypted under. This build does not model the values and does not act on them; they are handed over as text so a consumer can. */
+  state?: string | null;
+  /** The `session_type` attribute the `<enc>` carried, verbatim, or `None` when it carried none. Unmodelled and unacted-on, like [`state`](Self::state). */
+  session_type?: string | null;
 }
 
 export interface DeleteChatUpdate {
@@ -373,6 +388,8 @@ export interface Device {
   lid_migrated: boolean;
   /** Wall-clock ms of the last signed-pre-key rotation, driving WA Web's `RotateKeyJob` cadence. Fresh devices baseline off creation; devices persisted before this field existed deserialize to `0`, which the rotation path treats as "seed the baseline, don't rotate yet". */
   last_signed_pre_key_rotation_ms: number | string;
+  /** Deadline the server pushed for this build, via `<ib><client_expiration>`. `None` until the server says otherwise, which is the common case: the stanza is sent when a build is being retired, not on every connect. */
+  server_client_expiration?: ServerClientExpiration | null;
   /** true means the account's `readreceipts` privacy is `none`, so DM read/played receipts go out as `*-self` (which don't notify the sender). Persisted so the value is known on reconnect before the privacy fetch completes; `false` (WA default `all`) sends plain `read`/`played`. */
   read_receipts_disabled: boolean;
 }
@@ -489,6 +506,7 @@ export interface DisableLinkPreviewsUpdate {
   from_full_sync: boolean;
 }
 
+/** Whether a privacy disallowed-list entry is being added or removed.  Generated from `PrivacyUserAction` in `WAWebSetPrivacyJob`. */
 export type DisallowedListAction = "add" | "remove";
 
 /** A contact's default disappearing messages setting changed.  Sent by the server as `<notification type="disappearing_mode">`. WA Web: `WAWebHandleDisappearingModeNotification` → `WAWebUpdateDisappearingModeForContact`. */
@@ -532,6 +550,9 @@ export interface EncDecryptFailed {
 
 /** Why one `<enc>` produced no plaintext.  Every variant names a branch the receive path actually takes; there is no catch-all "other" standing in for code nobody wrote. New branches append new variants, so this is `#[non_exhaustive]` and a match on it needs a `_` arm.  This is the client's own classification of where *it* stopped, not something the server sends and not a statement about the sender's copy. Two builds can classify the same ciphertext differently as branches are refined; the pairing of a reason with a specific `<enc>` is the stable part, the exact variant is not. */
 export type EncDecryptFailureReason = "MalformedNode" | "UnsupportedEncType" | "MalformedCiphertext" | "NoSession" | "NoSenderKey" | "UnknownPreKey" | "UntrustedIdentity" | "BadMac" | "InvalidMessage" | "NoMessageSecret" | "LocalCryptoFailure" | "SignalError" | "StorageFailure" | "PlaintextUnusable" | "NotAttempted";
+
+/** The `mediatype` attribute of an `<enc>` node.  A hint about the payload the ciphertext carries, available before the decryption that would reveal it. It is the sender's claim and nothing checks it against the decrypted message.  Generated from `EncMediaType` in `WAWebBackendJobs.flow`. */
+export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | string;
 
 /** Review state for an appeal on a suspended group. */
 export type GroupAppealStatus = "approved" | "in_review" | "none" | "rejected";
@@ -678,8 +699,8 @@ export interface GroupParticipantInfo {
   group_history_sent_state?: GroupHistorySentState | null;
 }
 
-/** Admin tier from `<participant type="...">`. Mirrors `GROUP_PARTICIPANT_TYPES` in `WAWebGroupApiConst`. */
-export type GroupParticipantType = "participant" | "admin" | "superadmin";
+/** A participant's role in a group.  Generated from `GROUP_PARTICIPANT_TYPES` in `WAWebGroupApiConst`. */
+export type GroupParticipantType = "superadmin" | "admin" | "participant";
 
 /** Query request type. */
 export type GroupQueryRequestType = "interactive";
@@ -749,6 +770,9 @@ export interface IncomingCall {
   /** Group snapshot embedded in an initial offer or active-call invitation. */
   group?: GroupCallUpdate | null;
 }
+
+/** A child of `<ib>`, which is what says what the bulletin is about.  Open: the server adds bulletin kinds without warning, and one this client does not know is logged and skipped rather than treated as a parse failure. */
+export type InfoBulletinType = "dirty" | "edge_routing" | "offline" | "offline_preview" | "tos" | "thread_metadata" | "client_expiration" | "priority_offline_complete" | "recovery_nonce" | "unknown";
 
 /** IQ request type for WhatsApp protocol queries. */
 export type InfoQueryType = "set" | "get";
@@ -838,7 +862,7 @@ export interface MarkChatAsReadUpdate {
 /** Member link mode for group invite links. */
 export type MemberLinkMode = "admin_link" | "all_member_link";
 
-/** Who can share message history with new members. */
+/** Who may share a group's history with a new participant.  Generated from `MemberShareGroupHistoryMode` in `WAWebGroupHistoryShareMode`. */
 export type MemberShareHistoryMode = "admin_share" | "all_member_share";
 
 /** How a membership request was initiated.  Maps to `WAWebRequestMethodType` in WhatsApp Web JS. */
@@ -858,12 +882,14 @@ export interface MessageInfo {
   source: MessageSource;
   id: string;
   server_id: number;
-  type: string;
+  /** The envelope's `type` attribute. `None` when the stanza carried none. */
+  type?: StanzaMessageType | null;
   push_name: string;
   timestamp: number;
   category: MessageCategory;
   multicast: boolean;
-  media_type: string;
+  /** The `mediatype` the stanza's `<enc>` nodes declared, aggregated to one value per message.  A fan-out stanza carries one `<enc>` per device and the attribute is a property of the message, not of a device copy, so the first `<enc>` that carries one wins in the order the client enumerates them: the direct `<enc>` children first, then this device's under `<participants><to>`. Divergent values across a fan-out are not reconciled and the later ones are dropped; a consumer that needs per-node values reads them from [`DecryptedPayload`](crate::types::events::DecryptedPayload).  Those fan-out nodes are a wider source than WA Web's parser, which maps only the direct `<enc>` children. The two agree on every stanza seen so far, since the attribute describes the message and every device copy repeats it, so the wider read only fills the field on a stanza whose direct children carry nothing.  `None` when no `<enc>` carried the attribute. */
+  media_type?: EncMediaType | null;
   edit: EditAttribute;
   bot_info?: MsgBotInfo | null;
   meta_info: MsgMetaInfo;
@@ -962,14 +988,18 @@ export interface MsgBotInfo {
   edit_sender_timestamp_ms?: string | null;
 }
 
+/** The short `<meta>` attributes are `CompactString`: a message id is 22 wire characters and the rest are short keywords ("add_on", "default"), so all of them live in the 24 inline bytes and parsing a `<meta>` child allocates nothing for them. */
 export interface MsgMetaInfo {
   target_id?: string | null;
   target_sender?: Jid | null;
   /** `<meta target_chat_jid="…">` — present when the bot reply addresses a chat distinct from the stanza-level `from` (used for msmsg secret lookup; see WA Web `decryptMsmsgBotMessage`). */
   target_chat?: Jid | null;
-  deprecated_lid_session?: boolean | null;
+  /** `<meta thread_msg_id="…">`: the message this one threads under, for a stanza the server routes into an existing thread. */
   thread_message_id?: string | null;
+  /** `<meta thread_msg_sender_jid="…">`: who authored [`thread_message_id`](Self::thread_message_id). Absent whenever that is. */
   thread_message_sender_jid?: Jid | null;
+  /** `<meta polltype="…">`: which stage of a poll's lifecycle the envelope carries.  Read only when the envelope declares [`StanzaMessageType::Poll`], so a `<meta polltype>` on any other type is ignored rather than recorded. An unrecognized value is `None`, indistinguishable from the attribute being absent. */
+  poll_type?: PollType | null;
   /** `<meta content_type=...>` attr. Server marks reactions/edits as `"add_on"`; mirrors `WAWebHandleMsgParser` b()'s metadata read. */
   content_type?: string | null;
   /** `<meta appdata=...>` attr. `"default"` is the only observed value. */
@@ -1028,6 +1058,9 @@ export interface NewsletterLiveUpdateReaction {
 }
 
 export type NewsletterMessageType = "text" | "media" | "reaction" | "revoke" | "poll_creation" | "poll_vote" | "edit" | string;
+
+/** The `type` attribute of an incoming `<notification>`.  Every value WA Web routes. This client handles a subset and forwards the rest as a raw event, so a variant here is a value the protocol carries, not a promise that anything acts on it. */
+export type NotificationType = "account_sync" | "business" | "companion_reg_refresh" | "contacts" | "crsc_continuation" | "devices" | "digital_commerce_subscription" | "disappearing_mode" | "encrypt" | "fb:update" | "hosted" | "link_code_companion_reg" | "mediaretry" | "mex" | "newsletter" | "passkey_prologue_request" | "pay" | "picture" | "privacy_token" | "psa" | "registration" | "server" | "server_sync" | "status" | "w:gp2" | "w:growth" | "waffle";
 
 export interface OfflineSyncCompleted {
   count: number;
@@ -1141,6 +1174,9 @@ export interface PinUpdate {
   from_full_sync: boolean;
 }
 
+/** The `polltype` attribute of an incoming `<message><meta>` node.  Closed on purpose: the attribute is `attrEnumOrNullIfUnknown` upstream (`unknownValue: "null"`), so a value outside this set is dropped rather than preserved.  Generated from `POLL_TYPES` in `WAWebHandleMsgCommon`. */
+export type PollType = "creation" | "quiz_creation" | "vote" | "result_snapshot" | "edit";
+
 export type PreKeyFetchReason = "identity" | "retry" | string;
 
 export type Presence = "available" | "unavailable";
@@ -1163,14 +1199,6 @@ export type ProductAvailability = "IN_STOCK" | "OUT_OF_STOCK" | "AVAILABLE_FOR_A
 
 /** Profile picture type (preview thumbnail or full-size). */
 export type ProfilePictureType = "preview" | "image";
-
-export interface PushNameUpdate {
-  /** The contact who changed their push name. */
-  jid: Jid;
-  message: MessageInfo;
-  old_push_name: string;
-  new_push_name: string;
-}
 
 export type PushPriority = "high" | "high_force";
 
@@ -1227,6 +1255,13 @@ export interface SelfPushNameUpdated {
   new_name: string;
 }
 
+/** Identifies a message *and who sent it*.  Message ids come from the sending client and are not unique across senders, so `(chat, id)` names a message only when the sender is already known from context. WA Web says the same in `MsgKey`, which serializes as `[fromMe, remote, id, participant]`: two participants of one group using the same id are two messages, and folding them into one drops the second. */
+export interface SenderMessageId {
+  chat: Jid;
+  id: string;
+  sender: Jid;
+}
+
 /** Payload of [`Event::ServerAck`]: the server acknowledged (or nacked) an outgoing stanza. Server acks cover every outgoing stanza class — message, receipt, notification, call — so consumers should filter on [`class`](Self::class) before correlating ids. */
 export interface ServerAck {
   /** Id of the acked stanza (for a sent message, its message id). */
@@ -1241,8 +1276,22 @@ export interface ServerAck {
   error?: string | null;
 }
 
+/** The server's answer to "when does this client build stop being accepted".  Scoped to the build it was issued against, exactly like WA Web's `setServerClientExpirationOverride(value, VERSION_BASE)`. A deadline learned for one build says nothing about the next one, so a version change retires the record rather than carrying it forward. */
+export interface ServerClientExpiration {
+  /** Unix seconds after which the server expects to stop accepting this build. */
+  expires_at: number | string;
+  /** The `(primary, secondary, tertiary)` build the deadline was issued for. */
+  version: [number, number, number];
+}
+
 /** The type of spam flow indicating the source of the report. */
 export type SpamFlow = "GroupSpamBannerReport" | "GroupInfoReport" | "MessageMenu" | "ContactInfo" | "StatusReport";
+
+/** The `type` attribute of an incoming `<message>` envelope.  The official parser rejects a stanza whose `type` is absent or outside this set (`unknownValue: "reject"`). This client keeps the stanza instead, so the fallback arm holds the exact wire bytes of a value it does not model.  Generated from `STANZA_MSG_TYPES` in `WAWebHandleMsgCommon`. */
+export type StanzaMessageType = "text" | "media" | "medianotify" | "pay" | "poll" | "reaction" | "event" | string;
+
+/** The tag a stanza arrives under.  The union of WA Web's stanza dispatcher, the requests the server sends us, and the types this client sends: no one document lists them all. */
+export type StanzaTag = "ack" | "call" | "chatstate" | "error" | "failure" | "ib" | "iq" | "message" | "notification" | "presence" | "receipt" | "status" | "stream:error" | "success" | "xmlstreamend";
 
 export interface StarUpdate {
   /** The chat containing the starred or unstarred message. */
@@ -1570,7 +1619,7 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "IncomingCall",
     "MissedCall",
     "CallEndedElsewhere",
-    "PushNameUpdate",
+    "RetiredPushNameUpdate",
     "SelfPushNameUpdated",
     "PinUpdate",
     "MuteUpdate",
@@ -1610,4 +1659,5 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "ContactRemoved",
     "EncDecryptFailed",
     "CallLogSync",
+    "ClientExpirationChanged",
 ];

@@ -16,9 +16,19 @@ impl WasmWhatsAppClient {
         let chat_jid = parse_jid(jid)?;
 
         if pin {
-            self.client.chat_actions().pin_chat(&chat_jid).await
+            self.client
+                .online()
+                .await?
+                .chat_actions()
+                .pin_chat(&chat_jid)
+                .await
         } else {
-            self.client.chat_actions().unpin_chat(&chat_jid).await
+            self.client
+                .online()
+                .await?
+                .chat_actions()
+                .unpin_chat(&chat_jid)
+                .await
         }
         .map_err(crate::errors::BridgeError::from)
     }
@@ -33,15 +43,29 @@ impl WasmWhatsAppClient {
         mute_until: Option<f64>,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
+        // Before the gate: a bad timestamp is the caller's own doing, and it
+        // should not sit out a reconnect to be told so.
+        let mute_until = mute_until
+            .map(|ts| parse_timestamp_ms("muteUntil", ts))
+            .transpose()?;
 
         match mute_until {
-            Some(ts) => {
+            Some(until) => {
                 self.client
+                    .online()
+                    .await?
                     .chat_actions()
-                    .mute_chat_until(&chat_jid, parse_timestamp_ms("muteUntil", ts)?)
+                    .mute_chat_until(&chat_jid, until)
                     .await
             }
-            None => self.client.chat_actions().unmute_chat(&chat_jid).await,
+            None => {
+                self.client
+                    .online()
+                    .await?
+                    .chat_actions()
+                    .unmute_chat(&chat_jid)
+                    .await
+            }
         }
         .map_err(crate::errors::BridgeError::from)
     }
@@ -57,11 +81,15 @@ impl WasmWhatsAppClient {
 
         if archive {
             self.client
+                .online()
+                .await?
                 .chat_actions()
                 .archive_chat(&chat_jid, None)
                 .await
         } else {
             self.client
+                .online()
+                .await?
                 .chat_actions()
                 .unarchive_chat(&chat_jid, None)
                 .await
@@ -82,6 +110,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let contact_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .save_contact(
                 &contact_jid,
@@ -105,11 +135,15 @@ impl WasmWhatsAppClient {
 
         if star {
             self.client
+                .online()
+                .await?
                 .chat_actions()
                 .star_message(&chat_jid, None, message_id, true)
                 .await
         } else {
             self.client
+                .online()
+                .await?
                 .chat_actions()
                 .unstar_message(&chat_jid, None, message_id, true)
                 .await
@@ -142,6 +176,8 @@ impl WasmWhatsAppClient {
         };
         let result = self
             .client
+            .online()
+            .await?
             .send_reaction(chat, target_key, emoji.as_deref().unwrap_or(""))
             .await
             .map_err(crate::errors::BridgeError::from)?;
@@ -183,6 +219,8 @@ impl WasmWhatsAppClient {
         };
         let result = self
             .client
+            .online()
+            .await?
             .comments()
             .send_message(chat, key, body)
             .await
@@ -200,6 +238,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .mark_chat_as_read(&chat_jid, read, None)
             .await
@@ -211,6 +251,8 @@ impl WasmWhatsAppClient {
     pub async fn delete_chat(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .delete_chat(&chat_jid, true, None)
             .await
@@ -231,6 +273,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .clear_chat(&chat_jid, delete_starred, delete_media, None)
             .await
@@ -247,6 +291,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .delete_message_for_me(&chat_jid, None, message_id, from_me, true, None)
             .await
@@ -262,6 +308,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let user_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .set_user_status_mute(&user_jid, muted)
             .await
@@ -278,6 +326,8 @@ impl WasmWhatsAppClient {
     pub async fn remove_contact(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let contact_jid = parse_jid(jid)?;
         self.client
+            .online()
+            .await?
             .chat_actions()
             .remove_contact(&contact_jid)
             .await
@@ -297,6 +347,8 @@ impl WasmWhatsAppClient {
         color: i32,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await?
             .labels()
             .create_label(label_id, name, color)
             .await
@@ -307,6 +359,8 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = deleteLabel)]
     pub async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await?
             .labels()
             .delete_label(label_id)
             .await
@@ -322,6 +376,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
         self.client
+            .online()
+            .await?
             .labels()
             .add_chat_label(label_id, &chat)
             .await
@@ -337,6 +393,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
         self.client
+            .online()
+            .await?
             .labels()
             .remove_chat_label(label_id, &chat)
             .await
@@ -356,6 +414,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
         self.client
+            .online()
+            .await?
             .labels()
             .add_message_label(label_id, &chat, message_id)
             .await
@@ -372,6 +432,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
         self.client
+            .online()
+            .await?
             .labels()
             .remove_message_label(label_id, &chat, message_id)
             .await
@@ -395,6 +457,8 @@ impl WasmWhatsAppClient {
         count: i32,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await?
             .quick_replies()
             .set_quick_reply(id, shortcut, message, keywords, count)
             .await
@@ -405,6 +469,8 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = deleteQuickReply)]
     pub async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await?
             .quick_replies()
             .delete_quick_reply(id)
             .await
@@ -424,6 +490,8 @@ impl WasmWhatsAppClient {
         disabled: bool,
     ) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .online()
+            .await?
             .app_state_settings()
             .set_link_previews_disabled(disabled)
             .await

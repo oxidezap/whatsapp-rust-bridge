@@ -21,6 +21,7 @@ impl WasmWhatsAppClient {
         let peer = parse_jid(peer)?;
         let call_creator = parse_jid(call_creator)?;
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .voip()
             .reject_call(call_id, &peer, &call_creator)
             .await
@@ -39,7 +40,11 @@ impl WasmWhatsAppClient {
             .unwrap_or_else(|error| error.into_inner());
         if enabled {
             if lease.is_none() {
-                *lease = Some(self.client.acquire_raw_node_forwarding());
+                *lease = Some(
+                    self.client
+                        .unwaited(Unwaited::ThisSocket)
+                        .acquire_raw_node_forwarding(),
+                );
             }
         } else {
             lease.take();
@@ -53,6 +58,7 @@ impl WasmWhatsAppClient {
         let node_js: JsValue = node_js.into();
         let node = js_to_node(&node_js)?;
         self.client
+            .unwaited(Unwaited::Opaque)
             .send_node(node)
             .await
             .map_err(crate::errors::BridgeError::from)
@@ -68,7 +74,11 @@ impl WasmWhatsAppClient {
         let node_js: JsValue = node_js.into();
         let node = js_to_node(&node_js)?;
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
-        let response = self.client.send_iq_node(node, timeout).await?;
+        let response = self
+            .client
+            .unwaited(Unwaited::Opaque)
+            .send_iq_node(node, timeout)
+            .await?;
         Ok(node_ref_to_js(response.get())?.unchecked_into())
     }
 
@@ -81,6 +91,7 @@ impl WasmWhatsAppClient {
         let stanza_js: JsValue = stanza_js.into();
         let stanza = js_to_node(&stanza_js)?;
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .acknowledge_stanza(&stanza.as_node_ref())
             .await?;
         Ok(())
@@ -103,6 +114,7 @@ impl WasmWhatsAppClient {
             whatsapp_rust::StanzaRejection::new(reason)
         };
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .reject_stanza(&stanza.as_node_ref(), rejection)
             .await?;
         Ok(())
@@ -120,6 +132,7 @@ impl WasmWhatsAppClient {
         let options = whatsapp_rust::RetryRequestOptions::new()
             .with_force_include_keys(force_include_keys.unwrap_or(false));
         self.client
+            .unwaited(Unwaited::ConnectionBound)
             .request_message_retry(&stanza.as_node_ref(), options)
             .await?;
         Ok(())
@@ -135,7 +148,7 @@ impl WasmWhatsAppClient {
     ) -> Result<JsUsyncResponse, crate::errors::BridgeError> {
         let query =
             crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(query.into(), "query")?;
-        let response = self.client.query_usync(query).await?;
+        let response = self.client.online().await?.query_usync(query).await?;
         Ok(crate::proto::to_js_value(&response)?.unchecked_into())
     }
 
@@ -153,7 +166,12 @@ impl WasmWhatsAppClient {
             .iter()
             .map(|j| parse_jid(j))
             .collect::<Result<_, _>>()?;
-        self.client.signal().assert_sessions(&parsed).await?;
+        self.client
+            .online()
+            .await?
+            .signal()
+            .assert_sessions(&parsed)
+            .await?;
         Ok(true)
     }
 
@@ -173,7 +191,13 @@ impl WasmWhatsAppClient {
             .iter()
             .map(|j| parse_jid(j))
             .collect::<Result<_, _>>()?;
-        let devices = self.client.signal().get_user_devices(&parsed).await?;
+        let devices = self
+            .client
+            .online()
+            .await?
+            .signal()
+            .get_user_devices(&parsed)
+            .await?;
         // Return as JidWithDevice[] = { user: string, device?: number, jid: string }
         let arr = js_sys::Array::new_with_length(devices.len() as u32);
         for (i, jid) in devices.iter().enumerate() {
@@ -202,7 +226,12 @@ impl WasmWhatsAppClient {
         data: &[u8],
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let parsed = parse_jid(jid)?;
-        let (msg_type, ciphertext) = self.client.signal().encrypt_message(&parsed, data).await?;
+        let (msg_type, ciphertext) = self
+            .client
+            .unwaited(Unwaited::Local)
+            .signal()
+            .encrypt_message(&parsed, data)
+            .await?;
         let obj = js_sys::Object::new();
         js_sys::Reflect::set(&obj, &"type".into(), &msg_type.as_wire_str().into())
             .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
@@ -228,6 +257,7 @@ impl WasmWhatsAppClient {
             .ok_or_else(|| crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}")))?;
         let plaintext = self
             .client
+            .unwaited(Unwaited::Local)
             .signal()
             .decrypt_message(&parsed, enc_type, ciphertext)
             .await
@@ -258,6 +288,7 @@ impl WasmWhatsAppClient {
         let parsed = parse_jid(group_jid)?;
         let (skdm, ciphertext) = self
             .client
+            .unwaited(Unwaited::Local)
             .signal()
             .encrypt_group_message(&parsed, data)
             .await?;
@@ -289,6 +320,7 @@ impl WasmWhatsAppClient {
         let sender = parse_jid(author_jid)?;
         let plaintext = self
             .client
+            .unwaited(Unwaited::Local)
             .signal()
             .decrypt_group_message(&group, &sender, msg)
             .await?;
@@ -333,8 +365,8 @@ impl WasmWhatsAppClient {
             identity_key,
         )
         .map_err(|error| crate::errors::invalid_arg("bundle", error.to_string()))?;
-
         self.client
+            .unwaited(Unwaited::Local)
             .signal()
             .install_prekey_bundle(&parsed, &bundle)
             .await?;
@@ -350,10 +382,16 @@ impl WasmWhatsAppClient {
         match count {
             Some(count) => {
                 self.client
+                    .unwaited(Unwaited::Redriven)
                     .refresh_pre_keys_with_count(count as usize)
                     .await?
             }
-            None => self.client.refresh_pre_keys().await?,
+            None => {
+                self.client
+                    .unwaited(Unwaited::Redriven)
+                    .refresh_pre_keys()
+                    .await?
+            }
         }
         Ok(())
     }
@@ -361,21 +399,30 @@ impl WasmWhatsAppClient {
     /// Replenish the server's one-time key pool only when it is low.
     #[wasm_bindgen(js_name = ensurePreKeys)]
     pub async fn ensure_pre_keys(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.ensure_pre_keys().await?;
+        self.client
+            .unwaited(Unwaited::Redriven)
+            .ensure_pre_keys()
+            .await?;
         Ok(())
     }
 
     /// Validate the server-side key-bundle digest against local state.
     #[wasm_bindgen(js_name = validateKeyBundle)]
     pub async fn validate_key_bundle(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.validate_digest_key().await?;
+        self.client
+            .unwaited(Unwaited::Redriven)
+            .validate_digest_key()
+            .await?;
         Ok(())
     }
 
     /// Rotate the signed key advertised by the server.
     #[wasm_bindgen(js_name = rotateSignedKey)]
     pub async fn rotate_signed_key(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.rotate_signed_pre_key().await?;
+        self.client
+            .unwaited(Unwaited::Redriven)
+            .rotate_signed_pre_key()
+            .await?;
         Ok(())
     }
 
@@ -390,6 +437,7 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(sender_jid)?;
         self.client
+            .unwaited(Unwaited::Local)
             .signal()
             .process_sender_key_distribution(&group, &sender, distribution)
             .await?;
@@ -407,6 +455,7 @@ impl WasmWhatsAppClient {
         let sender = parse_jid(sender_jid)?;
         let distribution = self
             .client
+            .unwaited(Unwaited::Local)
             .signal()
             .sender_key_distribution(&group, &sender)
             .await?;
@@ -422,7 +471,12 @@ impl WasmWhatsAppClient {
     ) -> Result<bool, crate::errors::BridgeError> {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(sender_jid)?;
-        Ok(self.client.signal().has_sender_key(&group, &sender).await?)
+        Ok(self
+            .client
+            .unwaited(Unwaited::Local)
+            .signal()
+            .has_sender_key(&group, &sender)
+            .await?)
     }
 
     /// Delete one sender-key chain from live and durable state.
@@ -435,6 +489,7 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(sender_jid)?;
         self.client
+            .unwaited(Unwaited::Local)
             .signal()
             .delete_sender_key(&group, &sender)
             .await?;
@@ -451,6 +506,7 @@ impl WasmWhatsAppClient {
         let parsed = parse_jid(jid)?;
         Ok(self
             .client
+            .unwaited(Unwaited::Local)
             .signal()
             .session_info(&parsed)
             .await?
@@ -490,6 +546,7 @@ impl WasmWhatsAppClient {
 
         let written = self
             .client
+            .unwaited(Unwaited::Local)
             .add_lid_pn_mappings(pairs, whatsapp_rust::lid_pn_cache::LearningSource::Other)
             .await?;
         u32::try_from(written).map_err(|_| crate::errors::internal("mapping count exceeds u32"))
@@ -504,7 +561,12 @@ impl WasmWhatsAppClient {
     ) -> Result<crate::result_types::SignalSessionMigrationResult, crate::errors::BridgeError> {
         let from = parse_jid(from_jid)?;
         let to = parse_jid(to_jid)?;
-        let result = self.client.signal().migrate_sessions(&from, &to).await?;
+        let result = self
+            .client
+            .unwaited(Unwaited::Local)
+            .signal()
+            .migrate_sessions(&from, &to)
+            .await?;
         Ok(crate::result_types::SignalSessionMigrationResult {
             migrated: result.migrated as u32,
             skipped: result.skipped as u32,
@@ -520,6 +582,7 @@ impl WasmWhatsAppClient {
     ) -> Result<bool, crate::errors::BridgeError> {
         let parsed = parse_jid(jid)?;
         self.client
+            .unwaited(Unwaited::Local)
             .signal()
             .validate_session(&parsed)
             .await
@@ -537,6 +600,7 @@ impl WasmWhatsAppClient {
             .map(|j| parse_jid(j))
             .collect::<Result<_, _>>()?;
         self.client
+            .unwaited(Unwaited::Local)
             .signal()
             .delete_sessions(&parsed)
             .await
@@ -564,6 +628,7 @@ impl WasmWhatsAppClient {
         };
         Ok(self
             .client
+            .unwaited(Unwaited::Local)
             .get_lid_pn_entry(&parsed)
             .await?
             .map(|e| format!("{}@lid", e.lid)))
@@ -587,6 +652,7 @@ impl WasmWhatsAppClient {
         };
         Ok(self
             .client
+            .unwaited(Unwaited::Local)
             .get_lid_pn_entry(&parsed)
             .await?
             .map(|e| format!("{}@s.whatsapp.net", e.phone_number)))
@@ -627,6 +693,8 @@ impl WasmWhatsAppClient {
 
         let (nodes, should_include_device_identity) = self
             .client
+            .online()
+            .await?
             .signal()
             .create_participant_nodes(&recipient_jids, &msg)
             .await?;
@@ -651,6 +719,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = sendRawMessage)]
     pub async fn send_raw_message(&self, data: &[u8]) -> Result<(), crate::errors::BridgeError> {
         self.client
+            .unwaited(Unwaited::Opaque)
             .send_raw_bytes(data.to_vec())
             .await
             .map_err(crate::errors::BridgeError::from)

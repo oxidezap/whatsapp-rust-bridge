@@ -24,8 +24,108 @@ env:
   NODE_VERSION: 24
 
 jobs:
+  # release-please keeps its release pull request rebased on main, so every
+  # feature that lands re-triggers a full run on a diff that is a version
+  # string and a changelog entry — 7 of the 30 runs in the last five days, at
+  # ~9 minutes each. None of it can fail: nothing the build reads changed.
+  #
+  # This decides that from the diff rather than from who authored it. A commit
+  # message is a claim anyone can make; the set of changed files is not.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      # No checkout. The compare API answers this in one request, and it gives
+      # the same answer for a pull request and for the push that merges it —
+      # which is what keeps a change from skipping CI on one and taking it on
+      # the other.
+      - id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          decide() {
+            echo "build=$1" >>"$GITHUB_OUTPUT"
+            echo "changes: build=$1 — $2"
+            echo "**\`build=$1\`** — $2" >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+
+          # A branch's first push has no `before`, and there is nothing to
+          # compare a new branch against. Build.
+          case "$BASE" in
+            "" | 0000000000000000000000000000000000000000)
+              decide true "no base commit to compare against" ;;
+          esac
+
+          compare=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE...$HEAD")
+          count=$(jq '.files | length' <<<"$compare")
+
+          # The compare API stops listing files at 300, and an empty list means
+          # this is reading something other than a normal push. Neither is a
+          # basis for skipping anything.
+          if [ "$count" -eq 0 ] || [ "$count" -ge 300 ]; then
+            decide true "$count files listed by the compare API"
+          fi
+
+          jq -r '.files[] | "changes:   \(.status)  \(.filename)"' <<<"$compare"
+
+          skippable=$(jq '
+            # Two files no build reads. release-please writes both; nothing
+            # else does.
+            def inert:
+              .filename == "CHANGELOG.md"
+              or .filename == ".release-please-manifest.json";
+
+            # The +/- lines of the patch itself, minus the ---/+++ file headers.
+            def patch_lines:
+              [ (.patch // "") | split("\n")[]
+                | select(test("^[+-]") and (test("^(\\+\\+\\+|---)") | not)) ];
+
+            # `additions` and `deletions` are counted by GitHub from the whole
+            # diff; `patch` is a rendering of it the API is free to shorten or
+            # omit. If the two disagree, this is looking at part of a change and
+            # has no business classifying it.
+            def patch_is_whole:
+              ([ patch_lines[] | select(startswith("+")) ] | length) == (.additions // -1)
+              and ([ patch_lines[] | select(startswith("-")) ] | length) == (.deletions // -1);
+
+            # These two do feed the build — scripts, dependencies, the `files`
+            # list — so they cannot be waved through by name. A release bump
+            # rewrites the "version" string in them and nothing else, and that
+            # string is read by npm at publish, never by anything CI runs.
+            #
+            # Every changed line must be a whole version property. Anchoring
+            # only the start would read `"version": "0.15.0", "scripts": {…}`
+            # as a version bump, and JSON is free to put both on one line.
+            def version_bump_only:
+              (.filename == "package.json" or .filename == "package-lock.json")
+              and patch_is_whole
+              and (patch_lines
+                   | length > 0
+                     and all(test("^[+-][ \t]*\"version\": \"[^\"]*\",?[ \t]*$")));
+
+            [ .files[]
+              | (.status == "modified" or .status == "added")
+                and (inert or version_bump_only)
+            ] | all
+          ' <<<"$compare")
+
+          if [ "$skippable" = true ]; then
+            decide false "every changed file is a release version bump"
+          fi
+          decide true "the change reaches the build"
+
   fmt-clippy:
     name: Rust Format & Clippy
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -78,9 +178,17 @@ jobs:
     # this workflow only triggered on master; pointing it at main would have
     # failed every run on MODULE_NOT_FOUND. The `bench` scripts in package.json
     # are still orphaned and want either restoring or removing.
+    #
+    # This used to wait on fmt-clippy, as a cheap gate before the expensive
+    # job. It bought nothing: `Swatinem/rust-cache` keys on the job name, so
+    # this job restores its own cache either way, and the wait was ~58s of an
+    # otherwise idle runner on every green run. Lint failures now cost a build
+    # that would have been skipped; green runs, which is nearly all of them,
+    # reach the tests a minute sooner.
     name: Build + Test (Bun)
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
-    needs: fmt-clippy
     steps:
       - uses: actions/checkout@v6
 
@@ -153,17 +261,63 @@ jobs:
       - name: Fail if the wasm's largest function regrew
         run: bun run check:wasm-shape
 
-      - name: Run Tests with Bun
-        run: bun test
+      # Runs the suite, and fails if one test outgrew its clock budget. Not in
+      # release.yml: a slow test is stopped where it lands, and a release must
+      # not be blocked by a runner that ran slow.
+      - name: Run tests, and fail if one outgrew its clock budget
+        run: bun run check:test-clock
         env:
           # Optional: make test output clearer
           CI: true
 
+      # Continuous releases through pkg.pr.new: every commit on main and every
+      # pull request leaves behind an installable, npm-compatible tarball, so
+      # someone hitting a bug can try the fix from the pull request that carries
+      # it instead of waiting for the release cycle to reach them.
+      #
+      # It publishes from this job rather than from a workflow of its own
+      # because the artifact is the expensive part here — a release wasm build
+      # plus wasm-opt is most of this job's ~9 minutes, and a second workflow
+      # would pay it again for bytes this one already produced. The same reason
+      # release.yml's `publish` downloads verify's tree instead of rebuilding
+      # it. It is also the last step on purpose: everything above has to pass
+      # first, so a preview URL is never a build that failed its own tests.
+      #
+      # Nothing reaches npm here and no secret is involved — the upload is
+      # authorised from the workflow run itself, which is why no permission is
+      # added for it. Fork pull requests publish too, and that is the point of
+      # the feature: the tarball is the code this job just built and tested.
+      #
+      # `continue-on-error` because `success` is the required check. pkg.pr.new
+      # is a third-party service this repository does not run, and it being down
+      # is not a reason a pull request cannot merge — a missing preview is a
+      # warning on the run, not a red branch.
+      #
+      # --previewVersion stamps the tarball 0.0.0-preview-<sha> instead of
+      # leaving it on the released version it was branched from. A preview
+      # calling itself 0.19.0 can stay pinned in a consumer's lockfile as the
+      # answer to `^0.19.0` long after the real 0.19.0 exists; a 0.0.0- prefix
+      # cannot satisfy that range at all.
+      #
+      # --no-template drops the StackBlitz template. It is a browser sandbox,
+      # and this package's tests and examples want a Node runtime for the wasm,
+      # so the template would only lengthen the comment.
+      #
+      # `--no` runs the binary `bun install` put in node_modules and nothing
+      # else: without it a lookup that misses falls back to fetching the latest
+      # release from the registry, which is how "pinned in the lockfile" quietly
+      # stops being true. It packs with `npm pack`, which runs `prepack` — the
+      # same tarball guard a real publish goes through — so the preview is
+      # `dist/` as this job built it, with nothing built twice.
+      - name: Publish a preview package
+        continue-on-error: true
+        run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
 
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
-    needs: fmt-clippy
     steps:
       - uses: actions/checkout@v6
 
@@ -199,10 +353,29 @@ jobs:
       - name: Run Rust unit tests (wasm32 in Node)
         run: bun run test:rust
 
+  # The one check worth requiring on a branch. It has to report on every run,
+  # including the ones where the jobs above were skipped, or a required check
+  # that never appears blocks the release pull request forever — so `always()`
+  # here, and the verdict is read off the results rather than off `success()`.
   success:
     name: All checks passed
-    if: success()
-    needs: [fmt-clippy, build-and-test, rust-tests]
+    if: always()
+    needs: [changes, fmt-clippy, build-and-test, rust-tests]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "All checks passed!"
+      - name: Fail unless every job passed or was deliberately skipped
+        env:
+          # `skipped` is a pass: it is the answer the `changes` job gives for a
+          # diff that cannot reach the build. `cancelled` is not — that is a run
+          # that never finished having an opinion.
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          echo "results: $RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *) echo "::error::a required job ended in '$result'"; exit 1 ;;
+            esac
+          done
+          echo "All checks passed!"

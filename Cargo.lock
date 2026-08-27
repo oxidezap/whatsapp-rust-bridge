@@ -72,6 +72,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
 name = "bitflags"
 version = "2.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,7 +206,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9e6224bc4ee1f189ad257120c156fb05f95b826f5369d620b24984476c200a"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "foldhash",
  "hashbrown 0.15.5",
@@ -1794,18 +1800,19 @@ dependencies = [
 [[package]]
 name = "wacore"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "aes",
  "anyhow",
  "async-channel",
  "async-lock",
  "async-trait",
- "base64",
+ "base64 0.23.1",
  "bon",
  "buffa",
  "buffa-build",
  "bytes",
+ "cbc",
  "chrono",
  "compact_str",
  "ctr",
@@ -1842,7 +1849,7 @@ dependencies = [
 [[package]]
 name = "wacore-appstate"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1863,7 +1870,7 @@ dependencies = [
 [[package]]
 name = "wacore-binary"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "bytes",
  "compact_str",
@@ -1880,7 +1887,7 @@ dependencies = [
 [[package]]
 name = "wacore-derive"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1890,7 +1897,7 @@ dependencies = [
 [[package]]
 name = "wacore-libsignal"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "aes",
  "async-lock",
@@ -1921,7 +1928,7 @@ dependencies = [
 [[package]]
 name = "wacore-noise"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1949,7 +1956,7 @@ dependencies = [
 [[package]]
 name = "waproto"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "buffa",
  "buffa-build",
@@ -2080,13 +2087,13 @@ dependencies = [
 [[package]]
 name = "whatsapp-rust"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#3772e92bceedde327eb01d23403bd2b487c6aff5"
+source = "git+https://github.com/oxidezap/whatsapp-rust?branch=main#d6a0455f052650e174140a7c8f84b3a184b0ab3a"
 dependencies = [
  "anyhow",
  "async-channel",
  "async-lock",
  "async-trait",
- "base64",
+ "base64 0.23.1",
  "buffa",
  "bytes",
  "chrono",
@@ -2119,7 +2126,7 @@ dependencies = [
  "async-channel",
  "async-lock",
  "async-trait",
- "base64",
+ "base64 0.22.1",
  "bytes",
  "console_error_panic_hook",
  "console_log",

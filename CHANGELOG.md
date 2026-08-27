@@ -1,5 +1,79 @@
 # Changelog
 
+## [0.19.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.18.0...v0.19.0) (2026-08-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a resent message reaches the host once ([#86](https://github.com/oxidezap/whatsapp-rust-bridge/issues/86))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a resent message reaches the host once ([#86](https://github.com/oxidezap/whatsapp-rust-bridge/issues/86)) ([079d56d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/079d56d422781bb8121fb505d59783615dae1ef5))
+
+## [0.18.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.17.0...v0.18.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** take the 2.3000.1045368834 spec bundle, and name the core's inline byte types ([#84](https://github.com/oxidezap/whatsapp-rust-bridge/issues/84))
+
+### Features
+
+* **deps:** take the 2.3000.1045368834 spec bundle, and name the core's inline byte types ([#84](https://github.com/oxidezap/whatsapp-rust-bridge/issues/84)) ([ddf084b](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ddf084b0d8a88dbd652973b4b18ecd45e0e8100f))
+
+
+### Performance
+
+* **core:** eliminate intermediate batch allocations and optimize wire decode ([#82](https://github.com/oxidezap/whatsapp-rust-bridge/issues/82)) ([a8f2766](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a8f2766ebd455b0e0093f1a8931e5cda0662345f))
+
+## [0.17.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.16.0...v0.17.0) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client:** hold a call through a reconnect instead of refusing it ([#76](https://github.com/oxidezap/whatsapp-rust-bridge/issues/76))
+
+### Features
+
+* **client:** hold a call through a reconnect instead of refusing it ([#76](https://github.com/oxidezap/whatsapp-rust-bridge/issues/76)) ([9bfd7ee](https://github.com/oxidezap/whatsapp-rust-bridge/commit/9bfd7ee24fbcf0ccacb1f9659b3ae699a279752a))
+* **client:** let a host withdraw the calls waiting out a reconnect ([#78](https://github.com/oxidezap/whatsapp-rust-bridge/issues/78)) ([d147cb9](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d147cb975e1fd44504ab5d136a62847561f6f8a4))
+
+
+### Bug Fixes
+
+* **wire:** a receipt's id count outgrew the byte it was written in ([#75](https://github.com/oxidezap/whatsapp-rust-bridge/issues/75)) ([34d425c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/34d425c510ec5c542ffa31640807e27c47c13445))
+
+## [0.16.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.15.0...v0.16.0) (2026-08-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a stranded group member is keyed again ([#73](https://github.com/oxidezap/whatsapp-rust-bridge/issues/73))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a stranded group member is keyed again ([#73](https://github.com/oxidezap/whatsapp-rust-bridge/issues/73)) ([c2e5d33](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c2e5d33e95c1922cc7762ecadeb779ee2e72a307))
+
+## [0.15.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.14.0...v0.15.0) (2026-08-18)
+
+
+### Features
+
+* **messaging:** let an edit carry a caller-supplied stanza id ([#70](https://github.com/oxidezap/whatsapp-rust-bridge/issues/70)) ([4f4ba2e](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4f4ba2e4e92011b5943f2e90f24ef2df23c5bd70))
+
+## [0.14.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.13.0...v0.14.0) (2026-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** a message's envelope type and mediatype cross typed, and a build retirement deadline becomes an event ([#67](https://github.com/oxidezap/whatsapp-rust-bridge/issues/67))
+
+### Features
+
+* **deps:** a message's envelope type and mediatype cross typed, and a build retirement deadline becomes an event ([#67](https://github.com/oxidezap/whatsapp-rust-bridge/issues/67)) ([7df72f8](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7df72f8e2e104954829d5d4879e0d91e967b8b83))
+* **errors:** carry the server's retry delay on a rejection ([#66](https://github.com/oxidezap/whatsapp-rust-bridge/issues/66)) ([e95d64c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/e95d64c371f42d08009b187c207ead1f9edabca9))
+
 ## [0.13.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.12.0...v0.13.0) (2026-08-14)
 
 

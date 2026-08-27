@@ -1422,6 +1422,24 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                     ("any[]".to_string(), false)
                 }
 
+                // `SmallVec<[T; N]>` serializes as a sequence — the inline
+                // capacity is an allocation strategy, not a wire form, so it
+                // names whatever the equivalent `Vec<T>` would.
+                "SmallVec" => {
+                    if let PathArguments::AngleBracketed(args) = &last.arguments
+                        && let Some(inner) = args.args.iter().find_map(|arg| match arg {
+                            GenericArgument::Type(inner) => Some(inner),
+                            _ => None,
+                        })
+                    {
+                        return match inner {
+                            Type::Array(_) => rust_type_to_ts(inner),
+                            other => (array_type(rust_type_to_ts(other).0), false),
+                        };
+                    }
+                    ("any[]".to_string(), false)
+                }
+
                 "HashSet" | "BTreeSet" => {
                     if let PathArguments::AngleBracketed(args) = &last.arguments
                         && let Some(GenericArgument::Type(inner)) = args.args.first()
@@ -2008,6 +2026,16 @@ mod tests {
             "collected {collected:?}"
         );
         assert_eq!(collected["MessageSecret"], "[u8 ; MESSAGE_SECRET_SIZE]");
+    }
+
+    #[test]
+    fn a_smallvec_names_what_the_equivalent_vec_would() {
+        // `ReportingBytes` in the core is `SmallVec<[u8; 20]>`: the inline
+        // capacity is an allocation choice, and serde writes the same sequence
+        // either way, so the declaration must not move when the core takes one.
+        assert_eq!(ts_of("SmallVec<[u8; 20]>"), "Uint8Array");
+        assert_eq!(ts_of("Option<SmallVec<[u8; 20]>>"), "Uint8Array | null");
+        assert_eq!(ts_of("SmallVec<[Jid; 4]>"), "Jid[]");
     }
 
     #[test]

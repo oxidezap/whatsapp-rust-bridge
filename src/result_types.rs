@@ -149,6 +149,55 @@ pub struct MessageRetransmissionInput {
 // Result types — serialized return values
 // ---------------------------------------------------------------------------
 
+/// What the client's connection state means for work handed to it now.
+///
+/// The core's `Reachability`, carried across unflattened. A refused call says
+/// what happened to that attempt; this says what the client is, which is the
+/// only thing that answers whether asking again is worth it — so it is read
+/// when the question comes up rather than stamped onto an error that is a fact
+/// about one instant.
+///
+/// `unknown` is not one of the core's: the enum is `#[non_exhaustive]`, and a
+/// state added upstream has no name here yet. Naming the gap beats reporting it
+/// as one of its neighbours.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "kebab-case")]
+pub enum Reachability {
+    /// A request sent now has a socket, an authenticated session and a reader
+    /// to decode the answer.
+    Reachable,
+    /// Between connections, with something driving the client back to one.
+    /// Nothing is re-sent by that: recovery restores the ability to ask, not
+    /// the request that was refused.
+    Reconnecting,
+    /// A pause is in effect. Not finished, but what ends it is a resume, and
+    /// only the application knows when that comes.
+    Paused,
+    /// Nothing is reading this client, so no answer would be decoded and no
+    /// reconnect will be attempted.
+    Unsupervised,
+    /// The session is over for good: shut down, logged out, replaced, or
+    /// refused in a way no reconnect recovers.
+    Finished,
+    /// A state this version of the bridge has no name for.
+    Unknown,
+}
+
+impl From<whatsapp_rust::Reachability> for Reachability {
+    fn from(state: whatsapp_rust::Reachability) -> Self {
+        use whatsapp_rust::Reachability as R;
+        match state {
+            R::Reachable => Self::Reachable,
+            R::Reconnecting => Self::Reconnecting,
+            R::Paused => Self::Paused,
+            R::Unsupervised => Self::Unsupervised,
+            R::Finished => Self::Finished,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 /// Result from `updateProfilePicture` or `removeProfilePicture`.
 #[derive(Serialize, Tsify)]
 #[tsify(into_wasm_abi)]
