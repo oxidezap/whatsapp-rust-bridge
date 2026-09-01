@@ -65,8 +65,59 @@ impl WasmWhatsAppClient {
                 pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
                 is_business: r.is_business,
                 verified_name: r.verified_name.as_ref().and_then(|v| v.name.clone()),
+                username: r.username.as_ref().map(|u| u.to_string()),
             })
             .collect())
+    }
+
+    /// Resolve a Meta username to the account behind it.
+    ///
+    /// **Experimental.** The core builds the request exactly as WhatsApp Web
+    /// does, but no capture of a server answering it backs the implementation,
+    /// so a rejection here is not necessarily a bug.
+    ///
+    /// `username` is the bare handle; a leading `@` is display-only and the
+    /// core strips it. `usernameKey` is the account's numeric username key,
+    /// which some accounts require before the server discloses an identity at
+    /// all — without it the answer is `{ status: "keyRequired" }`.
+    #[wasm_bindgen(js_name = findByUsername)]
+    pub async fn find_by_username(
+        &self,
+        username: &str,
+        username_key: Option<String>,
+    ) -> Result<crate::result_types::UsernameLookupResult, crate::errors::BridgeError> {
+        use whatsapp_rust::features::UsernameLookup;
+
+        let lookup = self
+            .client
+            .online()
+            .await?
+            .contacts()
+            .find_by_username(username, username_key.as_deref())
+            .await?;
+
+        Ok(match lookup {
+            UsernameLookup::NotFound => crate::result_types::UsernameLookupResult::NotFound,
+            UsernameLookup::KeyRequired { username } => {
+                crate::result_types::UsernameLookupResult::KeyRequired {
+                    username: username.map(|u| u.to_string()),
+                }
+            }
+            UsernameLookup::Found(user) => crate::result_types::UsernameLookupResult::Found {
+                jid: user.jid.to_string(),
+                pn_jid: user.pn_jid.as_ref().map(|j| j.to_string()),
+                username: user.username.map(|u| u.to_string()),
+                is_business: user.is_business,
+                verified_name: user.verified_name.and_then(|v| v.name),
+            },
+            // The core marks the answer non-exhaustive. One it learns to name
+            // and this bridge does not is not a "not found" to flatten.
+            other => {
+                return Err(crate::errors::internal(format!(
+                    "unhandled username lookup answer: {other:?}"
+                )));
+            }
+        })
     }
 
     /// Get the profile picture URL for a user or group.
@@ -135,6 +186,7 @@ impl WasmWhatsAppClient {
                 is_business: info.is_business,
                 verified_name: info.verified_name.as_ref().and_then(|v| v.name.clone()),
                 devices: info.devices.clone(),
+                username: info.username.as_ref().map(|u| u.to_string()),
             };
             let js_entry = serde_wasm_bindgen::to_value(&entry)?;
             js_sys::Reflect::set(&obj, &JsValue::from_str(&jid.to_string()), &js_entry)?;
@@ -154,6 +206,24 @@ impl WasmWhatsAppClient {
             .set_push_name(name)
             .await
             .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Read this account's own Meta username, its state and its username key.
+    ///
+    /// `null` means no username is set: the server answers 404 and the core
+    /// reads it that way. Only the read is exposed — setting a username or its
+    /// key changes the account's identity in a way the server does not undo,
+    /// so the core leaves those two MEX operations unwrapped.
+    #[wasm_bindgen(js_name = getUsername)]
+    pub async fn get_username(
+        &self,
+    ) -> Result<Option<crate::result_types::OwnUsernameResult>, crate::errors::BridgeError> {
+        let own = self.client.online().await?.mex().get_username().await?;
+        Ok(own.map(|own| crate::result_types::OwnUsernameResult {
+            username: own.username,
+            state: own.state,
+            key: own.key,
+        }))
     }
 
     /// Set the profile picture for the logged-in user.
