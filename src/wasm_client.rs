@@ -213,6 +213,7 @@ bridge_events! {
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
+        OfflineSyncInterrupted   => "offline_sync_interrupted"      => "OfflineSyncInterrupted",
         DirtyState               => "dirty_state"                    => "{ dirty_type: DirtyType; timestamp?: number | null }",
         DeviceListUpdate         => "device_list_update"            => "DeviceListUpdate",
         IdentityChange           => "identity_change"               => "IdentityChange",

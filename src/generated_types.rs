@@ -1085,6 +1085,14 @@ export interface OfflineSyncCompleted {
   count: number;
 }
 
+/** An offline backlog drain ended without its `<ib><offline>` end marker, because the connection went away first.  This is the counterpart of [`OfflineSyncCompleted`], not a variant of it: the drain did not finish, the client is not caught up, and the remainder of the backlog is still queued server-side. Nothing was lost — an offline message is only acked through the aggregate receipt flush that a *completed* drain performs, so everything undelivered (and the last open batch) is redelivered on the next connection, where a fresh [`OfflineSyncPreview`] announces it.  A consumer that gates "caught up" UI or startup work on [`OfflineSyncCompleted`] should treat this as "not caught up, wait for the next preview" rather than as completion. */
+export interface OfflineSyncInterrupted {
+  /** What the preview announced for this drain. */
+  total: number;
+  /** Offline stanzas processed before the connection ended. Never larger than `total` in practice, but the server owns both numbers, so treat the pair as a progress report rather than an invariant. */
+  delivered: number;
+}
+
 /** `total` is authoritative; the per-kind counts need not sum to it. */
 export interface OfflineSyncPreview {
   total: number;
@@ -1681,4 +1689,5 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "EncDecryptFailed",
     "CallLogSync",
     "ClientExpirationChanged",
+    "OfflineSyncInterrupted",
 ];
