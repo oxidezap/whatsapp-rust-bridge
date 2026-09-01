@@ -128,7 +128,7 @@ jobs:
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -190,7 +190,7 @@ jobs:
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -202,7 +202,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
+        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
         with:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
@@ -214,7 +214,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -312,7 +312,7 @@ jobs:
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -324,7 +324,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
+        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
         with:
           tool: wasm-pack
 
@@ -334,7 +334,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
