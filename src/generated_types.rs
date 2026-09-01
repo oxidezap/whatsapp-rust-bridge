@@ -40,6 +40,19 @@ export interface AppStateSyncKey {
   timestamp: number | string;
 }
 
+/** Why, and with what, a session connected without a freshly resolved version.  Only the browser version source falls back this way; see the source constants in the client crate's `version` module for the reason. */
+export interface AppVersionFallback {
+  /** The version the session actually connected with. */
+  version: [number, number, number];
+  /** True when that version is the one compiled into this library, so its staleness is the release's age. False when the device already carried a different one, whose provenance this does not claim to know: it may have been resolved earlier or supplied by the caller. */
+  compiled_default: boolean;
+  /** What stopped the resolution. Worth distinguishing, because one is routine and the other is news. */
+  reason: AppVersionFallbackReason;
+}
+
+/** Why a version could not be resolved. */
+export type AppVersionFallbackReason = "SourceUnreachable" | "SourceUnparsable";
+
 export interface ArchiveUpdate {
   /** The chat being archived or unarchived. */
   jid: Jid;
@@ -270,6 +283,12 @@ export interface ConnectFailure {
 /** Wire codes: 400=Generic, 401=LoggedOut, 402=TempBanned, 403=AccountLocked, 406=UnknownLogout, 405=ClientOutdated, 409=BadUserAgent, 413=CatExpired, 414=CatInvalid, 415=NotFound, 418=ClientUnknown, 500=InternalServerError, 501=Experimental, 503=ServiceUnavailable */
 export type ConnectFailureReason = number;
 
+/** The session is authenticated and has asked the server to leave passive mode.  That request is best effort: a failure to go active is logged and the connection is announced anyway, on the same reasoning as below, so treat this as "the client believes stanzas should be flowing" rather than a guarantee that the server agrees.  After a fresh pairing the client waits for the critical app-state collections before publishing this, so the push name and blocklist are normally in place by now. It waits, but it does not withhold: a critical collection the server refused or could not deliver is reported as [`AppStateSyncFailed`] and the connection is announced regardless, because a session already delivering messages is not one a consumer should be left believing never opened. */
+export interface Connected {
+  /** Present when version resolution could not reach its source and the session connected on the version the device already held. Absent on every normal connect, so `Some` is the whole signal: a consumer that cares can warn, refuse, or pin a version of its own. */
+  app_version_fallback?: AppVersionFallback | null;
+}
+
 /** A contact changed their phone number.  Emitted from `<notification type="contacts"><modify old="..." new="..." old_lid="..." new_lid="..."/>`.  The library updates the global LID-PN cache when both `old_lid` and `new_lid` are present, mirroring `WAWebDBCreateLidPnMappings`. No Signal session is wiped (WA Web `WAWebHandleContactNotification` also leaves sessions intact). Group participant updates arrive via separate `w:gp2` notifications, so per-group caches are not touched here. Consumers can subscribe and refresh their own caches if needed. */
 export interface ContactNumberChanged {
   /** Old phone number JID. */
@@ -404,21 +423,19 @@ export interface DeviceElement {
   lid?: Jid | null;
 }
 
-/** Device information for registry tracking. */
+/** Device information for registry tracking.  Packed into 8 bytes rather than the 16 the obvious three fields occupy: a `u32` device id, an `Option<u32>` key index and a `bool` carry 5 bytes of information and 11 bytes of alignment padding, and a device registry holds one of these per device per known contact. The device id is a `u16` because that is what it is on the wire — [`Jid::device`] has always been one — and the hosted flag and the key index's presence share one byte.  Serialized as the `{device_id, key_index, is_hosted}` object the previous layout wrote, so stored device-list blobs are unchanged in both directions. */
 export interface DeviceInfo {
-  /** The device ID (0 = primary device, 1+ = companion devices) */
   device_id: number;
-  /** The key index, if known */
+  /** Meaningful only when [`Self::HAS_KEY_INDEX`] is set. */
   key_index?: number | null;
-  /** Whether the device uses the hosted PN/LID address space. */
   is_hosted: boolean;
 }
 
-/** Device list record matching WhatsApp Web's DeviceListRecord structure. */
+/** Device list record matching WhatsApp Web's DeviceListRecord structure.  Serialized through a private shadow struct whose fields are the `String`, `Vec` and `Option<String>` the previous layout used. Deriving serde on the compact fields directly would stamp a second set of `Box<[T]>` and `Option<Box<str>>` codecs into every crate that persists a record, for a blob that is byte-for-byte the same either way. */
 export interface DeviceListRecord {
-  /** The user part of the JID (phone number or LID) */
+  /** The user part of the JID (phone number or LID) `Arc<str>`, so the registry cache can key the record by exactly this string instead of allocating a second copy of it: every write stores the record under its own `user`, and the two used to be separate `String` allocations of identical content. */
   user: string;
-  /** List of known devices for this user */
+  /** List of known devices for this user.  Boxed rather than a `Vec`: the list is built once and then read for the life of the cache entry, so the capacity field is dead weight — and worse, `retain_devices_by_key_index` shortens it without releasing the capacity, leaving the dropped devices' slots resident. Mutations go through [`DeviceListRecord::edit_devices`]. */
   devices: DeviceInfo[];
   /** Timestamp when this record was last updated */
   timestamp: number | string;
@@ -630,7 +647,7 @@ export interface GroupInfo {
   addressing_mode: AddressingMode;
   /** Whether this group is a Community Announcement Group (WA Web `isCag`, derived from `default_sub_group`). `None` means the persisted blob predates the field, so the answer is unknown and callers must re-query. */
   is_community_announce?: boolean | null;
-  /** Maps a LID user identifier (the `user` part of the LID JID) to the corresponding phone-number JID. This is used for device queries since LID usync requests may not work reliably. */
+  /** LID→PN mappings, sorted by the LID user part, looked up by binary search. Used for device queries, since LID usync requests may not work reliably.  A sorted slice rather than a `HashMap`: a 1024-member group needs 2048 hashbrown buckets, so roughly half the map's bytes were empty slots, and the entries are read far more often than they are written (member changes arrive on notifications; lookups run once per participant per send). Serialized as the `lid_to_pn_map` object the previous layout wrote, so the persisted `group_metadata` blob is unchanged. */
   lid_to_pn_map: Record<string, Jid>;
 }
 
@@ -641,7 +658,7 @@ export type GroupNotificationAction =
   | { type: "promote"; participants: GroupParticipantInfo[] }
   | { type: "demote"; participants: GroupParticipantInfo[] }
   | { type: "modify"; participants: GroupParticipantInfo[] }
-  | { type: "subject"; subject: string; subject_owner?: Jid | null; subject_time?: number | string | null }
+  | { type: "subject"; subject: string; subject_owner?: Jid | null; subject_owner_pn?: Jid | null; subject_owner_username?: string | null; subject_time?: number | string | null }
   | { type: "description"; id: string; description?: string | null }
   | { type: "locked"; threshold?: string | null }
   | { type: "unlocked" }
@@ -767,6 +784,8 @@ export interface IncomingCall {
   timestamp: number;
   offline: boolean;
   action: CallAction;
+  /** The rotation the sending device announced on this stanza's `<video>` child, in `0..=3`. Only an `<offer>` and an `<accept>` carry one; `None` everywhere else, and for a stanza whose value was out of range.  A video-from-start peer announces its camera rotation exactly once, in that stanza, and sends no `<video>` of its own until the camera actually turns -- so dropping this leaves every frame of a call from a sideways camera stamped upright.  On the payload rather than inside [`CallAction::Offer`] / [`Accept`]: those variants are plain struct variants, so a new field there breaks every consumer that destructures them without a `..` rest. This struct is `#[non_exhaustive]` with a `bon` builder, which is exactly the shape the `Event` stability policy reserves for a payload that has to grow.  [`Accept`]: CallAction::Accept */
+  video_orientation?: number | null;
   /** Group snapshot embedded in an initial offer or active-call invitation. */
   group?: GroupCallUpdate | null;
 }
@@ -1035,7 +1054,7 @@ export interface MuteUpdate {
   from_full_sync: boolean;
 }
 
-/** Wire codes: 421=StaleGroupAddressingMode, 475=NewChatMessagesCapped, 487=ParsingError, 488=UnrecognizedStanza, 489=UnrecognizedStanzaClass, 490=UnrecognizedStanzaType, 491=InvalidProtobuf, 493=InvalidHostedCompanionStanza, 495=MissingMessageSecret, 496=SignalErrorOldCounter, 499=MessageDeletedOnPeer, 500=UnhandledError, 550=UnsupportedAdminRevoke, 551=UnsupportedLIDGroup, 552=DBOperationFailed */
+/** Wire codes: 415=UnsupportedMessage, 421=StaleGroupAddressingMode, 475=NewChatMessagesCapped, 487=ParsingError, 488=UnrecognizedStanza, 489=UnrecognizedStanzaClass, 490=UnrecognizedStanzaType, 491=InvalidProtobuf, 493=InvalidHostedCompanionStanza, 495=MissingMessageSecret, 496=SignalErrorOldCounter, 499=MessageDeletedOnPeer, 500=UnhandledError, 550=UnsupportedAdminRevoke, 551=UnsupportedLIDGroup, 552=DBOperationFailed */
 export type NackReason = number;
 
 /** A newsletter live update notification, typically containing updated reaction counts for one or more messages. */
@@ -1398,6 +1417,8 @@ export interface UsyncBotPrompt {
 
 export interface UsyncBusinessResult {
   verified_name?: VerifiedName | null;
+  /** Phone-number JID the server attaches to `<business>` when the queried user was addressed by LID. It is the only place a username lookup can learn the PN, since such a query never carries one. */
+  pn_jid?: Jid | null;
 }
 
 export interface UsyncContactResult {

@@ -856,11 +856,17 @@ impl AppSyncStore for JsBackend {
             .await
     }
 
-    async fn get_version(&self, name: &str) -> Result<HashState> {
-        Ok(self
-            .js_get_json(STORE_SYNC_VERSION, name)
-            .await?
-            .unwrap_or_default())
+    /// Absence is passed through rather than defaulted. The core reads `None`
+    /// as "never synced" and asks for a snapshot; a collection that synced and
+    /// is legitimately empty has a record at version 0 and asks for patches.
+    /// Collapsing the two here made every empty collection re-request a
+    /// snapshot forever.
+    async fn get_version(&self, name: &str) -> Result<Option<HashState>> {
+        self.js_get_json(STORE_SYNC_VERSION, name).await
+    }
+
+    async fn delete_version(&self, name: &str) -> Result<()> {
+        self.js_delete(STORE_SYNC_VERSION, name).await
     }
 
     async fn set_version(&self, name: &str, state: HashState) -> Result<()> {
