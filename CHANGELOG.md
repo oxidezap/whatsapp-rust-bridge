@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.18.0...v0.19.0) (2026-08-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust so a resent message reaches the host once ([#86](https://github.com/oxidezap/whatsapp-rust-bridge/issues/86))
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust so a resent message reaches the host once ([#86](https://github.com/oxidezap/whatsapp-rust-bridge/issues/86)) ([079d56d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/079d56d422781bb8121fb505d59783615dae1ef5))
+
 ## [0.18.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.17.0...v0.18.0) (2026-08-21)
 
 
