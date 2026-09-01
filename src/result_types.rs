@@ -249,6 +249,10 @@ pub struct UserInfoResult {
     /// the server returned no device list.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub devices: Vec<u16>,
+    /// Meta username, without the display-only `@` prefix. Absent when the
+    /// server reported none, which is also how it reports a deleted one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
 }
 
 /// A participant change result from `groupParticipantsUpdate`.
@@ -456,6 +460,68 @@ pub struct IsOnWhatsAppResult {
     /// Verified business name from the usync `<business><verified_name>` cert, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verified_name: Option<String>,
+    /// Meta username, without the display-only `@` prefix. Absent when the
+    /// server reported none, which is also how it reports a deleted one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+}
+
+/// What `findByUsername` learned about a Meta username.
+///
+/// Mirrors the core `UsernameLookup`, which is a three-way answer rather than
+/// an optional user: a username the server confirms but will not resolve
+/// without the account's username key is neither a hit nor a miss.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(tag = "status")]
+pub enum UsernameLookupResult {
+    /// No account answers to this username, or it is not reachable from here.
+    #[serde(rename = "notFound")]
+    NotFound,
+    /// The username exists and the server withheld the identity behind it.
+    /// Repeat the lookup with the account's username key.
+    #[serde(rename = "keyRequired", rename_all = "camelCase")]
+    KeyRequired {
+        /// Username as the server spelled it back, when it did.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        username: Option<String>,
+    },
+    /// The username resolved to an account.
+    #[serde(rename = "found", rename_all = "camelCase")]
+    Found {
+        /// Identity the server returned. The query addresses contacts by LID,
+        /// so this is normally a LID.
+        jid: String,
+        /// Phone-number JID, when the server disclosed one on `<business>`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pn_jid: Option<String>,
+        /// Username as the server spelled it back.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        username: Option<String>,
+        is_business: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        verified_name: Option<String>,
+    },
+}
+
+/// Result from `getUsername`: this account's own Meta username.
+///
+/// Every field is optional because the server omits the ones that do not
+/// apply. An account with no username at all comes back as `null` from the
+/// method rather than as an all-absent object.
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnUsernameResult {
+    /// The handle, without the display-only `@` prefix.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// `ACTIVE` or `RESERVED`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// The numeric username key that guards lookups of this account by handle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
 }
 
 /// Result from `fetchStatus`.

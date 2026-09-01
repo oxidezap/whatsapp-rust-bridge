@@ -652,8 +652,13 @@ classify! {
         CommunityError::InvalidRequest(detail) => invalid_request(detail),
     }
 
+    // `Username` only ever wraps a rejection of what the caller passed — a
+    // handle outside the server's length bounds, or a usync query that
+    // validation refused to build from it — so it names the argument rather
+    // than falling through to the chain walk.
     ContactError {
         ContactError::InvalidJid(detail) => invalid_arg("jid", detail),
+        ContactError::Username(detail) => invalid_arg("username", detail.to_string()),
     }
 
     // `Timeout` here is the media retry *notification* never arriving, which
@@ -1372,6 +1377,14 @@ mod tests {
                 "ContactError::InvalidJid",
                 ContactError::InvalidJid("broadcast".into()).into(),
                 "invalid-argument:jid",
+            ),
+            (
+                "ContactError::Username",
+                ContactError::Username(
+                    whatsapp_rust::features::UsernameLookupError::InvalidLength { length: 2 },
+                )
+                .into(),
+                "invalid-argument:username",
             ),
             (
                 "MediaReuploadError::NotLoggedIn",

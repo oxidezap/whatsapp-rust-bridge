@@ -30,6 +30,7 @@ const PUBLISHED: Record<string, string> = {
   self_push_name_updated: "SelfPushNameUpdated",
   offline_sync_preview: "OfflineSyncPreview",
   offline_sync_completed: "OfflineSyncCompleted",
+  offline_sync_interrupted: "OfflineSyncInterrupted",
   dirty_state: "{ dirty_type: DirtyType; timestamp?: number | null }",
   device_list_update: "DeviceListUpdate",
   identity_change: "IdentityChange",
