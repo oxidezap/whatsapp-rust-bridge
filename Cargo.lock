@@ -1780,7 +1780,7 @@ dependencies = [
  "async-channel",
  "async-lock",
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bytes",
  "console_error_panic_hook",
  "console_log",
