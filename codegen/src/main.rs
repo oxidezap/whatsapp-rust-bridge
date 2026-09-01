@@ -646,6 +646,19 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
         return;
     };
 
+    // Every struct in the file, private ones included, so a container that
+    // serializes `into` a shadow can be described by the shadow it actually
+    // writes. Shadows are private by convention, so the `is_pub` filter below
+    // would never reach them.
+    let shadows: std::collections::HashMap<String, &syn::ItemStruct> = file
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Struct(s) => Some((s.ident.to_string(), s)),
+            _ => None,
+        })
+        .collect();
+
     for item in &file.items {
         match item {
             Item::Struct(s) if has_serde_derive(&s.attrs) && is_pub(&s.vis) => {
@@ -666,9 +679,38 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                 }
 
                 let doc = extract_doc(&s.attrs);
-                let serde = parse_serde_container(&s.attrs);
-                let generics = type_parameters(&s.generics);
-                let fields = match &s.fields {
+                // A `serde(into)` / `serde(from)` container never writes its own
+                // fields: the shadow it converts through is the shape that
+                // crosses the boundary, and the two disagree on purpose (a
+                // packed layout, a field split into flags). Describe the shadow.
+                let shape = match serde_container_shadow(&s.attrs).filter(|shadow| *shadow != name)
+                {
+                    Some(shadow) => shadows.get(&shadow).copied().unwrap_or_else(|| {
+                        panic!(
+                            "`{name}` serializes through `{shadow}`, which is not declared in the \
+                             same file. This generator resolves a shadow only among its own \
+                             file's items."
+                        )
+                    }),
+                    None => s,
+                };
+                let serde = parse_serde_container(&shape.attrs);
+                let generics = type_parameters(&shape.generics);
+                // A shadow is a codec detail and is rarely documented, while
+                // the container it stands in for is. Where the two agree on a
+                // field name, the container's doc is about that same value, so
+                // it carries over rather than being dropped.
+                let outer_docs: std::collections::HashMap<String, String> = match &s.fields {
+                    Fields::Named(named) => named
+                        .named
+                        .iter()
+                        .filter_map(|f| {
+                            Some((f.ident.as_ref()?.to_string(), extract_doc(&f.attrs)?))
+                        })
+                        .collect(),
+                    _ => std::collections::HashMap::new(),
+                };
+                let fields = match &shape.fields {
                     Fields::Named(named) => named
                         .named
                         .iter()
@@ -679,8 +721,9 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                         .map(|f| {
                             let field_name =
                                 f.ident.as_ref().unwrap().to_string().replace("r#", "");
-                            let (ts_type, optional) =
-                                timestamp_module_type(f).unwrap_or_else(|| rust_type_to_ts(&f.ty));
+                            let (ts_type, optional) = timestamp_module_type(f)
+                                .or_else(|| serialize_with_type(f))
+                                .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
                                 name: serde_name.unwrap_or_else(|| {
@@ -688,7 +731,8 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                                 }),
                                 ts_type,
                                 optional,
-                                doc: extract_doc(&f.attrs),
+                                doc: extract_doc(&f.attrs)
+                                    .or_else(|| outer_docs.get(&field_name).cloned()),
                             }
                         })
                         .collect(),
@@ -1304,6 +1348,73 @@ fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
              cannot name. Add it beside chrono's timestamp modules."
         ),
     }
+}
+
+/// The shadow struct a container serializes through, from `serde(into)`.
+///
+/// Only `into`. A declaration describes what crosses the boundary, and
+/// `from` / `try_from` name the deserialize direction, which can differ or
+/// even point back at the container itself for validate-on-load. A container
+/// carrying only those still writes its own fields.
+fn serde_container_shadow(attrs: &[Attribute]) -> Option<String> {
+    let path = serde_attribute_tokens(attrs)
+        .into_iter()
+        .find_map(|tokens| keyed_string(&tokens, "into").map(ToOwned::to_owned))?;
+    // Generic arguments are the container's own, so the shadow resolves by
+    // name: `into = "Packed<T>"` is the `Packed` declared alongside it.
+    let name = path.split('<').next().unwrap_or_default();
+    Some(
+        name.rsplit("::")
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_owned(),
+    )
+}
+
+/// A field written through one of the core's own `serialize_with` functions,
+/// which can replace the field's Rust shape with one the type does not
+/// describe.
+///
+/// Named one by one for the reason chrono's modules are: a function this
+/// generator has not read is a representation it cannot name, and guessing one
+/// publishes a declaration nobody honours. `None` means the field's own type
+/// already names what the function writes; an unknown function stops
+/// generation, the way an unplaceable type already does.
+fn serialize_with_type(field: &syn::Field) -> Option<(String, bool)> {
+    // A `DateTime` reaches its module through `timestamp_module_type`, which
+    // reads `with` as well and runs first.
+    if is_datetime(&field.ty) {
+        return None;
+    }
+    let path = serde_serialize_with(&field.attrs)?;
+    match path.rsplit("::").next().unwrap_or_default() {
+        // Writes the bytes the field's own `Option<Vec<u8>>` already names.
+        "serialize_optional_bytes" => None,
+        // `GroupInfo::lid_pn` is a slice of pairs sorted for binary search that
+        // writes the `lid_to_pn_map` object the persisted blob has always
+        // carried, so the type and the wire shape disagree by design.
+        "serialize_lid_pn" => Some(("Record<string, Jid>".to_string(), false)),
+        other => panic!(
+            "field `{}` is serialized through `{other}`, whose shape this generator cannot \
+             name. Add it beside the ones already listed in `serialize_with_type`.",
+            field
+                .ident
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default()
+        ),
+    }
+}
+
+/// The function a field's `serialize_with` names, ignoring `with` — unlike
+/// [`serde_timestamp_module`], which reads both. `with = "serde_bytes"` names a
+/// module whose shape the field's type already carries, so reading it here
+/// would put every byte field through the table for nothing.
+fn serde_serialize_with(attrs: &[Attribute]) -> Option<String> {
+    serde_attribute_tokens(attrs)
+        .into_iter()
+        .find_map(|tokens| keyed_string(&tokens, "serialize_with").map(ToOwned::to_owned))
 }
 
 /// The module a field's `with`, or the function its `serialize_with`, names.
@@ -1955,6 +2066,69 @@ mod tests {
             generated.contains("written_by_function: number;"),
             "{generated}"
         );
+    }
+
+    /// A container that converts through a shadow writes the shadow's fields,
+    /// not its own. Reading the packed layout instead publishes a declaration
+    /// no JSON on the boundary matches.
+    #[test]
+    fn a_serde_shadow_names_the_shape_that_crosses_the_boundary() {
+        let source = r#"
+            #[derive(Serialize, Deserialize)]
+            #[serde(from = "PackedDe", into = "PackedDe")]
+            pub struct Packed {
+                /// The device this entry is about.
+                device_id: u16,
+                flags: u8,
+                key_index: u32,
+            }
+
+            #[derive(Serialize, Deserialize)]
+            struct PackedDe {
+                device_id: u16,
+                key_index: Option<u32>,
+                #[serde(default)]
+                is_hosted: bool,
+            }
+        "#;
+        let generated = generated_type(source, "Packed");
+        assert!(generated.contains("device_id: number;"), "{generated}");
+        assert!(
+            generated.contains("key_index?: number | null;"),
+            "{generated}"
+        );
+        assert!(generated.contains("is_hosted: boolean;"), "{generated}");
+        assert!(!generated.contains("flags"), "{generated}");
+        assert!(
+            generated.contains("/** The device this entry is about. */"),
+            "{generated}"
+        );
+    }
+
+    /// A field whose `serialize_with` rewrites its shape is named from the
+    /// table, and one whose function only writes what the type already says
+    /// falls through to the type.
+    #[test]
+    fn a_serialize_with_field_is_named_by_what_the_function_writes() {
+        let source = r#"
+            #[derive(Serialize)]
+            pub struct Mapped {
+                #[serde(rename = "lid_to_pn_map", serialize_with = "serialize_lid_pn")]
+                lid_pn: Box<[LidPnPair]>,
+                #[serde(serialize_with = "crate::serde_helpers::serialize_optional_bytes")]
+                pub token: Option<Vec<u8>>,
+            }
+        "#;
+        let generated = generated_type(source, "Mapped");
+        assert!(
+            generated.contains("lid_to_pn_map: Record<string, Jid>;"),
+            "{generated}"
+        );
+        assert!(
+            generated.contains("token?: Uint8Array | null;"),
+            "{generated}"
+        );
+        assert!(!generated.contains("LidPnPair"), "{generated}");
     }
 
     /// Every wrapper a waproto type is written behind in the core reaches the
