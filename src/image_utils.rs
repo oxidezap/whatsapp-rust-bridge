@@ -3,7 +3,7 @@ use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 const JPEG_QUALITY: u8 = 50;
@@ -114,7 +114,6 @@ fn encode_format(image: &DynamicImage, format: image::ImageFormat) -> Result<Vec
 
 /// Original image dimensions
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct ImageDimensions {
     pub width: u32,
     pub height: u32,
@@ -122,7 +121,6 @@ pub struct ImageDimensions {
 
 /// Result of extracting an image thumbnail
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct ImageThumbResult {
     #[tsify(type = "Uint8Array")]
     #[serde(with = "serde_bytes")]
@@ -132,7 +130,6 @@ pub struct ImageThumbResult {
 
 /// Result of generating a profile picture
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct ProfilePictureResult {
     #[tsify(type = "Uint8Array")]
     #[serde(with = "serde_bytes")]
@@ -144,21 +141,24 @@ pub struct ProfilePictureResult {
 // ---------------------------------------------------------------------------
 
 #[wasm_bindgen(js_name = extractImageThumb)]
-pub fn extract_image_thumb(image_data: &[u8], width: u32) -> Result<ImageThumbResult, JsError> {
-    extract_thumb(image_data, width).map_err(|e| JsError::new(&e))
+pub fn extract_image_thumb(image_data: &[u8], width: u32) -> Result<Ts<ImageThumbResult>, JsError> {
+    Ok(extract_thumb(image_data, width)
+        .map_err(|e| JsError::new(&e))?
+        .into_ts()?)
 }
 
 #[wasm_bindgen(js_name = generateProfilePicture)]
 pub fn generate_profile_picture(
     image_data: &[u8],
     target_width: u32,
-) -> Result<ProfilePictureResult, JsError> {
-    generate_profile_pic(image_data, target_width).map_err(|e| JsError::new(&e))
+) -> Result<Ts<ProfilePictureResult>, JsError> {
+    Ok(generate_profile_pic(image_data, target_width)
+        .map_err(|e| JsError::new(&e))?
+        .into_ts()?)
 }
 
 /// Output format for image processing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageFormat {
     Jpeg,
@@ -168,7 +168,6 @@ pub enum ImageFormat {
 
 /// Options for image processing
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
 pub struct ProcessImageOptions {
     /// Target width (optional, maintains aspect ratio if only width is set)
     pub width: Option<u32>,
@@ -182,7 +181,6 @@ pub struct ProcessImageOptions {
 
 /// Result of image processing
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct ProcessImageResult {
     #[tsify(type = "Uint8Array")]
     #[serde(with = "serde_bytes")]
@@ -193,8 +191,10 @@ pub struct ProcessImageResult {
 
 /// Get image dimensions without full decoding
 #[wasm_bindgen(js_name = getImageDimensions)]
-pub fn get_image_dimensions(image_data: &[u8]) -> Result<ImageDimensions, JsError> {
-    get_dimensions(image_data).map_err(|e| JsError::new(&e))
+pub fn get_image_dimensions(image_data: &[u8]) -> Result<Ts<ImageDimensions>, JsError> {
+    Ok(get_dimensions(image_data)
+        .map_err(|e| JsError::new(&e))?
+        .into_ts()?)
 }
 
 /// Convert any image to WebP format
@@ -208,7 +208,10 @@ pub fn convert_to_webp(image_data: Vec<u8>) -> Result<js_sys::Uint8Array, JsErro
 #[wasm_bindgen(js_name = processImage)]
 pub fn process_image(
     image_data: Vec<u8>,
-    options: ProcessImageOptions,
-) -> Result<ProcessImageResult, JsError> {
-    process(&image_data, &options).map_err(|e| JsError::new(&e))
+    options: Ts<ProcessImageOptions>,
+) -> Result<Ts<ProcessImageResult>, JsError> {
+    let options = options.to_rust()?;
+    Ok(process(&image_data, &options)
+        .map_err(|e| JsError::new(&e))?
+        .into_ts()?)
 }

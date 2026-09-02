@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 
 use futures::channel::oneshot;
 use log::info;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::types::events::{Event, EventHandler, LazyHistorySync};
 use whatsapp_rust::wacore_binary::jid::Jid;
@@ -144,6 +145,40 @@ fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, Js
     js_keys::set(&event, &js_keys::EVENT_TYPE_KEY, &interned(event_type))?;
     js_keys::set(&event, &js_keys::EVENT_DATA_KEY, data)?;
     Ok(event.into())
+}
+
+/// Serializes a result type across the `Ts<T>` boundary for a
+/// `BridgeError`-returning method. Failure here means our own already-typed
+/// result struct refused to serialize, which is not a caller mistake — so
+/// unlike a deserialization failure (mapped per call site to
+/// `InvalidArgument` with the argument's name) this always becomes
+/// `Internal`.
+fn to_ts<T>(value: T) -> Result<Ts<T>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    value
+        .into_ts()
+        .map_err(|e| crate::errors::internal(e.to_string()))
+}
+
+/// [`to_ts`] over an `Option` — absence stays absent, `Some` goes through the
+/// same boundary conversion.
+fn to_ts_opt<T>(value: Option<T>) -> Result<Option<Ts<T>>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    value.map(to_ts).transpose()
+}
+
+/// [`to_ts`] over a `Vec` — `Ts<Vec<T>>` isn't a thing tsify supports (only
+/// `Vec<Ts<T>>` implements the wasm-bindgen vector ABI), so each element
+/// converts on its own.
+fn to_ts_vec<T>(values: Vec<T>) -> Result<Vec<Ts<T>>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    values.into_iter().map(to_ts).collect()
 }
 
 macro_rules! bridge_events {
@@ -2900,7 +2935,7 @@ async fn participants_update(
     participant_jids: Vec<wacore_binary::jid::Jid>,
     action: crate::result_types::GroupParticipantAction,
     include_linked_groups_on_remove: bool,
-) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError> {
     use crate::result_types::GroupParticipantAction;
 
     let responses = match action {
@@ -2949,7 +2984,7 @@ async fn participants_update(
         }
     };
 
-    Ok(responses.iter().map(participant_change_to_result).collect())
+    to_ts_vec(responses.iter().map(participant_change_to_result).collect())
 }
 
 fn participant_change_to_result(

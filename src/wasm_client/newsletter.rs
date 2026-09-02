@@ -16,7 +16,7 @@ impl WasmWhatsAppClient {
         &self,
         name: &str,
         description: Option<String>,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let result = self
             .client
             .online()
@@ -25,7 +25,7 @@ impl WasmWhatsAppClient {
             .create(name, description.as_deref())
             .await?;
 
-        Ok(newsletter_metadata_to_result(&result))
+        to_ts(newsletter_metadata_to_result(&result))
     }
 
     /// Fetch metadata for a newsletter by JID.
@@ -33,7 +33,7 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_metadata(
         &self,
         jid: &str,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
 
         let result = self
@@ -44,7 +44,7 @@ impl WasmWhatsAppClient {
             .get_metadata(&target)
             .await?;
 
-        Ok(newsletter_metadata_to_result(&result))
+        to_ts(newsletter_metadata_to_result(&result))
     }
 
     /// Subscribe (join) a newsletter.
@@ -52,7 +52,7 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_subscribe(
         &self,
         jid: &str,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
 
         let result = self
@@ -63,7 +63,7 @@ impl WasmWhatsAppClient {
             .join(&target)
             .await?;
 
-        Ok(newsletter_metadata_to_result(&result))
+        to_ts(newsletter_metadata_to_result(&result))
     }
 
     /// Unsubscribe (leave) a newsletter.
@@ -163,7 +163,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = newsletterList)]
     pub async fn newsletter_list(
         &self,
-    ) -> Result<Vec<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError>
+    ) -> Result<Vec<Ts<crate::result_types::NewsletterMetadataResult>>, crate::errors::BridgeError>
     {
         let list = self
             .client
@@ -172,7 +172,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .list_subscribed()
             .await?;
-        Ok(list.iter().map(newsletter_metadata_to_result).collect())
+        to_ts_vec(list.iter().map(newsletter_metadata_to_result).collect())
     }
 
     /// Fetch a newsletter's metadata by its invite code.
@@ -180,7 +180,7 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_metadata_by_invite(
         &self,
         invite_code: &str,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let meta = self
             .client
             .online()
@@ -188,7 +188,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .get_metadata_by_invite(invite_code)
             .await?;
-        Ok(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&meta))
     }
 
     /// Update a newsletter's name and/or description. Returns the refreshed
@@ -199,7 +199,7 @@ impl WasmWhatsAppClient {
         jid: &str,
         name: Option<String>,
         description: Option<String>,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let meta = self
             .client
@@ -208,7 +208,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .update(&target, name.as_deref(), description.as_deref())
             .await?;
-        Ok(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&meta))
     }
 
     /// Delete a newsletter. Owner-only.
@@ -270,7 +270,7 @@ impl WasmWhatsAppClient {
         &self,
         jid: &str,
         jpeg: &[u8],
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let meta = self
             .client
@@ -279,7 +279,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .set_picture(&target, jpeg)
             .await?;
-        Ok(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&meta))
     }
 
     /// Remove a newsletter's picture. Returns the refreshed metadata.
@@ -287,7 +287,7 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_remove_picture(
         &self,
         jid: &str,
-    ) -> Result<crate::result_types::NewsletterMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let meta = self
             .client
@@ -296,7 +296,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .remove_picture(&target)
             .await?;
-        Ok(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&meta))
     }
 
     /// Fetch a newsletter's admin-side information, including its admin count.
@@ -304,7 +304,8 @@ impl WasmWhatsAppClient {
     pub async fn newsletter_admin_info(
         &self,
         jid: &str,
-    ) -> Result<crate::result_types::NewsletterAdminInfoResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewsletterAdminInfoResult>, crate::errors::BridgeError>
+    {
         let target = parse_jid(jid)?;
         let info = self
             .client
@@ -313,7 +314,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .get_admin_info(&target)
             .await?;
-        Ok(crate::result_types::NewsletterAdminInfoResult {
+        to_ts(crate::result_types::NewsletterAdminInfoResult {
             admin_count: info.admin_count.map(f64::from),
             admin_profile: info.admin_profile.as_ref().map(admin_profile_to_result),
             admin_profiles_enabled: info.admin_profiles_enabled,
@@ -329,7 +330,7 @@ impl WasmWhatsAppClient {
         &self,
         jid: &str,
         count: u32,
-    ) -> Result<Vec<crate::result_types::NewsletterFollowerResult>, crate::errors::BridgeError>
+    ) -> Result<Vec<Ts<crate::result_types::NewsletterFollowerResult>>, crate::errors::BridgeError>
     {
         let target = parse_jid(jid)?;
         let followers = self
@@ -339,18 +340,20 @@ impl WasmWhatsAppClient {
             .newsletter()
             .get_followers(&target, count)
             .await?;
-        Ok(followers
-            .iter()
-            .map(|follower| crate::result_types::NewsletterFollowerResult {
-                jid: follower.jid.to_string(),
-                phone_jid: follower.phone_jid.as_ref().map(|j| j.to_string()),
-                display_name: follower.display_name.clone(),
-                username: follower.username.clone(),
-                role: follower.role.as_ref().map(newsletter_role_str),
-                follow_time: follower.follow_time.map(|v| v as f64),
-                admin_profile: follower.admin_profile.as_ref().map(admin_profile_to_result),
-            })
-            .collect())
+        to_ts_vec(
+            followers
+                .iter()
+                .map(|follower| crate::result_types::NewsletterFollowerResult {
+                    jid: follower.jid.to_string(),
+                    phone_jid: follower.phone_jid.as_ref().map(|j| j.to_string()),
+                    display_name: follower.display_name.clone(),
+                    username: follower.username.clone(),
+                    role: follower.role.as_ref().map(newsletter_role_str),
+                    follow_time: follower.follow_time.map(|v| v as f64),
+                    admin_profile: follower.admin_profile.as_ref().map(admin_profile_to_result),
+                })
+                .collect(),
+        )
     }
 
     /// Fetch up to `count` messages from a newsletter's history.
@@ -363,7 +366,8 @@ impl WasmWhatsAppClient {
         jid: &str,
         count: u32,
         before: Option<String>,
-    ) -> Result<Vec<crate::result_types::NewsletterMessageResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::NewsletterMessageResult>>, crate::errors::BridgeError>
+    {
         let target = parse_jid(jid)?;
         let before_id = match before.as_deref() {
             Some(value) => Some(value.parse::<u64>().map_err(|e| {
@@ -383,28 +387,30 @@ impl WasmWhatsAppClient {
             .get_messages(target, count, before_id)
             .await?;
 
-        Ok(messages
-            .iter()
-            .map(|message| crate::result_types::NewsletterMessageResult {
-                message_id: message.message_id.clone(),
-                server_id: message.server_id.to_string(),
-                timestamp: message.timestamp as f64,
-                message_type: message.message_type.as_str().to_owned(),
-                is_sender: message.is_sender,
-                message: message
-                    .message
-                    .as_ref()
-                    .map(|m| serde_bytes::ByteBuf::from(waproto::codec::message_to_vec(m))),
-                reactions: message
-                    .reactions
-                    .iter()
-                    .map(|r| crate::result_types::NewsletterReactionCountResult {
-                        code: r.code.clone(),
-                        count: r.count as f64,
-                    })
-                    .collect(),
-            })
-            .collect())
+        to_ts_vec(
+            messages
+                .iter()
+                .map(|message| crate::result_types::NewsletterMessageResult {
+                    message_id: message.message_id.clone(),
+                    server_id: message.server_id.to_string(),
+                    timestamp: message.timestamp as f64,
+                    message_type: message.message_type.as_str().to_owned(),
+                    is_sender: message.is_sender,
+                    message: message
+                        .message
+                        .as_ref()
+                        .map(|m| serde_bytes::ByteBuf::from(waproto::codec::message_to_vec(m))),
+                    reactions: message
+                        .reactions
+                        .iter()
+                        .map(|r| crate::result_types::NewsletterReactionCountResult {
+                            code: r.code.clone(),
+                            count: r.count as f64,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        )
     }
 
     /// Subscribe to a newsletter's live updates. Returns the subscription

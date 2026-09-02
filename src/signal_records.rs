@@ -2,7 +2,7 @@
 
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::libsignal::protocol::{
     PendingKeyExchangeComponents as CorePendingKeyExchangeComponents,
@@ -23,7 +23,6 @@ use whatsapp_rust::wacore::libsignal::protocol::{
 use crate::wasm_utils::{byte_array, error_value};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRecordComponents {
     pub current_session: Option<SessionComponents>,
@@ -183,7 +182,6 @@ pub struct PendingPreKeyComponents {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SenderKeyRecordComponents {
     pub states: Vec<SenderKeyStateComponents>,
@@ -485,8 +483,9 @@ impl From<CoreSenderKeyRecordComponents> for SenderKeyRecordComponents {
 
 #[wasm_bindgen(js_name = encodeSessionRecordComponents)]
 pub fn encode_session_record_components(
-    value: SessionRecordComponents,
+    value: Ts<SessionRecordComponents>,
 ) -> Result<Uint8Array, JsValue> {
+    let value = value.to_rust().map_err(error_value)?;
     let bytes = SessionRecord::from_components(value.try_into()?)
         .and_then(|record| record.serialize())
         .map_err(error_value)?;
@@ -494,17 +493,21 @@ pub fn encode_session_record_components(
 }
 
 #[wasm_bindgen(js_name = decodeSessionRecordComponents)]
-pub fn decode_session_record_components(bytes: &[u8]) -> Result<SessionRecordComponents, JsValue> {
+pub fn decode_session_record_components(
+    bytes: &[u8],
+) -> Result<Ts<SessionRecordComponents>, JsValue> {
     let components = SessionRecord::deserialize(bytes)
         .and_then(SessionRecord::into_components)
         .map_err(error_value)?;
-    Ok(components.into())
+    let result: SessionRecordComponents = components.into();
+    result.into_ts().map_err(error_value)
 }
 
 #[wasm_bindgen(js_name = encodeSenderKeyRecordComponents)]
 pub fn encode_sender_key_record_components(
-    value: SenderKeyRecordComponents,
+    value: Ts<SenderKeyRecordComponents>,
 ) -> Result<Uint8Array, JsValue> {
+    let value = value.to_rust().map_err(error_value)?;
     let bytes = SenderKeyRecord::from_components(value.into())
         .and_then(|record| record.serialize())
         .map_err(error_value)?;
@@ -514,9 +517,10 @@ pub fn encode_sender_key_record_components(
 #[wasm_bindgen(js_name = decodeSenderKeyRecordComponents)]
 pub fn decode_sender_key_record_components(
     bytes: &[u8],
-) -> Result<SenderKeyRecordComponents, JsValue> {
+) -> Result<Ts<SenderKeyRecordComponents>, JsValue> {
     let components = SenderKeyRecord::deserialize(bytes)
         .and_then(SenderKeyRecord::into_components)
         .map_err(error_value)?;
-    Ok(components.into())
+    let result: SenderKeyRecordComponents = components.into();
+    result.into_ts().map_err(error_value)
 }

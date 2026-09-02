@@ -3,7 +3,7 @@
 
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::crypto as core_crypto;
 use whatsapp_rust::wacore::libsignal::protocol::{PrivateKey, PublicKey};
@@ -11,7 +11,6 @@ use whatsapp_rust::wacore::libsignal::protocol::{PrivateKey, PublicKey};
 use crate::wasm_utils::{byte_array, error_value};
 
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyPair {
     #[tsify(type = "Uint8Array")]
@@ -23,7 +22,6 @@ pub struct KeyPair {
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
 #[serde(rename_all = "camelCase", default)]
 pub struct HkdfInfo {
     #[tsify(type = "Uint8Array | undefined")]
@@ -41,8 +39,9 @@ pub fn md5_digest(input: &[u8]) -> Uint8Array {
 pub fn hkdf_sha256(
     input_key_material: &[u8],
     expanded_length: usize,
-    options: HkdfInfo,
+    options: Ts<HkdfInfo>,
 ) -> Result<Uint8Array, JsValue> {
+    let options = options.to_rust().map_err(error_value)?;
     let output = core_crypto::hkdf_sha256(
         input_key_material,
         expanded_length,
@@ -54,12 +53,14 @@ pub fn hkdf_sha256(
 }
 
 #[wasm_bindgen(js_name = generateKeyPair)]
-pub fn generate_key_pair() -> KeyPair {
+pub fn generate_key_pair() -> Result<Ts<KeyPair>, JsValue> {
     let pair = core_crypto::generate_curve_key_pair();
     KeyPair {
         pub_key: pair.public_key.serialize().to_vec(),
         priv_key: pair.private_key.serialize().to_vec(),
     }
+    .into_ts()
+    .map_err(error_value)
 }
 
 #[wasm_bindgen(js_name = getPublicFromPrivateKey)]

@@ -18,7 +18,7 @@ impl WasmWhatsAppClient {
     pub async fn get_media_conn(
         &self,
         force: bool,
-    ) -> Result<crate::result_types::MediaConnResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::MediaConnResult>, crate::errors::BridgeError> {
         // `force` is the one case where the bridge knows: it bypasses the
         // cache, so the socket is certain to be needed.
         let client = if force {
@@ -28,7 +28,7 @@ impl WasmWhatsAppClient {
         };
         let conn = client.refresh_media_conn(force).await?;
 
-        Ok(crate::result_types::MediaConnResult {
+        to_ts(crate::result_types::MediaConnResult {
             auth: conn.auth.clone(),
             ttl: conn.ttl as f64,
             hosts: conn
@@ -149,7 +149,7 @@ impl WasmWhatsAppClient {
         &self,
         data: &[u8],
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<crate::result_types::UploadMediaResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let resp = self
@@ -157,7 +157,7 @@ impl WasmWhatsAppClient {
             .unwaited(Unwaited::Cached)
             .upload(data.to_vec(), mt, Default::default())
             .await?;
-        Ok(crate::result_types::UploadMediaResult {
+        to_ts(crate::result_types::UploadMediaResult {
             url: resp.url,
             direct_path: resp.direct_path,
             media_key: resp.media_key,
@@ -177,7 +177,7 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "ReadableStream")] input: JsValue,
         #[wasm_bindgen(unchecked_param_type = "WritableStream")] output: JsValue,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<crate::result_types::EncryptMediaResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::EncryptMediaResult>, crate::errors::BridgeError> {
         let input = from_js_class::<web_sys::ReadableStream>(
             "input",
             "ReadableStream",
@@ -248,7 +248,7 @@ impl WasmWhatsAppClient {
             .await
             .map_err(|e| crate::errors::internal(format!("close error: {e:?}")))?;
 
-        Ok(crate::result_types::EncryptMediaResult {
+        to_ts(crate::result_types::EncryptMediaResult {
             media_key: info.media_key.to_vec(),
             file_sha256: info.file_sha256.to_vec(),
             file_enc_sha256: info.file_enc_sha256.to_vec(),
@@ -270,7 +270,7 @@ impl WasmWhatsAppClient {
         file_enc_sha256: &[u8],
         file_length: f64,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<crate::result_types::UploadMediaResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let file_length = file_length as u64;
@@ -312,7 +312,7 @@ impl WasmWhatsAppClient {
                             parsed.get("direct_path").and_then(|v| v.as_str()),
                         )
                     {
-                        return Ok(crate::result_types::UploadMediaResult {
+                        return to_ts(crate::result_types::UploadMediaResult {
                             url: url.to_string(),
                             direct_path: dp.to_string(),
                             media_key: media_key.try_into()?,
@@ -354,7 +354,7 @@ impl WasmWhatsAppClient {
                             .ok_or_else(|| {
                                 crate::errors::internal("missing direct_path in response")
                             })?;
-                        return Ok(crate::result_types::UploadMediaResult {
+                        return to_ts(crate::result_types::UploadMediaResult {
                             url: url.to_string(),
                             direct_path: dp.to_string(),
                             media_key: media_key.try_into()?,

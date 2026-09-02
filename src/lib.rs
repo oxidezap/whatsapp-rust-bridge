@@ -1,12 +1,5 @@
 // Tracing expands the sync worker's nested future beyond rustc's default query depth.
 #![recursion_limit = "256"]
-// tsify 0.5.7 deprecated `#[tsify(into_wasm_abi, from_wasm_abi)]` in favour of the `Ts<T>`
-// wrapper (moving deserialization out of the infallible wasm-bindgen ABI boundary). The
-// attributes still work and tsify has no removal planned — migrating every wasm_bindgen
-// export in result_types.rs/signal_records.rs/etc. to `Ts<T>` is a real but separate
-// refactor, not something to fold into a dependency bump. See
-// https://github.com/madonoharu/tsify#why-are-the-wasm_abi-attributes-deprecated
-#![allow(deprecated)]
 
 #[cfg(feature = "audio")]
 pub mod audio;
@@ -61,13 +54,12 @@ macro_rules! wasm_send_sync {
 pub(crate) use wasm_send_sync;
 
 use serde::Serialize;
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 /// Enabled features in this build.
 /// Use this to check feature availability at runtime before calling feature-gated functions.
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct EnabledFeatures {
     /// Audio processing support (waveform generation, duration detection)
     pub audio: bool,
@@ -80,12 +72,13 @@ pub struct EnabledFeatures {
 /// Returns which optional features are enabled in this build.
 /// Use this to conditionally call feature-gated functions.
 #[wasm_bindgen(js_name = getEnabledFeatures)]
-pub fn get_enabled_features() -> EnabledFeatures {
-    EnabledFeatures {
+pub fn get_enabled_features() -> Result<Ts<EnabledFeatures>, JsError> {
+    Ok(EnabledFeatures {
         audio: cfg!(feature = "audio"),
         image: cfg!(feature = "image"),
         sticker: cfg!(feature = "sticker"),
     }
+    .into_ts()?)
 }
 
 /// Returns current WASM linear memory usage in bytes.

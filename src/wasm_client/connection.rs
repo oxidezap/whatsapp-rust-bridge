@@ -238,8 +238,10 @@ impl WasmWhatsAppClient {
     /// refusal is a fact about one instant, and a connection can be lost right
     /// after a call was admitted or restored right after one was refused.
     #[wasm_bindgen(js_name = reachability)]
-    pub fn reachability(&self) -> crate::result_types::Reachability {
-        self.client.reachability()
+    pub fn reachability(
+        &self,
+    ) -> Result<Ts<crate::result_types::Reachability>, crate::errors::BridgeError> {
+        to_ts(self.client.reachability())
     }
 
     /// Wait until the client can reach the server again, and report what ended
@@ -262,8 +264,10 @@ impl WasmWhatsAppClient {
     /// Not from an event handler: the core dispatches on its read loop, so a
     /// handler that waits here waits on the connection it is blocking.
     #[wasm_bindgen(js_name = waitUntilReachable)]
-    pub async fn wait_until_reachable(&self) -> crate::result_types::Reachability {
-        self.client.wait_until_reachable().await
+    pub async fn wait_until_reachable(
+        &self,
+    ) -> Result<Ts<crate::result_types::Reachability>, crate::errors::BridgeError> {
+        to_ts(self.client.wait_until_reachable().await)
     }
 
     /// Let go of every call waiting out a reconnect right now, and return how
@@ -371,16 +375,17 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = getBotList)]
     pub async fn get_bot_list(
         &self,
-    ) -> Result<crate::result_types::BotListResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::BotListResult>, crate::errors::BridgeError> {
         let list = self.client.online().await?.bots().list().await?;
-        Ok(bot_list_to_result(&list))
+        to_ts(bot_list_to_result(&list))
     }
 
     /// Fetch how many new chats this account may still start this cycle.
     #[wasm_bindgen(js_name = fetchNewChatMessageCappingInfo)]
     pub async fn fetch_new_chat_message_capping_info(
         &self,
-    ) -> Result<crate::result_types::NewChatMessageCappingResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::NewChatMessageCappingResult>, crate::errors::BridgeError>
+    {
         let capping = self
             .client
             .online()
@@ -388,7 +393,7 @@ impl WasmWhatsAppClient {
             .mex()
             .fetch_new_chat_message_capping_info()
             .await?;
-        Ok(crate::result_types::NewChatMessageCappingResult {
+        to_ts(crate::result_types::NewChatMessageCappingResult {
             capping_status: capping
                 .capping_status
                 .as_ref()
@@ -547,14 +552,16 @@ impl WasmWhatsAppClient {
 
     /// Returns a snapshot of internal memory diagnostics (cache sizes, session counts, etc.).
     #[wasm_bindgen(js_name = getMemoryDiagnostics)]
-    pub async fn get_memory_diagnostics(&self) -> crate::result_types::MemoryDiagnosticsResult {
+    pub async fn get_memory_diagnostics(
+        &self,
+    ) -> Result<Ts<crate::result_types::MemoryDiagnosticsResult>, crate::errors::BridgeError> {
         let report = self
             .client
             .unwaited(Unwaited::Local)
             .resource_report()
             .await;
         let d = &report.client;
-        crate::result_types::MemoryDiagnosticsResult {
+        to_ts(crate::result_types::MemoryDiagnosticsResult {
             group_cache: d.group_cache.entries as f64,
             group_cache_bytes: d.group_cache.bytes as f64,
             device_registry_cache: d.device_registry_cache.entries as f64,
@@ -625,7 +632,7 @@ impl WasmWhatsAppClient {
                 .map(|v| v as f64),
             http_inflight_bytes: report.http.and_then(|v| v.inflight_bytes).map(|v| v as f64),
             resource_estimated_bytes: report.total_estimated_bytes() as f64,
-        }
+        })
     }
 
     /// Allocation churn for work polled by whatsapp-rust's instrumented
@@ -634,23 +641,24 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = getCoreAllocationSnapshot)]
     pub fn get_core_allocation_snapshot(
         &self,
-    ) -> crate::result_types::CoreAllocationSnapshotResult {
+    ) -> Result<Ts<crate::result_types::CoreAllocationSnapshotResult>, crate::errors::BridgeError>
+    {
         let Some(meter) = &self.alloc_meter else {
-            return crate::result_types::CoreAllocationSnapshotResult {
+            return to_ts(crate::result_types::CoreAllocationSnapshotResult {
                 enabled: false,
                 allocated_bytes: 0.0,
                 freed_bytes: 0.0,
                 allocations: 0.0,
                 net_bytes: 0.0,
-            };
+            });
         };
         let snapshot = meter.snapshot();
-        crate::result_types::CoreAllocationSnapshotResult {
+        to_ts(crate::result_types::CoreAllocationSnapshotResult {
             enabled: true,
             allocated_bytes: snapshot.allocated_bytes as f64,
             freed_bytes: snapshot.freed_bytes as f64,
             allocations: snapshot.allocations as f64,
             net_bytes: snapshot.net_bytes() as f64,
-        }
+        })
     }
 }

@@ -15,7 +15,7 @@ impl WasmWhatsAppClient {
     pub async fn group_metadata(
         &self,
         jid: &str,
-    ) -> Result<crate::result_types::GroupMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let group_jid = parse_jid(jid)?;
 
         let metadata = self
@@ -26,7 +26,7 @@ impl WasmWhatsAppClient {
             .get_metadata(&group_jid)
             .await?;
 
-        Ok(group_metadata_to_result(&metadata))
+        to_ts(group_metadata_to_result(&metadata))
     }
 
     /// Create a new group.
@@ -41,7 +41,7 @@ impl WasmWhatsAppClient {
         &self,
         subject: &str,
         participants: Vec<String>,
-    ) -> Result<crate::result_types::GroupMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         use whatsapp_rust::features::GroupParticipantOptions;
 
         let participant_options: Vec<GroupParticipantOptions> = participants
@@ -60,7 +60,7 @@ impl WasmWhatsAppClient {
             .create_group(options)
             .await?;
 
-        Ok(group_metadata_to_result(&result.metadata))
+        to_ts(group_metadata_to_result(&result.metadata))
     }
 
     /// Update a group's subject (name).
@@ -151,7 +151,8 @@ impl WasmWhatsAppClient {
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
-    ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
+    {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
@@ -293,7 +294,7 @@ impl WasmWhatsAppClient {
         closed: bool,
         allow_non_admin_sub_group_creation: bool,
         create_general_chat: bool,
-    ) -> Result<crate::result_types::GroupMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let mut options = whatsapp_rust::features::CreateCommunityOptions::new(name);
         options.description = description;
         options.closed = closed;
@@ -306,7 +307,7 @@ impl WasmWhatsAppClient {
             .community()
             .create(options)
             .await?;
-        Ok(group_metadata_to_result(&result.metadata))
+        to_ts(group_metadata_to_result(&result.metadata))
     }
 
     /// Create a subgroup already linked to a parent group.
@@ -316,7 +317,7 @@ impl WasmWhatsAppClient {
         name: &str,
         participants: Vec<String>,
         parent_jid: &str,
-    ) -> Result<crate::result_types::GroupMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let participants = participants
             .iter()
             .map(|participant| parse_jid(participant))
@@ -329,7 +330,7 @@ impl WasmWhatsAppClient {
             .community()
             .create_subgroup(name, &participants, parent)
             .await?;
-        Ok(group_metadata_to_result(&result.metadata))
+        to_ts(group_metadata_to_result(&result.metadata))
     }
 
     /// Deactivate a parent group without deleting its former subgroups.
@@ -351,7 +352,7 @@ impl WasmWhatsAppClient {
         &self,
         parent_jid: &str,
         subgroup_jids: Vec<String>,
-    ) -> Result<crate::result_types::CommunityLinkResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
         let parent = parse_jid(parent_jid)?;
         let subgroups = subgroup_jids
             .iter()
@@ -364,7 +365,7 @@ impl WasmWhatsAppClient {
             .community()
             .link_subgroups(parent, &subgroups)
             .await?;
-        Ok(community_link_result(
+        to_ts(community_link_result(
             result.linked_jids,
             result.failed_groups,
         ))
@@ -377,7 +378,7 @@ impl WasmWhatsAppClient {
         parent_jid: &str,
         subgroup_jids: Vec<String>,
         remove_orphan_members: bool,
-    ) -> Result<crate::result_types::CommunityLinkResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
         let parent = parse_jid(parent_jid)?;
         let subgroups = subgroup_jids
             .iter()
@@ -390,7 +391,7 @@ impl WasmWhatsAppClient {
             .community()
             .unlink_subgroups(parent, &subgroups, remove_orphan_members)
             .await?;
-        Ok(community_link_result(
+        to_ts(community_link_result(
             result.unlinked_jids,
             result.failed_groups,
         ))
@@ -401,7 +402,8 @@ impl WasmWhatsAppClient {
     pub async fn get_community_subgroups(
         &self,
         parent_jid: &str,
-    ) -> Result<Vec<crate::result_types::CommunitySubgroupResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::CommunitySubgroupResult>>, crate::errors::BridgeError>
+    {
         let parent = parse_jid(parent_jid)?;
         let groups = self
             .client
@@ -410,18 +412,20 @@ impl WasmWhatsAppClient {
             .community()
             .get_subgroups(&parent)
             .await?;
-        Ok(groups
-            .into_iter()
-            .map(|group| crate::result_types::CommunitySubgroupResult {
-                id: group.id.to_string(),
-                subject: group.subject,
-                participant_count: group.participant_count.map(f64::from),
-                creation: group.creation.map(|value| value as f64),
-                owner: group.owner.map(|value| value.to_string()),
-                is_default_sub_group: group.is_default_sub_group,
-                is_general_chat: group.is_general_chat,
-            })
-            .collect())
+        to_ts_vec(
+            groups
+                .into_iter()
+                .map(|group| crate::result_types::CommunitySubgroupResult {
+                    id: group.id.to_string(),
+                    subject: group.subject,
+                    participant_count: group.participant_count.map(f64::from),
+                    creation: group.creation.map(|value| value as f64),
+                    owner: group.owner.map(|value| value.to_string()),
+                    is_default_sub_group: group.is_default_sub_group,
+                    is_general_chat: group.is_general_chat,
+                })
+                .collect(),
+        )
     }
 
     /// Fetch all parent groups the account currently participates in.
@@ -452,7 +456,8 @@ impl WasmWhatsAppClient {
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
-    ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
+    {
         let action =
             from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
         let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
@@ -530,7 +535,7 @@ impl WasmWhatsAppClient {
     pub async fn group_get_invite_info(
         &self,
         code: &str,
-    ) -> Result<crate::result_types::GroupMetadataResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let metadata = self
             .client
             .online()
@@ -538,7 +543,7 @@ impl WasmWhatsAppClient {
             .groups()
             .get_invite_info(code)
             .await?;
-        Ok(group_metadata_to_result(&metadata))
+        to_ts(group_metadata_to_result(&metadata))
     }
 
     /// Get list of pending join requests for a group.
@@ -546,7 +551,8 @@ impl WasmWhatsAppClient {
     pub async fn group_request_participants_list(
         &self,
         jid: &str,
-    ) -> Result<Vec<crate::result_types::MembershipRequestResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::MembershipRequestResult>>, crate::errors::BridgeError>
+    {
         let group_jid = parse_jid(jid)?;
         let list = self
             .client
@@ -555,13 +561,14 @@ impl WasmWhatsAppClient {
             .groups()
             .get_membership_requests(&group_jid)
             .await?;
-        Ok(list
-            .iter()
-            .map(|r| crate::result_types::MembershipRequestResult {
-                jid: r.jid.to_string(),
-                request_time: r.request_time.map(|t| t as f64),
-            })
-            .collect())
+        to_ts_vec(
+            list.iter()
+                .map(|r| crate::result_types::MembershipRequestResult {
+                    jid: r.jid.to_string(),
+                    request_time: r.request_time.map(|t| t as f64),
+                })
+                .collect(),
+        )
     }
 
     /// Approve or reject pending join requests.
@@ -571,7 +578,8 @@ impl WasmWhatsAppClient {
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupRequestAction")] action: JsValue,
-    ) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
+    {
         let action = from_js_input::<crate::result_types::GroupRequestAction>("action", action)?;
         use crate::result_types::GroupRequestAction;
         let group_jid = parse_jid(jid)?;
@@ -598,7 +606,7 @@ impl WasmWhatsAppClient {
                     .await?
             }
         };
-        Ok(responses.iter().map(participant_change_to_result).collect())
+        to_ts_vec(responses.iter().map(participant_change_to_result).collect())
     }
 
     // ── Group member add mode ────────────────────────────────────────────

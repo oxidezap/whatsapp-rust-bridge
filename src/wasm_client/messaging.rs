@@ -339,7 +339,7 @@ impl WasmWhatsAppClient {
         name: &str,
         options: Vec<String>,
         selectable_count: u32,
-    ) -> Result<crate::result_types::CreatePollResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::CreatePollResult>, crate::errors::BridgeError> {
         let to = parse_jid(jid)?;
         let (result, message_secret) = self
             .client
@@ -348,7 +348,7 @@ impl WasmWhatsAppClient {
             .polls()
             .create(&to, name, &options, selectable_count)
             .await?;
-        Ok(crate::result_types::CreatePollResult {
+        to_ts(crate::result_types::CreatePollResult {
             message_id: result.message_id,
             message_secret: message_secret.to_vec(),
         })
