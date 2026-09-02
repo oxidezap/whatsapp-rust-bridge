@@ -26,8 +26,15 @@ import { packedContents } from "./pack";
  * Raised from 7,900,000 for the same reason at 2.3000.1045368834, which grew
  * the package by 217,140 bytes across `index.js` and `proto-types.d.ts` and
  * left the wasm 791 bytes smaller. Same headroom over the new floor.
+ *
+ * Raised again for the second WASM artifact: the package now also ships the
+ * BoltFFI backend under `dist/boltffi/`, which is bytes the budget was never
+ * sized for. That artifact measures 297,185 bytes, so this is the previous
+ * 8,300,000 plus 300,000 — the headroom over the wasm-bindgen floor is the
+ * same as before, and that artifact's own drift is still measured against the
+ * same slope rather than hidden by the increase.
  */
-const MAX_UNPACKED_BYTES = 8_300_000;
+const MAX_UNPACKED_BYTES = 8_600_000;
 
 const { files, unpackedSize: total } = packedContents();
 
@@ -37,7 +44,13 @@ const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 // metadata and nothing else, and a near-zero total would clear the budget by
 // the whole budget. A gate that reports 7.5 MB of headroom because it measured
 // no package is worse than no gate, so require what has to be there.
-const REQUIRED = ["dist/index.js", "dist/whatsapp_rust_bridge_bg.wasm"];
+const REQUIRED = [
+  "dist/index.js",
+  "dist/whatsapp_rust_bridge_bg.wasm",
+  // The budget was raised for this one, so measuring without it would clear the
+  // gate by exactly the bytes it was widened to hold.
+  "dist/boltffi/pkg/whatsapp_rust_bridge_boltffi_bg.wasm",
+];
 const missing = REQUIRED.filter((path) => !files.some((f) => f.path === path));
 if (missing.length > 0) {
   console.error(

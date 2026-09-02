@@ -144,7 +144,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
       # Everything above builds with every `client-*` feature on, so a `#[cfg]`
       # that only holds when they are all present compiles here and breaks for
@@ -207,6 +207,13 @@ jobs:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
           tool: wasm-pack,protoc@3.35.1
+
+      # Pinned to the same version as the `boltffi` crate the backend compiles
+      # against. The generator and the macro agree on wasm symbol names only
+      # within a version, so a drift here produces an artifact whose exports
+      # the emitted JavaScript cannot find.
+      - name: Install boltffi
+        run: cargo install boltffi_cli --version 0.30.0 --locked
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
