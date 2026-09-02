@@ -15,7 +15,6 @@ use whatsapp_rust::waproto::whatsapp::device_props as wa_dp;
 /// Variant names render as `SCREAMING_SNAKE_CASE` in TS to match the proto
 /// enum identifiers callers see in WhatsApp documentation / wire dumps.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DevicePlatformType {
     Unknown,
@@ -78,7 +77,6 @@ impl From<DevicePlatformType> for wa_dp::PlatformType {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAppVersion {
     #[tsify(optional)]
@@ -112,7 +110,6 @@ impl From<DeviceAppVersion> for wa_dp::AppVersion {
 /// `wacore::store::default_history_sync_config()` so callers don't accidentally
 /// drop the WA-Web-aligned support_* claims by setting just one field.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceHistorySyncConfig {
     #[tsify(optional)]
@@ -178,7 +175,6 @@ impl DeviceHistorySyncConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct DevicePropsInput {
     #[tsify(optional)]

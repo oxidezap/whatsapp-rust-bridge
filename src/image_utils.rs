@@ -158,7 +158,6 @@ pub fn generate_profile_picture(
 
 /// Output format for image processing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageFormat {
     Jpeg,
