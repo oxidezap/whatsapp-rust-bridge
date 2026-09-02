@@ -3,7 +3,7 @@
 use bytes::Bytes;
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::libsignal::protocol::{
     IdentityKey, LegacyIndexedSessionV1 as CoreIndexedSession,
@@ -21,7 +21,6 @@ use whatsapp_rust::wacore::libsignal::protocol::{
 use crate::wasm_utils::byte_array;
 
 #[derive(Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct LegacySessionRecordV1 {
     pub sessions: Vec<LegacyIndexedSessionV1>,
@@ -127,7 +126,6 @@ pub struct LegacySessionPendingPreKeyV1 {
 }
 
 #[derive(Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct LegacySessionLocalContext {
     #[tsify(type = "Uint8Array")]
@@ -137,7 +135,6 @@ pub struct LegacySessionLocalContext {
 }
 
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(
     tag = "status",
     rename_all = "snake_case",
@@ -443,9 +440,15 @@ fn projection_issue(
 
 #[wasm_bindgen(js_name = importLegacySessionRecordV1)]
 pub fn import_legacy_session_record_v1(
-    record: LegacySessionRecordV1,
-    context: LegacySessionLocalContext,
+    record: Ts<LegacySessionRecordV1>,
+    context: Ts<LegacySessionLocalContext>,
 ) -> Result<Uint8Array, crate::errors::BridgeError> {
+    let record = record
+        .to_rust()
+        .map_err(|error| crate::errors::invalid_arg("record", error.to_string()))?;
+    let context = context
+        .to_rust()
+        .map_err(|error| crate::errors::invalid_arg("context", error.to_string()))?;
     let identity_key = IdentityKey::decode(&context.identity_key)
         .map_err(|error| crate::errors::invalid_arg("context.identityKey", error.to_string()))?;
     let record = CoreRecord::try_from(record)
@@ -465,16 +468,21 @@ pub fn import_legacy_session_record_v1(
 #[wasm_bindgen(js_name = projectLegacySessionRecordV1)]
 pub fn project_legacy_session_record_v1(
     bytes: &[u8],
-) -> Result<LegacySessionProjectionV1, crate::errors::BridgeError> {
+) -> Result<Ts<LegacySessionProjectionV1>, crate::errors::BridgeError> {
     let record = SessionRecord::deserialize(bytes)
         .map_err(|error| crate::errors::invalid_arg("recordBytes", error.to_string()))?;
-    match record.into_legacy_session_v1_operational() {
-        Ok(record) => Ok(LegacySessionProjectionV1::Projected {
+    let projection = match record.into_legacy_session_v1_operational() {
+        Ok(record) => LegacySessionProjectionV1::Projected {
             record: record.into(),
-        }),
-        Err(error) => match projection_issue(error) {
-            Ok(issue) => Ok(LegacySessionProjectionV1::Unrepresentable { issue }),
-            Err(error) => Err(crate::errors::invalid_arg("recordBytes", error.to_string())),
         },
-    }
+        Err(error) => match projection_issue(error) {
+            Ok(issue) => LegacySessionProjectionV1::Unrepresentable { issue },
+            Err(error) => {
+                return Err(crate::errors::invalid_arg("recordBytes", error.to_string()));
+            }
+        },
+    };
+    projection
+        .into_ts()
+        .map_err(|error| crate::errors::internal(error.to_string()))
 }
