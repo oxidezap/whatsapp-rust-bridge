@@ -151,7 +151,6 @@ pub struct MessageRetransmissionInput {
 /// state added upstream has no name here yet. Naming the gap beats reporting it
 /// as one of its neighbours.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "kebab-case")]
 pub enum Reachability {
     /// A request sent now has a socket, an authenticated session and a reader
@@ -190,7 +189,6 @@ impl From<whatsapp_rust::Reachability> for Reachability {
 
 /// Result from `updateProfilePicture` or `removeProfilePicture`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfilePictureResult {
     pub id: String,
@@ -198,7 +196,6 @@ pub struct ProfilePictureResult {
 
 /// Result from `profilePictureUrl`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfilePictureInfo {
     pub id: String,
@@ -211,7 +208,6 @@ pub struct ProfilePictureInfo {
 
 /// A single entry from `fetchBlocklist`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct BlocklistEntryResult {
     pub jid: String,
@@ -246,7 +242,6 @@ pub struct UserInfoResult {
 
 /// A participant change result from `groupParticipantsUpdate`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct ParticipantChangeResult {
     pub jid: String,
@@ -278,7 +273,6 @@ pub struct MediaHost {
 
 /// Result from `getMediaConn`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct MediaConnResult {
     pub auth: String,
     pub ttl: f64,
@@ -287,7 +281,6 @@ pub struct MediaConnResult {
 
 /// Result from `uploadMedia`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadMediaResult {
     pub url: String,
@@ -306,7 +299,6 @@ pub struct UploadMediaResult {
 
 /// Result from `encryptMediaStream`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct EncryptMediaResult {
     #[tsify(type = "Uint8Array")]
@@ -359,7 +351,6 @@ pub struct SignalSessionBundleInput {
 
 /// Read-only information from a currently open pairwise session.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SignalSessionInfoResult {
     #[tsify(type = "Uint8Array")]
@@ -378,7 +369,6 @@ pub struct LidPnMappingInput {
 
 /// Counts produced while moving pairwise sessions between identifier namespaces.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SignalSessionMigrationResult {
     pub migrated: u32,
@@ -412,7 +402,6 @@ pub struct TargetMessageKey {
 
 /// Result from `createPoll`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePollResult {
     pub message_id: String,
@@ -427,7 +416,6 @@ pub struct CreatePollResult {
 /// and business flag from the same usync round trip — no follow-up
 /// `fetchUserInfo` IQ needed for the common "check + enrich" flow.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct IsOnWhatsAppResult {
     pub jid: String,
@@ -455,7 +443,6 @@ pub struct IsOnWhatsAppResult {
 /// an optional user: a username the server confirms but will not resolve
 /// without the account's username key is neither a hit nor a miss.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(tag = "status")]
 pub enum UsernameLookupResult {
     /// No account answers to this username, or it is not reachable from here.
@@ -493,7 +480,6 @@ pub enum UsernameLookupResult {
 /// apply. An account with no username at all comes back as `null` from the
 /// method rather than as an all-absent object.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnUsernameResult {
     /// The handle, without the display-only `@` prefix.
@@ -509,7 +495,6 @@ pub struct OwnUsernameResult {
 
 /// Result from `fetchStatus`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 pub struct FetchStatusResult {
     pub jid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -562,7 +547,6 @@ pub struct GroupGrowthLockInfoResult {
 
 /// Result from `getGroupMetadata`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupMetadataResult {
     pub id: String,
@@ -633,7 +617,6 @@ pub struct GroupMetadataResult {
 
 /// Result from newsletter methods.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterMetadataResult {
     pub jid: String,
@@ -657,7 +640,6 @@ pub struct NewsletterMetadataResult {
 
 /// Result from `getMemoryDiagnostics`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct MemoryDiagnosticsResult {
     pub group_cache: f64,
@@ -729,7 +711,6 @@ pub struct MemoryDiagnosticsResult {
 /// Allocation churn attributed by whatsapp-rust's own `AllocMeter` to tasks
 /// spawned for this client. Available in diagnostics builds only.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreAllocationSnapshotResult {
     pub enabled: bool,
@@ -741,7 +722,6 @@ pub struct CoreAllocationSnapshotResult {
 
 /// Result from `groupRequestParticipantsList`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct MembershipRequestResult {
     pub jid: String,
@@ -751,7 +731,6 @@ pub struct MembershipRequestResult {
 
 /// A subgroup returned by a parent-group metadata query.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CommunitySubgroupResult {
     pub id: String,
@@ -776,7 +755,6 @@ pub struct CommunityLinkFailureResult {
 
 /// Result of linking or unlinking subgroups.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CommunityLinkResult {
     pub succeeded: Vec<String>,
@@ -785,7 +763,6 @@ pub struct CommunityLinkResult {
 
 /// Result from `getBusinessProfile`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct BusinessProfileResult {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -950,7 +927,6 @@ pub struct ProductResult {
 
 /// One page of a business catalog.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogResult {
     pub products: Vec<ProductResult>,
@@ -989,7 +965,6 @@ pub struct CollectionResult {
 /// Forward cursor only — the collections paging object has no `before`, and
 /// the asymmetry with the catalog is the wire's, not an oversight.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionsResult {
     pub collections: Vec<CollectionResult>,
@@ -1040,7 +1015,6 @@ pub struct OrderPriceDetailsResult {
 
 /// Result from `getOrder`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderResult {
     pub products: Vec<OrderProductResult>,
@@ -1140,7 +1114,6 @@ pub struct CoverPhotoUploadInput {
 
 /// One follower of a newsletter, from `newsletterFollowers`.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterFollowerResult {
     pub jid: String,
@@ -1178,7 +1151,6 @@ pub struct NewsletterAdminProfileResult {
 /// profile. Absent means the server withheld it (it answers only admins and
 /// owners), never zero.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterAdminInfoResult {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1203,7 +1175,6 @@ pub struct NewsletterReactionCountResult {
 /// uses; `messageId` is what edit and revoke key on. They are different ids and
 /// both cross as strings, since a `serverId` is a u64.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterMessageResult {
     pub message_id: String,
@@ -1227,7 +1198,6 @@ pub struct NewsletterMessageResult {
 /// because a bot can be carried by a `category` or `featured` section and by no
 /// other, so flattening is a consumer's decision, not the bridge's.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct BotListResult {
     pub version: String,
@@ -1294,7 +1264,6 @@ pub struct BotThemeResult {
 /// to an account's tier. `remainingQuota` is the core's own derivation, present
 /// only when both quota fields are.
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct NewChatMessageCappingResult {
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -1,12 +1,5 @@
 // Tracing expands the sync worker's nested future beyond rustc's default query depth.
 #![recursion_limit = "256"]
-// tsify 0.5.7 deprecated `#[tsify(into_wasm_abi, from_wasm_abi)]` in favour of the `Ts<T>`
-// wrapper (moving deserialization out of the infallible wasm-bindgen ABI boundary). The
-// attributes still work and tsify has no removal planned — migrating every wasm_bindgen
-// export in result_types.rs/signal_records.rs/etc. to `Ts<T>` is a real but separate
-// refactor, not something to fold into a dependency bump. See
-// https://github.com/madonoharu/tsify#why-are-the-wasm_abi-attributes-deprecated
-#![allow(deprecated)]
 
 #[cfg(feature = "audio")]
 pub mod audio;

@@ -15,7 +15,7 @@ impl WasmWhatsAppClient {
     pub async fn get_business_profile(
         &self,
         jid: &str,
-    ) -> Result<Option<crate::result_types::BusinessProfileResult>, crate::errors::BridgeError>
+    ) -> Result<Option<Ts<crate::result_types::BusinessProfileResult>>, crate::errors::BridgeError>
     {
         let target_jid = parse_jid(jid)?;
         let profile = self
@@ -24,7 +24,7 @@ impl WasmWhatsAppClient {
             .await?
             .get_business_profile(&target_jid)
             .await?;
-        Ok(profile.map(|p| business_profile_to_result(&p)))
+        to_ts_opt(profile.map(|p| business_profile_to_result(&p)))
     }
 
     // ── Business catalog ─────────────────────────────────────────────────
@@ -39,7 +39,7 @@ impl WasmWhatsAppClient {
         jid: &str,
         #[wasm_bindgen(unchecked_optional_param_type = "CatalogOptionsInput | null")]
         options: JsValue,
-    ) -> Result<crate::result_types::CatalogResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::CatalogResult>, crate::errors::BridgeError> {
         use whatsapp_rust::features::CatalogOptions;
 
         let target = parse_jid(jid)?;
@@ -70,7 +70,7 @@ impl WasmWhatsAppClient {
             .business()
             .get_catalog(&target, &opts)
             .await?;
-        Ok(crate::result_types::CatalogResult {
+        to_ts(crate::result_types::CatalogResult {
             products: catalog.products.iter().map(product_to_result).collect(),
             after_cursor: catalog.after_cursor.clone(),
             before_cursor: catalog.before_cursor.clone(),
@@ -85,7 +85,7 @@ impl WasmWhatsAppClient {
         jid: &str,
         #[wasm_bindgen(unchecked_optional_param_type = "CollectionOptionsInput | null")]
         options: JsValue,
-    ) -> Result<crate::result_types::CollectionsResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::CollectionsResult>, crate::errors::BridgeError> {
         let options = from_js_input::<Option<crate::result_types::CollectionOptionsInput>>(
             "options", options,
         )?;
@@ -115,7 +115,7 @@ impl WasmWhatsAppClient {
             .business()
             .get_collections(&target, &opts)
             .await?;
-        Ok(crate::result_types::CollectionsResult {
+        to_ts(crate::result_types::CollectionsResult {
             collections: collections
                 .collections
                 .iter()
@@ -143,7 +143,7 @@ impl WasmWhatsAppClient {
         jid: &str,
         order_id: &str,
         token: &str,
-    ) -> Result<crate::result_types::OrderResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::OrderResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let order = self
             .client
@@ -153,7 +153,7 @@ impl WasmWhatsAppClient {
             .get_order(&target, order_id, token)
             .await?;
 
-        Ok(crate::result_types::OrderResult {
+        to_ts(crate::result_types::OrderResult {
             products: order
                 .products
                 .iter()

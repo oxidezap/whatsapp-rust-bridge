@@ -141,10 +141,7 @@ pub struct ProfilePictureResult {
 // ---------------------------------------------------------------------------
 
 #[wasm_bindgen(js_name = extractImageThumb)]
-pub fn extract_image_thumb(
-    image_data: &[u8],
-    width: u32,
-) -> Result<Ts<ImageThumbResult>, JsError> {
+pub fn extract_image_thumb(image_data: &[u8], width: u32) -> Result<Ts<ImageThumbResult>, JsError> {
     Ok(extract_thumb(image_data, width)
         .map_err(|e| JsError::new(&e))?
         .into_ts()?)
