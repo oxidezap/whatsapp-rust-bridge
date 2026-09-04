@@ -748,7 +748,7 @@ export interface GroupUpdate {
   is_lid_addressing_mode: boolean;
   /** Whether participant identity information was incomplete in the source stanza. */
   has_incomplete_participant_information: boolean;
-  /** The specific action */
+  /** The specific action.  Boxed, like the `action` of every sync-action payload in this file (`ContactUpdate`, `PinUpdate`, `MuteUpdate`, …): at 288 bytes it made `GroupUpdate` the largest variant of `Event`, and `Event` is what sizes the single `Arc` allocation every dispatch makes, group update or not. */
   action: GroupNotificationAction;
 }
 
@@ -768,6 +768,10 @@ export interface IdentityChange {
 export interface InboundMessage {
   message: import('./proto-types').proto.IMessage;
   info: MessageInfo;
+  /** Ephemeral duration in seconds, from the decrypted message's `contextInfo.expiration`. Lives here rather than on `info` because it is only known after decryption, and `info` is shared with every `<enc>` of the stanza by then: writing it there cost a deep copy of the whole `MessageInfo` on every disappearing-chat message. */
+  ephemeral_expiration?: number | null;
+  /** Parent post key when `message` is a decrypted CAG channel comment (`enc_comment_message`). The inner `Message` proto has no slot for the threading link, so it surfaces here. Boxed: rare. */
+  comment_target?: import('./proto-types').proto.IMessageKey | null;
 }
 
 export interface IncomingCall {
@@ -903,6 +907,7 @@ export interface MessageInfo {
   server_id: number;
   /** The envelope's `type` attribute. `None` when the stanza carried none. */
   type?: StanzaMessageType | null;
+  /** The sender's `notify` display name. Inline up to 24 bytes, which covers most names, so a message does not allocate for it. */
   push_name: string;
   timestamp: number;
   category: MessageCategory;
@@ -910,13 +915,14 @@ export interface MessageInfo {
   /** The `mediatype` the stanza's `<enc>` nodes declared, aggregated to one value per message.  A fan-out stanza carries one `<enc>` per device and the attribute is a property of the message, not of a device copy, so the first `<enc>` that carries one wins in the order the client enumerates them: the direct `<enc>` children first, then this device's under `<participants><to>`. Divergent values across a fan-out are not reconciled and the later ones are dropped; a consumer that needs per-node values reads them from [`DecryptedPayload`](crate::types::events::DecryptedPayload).  Those fan-out nodes are a wider source than WA Web's parser, which maps only the direct `<enc>` children. The two agree on every stanza seen so far, since the attribute describes the message and every device copy repeats it, so the wider read only fills the field on a stanza whose direct children carry nothing.  `None` when no `<enc>` carried the attribute. */
   media_type?: EncMediaType | null;
   edit: EditAttribute;
+  /** The `<bot>` child. Boxed: most messages carry none. */
   bot_info?: MsgBotInfo | null;
-  meta_info: MsgMetaInfo;
+  /** The `<meta>` and `<reporting>` children, `None` when the stanza carries neither. Boxed: it is 280 bytes of mostly-absent fields, and every `MessageInfo` is retained per message through the commit batch and every consumer that keeps a message. */
+  meta_info?: MsgMetaInfo | null;
   /** Decoded `<verified_name>` child cert of business senders; the display name is in `.name`. Boxed: most messages carry none. */
   verified_name?: VerifiedName | null;
+  /** Set on a self-fanout of an own outgoing message. Boxed: rare. */
   device_sent_meta?: DeviceSentMeta | null;
-  /** Ephemeral duration in seconds, extracted from `contextInfo.expiration`. */
-  ephemeral_expiration?: number | null;
   /** Whether this message was delivered during offline sync. */
   is_offline: boolean;
   /** Set when this message was recovered via PDO rather than normal decryption. Contains the PDO request message ID. */
@@ -929,8 +935,6 @@ export interface MessageInfo {
   verified_name_serial?: number | string | null;
   /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
   peer_recipient_pn?: Jid | null;
-  /** Parent post key when the dispatched message is a decrypted CAG channel comment (`enc_comment_message`). The inner `Message` proto has no slot for the threading link, so it surfaces here. */
-  comment_target?: import('./proto-types').proto.IMessageKey | null;
   /** Broadcast-contact-list recipients from `<participants><to jid>` on an incoming broadcast/status stanza. Populated only for broadcasts; used to validate a `deviceSentMessage.phash` (WA Web `validateBclHash`). Empty otherwise. */
   bcl_participants: Jid[];
 }

@@ -49,9 +49,14 @@ type _Boxed = Assert<
 // Arc<wa::Message>
 type _Shared = Assert<Resolves<InboundMessage["message"], proto.IMessage>>;
 
-// Option<wa::MessageKey>
+// Option<wa::MessageKey>, carried beside the message rather than on its info:
+// the inner proto has no slot for the threading link, and `info` is shared
+// with every `<enc>` of the stanza by the time decryption knows it.
 type _Optional = Assert<
-  Resolves<NonNullable<MessageInfo["comment_target"]>, proto.IMessageKey>
+  Resolves<
+    InboundMessage["comment_target"],
+    proto.IMessageKey | null | undefined
+  >
 >;
 
 // `pub type MessageSecret = [u8; 32]`
