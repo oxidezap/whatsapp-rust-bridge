@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.20.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.19.0...v0.20.0) (2026-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust 9be10573 to 0aa87c64 ([#96](https://github.com/oxidezap/whatsapp-rust-bridge/issues/96))
+
+### Features
+
+* carry the core's username surface across the boundary ([#89](https://github.com/oxidezap/whatsapp-rust-bridge/issues/89)) ([dfb4fff](https://github.com/oxidezap/whatsapp-rust-bridge/commit/dfb4fffd5713c2362fd260ab25a14ecc275069bd))
+
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust 9be10573 to 0aa87c64 ([#96](https://github.com/oxidezap/whatsapp-rust-bridge/issues/96)) ([3d27f19](https://github.com/oxidezap/whatsapp-rust-bridge/commit/3d27f19fc3aa184bfc5926d41c7327ca56a379a0))
+
+
+### Refactors
+
+* **tsify:** migrate wasm boundary types off deprecated into/from_wasm_abi to new pattern ([#95](https://github.com/oxidezap/whatsapp-rust-bridge/issues/95)) ([b9680bf](https://github.com/oxidezap/whatsapp-rust-bridge/commit/b9680bfeeaa5db5109188d2e68e7ca9c8423eac2))
+
 ## [0.19.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.18.0...v0.19.0) (2026-08-27)
 
 
