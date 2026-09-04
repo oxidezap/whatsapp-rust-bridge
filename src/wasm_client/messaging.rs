@@ -173,12 +173,13 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let options = edit_options(stanza_id)?;
-        self.client
+        let result = self
+            .client
             .online()
             .await?
             .edit_message_with_options(to, message_id, msg, options)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+            .await?;
+        Ok(result.message_id)
     }
 
     /// Revoke (delete) a sent message.
@@ -204,8 +205,8 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .revoke_message(to, message_id, revoke_type)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+            .await?;
+        Ok(())
     }
 
     // ── Message history ──────────────────────────────────────────────────

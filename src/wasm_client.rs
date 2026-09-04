@@ -5126,7 +5126,7 @@ mod dispatched_event_tests {
         info.timestamp = timestamp();
         info.r#type = Some(StanzaMessageType::Poll);
         info.media_type = Some(EncMediaType::Ptt);
-        info.meta_info.poll_type = Some(PollType::Vote);
+        info.meta_info.get_or_insert_default().poll_type = Some(PollType::Vote);
 
         let (name, data) = deliver(Event::UndecryptableMessage(
             UndecryptableMessage::builder()
@@ -5177,7 +5177,10 @@ mod dispatched_event_tests {
         let info = field(&data, "info");
         assert!(field(&info, "type").is_undefined());
         assert!(field(&info, "media_type").is_undefined());
-        assert!(field(&field(&info, "meta_info"), "poll_type").is_undefined());
+        // `meta_info` itself is absent now: the core boxes the `<meta>` and
+        // `<reporting>` children and a stanza carrying neither crosses as no
+        // value, not as an empty object to read `poll_type` off.
+        assert!(field(&info, "meta_info").is_null_or_undefined());
         // The two enums the core rebuilt from the catalog keep their wire
         // spellings, which is the whole of what crosses here.
         assert_eq!(
