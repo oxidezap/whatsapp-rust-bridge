@@ -53,7 +53,10 @@ type _Shared = Assert<Resolves<InboundMessage["message"], proto.IMessage>>;
 // the inner proto has no slot for the threading link, and `info` is shared
 // with every `<enc>` of the stanza by the time decryption knows it.
 type _Optional = Assert<
-  Resolves<NonNullable<InboundMessage["comment_target"]>, proto.IMessageKey>
+  Resolves<
+    InboundMessage["comment_target"],
+    proto.IMessageKey | null | undefined
+  >
 >;
 
 // `pub type MessageSecret = [u8; 32]`
