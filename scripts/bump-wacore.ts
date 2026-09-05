@@ -125,13 +125,10 @@ export async function runBump(argv: string[], deps: BumpDeps): Promise<string> {
 
 function realDeps(root: string): BumpDeps {
   const manifestPath = join(root, "Cargo.toml");
-  const gitOut = (args: string[]): string =>
-    Bun.spawnSync({ cmd: ["git", ...args], cwd: root }).stdout.toString();
   return {
     readManifest: () => readFileSync(manifestPath, "utf8"),
     writeManifest: (content) => writeFileSync(manifestPath, content),
-    manifestDirty: () =>
-      gitOut(["status", "--porcelain", "--", "Cargo.toml"]).trim().length > 0,
+    manifestDirty: () => isManifestDirty(root),
     resolveSha: async (target) =>
       target.kind === "sha" ? target.sha : await resolveLatestMain(),
     cargoUpdate: () => {
@@ -152,6 +149,15 @@ function realDeps(root: string): BumpDeps {
       }
     },
   };
+}
+
+/** True when Cargo.toml differs from HEAD, staged or unstaged. */
+export function isManifestDirty(root: string): boolean {
+  const proc = Bun.spawnSync({
+    cmd: ["git", "status", "--porcelain", "--", "Cargo.toml"],
+    cwd: root,
+  });
+  return proc.stdout.toString().trim().length > 0;
 }
 
 async function main() {
