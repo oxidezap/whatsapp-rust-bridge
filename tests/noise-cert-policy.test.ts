@@ -67,20 +67,14 @@ describe("the Noise cert policy construction argument", () => {
   );
 
   test.each([undefined, null, false, true])(
-    "a %p policy constructs without touching storage",
+    "an accepted %p policy value constructs successfully",
     async (value) => {
-      const storageCalls: string[] = [];
       const store = {
-        get: async (...args: unknown[]) => {
-          storageCalls.push("get");
+        get: async () => {
           return null;
         },
-        set: async (...args: unknown[]) => {
-          storageCalls.push("set");
-        },
-        delete: async (...args: unknown[]) => {
-          storageCalls.push("delete");
-        },
+        set: async () => {},
+        delete: async () => {},
       };
       const client = await createWhatsAppClient(
         offlineTransport(),
@@ -101,8 +95,19 @@ describe("the Noise cert policy construction argument", () => {
     20000
   );
 
-  test("seven-argument construction keeps the strict default", async () => {
-    const client = await createWhatsAppClient(offlineTransport(), createHttp());
+  test("the existing seven-argument form still constructs", async () => {
+    // Full seven-argument call: the eighth parameter stays optional, and
+    // the strict default is proven by the parser unit plus the mock
+    // rejection test, not by this construction succeeding.
+    const client = await createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      null,
+      null,
+      null,
+      null
+    );
     try {
       expect(client.isConnected()).toBe(false);
     } finally {
