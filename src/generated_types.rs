@@ -1112,8 +1112,8 @@ export interface OfflineSyncPreview {
 export type PairCodeRejection = number;
 
 export interface PairError {
-  id: Jid;
-  lid: Jid;
+  id: string;
+  lid: string;
   business_name: string;
   platform: string;
   error: string;
@@ -1138,8 +1138,8 @@ export interface PairPasskeyRequest {
 }
 
 export interface PairSuccess {
-  id: Jid;
-  lid: Jid;
+  id: string;
+  lid: string;
   business_name: string;
   platform: string;
 }
