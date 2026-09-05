@@ -2496,18 +2496,22 @@ pub async fn create_whatsapp_client(
     ) = (base_runtime, None);
     let backend: Arc<dyn wacore::store::traits::Backend> = match store {
         Some(ref store_val) if !store_val.is_null() && !store_val.is_undefined() => {
+            // A missing or non-function required callback is the caller's own
+            // `store` argument, so it is `invalid-argument`, not `internal`.
             let get_fn = js_sys::Reflect::get(store_val, &"get".into())
-                .map_err(|_| crate::errors::internal("store.get is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.get must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get must be a function"))?;
             let set_fn = js_sys::Reflect::get(store_val, &"set".into())
-                .map_err(|_| crate::errors::internal("store.set is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.set must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set must be a function"))?;
             let delete_fn = js_sys::Reflect::get(store_val, &"delete".into())
-                .map_err(|_| crate::errors::internal("store.delete is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.delete is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.delete must be a function"))?;
+                .map_err(|_| {
+                    crate::errors::invalid_arg("store", "store.delete must be a function")
+                })?;
             // Optional batch primitives — feature-detected by handle presence.
             // A host that omits them keeps the per-key set/delete fallback.
             let opt_fn = |name: &str| {
@@ -2573,7 +2577,10 @@ pub async fn create_whatsapp_client(
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
                 .await
-                .map_err(|e| crate::errors::internal(format!("create persistence manager: {e}")))?,
+                // A corrupt record or a failing host callback is a storage
+                // failure, not a bridge bug: walk the typed chain so it keeps
+                // its kind instead of collapsing into `internal`.
+                .map_err(|e| crate::errors::BridgeError::from_error_chain(&e))?,
         );
 
     let cache_config = build_cache_config(cache_config_js.as_ref())?;

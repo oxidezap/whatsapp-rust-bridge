@@ -26,7 +26,6 @@ use whatsapp_rust::wacore::store::Device;
 use whatsapp_rust::wacore::store::InMemoryBackend;
 use whatsapp_rust::wacore::store::error::Result;
 use whatsapp_rust::wacore::store::traits::*;
-use whatsapp_rust::waproto;
 
 // ---------------------------------------------------------------------------
 // Store name constants
@@ -1568,38 +1567,77 @@ impl MsgSecretStore for JsBackend {
 // DeviceStore
 // ---------------------------------------------------------------------------
 
+/// Tags a device-record JSON failure with its store/key so it keeps the same
+/// shape `js_get_json` produced for this record before the authority split.
+fn device_json_err(source: serde_json::Error) -> wacore::store::error::StoreError {
+    wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError {
+        op: "deserialize",
+        store: STORE_DEVICE.to_string(),
+        key: DEVICE_RECORD.to_string(),
+        source,
+    }))
+}
+
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl DeviceStore for JsBackend {
     async fn save(&self, device: &Device) -> Result<()> {
+        // The record carries the inline `account` field, so it is written
+        // first and stays authoritative even if the sidecar step below fails.
         self.js_set_json(STORE_DEVICE, DEVICE_RECORD, device)
             .await?;
 
-        // `account` (AdvSignedDeviceIdentity) is #[serde(skip)] in Device,
-        // so we persist it separately as raw protobuf bytes — same approach
-        // as SQLite storage which uses a dedicated column.
+        // Sidecar kept for bridge builds that take the account from this key
+        // instead of the record. After a successful save those readers see a
+        // current sidecar when paired and none when unpaired. A partial
+        // failure surfaces here; until the save is retried those readers may
+        // see a stale sidecar, and concurrent writers get last-writer-wins.
         if let Some(ref account) = device.account {
             self.js_set(STORE_DEVICE, DEVICE_ACCOUNT, &account.encode_to_vec())
                 .await?;
+        } else {
+            // An explicit null retires the account; the stale sidecar must go
+            // or a sidecar-only reader would resurrect it.
+            self.js_delete(STORE_DEVICE, DEVICE_ACCOUNT).await?;
         }
 
         Ok(())
     }
 
     async fn load(&self) -> Result<Option<Device>> {
-        let mut device: Option<Device> = self.js_get_json(STORE_DEVICE, DEVICE_RECORD).await?;
+        let raw = self.js_get(STORE_DEVICE, DEVICE_RECORD).await?;
+        let Some(bytes) = raw else { return Ok(None) };
 
-        // Restore the #[serde(skip)] `account` field from its separate key.
-        if let Some(ref mut dev) = device
-            && let Some(bytes) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await?
-        {
-            match waproto::whatsapp::ADVSignedDeviceIdentity::decode_from_slice(bytes.as_slice()) {
-                Ok(account) => dev.account = Some(account.into()),
-                Err(e) => log::warn!("Failed to decode stored account identity: {e}"),
-            }
+        let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(device_json_err)?;
+        // Presence is read off the raw JSON: only a record without the key is
+        // the missing-field compatibility shape. An explicit null is the
+        // current format saying "no account" and never consults the sidecar.
+        let is_current = value
+            .as_object()
+            .is_some_and(|obj| obj.contains_key("account"));
+        // A present key must hold a Device: null, scalars and arrays fail
+        // here rather than passing as an absent device.
+        let mut dev: Device = serde_json::from_value(value).map_err(device_json_err)?;
+        if is_current {
+            return Ok(Some(dev));
         }
 
-        Ok(device)
+        // Compatibility overlay, in memory only. Load never writes: persisting
+        // here could overwrite a newer record written across these awaits, so
+        // convergence onto the current format happens on the save path, which
+        // already writes the record before reconciling the sidecar.
+        if let Some(legacy) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await? {
+            let account =
+                wacore::store::device::account_serde::from_bytes(&legacy).map_err(|e| {
+                    wacore::store::error::StoreError::Serialization(Box::new(DeviceAccountError {
+                        store: STORE_DEVICE,
+                        key: DEVICE_ACCOUNT,
+                        source: e,
+                    }))
+                })?;
+            dev.account = Some(Arc::new(account));
+        }
+        Ok(Some(dev))
     }
 
     async fn exists(&self) -> Result<bool> {
@@ -1674,6 +1712,19 @@ pub(crate) struct JsonStoreError {
     pub key: String,
     #[source]
     pub source: serde_json::Error,
+}
+
+/// Wraps a device-account sidecar decode failure with its `<store>/<key>`
+/// context. Same role as `JsonStoreError`: the chain walk in
+/// `BridgeError::from_error_chain` turns it into an actionable `Storage`
+/// operation instead of the generic wrapper text.
+#[derive(Debug, thiserror::Error)]
+#[error("deserialize {store}/{key}")]
+pub(crate) struct DeviceAccountError {
+    pub store: &'static str,
+    pub key: &'static str,
+    #[source]
+    pub source: whatsapp_rust::buffa::DecodeError,
 }
 
 fn js_err_to_store_err(context: &'static str, e: JsValue) -> wacore::store::error::StoreError {
@@ -1821,4 +1872,419 @@ fn to_hex(bytes: &[u8]) -> String {
         s.push(HEX_CHARS[(b & 0xf) as usize] as char);
     }
     s
+}
+
+#[cfg(test)]
+mod device_account_authority_tests {
+    use super::*;
+    use std::sync::Arc;
+    use wacore::store::device::account_serde;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::waproto;
+
+    type StoreError = wacore::store::error::StoreError;
+
+    fn mem_handles(slot: &str) -> JsBackendHandles {
+        js_sys::Reflect::set(
+            &js_sys::global(),
+            &JsValue::from_str(slot),
+            &js_sys::Map::new().into(),
+        )
+        .expect("slot init");
+        JsBackendHandles {
+            get_fn: js_sys::Function::new_with_args(
+                "store, key",
+                &format!(
+                    "const v = globalThis[{slot:?}].get(store + ':' + key); \
+                     return (v === undefined) ? null : v;"
+                ),
+            ),
+            set_fn: js_sys::Function::new_with_args(
+                "store, key, value",
+                &format!("globalThis[{slot:?}].set(store + ':' + key, value);"),
+            ),
+            delete_fn: js_sys::Function::new_with_args(
+                "store, key",
+                &format!("globalThis[{slot:?}].delete(store + ':' + key);"),
+            ),
+            set_many_fn: None,
+            delete_many_fn: None,
+            get_many_fn: None,
+            list_keys_fn: None,
+            delete_prefix_fn: None,
+            cap_enumerate: false,
+            cap_prefix_delete: false,
+        }
+    }
+
+    fn mem_backend(slot: &str) -> JsBackend {
+        JsBackend::new(mem_handles(slot))
+    }
+
+    fn failing_fn(message: &str) -> js_sys::Function {
+        js_sys::Function::new_no_args(&format!("throw new Error({message:?})"))
+    }
+
+    fn fixture_account() -> Arc<waproto::whatsapp::ADVSignedDeviceIdentity> {
+        Arc::new(waproto::whatsapp::ADVSignedDeviceIdentity {
+            details: Some(b"fictitious-details".to_vec()),
+            account_signature_key: Some(vec![7; 32]),
+            account_signature: Some(vec![8; 64]),
+            device_signature: Some(vec![9; 64]),
+        })
+    }
+
+    fn same_account(
+        a: &waproto::whatsapp::ADVSignedDeviceIdentity,
+        b: &waproto::whatsapp::ADVSignedDeviceIdentity,
+    ) -> bool {
+        account_serde::to_bytes(a) == account_serde::to_bytes(b)
+    }
+
+    // Core revisions before the inline field (whatsapp-rust #414 changed
+    // `#[serde(skip, default)] account` to `#[serde(with = "account_serde")]`)
+    // serialized records without the `account` key. Stripping it reproduces
+    // that missing-field compatibility shape against the pinned core.
+    async fn seed_legacy_device_json(backend: &JsBackend, device: &Device) {
+        let mut value = serde_json::to_value(device).expect("device serializes");
+        let removed = value
+            .as_object_mut()
+            .expect("device is an object")
+            .remove("account");
+        assert!(removed.is_some(), "new-format JSON must carry the key");
+        backend
+            .js_set(
+                STORE_DEVICE,
+                DEVICE_RECORD,
+                &serde_json::to_vec(&value).expect("json bytes"),
+            )
+            .await
+            .expect("seed record");
+    }
+
+    async fn seed_legacy_account(backend: &JsBackend, bytes: &[u8]) {
+        backend
+            .js_set(STORE_DEVICE, DEVICE_ACCOUNT, bytes)
+            .await
+            .expect("seed account");
+    }
+
+    async fn legacy_account(backend: &JsBackend) -> Option<Vec<u8>> {
+        backend
+            .js_get(STORE_DEVICE, DEVICE_ACCOUNT)
+            .await
+            .expect("read legacy key")
+    }
+
+    async fn record_has_account_field(backend: &JsBackend) -> bool {
+        let raw = backend
+            .js_get(STORE_DEVICE, DEVICE_RECORD)
+            .await
+            .expect("read record")
+            .expect("record present");
+        serde_json::from_slice::<serde_json::Value>(&raw)
+            .expect("valid json")
+            .as_object()
+            .expect("record is an object")
+            .contains_key("account")
+    }
+
+    #[test]
+    async fn current_record_with_account_roundtrips() {
+        let backend = mem_backend("dev-acct-roundtrip");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+
+        backend.save(&device).await.expect("save");
+        let loaded = backend.load().await.expect("load").expect("device present");
+        let account = loaded.account.expect("account present");
+        assert!(same_account(&account, &fixture_account()));
+    }
+
+    #[test]
+    async fn explicit_null_is_not_resurrected_by_stale_legacy_key() {
+        let backend = mem_backend("dev-acct-stale-null");
+        let device = Device::new();
+        assert!(device.account.is_none());
+        backend.save(&device).await.expect("save");
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(
+            loaded.account.is_none(),
+            "current record says null; legacy key must not override it"
+        );
+    }
+
+    #[test]
+    async fn save_without_account_clears_stale_legacy_key() {
+        let backend = mem_backend("dev-acct-save-clears");
+        let mut paired = Device::new();
+        paired.account = Some(fixture_account());
+        backend.save(&paired).await.expect("save paired");
+
+        let unpaired = Device::new();
+        backend.save(&unpaired).await.expect("save unpaired");
+
+        assert!(legacy_account(&backend).await.is_none());
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(loaded.account.is_none());
+    }
+
+    #[test]
+    async fn legacy_record_without_field_overlays_legacy_key_without_writing() {
+        let backend = mem_backend("dev-acct-legacy-overlay");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        let account = loaded.account.expect("overlaid account");
+        assert!(same_account(&account, &fixture_account()));
+        // The read persisted nothing: the sidecar stays until a save carries
+        // the overlay onto the current format.
+        assert!(legacy_account(&backend).await.is_some());
+        assert!(!record_has_account_field(&backend).await);
+    }
+
+    #[test]
+    async fn save_converges_legacy_state_onto_current_format() {
+        let backend = mem_backend("dev-acct-legacy-converge");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        backend.save(&loaded).await.expect("save converges");
+        assert!(record_has_account_field(&backend).await);
+
+        // The converged record answers on its own: removing the sidecar
+        // changes nothing for current readers.
+        backend
+            .js_delete(STORE_DEVICE, DEVICE_ACCOUNT)
+            .await
+            .expect("drop sidecar");
+        let reloaded = backend.load().await.expect("load").expect("device present");
+        let account = reloaded.account.expect("record authority");
+        assert!(same_account(&account, &fixture_account()));
+    }
+
+    #[test]
+    async fn legacy_load_needs_no_writes() {
+        let mut backend = mem_backend("dev-acct-legacy-readonly");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+        backend.set_fn = failing_fn("write during load");
+        backend.delete_fn = failing_fn("delete during load");
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(loaded.account.is_some());
+    }
+
+    #[test]
+    async fn legacy_record_without_any_key_loads_without_account() {
+        let backend = mem_backend("dev-acct-legacy-nokey");
+        seed_legacy_device_json(&backend, &Device::new()).await;
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(loaded.account.is_none());
+    }
+
+    #[test]
+    async fn no_records_load_none() {
+        let backend = mem_backend("dev-acct-absent");
+        assert!(backend.load().await.expect("load").is_none());
+    }
+
+    #[test]
+    async fn corrupt_legacy_account_is_an_error_not_silent_empty() {
+        let backend = mem_backend("dev-acct-legacy-corrupt");
+        seed_legacy_device_json(&backend, &Device::new()).await;
+        seed_legacy_account(&backend, b"not-protobuf").await;
+
+        let err = match backend.load().await {
+            Err(e) => e,
+            Ok(_) => panic!("corrupt legacy must fail"),
+        };
+        assert!(matches!(err, StoreError::Serialization(_)));
+        let leaf = std::error::Error::source(&err).expect("typed source");
+        assert!(
+            leaf.downcast_ref::<DeviceAccountError>().is_some(),
+            "sidecar context must survive in the chain"
+        );
+        assert!(legacy_account(&backend).await.is_some());
+    }
+
+    #[test]
+    async fn corrupt_device_record_is_an_error() {
+        let backend = mem_backend("dev-acct-record-corrupt");
+        backend
+            .js_set(STORE_DEVICE, DEVICE_RECORD, b"{broken")
+            .await
+            .expect("seed");
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let err = match backend.load().await {
+            Err(e) => e,
+            Ok(_) => panic!("corrupt record must fail"),
+        };
+        assert!(matches!(err, StoreError::Serialization(_)));
+    }
+
+    #[test]
+    async fn read_failure_propagates_as_storage_error() {
+        let mut handles = mem_handles("dev-acct-read-fail");
+        handles.get_fn = failing_fn("boom-get");
+        let backend = JsBackend::new(handles);
+
+        let err = match backend.load().await {
+            Err(e) => e,
+            Ok(_) => panic!("read failure must fail"),
+        };
+        assert!(matches!(err, StoreError::Database(_)));
+    }
+
+    #[test]
+    async fn failed_new_record_write_preserves_last_usable_copy() {
+        let backend = mem_backend("dev-acct-write-fail");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        let legacy = account_serde::to_bytes(&fixture_account());
+        seed_legacy_account(&backend, &legacy).await;
+
+        let mut failing = mem_handles("dev-acct-write-fail-unused");
+        failing.set_fn = failing_fn("boom-set");
+        let failing = JsBackend::new(failing);
+        // Point the failing backend at the same host map.
+        js_sys::Reflect::set(
+            &js_sys::global(),
+            &JsValue::from_str("dev-acct-write-fail-unused"),
+            &js_sys::Reflect::get(&js_sys::global(), &JsValue::from_str("dev-acct-write-fail"))
+                .expect("shared map"),
+        )
+        .expect("share map");
+
+        let err = failing
+            .save(&Device::new())
+            .await
+            .expect_err("set failure must fail");
+        assert!(matches!(err, StoreError::Database(_)));
+        assert_eq!(legacy_account(&backend).await, Some(legacy));
+        assert!(!record_has_account_field(&backend).await);
+    }
+
+    #[test]
+    async fn cleanup_failure_surfaces_yet_new_record_stands() {
+        let mut backend = mem_backend("dev-acct-cleanup-fail");
+        backend.delete_fn = failing_fn("boom-delete");
+        backend
+            .js_set(
+                STORE_DEVICE,
+                DEVICE_RECORD,
+                &serde_json::to_vec(&Device::new()).expect("json"),
+            )
+            .await
+            .expect("seed current-format null record");
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let err = backend
+            .save(&Device::new())
+            .await
+            .expect_err("cleanup failure must surface");
+        assert!(matches!(err, StoreError::Database(_)));
+
+        // The new record landed before the destructive step, so it already
+        // answers authoritatively despite the stale key still sitting there.
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(loaded.account.is_none());
+
+        backend.delete_fn = js_sys::Function::new_with_args(
+            "store, key",
+            &format!(
+                "globalThis[{:?}].delete(store + ':' + key);",
+                "dev-acct-cleanup-fail"
+            ),
+        );
+        backend.save(&Device::new()).await.expect("retry save");
+        assert!(legacy_account(&backend).await.is_none());
+    }
+
+    #[test]
+    async fn stored_null_scalar_and_array_are_malformed_records() {
+        for (slot, raw) in [
+            ("dev-acct-null", b"null".as_slice()),
+            ("dev-acct-num", b"5".as_slice()),
+            ("dev-acct-str", b"\"device\"".as_slice()),
+            ("dev-acct-arr", b"[]".as_slice()),
+        ] {
+            let backend = mem_backend(slot);
+            backend
+                .js_set(STORE_DEVICE, DEVICE_RECORD, raw)
+                .await
+                .expect("seed");
+            match backend.load().await {
+                Err(e) => assert!(matches!(e, StoreError::Serialization(_))),
+                Ok(_) => panic!("{slot} must fail"),
+            }
+        }
+    }
+
+    #[test]
+    async fn malformed_object_is_an_error_not_an_empty_device() {
+        let backend = mem_backend("dev-acct-bad-object");
+        backend
+            .js_set(
+                STORE_DEVICE,
+                DEVICE_RECORD,
+                b"{\"account\":null,\"registration_id\":\"not-a-number\"}",
+            )
+            .await
+            .expect("seed");
+        match backend.load().await {
+            Err(e) => assert!(matches!(e, StoreError::Serialization(_))),
+            Ok(_) => panic!("malformed object must fail"),
+        }
+    }
+
+    #[test]
+    async fn inline_account_present_absent_and_null_through_real_serde() {
+        let mut paired = Device::new();
+        paired.account = Some(fixture_account());
+        let json = serde_json::to_string(&paired).expect("serialize");
+        assert!(json.contains("\"account\""));
+        let restored: Device = serde_json::from_str(&json).expect("deserialize");
+        assert!(same_account(
+            &restored.account.expect("present account"),
+            &fixture_account()
+        ));
+
+        let unpaired = Device::new();
+        let json = serde_json::to_string(&unpaired).expect("serialize");
+        assert!(json.contains("\"account\":null"));
+        let restored: Device = serde_json::from_str(&json).expect("deserialize");
+        assert!(restored.account.is_none());
+
+        let mut value = serde_json::to_value(&unpaired).expect("to value");
+        value.as_object_mut().expect("object").remove("account");
+        let restored: Device = serde_json::from_value(value).expect("missing field defaults");
+        assert!(restored.account.is_none());
+    }
+
+    #[test]
+    async fn save_with_account_keeps_sidecar_decodable_for_sidecar_readers() {
+        let backend = mem_backend("dev-acct-dual-write");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        backend.save(&device).await.expect("save");
+
+        let raw = legacy_account(&backend).await.expect("legacy key present");
+        let decoded = account_serde::from_bytes(&raw).expect("old readers decode the legacy key");
+        assert!(same_account(&decoded, &fixture_account()));
+        assert!(record_has_account_field(&backend).await);
+    }
 }

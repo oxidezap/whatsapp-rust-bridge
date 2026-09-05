@@ -198,6 +198,10 @@ impl BridgeError {
                 return BridgeError::Storage {
                     operation: js.to_string(),
                 };
+            } else if let Some(dc) = c.downcast_ref::<crate::js_backend::DeviceAccountError>() {
+                return BridgeError::Storage {
+                    operation: dc.to_string(),
+                };
             } else if let Some(sock) = c.downcast_ref::<SocketError>() {
                 if let Some(b) = socket_to_bridge(sock) {
                     return b;
