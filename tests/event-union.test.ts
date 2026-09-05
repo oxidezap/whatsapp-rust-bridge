@@ -81,7 +81,7 @@ const PUBLISHED: Record<string, string> = {
   qr_scanned_without_multidevice: "Record<string, never>",
   client_outdated: "Record<string, never>",
   raw_node: "{ tag: string; attrs: Record<string, string>; content?: unknown }",
-  history_sync: "import('./proto-types').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
+  history_sync: "import('./proto-types.js').proto.IHistorySync & { syncType: number; chunkOrder?: number; progress?: number; peerDataRequestSessionId?: string }",
   pairing_code_error: "PairingCodeError",
 };
 

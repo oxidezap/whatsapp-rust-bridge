@@ -723,6 +723,7 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                                 f.ident.as_ref().unwrap().to_string().replace("r#", "");
                             let (ts_type, optional) = timestamp_module_type(f)
                                 .or_else(|| serialize_with_type(f))
+                                .or_else(|| boundary_stringified_jid(&name, f))
                                 .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
@@ -1407,6 +1408,31 @@ fn serialize_with_type(field: &syn::Field) -> Option<(String, bool)> {
     }
 }
 
+/// `Event::PairSuccess` / `Event::PairError` never cross through serde: the
+/// bridge hand-builds them in `event_to_js_special` with `Jid::to_string`,
+/// and the `bridge_events!` union entry already declares `id: string`. Name
+/// strings here too, or the standalone interface disagrees with the only
+/// payload a consumer can ever receive. Keyed on struct and field, and only
+/// when the field really is a `Jid`, so a core change to another type does
+/// not silently keep the override.
+fn boundary_stringified_jid(struct_name: &str, field: &syn::Field) -> Option<(String, bool)> {
+    let field_name = field.ident.as_ref()?.to_string();
+    if !matches!(
+        (struct_name, field_name.as_str()),
+        ("PairSuccess" | "PairError", "id" | "lid")
+    ) {
+        return None;
+    }
+    match &field.ty {
+        Type::Path(TypePath { path, .. })
+            if path.segments.last().is_some_and(|s| s.ident == "Jid") =>
+        {
+            Some(("string".to_string(), false))
+        }
+        _ => None,
+    }
+}
+
 /// The function a field's `serialize_with` names, ignoring `with` — unlike
 /// [`serde_timestamp_module`], which reads both. `with = "serde_bytes"` names a
 /// module whose shape the field's type already carries, so reading it here
@@ -2028,6 +2054,46 @@ mod tests {
             "Payload",
         );
         assert!(generated.contains("blob: Uint8Array;"), "{generated}");
+    }
+
+    /// `PairSuccess` / `PairError` cross the boundary hand-built, with
+    /// `Jid::to_string` — the `bridge_events!` union already says `id: string`.
+    /// The standalone interfaces must say the same; a `Jid` there names an
+    /// object no `pair_success` payload ever carries. A `Jid` anywhere else
+    /// still names the structured object serde writes.
+    #[test]
+    fn pair_result_jids_cross_as_strings() {
+        let source = r#"
+            #[derive(Serialize)]
+            pub struct PairSuccess {
+                pub id: Jid,
+                pub lid: Jid,
+                pub business_name: String,
+                pub platform: String,
+            }
+
+            #[derive(Serialize)]
+            pub struct PairError {
+                pub id: Jid,
+                pub lid: Jid,
+                pub business_name: String,
+                pub platform: String,
+                pub error: String,
+            }
+
+            #[derive(Serialize)]
+            pub struct DeviceListUpdate {
+                pub jid: Jid,
+            }
+        "#;
+        let success = generated_type(source, "PairSuccess");
+        assert!(success.contains("id: string;"), "{success}");
+        assert!(success.contains("lid: string;"), "{success}");
+        let error = generated_type(source, "PairError");
+        assert!(error.contains("id: string;"), "{error}");
+        assert!(error.contains("lid: string;"), "{error}");
+        let control = generated_type(source, "DeviceListUpdate");
+        assert!(control.contains("jid: Jid;"), "{control}");
     }
 
     /// An empty list would pass every check it feeds, so sources that declare no
