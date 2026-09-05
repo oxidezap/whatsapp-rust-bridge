@@ -54,18 +54,26 @@ export function parsePackOutput(raw: string): Packed {
   }
   for (const file of record.files) {
     const entry = file as { path?: unknown; size?: unknown };
-    if (typeof entry?.path !== "string" || typeof entry?.size !== "number") {
+    if (typeof entry?.path !== "string") {
       throw new Error("pack: packed record has a malformed file entry");
     }
+    if (!isByteCount(entry?.size)) {
+      throw new Error(`pack: packed record has a bad size for ${entry.path}`);
+    }
   }
-  if (
-    typeof record.unpackedSize !== "number" ||
-    !Number.isFinite(record.unpackedSize)
-  ) {
-    throw new Error("pack: packed record has no finite unpackedSize");
+  if (!isByteCount(record.unpackedSize)) {
+    throw new Error("pack: packed record has no valid unpackedSize");
   }
   return {
     files: record.files as PackedFile[],
-    unpackedSize: record.unpackedSize,
+    unpackedSize: record.unpackedSize as number,
   };
+}
+
+/** Byte counts are non-negative safe integers; fractional, negative,
+ * non-finite or non-numeric sizes must fail the gate, not pass it. */
+function isByteCount(value: unknown): value is number {
+  return (
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+  );
 }

@@ -62,7 +62,12 @@ describe("npm pack envelope parsing", () => {
     ["missing files", JSON.stringify({ pkg: { unpackedSize: 1 } })],
     ["missing unpackedSize", JSON.stringify({ pkg: { files: [] } })],
     ["NaN unpackedSize", '{"pkg": {"files": [], "unpackedSize": null}}'],
+    ["negative unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: -1 } })],
+    ["fractional unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: 1.5 } })],
+    ["unsafe-integer unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: 2 ** 53 } })],
     ["malformed entry", JSON.stringify({ pkg: { files: [{ path: 7 }], unpackedSize: 1 } })],
+    ["negative file size", JSON.stringify({ pkg: { files: [{ path: "a", size: -3 }], unpackedSize: 1 } })],
+    ["fractional file size", JSON.stringify({ pkg: { files: [{ path: "a", size: 2.5 }], unpackedSize: 1 } })],
     ["not JSON", "not json at all"],
     ["JSON null", "null"],
   ])("malformed envelope fails closed: %s", (_name, raw) => {

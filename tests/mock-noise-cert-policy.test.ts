@@ -107,27 +107,35 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
     async function pairOne(name: string) {
       const events: WhatsAppEvent[] = [];
       const inbox: string[] = [];
-      // The timer is only the failure bound: arrival settles through the
-      // batch callback below.
-      let textSettled!: () => void;
-      const textArrived = new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error("timed out waiting for the message text")),
-          15000
-        );
-        textSettled = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-      });
-      // Mark handled: a send failure below skips the await, and the timer
-      // rejection must not surface as an unhandled rejection on top of it.
-      // Awaiting the original still throws.
-      textArrived.catch(() => {});
+      // At most one outstanding waiter: set when the test starts awaiting
+      // an incoming text, cleared on arrival or on timeout. No deadline
+      // exists before that, so pairing/creation failures leave nothing
+      // behind to fire.
+      let pending: {
+        text: string;
+        done: () => void;
+        timer: ReturnType<typeof setTimeout>;
+      } | null = null;
+      const waitForText = (text: string, timeoutMs = 15000) =>
+        new Promise<void>((resolve, reject) => {
+          if (inbox.includes(text)) {
+            resolve();
+            return;
+          }
+          const timer = setTimeout(() => {
+            pending = null;
+            reject(new Error(`timed out waiting for message text ${text}`));
+          }, timeoutMs);
+          const done = () => {
+            clearTimeout(timer);
+            pending = null;
+            resolve();
+          };
+          pending = { text, done, timer };
+        });
       // Message events cross only through onMessageBatch as wire bytes;
       // decode synchronously inside the call per the batch contract, and
-      // settle the deferred when the expected text arrives.
-      const expectedText = `Noise policy proof ${Date.now()}`;
+      // settle a pending waiter on an exact match.
       const callbacks = {
         onEvent: (event: WhatsAppEvent) => {
           events.push(event);
@@ -146,7 +154,9 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
             };
             if (typeof message.conversation === "string") {
               inbox.push(message.conversation);
-              if (message.conversation === expectedText) textSettled();
+              if (pending && message.conversation === pending.text) {
+                pending.done();
+              }
             }
           }
         },
@@ -170,7 +180,7 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
         await waitForEvent(events, "connected", 45000);
         const jid = (await client.getJid()) as string;
         expect(jid).toBeTruthy();
-        return { client, events, jid, inbox, textArrived, expectedText };
+        return { client, events, jid, inbox, waitForText };
       } catch (error) {
         await client.disconnect().catch(() => {});
         client.free();
@@ -182,11 +192,12 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
     try {
       const bob = await pairOne("bob");
       try {
-        const bytes = encodeProto("Message", { conversation: bob.expectedText });
+        const text = `Noise policy proof ${Date.now()}`;
+        const bytes = encodeProto("Message", { conversation: text });
         const msgId = await alice.client.sendMessageBytes(bob.jid, bytes);
         expect(msgId).toBeTruthy();
-        await bob.textArrived;
-        expect(bob.inbox).toContain(bob.expectedText);
+        await bob.waitForText(text);
+        expect(bob.inbox).toContain(text);
       } finally {
         await bob.client.disconnect().catch(() => {});
         bob.client.free();
