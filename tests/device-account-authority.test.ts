@@ -47,7 +47,7 @@ async function rejection(promise: Promise<unknown>) {
   try {
     await promise;
   } catch (error) {
-    return error as Error & { kind?: string; operation?: string };
+    return error as Error & { kind?: string; field?: string };
   }
   throw new Error("expected creation to reject");
 }
@@ -89,14 +89,21 @@ describe("device/account persistence failures", () => {
 
   test("corrupt sidecar on a missing-inline record rejects as storage", async () => {
     const store = mapStore();
-    await track(
-      await createWhatsAppClient(
-        offlineTransport(),
-        createHttp(),
-        null,
-        store.callbacks as never
-      )
+    // The seeding client owns a background saver that would rewrite the
+    // record, so it is disconnected and freed BEFORE the fixture is mutated.
+    // Awaiting disconnect is the teardown signal; no sleeps. The seeder is
+    // never tracked, so the shared cleanup below cannot double-free it.
+    const seeder = await createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      store.callbacks as never
     );
+    try {
+      await seeder.disconnect();
+    } finally {
+      seeder.free();
+    }
 
     const raw = store.kept.get("device/device");
     expect(raw).toBeDefined();
@@ -127,15 +134,24 @@ describe("device/account persistence failures", () => {
     expect(error.message).toContain("device");
   });
 
-  test("a store missing get still rejects as internal, not storage", async () => {
-    const error = await rejection(
-      createWhatsAppClient(offlineTransport(), createHttp(), null, {
-        set() {},
-        delete() {},
-      } as never)
-    );
-    expect(error).toBeInstanceOf(Error);
-    expect(error.name).toBe("WhatsAppError");
-    expect(error.kind).toBe("internal");
+  test("missing or non-function required callbacks reject as invalid store argument", async () => {
+    const valid = mapStore().callbacks;
+    const cases: Array<[string, unknown]> = [
+      ["missing get", { set: valid.set, delete: valid.delete }],
+      ["non-function get", { ...valid, get: 42 }],
+      ["missing set", { get: valid.get, delete: valid.delete }],
+      ["non-function set", { ...valid, set: "yes" }],
+      ["missing delete", { get: valid.get, set: valid.set }],
+      ["non-function delete", { ...valid, delete: null }],
+    ];
+    for (const [label, store] of cases) {
+      const error = await rejection(
+        createWhatsAppClient(offlineTransport(), createHttp(), null, store as never)
+      );
+      expect(error).toBeInstanceOf(Error);
+      expect(error.name).toBe("WhatsAppError");
+      expect({ label, kind: error.kind }).toEqual({ label, kind: "invalid-argument" });
+      expect({ label, field: error.field }).toEqual({ label, field: "store" });
+    }
   });
 });
