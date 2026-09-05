@@ -1424,7 +1424,9 @@ fn boundary_stringified_jid(struct_name: &str, field: &syn::Field) -> Option<(St
         return None;
     }
     match &field.ty {
-        Type::Path(TypePath { path, .. }) if path.segments.last().is_some_and(|s| s.ident == "Jid") => {
+        Type::Path(TypePath { path, .. })
+            if path.segments.last().is_some_and(|s| s.ident == "Jid") =>
+        {
             Some(("string".to_string(), false))
         }
         _ => None,
