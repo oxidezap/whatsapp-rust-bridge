@@ -1587,15 +1587,17 @@ impl DeviceStore for JsBackend {
         self.js_set_json(STORE_DEVICE, DEVICE_RECORD, device)
             .await?;
 
+        // Sidecar kept for bridge builds that take the account from this key
+        // instead of the record. After a successful save those readers see a
+        // current sidecar when paired and none when unpaired. A partial
+        // failure surfaces here; until the save is retried those readers may
+        // see a stale sidecar, and concurrent writers get last-writer-wins.
         if let Some(ref account) = device.account {
-            // Sidecar kept for readers predating the inline field. Best-effort:
-            // a torn pair still loads correctly on new readers, and a failure
-            // here surfaces instead of passing silently.
             self.js_set(STORE_DEVICE, DEVICE_ACCOUNT, &account.encode_to_vec())
                 .await?;
         } else {
             // An explicit null retires the account; the stale sidecar must go
-            // or a later load would resurrect it.
+            // or a sidecar-only reader would resurrect it.
             self.js_delete(STORE_DEVICE, DEVICE_ACCOUNT).await?;
         }
 
@@ -1606,34 +1608,29 @@ impl DeviceStore for JsBackend {
         let raw = self.js_get(STORE_DEVICE, DEVICE_RECORD).await?;
         let Some(bytes) = raw else { return Ok(None) };
 
-        let value: serde_json::Value =
-            serde_json::from_slice(&bytes).map_err(|e| device_json_err(e))?;
+        let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(device_json_err)?;
         // Presence is read off the raw JSON: only a record without the key is
-        // demonstrably legacy. An explicit null is the current format saying
-        // "no account" and must not fall back to the sidecar.
+        // the missing-field compatibility shape. An explicit null is the
+        // current format saying "no account" and never consults the sidecar.
         let is_current = value
             .as_object()
             .is_some_and(|obj| obj.contains_key("account"));
-        let device: Option<Device> =
-            serde_json::from_value(value).map_err(|e| device_json_err(e))?;
-        let Some(mut dev) = device else {
-            return Ok(None);
-        };
+        // A present key must hold a Device: null, scalars and arrays fail
+        // here rather than passing as an absent device.
+        let mut dev: Device = serde_json::from_value(value).map_err(device_json_err)?;
         if is_current {
             return Ok(Some(dev));
         }
 
-        // Legacy record: consult the sidecar once, then migrate onto the
-        // current format. The migrated record lands before the sidecar is
-        // removed, so a failure keeps the last usable copy and surfaces.
-        let Some(legacy) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await? else {
-            return Ok(Some(dev));
-        };
-        let account = wacore::store::device::account_serde::from_bytes(&legacy)
-            .map_err(|e| wacore::store::error::StoreError::Serialization(Box::new(e)))?;
-        dev.account = Some(Arc::new(account));
-        self.js_set_json(STORE_DEVICE, DEVICE_RECORD, &dev).await?;
-        self.js_delete(STORE_DEVICE, DEVICE_ACCOUNT).await?;
+        // Compatibility overlay, in memory only. Load never writes: persisting
+        // here could overwrite a newer record written across these awaits, so
+        // convergence onto the current format happens on the save path, which
+        // already writes the record before reconciling the sidecar.
+        if let Some(legacy) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await? {
+            let account = wacore::store::device::account_serde::from_bytes(&legacy)
+                .map_err(|e| wacore::store::error::StoreError::Serialization(Box::new(e)))?;
+            dev.account = Some(Arc::new(account));
+        }
         Ok(Some(dev))
     }
 
@@ -1925,8 +1922,10 @@ mod device_account_authority_tests {
         account_serde::to_bytes(a) == account_serde::to_bytes(b)
     }
 
-    // Legacy bridge revisions persisted `Device` while the core still marked
-    // `account` as skipped, so their record carries no `account` key at all.
+    // Core revisions before the inline field (whatsapp-rust #414 changed
+    // `#[serde(skip, default)] account` to `#[serde(with = "account_serde")]`)
+    // serialized records without the `account` key. Stripping it reproduces
+    // that missing-field compatibility shape against the pinned core.
     async fn seed_legacy_device_json(backend: &JsBackend, device: &Device) {
         let mut value = serde_json::to_value(device).expect("device serializes");
         let removed = value
@@ -2014,18 +2013,57 @@ mod device_account_authority_tests {
     }
 
     #[test]
-    async fn legacy_record_without_field_uses_legacy_key_and_migrates() {
-        let backend = mem_backend("dev-acct-legacy-migrate");
+    async fn legacy_record_without_field_overlays_legacy_key_without_writing() {
+        let backend = mem_backend("dev-acct-legacy-overlay");
         let mut device = Device::new();
         device.account = Some(fixture_account());
         seed_legacy_device_json(&backend, &device).await;
         seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
 
         let loaded = backend.load().await.expect("load").expect("device present");
-        let account = loaded.account.expect("migrated account");
+        let account = loaded.account.expect("overlaid account");
         assert!(same_account(&account, &fixture_account()));
-        assert!(legacy_account(&backend).await.is_none());
+        // The read persisted nothing: the sidecar stays until a save carries
+        // the overlay onto the current format.
+        assert!(legacy_account(&backend).await.is_some());
+        assert!(!record_has_account_field(&backend).await);
+    }
+
+    #[test]
+    async fn save_converges_legacy_state_onto_current_format() {
+        let backend = mem_backend("dev-acct-legacy-converge");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        backend.save(&loaded).await.expect("save converges");
         assert!(record_has_account_field(&backend).await);
+
+        // The converged record answers on its own: removing the sidecar
+        // changes nothing for current readers.
+        backend
+            .js_delete(STORE_DEVICE, DEVICE_ACCOUNT)
+            .await
+            .expect("drop sidecar");
+        let reloaded = backend.load().await.expect("load").expect("device present");
+        let account = reloaded.account.expect("record authority");
+        assert!(same_account(&account, &fixture_account()));
+    }
+
+    #[test]
+    async fn legacy_load_needs_no_writes() {
+        let mut backend = mem_backend("dev-acct-legacy-readonly");
+        let mut device = Device::new();
+        device.account = Some(fixture_account());
+        seed_legacy_device_json(&backend, &device).await;
+        seed_legacy_account(&backend, &account_serde::to_bytes(&fixture_account())).await;
+        backend.set_fn = failing_fn("write during load");
+        backend.delete_fn = failing_fn("delete during load");
+
+        let loaded = backend.load().await.expect("load").expect("device present");
+        assert!(loaded.account.is_some());
     }
 
     #[test]
@@ -2153,48 +2191,68 @@ mod device_account_authority_tests {
     }
 
     #[test]
-    async fn migration_writeback_failure_keeps_legacy_for_retry() {
-        let backend = mem_backend("dev-acct-migrate-fail");
-        let mut device = Device::new();
-        device.account = Some(fixture_account());
-        seed_legacy_device_json(&backend, &device).await;
-        let legacy = account_serde::to_bytes(&fixture_account());
-        seed_legacy_account(&backend, &legacy).await;
-
-        // A backend whose writes fail but which reads the same host map.
-        let mut handles = mem_handles("dev-acct-migrate-fail-ro");
-        handles.set_fn = failing_fn("boom-set");
-        js_sys::Reflect::set(
-            &js_sys::global(),
-            &JsValue::from_str("dev-acct-migrate-fail-ro"),
-            &js_sys::Reflect::get(
-                &js_sys::global(),
-                &JsValue::from_str("dev-acct-migrate-fail"),
-            )
-            .expect("shared map"),
-        )
-        .expect("share map");
-        let read_only = JsBackend::new(handles);
-
-        let err = match read_only.load().await {
-            Err(e) => e,
-            Ok(_) => panic!("migration must fail"),
-        };
-        assert!(matches!(err, StoreError::Database(_)));
-        assert_eq!(legacy_account(&backend).await, Some(legacy));
-
-        let loaded = backend
-            .load()
-            .await
-            .expect("retry")
-            .expect("device present");
-        let account = loaded.account.expect("migrated account");
-        assert!(same_account(&account, &fixture_account()));
-        assert!(legacy_account(&backend).await.is_none());
+    async fn stored_null_scalar_and_array_are_malformed_records() {
+        for (slot, raw) in [
+            ("dev-acct-null", b"null".as_slice()),
+            ("dev-acct-num", b"5".as_slice()),
+            ("dev-acct-str", b"\"device\"".as_slice()),
+            ("dev-acct-arr", b"[]".as_slice()),
+        ] {
+            let backend = mem_backend(slot);
+            backend
+                .js_set(STORE_DEVICE, DEVICE_RECORD, raw)
+                .await
+                .expect("seed");
+            match backend.load().await {
+                Err(e) => assert!(matches!(e, StoreError::Serialization(_))),
+                Ok(_) => panic!("{slot} must fail"),
+            }
+        }
     }
 
     #[test]
-    async fn save_with_account_keeps_legacy_key_decodable_for_old_readers() {
+    async fn malformed_object_is_an_error_not_an_empty_device() {
+        let backend = mem_backend("dev-acct-bad-object");
+        backend
+            .js_set(
+                STORE_DEVICE,
+                DEVICE_RECORD,
+                b"{\"account\":null,\"registration_id\":\"not-a-number\"}",
+            )
+            .await
+            .expect("seed");
+        match backend.load().await {
+            Err(e) => assert!(matches!(e, StoreError::Serialization(_))),
+            Ok(_) => panic!("malformed object must fail"),
+        }
+    }
+
+    #[test]
+    async fn inline_account_present_absent_and_null_through_real_serde() {
+        let mut paired = Device::new();
+        paired.account = Some(fixture_account());
+        let json = serde_json::to_string(&paired).expect("serialize");
+        assert!(json.contains("\"account\""));
+        let restored: Device = serde_json::from_str(&json).expect("deserialize");
+        assert!(same_account(
+            &restored.account.expect("present account"),
+            &fixture_account()
+        ));
+
+        let unpaired = Device::new();
+        let json = serde_json::to_string(&unpaired).expect("serialize");
+        assert!(json.contains("\"account\":null"));
+        let restored: Device = serde_json::from_str(&json).expect("deserialize");
+        assert!(restored.account.is_none());
+
+        let mut value = serde_json::to_value(&unpaired).expect("to value");
+        value.as_object_mut().expect("object").remove("account");
+        let restored: Device = serde_json::from_value(value).expect("missing field defaults");
+        assert!(restored.account.is_none());
+    }
+
+    #[test]
+    async fn save_with_account_keeps_sidecar_decodable_for_sidecar_readers() {
         let backend = mem_backend("dev-acct-dual-write");
         let mut device = Device::new();
         device.account = Some(fixture_account());
