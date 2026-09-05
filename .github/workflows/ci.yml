@@ -240,6 +240,13 @@ jobs:
           git add --intent-to-add -- src/generated_types.rs ts/generated
           git diff --exit-code -- src/generated_types.rs ts/generated
 
+      # The Noise cert-chain bypass must not reach the shipped graph. The
+      # script reads the resolved wasm32 feature set, so only the production
+      # profile can fail it; `bun run build` above resolved the same manifest
+      # the release publishes from.
+      - name: Fail if the Noise cert bypass reached the build
+        run: sh scripts/check-noise-cert-profile.sh
+
       # Nothing measured the artifact, so it grew a little per release with
       # nobody positioned to notice. Runs here rather than at `prepack`
       # because by then the bytes are already in a version.

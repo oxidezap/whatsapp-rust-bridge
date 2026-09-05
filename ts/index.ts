@@ -74,4 +74,5 @@ export const createWhatsAppClient: (
   cache?: CacheConfig | null,
   version?: readonly [number, number, number] | null,
   wantedPreKeyCount?: number | null,
+  dangerSkipCertChainVerify?: boolean | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
