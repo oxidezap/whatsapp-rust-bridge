@@ -87,8 +87,31 @@ const consumer = (name: string): string => `import {
   decodeProto,
   encodeProto,
   proto,
+  type WasmWhatsAppClient,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
+
+// The run-observation contract, derived from the export itself: a
+// declaration change that moves a field breaks this fixture at the access
+// site instead of passing against a stale restatement.
+export type RunCompletion = Awaited<
+  ReturnType<WasmWhatsAppClient["waitForRunCompletion"]>
+>;
+
+export function describeCompletion(completion: RunCompletion): string {
+  if (completion.reason !== "auto-reconnect-disabled") {
+    // Branch-specific causes live only on the reconnect-disabled member.
+    // @ts-expect-error - connectError is absent on every other branch
+    void completion.connectError;
+    return completion.reason;
+  }
+  return completion.connectError?.kind ?? "no-cause";
+}
+
+export function shutdownCompletion(): RunCompletion {
+  return { reason: "shutdown-requested", generation: 0 };
+}
+
 
 export function roundtrip(): boolean {
   const bytes: Uint8Array = proto.Message.encode({
