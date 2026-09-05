@@ -1627,8 +1627,14 @@ impl DeviceStore for JsBackend {
         // convergence onto the current format happens on the save path, which
         // already writes the record before reconciling the sidecar.
         if let Some(legacy) = self.js_get(STORE_DEVICE, DEVICE_ACCOUNT).await? {
-            let account = wacore::store::device::account_serde::from_bytes(&legacy)
-                .map_err(|e| wacore::store::error::StoreError::Serialization(Box::new(e)))?;
+            let account =
+                wacore::store::device::account_serde::from_bytes(&legacy).map_err(|e| {
+                    wacore::store::error::StoreError::Serialization(Box::new(DeviceAccountError {
+                        store: STORE_DEVICE,
+                        key: DEVICE_ACCOUNT,
+                        source: e,
+                    }))
+                })?;
             dev.account = Some(Arc::new(account));
         }
         Ok(Some(dev))
@@ -1706,6 +1712,19 @@ pub(crate) struct JsonStoreError {
     pub key: String,
     #[source]
     pub source: serde_json::Error,
+}
+
+/// Wraps a device-account sidecar decode failure with its `<store>/<key>`
+/// context. Same role as `JsonStoreError`: the chain walk in
+/// `BridgeError::from_error_chain` turns it into an actionable `Storage`
+/// operation instead of the generic wrapper text.
+#[derive(Debug, thiserror::Error)]
+#[error("deserialize {store}/{key}")]
+pub(crate) struct DeviceAccountError {
+    pub store: &'static str,
+    pub key: &'static str,
+    #[source]
+    pub source: whatsapp_rust::buffa::DecodeError,
 }
 
 fn js_err_to_store_err(context: &'static str, e: JsValue) -> wacore::store::error::StoreError {
@@ -2092,6 +2111,11 @@ mod device_account_authority_tests {
             Ok(_) => panic!("corrupt legacy must fail"),
         };
         assert!(matches!(err, StoreError::Serialization(_)));
+        let leaf = std::error::Error::source(&err).expect("typed source");
+        assert!(
+            leaf.downcast_ref::<DeviceAccountError>().is_some(),
+            "sidecar context must survive in the chain"
+        );
         assert!(legacy_account(&backend).await.is_some());
     }
 

@@ -2501,7 +2501,10 @@ pub async fn create_whatsapp_client(
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
                 .await
-                .map_err(|e| crate::errors::internal(format!("create persistence manager: {e}")))?,
+                // A corrupt record or a failing host callback is a storage
+                // failure, not a bridge bug: walk the typed chain so it keeps
+                // its kind instead of collapsing into `internal`.
+                .map_err(|e| crate::errors::BridgeError::from_error_chain(&e))?,
         );
 
     let cache_config = build_cache_config(cache_config_js.as_ref())?;
