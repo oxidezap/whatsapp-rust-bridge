@@ -28,6 +28,8 @@ pub mod js_transport;
 pub mod legacy_session;
 pub mod logger;
 pub mod memory_profile;
+#[cfg(test)]
+mod noise_cert_profile;
 pub mod proto;
 pub mod result_types;
 pub mod runtime;
