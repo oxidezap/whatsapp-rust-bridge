@@ -313,6 +313,69 @@ jobs:
         continue-on-error: true
         run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
 
+  # The installed-tarball contract lives here rather than in the unit tests:
+  # what `dist/` typechecks as inside this checkout is not what a consumer
+  # installs — the checkout's own devDependencies resolve
+  # `@bufbuild/protobuf` from the repo's `node_modules`, masking the hole an
+  # isolated install falls into. Packing, installing twice and typechecking
+  # twice is far past the per-test clock budget, so it is a job of its own.
+  #
+  # This builds the development package, not the release one: wasm-opt never
+  # touches a `.d.ts`, so the declarations are identical either way, and the
+  # release cost — size, shape, drift — stays in `build-and-test`, which owns
+  # those gates. A packaging check that rebuilt the release wasm would pay
+  # most of that job's ~9 minutes a second time for the same bytes.
+  published-tarball:
+    name: Published tarball contract
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-04-05
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
+        with:
+          # Same pin as build-and-test: `gen` must see the same protoc, or a
+          # comment-only version line drifts the generated codec here and not
+          # there.
+          tool: wasm-pack,protoc@3.35.1
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install JavaScript dependencies
+        run: bun install
+
+      - name: Build the development package
+        run: bun run build:dev
+
+      # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
+      # publish goes through), installs it in a directory outside the
+      # repository with only declared dependencies plus explicit
+      # TypeScript/Node tooling, and typechecks a real consumer with
+      # `skipLibCheck: false` in Bundler and NodeNext modes before running
+      # the root and `proto-types` exports.
+      - name: Install the tarball in isolation and check both module modes
+        run: bun run check:published-tarball
+
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
     needs: changes
@@ -360,7 +423,7 @@ jobs:
   success:
     name: All checks passed
     if: always()
-    needs: [changes, fmt-clippy, build-and-test, rust-tests]
+    needs: [changes, fmt-clippy, build-and-test, published-tarball, rust-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job passed or was deliberately skipped

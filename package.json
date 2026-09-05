@@ -55,13 +55,16 @@
         "check:size": "bun run scripts/check-size.ts",
         "check:wasm-shape": "node scripts/check-wasm-shape.mjs",
         "check:test-clock": "bun run scripts/check-test-clock.ts",
+        "check:published-tarball": "bun run scripts/check-published-tarball.ts",
         "measure:fn-sizes": "node scripts/wasm-fn-sizes.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "measure:zone-peak": "node scripts/wasm-zone-peak.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "prepack": "bun run scripts/check-pack.ts",
         "prepublishOnly": "bun run build"
     },
+    "dependencies": {
+        "@bufbuild/protobuf": "^2.12.0"
+    },
     "devDependencies": {
-        "@bufbuild/protobuf": "^2.12.0",
         "@types/bun": "^1.3.13",
         "@types/node": "^25.6.0",
         "pkg-pr-new": "^0.0.88",
