@@ -364,9 +364,9 @@ fn handshake_to_bridge(e: &HandshakeError) -> Option<BridgeError> {
         },
         // A peer whose chain is not rooted in WhatsApp's issuer fails the
         // XEdDSA verification, not the key agreement: `crypto` names the
-        // step, and the message keeps the verification detail.
-        HandshakeError::Core(CoreHandshakeError::CertVerification(_)) => BridgeError::Crypto {
-            operation: "verify server Noise cert chain".into(),
+        // step, and the operation keeps the core's verification detail.
+        HandshakeError::Core(CoreHandshakeError::CertVerification(detail)) => BridgeError::Crypto {
+            operation: format!("verify server Noise cert chain: {detail}"),
         },
         // `Timeout` is the core's own answer, asked at the end of the walk.
         _ => return None,
@@ -1546,6 +1546,25 @@ mod tests {
             wrong.len(),
             wrong.join("\n")
         );
+    }
+
+    #[test]
+    fn cert_verification_keeps_the_core_diagnostic() {
+        // The kind says which step failed; the operation must keep the
+        // core's own diagnostic (e.g. which signature failed), not a
+        // static label that drops it.
+        let bridge = BridgeError::from_error_chain(&ConnectError::Handshake(HandshakeError::Core(
+            CoreHandshakeError::CertVerification(
+                "intermediate signature failed XEdDSA verify".into(),
+            ),
+        )));
+        match bridge {
+            BridgeError::Crypto { operation } => assert!(
+                operation.contains("intermediate signature failed XEdDSA verify"),
+                "operation lost the diagnostic: {operation}"
+            ),
+            other => panic!("expected Crypto, got {other:?}"),
+        }
     }
 
     #[test]

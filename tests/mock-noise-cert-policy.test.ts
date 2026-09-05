@@ -94,6 +94,7 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
       )) as Error & { kind?: string };
       expect(error.kind).toBe("crypto");
       expect(String(error.message)).toContain("verify server Noise cert chain");
+      expect(String(error.message)).toContain("intermediate signature failed XEdDSA verify");
       expect(client.isConnected()).toBe(false);
     } finally {
       await client.disconnect().catch(() => {});

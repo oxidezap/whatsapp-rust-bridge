@@ -2,12 +2,14 @@
  * Intentional core update: move the `whatsapp-rust` pin to the latest
  * `main` commit, or to an explicit full SHA for reproducibility.
  *
- * A `rev` pin never moves under `cargo update`, so the old
- * `cargo update -p whatsapp-rust` silently rebuilt the same commit. This
- * rewrites only the pin, refreshes the lockfile, and fails visibly when
- * resolution or the update errors instead of keeping a stale SHA.
+ * A `rev` pin never moves under `cargo update`, so plain
+ * `cargo update -p whatsapp-rust` silently rebuilds the same commit. This
+ * is the single entrypoint: it resolves the SHA, rewrites only the pin,
+ * refreshes the lockfile, then runs the build itself, so an explicit SHA
+ * reaches the parser and is never forwarded to the build.
  *
  * Run: bun run scripts/bump-wacore.ts [full-commit-sha]
+ * (package.json `bump:wacore` runs exactly this and nothing after it.)
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -60,10 +62,13 @@ function defaultRunner(command: string, args: string[]): Promise<{ stdout: strin
   return Promise.resolve({ stdout: proc.stdout.toString() });
 }
 
+const REV_RE = /rev\s*=\s*"([^"]*)"/;
+
 /**
- * Rewrite only the `rev` value on the core dependency line. Anything else
- * (missing line, missing `rev`, more than one core line) fails instead of
- * guessing, so unrelated manifest content is never touched.
+ * Rewrite only the `rev` value on the core dependency line. A missing line,
+ * a second core line, or a line with no `rev` fails instead of guessing,
+ * so unrelated manifest content is never touched. Rewriting the SHA that
+ * is already pinned is a valid idempotent no-op.
  */
 export function rewritePin(manifest: string, sha: string): string {
   const lines = manifest.split("\n");
@@ -73,43 +78,85 @@ export function rewritePin(manifest: string, sha: string): string {
       `bump:wacore expected exactly one ${CORE_PACKAGE} dependency line, found ${hits.length}`
     );
   }
-  const index = lines.indexOf(hits[0]);
-  const rewritten = hits[0].replace(/rev\s*=\s*"[^"]*"/, `rev = "${sha}"`);
-  if (rewritten === hits[0]) {
+  if (!REV_RE.test(hits[0])) {
     throw new Error("bump:wacore found no rev pin to rewrite on the core line");
   }
   const next = [...lines];
-  next[index] = rewritten;
+  next[lines.indexOf(hits[0])] = hits[0].replace(REV_RE, `rev = "${sha}"`);
   return next.join("\n");
 }
 
-async function main() {
-  const target = parseBumpArgs(Bun.argv.slice(2));
-  const root = join(import.meta.dir, "..");
-  const manifestPath = join(root, "Cargo.toml");
+export interface BumpDeps {
+  readManifest(): string;
+  writeManifest(content: string): void;
+  /** True when Cargo.toml differs from HEAD (staged or unstaged). */
+  manifestDirty(): boolean;
+  resolveSha(target: BumpTarget): Promise<string>;
+  cargoUpdate(): void;
+  /** Runs the build with no arguments; the SHA never reaches it. */
+  runBuild(): void;
+}
 
-  const status = Bun.spawnSync({ cmd: ["git", "diff", "--quiet", "Cargo.toml"], cwd: root });
-  if (status.exitCode !== 0) {
+/** Full orchestration with injectable seams; returns the pinned SHA. */
+export async function runBump(argv: string[], deps: BumpDeps): Promise<string> {
+  const target = parseBumpArgs(argv);
+  if (deps.manifestDirty()) {
     throw new Error("bump:wacore refuses to run with uncommitted Cargo.toml changes");
   }
-
-  const sha = target.kind === "sha" ? target.sha : await resolveLatestMain();
-  const before = readFileSync(manifestPath, "utf8");
-  writeFileSync(manifestPath, rewritePin(before, sha));
+  const sha = await deps.resolveSha(target);
+  const before = deps.readManifest();
+  const written = rewritePin(before, sha);
+  deps.writeManifest(written);
   try {
-    const update = Bun.spawnSync({
-      cmd: ["cargo", "update", "-p", CORE_PACKAGE],
-      cwd: root,
-      stdout: "inherit",
-      stderr: "inherit",
-    });
-    if (update.exitCode !== 0) {
-      throw new Error("bump:wacore: cargo update -p whatsapp-rust failed");
-    }
+    deps.cargoUpdate();
   } catch (error) {
-    writeFileSync(manifestPath, before);
-    throw error;
+    // Restore only what this run wrote: concurrent manifest edits made
+    // after the write are left in place and reported instead.
+    if (deps.readManifest() === written) {
+      deps.writeManifest(before);
+    }
+    throw new Error(
+      `bump:wacore: cargo update failed${deps.readManifest() === before ? " (manifest restored)" : " (manifest left with concurrent edits)"}: ${error instanceof Error ? error.message : error}`
+    );
   }
+  deps.runBuild();
+  return sha;
+}
+
+function realDeps(root: string): BumpDeps {
+  const manifestPath = join(root, "Cargo.toml");
+  const gitOut = (args: string[]): string =>
+    Bun.spawnSync({ cmd: ["git", ...args], cwd: root }).stdout.toString();
+  return {
+    readManifest: () => readFileSync(manifestPath, "utf8"),
+    writeManifest: (content) => writeFileSync(manifestPath, content),
+    manifestDirty: () =>
+      gitOut(["status", "--porcelain", "--", "Cargo.toml"]).trim().length > 0,
+    resolveSha: async (target) =>
+      target.kind === "sha" ? target.sha : await resolveLatestMain(),
+    cargoUpdate: () => {
+      const proc = Bun.spawnSync({ cmd: ["cargo", "update", "-p", CORE_PACKAGE], cwd: root });
+      if ((proc.exitCode ?? 1) !== 0) {
+        throw new Error("cargo update -p whatsapp-rust failed");
+      }
+    },
+    runBuild: () => {
+      const proc = Bun.spawnSync({
+        cmd: ["bun", "run", "build"],
+        cwd: root,
+        stdout: "inherit",
+        stderr: "inherit",
+      });
+      if ((proc.exitCode ?? 1) !== 0) {
+        throw new Error("bump:wacore: bun run build failed");
+      }
+    },
+  };
+}
+
+async function main() {
+  const root = join(import.meta.dir, "..");
+  const sha = await runBump(Bun.argv.slice(2), realDeps(root));
   console.log(`bump:wacore: pinned ${CORE_PACKAGE} at ${sha}`);
 }
 

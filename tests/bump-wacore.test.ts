@@ -15,6 +15,8 @@ import {
   parseBumpArgs,
   resolveLatestMain,
   rewritePin,
+  runBump,
+  type BumpDeps,
   type CommandRunner,
 } from "../scripts/bump-wacore";
 
@@ -69,8 +71,7 @@ describe("bump:wacore pin rewriting", () => {
   });
 });
 
-describe("bump:wacore latest-main resolution", () => {
-  test("the HEAD symref line does not win over refs/heads/main", async () => {
+describe("bump:wacore latest-main resolution", () => {  test("the HEAD symref line does not win over refs/heads/main", async () => {
     const seen: Array<{ command: string; args: string[] }> = [];
     const run: CommandRunner = async (command, args) => {
       seen.push({ command, args });
@@ -95,5 +96,101 @@ describe("bump:wacore latest-main resolution", () => {
       throw new Error("network down");
     };
     await expect(resolveLatestMain(run)).rejects.toThrow("network down");
+  });
+});
+
+describe("bump:wacore orchestration", () => {
+  function fixtureDeps(overrides: Partial<BumpDeps> = {}): BumpDeps & {
+    files: { manifest: string };
+    calls: { cargoUpdate: number; runBuild: number; resolved: string[] };
+  } {
+    const files = { manifest: MANIFEST };
+    const calls = { cargoUpdate: 0, runBuild: 0, resolved: [] as string[] };
+    return {
+      files,
+      calls,
+      readManifest: () => files.manifest,
+      writeManifest: (content) => {
+        files.manifest = content;
+      },
+      manifestDirty: () => false,
+      resolveSha: async (target) => {
+        if (target.kind === "sha") return target.sha;
+        calls.resolved.push("latest");
+        return NEXT;
+      },
+      cargoUpdate: () => {
+        calls.cargoUpdate += 1;
+      },
+      runBuild: () => {
+        calls.runBuild += 1;
+      },
+      ...overrides,
+    };
+  }
+
+  test("an explicit SHA reaches the rewrite, never the build", async () => {
+    const deps = fixtureDeps();
+    const sha = await runBump([NEXT], deps);
+    expect(sha).toBe(NEXT);
+    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
+    expect(deps.calls.cargoUpdate).toBe(1);
+    // The build runs with no arguments by construction: an explicit SHA
+    // cannot leak into it the way `cmd arg && build` chains leak argv.
+    expect(deps.calls.runBuild).toBe(1);
+    expect(deps.calls.resolved).toEqual([]);
+  });
+
+  test("default resolves latest main before rewriting", async () => {
+    const deps = fixtureDeps();
+    await runBump([], deps);
+    expect(deps.calls.resolved).toEqual(["latest"]);
+    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
+  });
+
+  test("a dirty manifest refuses before any write or resolution", async () => {
+    const deps = fixtureDeps({ manifestDirty: () => true });
+    await expect(runBump([NEXT], deps)).rejects.toThrow(/uncommitted/);
+    expect(deps.files.manifest).toBe(MANIFEST);
+    expect(deps.calls.cargoUpdate).toBe(0);
+    expect(deps.calls.runBuild).toBe(0);
+  });
+
+  test("failed update restores an untouched manifest", async () => {
+    const deps = fixtureDeps({
+      cargoUpdate: () => {
+        deps.calls.cargoUpdate += 1;
+        throw new Error("cargo update failed");
+      },
+    });
+    await expect(runBump([NEXT], deps)).rejects.toThrow(/restored/);
+    expect(deps.files.manifest).toBe(MANIFEST);
+    expect(deps.calls.runBuild).toBe(0);
+  });
+
+  test("failed update leaves concurrent edits in place and says so", async () => {
+    const deps = fixtureDeps();
+    const concurrent = MANIFEST + "# concurrent edit\n";
+    deps.cargoUpdate = () => {
+      deps.files.manifest = concurrent;
+      throw new Error("cargo update failed");
+    };
+    await expect(runBump([NEXT], deps)).rejects.toThrow(/concurrent edits/);
+    expect(deps.files.manifest).toBe(concurrent);
+  });
+
+  test("build failure keeps the coherent pin and lock", async () => {
+    const deps = fixtureDeps({
+      runBuild: () => {
+        throw new Error("build broke");
+      },
+    });
+    await expect(runBump([NEXT], deps)).rejects.toThrow("build broke");
+    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
+  });
+
+  test("rewriting the already-pinned SHA is idempotent", () => {
+    const pinned = rewritePin(MANIFEST, NEXT);
+    expect(rewritePin(pinned, NEXT)).toBe(pinned);
   });
 });
