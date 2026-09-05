@@ -280,6 +280,11 @@ jobs:
           git add --intent-to-add -- src/generated_types.rs ts/generated
           git diff --exit-code -- src/generated_types.rs ts/generated
 
+      # Same production-profile gate as ci.yml: this tree is what publish
+      # ships, so the bypass must not be in the graph it was built from.
+      - name: Fail if the Noise cert bypass reached the build
+        run: sh scripts/check-noise-cert-profile.sh
+
       - run: bun test
 
       - name: Rust unit tests (wasm32 in Node)

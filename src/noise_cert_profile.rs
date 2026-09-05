@@ -72,10 +72,12 @@ mod tests {
         );
     }
 
-    // Same fixture family, chain built for another static key. The structural
-    // leaf check fires before any signature step regardless of profile, so
-    // this proves the harness reaches verification instead of failing on
-    // framing or decoding.
+    // Same fixture family, chain built for another static key. This is a
+    // rejection control, not a success control: no valid-chain fixture exists
+    // anywhere, because signing one needs the issuer private key. The
+    // structural leaf check fires before any signature step regardless of
+    // profile, so this proves the harness reaches verification instead of
+    // failing on framing or decoding.
     #[test]
     fn control_rejects_chain_for_another_static_key() {
         let real_static = [0xAAu8; 32];
