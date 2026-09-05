@@ -187,6 +187,193 @@ impl From<whatsapp_rust::Reachability> for Reachability {
     }
 }
 
+/// Why the supervised run loop started by `run()` ended.
+///
+/// The core's `RunCompletionReason`, carried across unflattened: the
+/// discriminant says which branch ended the run, and only the
+/// `auto-reconnect-disabled` branch carries causes. Every cause is typed at
+/// the boundary (no `Debug` rendering), and every absence is an absent key.
+/// `generation` keys the result to the `run()` call that produced it; a stale
+/// task can never overwrite a newer run's result.
+///
+/// `unknown` is not one of the core's: the enum is `#[non_exhaustive]`, and a
+/// reason added upstream has no shape here yet.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "reason")]
+pub enum RunCompletionResult {
+    /// A terminal shutdown was requested through `disconnect()`, `logout()`
+    /// or client teardown.
+    #[serde(rename = "shutdown-requested")]
+    ShutdownRequested { generation: f64 },
+    /// The connection ended while automatic reconnection was disabled.
+    /// `connection` is the final reader outcome when a connection was
+    /// established; `connectError` is the final connect failure when none
+    /// was; `protocolError` is the terminal stream or connect-failure cause
+    /// the reader captured, when it captured one.
+    #[serde(rename = "auto-reconnect-disabled", rename_all = "camelCase")]
+    AutoReconnectDisabled {
+        generation: f64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        connection: Option<DisconnectReasonResult>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        connect_error: Option<ConnectErrorResult>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        protocol_error: Option<ProtocolTerminalReasonResult>,
+    },
+    /// The supervision flag was observed cleared without a classified
+    /// terminal verdict. Carries no claim about the protocol cause.
+    #[serde(rename = "stopped")]
+    Stopped { generation: f64 },
+    /// Another task already owns the client's read loop.
+    #[serde(rename = "already-running")]
+    AlreadyRunning { generation: f64 },
+    /// A reason this version of the bridge has no shape for. `detail`
+    /// carries the core's own rendering so the host still learns what ended
+    /// the run instead of receiving a neighbour's meaning.
+    #[serde(rename = "unknown", rename_all = "camelCase")]
+    Unknown { generation: f64, detail: String },
+}
+
+/// Why the transport connection ended, as the final reader observed it.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum DisconnectReasonResult {
+    /// The peer sent a WebSocket Close frame. `code` is the RFC 6455 close
+    /// code; absent when the frame carried none.
+    #[serde(rename = "server-close", rename_all = "camelCase")]
+    ServerClose {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        code: Option<f64>,
+        reason: String,
+    },
+    /// The stream ended (EOF) without a Close frame.
+    #[serde(rename = "stream-ended")]
+    StreamEnded,
+    /// A transport-level read/IO error ended the connection.
+    #[serde(rename = "read-error", rename_all = "camelCase")]
+    ReadError { message: String },
+    /// The reason was not reported by the transport.
+    #[serde(rename = "unknown")]
+    Unknown,
+}
+
+/// Why a connection attempt failed, as the final attempt reported it.
+///
+/// `anyhow` causes cross as their rendered message: the detail is diagnostic
+/// text, not a boundary contract.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum ConnectErrorResult {
+    /// A connection is already up, or another attempt is in flight.
+    #[serde(rename = "already-connected")]
+    AlreadyConnected,
+    /// Construction never completed, so the attempt was rejected before any I/O.
+    #[serde(rename = "not-activated")]
+    NotActivated,
+    /// The client was shut down; build a new client rather than reconnecting.
+    #[serde(rename = "shutdown")]
+    Shutdown,
+    /// A pause is in effect; resume lifts it.
+    #[serde(rename = "paused")]
+    Paused,
+    /// A step of the connect flow ran out of time.
+    #[serde(rename = "timeout", rename_all = "camelCase")]
+    Timeout { stage: String, timeout_ms: f64 },
+    /// The app version could not be resolved.
+    #[serde(rename = "version", rename_all = "camelCase")]
+    Version { message: String },
+    /// The transport factory could not open a connection.
+    #[serde(rename = "transport", rename_all = "camelCase")]
+    Transport { message: String },
+    /// The noise handshake failed after the transport was up.
+    #[serde(rename = "handshake", rename_all = "camelCase")]
+    Handshake { reason: HandshakeFailureResult },
+    /// A failure this version of the bridge has no shape for. `detail`
+    /// carries the core's own rendering rather than a guessed kind.
+    #[serde(rename = "unknown", rename_all = "camelCase")]
+    Unknown { detail: String },
+}
+
+/// Which handshake step failed, for a `handshake` connect error.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum HandshakeFailureResult {
+    /// The transport failed under the handshake.
+    #[serde(rename = "transport", rename_all = "camelCase")]
+    Transport { message: String },
+    /// The core Noise handshake step failed, typed per cause below.
+    #[serde(rename = "core", rename_all = "camelCase")]
+    Core { reason: NoiseHandshakeFailureResult },
+    /// The handshake ran out of time, as opposed to being torn down.
+    #[serde(rename = "timeout")]
+    Timeout,
+    /// The transport event stream closed before the handshake completed.
+    #[serde(rename = "stream-closed")]
+    StreamClosed,
+    /// The client disconnected during the handshake.
+    #[serde(rename = "disconnected")]
+    Disconnected,
+    /// The peer sent something the handshake did not expect.
+    #[serde(rename = "unexpected-event", rename_all = "camelCase")]
+    UnexpectedEvent { detail: String },
+    /// A failure this version of the bridge has no shape for. `detail`
+    /// carries the core's own rendering rather than a guessed kind.
+    #[serde(rename = "unknown", rename_all = "camelCase")]
+    Unknown { detail: String },
+}
+
+/// Which core Noise handshake step failed, for a `core` handshake failure.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum NoiseHandshakeFailureResult {
+    /// The server hello did not decode.
+    #[serde(rename = "proto-decode", rename_all = "camelCase")]
+    ProtoDecode { message: String },
+    /// The handshake response is missing required parts.
+    #[serde(rename = "incomplete-response")]
+    IncompleteResponse,
+    /// A Noise crypto operation failed.
+    #[serde(rename = "crypto", rename_all = "camelCase")]
+    Crypto { detail: String },
+    /// The server certificate chain did not verify.
+    #[serde(rename = "cert-verification", rename_all = "camelCase")]
+    CertVerification { detail: String },
+    /// A handshake field arrived at an unexpected length.
+    #[serde(rename = "invalid-length", rename_all = "camelCase")]
+    InvalidLength {
+        name: String,
+        expected: f64,
+        got: f64,
+    },
+    /// A handshake key arrived at an invalid length.
+    #[serde(rename = "invalid-key-length")]
+    InvalidKeyLength,
+    /// The Noise protocol state machine failed.
+    #[serde(rename = "noise", rename_all = "camelCase")]
+    Noise { message: String },
+}
+
+/// Terminal protocol cause the reader captured before its expected-disconnect
+/// flag suppressed the transport outcome.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum ProtocolTerminalReasonResult {
+    /// A `<stream:error>` carrying a numeric code.
+    #[serde(rename = "stream-error", rename_all = "camelCase")]
+    StreamError { code: f64 },
+    /// A `<failure>` stanza; `reason` uses the same spelling the
+    /// `connect_failure` event carries.
+    #[serde(rename = "connect-failure", rename_all = "camelCase")]
+    ConnectFailure { reason: String },
+    /// The peer replaced this session (`<conflict>` with no numeric code).
+    #[serde(rename = "conflict")]
+    Conflict,
+    /// A cause this version of the bridge has no shape for. `detail` carries
+    /// the core's own rendering rather than a guessed kind.
+    #[serde(rename = "unknown", rename_all = "camelCase")]
+    Unknown { detail: String },
+}
+
 /// Result from `updateProfilePicture` or `removeProfilePicture`.
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]

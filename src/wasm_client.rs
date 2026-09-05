@@ -2624,6 +2624,7 @@ pub async fn create_whatsapp_client(
     Ok(WasmWhatsAppClient {
         client: CoreClient::new(client),
         runtime,
+        run_observation: Arc::new(Mutex::new(RunObservation::default())),
         sync_rx: Some(sync_rx),
         saver_handle: Mutex::new(Some(saver_handle)),
         run_handle: Mutex::new(None),
@@ -2885,12 +2886,31 @@ mod core_client {
 
 pub(crate) use core_client::{CoreClient, Unwaited};
 
+/// Observation of the supervised run loop started by `run()`.
+///
+/// Owned by the client wrapper, written once by the run task at the point of
+/// termination, read by any number of `waitForRunCompletion()` observers. A
+/// result that arrives before any observer registered stays stored, so a late
+/// waiter reads the same completion. `live_generation` keys the stored result
+/// to the `run()` call that produced it: a stale task finishing after a newer
+/// run started cannot rewrite the newer observation, and later client
+/// activity (`disconnect()`, `reconnect()`) never touches it.
+#[derive(Default)]
+pub(crate) struct RunObservation {
+    started_runs: u64,
+    live_generation: Option<u64>,
+    completed: Option<crate::result_types::RunCompletionResult>,
+    waiters: Vec<futures::channel::oneshot::Sender<crate::result_types::RunCompletionResult>>,
+    host_torn_down: bool,
+}
+
 /// Opaque handle to the WhatsApp client.
 #[wasm_bindgen]
 pub struct WasmWhatsAppClient {
     client: CoreClient,
     #[allow(dead_code)]
     runtime: Arc<dyn wacore::runtime::Runtime>,
+    run_observation: Arc<Mutex<RunObservation>>,
     sync_rx: Option<async_channel::Receiver<whatsapp_rust::sync_task::MajorSyncTask>>,
     /// Handle to the bridge-owned background saver task. Aborted on
     /// `disconnect()` so the in-flight 5s `sleep` doesn't keep the Node.js
@@ -2966,6 +2986,21 @@ impl Drop for WasmWhatsAppClient {
             if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
                 handle.abort();
             }
+        }
+
+        // A pending `waitForRunCompletion()` must not outlive the client it
+        // observes. Dropping the senders cancels the receivers, which the
+        // waiters report as `not-connected`: the supervision never completed,
+        // the bridge cancelled its own waiter, and the host tore the client
+        // down. A waiter whose first poll runs after this sees the flag and
+        // takes the same path instead of registering on a dead client.
+        {
+            let mut observation = self
+                .run_observation
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            observation.host_torn_down = true;
+            observation.waiters.clear();
         }
 
         // Drive teardown event-driven: `disconnect()` cancels the transport
