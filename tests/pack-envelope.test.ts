@@ -61,7 +61,7 @@ describe("npm pack envelope parsing", () => {
     ["two records", JSON.stringify({ a: { files: [], unpackedSize: 1 }, b: { files: [], unpackedSize: 2 } })],
     ["missing files", JSON.stringify({ pkg: { unpackedSize: 1 } })],
     ["missing unpackedSize", JSON.stringify({ pkg: { files: [] } })],
-    ["NaN unpackedSize", '{"pkg": {"files": [], "unpackedSize": null}}'],
+    ["null unpackedSize", '{"pkg": {"files": [], "unpackedSize": null}}'],
     ["negative unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: -1 } })],
     ["fractional unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: 1.5 } })],
     ["unsafe-integer unpackedSize", JSON.stringify({ pkg: { files: [], unpackedSize: 2 ** 53 } })],
