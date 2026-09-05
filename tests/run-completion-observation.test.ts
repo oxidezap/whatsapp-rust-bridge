@@ -20,10 +20,18 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import WebSocket from "ws";
 import {
   initWasmEngine,
   createWhatsAppClient,
+  type WhatsAppEvent,
 } from "../dist/index.js";
+import {
+  createTransport,
+  createHttp,
+  waitForEvent,
+  autoScanQr,
+} from "./helpers.js";
 
 beforeAll(() => {
   initWasmEngine();
@@ -288,6 +296,92 @@ describe("run completion observation", () => {
     expect(error).not.toBeNull();
     expect(error!.kind).toBe("not-connected");
   });
+});
+
+// The mock signs with its own root, so this block opts one client into the
+// testing bypass explicitly; production keeps the default. Gated on a WS
+// probe like the other E2E files: skipped in CI, and an explicitly supplied
+// but unreachable MOCK_SERVER_URL is a visible failure, not a silent skip.
+async function mockWsReachable(timeoutMs = 2000): Promise<boolean> {
+  const url = process.env.MOCK_SERVER_URL ?? "wss://127.0.0.1:8080/ws/chat";
+  return new Promise((resolve) => {
+    let done = false;
+    let ws: WebSocket | null = null;
+    const finish = (v: boolean) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try {
+        ws?.terminate();
+      } catch {
+        // Terminating a half-open probe socket must not fail the gate.
+      }
+      resolve(v);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    try {
+      ws = new WebSocket(url, { rejectUnauthorized: false });
+      ws.on("open", () => finish(true));
+      ws.on("error", () => finish(false));
+    } catch {
+      finish(false);
+    }
+  });
+}
+
+const hasMockServer = await mockWsReachable();
+if (process.env.MOCK_SERVER_URL && !hasMockServer) {
+  throw new Error(
+    `MOCK_SERVER_URL is set but the mock is unreachable: ${process.env.MOCK_SERVER_URL}`
+  );
+}
+
+describe.skipIf(!hasMockServer)("run completion against the mock server", () => {
+  test("a supervised mock session ends with shutdown-requested on disconnect", async () => {
+    const events: WhatsAppEvent[] = [];
+    const client = await createWhatsAppClient(
+      createTransport("run-completion"),
+      createHttp(),
+      ((event: WhatsAppEvent) => {
+        events.push(event);
+      }) as never,
+      null,
+      null,
+      null,
+      null,
+      true
+    );
+    try {
+      client.run();
+      // Pending across the whole session: pairing, connect and traffic all
+      // pass while this wait is outstanding.
+      const waiting = client.waitForRunCompletion();
+      await Promise.all([
+        autoScanQr(events),
+        waitForEvent(events, "pair_success", 20000),
+      ]);
+      // Supervision really is up, not merely started: the core decoded the
+      // handshake and announced it.
+      await waitForEvent(events, "connected", 45000);
+      await withLimit(client.disconnect(), 15000, "disconnect()");
+      const completion = (await withLimit(
+        waiting,
+        15000,
+        "waitForRunCompletion()"
+      )) as unknown as Completion;
+      expect(completion.reason).toBe("shutdown-requested");
+      expect(completion.generation).toBe(0);
+      const late = (await withLimit(
+        client.waitForRunCompletion(),
+        15000,
+        "late wait"
+      )) as unknown as Completion;
+      expect(late).toEqual(completion);
+    } finally {
+      await client.disconnect().catch(() => {});
+      client.free();
+    }
+  }, 120000);
 });
 
 describe("run completion emitted types", () => {
