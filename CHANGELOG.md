@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.21.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.20.0...v0.21.0) (2026-09-05)
+
+
+### Features
+
+* configure Noise certificate verification per client ([#97](https://github.com/oxidezap/whatsapp-rust-bridge/issues/97)) ([110d966](https://github.com/oxidezap/whatsapp-rust-bridge/commit/110d966fc96afcef39d72e1292078c89eb45d62d))
+
+
+### Bug Fixes
+
+* **bridge:** device record authority over legacy account sidecar ([#99](https://github.com/oxidezap/whatsapp-rust-bridge/issues/99)) ([77a3400](https://github.com/oxidezap/whatsapp-rust-bridge/commit/77a3400a8508ce7dedfeac925c14a7074e93b543))
+* **types:** restore the installed package type contract ([#98](https://github.com/oxidezap/whatsapp-rust-bridge/issues/98)) ([f45f565](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f45f565af7888a1c017b8d647df19cd110bc2cb5))
+
 ## [0.20.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.19.0...v0.20.0) (2026-09-04)
 
 
