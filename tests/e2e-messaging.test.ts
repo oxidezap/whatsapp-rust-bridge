@@ -53,13 +53,21 @@ interface TestClient {
 
 async function createTestClient(name: string): Promise<TestClient> {
   const events: WhatsAppEvent[] = [];
+  // Mock opt-in, per client: the mock server cannot sign a chain rooted in
+  // WhatsApp's issuer, so every client in this file names the testing
+  // bypass at construction. Production callers keep the default.
   const client = await createWhatsAppClient(
     createTransport(name),
     createHttp(),
     (event) => {
       console.log(`  [${name}] event: ${event.type}`);
       events.push(event);
-    }
+    },
+    null,
+    null,
+    null,
+    null,
+    true
   );
   return { client, events, name };
 }

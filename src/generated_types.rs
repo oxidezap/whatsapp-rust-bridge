@@ -134,10 +134,11 @@ export interface CachedNoiseCert {
   not_after: number | string;
 }
 
-/** Cached form of the server's two-cert chain. `leaf.key` is the server static public key consumed by Noise IK; the intermediate is kept solely to mirror WA Web's expiry checks. */
+/** Cached form of the server's two-cert chain. `leaf.key` is the server static public key consumed by Noise IK; the intermediate is kept solely to mirror WA Web's expiry checks.  `signature_verified` records that both XEdDSA signatures were actually checked when this chain was cached. Only such chains may authorize IK. Records written before this field existed deserialize it as `false` and fall back to one XX, which then stores a verified chain. This is upgrade hygiene, not tamper-proofing: the storage backend remains the trust boundary, and a backend that rewrites this flag can already rewrite the keys it guards. */
 export interface CachedServerCertChain {
   intermediate: CachedNoiseCert;
   leaf: CachedNoiseCert;
+  signature_verified: boolean;
 }
 
 /** Fields kept per-variant (not a shared `BasicCallMeta`) so the `serde` shape mirrors the stanza 1:1 for downstream JS consumers. */
@@ -399,7 +400,7 @@ export interface Device {
   server_has_prekeys: boolean;
   /** NCT salt provisioned by the server via app state sync or history sync. */
   nct_salt?: Uint8Array | null;
-  /** Server cert chain cached from the last successful XX (or XX-fallback) handshake. Enables Noise IK on the next connect by exposing `leaf.key` as the server's static public key, and lets us reject stale entries via `not_after` before even attempting IK. `None` forces XX on the next connect. */
+  /** Server cert chain cached from the last successful XX (or XX-fallback) handshake. Enables Noise IK on the next connect by exposing `leaf.key` as the server's static public key, and lets us reject stale entries via `not_after` before even attempting IK. Only chains whose signatures were checked (`signature_verified`) authorize IK; `None` — or an unmarked legacy record — forces XX on the next connect. */
   server_cert_chain?: CachedServerCertChain | null;
   /** Login counter sent as `ClientPayload.lc` on every login. WA Web's `WAWebUserPrefsGeneral.getLoginCounter()` reads (and bumps) this from localStorage on each connect; the server uses it as an anti-abuse signal. Persisted so it survives restarts. */
   login_counter: number;

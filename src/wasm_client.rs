@@ -604,6 +604,11 @@ export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
  * @param wanted_pre_key_count Optional pre-key upload batch size (default 812);
  *   clamped to the protocol-safe range at upload time. Smaller batches reduce
  *   memory pressure on embedded/WASM hosts.
+ * @param danger_skip_cert_chain_verify Optional testing-only bypass for the
+ *   Noise server-cert XEdDSA check, for mock servers that cannot sign a chain
+ *   rooted in WhatsApp's issuer. Absent, null or false keeps strict
+ *   verification; only an explicit `true` opts in. Anything else rejects the
+ *   construction as invalid-argument.
  */
 export function createWhatsAppClient(
   transport_config: JsTransportCallbacks,
@@ -613,6 +618,7 @@ export function createWhatsAppClient(
   cache_config?: CacheConfig | null,
   version?: readonly [number, number, number] | null,
   wanted_pre_key_count?: number | null,
+  danger_skip_cert_chain_verify?: boolean | null,
 ): Promise<WasmWhatsAppClient>;
 
 /** Cache entry configuration. */
@@ -2317,6 +2323,33 @@ fn parse_optional_version(
     Ok(Some((parse(0)?, parse(1)?, parse(2)?)))
 }
 
+/// Parse the optional Noise cert-chain bypass flag. Absent, null, undefined
+/// or false keeps strict verification; only an explicit `true` opts the
+/// built client into accepting a chain not rooted in WhatsApp's issuer.
+/// Missing and null map to `Strict` directly rather than through the core
+/// default, which a legacy Cargo feature is allowed to change. Anything
+/// else is the caller's own `dangerSkipCertChainVerify` argument, not a
+/// default to guess.
+fn parse_noise_cert_policy(
+    value: Option<&JsValue>,
+) -> Result<whatsapp_rust::handshake::NoiseCertPolicy, crate::errors::BridgeError> {
+    use whatsapp_rust::handshake::NoiseCertPolicy;
+    let Some(v) = value else {
+        return Ok(NoiseCertPolicy::Strict);
+    };
+    if v.is_null() || v.is_undefined() {
+        return Ok(NoiseCertPolicy::Strict);
+    }
+    match v.as_bool() {
+        Some(true) => Ok(NoiseCertPolicy::DangerSkipCertChainVerify),
+        Some(false) => Ok(NoiseCertPolicy::Strict),
+        None => Err(crate::errors::invalid_arg(
+            "dangerSkipCertChainVerify",
+            "dangerSkipCertChainVerify must be a boolean",
+        )),
+    }
+}
+
 /// Parse the optional pre-key upload batch size. The core clamps to the
 /// protocol-safe range at upload time, so we only reject inputs that can't be a
 /// valid count here (non-numeric / negative / fractional / beyond u32).
@@ -2453,6 +2486,9 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// await client.run();
 /// ```
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
+// Eight positional arguments is the reviewed JS contract: wasm-bindgen
+// exports cannot take a builder, so the arity grows with the surface.
+#[allow(clippy::too_many_arguments)]
 pub async fn create_whatsapp_client(
     transport_config: JsValue,
     http_config: JsValue,
@@ -2461,12 +2497,17 @@ pub async fn create_whatsapp_client(
     cache_config_js: Option<JsValue>,
     version_js: Option<JsValue>,
     wanted_pre_key_count_js: Option<JsValue>,
+    noise_cert_policy_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
     // Block on every in-flight `Drop` cleanup before allocating new state.
     // Each `Drop` registers a oneshot; we await all of them. Closes the race
     // where a freshly constructed client shares the WASM heap with a previous
     // client's still-draining disconnect future.
     drain_drop_cleanups().await;
+
+    // Validate the construction inputs before touching persistence or the
+    // client so a bad argument settles without storage callbacks firing.
+    let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
 
     let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
@@ -2587,15 +2628,22 @@ pub async fn create_whatsapp_client(
     let override_version = parse_optional_version(version_js.as_ref())?;
     let wanted_pre_key_count = parse_optional_count(wanted_pre_key_count_js.as_ref())?;
 
-    let (client, sync_rx) = whatsapp_rust::Client::new_with_cache_config(
-        runtime.clone(),
-        persistence_manager.clone(),
-        transport_factory,
-        http_client,
-        override_version,
-        cache_config,
-    )
-    .await;
+    let builder = whatsapp_rust::client::ClientBuilder::new()
+        .with_runtime_arc(runtime.clone())
+        .with_persistence_manager(persistence_manager.clone())
+        .with_transport_factory_arc(transport_factory)
+        .with_http_client_arc(http_client)
+        .with_cache_config(cache_config)
+        .with_noise_cert_policy(noise_cert_policy);
+    let builder = match override_version {
+        Some(version) => builder.with_version_override(version),
+        None => builder,
+    };
+    let (client, sync_rx) = builder
+        .build()
+        .await
+        .map(|build| build.into_parts())
+        .map_err(|e| crate::errors::internal(e.to_string()))?;
 
     // Apply before connecting so it takes effect on the first pre-key upload;
     // smaller batches matter for the WASM/embedded heap (default is 812).
