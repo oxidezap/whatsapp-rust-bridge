@@ -86,13 +86,14 @@ describe.skipIf(!hasMockServer)("Noise cert policy against the mock server", () 
   test("a default client rejects the mock chain at XEdDSA verify", async () => {
     const client = await createWhatsAppClient(createTransport(), createHttp(), null);
     try {
-      const error = await client.connect().then(
+      const error = (await client.connect().then(
         () => {
           throw new Error("strict connect must reject the mock chain");
         },
-        (e: Error) => e
-      );
-      expect(String(error.message)).toContain("intermediate signature failed XEdDSA verify");
+        (e: Error & { kind?: string }) => e
+      )) as Error & { kind?: string };
+      expect(error.kind).toBe("crypto");
+      expect(String(error.message)).toContain("verify server Noise cert chain");
       expect(client.isConnected()).toBe(false);
     } finally {
       await client.disconnect().catch(() => {});

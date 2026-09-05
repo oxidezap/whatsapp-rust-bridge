@@ -49,7 +49,7 @@
         "build:dev": "bun run gen && bun run build:wasm:dev && bun run build:ts && bun run build:finalize",
         "build:profile": "cargo build --profile profiling --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run build:finalize",
         "build:memory-profile": "cargo build --profile profiling --target wasm32-unknown-unknown --features memory-profiling && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run build:finalize",
-        "bump:wacore": "cargo update -p whatsapp-rust && bun run build",
+        "bump:wacore": "bun run scripts/bump-wacore.ts && bun run build",
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
         "test:rust": "wasm-pack test --node",
         "check:size": "bun run scripts/check-size.ts",
