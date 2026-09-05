@@ -837,7 +837,7 @@ fn connect_error_to_result(
         E::Shutdown => R::Shutdown,
         E::Paused => R::Paused,
         E::Timeout { stage, timeout } => R::Timeout {
-            stage: connect_stage_str(stage).into(),
+            stage: connect_stage_str(stage),
             timeout_ms: timeout.as_millis() as f64,
         },
         E::Version(message) => R::Version {
@@ -855,17 +855,17 @@ fn connect_error_to_result(
     }
 }
 
-/// See [`run_completion_to_result`]. The core enum is `#[non_exhaustive]`,
-/// so a stage added upstream keeps its own name rather than collapsing into
-/// one above.
-fn connect_stage_str(stage: &whatsapp_rust::ConnectStage) -> &'static str {
+/// See [`run_completion_to_result`]. Known stages use the boundary spelling;
+/// the wildcard the core's `#[non_exhaustive]` forces keeps the core's own
+/// rendering as its detail rather than collapsing into a neighbour's name.
+fn connect_stage_str(stage: &whatsapp_rust::ConnectStage) -> String {
     use whatsapp_rust::ConnectStage as S;
     match stage {
-        S::VersionFetch => "version-fetch",
-        S::Transport => "transport",
-        S::Socket => "socket",
-        S::Ready => "ready",
-        _ => "unknown",
+        S::VersionFetch => "version-fetch".into(),
+        S::Transport => "transport".into(),
+        S::Socket => "socket".into(),
+        S::Ready => "ready".into(),
+        other => format!("{other:?}"),
     }
 }
 

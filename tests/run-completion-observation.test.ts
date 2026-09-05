@@ -24,6 +24,7 @@ import WebSocket from "ws";
 import {
   initWasmEngine,
   createWhatsAppClient,
+  type WasmWhatsAppClient,
   type WhatsAppEvent,
 } from "../dist/index.js";
 import {
@@ -37,13 +38,10 @@ beforeAll(() => {
   initWasmEngine();
 });
 
-type Completion = {
-  reason: string;
-  generation: number;
-  connection?: unknown;
-  connectError?: { kind?: string; message?: string; [key: string]: unknown };
-  protocolError?: unknown;
-};
+// The contract under test, derived from the export itself rather than
+// restated: a declaration change that moves a field breaks these tests at
+// the access site instead of passing against a stale local shape.
+type Completion = Awaited<ReturnType<WasmWhatsAppClient["waitForRunCompletion"]>>;
 
 /** A transport that connects but never delivers bytes: the run loop stays up. */
 function gatedTransport() {
@@ -139,7 +137,7 @@ describe("run completion observation", () => {
       // A wait issued after the run started observes the started run.
       const later = client.waitForRunCompletion();
       await withLimit(client.disconnect(), 5000, "disconnect()");
-      const completion = (await withLimit(later, 5000, "later wait")) as unknown as Completion;
+      const completion = (await withLimit(later, 5000, "later wait"));
       expect(completion.reason).toBe("shutdown-requested");
       expect(completion.generation).toBe(0);
     } finally {
@@ -162,7 +160,7 @@ describe("run completion observation", () => {
         waiting,
         5000,
         "waitForRunCompletion()"
-      )) as unknown as Completion;
+      ));
       expect(completion.reason).toBe("shutdown-requested");
       expect(completion.generation).toBe(0);
     } finally {
@@ -178,13 +176,13 @@ describe("run completion observation", () => {
       await withLimit(transport.entered, 5000, "run task start");
       const waiting = client.waitForRunCompletion();
       await withLimit(client.disconnect(), 5000, "disconnect()");
-      const first = (await withLimit(waiting, 5000, "first wait")) as unknown as Completion;
+      const first = (await withLimit(waiting, 5000, "first wait"));
       // Registered after the run already ended: the result outlives the task.
       const second = (await withLimit(
         client.waitForRunCompletion(),
         5000,
         "late wait"
-      )) as unknown as Completion;
+      ));
       expect(second).toEqual(first);
     } finally {
       client.free();
@@ -200,11 +198,11 @@ describe("run completion observation", () => {
       const first = client.waitForRunCompletion();
       const second = client.waitForRunCompletion();
       await withLimit(client.disconnect(), 5000, "disconnect()");
-      const [a, b] = (await withLimit(
+      const [a, b]: [Completion, Completion] = await withLimit(
         Promise.all([first, second]),
         5000,
         "both waits"
-      )) as unknown as [Completion, Completion];
+      );
       expect(a.reason).toBe("shutdown-requested");
       expect(b).toEqual(a);
     } finally {
@@ -220,7 +218,7 @@ describe("run completion observation", () => {
       await withLimit(transport.entered, 5000, "run task start");
       const waiting = client.waitForRunCompletion();
       await withLimit(client.disconnect(), 5000, "disconnect()");
-      const before = (await withLimit(waiting, 5000, "wait")) as unknown as Completion;
+      const before = (await withLimit(waiting, 5000, "wait"));
 
       let secondError: (Error & { kind?: string }) | null = null;
       try {
@@ -239,7 +237,7 @@ describe("run completion observation", () => {
         client.waitForRunCompletion(),
         5000,
         "wait after second run()"
-      )) as unknown as Completion;
+      ));
       expect(after).toEqual(before);
     } finally {
       client.free();
@@ -257,19 +255,24 @@ describe("run completion observation", () => {
         client.waitForRunCompletion(),
         7000,
         "waitForRunCompletion()"
-      )) as unknown as Completion;
+      ));
       expect(completion.reason).toBe("auto-reconnect-disabled");
       expect(completion.generation).toBe(0);
+      if (completion.reason !== "auto-reconnect-disabled") {
+        throw new Error("expected the reconnect-disabled branch");
+      }
       // No connection was ever established, so there is no reader outcome
       // and no protocol cause captured: absence stays absent rather than
       // becoming a blank object.
-      expect("connection" in completion ? completion.connection : undefined).toBeUndefined();
-      expect("protocolError" in completion ? completion.protocolError : undefined).toBeUndefined();
+      expect(completion.connection).toBeUndefined();
+      expect(completion.protocolError).toBeUndefined();
       // The stubbed transport rejects its open, so that is the exact step
       // that failed; the message carries the stub's own rejection as its
       // source. Fully stubbed I/O makes the step deterministic.
-      expect(completion.connectError?.kind).toBe("transport");
-      expect(completion.connectError?.message).toContain("boom");
+      if (completion.connectError?.kind !== "transport") {
+        throw new Error("expected the transport connect error");
+      }
+      expect(completion.connectError.message).toContain("boom");
     } finally {
       client.free();
     }
@@ -368,14 +371,14 @@ describe.skipIf(!hasMockServer)("run completion against the mock server", () => 
         waiting,
         15000,
         "waitForRunCompletion()"
-      )) as unknown as Completion;
+      ));
       expect(completion.reason).toBe("shutdown-requested");
       expect(completion.generation).toBe(0);
       const late = (await withLimit(
         client.waitForRunCompletion(),
         15000,
         "late wait"
-      )) as unknown as Completion;
+      ));
       expect(late).toEqual(completion);
     } finally {
       await client.disconnect().catch(() => {});
