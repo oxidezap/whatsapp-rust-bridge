@@ -7,10 +7,22 @@
  * relative specifier in the published declarations carries its `.js`
  * extension. The sources stay extensionless — bun build and wasm-bindgen emit
  * them that way — and tsc does not rewrite specifiers, so the extension is
- * added here, beside the one rewrite this script already owned.
+ * added here, beside the one rewrite this script already owned. See
+ * `scripts/dts-specifiers.ts`: specifiers come from the TypeScript AST rather
+ * than a regexp, so a quoted path in a comment or a string-literal type is
+ * never mistaken for a module, and whether `.js` is needed is decided by what
+ * `dist/` actually contains rather than by a dot heuristic.
  */
-import { copyFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
+import { rewriteDtsSpecifiers } from "./dts-specifiers";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -31,35 +43,28 @@ if (rewritten === source) {
 }
 writeFileSync(indexDts, rewritten);
 
-// A relative specifier without a trailing extension (`./proto`,
-// `import('./proto-types')`): what tsc and wasm-bindgen emit, and what
-// NodeNext rejects with TS2834/TS2835. Bare package imports (`@bufbuild/…`,
-// `node:…`) never match: the specifier must start with a dot.
-const EXTENSIONLESS = /(?<=(?:from\s+|import\s*\(\s*)["'])(\.{1,2}\/[^"']*?)(?=["'])/g;
-
-const withExtension = (specifier: string): string => {
-  const leaf = specifier.split("/").pop() ?? specifier;
-  return leaf.includes(".") ? specifier : `${specifier}.js`;
+const isDistFile = (relPath: string): boolean => {
+  const path = join(DIST, relPath);
+  return existsSync(path) && statSync(path).isFile();
 };
 
 for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const before = readFileSync(path, "utf8");
-  const after = before.replace(EXTENSIONLESS, withExtension);
+  const { text: after } = rewriteDtsSpecifiers(before, file, isDistFile);
   if (after !== before) writeFileSync(path, after);
 }
 
-const offenders: string[] = [];
+// Rewriting is idempotent, so a second pass that changes anything — or that
+// throws on an unresolvable specifier — is the drift this script exists to
+// catch rather than to ship.
 for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const text = readFileSync(path, "utf8");
-  for (const match of text.matchAll(EXTENSIONLESS)) {
-    const leaf = match[1]!.split("/").pop() ?? match[1]!;
-    if (!leaf.includes(".")) offenders.push(`${file}: ${match[1]}`);
+  const { text: again } = rewriteDtsSpecifiers(text, file, isDistFile);
+  if (again !== text) {
+    throw new Error(
+      `dist/${file} still has an unrewritten relative import — update finalize-dist.ts`,
+    );
   }
-}
-if (offenders.length > 0) {
-  throw new Error(
-    `dist/ still has extensionless relative imports — update finalize-dist.ts:\n${offenders.join("\n")}`,
-  );
 }

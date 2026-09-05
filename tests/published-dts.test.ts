@@ -118,8 +118,9 @@ test("the published declarations typecheck under NodeNext without skipLibCheck",
 /**
  * `dist/proto-reader.d.ts` imports `@bufbuild/protobuf/wire`, so the package
  * must declare it: this checkout's own devDependencies mask the hole (the
- * first test above resolves it from the repo's `node_modules`), and only an
- * isolated install of the tarball proves the failure — and the fix — for real.
+ * first test above resolves it from the repo's `node_modules`). The proof is
+ * the isolated-tarball install (`bun run check:published-tarball`, its own CI
+ * job outside the unit-test clock); this pins the declaration it depends on.
  */
 test("the published declarations resolve their type imports from declared dependencies", () => {
   const manifest = JSON.parse(
