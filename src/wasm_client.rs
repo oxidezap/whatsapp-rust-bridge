@@ -2210,6 +2210,78 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
     make_js_event(event_type, &data)
 }
 
+/// The `pair_success` / `pair_error` payloads cross hand-built, with
+/// `Jid::to_string` — the standalone `PairSuccess` / `PairError` declarations
+/// and the event union both say `id: string`, and this runs the real
+/// conversion over fictitious events so a regression in the producer fails
+/// here rather than in a consumer's inbox.
+#[cfg(test)]
+mod pair_result_boundary_tests {
+    use super::{Event, event_to_js};
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::types::events::{PairError, PairSuccess};
+    use whatsapp_rust::wacore_binary::jid::Jid;
+
+    fn envelope_field(event: &JsValue, key: &'static str) -> JsValue {
+        js_sys::Reflect::get(event, &JsValue::from_str(key))
+            .unwrap_or_else(|_| panic!("pair result envelope has no {key}"))
+    }
+
+    fn data_string(data: &JsValue, field: &'static str) -> String {
+        let value = js_sys::Reflect::get(data, &JsValue::from_str(field))
+            .unwrap_or_else(|_| panic!("pair result data has no {field}"));
+        if !value.is_string() {
+            panic!("pair result {field} is not a string");
+        }
+        value
+            .as_string()
+            .unwrap_or_else(|| panic!("pair result {field} is not a string"))
+    }
+
+    fn converted(event: &Event) -> JsValue {
+        match event_to_js(event) {
+            Ok(js) => js,
+            Err(_) => panic!("event_to_js refused a fictitious pair result"),
+        }
+    }
+
+    #[test]
+    fn pair_success_crosses_jids_as_strings() {
+        let id = Jid::pn("15551234567");
+        let lid = Jid::lid("987654321");
+        let js = converted(&Event::PairSuccess(
+            PairSuccess::builder()
+                .id(id.clone())
+                .lid(lid.clone())
+                .business_name("Fictitious Store".to_string())
+                .platform("test".to_string())
+                .build(),
+        ));
+        let data = envelope_field(&js, "data");
+        assert_eq!(data_string(&data, "id"), id.to_string());
+        assert_eq!(data_string(&data, "lid"), lid.to_string());
+    }
+
+    #[test]
+    fn pair_error_crosses_jids_as_strings() {
+        let id = Jid::pn("15557654321");
+        let lid = Jid::lid("123456789");
+        let js = converted(&Event::PairError(
+            PairError::builder()
+                .id(id.clone())
+                .lid(lid.clone())
+                .business_name("Fictitious Store".to_string())
+                .platform("test".to_string())
+                .error("fictitious refusal".to_string())
+                .build(),
+        ));
+        let data = envelope_field(&js, "data");
+        assert_eq!(data_string(&data, "id"), id.to_string());
+        assert_eq!(data_string(&data, "lid"), lid.to_string());
+    }
+}
+
 /// Parse `[major, minor, patch]` from a JS value into `(u32, u32, u32)`.
 /// Returns `Ok(None)` if the value is null/undefined/missing.
 fn parse_optional_version(
@@ -2424,18 +2496,22 @@ pub async fn create_whatsapp_client(
     ) = (base_runtime, None);
     let backend: Arc<dyn wacore::store::traits::Backend> = match store {
         Some(ref store_val) if !store_val.is_null() && !store_val.is_undefined() => {
+            // A missing or non-function required callback is the caller's own
+            // `store` argument, so it is `invalid-argument`, not `internal`.
             let get_fn = js_sys::Reflect::get(store_val, &"get".into())
-                .map_err(|_| crate::errors::internal("store.get is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.get must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get must be a function"))?;
             let set_fn = js_sys::Reflect::get(store_val, &"set".into())
-                .map_err(|_| crate::errors::internal("store.set is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.set must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set must be a function"))?;
             let delete_fn = js_sys::Reflect::get(store_val, &"delete".into())
-                .map_err(|_| crate::errors::internal("store.delete is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.delete is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.delete must be a function"))?;
+                .map_err(|_| {
+                    crate::errors::invalid_arg("store", "store.delete must be a function")
+                })?;
             // Optional batch primitives — feature-detected by handle presence.
             // A host that omits them keeps the per-key set/delete fallback.
             let opt_fn = |name: &str| {
@@ -2501,7 +2577,10 @@ pub async fn create_whatsapp_client(
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
                 .await
-                .map_err(|e| crate::errors::internal(format!("create persistence manager: {e}")))?,
+                // A corrupt record or a failing host callback is a storage
+                // failure, not a bridge bug: walk the typed chain so it keeps
+                // its kind instead of collapsing into `internal`.
+                .map_err(|e| crate::errors::BridgeError::from_error_chain(&e))?,
         );
 
     let cache_config = build_cache_config(cache_config_js.as_ref())?;

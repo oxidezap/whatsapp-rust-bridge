@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -72,3 +72,59 @@ test("the published declarations typecheck without skipLibCheck", () => {
 
   expect(messages).toEqual([]);
 }, TIMEOUT_MS);
+
+/**
+ * The same declarations under NodeNext, where a relative specifier without an
+ * extension is a hard error (TS2834/TS2835) rather than something the bundler
+ * resolution this file's first test uses would accept. Kept as its own test
+ * so each program stays inside the per-test clock budget.
+ */
+const NODENEXT_OPTIONS: ts.CompilerOptions = {
+  strict: true,
+  skipLibCheck: false,
+  noEmit: true,
+  target: ts.ScriptTarget.ES2022,
+  module: ts.ModuleKind.NodeNext,
+  moduleResolution: ts.ModuleResolutionKind.NodeNext,
+  types: ["node"],
+  typeRoots: [join(ROOT, "node_modules", "@types")],
+};
+
+test("the published declarations typecheck under NodeNext without skipLibCheck", () => {
+  expect(
+    existsSync(ENTRY),
+    "dist/index.d.ts is absent — run `bun run build` first",
+  ).toBe(true);
+
+  const program = ts.createProgram([ENTRY, CONSUMER], NODENEXT_OPTIONS);
+  const messages = ts
+    .getPreEmitDiagnostics(program)
+    .map((diagnostic) => {
+      const text = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");
+      if (!diagnostic.file || diagnostic.start === undefined) {
+        return `TS${diagnostic.code}: ${text}`;
+      }
+      const { line } = diagnostic.file.getLineAndCharacterOfPosition(
+        diagnostic.start,
+      );
+      const path = diagnostic.file.fileName.replace(`${ROOT}/`, "");
+      return `${path}:${line + 1} TS${diagnostic.code}: ${text}`;
+    })
+    .sort();
+
+  expect(messages).toEqual([]);
+}, TIMEOUT_MS);
+
+/**
+ * `dist/proto-reader.d.ts` imports `@bufbuild/protobuf/wire`, so the package
+ * must declare it: this checkout's own devDependencies mask the hole (the
+ * first test above resolves it from the repo's `node_modules`). The proof is
+ * the isolated-tarball install (`bun run check:published-tarball`, its own CI
+ * job outside the unit-test clock); this pins the declaration it depends on.
+ */
+test("the published declarations resolve their type imports from declared dependencies", () => {
+  const manifest = JSON.parse(
+    readFileSync(join(ROOT, "package.json"), "utf8"),
+  ) as { dependencies?: Record<string, string> };
+  expect(manifest.dependencies?.["@bufbuild/protobuf"]).toBeDefined();
+});

@@ -18,6 +18,8 @@ import type {
   MessageInfo,
   MexResponse,
   MsgSecretEntry,
+  PairError,
+  PairSuccess,
   Receipt,
   ReceiptType,
   WasmWhatsAppClient,
@@ -103,6 +105,15 @@ type _RejectsUnknown = Assert<
   Resolves<unknown, Uint8Array> extends false ? true : false
 >;
 
+// `pair_success` / `pair_error` cross hand-built, with `Jid::to_string` —
+// the event union already says `id: string`, and the standalone interfaces
+// must say the same. A `Jid` here would name an object no payload ever
+// carries, and this assertion (not a text search) is what rejects it.
+type _PairSuccessId = Assert<Resolves<PairSuccess["id"], string>>;
+type _PairSuccessLid = Assert<Resolves<PairSuccess["lid"], string>>;
+type _PairErrorId = Assert<Resolves<PairError["id"], string>>;
+type _PairErrorLid = Assert<Resolves<PairError["lid"], string>>;
+
 // The edit's optional caller-supplied stanza id: a fourth parameter a caller
 // may omit, so the three-argument form keeps compiling. Indexing at 3 fails
 // outright while the declaration has only three parameters.
@@ -123,6 +134,10 @@ export type Checked = [
   _Aliased,
   _Json,
   _Receipt,
+  _PairSuccessId,
+  _PairSuccessLid,
+  _PairErrorId,
+  _PairErrorLid,
   _RejectsAny,
   _RejectsObject,
   _RejectsUnknown,
