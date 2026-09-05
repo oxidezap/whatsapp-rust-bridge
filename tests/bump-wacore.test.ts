@@ -11,11 +11,15 @@
  */
 
 import { describe, test, expect } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   parseBumpArgs,
   resolveLatestMain,
   rewritePin,
   runBump,
+  isManifestDirty,
   type BumpDeps,
   type CommandRunner,
 } from "../scripts/bump-wacore";
@@ -192,5 +196,51 @@ describe("bump:wacore orchestration", () => {
   test("rewriting the already-pinned SHA is idempotent", () => {
     const pinned = rewritePin(MANIFEST, NEXT);
     expect(rewritePin(pinned, NEXT)).toBe(pinned);
+  });
+
+  test("the package entrypoint runs only the script, never a chained build", async () => {
+    // The previous command (`script args && build`) forwarded an explicit
+    // SHA to the build instead of the parser. The command must stay a
+    // single entrypoint; behavior is covered by the orchestration tests.
+    const pkg = await Bun.file(
+      join(import.meta.dir, "..", "package.json")
+    ).json();
+    expect(pkg.scripts["bump:wacore"]).toBe("bun run scripts/bump-wacore.ts");
+  });
+});
+
+describe("bump:wacore dirty detection", () => {
+  function fixtureRepo(): string {
+    const dir = mkdtempSync(join(tmpdir(), "bump-wacore-dirty-"));
+    const git = (args: string[]) => {
+      const proc = Bun.spawnSync({ cmd: ["git", ...args], cwd: dir });
+      if ((proc.exitCode ?? 1) !== 0) {
+        throw new Error(`fixture git ${args.join(" ")} failed`);
+      }
+    };
+    git(["init", "-q"]);
+    git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init"]);
+    writeFileSync(join(dir, "Cargo.toml"), MANIFEST);
+    git(["add", "Cargo.toml"]);
+    git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "manifest"]);
+    return dir;
+  }
+
+  test("clean tree is not dirty", () => {
+    expect(isManifestDirty(fixtureRepo())).toBe(false);
+  });
+
+  test("unstaged edits are dirty", () => {
+    const dir = fixtureRepo();
+    writeFileSync(join(dir, "Cargo.toml"), MANIFEST + "# edit\n");
+    expect(isManifestDirty(dir)).toBe(true);
+  });
+
+  test("staged edits are dirty", () => {
+    const dir = fixtureRepo();
+    writeFileSync(join(dir, "Cargo.toml"), MANIFEST + "# edit\n");
+    const proc = Bun.spawnSync({ cmd: ["git", "add", "Cargo.toml"], cwd: dir });
+    expect(proc.exitCode).toBe(0);
+    expect(isManifestDirty(dir)).toBe(true);
   });
 });
