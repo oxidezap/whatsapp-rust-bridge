@@ -128,6 +128,90 @@ const GENERATED_DECODE_DECLARATION = '  decode(input: BinaryReader | Uint8Array,
 const MERGING_DECODE_DECLARATION =
 	'  decode(input: BinaryReader | Uint8Array, length?: number, into?: T): T;'
 
+const RECURSION_GUARD_HEAD = [
+	'const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;',
+	'if (previousRecursionDepth >= 100) {',
+	'throw new globalThis.Error("protobuf decode recursion limit exceeded");',
+	'(reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;',
+	'try {'
+] as const
+const RECURSION_GUARD_RESET = '(reader as any).__tsProtoDecodeDepth = previousRecursionDepth;'
+
+/**
+ * ts-proto 2.12 wraps every decode in a 100-deep recursion guard. This codec
+ * deliberately carries no depth cap — a message nests until the host stack
+ * gives out, and a decode never comes back short — so the wrapper is removed
+ * and the body dedented back to the shape the transforms below expect. The
+ * counts fail the generation if the template changes shape instead of
+ * silently keeping a cap or dropping a body.
+ */
+const stripRecursionGuard = (source: string): string => {
+	const lines = source.split('\n')
+	const out: string[] = []
+	let stripped = 0
+	let index = 0
+	while (index < lines.length) {
+		const line = lines[index]!
+		const indent = line.slice(0, line.length - line.trimStart().length)
+		const content = line.trimStart()
+		// Long type names push the whole codec object a level deeper, so the
+		// guard is matched relative to its own indent rather than column 4.
+		if (content !== RECURSION_GUARD_HEAD[0]) {
+			out.push(line)
+			index++
+			continue
+		}
+		const expected = [
+			`${indent}${RECURSION_GUARD_HEAD[1]}`,
+			`${indent}  ${RECURSION_GUARD_HEAD[2]}`,
+			`${indent}}`,
+			`${indent}${RECURSION_GUARD_HEAD[3]}`,
+			`${indent}${RECURSION_GUARD_HEAD[4]}`
+		]
+		for (let head = 0; head < expected.length; head++) {
+			if (lines[index + 1 + head] !== expected[head]) {
+				throw new Error('ts-proto emitted a recursion guard in an unhandled shape')
+			}
+		}
+		const tail = [`${indent}} finally {`, `${indent}  ${RECURSION_GUARD_RESET}`, `${indent}}`]
+		index += 1 + expected.length
+		stripped++
+		for (;;) {
+			const body = lines[index]
+			if (body === undefined) {
+				throw new Error('ts-proto emitted a recursion guard with no closing finally')
+			}
+			if (
+				body === tail[0] &&
+				lines[index + 1] === tail[1] &&
+				lines[index + 2] === tail[2]
+			) {
+				index += 3
+				break
+			}
+			if (body === '') {
+				out.push(body)
+				index++
+				continue
+			}
+			if (!body.startsWith('  ')) {
+				throw new Error('ts-proto emitted a guarded decode body that is not indented')
+			}
+			out.push(body.slice(2))
+			index++
+		}
+	}
+	const decodes = source.split(RECURSION_GUARD_HEAD[0]).length - 1
+	if (stripped === 0 || stripped !== decodes) {
+		throw new Error(`ts-proto emitted a recursion guard in an unhandled shape (${stripped}/${decodes})`)
+	}
+	const unguarded = out.join('\n')
+	if (unguarded.includes('__tsProtoDecodeDepth') || unguarded.includes('recursion limit')) {
+		throw new Error('ts-proto emitted a recursion guard in an unhandled shape (remnant)')
+	}
+	return unguarded
+}
+
 // ts-proto wraps a long signature or a long `createBase…` call over several
 // lines, so both shapes are matched across newlines rather than per line.
 const DECODE_SIGNATURE = /decode\(\s*input: BinaryReader \| Uint8Array,\s*length\?: number,?\s*\): ([A-Za-z0-9_]+) \{/g
@@ -415,6 +499,7 @@ try {
 		throw new Error('ts-proto added an int64 conversion without a 64-bit specialization')
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
+	generatedSource = stripRecursionGuard(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
 	generatedSource = rejectIllegalTags(generatedSource)
 	const descriptor = readFileSync(descriptorFile)
