@@ -9,7 +9,13 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { initWasmEngine, createWhatsAppClient, encodeProto } from "../dist/index.js";
+import {
+  initWasmEngine,
+  createWhatsAppClient,
+  decodeMessageWireBatch,
+  decodeProto,
+  encodeProto,
+} from "../dist/index.js";
 import type {
   WhatsAppEvent,
   WasmWhatsAppClient,
@@ -56,13 +62,60 @@ async function createTestClient(name: string): Promise<TestClient> {
   // Mock opt-in, per client: the mock server cannot sign a chain rooted in
   // WhatsApp's issuer, so every client in this file names the testing
   // bypass at construction. Production callers keep the default.
-  const client = await createWhatsAppClient(
-    createTransport(name),
-    createHttp(),
-    (event) => {
+  const callbacks = {
+    onEvent: (event: WhatsAppEvent) => {
       console.log(`  [${name}] event: ${event.type}`);
       events.push(event);
     },
+    onMessageBatch: (batch: Uint8Array) => {
+      const view = decodeMessageWireBatch(batch);
+      for (let i = 0; i < view.infos.length; i++) {
+        const payload = view.messageData.slice(
+          view.messageOffsets[i],
+          view.messageOffsets[i + 1],
+        );
+        const info = view.infos[i]!;
+        const message = decodeProto("Message", payload) as Record<string, unknown>;
+        const parseJid = (jid: string) => {
+          const separator = jid.lastIndexOf("@");
+          return {
+            user: separator < 0 ? jid : jid.slice(0, separator),
+            server: separator < 0 ? "" : jid.slice(separator + 1),
+            agent: 0,
+            device: 0,
+            integrator: 0,
+          };
+        };
+        events.push({
+          type: "message",
+          data: {
+            message,
+            info: {
+              source: {
+                chat: parseJid(info.chat),
+                sender: parseJid(info.sender),
+                is_from_me: info.isFromMe,
+                is_group: info.isGroup,
+              },
+              id: info.id,
+              server_id: 0,
+              push_name: info.pushName,
+              timestamp: info.timestamp,
+              category: "",
+              multicast: false,
+              edit: info.edit ?? "",
+              is_offline: info.isOffline,
+              is_view_once: info.isViewOnce,
+            },
+          },
+        } as unknown as WhatsAppEvent);
+      }
+    },
+  };
+  const client = await createWhatsAppClient(
+    createTransport(name),
+    createHttp(),
+    callbacks as never,
     null,
     null,
     null,
