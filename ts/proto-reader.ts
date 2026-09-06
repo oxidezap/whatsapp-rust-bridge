@@ -313,6 +313,7 @@ export class BinaryWriter extends BaseBinaryWriter {
  */
 export class BinaryReader extends BaseBinaryReader {
   protected readonly utf8Buffer: Buffer;
+  private readonly wireBytes: Uint8Array;
 
   constructor(buf: Uint8Array) {
     super(buf);
@@ -320,6 +321,45 @@ export class BinaryReader extends BaseBinaryReader {
     // one per reader lets every ordinary string decode use byte offsets
     // directly instead of allocating a temporary Uint8Array subarray.
     this.utf8Buffer = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
+    this.wireBytes = buf;
+  }
+
+  protected checkBounds(): void {
+    if (this.pos > this.len) throw new RangeError("premature EOF");
+  }
+
+  private readVarintWords(): [number, number] {
+    let pos = this.pos;
+    const bytes = this.wireBytes;
+    let lo = 0;
+    let hi = 0;
+    for (let shift = 0; shift < 28; shift += PROTO_VARINT_DATA_BITS) {
+      const byte = bytes[pos++]!;
+      lo |= (byte & PROTO_VARINT_DATA_MASK) << shift;
+      if ((byte & PROTO_VARINT_CONTINUATION_BIT) === 0) {
+        this.pos = pos;
+        this.checkBounds();
+        return [lo, hi];
+      }
+    }
+    const middle = bytes[pos++]!;
+    lo |= (middle & 0x0f) << 28;
+    hi = (middle & 0x70) >> 4;
+    if ((middle & PROTO_VARINT_CONTINUATION_BIT) === 0) {
+      this.pos = pos;
+      this.checkBounds();
+      return [lo, hi];
+    }
+    for (let shift = 3; shift <= 31; shift += PROTO_VARINT_DATA_BITS) {
+      const byte = bytes[pos++]!;
+      hi |= (byte & PROTO_VARINT_DATA_MASK) << shift;
+      if ((byte & PROTO_VARINT_CONTINUATION_BIT) === 0) {
+        this.pos = pos;
+        this.checkBounds();
+        return [lo, hi];
+      }
+    }
+    throw new Error("invalid varint");
   }
 
   /**
@@ -333,21 +373,21 @@ export class BinaryReader extends BaseBinaryReader {
     const byteLength = this.uint32();
     const start = this.pos;
     this.pos += byteLength;
-    this.assertBounds();
+    this.checkBounds();
     return this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
   }
 
   override bool(): boolean {
-    const byte = this.buf[this.pos++]!;
+    const byte = this.wireBytes[this.pos++]!;
     if ((byte & PROTO_VARINT_CONTINUATION_BIT) === 0) {
-      this.assertBounds();
+      this.checkBounds();
       return byte !== 0;
     }
 
     // Non-canonical or deliberately wide bool values remain valid protobuf
     // varints. Rewind and retain the base reader's complete 64-bit semantics.
     this.pos--;
-    const [low, high] = this.varint64();
+    const [low, high] = this.readVarintWords();
     return low !== 0 || high !== 0;
   }
 
@@ -362,10 +402,10 @@ export class BinaryReader extends BaseBinaryReader {
     let value = 0;
     let factor = 1;
     for (let shift = 0; shift <= MAX_SAFE_VARINT_SHIFT; shift += PROTO_VARINT_DATA_BITS) {
-      const byte = this.buf[this.pos++]!;
+      const byte = this.wireBytes[this.pos++]!;
       value += (byte & PROTO_VARINT_DATA_MASK) * factor;
       if ((byte & PROTO_VARINT_CONTINUATION_BIT) === 0) {
-        this.assertBounds();
+        this.checkBounds();
         if (value <= Number.MAX_SAFE_INTEGER) return value;
         break;
       }
@@ -378,19 +418,19 @@ export class BinaryReader extends BaseBinaryReader {
   uint64Value(): Int64 {
     const fast = this.positiveSafeVarint();
     if (fast !== undefined) return fast;
-    const [low, high] = this.varint64();
+    const [low, high] = this.readVarintWords();
     return unsignedWordsToInt64(low, high);
   }
 
   int64Value(): Int64 {
     const fast = this.positiveSafeVarint();
     if (fast !== undefined) return fast;
-    const [low, high] = this.varint64();
+    const [low, high] = this.readVarintWords();
     return signedWordsToInt64(low, high);
   }
 
   sint64Value(): Int64 {
-    let [low, high] = this.varint64();
+    let [low, high] = this.readVarintWords();
     const sign = -(low & 1);
     low = ((low >>> 1) | ((high & 1) << (PROTO_WORD_BITS - 1))) ^ sign;
     high = (high >>> 1) ^ sign;
@@ -420,7 +460,7 @@ export class InvalidUtf8CountingReader extends BinaryReader {
     const byteLength = this.uint32();
     const start = this.pos;
     this.pos += byteLength;
-    this.assertBounds();
+    this.checkBounds();
     const text = this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
     if (text.includes(REPLACEMENT_CHARACTER) && !this.decodedExactly(text, start, this.pos)) {
       this.invalidUtf8Fields++;
