@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.0...v0.21.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for bare join success ([#105](https://github.com/oxidezap/whatsapp-rust-bridge/issues/105)) ([bcbf885](https://github.com/oxidezap/whatsapp-rust-bridge/commit/bcbf885f707a2c275228f3ec7bfefa18f87f297b))
+
 ## [0.21.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.20.0...v0.21.0) (2026-09-05)
 
 
