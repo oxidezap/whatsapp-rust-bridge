@@ -202,7 +202,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
+        uses: taiki-e/install-action@5bf6ce016fd2e72eefc647cbca1e4213f65955b8 # v2.87.5
         with:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
@@ -344,7 +344,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
+        uses: taiki-e/install-action@5bf6ce016fd2e72eefc647cbca1e4213f65955b8 # v2.87.5
         with:
           # Same pin as build-and-test: `gen` must see the same protoc, or a
           # comment-only version line drifts the generated codec here and not
@@ -394,7 +394,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@742a3317eac7bd62f91cd888b4eead5e784ba833 # v2.87.1
+        uses: taiki-e/install-action@5bf6ce016fd2e72eefc647cbca1e4213f65955b8 # v2.87.5
         with:
           tool: wasm-pack
 
