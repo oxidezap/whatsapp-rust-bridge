@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.1...v0.21.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for group send resync and TLS reuse ([#108](https://github.com/oxidezap/whatsapp-rust-bridge/issues/108)) ([000c889](https://github.com/oxidezap/whatsapp-rust-bridge/commit/000c889daa4112f6d9a859d5e6aad41cc1b57b3a))
+
 ## [0.21.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.0...v0.21.1) (2026-09-07)
 
 
