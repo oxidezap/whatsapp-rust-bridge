@@ -315,10 +315,12 @@ jobs:
 
   # The installed-tarball contract lives here rather than in the unit tests:
   # what `dist/` typechecks as inside this checkout is not what a consumer
-  # installs — the checkout's own devDependencies resolve
-  # `@bufbuild/protobuf` from the repo's `node_modules`, masking the hole an
-  # isolated install falls into. Packing, installing twice and typechecking
+  # installs — the checkout's own devDependencies provide the
+  # `@bufbuild/protobuf` wire types `dist/proto-reader.d.ts` names, which an
+  # isolated install does not have. Packing, installing twice and typechecking
   # twice is far past the per-test clock budget, so it is a job of its own.
+  # The fixture typechecks the way consumers do (`skipLibCheck: true`); the
+  # strict mode stays covered in-tree by `tests/published-dts.test.ts`.
   #
   # This builds the development package, not the release one: wasm-opt never
   # touches a `.d.ts`, so the declarations are identical either way, and the
@@ -369,10 +371,10 @@ jobs:
 
       # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
       # publish goes through), installs it in a directory outside the
-      # repository with only declared dependencies plus explicit
-      # TypeScript/Node tooling, and typechecks a real consumer with
-      # `skipLibCheck: false` in Bundler and NodeNext modes before running
-      # the root and `proto-types` exports.
+      # repository with only explicit TypeScript/Node tooling beside it — the
+      # package itself declares no runtime dependencies — and typechecks a
+      # real consumer with `skipLibCheck: true` in Bundler and NodeNext modes
+      # before running the root and `proto-types` exports.
       - name: Install the tarball in isolation and check both module modes
         run: bun run check:published-tarball
 

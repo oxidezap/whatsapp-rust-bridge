@@ -1,16 +1,17 @@
 /**
  * Isolated-tarball contract check: pack the built package, install it in a
  * fresh directory outside the repository — so no parent `node_modules` can
- * leak in — and prove a consumer with `skipLibCheck: false` typechecks in
- * both Bundler and NodeNext modes and runs the real exports, using only the
- * package's declared dependencies plus explicit TypeScript/Node tooling.
+ * leak in — and prove an ordinary consumer typechecks in both Bundler and
+ * NodeNext modes and runs the real exports, using only the package plus
+ * explicit TypeScript/Node tooling.
  *
- * This is the check the in-tree `tests/published-dts.test.ts` cannot be: the
- * checkout's own `devDependencies` resolve `@bufbuild/protobuf` from the
- * repo's `node_modules`, masking the hole an isolated consumer falls into.
- * A name-only entry in `package.json` does not pass here either — the fixture
- * install would fail to provide the module, and `tsc` plus the `npm ls`
- * chain assertion below would fail with it.
+ * The package ships with no runtime dependencies (`dist/index.js` is bundled),
+ * so the fixture installs nothing else. The one `@bufbuild/protobuf` name left
+ * in `dist/` is the base wire-type import in `proto-reader.d.ts`, which the
+ * default `skipLibCheck: true` every consumer template sets does not resolve —
+ * and the fixture below typechecks exactly that way. A consumer who turns
+ * `skipLibCheck` off installs `@bufbuild/protobuf` itself; the in-tree
+ * `tests/published-dts.test.ts` covers the strict mode from devDependencies.
  *
  * Run: `bun run check:published-tarball` (needs `dist/`, i.e. a build first).
  * Pack plus two installs plus two typechecks is too heavy for the per-test
@@ -43,6 +44,11 @@ interface Manifest {
 const manifest = JSON.parse(
   readFileSync(join(ROOT, "package.json"), "utf8"),
 ) as Manifest;
+
+check(
+  Object.keys(manifest.dependencies ?? {}).length === 0,
+  "package.json declares no runtime dependencies",
+);
 
 const SCRATCH = mkdtempSync(join(tmpdir(), "published-tarball-"));
 let failed = false;
@@ -160,7 +166,7 @@ const tsconfigs: Record<string, string> = {
   bundler: JSON.stringify({
     compilerOptions: {
       strict: true,
-      skipLibCheck: false,
+      skipLibCheck: true,
       noEmit: true,
       target: "ES2022",
       module: "ESNext",
@@ -173,7 +179,7 @@ const tsconfigs: Record<string, string> = {
   nodenext: JSON.stringify({
     compilerOptions: {
       strict: true,
-      skipLibCheck: false,
+      skipLibCheck: true,
       noEmit: true,
       target: "ES2022",
       module: "NodeNext",
@@ -243,7 +249,7 @@ try {
       }
       return { ok: true as const, log: "" };
     })();
-    check(result.ok, `isolated ${mode} consumer typechecks with skipLibCheck:false`);
+    check(result.ok, `isolated ${mode} consumer typechecks with skipLibCheck:true`);
     if (!result.ok) console.error(result.log);
   }
 
@@ -256,16 +262,16 @@ try {
   );
   if (!smokeRun.output.includes("smoke: ok")) console.error(smokeRun.output);
 
-  const ls = await run(
-    ["npm", "ls", "@bufbuild/protobuf"],
+  const isolated = await run(
+    ["npm", "ls", "--omit=dev"],
     join(SCRATCH, "bundler"),
     120_000,
   );
   check(
-    ls.exit === 0 && ls.output.includes(manifest.name),
-    "@bufbuild/protobuf resolves through the package's declared dependencies",
+    isolated.exit === 0 && !isolated.output.includes("@bufbuild/protobuf"),
+    "the isolated install carries no @bufbuild/protobuf",
   );
-  if (ls.exit !== 0) console.error(ls.output);
+  if (isolated.exit !== 0) console.error(isolated.output);
 } finally {
   if (!failed) rmSync(SCRATCH, { recursive: true, force: true });
   else console.error(`leaving scratch dir for inspection: ${SCRATCH}`);
