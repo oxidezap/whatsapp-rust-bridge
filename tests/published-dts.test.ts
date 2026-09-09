@@ -116,7 +116,7 @@ test("the published declarations typecheck under NodeNext without skipLibCheck",
 }, TIMEOUT_MS);
 
 /**
- * The package ships with no runtime dependencies: `dist/index.js` is bundled,
+ * `package.json` declares no runtime dependencies: `dist/index.js` is bundled,
  * so the only `@bufbuild/protobuf` reference left in `dist/` is the base
  * `BinaryReader`/`BinaryWriter` import in `proto-reader.d.ts`. That name
  * resolves in this checkout from `devDependencies` (the first two tests above
@@ -126,7 +126,7 @@ test("the published declarations typecheck under NodeNext without skipLibCheck",
  * (`bun run check:published-tarball`, its own CI job outside the unit-test
  * clock) covers the default-config install.
  */
-test("the package ships dependency-free, with the wire types on devDependencies", () => {
+test("package.json declares no runtime dependencies, with the wire types on devDependencies", () => {
   const manifest = JSON.parse(
     readFileSync(join(ROOT, "package.json"), "utf8"),
   ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
