@@ -27,6 +27,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** One export per feature, chosen because only that feature can emit it. */
 const WITNESSES: Record<string, string> = {
   "client-business": "getBusinessProfile",
+  "client-calls": "terminateCall",
   "client-chat-actions": "pinChat",
   "client-contacts": "isOnWhatsApp",
   "client-groups": "getGroupMetadata",

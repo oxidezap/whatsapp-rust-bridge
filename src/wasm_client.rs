@@ -11,6 +11,7 @@
 #![cfg_attr(
     not(all(
         feature = "client-business",
+        feature = "client-calls",
         feature = "client-chat-actions",
         feature = "client-contacts",
         feature = "client-groups",
@@ -2989,6 +2990,8 @@ pub struct WasmWhatsAppClient {
 // messaging are not optional. See `[features]` in Cargo.toml.
 #[cfg(feature = "client-business")]
 mod business;
+#[cfg(feature = "client-calls")]
+mod calls;
 #[cfg(feature = "client-chat-actions")]
 mod chat_actions;
 mod connection;

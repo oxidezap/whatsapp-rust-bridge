@@ -61,6 +61,7 @@ crate-type = ["cdylib", "rlib"]
 # nothing is ever removed from this list without a major bump.
 default = [
     "client-business",
+    "client-calls",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
@@ -77,6 +78,7 @@ sticker = ["dep:img-parts"]
 # messaging have no feature: a client that cannot connect or send is not a
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
+client-calls = []
 client-chat-actions = []
 client-contacts = []
 client-groups = []
