@@ -216,6 +216,14 @@ That distribution is a consumer's memory, and it hangs off one wasm-opt flag: `-
 
 `gen` runs in that dependency order — codec, then `proto-types.d.ts`, then the bridge types — because a generated declaration naming a waproto type resolves it against that manifest and emits `import('./proto-types').proto.…`, the same reference the `history_sync` event entry uses. A named type the generator cannot place (not waproto, not a `pub type` alias, not something it or the bridge declares) fails the generation rather than emitting a name nothing declares. That check sees one `typescript_custom_section`; `tests/published-dts.test.ts` checks the concatenated `.d.ts` with `skipLibCheck: false`, which is the whole of it — every consumer tsconfig leaves that flag on, so a dangling name reaches them as a silent `any`.
 
+## Bumping the whatsapp-rust pin
+
+The pin is one `rev` in `Cargo.toml` on the `whatsapp-rust` git dependency. Point it at the newest upstream main head, run `cargo update -p whatsapp-rust`, and keep the `Cargo.lock` diff to the whatsapp source lines. Revert unrelated hunks if they flip.
+
+The PR title is semantic because the release workflow reads it. Previous bumps look like `fix(deps): bump whatsapp-rust pin for <what>`. The body lists what entered between the pins from the upstream log, split into what bridge callers can feel and what they cannot, and says whether `bun run gen:bridge-types` drifted.
+
+Verify light locally (`cargo check`, the `gen:bridge-types` run). CI parallelizes the heavy checks.
+
 ## Tests
 
 There is **no mock server in CI**, so no test here proves an end-to-end response body. What tests can prove:
@@ -235,3 +243,10 @@ Say which of these a test does, and do not let a test's name claim more than it 
 Explain the failure the change prevents, not the lines it touches. Show the evidence — the failing output before, the passing output after. Name what you did *not* verify.
 
 Do not merge, and do not add labels.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.
