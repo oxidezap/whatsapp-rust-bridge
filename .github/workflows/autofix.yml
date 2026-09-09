@@ -1,0 +1,45 @@
+name: autofix.ci # needed to securely identify the workflow
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned by SHA like release.yml: this workflow runs on pull requests,
+      # so a mutable tag would execute unreviewed upstream code on a fork's
+      # diff. `persist-credentials: false` because the fix reaches the branch
+      # through the autofix.ci App, never through this checkout's token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          # Same pin ci.yml checks against, so the fix and the gate agree.
+          toolchain: nightly-2026-04-05
+          components: rustfmt
+
+      # rustfmt only. `cargo clippy --fix` stays manual: its suggestions can
+      # change semantics and ci.yml gates them with `-D warnings` across three
+      # feature configurations, which is a review, not a rewrite. Regenerating
+      # `src/generated_types.rs` / `ts/generated` stays manual for the same
+      # reason: the drift check exists to force an upstream schema change into
+      # a reviewed diff. TypeScript has no formatter configured here, so there
+      # is nothing to run for it.
+      - name: Cargo fmt
+        run: cargo fmt --all
+
+      # `codegen/` is its own package, so the step above does not reach it —
+      # same split as the fmt-clippy job in ci.yml.
+      - name: Codegen fmt
+        run: cargo fmt --manifest-path codegen/Cargo.toml --all
+
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
