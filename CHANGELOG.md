@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.2...v0.21.3) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for message retry dedup and memory perf ([#110](https://github.com/oxidezap/whatsapp-rust-bridge/issues/110)) ([037cedf](https://github.com/oxidezap/whatsapp-rust-bridge/commit/037cedf71e1cf0d0aaf9df8291529b62ea0c1513))
+
 ## [0.21.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.1...v0.21.2) (2026-09-08)
 
 
