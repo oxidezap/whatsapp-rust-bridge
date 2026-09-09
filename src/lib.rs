@@ -22,6 +22,8 @@ pub mod js_cache_store;
 pub mod js_crypto;
 pub mod js_http;
 mod js_keys;
+#[cfg(feature = "client-calls-audio")]
+pub mod js_relay;
 pub mod js_time;
 pub mod js_transport;
 #[cfg(feature = "legacy-session")]

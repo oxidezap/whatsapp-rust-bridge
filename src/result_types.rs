@@ -1472,3 +1472,85 @@ pub struct NewChatMessageCappingResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remaining_quota: Option<f64>,
 }
+
+// ---------------------------------------------------------------------------
+// Encoded-audio call media (`client-calls-audio`)
+// ---------------------------------------------------------------------------
+
+/// Which codec the application's encoded-audio packets promise to carry.
+///
+/// The value is a promise about the bytes pushed through `callPushAudio`, and
+/// the call negotiates against it: answering an offer that only speaks the
+/// other codec fails with `invalid-argument` on this field so the host can
+/// retry with the other promise. `opus` here is the in-profile escape, the
+/// same 16 kHz clock as `mlow`, not native RFC 7587 Opus.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallAudioFormat {
+    Mlow,
+    Opus,
+}
+
+/// How ending a call through its handle went. The local side is down in every
+/// case; this reports how much of the peer was told.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "outcome")]
+pub enum CallEndResult {
+    /// `<terminate>` went out to every address the call had to reach.
+    #[serde(rename = "peer-notified")]
+    PeerNotified,
+    /// Some of a still-ringing call's devices were told and the rest could
+    /// not be confirmed, so those may keep ringing until their own transport
+    /// gives up.
+    #[serde(rename = "partly-notified", rename_all = "camelCase")]
+    PartlyNotified {
+        notified: f64,
+        unconfirmed: f64,
+    },
+    /// No send was confirmed, so the peer may keep ringing or talking until
+    /// its own transport gives up. Carries why the send failed; the bytes may
+    /// still have reached the wire.
+    #[serde(rename = "local-only")]
+    LocalOnly { failure: String },
+    /// The call was already over: nothing was sent and nothing was torn down.
+    #[serde(rename = "already-ended")]
+    AlreadyEnded,
+}
+
+/// One live call the bridge holds a handle for.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ActiveCallResult {
+    pub call_id: String,
+    /// The peer this call is with, as the `<terminate>` target: the device
+    /// that answered once one has, else the peer the offer rang.
+    pub peer_jid: String,
+}
+
+/// Media counters for one call, mirroring the core's `CallMediaStats`.
+/// All-zero until the media plane attaches, additive after that; sample twice
+/// and subtract for a rate. Readable after the call ends.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallMediaStatsResult {
+    pub rtp_received: f64,
+    pub rtp_payload_type_unexpected: f64,
+    pub srtp_unprotect_failed: f64,
+    pub sframe_decrypt_failed: f64,
+    pub audio_frames_decoded: f64,
+    pub audio_frames_delivered: f64,
+    pub audio_frames_concealed: f64,
+    pub mlow_off_point_dropped: f64,
+    pub mlow_inactive_or_sid: f64,
+    pub foreign_frames_decoded: f64,
+    pub audio_frames_without_decoder: f64,
+    pub outbound_frames_without_encoder: f64,
+    pub playout_trimmed_samples: f64,
+    pub inbound_pipe_dropped: f64,
+    pub audio_sink_dropped: f64,
+    pub video_sink_dropped: f64,
+    pub peer_keyframe_requests: f64,
+    pub relay_packet_unclassified: f64,
+    pub forwarding_envelope_rejected: f64,
+    pub codec_switches: f64,
+}

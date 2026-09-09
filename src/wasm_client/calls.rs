@@ -35,8 +35,8 @@ impl WasmWhatsAppClient {
         peer: &str,
         call_creator: &str,
     ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_call_jid("peer", peer)?;
-        let call_creator = parse_call_jid("callCreator", call_creator)?;
+        let peer = parse_named_jid("peer", peer)?;
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
         // ConnectionBound, not `online()`: a reject names a ringing call, and
         // a reconnect in flight may already have ended it. Held past the new
         // socket it would decline a call that is gone, so it fails instead of
@@ -62,8 +62,8 @@ impl WasmWhatsAppClient {
         peer: &str,
         call_creator: &str,
     ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_call_jid("peer", peer)?;
-        let call_creator = parse_call_jid("callCreator", call_creator)?;
+        let peer = parse_named_jid("peer", peer)?;
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
         self.client
             .unwaited(Unwaited::ConnectionBound)
             .voip()
@@ -73,15 +73,4 @@ impl WasmWhatsAppClient {
     }
 }
 
-/// Parse one call-control JID, naming the argument it came from.
-///
-/// The shared helper reports every JID failure as `field: "jid"`, which is
-/// the wrong name when a method takes two of them.
-fn parse_call_jid(
-    field: &'static str,
-    value: &str,
-) -> Result<wacore_binary::jid::Jid, crate::errors::BridgeError> {
-    value
-        .parse()
-        .map_err(|e| crate::errors::invalid_arg(field, format!("invalid JID: {e}")))
-}
+
