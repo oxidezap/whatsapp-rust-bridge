@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.3...v0.21.4) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** move @bufbuild/protobuf to devDependencies ([#113](https://github.com/oxidezap/whatsapp-rust-bridge/issues/113)) ([f29da28](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f29da287c88aa62a67ff99d8e53211ab1009bf27))
+
 ## [0.21.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.2...v0.21.3) (2026-09-09)
 
 
