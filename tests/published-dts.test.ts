@@ -116,15 +116,20 @@ test("the published declarations typecheck under NodeNext without skipLibCheck",
 }, TIMEOUT_MS);
 
 /**
- * `dist/proto-reader.d.ts` imports `@bufbuild/protobuf/wire`, so the package
- * must declare it: this checkout's own devDependencies mask the hole (the
- * first test above resolves it from the repo's `node_modules`). The proof is
- * the isolated-tarball install (`bun run check:published-tarball`, its own CI
- * job outside the unit-test clock); this pins the declaration it depends on.
+ * The package ships with no runtime dependencies: `dist/index.js` is bundled,
+ * so the only `@bufbuild/protobuf` reference left in `dist/` is the base
+ * `BinaryReader`/`BinaryWriter` import in `proto-reader.d.ts`. That name
+ * resolves in this checkout from `devDependencies` (the first two tests above
+ * rely on it), which is also where the build scripts, benches and tests import
+ * it from. A consumer on the default `skipLibCheck: true` never needs it; a
+ * consumer who turns that off installs it. The isolated-tarball proof
+ * (`bun run check:published-tarball`, its own CI job outside the unit-test
+ * clock) covers the default-config install.
  */
-test("the published declarations resolve their type imports from declared dependencies", () => {
+test("the package ships dependency-free, with the wire types on devDependencies", () => {
   const manifest = JSON.parse(
     readFileSync(join(ROOT, "package.json"), "utf8"),
-  ) as { dependencies?: Record<string, string> };
-  expect(manifest.dependencies?.["@bufbuild/protobuf"]).toBeDefined();
+  ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+  expect(manifest.dependencies ?? {}).toEqual({});
+  expect(manifest.devDependencies?.["@bufbuild/protobuf"]).toBeDefined();
 });
