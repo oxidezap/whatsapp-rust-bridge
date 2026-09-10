@@ -2906,6 +2906,8 @@ pub async fn create_whatsapp_client(
         #[cfg(feature = "client-calls-audio")]
         call_reserved: std::rc::Rc::new(std::cell::Cell::new(0)),
         #[cfg(feature = "client-calls-audio")]
+        call_admission: Arc::new(async_lock::Mutex::new(())),
+        #[cfg(feature = "client-calls-audio")]
         calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
 }
@@ -3252,6 +3254,14 @@ pub struct WasmWhatsAppClient {
     /// the reason above.
     #[cfg(feature = "client-calls-audio")]
     call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
+    /// Serializes the displace-plus-register tail of call starts. Two
+    /// same-id starters could otherwise interleave termination and
+    /// insertion so the second insert silently drops the first
+    /// replacement's record; under the lock each start displaces what is
+    /// actually there. Held only across the tail — never across core
+    /// startup — so unrelated calls never wait on each other.
+    #[cfg(feature = "client-calls-audio")]
+    call_admission: Arc<async_lock::Mutex<()>>,
     /// Still-true until `free()`. Call tasks check it before invoking
     /// host callbacks: aborting is signaled, not synchronous, so a task
     /// that outlives teardown must not call into a freed heap on its way

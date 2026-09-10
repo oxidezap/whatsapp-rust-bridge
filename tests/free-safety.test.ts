@@ -51,10 +51,17 @@ async function runChild(
       // Already exited; the exit below reports it.
     }
   }, 20_000);
-  const code = await proc.exited;
+  // Both pipes drain while the child runs: a wasm fault dumps enough
+  // panic text to fill a pipe, and awaiting exit first would deadlock the
+  // child on the full buffer instead of observing its failure.
+  const stdoutText = new Response(proc.stdout).text();
+  const stderrText = new Response(proc.stderr).text();
+  const [code, stdout, stderr] = await Promise.all([
+    proc.exited,
+    stdoutText,
+    stderrText,
+  ]);
   clearTimeout(timeout);
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
   return { code, stderr, stdout };
 }
 

@@ -107,6 +107,26 @@ pub(super) fn evict_offer(cache: &Mutex<OfferCache>, call_id: &str) {
         .remove(call_id);
 }
 
+/// Put a taken offer back after a failed start — only when nothing newer
+/// took the slot meanwhile. A resolving event or a re-offer that arrived
+/// mid-start owns it now; overwriting either would answer a dead call or
+/// drop a live ringing.
+fn restore_offer(cache: &Mutex<OfferCache>, call_id: String, offer: IncomingCall) {
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .entry(call_id)
+        .or_insert(offer);
+}
+
+/// Whether an action tag ends the ringing it arrived for. Only these
+/// evict a retained offer: preaccept, transport candidates, relay
+/// latency and video states all arrive while the call is still live,
+/// and evicting on them would refuse an answer to a ringing call.
+fn resolves_offer(action_tag: &str) -> bool {
+    matches!(action_tag, "reject" | "terminate" | "accept")
+}
+
 /// Fold one core event into the offer cache. Offers are retained; anything
 /// that resolves the ringing for an id — an update, a miss, an
 /// elsewhere-resolution — releases it.
@@ -129,7 +149,7 @@ pub(super) fn note_call_event(cache: &Mutex<OfferCache>, event: &Event) {
                     }
                 }
                 cache.insert(call.action.call_id().to_owned(), (**call).clone());
-            } else {
+            } else if resolves_offer(call.action.wire_tag()) {
                 cache
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
@@ -677,13 +697,13 @@ impl WasmWhatsAppClient {
 // ---------------------------------------------------------------------------
 
 impl CallMedia {
-    /// The handle for a live call, or the unknown-id rejection every
-    /// per-call method shares.
-    fn live_handle(&self, call_id: &str) -> Result<CallHandle, crate::errors::BridgeError> {
+    /// The handle and registration generation together, for post-await
+    /// writes that must land on the same registration they read.
+    fn live_record(&self, call_id: &str) -> Result<(CallHandle, u64), crate::errors::BridgeError> {
         self.call_records
             .borrow()
             .get(call_id)
-            .map(|record| record.handle.clone())
+            .map(|record| (record.handle.clone(), record.generation))
             .ok_or_else(unknown_call)
     }
 
@@ -977,6 +997,17 @@ impl CallMedia {
                 }
                 match events.recv().await {
                     Ok(event) => {
+                        // Revalidated after the await: a same-id replacement
+                        // registered while suspended owns the id now, and
+                        // this generation's event must neither read as its
+                        // diagnostic nor write its upgrade token.
+                        let current = records
+                            .borrow()
+                            .get(&call_id)
+                            .map(|record| record.generation);
+                        if current.is_some_and(|current| current != generation) {
+                            break;
+                        }
                         if !forward_engine_event(&records, &call_id, callback.as_ref(), &event) {
                             break;
                         }
@@ -1012,6 +1043,7 @@ impl CallMedia {
                 &past,
                 &offers,
                 callback.as_ref(),
+                &alive,
                 &call_id,
                 generation,
             );
@@ -1037,6 +1069,7 @@ impl CallMedia {
             &self.past_call_stats,
             &self.call_offers,
             self.call_event_callback.as_ref(),
+            &self.calls_live,
             call_id,
             generation,
         );
@@ -1137,6 +1170,7 @@ fn finish_call(
     past: &Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>,
     offers: &Mutex<OfferCache>,
     callback: Option<&MediaCallback>,
+    live: &std::rc::Rc<std::cell::Cell<bool>>,
     call_id: &str,
     generation: u64,
 ) {
@@ -1144,12 +1178,18 @@ fn finish_call(
     // (an endCall racing a new answer, a watcher outlived by a retry)
     // keeps its record, pumps, and controls. Only the remover emits.
     // Synchronous throughout, so the check and the removal are atomic.
-    let mut records = records.borrow_mut();
-    if records.get(call_id).map(|record| record.generation) != Some(generation) {
-        return;
-    }
-    let Some(record) = records.remove(call_id) else {
-        return;
+    // The borrow scopes to the removal alone: the host callback below
+    // may re-enter record-backed methods, and a live RefMut would turn
+    // that ordinary reaction into a borrow panic.
+    let record = {
+        let mut records = records.borrow_mut();
+        if records.get(call_id).map(|record| record.generation) != Some(generation) {
+            return;
+        }
+        let Some(record) = records.remove(call_id) else {
+            return;
+        };
+        record
     };
     for task in &record.tasks {
         task.abort();
@@ -1173,6 +1213,13 @@ fn finish_call(
         while past.len() > PAST_STATS_CAPACITY {
             past.pop_front();
         }
+    }
+    // A method future that outlives client teardown (an endCall parked
+    // in terminate while the host frees) must not emit into it: the
+    // liveness flag flips first in `Drop`, before any abort, so this
+    // check observes teardown even though aborting is only signaled.
+    if !live.get() {
+        return;
     }
     if let Some(callback) = callback {
         match ended_event_object(call_id, stats_value.as_ref()) {
@@ -1208,6 +1255,32 @@ fn admits_call(record_count: usize, known_id: bool) -> bool {
     known_id || record_count < ACTIVE_CALL_CAPACITY
 }
 
+/// Hang up by id: through the tracked handle when one exists, by raw
+/// stanza otherwise. A live dial/accept handle owns pumps, tasks and
+/// media the stanza alone never tears down; resolving after only sending
+/// would leave the mic and relay running while reporting success — and a
+/// disconnected send would reject while they keep running. The handle
+/// path tears down locally whatever the wire did.
+pub(super) async fn terminate_call(
+    media: &CallMedia,
+    core: &CoreClient,
+    call_id: String,
+    peer: Jid,
+    call_creator: Jid,
+) -> Result<(), crate::errors::BridgeError> {
+    if media.call_records.borrow().contains_key(&call_id) {
+        return media.end_call(call_id).await.map(|_| ());
+    }
+    core.unwaited(Unwaited::ConnectionBound)
+        .voip()
+        .terminate(&call_id, &peer, &call_creator)
+        .await
+        .map_err(crate::errors::BridgeError::from)?;
+    // Success ends the ringing, failure keeps the offer for a retry.
+    evict_offer(&media.call_offers, &call_id);
+    Ok(())
+}
+
 /// Everything a call method touches, owned. Built synchronously at call
 /// time while the wrapper is alive; the future then runs without a single
 /// borrow on the wrapper, so a future that first-polls after `free()`
@@ -1227,10 +1300,11 @@ pub(super) struct CallMedia {
     call_generation: std::rc::Rc<std::cell::Cell<u64>>,
     call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
     calls_live: std::rc::Rc<std::cell::Cell<bool>>,
+    call_admission: Arc<async_lock::Mutex<()>>,
 }
 
 impl CallMedia {
-    fn of(client: &WasmWhatsAppClient) -> Self {
+    pub(super) fn of(client: &WasmWhatsAppClient) -> Self {
         Self {
             client: client.client.clone(),
             call_records: client.call_records.clone(),
@@ -1243,6 +1317,7 @@ impl CallMedia {
             call_generation: client.call_generation.clone(),
             call_reserved: client.call_reserved.clone(),
             calls_live: client.calls_live.clone(),
+            call_admission: client.call_admission.clone(),
         }
     }
 
@@ -1299,10 +1374,7 @@ impl CallMedia {
             .start()
             .await
             .map_err(|error| {
-                self.call_offers
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .insert(call_id.clone(), offer);
+                restore_offer(&self.call_offers, call_id.clone(), offer);
                 call_error_to_bridge(error)
             })?;
         // The engine owns the offer now; a re-answer would double-answer.
@@ -1312,6 +1384,12 @@ impl CallMedia {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .remove(handle.call_id());
+        // Serialized with concurrent starts under the admission lock:
+        // two same-id starters would otherwise interleave termination and
+        // insertion so the second insert silently drops the first
+        // replacement's record. The lock spans the tail only, never core
+        // startup, so unrelated calls never wait on each other.
+        let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
         let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
         slot.commit();
@@ -1348,7 +1426,7 @@ impl CallMedia {
     }
 
     async fn start_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
-        let handle = self.live_handle(&call_id)?;
+        let (handle, generation) = self.live_record(&call_id)?;
         let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
         let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
         let sink_depth = sink_rx.clone();
@@ -1357,9 +1435,13 @@ impl CallMedia {
             .await
             .map_err(crate::errors::BridgeError::from)?;
         let mut records = self.call_records.borrow_mut();
-        let Some(record) = records.get_mut(&call_id) else {
-            // Finished underneath (peer hangup raced the upgrade): the core
-            // attached to a dying call, which its own teardown reaps.
+        let Some(record) = records.get_mut(&call_id).filter(|record| {
+            // A same-id replacement registered while starting owns the
+            // slot now: storing our queues into it would cross two calls'
+            // media. The core attached to our generation, and its own
+            // teardown reaps what the replacement superseded.
+            record.generation == generation
+        }) else {
             return Ok(());
         };
         record.video_tx = Some(video_tx);
@@ -1373,13 +1455,13 @@ impl CallMedia {
     }
 
     async fn accept_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
-        let (handle, token) = {
+        let (handle, generation, token) = {
             let mut records = self.call_records.borrow_mut();
             let Some(record) = records.get_mut(&call_id) else {
                 return Err(unknown_call());
             };
             let token = record.pending_upgrade.take();
-            (record.handle.clone(), token)
+            (record.handle.clone(), record.generation, token)
         };
         let Some(token) = token else {
             return Err(crate::errors::invalid_arg(
@@ -1394,7 +1476,12 @@ impl CallMedia {
             .accept_video(token, video_rx, sink_tx)
             .await
             .map_err(crate::errors::BridgeError::from)?;
-        if let Some(record) = self.call_records.borrow_mut().get_mut(&call_id) {
+        if let Some(record) = self
+            .call_records
+            .borrow_mut()
+            .get_mut(&call_id)
+            .filter(|record| record.generation == generation)
+        {
             record.video_tx = Some(video_tx);
             record.video_in_depth = Some(sink_depth);
             if self.call_video_callback.is_some()
@@ -1407,12 +1494,19 @@ impl CallMedia {
     }
 
     async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
-        let handle = self.live_handle(&call_id)?;
+        let (handle, generation) = self.live_record(&call_id)?;
         handle
             .stop_video()
             .await
             .map_err(crate::errors::BridgeError::from)?;
-        if let Some(record) = self.call_records.borrow_mut().get_mut(&call_id) {
+        // Generation-guarded like the starts: clearing a replacement's
+        // fresh video state for our stale stop would lie about its plane.
+        if let Some(record) = self
+            .call_records
+            .borrow_mut()
+            .get_mut(&call_id)
+            .filter(|record| record.generation == generation)
+        {
             record.video_tx = None;
             record.video_in_depth = None;
             record.pending_upgrade = None;
@@ -1493,6 +1587,12 @@ impl CallMedia {
             .start()
             .await
             .map_err(call_error_to_bridge)?;
+        // Serialized with concurrent starts under the admission lock:
+        // two same-id starters would otherwise interleave termination and
+        // insertion so the second insert silently drops the first
+        // replacement's record. The lock spans the tail only, never core
+        // startup, so unrelated calls never wait on each other.
+        let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
         let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
         slot.commit();
@@ -1965,6 +2065,57 @@ mod call_media_tests {
         Mutex::new(OfferCache::default())
     }
 
+    /// One non-terminal update for a ringing call: ICE candidates trickle
+    /// while the peer waits for an answer, and none of it ends anything.
+    fn transport_update(call_id: &str) -> IncomingCall {
+        let mut call_attrs = Attrs::new();
+        call_attrs.push(
+            std::borrow::Cow::Borrowed("from"),
+            NodeValue::Jid(jid("5511999999999")),
+        );
+        attr_string(&mut call_attrs, "id", "STANZA-3");
+        attr_string(&mut call_attrs, "t", "1766847153");
+
+        let mut transport_attrs = Attrs::new();
+        attr_string(&mut transport_attrs, "call-id", call_id);
+        transport_attrs.push(
+            std::borrow::Cow::Borrowed("call-creator"),
+            NodeValue::Jid(jid("5511888888888")),
+        );
+        let transport = Node::new("transport", transport_attrs, None);
+        let node = Node::new(
+            "call",
+            call_attrs,
+            Some(NodeContent::Nodes(vec![transport])),
+        );
+        parse_call_stanza(&node.as_node_ref())
+            .expect("the test transport parses")
+            .expect("the test transport is a call")
+    }
+
+    /// A peer rejection for a ringing call.
+    fn rejected_call(call_id: &str) -> IncomingCall {
+        let mut call_attrs = Attrs::new();
+        call_attrs.push(
+            std::borrow::Cow::Borrowed("from"),
+            NodeValue::Jid(jid("5511999999999")),
+        );
+        attr_string(&mut call_attrs, "id", "STANZA-4");
+        attr_string(&mut call_attrs, "t", "1766847154");
+
+        let mut reject_attrs = Attrs::new();
+        attr_string(&mut reject_attrs, "call-id", call_id);
+        reject_attrs.push(
+            std::borrow::Cow::Borrowed("call-creator"),
+            NodeValue::Jid(jid("5511888888888")),
+        );
+        let reject = Node::new("reject", reject_attrs, None);
+        let node = Node::new("call", call_attrs, Some(NodeContent::Nodes(vec![reject])));
+        parse_call_stanza(&node.as_node_ref())
+            .expect("the test reject parses")
+            .expect("the test reject is a call")
+    }
+
     #[test]
     fn offers_are_retained_until_something_resolves_them() {
         let cache = cache();
@@ -1991,6 +2142,61 @@ mod call_media_tests {
         evict_offer(&cache, "CALL-9");
         assert!(!cache.lock().unwrap().contains_key("CALL-9"));
         evict_offer(&cache, "CALL-9");
+    }
+
+    #[test]
+    fn only_terminal_updates_evict_the_offer() {
+        for (tag, resolves) in [
+            ("offer", false),
+            ("offer_notice", false),
+            ("preaccept", false),
+            ("transport", false),
+            ("relaylatency", false),
+            ("video", false),
+            ("accept", true),
+            ("reject", true),
+            ("terminate", true),
+        ] {
+            assert_eq!(resolves_offer(tag), resolves, "tag {tag}");
+        }
+    }
+
+    #[test]
+    fn mid_ringing_traffic_keeps_the_offer_answerable() {
+        let cache = cache();
+        let offer = offered_call("CALL-T", &[("opus", "16000")]);
+        note_call_event(&cache, &Event::IncomingCall(Box::new(offer)));
+        // ICE trickles while the peer waits: still ringing, still cached.
+        let transport = transport_update("CALL-T");
+        note_call_event(&cache, &Event::IncomingCall(Box::new(transport)));
+        assert!(cache.lock().unwrap().contains_key("CALL-T"));
+        // The peer hangs up: now it is over.
+        let reject = rejected_call("CALL-T");
+        note_call_event(&cache, &Event::IncomingCall(Box::new(reject)));
+        assert!(!cache.lock().unwrap().contains_key("CALL-T"));
+    }
+
+    #[test]
+    fn a_failed_start_restores_only_an_empty_slot() {
+        let cache = cache();
+        // Nothing cached: the taken offer goes back.
+        let old = offered_call("CALL-R", &[("opus", "16000")]);
+        restore_offer(&cache, "CALL-R".to_owned(), old);
+        assert!(cache.lock().unwrap().contains_key("CALL-R"));
+
+        // A re-offer arrived meanwhile: the stale restore must not win.
+        let newer = offered_call("CALL-R", &[("pcmu", "8000")]);
+        cache.lock().unwrap().insert("CALL-R".to_owned(), newer);
+        let stale = offered_call("CALL-R", &[("opus", "16000")]);
+        restore_offer(&cache, "CALL-R".to_owned(), stale);
+        let cached = cache.lock().unwrap();
+        let kept_newer = match &cached.get("CALL-R").expect("still cached").action {
+            whatsapp_rust::wacore::types::call::CallAction::Offer { audio, .. } => {
+                audio.iter().any(|codec| codec.enc == "pcmu")
+            }
+            _ => false,
+        };
+        assert!(kept_newer, "the newer offer must survive");
     }
 
     #[test]

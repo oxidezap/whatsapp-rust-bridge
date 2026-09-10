@@ -60,12 +60,23 @@ interface RtcSessionDescriptionInit {
 }
 
 interface RtcPeerConnection {
+  readonly connectionState: string;
+  onconnectionstatechange: (() => void) | null;
   createDataChannel(label: string, options?: RtcDataChannelOptions): RtcDataChannel;
   createOffer(): Promise<RtcSessionDescriptionInit>;
   setLocalDescription(desc: RtcSessionDescriptionInit): Promise<void>;
   setRemoteDescription(desc: RtcSessionDescriptionInit): Promise<void>;
   close(): void;
 }
+
+/**
+ * Upper bound on the channel-open wait. Past the core's 15s provider
+ * timeout on purpose: the Rust side gives up first, and this only fires
+ * when even that path never ran (a stalled ICE agent that emits no
+ * DataChannel event at all), releasing peer connections no handle could
+ * ever close.
+ */
+const OPEN_TIMEOUT_MS = 20000;
 
 type RtcPeerConnectionConstructor = new () => RtcPeerConnection;
 
@@ -210,6 +221,28 @@ export function createRtcRelayTransportProvider(
         openHooks.resolve = resolve;
         openHooks.reject = reject;
       });
+      const settleOpen = (fn: () => void) => {
+        clearTimeout(openTimer);
+        pc.onconnectionstatechange = null;
+        fn();
+      };
+      const openTimer = setTimeout(() => {
+        settleOpen(() =>
+          openHooks.reject?.(
+            new Error("relay DataChannel did not open within 20s")
+          )
+        );
+      }, OPEN_TIMEOUT_MS);
+      pc.onconnectionstatechange = () => {
+        // A terminal ICE state with no DataChannel event: stop waiting
+        // now rather than holding the peer connection to the timeout.
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+          const state = pc.connectionState;
+          settleOpen(() =>
+            openHooks.reject?.(new Error(`relay peer connection ${state}`))
+          );
+        }
+      };
       try {
         channel = pc.createDataChannel("pre-negotiated", {
           negotiated: true,
@@ -223,20 +256,24 @@ export function createRtcRelayTransportProvider(
         };
         channel.onopen = () => {
           events.onOpen();
-          openHooks.resolve?.();
+          settleOpen(() => openHooks.resolve?.());
         };
         const closed = (reason?: string) => {
           events.onClose(reason);
         };
         channel.onclose = () => {
           closed();
-          openHooks.reject?.(new Error("relay DataChannel closed before opening"));
+          settleOpen(() =>
+            openHooks.reject?.(new Error("relay DataChannel closed before opening"))
+          );
         };
         channel.onerror = (event) => {
           const reason =
             typeof event.message === "string" ? event.message : undefined;
           closed(reason);
-          openHooks.reject?.(new Error(reason ?? "relay DataChannel errored"));
+          settleOpen(() =>
+            openHooks.reject?.(new Error(reason ?? "relay DataChannel errored"))
+          );
         };
 
         const offer = await pc.createOffer();

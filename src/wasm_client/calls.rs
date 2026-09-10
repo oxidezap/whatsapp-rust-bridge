@@ -43,8 +43,12 @@ impl WasmWhatsAppClient {
         #[cfg(feature = "client-calls-audio")]
         let offers = self.call_offers.clone();
         wasm_bindgen_futures::future_to_promise(async move {
-            let peer = parse_named_jid("peer", &peer)?;
-            let call_creator = parse_named_jid("callCreator", &call_creator)?;
+            // Mapped explicitly: `From<BridgeError> for JsValue` exists
+            // only on wasm32, and `?` inside a JsValue future would lean
+            // on it, breaking host builds.
+            let peer = parse_named_jid("peer", &peer).map_err(|e| bridge_error_to_js_value(&e))?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)
+                .map_err(|e| bridge_error_to_js_value(&e))?;
             // ConnectionBound, not `online()`: a reject names a ringing
             // call, and a reconnect in flight may already have ended it.
             // Held past the new socket it would decline a call that is
@@ -81,21 +85,34 @@ impl WasmWhatsAppClient {
     ) -> js_sys::Promise {
         let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
-        let offers = self.call_offers.clone();
+        let media = super::calls_audio::CallMedia::of(self);
         wasm_bindgen_futures::future_to_promise(async move {
-            let peer = parse_named_jid("peer", &peer)?;
-            let call_creator = parse_named_jid("callCreator", &call_creator)?;
-            core.unwaited(Unwaited::ConnectionBound)
-                .voip()
-                .terminate(&call_id, &peer, &call_creator)
-                .await
-                .map_err(crate::errors::BridgeError::from)
+            let peer = parse_named_jid("peer", &peer).map_err(|e| bridge_error_to_js_value(&e))?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)
                 .map_err(|e| bridge_error_to_js_value(&e))?;
-            // Same ownership as the reject above: success ends the
-            // ringing, failure keeps the offer for a retry.
             #[cfg(feature = "client-calls-audio")]
-            super::calls_audio::evict_offer(&offers, &call_id);
-            Ok(JsValue::UNDEFINED)
+            {
+                return super::calls_audio::terminate_call(
+                    &media,
+                    &core,
+                    call_id,
+                    peer,
+                    call_creator,
+                )
+                .await
+                .map_err(|e| bridge_error_to_js_value(&e))
+                .map(|_| JsValue::UNDEFINED);
+            }
+            #[cfg(not(feature = "client-calls-audio"))]
+            {
+                core.unwaited(Unwaited::ConnectionBound)
+                    .voip()
+                    .terminate(&call_id, &peer, &call_creator)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+                    .map_err(|e| bridge_error_to_js_value(&e))?;
+                Ok(JsValue::UNDEFINED)
+            }
         })
     }
 }

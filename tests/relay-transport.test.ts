@@ -110,84 +110,101 @@ describe("send backpressure", () => {
   });
 });
 
-describe("handshake lifecycle", () => {
-  type FakeChannel = {
-    binaryType: string;
-    onmessage: ((event: { data: unknown }) => void) | null;
-    onopen: (() => void) | null;
-    onclose: (() => void) | null;
-    onerror: ((event: { message?: unknown }) => void) | null;
-    readyState: string;
-    sent: unknown[];
-    closed: boolean;
-    send(data: unknown): void;
-    close(): void;
-  };
+type FakeChannel = {
+  binaryType: string;
+  bufferedAmount: number;
+  onmessage: ((event: { data: unknown }) => void) | null;
+  onopen: (() => void) | null;
+  onclose: (() => void) | null;
+  onerror: ((event: { message?: unknown }) => void) | null;
+  readyState: string;
+  sent: unknown[];
+  closed: boolean;
+  send(data: unknown): void;
+  close(): void;
+};
 
-  type Script = {
-    createDataChannelThrows?: boolean;
-    openDelay?: number;
-    closeBeforeOpen?: boolean;
-    closedPcs: number;
-  };
+type Script = {
+  createDataChannelThrows?: boolean;
+  openDelay?: number;
+  closeBeforeOpen?: boolean;
+  failConnection?: boolean;
+  closedPcs: number;
+};
 
-  function installFakePeerConnection(script: Script) {
-    const channels: FakeChannel[] = [];
-    (globalThis as Record<string, unknown>).RTCPeerConnection =
-      class {
-        closed = false;
-        createDataChannel() {
-          if (script.createDataChannelThrows) {
-            throw new Error("negotiated channels unsupported");
-          }
-          const channel: FakeChannel = {
-            binaryType: "",
-            onmessage: null,
-            onopen: null,
-            onclose: null,
-            onerror: null,
-            readyState: "connecting",
-            sent: [],
-            closed: false,
-            send(data: unknown) {
-              if (channel.readyState !== "open") throw new Error("not open");
-              channel.sent.push(data);
-            },
-            close() {
-              channel.closed = true;
-            },
+function installFakePeerConnection(script: Script) {
+  const channels: FakeChannel[] = [];
+  (globalThis as Record<string, unknown>).RTCPeerConnection =
+    class {
+      closed = false;
+      connectionState = "new";
+      onconnectionstatechange: (() => void) | null = null;
+      createDataChannel() {
+        if (script.createDataChannelThrows) {
+          throw new Error("negotiated channels unsupported");
+        }
+        const channel: FakeChannel = {
+          binaryType: "",
+          bufferedAmount: 0,
+          onmessage: null,
+          onopen: null,
+          onclose: null,
+          onerror: null,
+          readyState: "connecting",
+          sent: [],
+          closed: false,
+          send(data: unknown) {
+            if (channel.readyState !== "open") throw new Error("not open");
+            channel.sent.push(data);
+          },
+          close() {
+            channel.closed = true;
+          },
+        };
+        channels.push(channel);
+        if (script.closeBeforeOpen) {
+          queueMicrotask(() => {
+            channel.readyState = "closed";
+            channel.onclose?.();
+          });
+        } else {
+          const delay = script.openDelay ?? 0;
+          setTimeout(() => {
+            channel.readyState = "open";
+            channel.onopen?.();
+          }, delay);
+        }
+        return channel;
+      }
+      async createOffer() {
+        return { type: "offer", sdp: "" };
+      }
+      async setLocalDescription() {}
+      async setRemoteDescription() {
+        if (script.failConnection) {
+          const self = this as {
+            connectionState: string;
+            onconnectionstatechange: (() => void) | null;
           };
-          channels.push(channel);
-          if (script.closeBeforeOpen) {
-            queueMicrotask(() => {
-              channel.readyState = "closed";
-              channel.onclose?.();
-            });
-          } else {
-            const delay = script.openDelay ?? 0;
-            setTimeout(() => {
-              channel.readyState = "open";
-              channel.onopen?.();
-            }, delay);
-          }
-          return channel;
+          queueMicrotask(() => {
+            self.connectionState = "failed";
+            self.onconnectionstatechange?.();
+          });
         }
-        async createOffer() {
-          return { type: "offer", sdp: "" };
-        }
-        async setLocalDescription() {}
-        async setRemoteDescription() {}
-        close() {
-          this.closed = true;
-          script.closedPcs += 1;
-        }
-      };
-    return channels;
-  }
+      }
+      close() {
+        this.closed = true;
+        script.closedPcs += 1;
+      }
+    };
+  return channels;
+}
 
-  afterEach(() => {
-    delete (globalThis as Record<string, unknown>).RTCPeerConnection;
-  });
+afterEach(() => {
+  delete (globalThis as Record<string, unknown>).RTCPeerConnection;
+});
+
+describe("handshake lifecycle", () => {
 
   test("the handle resolves only once the channel carries datagrams", async () => {
     const script: Script = { openDelay: 5, closedPcs: 0 };
@@ -223,6 +240,19 @@ describe("handshake lifecycle", () => {
     expect(script.closedPcs).toBe(1);
   });
 
+  test("a failed connection rejects and releases the peer connection", async () => {
+    const script: Script = { failConnection: true, closedPcs: 0 };
+    installFakePeerConnection(script);
+    const provider = createRtcRelayTransportProvider(FINGERPRINT);
+    await expect(
+      provider.createRelayConnection(
+        { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+        { onPacket() {}, onOpen() {}, onClose() {} }
+      )
+    ).rejects.toThrow(/peer connection failed/);
+    expect(script.closedPcs).toBe(1);
+  });
+
   test("a close before open rejects instead of hanging", async () => {
     const script: Script = { closeBeforeOpen: true, closedPcs: 0 };
     installFakePeerConnection(script);
@@ -234,6 +264,41 @@ describe("handshake lifecycle", () => {
       )
     ).rejects.toThrow(/closed before opening/);
     expect(script.closedPcs).toBe(1);
+  });
+});
+
+describe("send path", () => {
+  async function openHandle(
+    options?: Parameters<typeof createRtcRelayTransportProvider>[1]
+  ) {
+    const script: Script = { openDelay: 0, closedPcs: 0 };
+    const channels = installFakePeerConnection(script);
+    const provider = createRtcRelayTransportProvider(FINGERPRINT, options);
+    const handle = await provider.createRelayConnection(
+      { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+      { onPacket() {}, onOpen() {}, onClose() {} }
+    );
+    return { handle, channel: channels[0]! };
+  }
+
+  test("a drained channel sends", async () => {
+    const { handle, channel } = await openHandle();
+    channel.bufferedAmount = 0;
+    handle.send(new Uint8Array([1, 2, 3]));
+    expect(channel.sent.length).toBe(1);
+  });
+
+  test("a stalled channel sheds and reports the count", async () => {
+    const dropped: number[] = [];
+    const { handle, channel } = await openHandle({
+      maxBufferedAmount: 8,
+      onPacketsDropped: (count) => dropped.push(count),
+    });
+    channel.bufferedAmount = 1024;
+    handle.send(new Uint8Array([1]));
+    handle.send(new Uint8Array([2]));
+    expect(channel.sent.length).toBe(0);
+    expect(dropped).toEqual([1, 1]);
   });
 });
 
