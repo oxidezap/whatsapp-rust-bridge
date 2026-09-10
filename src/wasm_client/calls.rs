@@ -28,31 +28,42 @@ impl WasmWhatsAppClient {
     /// `callId` is the action's call id, `peer` the event's sender, and
     /// `callCreator` the action's call creator. The two JIDs stay separate
     /// because companion-device signaling can address them differently.
-    #[wasm_bindgen(js_name = rejectCall)]
-    pub async fn reject_call(
+    #[wasm_bindgen(js_name = rejectCall, unchecked_return_type = "Promise<void>")]
+    pub fn reject_call(
         &self,
-        call_id: &str,
-        peer: &str,
-        call_creator: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_named_jid("peer", peer)?;
-        let call_creator = parse_named_jid("callCreator", call_creator)?;
-        // ConnectionBound, not `online()`: a reject names a ringing call, and
-        // a reconnect in flight may already have ended it. Held past the new
-        // socket it would decline a call that is gone, so it fails instead of
-        // waiting, like a receipt or an ack.
-        self.client
-            .unwaited(Unwaited::ConnectionBound)
-            .voip()
-            .reject_call(call_id, &peer, &call_creator)
-            .await
-            .map_err(crate::errors::BridgeError::from)?;
-        // The ringing is over by our own hand: answering afterwards would
-        // answer a declined call, so the retained offer goes with it. A
-        // failed send keeps the offer — the call may still be ringing.
+        call_id: String,
+        peer: String,
+        call_creator: String,
+    ) -> js_sys::Promise {
+        // Synchronous prefix, owned future: a future that first-polls
+        // after `free()` must never touch freed wrapper memory (see
+        // `CoreClient`). The peer JIDs parse without the wrapper; the
+        // core client and the offer cache cross owned.
+        let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
-        super::calls_audio::evict_offer(&self.call_offers, call_id);
-        Ok(())
+        let offers = self.call_offers.clone();
+        wasm_bindgen_futures::future_to_promise(async move {
+            let peer = parse_named_jid("peer", &peer)?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)?;
+            // ConnectionBound, not `online()`: a reject names a ringing
+            // call, and a reconnect in flight may already have ended it.
+            // Held past the new socket it would decline a call that is
+            // gone, so it fails instead of waiting, like a receipt or
+            // an ack.
+            core.unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .reject_call(&call_id, &peer, &call_creator)
+                .await
+                .map_err(crate::errors::BridgeError::from)
+                .map_err(|e| bridge_error_to_js_value(&e))?;
+            // The ringing is over by our own hand: answering afterwards
+            // would answer a declined call, so the retained offer goes
+            // with it. A failed send keeps the offer — the call may
+            // still be ringing.
+            #[cfg(feature = "client-calls-audio")]
+            super::calls_audio::evict_offer(&offers, &call_id);
+            Ok(JsValue::UNDEFINED)
+        })
     }
 
     /// Hang up an active call.
@@ -61,25 +72,30 @@ impl WasmWhatsAppClient {
     /// the `<terminate>` stanza went out. Same argument sources, and the same
     /// gate for the same reason — a terminate names a live call, not a state
     /// worth carrying across a reconnect.
-    #[wasm_bindgen(js_name = terminateCall)]
-    pub async fn terminate_call(
+    #[wasm_bindgen(js_name = terminateCall, unchecked_return_type = "Promise<void>")]
+    pub fn terminate_call(
         &self,
-        call_id: &str,
-        peer: &str,
-        call_creator: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_named_jid("peer", peer)?;
-        let call_creator = parse_named_jid("callCreator", call_creator)?;
-        self.client
-            .unwaited(Unwaited::ConnectionBound)
-            .voip()
-            .terminate(call_id, &peer, &call_creator)
-            .await
-            .map_err(crate::errors::BridgeError::from)?;
-        // Same ownership as the reject above: success ends the ringing,
-        // failure keeps the offer for a retry.
+        call_id: String,
+        peer: String,
+        call_creator: String,
+    ) -> js_sys::Promise {
+        let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
-        super::calls_audio::evict_offer(&self.call_offers, call_id);
-        Ok(())
+        let offers = self.call_offers.clone();
+        wasm_bindgen_futures::future_to_promise(async move {
+            let peer = parse_named_jid("peer", &peer)?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)?;
+            core.unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .terminate(&call_id, &peer, &call_creator)
+                .await
+                .map_err(crate::errors::BridgeError::from)
+                .map_err(|e| bridge_error_to_js_value(&e))?;
+            // Same ownership as the reject above: success ends the
+            // ringing, failure keeps the offer for a retry.
+            #[cfg(feature = "client-calls-audio")]
+            super::calls_audio::evict_offer(&offers, &call_id);
+            Ok(JsValue::UNDEFINED)
+        })
     }
 }

@@ -2902,9 +2902,9 @@ pub async fn create_whatsapp_client(
         #[cfg(feature = "client-calls-audio")]
         call_video_callback: call_media_callbacks.2,
         #[cfg(feature = "client-calls-audio")]
-        call_generation: std::cell::Cell::new(0),
+        call_generation: std::rc::Rc::new(std::cell::Cell::new(0)),
         #[cfg(feature = "client-calls-audio")]
-        call_reserved: std::cell::Cell::new(0),
+        call_reserved: std::rc::Rc::new(std::cell::Cell::new(0)),
         #[cfg(feature = "client-calls-audio")]
         calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
@@ -2965,9 +2965,16 @@ mod core_client {
     /// [`online`](Self::online) holds the call while a reconnect is in flight;
     /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
     /// in and no plain field, so a method added later has to pick one.
+    /// Cloned into method futures at call time (synchronously, while the
+    /// wrapper is alive) so a future that first-polls after `free()` never
+    /// touches freed wrapper memory — the use-after-free that kills the
+    /// process when free lands between the call and its first poll. The
+    /// parked gate state rides along, so withdrawing still releases parked
+    /// calls exactly as before.
+    #[derive(Clone)]
     pub(crate) struct CoreClient {
         client: Arc<whatsapp_rust::Client>,
-        parked: Parked,
+        parked: Arc<Parked>,
     }
 
     /// The calls waiting at the gate, and the only way to let them go.
@@ -3041,7 +3048,7 @@ mod core_client {
         pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
             Self {
                 client,
-                parked: Parked::default(),
+                parked: Arc::new(Parked::default()),
             }
         }
     }
@@ -3234,14 +3241,17 @@ pub struct WasmWhatsAppClient {
     call_video_callback: Option<calls_audio::MediaCallback>,
     /// Call registration counter. Hands each record a generation so a
     /// finish path removes only its own registration, never a same-id
-    /// replacement that superseded it mid-await.
+    /// replacement that superseded it mid-await. Shared, not plain:
+    /// method futures outlive the wrapper, so counters they touch must
+    /// live in shared ownership like every other record below.
     #[cfg(feature = "client-calls-audio")]
-    call_generation: std::cell::Cell<u64>,
+    call_generation: std::rc::Rc<std::cell::Cell<u64>>,
     /// Reservation count for calls past validation but not yet recorded.
     /// Admission checks it alongside the map so concurrent starts cannot
-    /// each pass the count and then all insert past capacity.
+    /// each pass the count and then all insert past capacity. Shared for
+    /// the reason above.
     #[cfg(feature = "client-calls-audio")]
-    call_reserved: std::cell::Cell<u32>,
+    call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
     /// Still-true until `free()`. Call tasks check it before invoking
     /// host callbacks: aborting is signaled, not synchronous, so a task
     /// that outlives teardown must not call into a freed heap on its way
@@ -3619,6 +3629,23 @@ pub fn decrypt_poll_vote(
 /// Parse a JID string, returning a JS error on failure.
 fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
     jid.parse().map_err(crate::errors::BridgeError::from)
+}
+
+/// Build the rejection for a hand-driven promise future. Used by methods
+/// that cannot borrow the wrapper across an await (see `CoreClient`): they
+/// run a synchronous prefix at call time and drive the rest through
+/// `future_to_promise` on owned state, so this is the single shape their
+/// failures cross in.
+#[cfg(target_arch = "wasm32")]
+fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
+    crate::errors::to_js_error(e)
+}
+
+/// Host-target builds never drive the promise future; the rejection shape
+/// only has to be a `JsValue` so the export keeps one surface per target.
+#[cfg(not(target_arch = "wasm32"))]
+fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
+    JsValue::from_str(&e.to_string())
 }
 
 /// Parse one call-control JID, naming the argument it came from.
