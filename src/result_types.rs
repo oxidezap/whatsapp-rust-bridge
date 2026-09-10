@@ -1624,3 +1624,14 @@ pub struct CallAudioBufferResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub video_inbound_queued: Option<f64>,
 }
+
+/// The core's direction-local video negotiation state for one live call.
+/// `selfState` and `peerState` are the wire numbers from `VideoState`; the
+/// timeout is the core's public `VIDEO_UPGRADE_TIMEOUT`, in milliseconds.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallVideoDiagnosticsResult {
+    pub self_state: f64,
+    pub peer_state: f64,
+    pub upgrade_timeout_ms: f64,
+}

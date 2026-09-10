@@ -25,7 +25,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
-use whatsapp_rust::voip::{CallHandle, CallTermination};
+use whatsapp_rust::voip::{CallHandle, CallTermination, VIDEO_UPGRADE_TIMEOUT};
 use whatsapp_rust::wacore::types::call::IncomingCall;
 use whatsapp_rust::wacore::types::events::Event;
 use whatsapp_rust::wacore::types::group_call::{CallLinkMedia, ScreenShareState};
@@ -450,6 +450,33 @@ impl WasmWhatsAppClient {
         })
     }
 
+    /// Re-add our stopped video direction without a second upgrade handshake.
+    #[wasm_bindgen(js_name = resumeCallVideo, unchecked_return_type = "Promise<void>")]
+    pub fn resume_call_video(&self, call_id: String) -> js_sys::Promise {
+        let media = CallMedia::of(self);
+        wasm_bindgen_futures::future_to_promise(async move {
+            media
+                .resume_call_video(call_id)
+                .await
+                .map_err(|e| bridge_error_to_js_value(&e))?;
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+
+    /// Re-emit the video upgrade request for a live call. The core arms its
+    /// direction-local timeout and leaves the attached endpoints in place.
+    #[wasm_bindgen(js_name = retryCallVideoUpgrade, unchecked_return_type = "Promise<void>")]
+    pub fn retry_call_video_upgrade(&self, call_id: String) -> js_sys::Promise {
+        let media = CallMedia::of(self);
+        wasm_bindgen_futures::future_to_promise(async move {
+            media
+                .retry_call_video_upgrade(call_id)
+                .await
+                .map_err(|e| bridge_error_to_js_value(&e))?;
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+
     /// Ask the peer for a video keyframe, by RTCP PLI. Call it when the
     /// decoder loses an access unit; the engine throttles, so every loss
     /// may ask. Fire-and-forget: nothing comes back.
@@ -673,6 +700,16 @@ impl WasmWhatsAppClient {
         })
     }
 
+    /// Read the core's direction-local video state and timeout contract.
+    #[wasm_bindgen(js_name = getCallVideoDiagnostics)]
+    pub fn call_video_diagnostics(
+        &self,
+        call_id: &str,
+    ) -> Result<Ts<crate::result_types::CallVideoDiagnosticsResult>, crate::errors::BridgeError>
+    {
+        to_ts(CallMedia::of(self).call_video_diagnostics(call_id)?)
+    }
+
     /// Install the host's relay channel constructor. The core asks it for one
     /// channel per relay endpoint, and fails the call with a named setup
     /// error when none is installed.
@@ -705,6 +742,10 @@ impl CallMedia {
             .get(call_id)
             .map(|record| (record.handle.clone(), record.generation))
             .ok_or_else(unknown_call)
+    }
+
+    fn live_handle(&self, call_id: &str) -> Result<CallHandle, crate::errors::BridgeError> {
+        self.live_record(call_id).map(|(handle, _)| handle)
     }
 
     /// A ringing offer by id, for the methods that answer one. Cloned out
@@ -1512,6 +1553,58 @@ impl CallMedia {
             record.pending_upgrade = None;
         }
         Ok(())
+    }
+
+    async fn resume_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
+        let (handle, generation) = self.live_record(&call_id)?;
+        let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+        let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+        let sink_depth = sink_rx.clone();
+        handle
+            .resume_video(video_rx, sink_tx)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        if let Some(record) = self
+            .call_records
+            .borrow_mut()
+            .get_mut(&call_id)
+            .filter(|record| record.generation == generation)
+        {
+            record.video_tx = Some(video_tx);
+            record.video_in_depth = Some(sink_depth);
+            if self.call_video_callback.is_some()
+                && let Some(pump) = self.spawn_video_task(&call_id, sink_rx)
+            {
+                record.tasks.push(pump);
+            }
+        }
+        Ok(())
+    }
+
+    async fn retry_call_video_upgrade(
+        &self,
+        call_id: String,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let handle = self.live_handle(&call_id)?;
+        handle
+            .re_request_video_upgrade()
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    fn call_video_diagnostics(
+        &self,
+        call_id: &str,
+    ) -> Result<crate::result_types::CallVideoDiagnosticsResult, crate::errors::BridgeError> {
+        let handle = self.live_handle(call_id)?;
+        let Some((self_state, peer_state)) = handle.video_states() else {
+            return Err(unknown_call());
+        };
+        Ok(crate::result_types::CallVideoDiagnosticsResult {
+            self_state: self_state.code() as f64,
+            peer_state: peer_state.code() as f64,
+            upgrade_timeout_ms: VIDEO_UPGRADE_TIMEOUT.as_millis() as f64,
+        })
     }
 
     async fn set_call_muted(
