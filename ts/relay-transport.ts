@@ -184,36 +184,61 @@ export function createRtcRelayTransportProvider(
       events: JsRelayConnectionEvents
     ): Promise<JsRelayConnectionHandle> {
       const pc = new (rtcPeerConnectionConstructor())();
-      const channel = pc.createDataChannel("pre-negotiated", {
-        negotiated: true,
-        id: 0,
-        ordered: false,
-        maxRetransmits: 0,
+      // Everything from channel creation on lives inside the guarded
+      // region below: a throwing createDataChannel, a rejected offer or
+      // answer, or a channel that closes before opening must all release
+      // the peer connection, since the caller never receives a handle to
+      // close it with. Each failed ring would otherwise leak a peer
+      // connection with its ICE agent and sockets.
+      let channel: RtcDataChannel | undefined;
+      const release = () => {
+        if (channel !== undefined) {
+          channel.onclose = null;
+          channel.onerror = null;
+          try {
+            channel.close();
+          } catch {
+            // Already gone; the peer connection close below is the part
+            // that matters.
+          }
+        }
+        pc.close();
+      };
+      const openHooks: { resolve?: () => void; reject?: (err: Error) => void } =
+        {};
+      const opened = new Promise<void>((resolve, reject) => {
+        openHooks.resolve = resolve;
+        openHooks.reject = reject;
       });
-      channel.binaryType = "arraybuffer";
-      channel.onmessage = (event) => {
-        events.onPacket(new Uint8Array(event.data as ArrayBuffer));
-      };
-      channel.onopen = () => {
-        events.onOpen();
-      };
-      const closed = (reason?: string) => {
-        events.onClose(reason);
-      };
-      channel.onclose = () => {
-        closed();
-      };
-      channel.onerror = (event) => {
-        closed(typeof event.message === "string" ? event.message : undefined);
-      };
-
-      // Any handshake step can reject — a malformed answer, an
-      // unsupported attribute, an internal WebRTC error. The caller never
-      // receives a handle on that path, so nothing could close the half-open
-      // connection; release it here instead of leaking a peer connection
-      // per failed ring. Detaching the handlers first keeps the cleanup
-      // from reporting a close the Rust side already learned as a rejection.
       try {
+        channel = pc.createDataChannel("pre-negotiated", {
+          negotiated: true,
+          id: 0,
+          ordered: false,
+          maxRetransmits: 0,
+        });
+        channel.binaryType = "arraybuffer";
+        channel.onmessage = (event) => {
+          events.onPacket(new Uint8Array(event.data as ArrayBuffer));
+        };
+        channel.onopen = () => {
+          events.onOpen();
+          openHooks.resolve?.();
+        };
+        const closed = (reason?: string) => {
+          events.onClose(reason);
+        };
+        channel.onclose = () => {
+          closed();
+          openHooks.reject?.(new Error("relay DataChannel closed before opening"));
+        };
+        channel.onerror = (event) => {
+          const reason =
+            typeof event.message === "string" ? event.message : undefined;
+          closed(reason);
+          openHooks.reject?.(new Error(reason ?? "relay DataChannel errored"));
+        };
+
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await pc.setRemoteDescription({
@@ -226,14 +251,13 @@ export function createRtcRelayTransportProvider(
             fingerprint,
           }),
         });
+        // setRemoteDescription resolves while the channel is usually still
+        // connecting; returning here would hand back a handle whose send
+        // throws until onopen. Resolve the construction only once the
+        // channel carries datagrams, and reject on an intervening close.
+        await opened;
       } catch (err) {
-        channel.onclose = null;
-        channel.onerror = null;
-        try {
-          channel.close();
-        } finally {
-          pc.close();
-        }
+        release();
         throw err;
       }
 

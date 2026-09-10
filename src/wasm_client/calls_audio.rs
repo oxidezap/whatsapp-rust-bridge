@@ -62,6 +62,10 @@ const PAST_STATS_CAPACITY: usize = 8;
 /// One live call: its handle, its mic queue, and the tasks pumping it.
 pub(super) struct CallRecord {
     pub(super) handle: CallHandle,
+    /// Distinguishes this registration from a same-id replacement. Every
+    /// finish path removes only its own generation, so a racing end can
+    /// never take down the call that superseded it.
+    pub(super) generation: u64,
     pub(super) mic_tx: async_channel::Sender<Bytes>,
     /// A second reader on the mic queue, held so muting can drain the
     /// second of stale audio already queued (see `set_call_muted`).
@@ -91,6 +95,17 @@ pub(super) struct CallRecord {
 /// them for about the same fraction of a second.
 const VIDEO_MIC_CAPACITY: usize = 8;
 const VIDEO_SPK_CAPACITY: usize = 8;
+
+/// Release one ringing offer by id. The reject/terminate methods call this
+/// after a successful send; events call it through `note_call_event`.
+/// Idempotent: resolving twice (a reject beside its own terminate event,
+/// say) is not an error.
+pub(super) fn evict_offer(cache: &Mutex<OfferCache>, call_id: &str) {
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(call_id);
+}
 
 /// Fold one core event into the offer cache. Offers are retained; anything
 /// that resolves the ringing for an id — an update, a miss, an
@@ -199,12 +214,17 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
     ) -> Result<String, crate::errors::BridgeError> {
         let format = call_audio_format(audio_format)?;
+        let slot = self.reserve_call_slot(Some(call_id), "acceptCall")?;
+        let core = self.client.online().await?;
+        // Taken, not cloned, and only after the gate: a concurrent second
+        // answer must find nothing rather than answer the same offer twice,
+        // and state may have changed while parked. A failed start puts it
+        // back, so the refusal costs nothing either way.
         let offer = self
             .call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .get(call_id)
-            .cloned()
+            .remove(call_id)
             .ok_or_else(|| {
                 crate::errors::invalid_arg(
                     "callId",
@@ -216,27 +236,30 @@ impl WasmWhatsAppClient {
         // A second reader for the mute drain; the engine owns the first
         // once the builder below takes it.
         let mic_drain = mic_rx.clone();
-        // Before the engine starts: a full map refuses admission while the
-        // refusal costs nothing, rather than orphaning a started call the
-        // bridge then has no record for.
-        self.check_call_capacity(Some(call_id))?;
-        let handle = self
-            .client
-            .online()
-            .await?
+        let handle = core
             .voip()
             .accept(&offer)
             .encoded_audio(format, mic_rx, speaker_tx)
             .start()
             .await
-            .map_err(call_error_to_bridge)?;
+            .map_err(|error| {
+                self.call_offers
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(call_id.to_owned(), offer);
+                call_error_to_bridge(error)
+            })?;
         // The engine owns the offer now; a re-answer would double-answer.
+        // (The take above already consumed it; this only covers an offer
+        // that arrived again under the same id while starting.)
         self.call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .remove(handle.call_id());
         self.displace_call(handle.call_id()).await;
-        Ok(self.register_call(handle, mic_tx, mic_drain, speaker_rx))
+        let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
+        slot.commit();
+        Ok(id)
     }
 
     /// Dial a peer with encoded audio, and return the new call id.
@@ -254,7 +277,9 @@ impl WasmWhatsAppClient {
         let format = call_audio_format(audio_format)?;
         // The dial generates its id inside `start`, so only the count is
         // known yet; a same-id collision it produces is displaced below.
-        self.check_call_capacity(None)?;
+        // The guard releases on every failure path, converting only when
+        // the record below inserts.
+        let slot = self.reserve_call_slot(None, "dialCall")?;
         let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
         let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
         let mic_drain = mic_rx.clone();
@@ -269,7 +294,9 @@ impl WasmWhatsAppClient {
             .await
             .map_err(call_error_to_bridge)?;
         self.displace_call(handle.call_id()).await;
-        Ok(self.register_call(handle, mic_tx, mic_drain, speaker_rx))
+        let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
+        slot.commit();
+        Ok(id)
     }
 
     /// Push one encoded audio packet toward the peer.
@@ -333,19 +360,19 @@ impl WasmWhatsAppClient {
             }
             return Err(unknown_call());
         }
-        // The record may still vanish underneath (the end watcher finishing
-        // a peer hangup); that already emitted `ended`, so report it,
-        // don't repeat it.
-        let handle = self
+        // Read handle and generation together: a replacement registered
+        // during the terminate below must not lose its record to the
+        // finish, which removes only the generation it terminated.
+        let watched = self
             .call_records
             .borrow()
             .get(call_id)
-            .map(|record| record.handle.clone());
-        let Some(handle) = handle else {
+            .map(|record| (record.handle.clone(), record.generation));
+        let Some((handle, generation)) = watched else {
             return to_ts(crate::result_types::CallEndResult::AlreadyEnded);
         };
         let outcome = handle.terminate().await;
-        self.finish_call(call_id);
+        self.finish_call(call_id, generation);
         to_ts(call_termination_to_result(&outcome))
     }
 
@@ -590,7 +617,7 @@ impl WasmWhatsAppClient {
             .voip()
             .preaccept_group_invite(&offer)
             .await
-            .map_err(group_invite_error)
+            .map_err(group_control_error)
     }
 
     /// Accept an active group-call invitation at the signaling level. The
@@ -608,7 +635,7 @@ impl WasmWhatsAppClient {
             .voip()
             .accept_group_invite(&offer)
             .await
-            .map_err(group_invite_error)
+            .map_err(group_control_error)
     }
 
     /// Create a reusable audio or video call link, and return its token
@@ -691,7 +718,7 @@ impl WasmWhatsAppClient {
             .voip()
             .set_hand_raised(call_id, &call_creator, raised)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(group_control_error)
     }
 
     /// Start or stop our screen share in a group call. The share id names
@@ -716,7 +743,7 @@ impl WasmWhatsAppClient {
             .voip()
             .set_screen_share(call_id, &call_creator, state, screen_share_id)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(group_control_error)
     }
 
     /// Admit one user from a call-link waiting room.
@@ -734,7 +761,7 @@ impl WasmWhatsAppClient {
             .voip()
             .admit_waiting_user(call_id, &call_creator, &user)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(group_control_error)
     }
 
     /// Deny one user from a call-link waiting room.
@@ -752,7 +779,7 @@ impl WasmWhatsAppClient {
             .voip()
             .deny_waiting_user(call_id, &call_creator, &user)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(group_control_error)
     }
 
     /// Bridge pump depths for one call: packets queued, by direction. The
@@ -828,18 +855,38 @@ impl WasmWhatsAppClient {
             })
     }
 
-    /// Whether a call id may take a record slot. A repeated id always may:
-    /// starting over it displaces the previous holder (see `displace_call`),
-    /// so it never grows the map.
-    fn check_call_capacity(&self, call_id: Option<&str>) -> Result<(), crate::errors::BridgeError> {
-        let records = self.call_records.borrow();
-        let known = call_id.is_some_and(|id| records.contains_key(id));
-        if !admits_call(records.len(), known) {
-            return Err(crate::errors::internal(
+    /// Reserve a record slot before the first await. A count check alone
+    /// is TOCTOU: concurrent starts each pass it, then all insert past
+    /// capacity (and trip the debug assert below in debug builds). The
+    /// reservation counts alongside the map until it converts into the
+    /// record or its guard drops on any failure path. A repeated id never
+    /// reserves: starting over it displaces instead of growing.
+    fn reserve_call_slot(
+        &self,
+        call_id: Option<&str>,
+        op: &'static str,
+    ) -> Result<SlotGuard<'_>, crate::errors::BridgeError> {
+        let known = call_id.is_some_and(|id| self.call_records.borrow().contains_key(id));
+        let effective = self.call_records.borrow().len() + self.call_reserved.get() as usize;
+        if !admits_call(effective, known) {
+            // The operation, not an argument: no argument is wrong, and the
+            // host remedies this by ending a call and retrying — the same
+            // shape `connect()` uses when the call itself is the mistake.
+            return Err(crate::errors::invalid_arg(
+                op,
                 "too many live calls (32); end one and retry",
             ));
         }
-        Ok(())
+        if !known {
+            self.call_reserved.set(self.call_reserved.get() + 1);
+        }
+        Ok(SlotGuard {
+            reserved: if known {
+                None
+            } else {
+                Some(&self.call_reserved)
+            },
+        })
     }
 
     /// End whatever holds this call id, so the newcomer takes a clean slot.
@@ -855,14 +902,16 @@ impl WasmWhatsAppClient {
             .call_records
             .borrow()
             .get(call_id)
-            .map(|record| record.handle.clone());
-        let Some(old) = old else {
+            .map(|record| (record.handle.clone(), record.generation));
+        let Some((old, generation)) = old else {
             return;
         };
         // The outcome is not the caller's: teardown runs regardless, and
         // `finish_call` reports the displacement through the ended event.
+        // The generation pins the removal to what was read: a replacement
+        // registered during the await keeps its record.
         let _ = old.terminate().await;
-        self.finish_call(call_id);
+        self.finish_call(call_id, generation);
     }
 
     /// Store a started call, pump it, and return its id.
@@ -875,19 +924,26 @@ impl WasmWhatsAppClient {
     ) -> String {
         let speaker_depth = speaker_rx.clone();
         let call_id = handle.call_id().to_owned();
-        // Admission was checked before `start`, and same-id displacement ran
-        // above, so this insert cannot grow past capacity and cannot collide:
-        // both are re-checked in debug, not re-decided.
+        // Reservation held across startup, displacement ran above, and no
+        // await falls between here and the insert — so the bound holds and
+        // the slot is this call's. The debug assert re-checks the bound,
+        // not the decision.
+        let generation = {
+            let generation = self.call_generation.get();
+            self.call_generation.set(generation.wrapping_add(1));
+            generation
+        };
         {
             let mut records = self.call_records.borrow_mut();
             debug_assert!(
-                admits_call(records.len(), records.contains_key(&call_id)),
-                "admission ran before start and displacement ran after"
+                records.len() < ACTIVE_CALL_CAPACITY || records.contains_key(&call_id),
+                "reservation held and displacement ran before registering"
             );
             records.insert(
                 call_id.clone(),
                 CallRecord {
                     handle: handle.clone(),
+                    generation,
                     mic_tx,
                     mic_drain,
                     mic_muted: false,
@@ -903,10 +959,12 @@ impl WasmWhatsAppClient {
         // The speaker and the end watcher are aborted at finish; the event
         // forwarder is not — it drains queued diagnostics after the record
         // is gone, then exits on its own (and at drop, like everything).
-        let forwarder = self.spawn_call_event_task(&call_id, handle.clone());
+        // Every task learns the registration generation it serves, so a
+        // same-id replacement never reads as its own call.
+        let forwarder = self.spawn_call_event_task(&call_id, generation, handle.clone());
         let tasks = vec![
             self.spawn_speaker_task(&call_id, speaker_rx),
-            self.spawn_call_end_task(&call_id, handle),
+            self.spawn_call_end_task(&call_id, generation, handle),
         ]
         .into_iter()
         .flatten()
@@ -927,9 +985,16 @@ impl WasmWhatsAppClient {
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
     ) -> Option<wacore::runtime::AbortHandle> {
         let callback = self.call_audio_callback.clone()?;
+        let alive = self.calls_live.clone();
         let call_id = call_id.to_owned();
         Some(self.runtime.spawn(Box::pin(async move {
             while let Ok(frame) = speaker_rx.recv().await {
+                // Freed clients end here: aborting is signaled, and a pump
+                // that outlives teardown must break rather than invoke a
+                // host callback on its way out.
+                if !alive.get() {
+                    break;
+                }
                 let packet = js_sys::Object::new();
                 let set =
                     |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
@@ -968,9 +1033,13 @@ impl WasmWhatsAppClient {
         video_rx: async_channel::Receiver<VideoFrame>,
     ) -> Option<wacore::runtime::AbortHandle> {
         let callback = self.call_video_callback.clone()?;
+        let alive = self.calls_live.clone();
         let call_id = call_id.to_owned();
         Some(self.runtime.spawn(Box::pin(async move {
             while let Ok(frame) = video_rx.recv().await {
+                if !alive.get() {
+                    break;
+                }
                 let packet = js_sys::Object::new();
                 let set =
                     |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
@@ -1009,27 +1078,53 @@ impl WasmWhatsAppClient {
     fn spawn_call_event_task(
         &self,
         call_id: &str,
+        generation: u64,
         handle: CallHandle,
     ) -> Option<wacore::runtime::AbortHandle> {
         let events = handle.events();
         let callback = self.call_event_callback.clone();
         let records = self.call_records.clone();
+        let alive = self.calls_live.clone();
         let call_id = call_id.to_owned();
         Some(self.runtime.spawn(Box::pin(async move {
+            // The registration this task serves. A same-id replacement
+            // carries another generation, and this task must neither
+            // forward as it nor write its upgrade token.
+            let current = || {
+                records
+                    .borrow()
+                    .get(&call_id)
+                    .map(|record| record.generation)
+            };
             loop {
-                if !records.borrow().contains_key(&call_id) {
-                    // The call finished: drain what arrived, then exit. New
-                    // arrivals during the drain lose the race openly rather
-                    // than parking a dead call's task.
-                    for _ in 0..FORWARDER_DRAIN_CAP {
-                        let Ok(event) = events.try_recv() else {
-                            break;
-                        };
-                        if !forward_engine_event(&records, &call_id, callback.as_ref(), &event) {
-                            break;
-                        }
-                    }
+                // Freed clients end here instead of invoking a host
+                // callback on the way out; aborting is signaled, and a
+                // task that outlives teardown breaks instead.
+                if !alive.get() {
                     break;
+                }
+                match current() {
+                    Some(current) if current != generation => break,
+                    None => {
+                        // Finished, not replaced: drain what arrived, then
+                        // exit. The drain is synchronous, so no replacement
+                        // can slip in mid-loop; new arrivals past it lose
+                        // the race openly rather than parking a dead task.
+                        for _ in 0..FORWARDER_DRAIN_CAP {
+                            if !alive.get() {
+                                break;
+                            }
+                            let Ok(event) = events.try_recv() else {
+                                break;
+                            };
+                            if !forward_engine_event(&records, &call_id, callback.as_ref(), &event)
+                            {
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    _ => {}
                 }
                 match events.recv().await {
                     Ok(event) => {
@@ -1049,16 +1144,28 @@ impl WasmWhatsAppClient {
     fn spawn_call_end_task(
         &self,
         call_id: &str,
+        generation: u64,
         handle: CallHandle,
     ) -> Option<wacore::runtime::AbortHandle> {
         let records = self.call_records.clone();
         let past = self.past_call_stats.clone();
         let offers = self.call_offers.clone();
         let callback = self.call_event_callback.clone();
+        let alive = self.calls_live.clone();
         let call_id = call_id.to_owned();
         Some(self.runtime.spawn(Box::pin(async move {
             handle.wait_ended().await;
-            finish_call(&records, &past, &offers, callback.as_ref(), &call_id);
+            if !alive.get() {
+                return;
+            }
+            finish_call(
+                &records,
+                &past,
+                &offers,
+                callback.as_ref(),
+                &call_id,
+                generation,
+            );
         })))
     }
 
@@ -1073,13 +1180,16 @@ impl WasmWhatsAppClient {
 
     /// Release a call through the shared finish path below. The end watcher
     /// owns no client borrow, so both funnels meet there instead of here.
-    fn finish_call(&self, call_id: &str) {
+    /// The generation is the caller's own registration: a replacement that
+    /// slipped in during the terminate keeps its record.
+    fn finish_call(&self, call_id: &str, generation: u64) {
         finish_call(
             &self.call_records,
             &self.past_call_stats,
             &self.call_offers,
             self.call_event_callback.as_ref(),
             call_id,
+            generation,
         );
     }
 }
@@ -1100,10 +1210,18 @@ fn forward_engine_event(
         ..
     } = event
     {
-        if let Some(token) = upgrade_token
-            && let Some(record) = records.borrow_mut().get_mut(call_id)
-        {
-            record.pending_upgrade = Some(*token);
+        // The token belongs to a live request only. A non-upgrade state
+        // supersedes any request before it — a withdrawn or answered one
+        // must not linger into a later accept as a seemingly pending
+        // token the core would then refuse as stale.
+        if state.is_upgrade_request() {
+            if let Some(token) = upgrade_token
+                && let Some(record) = records.borrow_mut().get_mut(call_id)
+            {
+                record.pending_upgrade = Some(*token);
+            }
+        } else if let Some(record) = records.borrow_mut().get_mut(call_id) {
+            record.pending_upgrade = None;
         }
         let Some(callback) = callback else {
             return true;
@@ -1171,8 +1289,17 @@ fn finish_call(
     offers: &Mutex<OfferCache>,
     callback: Option<&MediaCallback>,
     call_id: &str,
+    generation: u64,
 ) {
-    let Some(record) = records.borrow_mut().remove(call_id) else {
+    // Generation-guarded: a same-id replacement registered while ending
+    // (an endCall racing a new answer, a watcher outlived by a retry)
+    // keeps its record, pumps, and controls. Only the remover emits.
+    // Synchronous throughout, so the check and the removal are atomic.
+    let mut records = records.borrow_mut();
+    if records.get(call_id).map(|record| record.generation) != Some(generation) {
+        return;
+    }
+    let Some(record) = records.remove(call_id) else {
         return;
     };
     for task in &record.tasks {
@@ -1232,6 +1359,31 @@ fn admits_call(record_count: usize, known_id: bool) -> bool {
     known_id || record_count < ACTIVE_CALL_CAPACITY
 }
 
+/// A counted slot reservation, released unless committed. Held across the
+/// core startup awaits so a concurrent start observes it; committing
+/// converts the count into the record `register_call` inserts. Every
+/// failure path drops it, which is what keeps the bound exact under
+/// concurrency rather than checked once and hoped.
+struct SlotGuard<'a> {
+    reserved: Option<&'a std::cell::Cell<u32>>,
+}
+
+impl SlotGuard<'_> {
+    fn commit(mut self) {
+        if let Some(counter) = self.reserved.take() {
+            counter.set(counter.get().saturating_sub(1));
+        }
+    }
+}
+
+impl Drop for SlotGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(counter) = self.reserved.take() {
+            counter.set(counter.get().saturating_sub(1));
+        }
+    }
+}
+
 /// The unknown-id rejection every per-call method shares.
 fn unknown_call() -> crate::errors::BridgeError {
     crate::errors::invalid_arg(
@@ -1240,16 +1392,20 @@ fn unknown_call() -> crate::errors::BridgeError {
     )
 }
 
-/// Map a group-invitation answer across. A non-offer or a non-group offer
-/// is the caller pointing a group method at the wrong ringing: worth
-/// naming the argument for, unlike the media/setup failures around it,
-/// which walk the chain.
+/// Map an identifier-keyed group control across. Three shapes name the
+/// caller's own doing: a non-offer or non-group offer handed to an invite
+/// method, and a registry guard reporting the call gone — a stale id is
+/// not evidence the bridge broke. Everything else walks the chain.
 ///
-/// The group literal tracks the core's message; re-check it on pin bumps.
-fn group_invite_error(error: CallError) -> crate::errors::BridgeError {
+/// The literals track the core's messages; re-check them on pin bumps,
+/// since a reword upstream silently returns those paths to `internal`.
+fn group_control_error(error: CallError) -> crate::errors::BridgeError {
     match &error {
         CallError::NotAnOffer => crate::errors::invalid_arg("callId", error.to_string()),
-        CallError::Media(message) if message == &"offer is not an active group invitation" => {
+        CallError::Media(message)
+            if message == &"offer is not an active group invitation"
+                || message == &"call is no longer active" =>
+        {
             crate::errors::invalid_arg("callId", message.to_string())
         }
         _ => crate::errors::BridgeError::from(error),
@@ -1555,6 +1711,20 @@ mod call_media_tests {
     }
 
     #[test]
+    fn resolving_sends_release_the_offer() {
+        // What rejectCall and terminateCall run after a successful send:
+        // answering afterwards must find nothing, and resolving twice
+        // (a reject beside its own terminate event) must not error.
+        let cache = cache();
+        let offer = offered_call("CALL-9", &[("opus", "16000")]);
+        note_call_event(&cache, &Event::IncomingCall(Box::new(offer)));
+        assert!(cache.lock().unwrap().contains_key("CALL-9"));
+        evict_offer(&cache, "CALL-9");
+        assert!(!cache.lock().unwrap().contains_key("CALL-9"));
+        evict_offer(&cache, "CALL-9");
+    }
+
+    #[test]
     fn unrelated_calls_do_not_evict_each_other() {
         let cache = cache();
         for id in ["CALL-A", "CALL-B"] {
@@ -1731,13 +1901,13 @@ mod call_group_tests {
 
     #[test]
     fn group_invite_answers_name_the_call() {
-        match group_invite_error(CallError::NotAnOffer) {
+        match group_control_error(CallError::NotAnOffer) {
             crate::errors::BridgeError::InvalidArgument { field, .. } => {
                 assert_eq!(field, "callId")
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }
-        match group_invite_error(CallError::Media("offer is not an active group invitation")) {
+        match group_control_error(CallError::Media("offer is not an active group invitation")) {
             crate::errors::BridgeError::InvalidArgument { field, reason } => {
                 assert_eq!(field, "callId");
                 assert!(
@@ -1747,11 +1917,17 @@ mod call_group_tests {
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }
-        // Anything else walks the chain: a genuinely failed invite is not
-        // the caller pointing at the wrong ringing.
-        match group_invite_error(CallError::Media("call is no longer active")) {
-            crate::errors::BridgeError::Internal { .. } => {}
-            other => panic!("expected internal, got {other:?}"),
+        // A stale id names the call, not the bridge: the registry guard
+        // firing means the invitation died, not that anything broke.
+        match group_control_error(CallError::Media("call is no longer active")) {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "callId");
+                assert!(
+                    reason.contains("no longer active"),
+                    "unexpected reason: {reason}"
+                );
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
         }
     }
 

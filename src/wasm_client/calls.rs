@@ -46,7 +46,13 @@ impl WasmWhatsAppClient {
             .voip()
             .reject_call(call_id, &peer, &call_creator)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(crate::errors::BridgeError::from)?;
+        // The ringing is over by our own hand: answering afterwards would
+        // answer a declined call, so the retained offer goes with it. A
+        // failed send keeps the offer — the call may still be ringing.
+        #[cfg(feature = "client-calls-audio")]
+        super::calls_audio::evict_offer(&self.call_offers, call_id);
+        Ok(())
     }
 
     /// Hang up an active call.
@@ -69,6 +75,11 @@ impl WasmWhatsAppClient {
             .voip()
             .terminate(call_id, &peer, &call_creator)
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(crate::errors::BridgeError::from)?;
+        // Same ownership as the reject above: success ends the ringing,
+        // failure keeps the offer for a retry.
+        #[cfg(feature = "client-calls-audio")]
+        super::calls_audio::evict_offer(&self.call_offers, call_id);
+        Ok(())
     }
 }

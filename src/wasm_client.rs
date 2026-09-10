@@ -662,6 +662,71 @@ interface WasmWhatsAppClient {
 }
 "#;
 
+// The relay provider callback interfaces, emitted in every feature set:
+// a host implements them against any build, so gating these declarations
+// with the domain would break the TypeScript bundle of a reduced build
+// whose installer method is absent but whose helper still typechecks.
+// (The `result_types` doc comments survive gating for the same reason.)
+#[wasm_bindgen(typescript_custom_section)]
+const TS_RELAY: &str = r#"
+/**
+ * Host-owned relay media channel for one call, behind
+ * `setRelayTransportProvider`. The bridge implements the core's
+ * `RelayTransportProvider` over these three functions and never touches
+ * WebRTC itself.
+ *
+ * `createRelayConnection(params, events)` builds the channel and resolves
+ * with its handle once the channel is open and carrying datagrams. The
+ * default implementation is `createRtcRelayTransportProvider`, which answers
+ * an `RTCPeerConnection` with a synthetic SDP description of the relay and
+ * opens the pre-negotiated id=0 DataChannel the relay expects
+ * (`ordered: false, maxRetransmits: 0`); a host may supply its own
+ * constructor instead, as long as it keeps this contract:
+ *
+ * - `params` carries the relay address plus the ICE credentials the call
+ *   named. `icePwd` is live credential material; it goes into the
+ *   connectivity checks and nowhere else.
+ * - `events.onPacket(data)` gets every datagram that arrives, exactly once.
+ *   VoIP is loss tolerant, so under backpressure the host drops rather than
+ *   queues without bound.
+ * - `events.onOpen()` fires once the channel carries datagrams. The bridge
+ *   reports the relay connected on it.
+ * - `events.onClose(reason?)` fires when the channel is gone, including
+ *   after `close()` resolves. A string reason reports a transport-level
+ *   read error; absent means a clean close.
+ * - `handle.send(data)` ships one datagram. It may resolve synchronously.
+ * - `handle.close()` tears the channel down and is followed by `onClose`.
+ *
+ * Every Promise handed back must settle, including on failure: reject rather
+ * than leaving it pending. The bridge awaits through `JsFuture`, whose
+ * resolve/reject pair is only released when the promise settles.
+ */
+export interface JsRelayConnectionParams {
+    address: string;
+    port: number;
+    iceUfrag: string;
+    icePwd: string;
+}
+
+export interface JsRelayConnectionEvents {
+    onPacket(data: Uint8Array): void;
+    onOpen(): void;
+    onClose(reason?: string): void;
+}
+
+export interface JsRelayConnectionHandle {
+    send(data: Uint8Array): void | Promise<void>;
+    close(): void | Promise<void>;
+}
+
+export interface JsRelayProviderCallbacks {
+    createRelayConnection(
+        params: JsRelayConnectionParams,
+        events: JsRelayConnectionEvents,
+    ): Promise<JsRelayConnectionHandle>;
+}
+"#;
+
 // Merged into `WhatsAppEventCallbacks` above by TypeScript declaration
 // merging, so the media sinks stay optional members of the same callbacks
 // object. Gated with the feature: without `client-calls-audio` there is no
@@ -685,9 +750,9 @@ export interface CallAudioFrame {
 }
 
 /**
- * Lifecycle and media diagnostics for one live call. Only the
- * encoded-audio 1:1 subset crosses in this slice; group, video, reaction
- * and RTCP events belong to later slices.
+ * Lifecycle and media diagnostics for one live call. The encoded-audio
+ * 1:1 subset crosses, plus the 1:1 video upgrade and state events;
+ * group, reaction and RTCP events belong to later slices.
  */
 export type CallMediaEventKind =
   | "relay-allocated"
@@ -2836,6 +2901,12 @@ pub async fn create_whatsapp_client(
         call_event_callback: call_media_callbacks.1,
         #[cfg(feature = "client-calls-audio")]
         call_video_callback: call_media_callbacks.2,
+        #[cfg(feature = "client-calls-audio")]
+        call_generation: std::cell::Cell::new(0),
+        #[cfg(feature = "client-calls-audio")]
+        call_reserved: std::cell::Cell::new(0),
+        #[cfg(feature = "client-calls-audio")]
+        calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
 }
 
@@ -3161,6 +3232,22 @@ pub struct WasmWhatsAppClient {
     /// Host sink for peer video access units, when one was registered.
     #[cfg(feature = "client-calls-audio")]
     call_video_callback: Option<calls_audio::MediaCallback>,
+    /// Call registration counter. Hands each record a generation so a
+    /// finish path removes only its own registration, never a same-id
+    /// replacement that superseded it mid-await.
+    #[cfg(feature = "client-calls-audio")]
+    call_generation: std::cell::Cell<u64>,
+    /// Reservation count for calls past validation but not yet recorded.
+    /// Admission checks it alongside the map so concurrent starts cannot
+    /// each pass the count and then all insert past capacity.
+    #[cfg(feature = "client-calls-audio")]
+    call_reserved: std::cell::Cell<u32>,
+    /// Still-true until `free()`. Call tasks check it before invoking
+    /// host callbacks: aborting is signaled, not synchronous, so a task
+    /// that outlives teardown must not call into a freed heap on its way
+    /// out — it breaks instead.
+    #[cfg(feature = "client-calls-audio")]
+    calls_live: std::rc::Rc<std::cell::Cell<bool>>,
 }
 
 // The exported surface is split across per-domain child modules, each with
@@ -3221,19 +3308,21 @@ impl Drop for WasmWhatsAppClient {
                 handle.abort();
             }
         }
-        // Call pumps first: a task awaiting the next packet or event would
-        // otherwise keep calling into host callbacks after the heap they
-        // belong to is gone. Aborting here is what makes `free()` without a
-        // prior `endCall` safe rather than merely quiet. The event
-        // forwarder is included: its drain-after-finish only runs while a
-        // client is alive to own it.
+        // Call pumps first, then the liveness flag: aborting is signaled,
+        // not synchronous, so a task that outlives teardown must observe
+        // the flag and break instead of invoking a host callback on its
+        // way out. The flag flips before the aborts so even a task that
+        // never polls again cannot call past it.
         #[cfg(feature = "client-calls-audio")]
-        for record in self.call_records.borrow().values() {
-            for task in &record.tasks {
-                task.abort();
-            }
-            if let Some(forwarder) = &record.forwarder {
-                forwarder.abort();
+        {
+            self.calls_live.set(false);
+            for record in self.call_records.borrow().values() {
+                for task in &record.tasks {
+                    task.abort();
+                }
+                if let Some(forwarder) = &record.forwarder {
+                    forwarder.abort();
+                }
             }
         }
 

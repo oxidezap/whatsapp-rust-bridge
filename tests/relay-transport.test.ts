@@ -9,7 +9,7 @@
  * connection is ever built.
  */
 
-import { describe, test, expect } from "bun:test";
+import { afterEach, describe, test, expect } from "bun:test";
 import {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
@@ -107,6 +107,133 @@ describe("send backpressure", () => {
     expect(shedBufferedPacket(0, 8192)).toBe(false);
     expect(shedBufferedPacket(8192, 8192)).toBe(false);
     expect(shedBufferedPacket(8193, 8192)).toBe(true);
+  });
+});
+
+describe("handshake lifecycle", () => {
+  type FakeChannel = {
+    binaryType: string;
+    onmessage: ((event: { data: unknown }) => void) | null;
+    onopen: (() => void) | null;
+    onclose: (() => void) | null;
+    onerror: ((event: { message?: unknown }) => void) | null;
+    readyState: string;
+    sent: unknown[];
+    closed: boolean;
+    send(data: unknown): void;
+    close(): void;
+  };
+
+  type Script = {
+    createDataChannelThrows?: boolean;
+    openDelay?: number;
+    closeBeforeOpen?: boolean;
+    closedPcs: number;
+  };
+
+  function installFakePeerConnection(script: Script) {
+    const channels: FakeChannel[] = [];
+    (globalThis as Record<string, unknown>).RTCPeerConnection =
+      class {
+        closed = false;
+        createDataChannel() {
+          if (script.createDataChannelThrows) {
+            throw new Error("negotiated channels unsupported");
+          }
+          const channel: FakeChannel = {
+            binaryType: "",
+            onmessage: null,
+            onopen: null,
+            onclose: null,
+            onerror: null,
+            readyState: "connecting",
+            sent: [],
+            closed: false,
+            send(data: unknown) {
+              if (channel.readyState !== "open") throw new Error("not open");
+              channel.sent.push(data);
+            },
+            close() {
+              channel.closed = true;
+            },
+          };
+          channels.push(channel);
+          if (script.closeBeforeOpen) {
+            queueMicrotask(() => {
+              channel.readyState = "closed";
+              channel.onclose?.();
+            });
+          } else {
+            const delay = script.openDelay ?? 0;
+            setTimeout(() => {
+              channel.readyState = "open";
+              channel.onopen?.();
+            }, delay);
+          }
+          return channel;
+        }
+        async createOffer() {
+          return { type: "offer", sdp: "" };
+        }
+        async setLocalDescription() {}
+        async setRemoteDescription() {}
+        close() {
+          this.closed = true;
+          script.closedPcs += 1;
+        }
+      };
+    return channels;
+  }
+
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>).RTCPeerConnection;
+  });
+
+  test("the handle resolves only once the channel carries datagrams", async () => {
+    const script: Script = { openDelay: 5, closedPcs: 0 };
+    installFakePeerConnection(script);
+    const events: string[] = [];
+    const provider = createRtcRelayTransportProvider(FINGERPRINT);
+    const handle = await provider.createRelayConnection(
+      { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+      {
+        onPacket() {},
+        onOpen() {
+          events.push("open");
+        },
+        onClose() {},
+      }
+    );
+    // Open fired as part of construction, before the handle came back.
+    expect(events).toEqual(["open"]);
+    expect(script.closedPcs).toBe(0);
+    handle.send(new Uint8Array([1]));
+  });
+
+  test("a throwing channel creation releases the peer connection", async () => {
+    const script: Script = { createDataChannelThrows: true, closedPcs: 0 };
+    installFakePeerConnection(script);
+    const provider = createRtcRelayTransportProvider(FINGERPRINT);
+    await expect(
+      provider.createRelayConnection(
+        { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+        { onPacket() {}, onOpen() {}, onClose() {} }
+      )
+    ).rejects.toThrow(/negotiated channels unsupported/);
+    expect(script.closedPcs).toBe(1);
+  });
+
+  test("a close before open rejects instead of hanging", async () => {
+    const script: Script = { closeBeforeOpen: true, closedPcs: 0 };
+    installFakePeerConnection(script);
+    const provider = createRtcRelayTransportProvider(FINGERPRINT);
+    await expect(
+      provider.createRelayConnection(
+        { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+        { onPacket() {}, onOpen() {}, onClose() {} }
+      )
+    ).rejects.toThrow(/closed before opening/);
+    expect(script.closedPcs).toBe(1);
   });
 });
 

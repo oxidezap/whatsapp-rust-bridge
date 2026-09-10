@@ -25,70 +25,10 @@ use whatsapp_rust::wacore::voip::transport::{
     RelayTransportFactory, RelayTransportProvider,
 };
 
-// ---------------------------------------------------------------------------
-// TypeScript interface (documentation only — actual impl uses raw Functions)
-// ---------------------------------------------------------------------------
-
-#[wasm_bindgen(typescript_custom_section)]
-const TS_RELAY: &str = r#"
-/**
- * Host-owned relay media channel for one call, behind
- * `setRelayTransportProvider`. The bridge implements the core's
- * `RelayTransportProvider` over these three functions and never touches
- * WebRTC itself.
- *
- * `createRelayConnection(params, events)` builds the channel and resolves
- * with its handle once the channel is open and carrying datagrams. The
- * default implementation is `createRtcRelayTransportProvider`, which answers
- * an `RTCPeerConnection` with a synthetic SDP description of the relay and
- * opens the pre-negotiated id=0 DataChannel the relay expects
- * (`ordered: false, maxRetransmits: 0`); a host may supply its own
- * constructor instead, as long as it keeps this contract:
- *
- * - `params` carries the relay address plus the ICE credentials the call
- *   named. `icePwd` is live credential material; it goes into the
- *   connectivity checks and nowhere else.
- * - `events.onPacket(data)` gets every datagram that arrives, exactly once.
- *   VoIP is loss tolerant, so under backpressure the host drops rather than
- *   queues without bound.
- * - `events.onOpen()` fires once the channel carries datagrams. The bridge
- *   reports the relay connected on it.
- * - `events.onClose(reason?)` fires when the channel is gone, including
- *   after `close()` resolves. A string reason reports a transport-level
- *   read error; absent means a clean close.
- * - `handle.send(data)` ships one datagram. It may resolve synchronously.
- * - `handle.close()` tears the channel down and is followed by `onClose`.
- *
- * Every Promise handed back must settle, including on failure: reject rather
- * than leaving it pending. The bridge awaits through `JsFuture`, whose
- * resolve/reject pair is only released when the promise settles.
- */
-export interface JsRelayConnectionParams {
-    address: string;
-    port: number;
-    iceUfrag: string;
-    icePwd: string;
-}
-
-export interface JsRelayConnectionEvents {
-    onPacket(data: Uint8Array): void;
-    onOpen(): void;
-    onClose(reason?: string): void;
-}
-
-export interface JsRelayConnectionHandle {
-    send(data: Uint8Array): void | Promise<void>;
-    close(): void | Promise<void>;
-}
-
-export interface JsRelayProviderCallbacks {
-    createRelayConnection(
-        params: JsRelayConnectionParams,
-        events: JsRelayConnectionEvents,
-    ): Promise<JsRelayConnectionHandle>;
-}
-"#;
-
+// The provider callback interfaces live in `wasm_client.rs` as an ungated
+// TypeScript section: hosts implement them against any feature set, so the
+// declarations must survive `client-calls-audio` being off. The installer
+// method itself stays gated with the domain.
 const CREATE_METHOD: &str = "createRelayConnection";
 const SEND_METHOD: &str = "send";
 const CLOSE_METHOD: &str = "close";
@@ -167,17 +107,29 @@ impl RawRelayCallbacks {
 }
 
 /// Push one inbound packet, accounting sheds the engine never sees.
+///
 /// Drops accumulate in `drops` and ride ahead of the next delivered packet
 /// — ahead because they happened earlier — instead of being fired into the
-/// same full channel, which could never succeed.
+/// same full channel, which could never succeed. Reports ride only when
+/// they cost no packet slot: with exactly one slot free the packet goes
+/// and the count waits, because a report that spends the last slot starves
+/// the packet behind it, and a consumer draining one slot per arrival
+/// would then watch every packet shed forever — transient saturation
+/// turned into a sustained blackout. Single-threaded, so nothing slips
+/// between the length check and the sends.
 fn push_packet(tx: &async_channel::Sender<RelayTransportEvent>, drops: &AtomicU32, bytes: Bytes) {
-    let pending = drops.swap(0, Ordering::AcqRel);
-    if pending > 0
-        && tx
-            .try_send(RelayTransportEvent::InboundDropped(pending))
-            .is_err()
-    {
-        drops.fetch_add(pending, Ordering::AcqRel);
+    let free = tx
+        .capacity()
+        .map_or(usize::MAX, |cap| cap.saturating_sub(tx.len()));
+    if free >= 2 {
+        let pending = drops.swap(0, Ordering::AcqRel);
+        if pending > 0
+            && tx
+                .try_send(RelayTransportEvent::InboundDropped(pending))
+                .is_err()
+        {
+            drops.fetch_add(pending, Ordering::AcqRel);
+        }
     }
     match tx.try_send(RelayTransportEvent::PacketReceived(bytes)) {
         Ok(()) => {}
@@ -475,42 +427,51 @@ mod relay_event_tests {
     /// order they happened — never fired into the full channel that just
     /// refused them.
     #[test]
-    fn sheds_are_counted_and_reported_ahead() {
-        let (tx, rx) = async_channel::bounded(2);
+    fn sheds_are_counted_and_packets_keep_flowing() {
+        let (tx, rx) = async_channel::bounded(3);
         let drops = AtomicU32::new(0);
 
         push_packet(&tx, &drops, packet(1));
         push_packet(&tx, &drops, packet(2));
-        // Full now: this shed must not reach the channel, only the counter.
         push_packet(&tx, &drops, packet(3));
-        assert_eq!(drops.load(Ordering::Acquire), 1);
-
-        match rx.try_recv().expect("the first packet is queued") {
-            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(1)),
-            other => panic!("expected the queued packet, got {other:?}"),
-        }
-        // Room for one: the shed count rides ahead of the packet that
-        // follows it, in the order the two happened.
+        // Full: this shed reaches only the counter.
         push_packet(&tx, &drops, packet(4));
         assert_eq!(drops.load(Ordering::Acquire), 1);
-        match rx.try_recv().expect("the second packet is queued") {
-            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(2)),
+
+        // The consumer drains one slot per arrival from here on. The count
+        // waits while only one slot is free, and every packet still gets
+        // through — no report ever starves one.
+        for expected in [packet(1), packet(2), packet(3)] {
+            match rx.try_recv().expect("a queued packet reads back") {
+                RelayTransportEvent::PacketReceived(data) => assert_eq!(data, expected),
+                other => panic!("expected the queued packet, got {other:?}"),
+            }
+            push_packet(&tx, &drops, packet(9));
+        }
+        assert_eq!(drops.load(Ordering::Acquire), 1);
+        // Drained faster than arrivals now: with two slots free the waiting
+        // count flushes ahead of the next packet, in the order the two
+        // happened — older packet, shed count, new packet.
+        for _ in 0..2 {
+            match rx.try_recv().expect("a queued packet reads back") {
+                RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(9)),
+                other => panic!("expected the queued packet, got {other:?}"),
+            }
+        }
+        push_packet(&tx, &drops, packet(9));
+        match rx.try_recv().expect("a queued packet reads back") {
+            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(9)),
             other => panic!("expected the queued packet, got {other:?}"),
         }
-        match rx.try_recv().expect("the shed count follows") {
+        match rx.try_recv().expect("the shed count reads back") {
             RelayTransportEvent::InboundDropped(1) => {}
             other => panic!("expected the shed count, got {other:?}"),
         }
-        push_packet(&tx, &drops, packet(5));
+        match rx.try_recv().expect("the new packet follows its count") {
+            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(9)),
+            other => panic!("expected the queued packet, got {other:?}"),
+        }
         assert_eq!(drops.load(Ordering::Acquire), 0);
-        match rx.try_recv().expect("the shed count precedes the packet") {
-            RelayTransportEvent::InboundDropped(1) => {}
-            other => panic!("expected the shed count, got {other:?}"),
-        }
-        match rx.try_recv().expect("the fifth packet follows its count") {
-            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(5)),
-            other => panic!("expected the queued packet, got {other:?}"),
-        }
     }
 
     /// A close the queue cannot carry still terminates the call: closing
