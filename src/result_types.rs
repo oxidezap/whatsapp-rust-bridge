@@ -1503,10 +1503,7 @@ pub enum CallEndResult {
     /// not be confirmed, so those may keep ringing until their own transport
     /// gives up.
     #[serde(rename = "partly-notified", rename_all = "camelCase")]
-    PartlyNotified {
-        notified: f64,
-        unconfirmed: f64,
-    },
+    PartlyNotified { notified: f64, unconfirmed: f64 },
     /// No send was confirmed, so the peer may keep ringing or talking until
     /// its own transport gives up. Carries why the send failed; the bytes may
     /// still have reached the wire.

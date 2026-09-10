@@ -72,5 +72,3 @@ impl WasmWhatsAppClient {
             .map_err(crate::errors::BridgeError::from)
     }
 }
-
-

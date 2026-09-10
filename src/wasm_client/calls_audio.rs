@@ -20,14 +20,15 @@
 //! elsewhere-resolution for the id drops it.
 
 use super::*;
+use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use whatsapp_rust::voip::{CallHandle, CallTermination};
 use whatsapp_rust::wacore::types::call::IncomingCall;
 use whatsapp_rust::wacore::types::events::Event;
 use whatsapp_rust::wacore::voip::{AudioCodec, AudioFormat, CallEvent};
-use whatsapp_rust::voip::{CallHandle, CallTermination};
 use whatsapp_rust::{CallError, wacore};
 
 /// Offers that rang and have not resolved yet, by call id. Inserted from the
@@ -133,7 +134,8 @@ impl WasmWhatsAppClient {
     pub async fn accept_call(
         &self,
         call_id: &str,
-        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")] audio_format: Option<JsValue>,
+        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")]
+        audio_format: Option<JsValue>,
     ) -> Result<String, crate::errors::BridgeError> {
         let format = call_audio_format(audio_format)?;
         let offer = self
@@ -177,7 +179,8 @@ impl WasmWhatsAppClient {
     pub async fn dial_call(
         &self,
         peer: &str,
-        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")] audio_format: Option<JsValue>,
+        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")]
+        audio_format: Option<JsValue>,
     ) -> Result<String, crate::errors::BridgeError> {
         let peer_jid = parse_named_jid("peer", peer)?;
         let format = call_audio_format(audio_format)?;
@@ -215,10 +218,7 @@ impl WasmWhatsAppClient {
                 "audio packet must not be empty",
             ));
         }
-        let records = self
-            .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let records = self.call_records.borrow();
         let Some(record) = records.get(call_id) else {
             return Err(crate::errors::invalid_arg(
                 "callId",
@@ -246,13 +246,7 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::CallEndResult>, crate::errors::BridgeError> {
         // Before the gate: ending a call that is already gone is an answer,
         // not something worth parking behind a reconnect.
-        if !self
-            .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .contains_key(call_id)
-            && !self.past_call_stats_has(call_id)
-        {
+        if !self.call_records.borrow().contains_key(call_id) && !self.past_call_stats_has(call_id) {
             return Err(crate::errors::invalid_arg(
                 "callId",
                 "no live call for this call id (ended or never started)",
@@ -266,8 +260,7 @@ impl WasmWhatsAppClient {
         self.client.online().await?;
         let handle = self
             .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .borrow()
             .get(call_id)
             .map(|record| record.handle.clone());
         // The end watcher may have finished the call while the gate was
@@ -289,8 +282,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let handle = self
             .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .borrow()
             .get(call_id)
             .map(|record| record.handle.clone())
             .ok_or_else(|| {
@@ -319,8 +311,7 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::CallMediaStatsResult>, crate::errors::BridgeError> {
         if let Some(stats) = self
             .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .borrow()
             .get(call_id)
             .map(|record| call_media_stats_to_result(&record.handle.media_stats()))
         {
@@ -350,8 +341,7 @@ impl WasmWhatsAppClient {
         // bridge `internal` for a snapshot getter would be noise; hosts that
         // need failure semantics use the per-call methods.
         self.call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .borrow()
             .values()
             .map(|record| {
                 crate::result_types::ActiveCallResult {
@@ -397,10 +387,7 @@ impl WasmWhatsAppClient {
     ) -> String {
         let call_id = handle.call_id().to_owned();
         {
-            let mut records = self
-                .call_records
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
+            let mut records = self.call_records.borrow_mut();
             if records.len() >= ACTIVE_CALL_CAPACITY && !records.contains_key(&call_id) {
                 // Same backstop reasoning as the offer cache: the core owns
                 // call policy, and unbounded host-side retention is worse
@@ -430,12 +417,7 @@ impl WasmWhatsAppClient {
         // The end watcher aborts its siblings when the call finishes; every
         // task here ends with the call either way, so nothing here outlives
         // `finish_call` except the watcher itself, which ends with it.
-        if let Some(record) = self
-            .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .get_mut(&call_id)
-        {
+        if let Some(record) = self.call_records.borrow_mut().get_mut(&call_id) {
             record.tasks = tasks;
         }
         call_id
@@ -454,9 +436,8 @@ impl WasmWhatsAppClient {
         Some(self.runtime.spawn(Box::pin(async move {
             while let Ok(frame) = speaker_rx.recv().await {
                 let packet = js_sys::Object::new();
-                let set = |key: &str, value: &JsValue| {
-                    js_sys::Reflect::set(&packet, &key.into(), value)
-                };
+                let set =
+                    |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
                 // One copy on the way out: owned packet bytes into a typed
                 // array the host decodes or plays.
                 let data = js_sys::Uint8Array::from(frame.data.as_ref());
@@ -537,64 +518,30 @@ impl WasmWhatsAppClient {
             .any(|(id, _)| id == call_id)
     }
 
-    /// Release a call: abort its pumps, drop its offer, keep its final
-    /// counters, and tell the host it ended. Idempotent — only the remover
-    /// emits, so a racing `endCall` and end watcher cannot double-report.
+    /// Release a call through the shared finish path below. The end watcher
+    /// owns no client borrow, so both funnels meet there instead of here.
     fn finish_call(&self, call_id: &str) {
-        let Some(record) = self
-            .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .remove(call_id)
-        else {
-            return;
-        };
-        for task in &record.tasks {
-            task.abort();
-        }
-        self.call_offers
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .remove(call_id);
-        let stats = call_media_stats_to_result(&record.handle.media_stats());
-        {
-            let mut past = self
-                .past_call_stats
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
-            past.push_back((call_id.to_owned(), stats));
-            while past.len() > PAST_STATS_CAPACITY {
-                past.pop_front();
-            }
-        }
-        if let Some(callback) = self.call_event_callback.as_ref() {
-            match call_event_object(call_id, "ended") {
-                Ok(event) => {
-                    if callback.call1(&JsValue::NULL, &event.into()).is_err() {
-                        log::error!("Call event callback threw on ended for {call_id}");
-                    }
-                }
-                Err(e) => log::error!("Ended event object rejected its fields: {e:?}"),
-            }
-        }
+        finish_call(
+            &self.call_records,
+            &self.past_call_stats,
+            &self.call_offers,
+            self.call_event_callback.as_ref(),
+            call_id,
+        );
     }
 }
 
-/// The shared half of [`WasmWhatsAppClient::finish_call`], for the end
-/// watcher, which owns no client borrow — only the Arcs the record setup
-/// cloned for it.
+/// Release a call: abort its pumps, drop its offer, keep its final
+/// counters, and tell the host it ended. Idempotent — only the remover
+/// emits, so a racing `endCall` and end watcher cannot double-report.
 fn finish_call(
-    records: &Mutex<HashMap<String, CallRecord>>,
+    records: &RefCell<HashMap<String, CallRecord>>,
     past: &Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>,
     offers: &Mutex<OfferCache>,
     callback: Option<&js_sys::Function>,
     call_id: &str,
 ) {
-    let Some(record) = records
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .remove(call_id)
-    else {
+    let Some(record) = records.borrow_mut().remove(call_id) else {
         return;
     };
     for task in &record.tasks {
@@ -631,9 +578,7 @@ fn finish_call(
 /// Parse the encoded-audio promise, defaulting to MLOW. Validation happens
 /// before the gate: a misspelled format is the caller's own doing and should
 /// not sit out a reconnect to be told so.
-fn call_audio_format(
-    value: Option<JsValue>,
-) -> Result<AudioFormat, crate::errors::BridgeError> {
+fn call_audio_format(value: Option<JsValue>) -> Result<AudioFormat, crate::errors::BridgeError> {
     let format = match value {
         Some(value) if !value.is_null() && !value.is_undefined() => {
             from_js_input::<crate::result_types::CallAudioFormat>("audioFormat", value)?
@@ -673,22 +618,18 @@ fn call_error_to_bridge(error: CallError) -> crate::errors::BridgeError {
             "audioFormat",
             format!("the peer offered no audio at {rate} Hz; retry with the other format"),
         ),
-        CallError::EncodedAudioCodecNotNegotiated { selected, .. } => {
-            crate::errors::invalid_arg(
-                "audioFormat",
-                format!(
-                    "the peer speaks {}; retry with that format",
-                    call_audio_codec_str(selected)
-                ),
-            )
-        }
+        CallError::EncodedAudioCodecNotNegotiated { selected, .. } => crate::errors::invalid_arg(
+            "audioFormat",
+            format!(
+                "the peer speaks {}; retry with that format",
+                call_audio_codec_str(selected)
+            ),
+        ),
         _ => crate::errors::BridgeError::from(error),
     }
 }
 
-fn call_termination_to_result(
-    outcome: &CallTermination,
-) -> crate::result_types::CallEndResult {
+fn call_termination_to_result(outcome: &CallTermination) -> crate::result_types::CallEndResult {
     use crate::result_types::CallEndResult as R;
     match outcome {
         CallTermination::PeerNotified => R::PeerNotified,
@@ -801,8 +742,6 @@ fn translate_call_event(call_id: &str, event: &CallEvent) -> Option<JsValue> {
     Some(translated.into())
 }
 
-
-
 #[cfg(test)]
 mod call_media_tests {
     use super::*;
@@ -812,7 +751,9 @@ mod call_media_tests {
     use whatsapp_rust::wacore_binary::node::{Attrs, Node, NodeContent, NodeValue};
 
     fn jid(user: &str) -> Jid {
-        format!("{user}@s.whatsapp.net").parse().expect("test JID parses")
+        format!("{user}@s.whatsapp.net")
+            .parse()
+            .expect("test JID parses")
     }
 
     fn attr_string(attrs: &mut Attrs, key: &str, value: &str) {
@@ -849,12 +790,12 @@ mod call_media_tests {
                 Node::new("audio", audio_attrs, None)
             })
             .collect::<Vec<_>>();
-        let offer = Node::new("offer", offer_attrs, Some(NodeContent::Nodes(audio_children)));
-        let node = Node::new(
-            "call",
-            call_attrs,
-            Some(NodeContent::Nodes(vec![offer])),
+        let offer = Node::new(
+            "offer",
+            offer_attrs,
+            Some(NodeContent::Nodes(audio_children)),
         );
+        let node = Node::new("call", call_attrs, Some(NodeContent::Nodes(vec![offer])));
         parse_call_stanza(&node.as_node_ref())
             .expect("the test offer parses")
             .expect("the test offer is a call")
@@ -986,8 +927,8 @@ mod call_media_tests {
     fn engine_events_cross_typed_or_not_at_all() {
         let allocated = translate_call_event("CALL-1", &CallEvent::RelayAllocated)
             .expect("relay-allocated crosses");
-        let kind = js_sys::Reflect::get(&allocated, &"kind".into())
-            .expect("the event carries a kind");
+        let kind =
+            js_sys::Reflect::get(&allocated, &"kind".into()).expect("the event carries a kind");
         assert_eq!(kind.as_string().as_deref(), Some("relay-allocated"));
 
         let failed = translate_call_event("CALL-1", &CallEvent::RelayAllocateFailed(486))

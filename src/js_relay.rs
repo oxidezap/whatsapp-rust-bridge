@@ -140,12 +140,20 @@ impl RawRelayCallbacks {
             .map_err(|e| anyhow::anyhow!("relay params address: {e:?}"))?;
         js_sys::Reflect::set(&params_obj, &"port".into(), &port.into())
             .map_err(|e| anyhow::anyhow!("relay params port: {e:?}"))?;
-        js_sys::Reflect::set(&params_obj, &"iceUfrag".into(), &params.ice_ufrag.clone().into())
-            .map_err(|e| anyhow::anyhow!("relay params iceUfrag: {e:?}"))?;
+        js_sys::Reflect::set(
+            &params_obj,
+            &"iceUfrag".into(),
+            &params.ice_ufrag.clone().into(),
+        )
+        .map_err(|e| anyhow::anyhow!("relay params iceUfrag: {e:?}"))?;
         // Live credential material, crossing because the connectivity checks
         // are built on the host side. It goes into the checks and nowhere else.
-        js_sys::Reflect::set(&params_obj, &"icePwd".into(), &params.ice_pwd.clone().into())
-            .map_err(|e| anyhow::anyhow!("relay params icePwd: {e:?}"))?;
+        js_sys::Reflect::set(
+            &params_obj,
+            &"icePwd".into(),
+            &params.ice_pwd.clone().into(),
+        )
+        .map_err(|e| anyhow::anyhow!("relay params icePwd: {e:?}"))?;
 
         let events = relay_events_object(event_tx);
         let result = self
@@ -160,9 +168,7 @@ impl RawRelayCallbacks {
 /// event channel and returns; a closed or full channel is a teardown in
 /// progress or a wedged consumer, and neither is answered by blocking a
 /// host callback.
-fn relay_events_object(
-    event_tx: async_channel::Sender<RelayTransportEvent>,
-) -> JsValue {
+fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> JsValue {
     let obj = js_sys::Object::new();
 
     let tx = event_tx.clone();

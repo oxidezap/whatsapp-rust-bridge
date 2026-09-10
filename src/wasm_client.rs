@@ -2796,7 +2796,7 @@ pub async fn create_whatsapp_client(
         #[cfg(feature = "client-calls-audio")]
         call_offers,
         #[cfg(feature = "client-calls-audio")]
-        call_records: Arc::new(Mutex::new(HashMap::new())),
+        call_records: std::rc::Rc::new(std::cell::RefCell::new(HashMap::new())),
         #[cfg(feature = "client-calls-audio")]
         past_call_stats: Arc::new(Mutex::new(std::collections::VecDeque::new())),
         #[cfg(feature = "client-calls-audio")]
@@ -3105,9 +3105,16 @@ pub struct WasmWhatsAppClient {
     /// module owns the cache; the event handler feeds it.
     #[cfg(feature = "client-calls-audio")]
     call_offers: Arc<Mutex<calls_audio::OfferCache>>,
-    /// Live calls by call id, with their mic queues and pump tasks.
+    // Live calls by call id, with their mic queues and pump tasks.
+    //
+    // `Rc<RefCell>` rather than the `Arc<Mutex>` everything else here uses:
+    // a record holds the call handle, and the handle is `!Send` on wasm32,
+    // so a `Send`-claiming wrapper would be a lie clippy names. Single
+    // thread is all this heap ever sees, and no borrow is held across a
+    // JS call or an await anywhere below — the pumps only ever clone out
+    // of it — so the `RefCell` cannot observe reentrancy.
     #[cfg(feature = "client-calls-audio")]
-    call_records: Arc<Mutex<HashMap<String, calls_audio::CallRecord>>>,
+    call_records: std::rc::Rc<std::cell::RefCell<HashMap<String, calls_audio::CallRecord>>>,
     /// Final counters of ended calls, so stats stay readable after `ended`.
     #[cfg(feature = "client-calls-audio")]
     past_call_stats:
@@ -3183,12 +3190,7 @@ impl Drop for WasmWhatsAppClient {
         // belong to is gone. Aborting here is what makes `free()` without a
         // prior `endCall` safe rather than merely quiet.
         #[cfg(feature = "client-calls-audio")]
-        for record in self
-            .call_records
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .values()
-        {
+        for record in self.call_records.borrow().values() {
             for task in &record.tasks {
                 task.abort();
             }
