@@ -28,7 +28,10 @@ use bytes::Bytes;
 use whatsapp_rust::voip::{CallHandle, CallTermination};
 use whatsapp_rust::wacore::types::call::IncomingCall;
 use whatsapp_rust::wacore::types::events::Event;
-use whatsapp_rust::wacore::voip::{AudioCodec, AudioFormat, CallEvent};
+use whatsapp_rust::wacore::types::group_call::{CallLinkMedia, ScreenShareState};
+use whatsapp_rust::wacore::voip::{
+    AudioCodec, AudioFormat, CallEvent, KeyframeUrgency, VideoFrame, VideoUpgradeToken,
+};
 use whatsapp_rust::{CallError, wacore};
 
 /// Offers that rang and have not resolved yet, by call id. Inserted from the
@@ -66,12 +69,28 @@ pub(super) struct CallRecord {
     /// Locally muted, applied at request time even when the announce
     /// below cannot reach the wire: `call_push_audio` sheds while set.
     pub(super) mic_muted: bool,
+    /// A second reader on the decoded-audio queue, held so the watermark
+    /// read does not disturb the pump that owns the first.
+    pub(super) speaker_depth: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
+    /// Camera queue and peer-video queue depth, present only while video
+    /// is up. The pumps own the first readers; these seconds only measure.
+    pub(super) video_tx: Option<async_channel::Sender<Vec<u8>>>,
+    pub(super) video_in_depth: Option<async_channel::Receiver<VideoFrame>>,
+    /// The peer's latest video-upgrade request, held because the token
+    /// never crosses to JS and the core rejects a stale one on use.
+    pub(super) pending_upgrade: Option<VideoUpgradeToken>,
     /// Speaker and end-watcher tasks, aborted at finish and at drop.
     pub(super) tasks: Vec<wacore::runtime::AbortHandle>,
     /// Event-forwarding task, aborted at drop only: it drains queued
     /// diagnostics after the record is gone, then exits on its own.
     pub(super) forwarder: Option<wacore::runtime::AbortHandle>,
 }
+
+/// Video pump bound, either way. Access units run larger than audio
+/// packets (up to tens of kilobytes at 720p), so this holds fewer of
+/// them for about the same fraction of a second.
+const VIDEO_MIC_CAPACITY: usize = 8;
+const VIDEO_SPK_CAPACITY: usize = 8;
 
 /// Fold one core event into the offer cache. Offers are retained; anything
 /// that resolves the ringing for an id — an update, a miss, an
@@ -274,10 +293,7 @@ impl WasmWhatsAppClient {
         }
         let records = self.call_records.borrow();
         let Some(record) = records.get(call_id) else {
-            return Err(crate::errors::invalid_arg(
-                "callId",
-                "no live call for this call id (ended or never started)",
-            ));
+            return Err(unknown_call());
         };
         // A muted mic sheds like backpressure does: the peer hears nothing
         // either way, and the host paces on the same boolean.
@@ -315,10 +331,7 @@ impl WasmWhatsAppClient {
             if self.past_call_stats_has(call_id) {
                 return to_ts(crate::result_types::CallEndResult::AlreadyEnded);
             }
-            return Err(crate::errors::invalid_arg(
-                "callId",
-                "no live call for this call id (ended or never started)",
-            ));
+            return Err(unknown_call());
         }
         // The record may still vanish underneath (the end watcher finishing
         // a peer hangup); that already emitted `ended`, so report it,
@@ -352,10 +365,7 @@ impl WasmWhatsAppClient {
         let handle = {
             let mut records = self.call_records.borrow_mut();
             let Some(record) = records.get_mut(call_id) else {
-                return Err(crate::errors::invalid_arg(
-                    "callId",
-                    "no live call for this call id (ended or never started)",
-                ));
+                return Err(unknown_call());
             };
             record.mic_muted = muted;
             if muted {
@@ -399,10 +409,7 @@ impl WasmWhatsAppClient {
         {
             return to_ts(stats);
         }
-        Err(crate::errors::invalid_arg(
-            "callId",
-            "no live call for this call id (ended or never started)",
-        ))
+        Err(unknown_call())
     }
 
     /// Every call the bridge currently holds a handle for.
@@ -423,6 +430,351 @@ impl WasmWhatsAppClient {
                 .expect("call id and peer JID serialize")
             })
             .collect()
+    }
+
+    /// Start sending our camera on a live call: attaches the video
+    /// endpoints, enables the media plane, and offers the upgrade to the
+    /// peer, which answers through the `video-state-changed` events. Pure
+    /// encoded H.264 Annex-B — the bridge never touches pixels.
+    ///
+    /// Applies at request time like mute, not after a reconnect: the core
+    /// validates (current handle, live client) before attaching anything,
+    /// so an offline attempt fails without leaving a half-started plane.
+    #[wasm_bindgen(js_name = startCallVideo)]
+    pub async fn start_call_video(&self, call_id: &str) -> Result<(), crate::errors::BridgeError> {
+        let handle = self.live_handle(call_id)?;
+        let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+        let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+        let sink_depth = sink_rx.clone();
+        handle
+            .start_video(video_rx, sink_tx)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        let mut records = self.call_records.borrow_mut();
+        let Some(record) = records.get_mut(call_id) else {
+            // Finished underneath (peer hangup raced the upgrade): the core
+            // attached to a dying call, which its own teardown reaps.
+            return Ok(());
+        };
+        record.video_tx = Some(video_tx);
+        record.video_in_depth = Some(sink_depth);
+        if self.call_video_callback.is_some()
+            && let Some(pump) = self.spawn_video_task(call_id, sink_rx)
+        {
+            record.tasks.push(pump);
+        }
+        Ok(())
+    }
+
+    /// Accept the peer's video upgrade request: attaches the endpoints and
+    /// answers the handshake. The request token never crosses to JS — the
+    /// forwarder holds the latest one per call, and the core rejects a
+    /// stale token instead of attaching to the wrong request.
+    #[wasm_bindgen(js_name = acceptCallVideo)]
+    pub async fn accept_call_video(&self, call_id: &str) -> Result<(), crate::errors::BridgeError> {
+        let (handle, token) = {
+            let mut records = self.call_records.borrow_mut();
+            let Some(record) = records.get_mut(call_id) else {
+                return Err(unknown_call());
+            };
+            let token = record.pending_upgrade.take();
+            (record.handle.clone(), token)
+        };
+        let Some(token) = token else {
+            return Err(crate::errors::invalid_arg(
+                "callId",
+                "no pending video upgrade request for this call",
+            ));
+        };
+        let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+        let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+        let sink_depth = sink_rx.clone();
+        handle
+            .accept_video(token, video_rx, sink_tx)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
+            record.video_tx = Some(video_tx);
+            record.video_in_depth = Some(sink_depth);
+            if self.call_video_callback.is_some()
+                && let Some(pump) = self.spawn_video_task(call_id, sink_rx)
+            {
+                record.tasks.push(pump);
+            }
+        }
+        Ok(())
+    }
+
+    /// Stop our video direction: tears the local plane down first, then
+    /// tells the peer. Audio is untouched. Idempotent.
+    #[wasm_bindgen(js_name = stopCallVideo)]
+    pub async fn stop_call_video(&self, call_id: &str) -> Result<(), crate::errors::BridgeError> {
+        let handle = self.live_handle(call_id)?;
+        handle
+            .stop_video()
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
+            record.video_tx = None;
+            record.video_in_depth = None;
+            record.pending_upgrade = None;
+        }
+        Ok(())
+    }
+
+    /// Ask the peer for a video keyframe, by RTCP PLI. Call it when the
+    /// decoder loses an access unit; the engine throttles, so every loss
+    /// may ask. Fire-and-forget: nothing comes back.
+    #[wasm_bindgen(js_name = requestCallKeyframe)]
+    pub fn request_call_keyframe(
+        &self,
+        call_id: &str,
+        #[wasm_bindgen(unchecked_param_type = "CallKeyframeUrgency")] urgency: JsValue,
+    ) -> Result<(), crate::errors::BridgeError> {
+        // Input first, state second: a misspelled urgency is the caller's
+        // own doing regardless of which call it names.
+        let urgency =
+            from_js_input::<crate::result_types::CallKeyframeUrgency>("urgency", urgency)?;
+        let handle = self.live_handle(call_id)?;
+        let urgency = match urgency {
+            crate::result_types::CallKeyframeUrgency::Coalesced => KeyframeUrgency::Coalesced,
+            crate::result_types::CallKeyframeUrgency::Immediate => KeyframeUrgency::Immediate,
+        };
+        handle.request_peer_keyframe(urgency);
+        Ok(())
+    }
+
+    /// Push one encoded H.264 Annex-B access unit toward the peer.
+    /// Resolves `true` on queue, `false` on shed — the same loss-tolerant
+    /// answer as audio, at video cadence.
+    #[wasm_bindgen(js_name = callPushVideo)]
+    pub fn call_push_video(
+        &self,
+        call_id: &str,
+        data: &[u8],
+    ) -> Result<bool, crate::errors::BridgeError> {
+        if data.is_empty() {
+            return Err(crate::errors::invalid_arg(
+                "data",
+                "video access unit must not be empty",
+            ));
+        }
+        let records = self.call_records.borrow();
+        let Some(record) = records.get(call_id) else {
+            return Err(unknown_call());
+        };
+        let Some(video_tx) = record.video_tx.as_ref() else {
+            return Err(crate::errors::invalid_arg(
+                "callId",
+                "video is not up for this call",
+            ));
+        };
+        match video_tx.try_send(data.to_vec()) {
+            Ok(()) => Ok(true),
+            Err(async_channel::TrySendError::Full(_)) => Ok(false),
+            Err(async_channel::TrySendError::Closed(_)) => Ok(false),
+        }
+    }
+
+    /// Answer the eager preparation ping for an active group-call
+    /// invitation. Moment-bound like a reject: a reconnect in flight may
+    /// already have ended the ringing, so this fails instead of waiting.
+    #[wasm_bindgen(js_name = preacceptGroupInvite)]
+    pub async fn preaccept_group_invite(
+        &self,
+        call_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let offer = self.ringing_offer(call_id)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .preaccept_group_invite(&offer)
+            .await
+            .map_err(group_invite_error)
+    }
+
+    /// Accept an active group-call invitation at the signaling level. The
+    /// offer stays ringing afterwards, so a later slice can attach media
+    /// to the same generation; joining live group media is not in this
+    /// slice.
+    #[wasm_bindgen(js_name = acceptGroupInvite)]
+    pub async fn accept_group_invite(
+        &self,
+        call_id: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let offer = self.ringing_offer(call_id)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .accept_group_invite(&offer)
+            .await
+            .map_err(group_invite_error)
+    }
+
+    /// Create a reusable audio or video call link, and return its token
+    /// and URL. An IQ round trip with no local effect, so it waits out a
+    /// reconnect like any other query.
+    #[wasm_bindgen(js_name = createCallLink)]
+    pub async fn create_call_link(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "CallLinkMediaKind")] media: JsValue,
+    ) -> Result<Ts<crate::result_types::CallLinkResult>, crate::errors::BridgeError> {
+        let media = from_js_input::<crate::result_types::CallLinkMediaKind>("media", media)?;
+        let media = match media {
+            crate::result_types::CallLinkMediaKind::Audio => CallLinkMedia::Audio,
+            crate::result_types::CallLinkMediaKind::Video => CallLinkMedia::Video,
+        };
+        let link = self
+            .client
+            .online()
+            .await?
+            .voip()
+            .create_call_link(media)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        let url = link.url();
+        to_ts(crate::result_types::CallLinkResult {
+            token: link.token,
+            media: link.media.as_str().to_owned(),
+            url,
+        })
+    }
+
+    /// Inspect a call link without joining it. Takes the token or the full
+    /// `call.whatsapp.com` URL; the media must name the link's own mode.
+    #[wasm_bindgen(js_name = previewCallLink)]
+    pub async fn preview_call_link(
+        &self,
+        token_or_url: &str,
+        #[wasm_bindgen(unchecked_param_type = "CallLinkMediaKind")] media: JsValue,
+    ) -> Result<Ts<crate::result_types::CallLinkPreviewResult>, crate::errors::BridgeError> {
+        if token_or_url.trim().is_empty() {
+            return Err(crate::errors::invalid_arg(
+                "tokenOrUrl",
+                "must not be empty",
+            ));
+        }
+        let media = from_js_input::<crate::result_types::CallLinkMediaKind>("media", media)?;
+        let media = match media {
+            crate::result_types::CallLinkMediaKind::Audio => CallLinkMedia::Audio,
+            crate::result_types::CallLinkMediaKind::Video => CallLinkMedia::Video,
+        };
+        let preview = self
+            .client
+            .online()
+            .await?
+            .voip()
+            .preview_call_link(token_or_url, media)
+            .await
+            .map_err(crate::errors::BridgeError::from)?;
+        to_ts(crate::result_types::CallLinkPreviewResult {
+            token: preview.token,
+            media: preview.media.as_str().to_owned(),
+            creator: preview.creator.to_string(),
+            creator_pn: preview.creator_pn.as_ref().map(ToString::to_string),
+            waiting_room_enabled: preview.waiting_room_enabled,
+            is_admin: preview.is_admin,
+        })
+    }
+
+    /// Raise or lower our hand in a group call.
+    #[wasm_bindgen(js_name = setGroupHandRaised)]
+    pub async fn set_group_hand_raised(
+        &self,
+        call_id: &str,
+        call_creator: &str,
+        raised: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .set_hand_raised(call_id, &call_creator, raised)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Start or stop our screen share in a group call. The share id names
+    /// our share stream when starting; it is absent when stopping.
+    #[wasm_bindgen(js_name = setGroupScreenShare)]
+    pub async fn set_group_screen_share(
+        &self,
+        call_id: &str,
+        call_creator: &str,
+        #[wasm_bindgen(unchecked_param_type = "GroupScreenShareState")] state: JsValue,
+        screen_share_id: Option<f64>,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
+        let state = from_js_input::<crate::result_types::GroupScreenShareState>("state", state)?;
+        let state = match state {
+            crate::result_types::GroupScreenShareState::Started => ScreenShareState::Started,
+            crate::result_types::GroupScreenShareState::Stopped => ScreenShareState::Stopped,
+        };
+        let screen_share_id = parse_optional_u32("screenShareId", screen_share_id)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .set_screen_share(call_id, &call_creator, state, screen_share_id)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Admit one user from a call-link waiting room.
+    #[wasm_bindgen(js_name = admitWaitingUser)]
+    pub async fn admit_waiting_user(
+        &self,
+        call_id: &str,
+        call_creator: &str,
+        user: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
+        let user = parse_named_jid("user", user)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .admit_waiting_user(call_id, &call_creator, &user)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Deny one user from a call-link waiting room.
+    #[wasm_bindgen(js_name = denyWaitingUser)]
+    pub async fn deny_waiting_user(
+        &self,
+        call_id: &str,
+        call_creator: &str,
+        user: &str,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
+        let user = parse_named_jid("user", user)?;
+        self.client
+            .unwaited(Unwaited::ConnectionBound)
+            .voip()
+            .deny_waiting_user(call_id, &call_creator, &user)
+            .await
+            .map_err(crate::errors::BridgeError::from)
+    }
+
+    /// Bridge pump depths for one call: packets queued, by direction. The
+    /// host multiplies by its own packet duration for a live-bytes figure,
+    /// which is the pacing signal the core does not expose yet.
+    #[wasm_bindgen(js_name = getCallAudioBuffer)]
+    pub fn call_audio_buffer(
+        &self,
+        call_id: &str,
+    ) -> Result<Ts<crate::result_types::CallAudioBufferResult>, crate::errors::BridgeError> {
+        let records = self.call_records.borrow();
+        let Some(record) = records.get(call_id) else {
+            return Err(unknown_call());
+        };
+        to_ts(crate::result_types::CallAudioBufferResult {
+            outbound_queued: record.mic_tx.len() as f64,
+            outbound_capacity: record.mic_tx.capacity().unwrap_or(0) as f64,
+            inbound_queued: record.speaker_depth.len() as f64,
+            inbound_capacity: record.speaker_depth.capacity().unwrap_or(0) as f64,
+            video_outbound_queued: record.video_tx.as_ref().map(|tx| tx.len() as f64),
+            video_inbound_queued: record.video_in_depth.as_ref().map(|rx| rx.len() as f64),
+        })
     }
 
     /// Install the host's relay channel constructor. The core asks it for one
@@ -449,6 +801,33 @@ impl WasmWhatsAppClient {
 // ---------------------------------------------------------------------------
 
 impl WasmWhatsAppClient {
+    /// The handle for a live call, or the unknown-id rejection every
+    /// per-call method shares.
+    fn live_handle(&self, call_id: &str) -> Result<CallHandle, crate::errors::BridgeError> {
+        self.call_records
+            .borrow()
+            .get(call_id)
+            .map(|record| record.handle.clone())
+            .ok_or_else(unknown_call)
+    }
+
+    /// A ringing offer by id, for the methods that answer one. Cloned out
+    /// so no cache borrow crosses the core call; consumed or kept by the
+    /// caller, never here.
+    fn ringing_offer(&self, call_id: &str) -> Result<IncomingCall, crate::errors::BridgeError> {
+        self.call_offers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(call_id)
+            .cloned()
+            .ok_or_else(|| {
+                crate::errors::invalid_arg(
+                    "callId",
+                    "no live incoming offer for this call id (answered, missed, or never rang)",
+                )
+            })
+    }
+
     /// Whether a call id may take a record slot. A repeated id always may:
     /// starting over it displaces the previous holder (see `displace_call`),
     /// so it never grows the map.
@@ -494,6 +873,7 @@ impl WasmWhatsAppClient {
         mic_drain: async_channel::Receiver<Bytes>,
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
     ) -> String {
+        let speaker_depth = speaker_rx.clone();
         let call_id = handle.call_id().to_owned();
         // Admission was checked before `start`, and same-id displacement ran
         // above, so this insert cannot grow past capacity and cannot collide:
@@ -511,6 +891,10 @@ impl WasmWhatsAppClient {
                     mic_tx,
                     mic_drain,
                     mic_muted: false,
+                    speaker_depth,
+                    video_tx: None,
+                    video_in_depth: None,
+                    pending_upgrade: None,
                     tasks: Vec::new(),
                     forwarder: None,
                 },
@@ -574,6 +958,43 @@ impl WasmWhatsAppClient {
         })))
     }
 
+    /// Forward encoded peer access units to the host video callback. Same
+    /// loss-tolerant shape as the audio pump: only spawned with a
+    /// registered sink, a throwing sink stops the pump, and the facade
+    /// sheds into a full sink on its own.
+    fn spawn_video_task(
+        &self,
+        call_id: &str,
+        video_rx: async_channel::Receiver<VideoFrame>,
+    ) -> Option<wacore::runtime::AbortHandle> {
+        let callback = self.call_video_callback.clone()?;
+        let call_id = call_id.to_owned();
+        Some(self.runtime.spawn(Box::pin(async move {
+            while let Ok(frame) = video_rx.recv().await {
+                let packet = js_sys::Object::new();
+                let set =
+                    |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
+                // One copy on the way out: the AU bytes into a typed array.
+                // Sender/device/pid stay out — they are group metadata, and
+                // this slice carries no group media.
+                let data = js_sys::Uint8Array::from(frame.data.as_slice());
+                if set("callId", &call_id.clone().into()).is_err()
+                    || set("data", &data.into()).is_err()
+                    || set("keyframe", &frame.keyframe.into()).is_err()
+                    || set("orientation", &(f64::from(frame.orientation)).into()).is_err()
+                    || set("timestamp", &(f64::from(frame.timestamp)).into()).is_err()
+                {
+                    log::error!("Video packet object rejected its fields; stopping the pump");
+                    break;
+                }
+                if callback.call(&packet).is_err() {
+                    log::error!("Call video callback threw; stopping the pump for {call_id}");
+                    break;
+                }
+            }
+        })))
+    }
+
     /// Forward the encoded-audio-relevant call events to the host event
     /// callback. Always spawned: the queue is bounded with eviction, so an
     /// undrained call would silently lose the events the host asked for.
@@ -604,7 +1025,7 @@ impl WasmWhatsAppClient {
                         let Ok(event) = events.try_recv() else {
                             break;
                         };
-                        if !forward_call_event(&call_id, callback.as_ref(), &event) {
+                        if !forward_engine_event(&records, &call_id, callback.as_ref(), &event) {
                             break;
                         }
                     }
@@ -612,7 +1033,7 @@ impl WasmWhatsAppClient {
                 }
                 match events.recv().await {
                     Ok(event) => {
-                        if !forward_call_event(&call_id, callback.as_ref(), &event) {
+                        if !forward_engine_event(&records, &call_id, callback.as_ref(), &event) {
                             break;
                         }
                     }
@@ -661,6 +1082,58 @@ impl WasmWhatsAppClient {
             call_id,
         );
     }
+}
+
+/// Forward one engine event, retaining a peer video-upgrade request on
+/// the way past. The token never crosses to JS — the core rejects a stale
+/// one on use — so the record holds the latest and the event only tells
+/// the host to answer.
+fn forward_engine_event(
+    records: &RefCell<HashMap<String, CallRecord>>,
+    call_id: &str,
+    callback: Option<&MediaCallback>,
+    event: &CallEvent,
+) -> bool {
+    if let CallEvent::VideoStateChanged {
+        state,
+        upgrade_token,
+        ..
+    } = event
+    {
+        if let Some(token) = upgrade_token
+            && let Some(record) = records.borrow_mut().get_mut(call_id)
+        {
+            record.pending_upgrade = Some(*token);
+        }
+        let Some(callback) = callback else {
+            return true;
+        };
+        let kind = if state.is_upgrade_request() {
+            "video-upgrade-requested"
+        } else {
+            "video-state-changed"
+        };
+        let Ok(js_event) = call_event_object(call_id, kind) else {
+            return true;
+        };
+        // The state crosses as the wire number the incoming-call event
+        // already carries for video states — one spelling, both paths.
+        if js_sys::Reflect::set(
+            &js_event,
+            &"state".into(),
+            &(f64::from(state.code())).into(),
+        )
+        .is_err()
+        {
+            return true;
+        }
+        if callback.call(&js_event.into()).is_err() {
+            log::error!("Call event callback threw; stopping forwarding for {call_id}");
+            return false;
+        }
+        return true;
+    }
+    forward_call_event(call_id, callback, event)
 }
 
 /// Forward one engine event, when the host registered a sink and the
@@ -757,6 +1230,55 @@ fn ended_event_object(call_id: &str, stats: Option<&JsValue>) -> Result<js_sys::
 /// without a live call handle, which the test module cannot build.
 fn admits_call(record_count: usize, known_id: bool) -> bool {
     known_id || record_count < ACTIVE_CALL_CAPACITY
+}
+
+/// The unknown-id rejection every per-call method shares.
+fn unknown_call() -> crate::errors::BridgeError {
+    crate::errors::invalid_arg(
+        "callId",
+        "no live call for this call id (ended or never started)",
+    )
+}
+
+/// Map a group-invitation answer across. A non-offer or a non-group offer
+/// is the caller pointing a group method at the wrong ringing: worth
+/// naming the argument for, unlike the media/setup failures around it,
+/// which walk the chain.
+///
+/// The group literal tracks the core's message; re-check it on pin bumps.
+fn group_invite_error(error: CallError) -> crate::errors::BridgeError {
+    match &error {
+        CallError::NotAnOffer => crate::errors::invalid_arg("callId", error.to_string()),
+        CallError::Media(message) if message == &"offer is not an active group invitation" => {
+            crate::errors::invalid_arg("callId", message.to_string())
+        }
+        _ => crate::errors::BridgeError::from(error),
+    }
+}
+
+/// Parse an optional u32 argument, rejecting what cannot be one. The
+/// bridge names the field; the core never sees a float, a negative, or
+/// an overflow.
+fn parse_optional_u32(
+    field: &'static str,
+    value: Option<f64>,
+) -> Result<Option<u32>, crate::errors::BridgeError> {
+    match value {
+        None => Ok(None),
+        Some(value) => {
+            if !value.is_finite()
+                || value.fract() != 0.0
+                || value < 0.0
+                || value > f64::from(u32::MAX)
+            {
+                return Err(crate::errors::invalid_arg(
+                    field,
+                    "must be an integer 0..4294967295",
+                ));
+            }
+            Ok(Some(value as u32))
+        }
+    }
 }
 
 /// Parse the encoded-audio promise. Required, with no bridge default: the
@@ -1198,5 +1720,71 @@ mod call_media_tests {
         let detail =
             js_sys::Reflect::get(&setup, &"detail".into()).expect("the event carries a detail");
         assert_eq!(detail.as_string().as_deref(), Some("no provider"));
+    }
+}
+
+#[cfg(test)]
+mod call_group_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::types::call::VideoState;
+
+    #[test]
+    fn group_invite_answers_name_the_call() {
+        match group_invite_error(CallError::NotAnOffer) {
+            crate::errors::BridgeError::InvalidArgument { field, .. } => {
+                assert_eq!(field, "callId")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match group_invite_error(CallError::Media("offer is not an active group invitation")) {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "callId");
+                assert!(
+                    reason.contains("group invitation"),
+                    "unexpected reason: {reason}"
+                );
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        // Anything else walks the chain: a genuinely failed invite is not
+        // the caller pointing at the wrong ringing.
+        match group_invite_error(CallError::Media("call is no longer active")) {
+            crate::errors::BridgeError::Internal { .. } => {}
+            other => panic!("expected internal, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn share_ids_parse_strictly() {
+        assert_eq!(
+            parse_optional_u32("screenShareId", None).expect("absent"),
+            None
+        );
+        assert_eq!(
+            parse_optional_u32("screenShareId", Some(3.0)).expect("integer"),
+            Some(3)
+        );
+        for bad in [f64::NAN, -1.0, 1.5, f64::from(u32::MAX) + 1.0] {
+            match parse_optional_u32("screenShareId", Some(bad)) {
+                Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                    assert_eq!(field, "screenShareId")
+                }
+                other => panic!("expected invalid-argument for {bad}, got {other:?}"),
+            }
+        }
+    }
+
+    /// The video event path leans on these two core predicates: upgrade
+    /// requests route to the token holder, and the state crosses as the
+    /// wire number the incoming-call event already carries.
+    #[test]
+    fn video_states_route_and_spell() {
+        assert!(VideoState::UpgradeRequest.is_upgrade_request());
+        assert!(VideoState::UpgradeRequestV2.is_upgrade_request());
+        assert!(!VideoState::Enabled.is_upgrade_request());
+        assert_eq!(VideoState::Enabled.code(), 1);
+        assert_eq!(VideoState::Stopped.code(), 6);
+        assert_eq!(VideoState::UpgradeRequestV2.code(), 11);
     }
 }

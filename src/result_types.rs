@@ -1551,3 +1551,76 @@ pub struct CallMediaStatsResult {
     pub forwarding_envelope_rejected: f64,
     pub codec_switches: f64,
 }
+
+/// Which media a new call link carries. The value goes straight into the
+/// link URL (`call.whatsapp.com/<media>/<token>`), so it is required, like
+/// every other promise the bridge forwards without a core default.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallLinkMediaKind {
+    Audio,
+    Video,
+}
+
+/// Screen-share direction for a group call.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum GroupScreenShareState {
+    Started,
+    Stopped,
+}
+
+/// How hard to ask the peer for a video keyframe. `coalesced` folds into
+/// the engine's throttle; `immediate` shortens it for a decoder that
+/// already reset. Required: silence here would be a choice the bridge
+/// has no business making.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallKeyframeUrgency {
+    Coalesced,
+    Immediate,
+}
+
+/// A reusable call link just created.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallLinkResult {
+    pub token: String,
+    pub media: String,
+    pub url: String,
+}
+
+/// A call link inspected without joining it.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallLinkPreviewResult {
+    pub token: String,
+    pub media: String,
+    pub creator: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_pn: Option<String>,
+    pub waiting_room_enabled: bool,
+    pub is_admin: bool,
+}
+
+/// Bridge pump depths for one call: packets queued, by direction. Counts,
+/// not milliseconds — the host multiplies by its own packet duration.
+/// The engine's own counters live in `CallMediaStatsResult`; these are the
+/// two queues the bridge itself owns, which is what makes them readable
+/// without a core change.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallAudioBufferResult {
+    /// Mic packets queued toward the peer.
+    pub outbound_queued: f64,
+    pub outbound_capacity: f64,
+    /// Decoded packets queued toward the host callback.
+    pub inbound_queued: f64,
+    pub inbound_capacity: f64,
+    /// Camera access units queued, when video is up.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_outbound_queued: Option<f64>,
+    /// Peer access units queued, when video is up.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_inbound_queued: Option<f64>,
+}

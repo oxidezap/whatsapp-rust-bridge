@@ -696,6 +696,8 @@ export type CallMediaEventKind =
   | "media-setup-failed"
   | "audio-codec-switched"
   | "audio-codec-source-fixed"
+  | "video-upgrade-requested"
+  | "video-state-changed"
   | "ended";
 
 export interface CallMediaEvent {
@@ -715,6 +717,22 @@ export interface CallMediaEvent {
   peerExpects?: string;
   /** `ended`: the call's final media counters, so forensics needs no follow-up read. */
   stats?: CallMediaStatsResult;
+  /** `video-state-changed`, `video-upgrade-requested`: the wire number. */
+  state?: number;
+}
+
+/**
+ * One encoded video access unit for a live call: an Annex-B H.264
+ * payload with its keyframe flag, rotation, and 90 kHz timestamp.
+ * Sender identity fields stay out — they are group metadata, and this
+ * slice carries no group media.
+ */
+export interface CallVideoFrame {
+  callId: string;
+  data: Uint8Array;
+  keyframe: boolean;
+  orientation: number;
+  timestamp: number;
 }
 
 interface WhatsAppEventCallbacks {
@@ -732,6 +750,13 @@ interface WhatsAppEventCallbacks {
    * usable until then and report `already-ended` after.
    */
   onCallEvent?(event: CallMediaEvent): void;
+  /**
+   * Peer-video sink for live calls, under the same synchronous contract
+   * as `onCallAudio`. Without it, peer access units shed into
+   * `video_sink_dropped`, readable in the call stats like their audio
+   * twin.
+   */
+  onCallVideo?(frame: CallVideoFrame): void;
 }
 "#;
 
@@ -2761,7 +2786,8 @@ pub async fn create_whatsapp_client(
     let mut call_media_callbacks: (
         Option<calls_audio::MediaCallback>,
         Option<calls_audio::MediaCallback>,
-    ) = (None, None);
+        Option<calls_audio::MediaCallback>,
+    ) = (None, None, None);
 
     let event_subscription = if let Some(callback) = on_event {
         // Media sinks are read off the raw callbacks object before it moves
@@ -2772,6 +2798,7 @@ pub async fn create_whatsapp_client(
             call_media_callbacks = (
                 calls_audio::media_callback(&callback, "onCallAudio")?,
                 calls_audio::media_callback(&callback, "onCallEvent")?,
+                calls_audio::media_callback(&callback, "onCallVideo")?,
             );
         }
         let callbacks = JsEventCallbacks::from_js(callback)?;
@@ -2807,6 +2834,8 @@ pub async fn create_whatsapp_client(
         call_audio_callback: call_media_callbacks.0,
         #[cfg(feature = "client-calls-audio")]
         call_event_callback: call_media_callbacks.1,
+        #[cfg(feature = "client-calls-audio")]
+        call_video_callback: call_media_callbacks.2,
     })
 }
 
@@ -3129,6 +3158,9 @@ pub struct WasmWhatsAppClient {
     /// Host sink for call lifecycle events, when one was registered.
     #[cfg(feature = "client-calls-audio")]
     call_event_callback: Option<calls_audio::MediaCallback>,
+    /// Host sink for peer video access units, when one was registered.
+    #[cfg(feature = "client-calls-audio")]
+    call_video_callback: Option<calls_audio::MediaCallback>,
 }
 
 // The exported surface is split across per-domain child modules, each with
