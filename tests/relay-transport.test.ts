@@ -14,6 +14,7 @@ import {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
   normalizeDtlsFingerprint,
+  shedBufferedPacket,
 } from "../ts/relay-transport";
 
 const FINGERPRINT =
@@ -50,6 +51,19 @@ describe("relay answer SDP", () => {
     );
   });
 
+  test("an IPv6 relay gets an IPv6 connection line", () => {
+    const sdp = buildRelayAnswerSdp({
+      ip: "2001:db8::7",
+      port: 3478,
+      iceUfrag: "U",
+      icePwd: "P",
+      fingerprint: FINGERPRINT,
+    });
+    expect(sdp).toContain("c=IN IP6 2001:db8::7");
+    expect(sdp).toContain("o=- 0 0 IN IP6 ::");
+    expect(sdp).not.toContain("IP4");
+  });
+
   test("the relay is the DTLS server", () => {
     // The native stack handshakes as the client, so the answer marks the
     // relay passive; the browser then takes the active role.
@@ -74,9 +88,25 @@ describe("fingerprint normalization", () => {
   });
 
   test("it rejects anything that is not 32 bytes of hex", () => {
-    for (const bad of ["", "AA:BB", FINGERPRINT.slice(0, 63), "ZZ".repeat(32)]) {
+    const bare = FINGERPRINT.replaceAll(":", "");
+    for (const bad of [
+      "",
+      "AA:BB",
+      bare.slice(0, -1),
+      `${bare}AA`,
+      `${bare}ZZ`,
+      "ZZ".repeat(32),
+    ]) {
       expect(() => normalizeDtlsFingerprint(bad)).toThrow();
     }
+  });
+});
+
+describe("send backpressure", () => {
+  test("only an over-full buffer sheds", () => {
+    expect(shedBufferedPacket(0, 8192)).toBe(false);
+    expect(shedBufferedPacket(8192, 8192)).toBe(false);
+    expect(shedBufferedPacket(8193, 8192)).toBe(true);
   });
 });
 

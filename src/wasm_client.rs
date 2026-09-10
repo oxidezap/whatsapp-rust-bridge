@@ -670,7 +670,7 @@ interface WasmWhatsAppClient {
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
 /**
- * One decoded audio packet for a live call. `data` is exactly one codec
+ * One encoded audio packet for a live call. `data` is exactly one codec
  * payload as the engine received it; `codec` names the grammar inside the
  * negotiated timing, and the remaining fields are its RTP metadata.
  */
@@ -713,11 +713,13 @@ export interface CallMediaEvent {
   sending?: string;
   /** `audio-codec-source-fixed`: what the peer says it speaks. */
   peerExpects?: string;
+  /** `ended`: the call's final media counters, so forensics needs no follow-up read. */
+  stats?: CallMediaStatsResult;
 }
 
 interface WhatsAppEventCallbacks {
   /**
-   * Decoded-packet sink for live calls. Called synchronously per packet, at
+   * Encoded-packet sink for live calls. Called synchronously per packet, at
    * voice cadence; decode or copy the frame before returning and never hand
    * back a Promise. A throw stops the pump for that call. Without it,
    * packets never leave the engine and the shed shows up under
@@ -2756,8 +2758,10 @@ pub async fn create_whatsapp_client(
     #[cfg(feature = "client-calls-audio")]
     let call_offers = Arc::new(Mutex::new(calls_audio::OfferCache::default()));
     #[cfg(feature = "client-calls-audio")]
-    let mut call_media_callbacks: (Option<js_sys::Function>, Option<js_sys::Function>) =
-        (None, None);
+    let mut call_media_callbacks: (
+        Option<calls_audio::MediaCallback>,
+        Option<calls_audio::MediaCallback>,
+    ) = (None, None);
 
     let event_subscription = if let Some(callback) = on_event {
         // Media sinks are read off the raw callbacks object before it moves
@@ -2766,8 +2770,8 @@ pub async fn create_whatsapp_client(
         #[cfg(feature = "client-calls-audio")]
         {
             call_media_callbacks = (
-                calls_audio::optional_callback(&callback, "onCallAudio"),
-                calls_audio::optional_callback(&callback, "onCallEvent"),
+                calls_audio::media_callback(&callback, "onCallAudio")?,
+                calls_audio::media_callback(&callback, "onCallEvent")?,
             );
         }
         let callbacks = JsEventCallbacks::from_js(callback)?;
@@ -3119,12 +3123,12 @@ pub struct WasmWhatsAppClient {
     #[cfg(feature = "client-calls-audio")]
     past_call_stats:
         Arc<Mutex<std::collections::VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
-    /// Host sink for decoded packets, when the callbacks object carried one.
+    /// Host sink for encoded packets, when the callbacks object carried one.
     #[cfg(feature = "client-calls-audio")]
-    call_audio_callback: Option<js_sys::Function>,
+    call_audio_callback: Option<calls_audio::MediaCallback>,
     /// Host sink for call lifecycle events, when one was registered.
     #[cfg(feature = "client-calls-audio")]
-    call_event_callback: Option<js_sys::Function>,
+    call_event_callback: Option<calls_audio::MediaCallback>,
 }
 
 // The exported surface is split across per-domain child modules, each with
@@ -3185,14 +3189,19 @@ impl Drop for WasmWhatsAppClient {
                 handle.abort();
             }
         }
-        // Call pumps first: a speaker task awaiting the next packet would
+        // Call pumps first: a task awaiting the next packet or event would
         // otherwise keep calling into host callbacks after the heap they
         // belong to is gone. Aborting here is what makes `free()` without a
-        // prior `endCall` safe rather than merely quiet.
+        // prior `endCall` safe rather than merely quiet. The event
+        // forwarder is included: its drain-after-finish only runs while a
+        // client is alive to own it.
         #[cfg(feature = "client-calls-audio")]
         for record in self.call_records.borrow().values() {
             for task in &record.tasks {
                 task.abort();
+            }
+            if let Some(forwarder) = &record.forwarder {
+                forwarder.abort();
             }
         }
 

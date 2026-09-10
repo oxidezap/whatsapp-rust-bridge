@@ -44,6 +44,7 @@ interface RtcDataChannelOptions {
 
 interface RtcDataChannel {
   binaryType: string;
+  readonly bufferedAmount: number;
   onmessage: ((event: { data: unknown }) => void) | null;
   onopen: (() => void) | null;
   onclose: (() => void) | null;
@@ -88,11 +89,13 @@ const REMOTE_SETUP = "passive";
 
 /**
  * Normalize a SHA-256 fingerprint to the uppercase colon-separated form SDP
- * carries. Accepts hex with or without colons, in either case.
+ * carries. Accepts hex with or without colons, in either case — and nothing
+ * else: stripping every non-hex character first would let trailing garbage
+ * through, so only colons are removed and the rest must be hex.
  */
 export function normalizeDtlsFingerprint(fingerprint: string): string {
-  const hex = fingerprint.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
-  if (hex.length !== 64 || /[^0-9A-F]/.test(hex)) {
+  const hex = fingerprint.replace(/:/g, "").toUpperCase();
+  if (!/^[0-9A-F]{64}$/.test(hex)) {
     throw new Error(
       "DTLS fingerprint must be 32 bytes of hex (a SHA-256 fingerprint)"
     );
@@ -115,17 +118,21 @@ export interface RelayAnswerParts {
 /**
  * The synthetic SDP answer describing the relay, byte for byte. The peer
  * connection treats it as the remote side: ICE checks go to `ip:port`
- * signed with `icePwd`, and DTLS verifies against `fingerprint`.
+ * signed with `icePwd`, and DTLS verifies against `fingerprint`. The
+ * address family follows the relay literal — an IPv6 relay with an `IP4`
+ * connection line is rejected before ICE ever runs.
  */
 export function buildRelayAnswerSdp(parts: RelayAnswerParts): string {
   const fingerprint = normalizeDtlsFingerprint(parts.fingerprint);
+  const family = parts.ip.includes(":") ? "IP6" : "IP4";
+  const unspecified = family === "IP6" ? "::" : "0.0.0.0";
   return [
     "v=0",
-    "o=- 0 0 IN IP4 0.0.0.0",
+    `o=- 0 0 IN ${family} ${unspecified}`,
     "s=-",
     "t=0 0",
     `m=application ${parts.port} UDP/DTLS/SCTP webrtc-datachannel`,
-    `c=IN IP4 ${parts.ip}`,
+    `c=IN ${family} ${parts.ip}`,
     `a=ice-ufrag:${parts.iceUfrag}`,
     `a=ice-pwd:${parts.icePwd}`,
     `a=fingerprint:sha-256:${fingerprint}`,
@@ -139,12 +146,33 @@ export function buildRelayAnswerSdp(parts: RelayAnswerParts): string {
 }
 
 /**
+ * Decide whether an outbound datagram must shed: the browser queues past
+ * `max` bytes of unsent SCTP, and voice tolerates loss but not unbounded
+ * native memory. Pure so the policy is pinnable without a peer connection.
+ */
+export function shedBufferedPacket(bufferedAmount: number, max: number): boolean {
+  return bufferedAmount > max;
+}
+
+export interface RtcRelayTransportOptions {
+  /**
+   * Unsent bytes past which outbound datagrams shed instead of queueing.
+   * Defaults to 8192, on the order of tens of voice packets; voice is
+   * loss tolerant, browser send queues are not bounded.
+   */
+  maxBufferedAmount?: number;
+  /** Called with the shed count, so host-side loss stays observable. */
+  onPacketsDropped?: (count: number) => void;
+}
+
+/**
  * Build the default provider: one `RTCPeerConnection` per relay endpoint.
  * Pass the relay's DTLS SHA-256 fingerprint, observed once against a live
  * relay; see the file header for why it cannot come from the call.
  */
 export function createRtcRelayTransportProvider(
-  dtlsFingerprint: string
+  dtlsFingerprint: string,
+  options?: RtcRelayTransportOptions
 ): JsRelayProviderCallbacks {
   // Fail at install time, not on the first ring: a malformed fingerprint
   // can never complete a handshake, so keeping it is just a slower error.
@@ -179,18 +207,46 @@ export function createRtcRelayTransportProvider(
         closed(typeof event.message === "string" ? event.message : undefined);
       };
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await pc.setRemoteDescription({
-        type: "answer",
-        sdp: buildRelayAnswerSdp({
-          ip: params.address,
-          port: params.port,
-          iceUfrag: params.iceUfrag,
-          icePwd: params.icePwd,
-          fingerprint,
-        }),
-      });
+      // Any handshake step can reject — a malformed answer, an
+      // unsupported attribute, an internal WebRTC error. The caller never
+      // receives a handle on that path, so nothing could close the half-open
+      // connection; release it here instead of leaking a peer connection
+      // per failed ring. Detaching the handlers first keeps the cleanup
+      // from reporting a close the Rust side already learned as a rejection.
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await pc.setRemoteDescription({
+          type: "answer",
+          sdp: buildRelayAnswerSdp({
+            ip: params.address,
+            port: params.port,
+            iceUfrag: params.iceUfrag,
+            icePwd: params.icePwd,
+            fingerprint,
+          }),
+        });
+      } catch (err) {
+        channel.onclose = null;
+        channel.onerror = null;
+        try {
+          channel.close();
+        } finally {
+          pc.close();
+        }
+        throw err;
+      }
+
+      const maxBuffered = options?.maxBufferedAmount ?? 8192;
+      const dropped = options?.onPacketsDropped;
+      let shed = 0;
+      const reportShed = () => {
+        if (shed > 0) {
+          const count = shed;
+          shed = 0;
+          dropped?.(count);
+        }
+      };
 
       return {
         send(data: Uint8Array) {
@@ -198,6 +254,11 @@ export function createRtcRelayTransportProvider(
             throw new Error(
               `relay DataChannel is ${channel.readyState}, not open`
             );
+          }
+          if (shedBufferedPacket(channel.bufferedAmount, maxBuffered)) {
+            shed += 1;
+            reportShed();
+            return;
           }
           channel.send(data);
         },

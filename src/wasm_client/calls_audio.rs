@@ -39,14 +39,17 @@ pub(super) type OfferCache = HashMap<String, IncomingCall>;
 
 const OFFER_CACHE_CAPACITY: usize = 32;
 /// Live calls by call id. A backstop, not a concurrency limit: the core owns
-/// call policy, and a same-id replacement supersedes rather than coexists.
+/// call policy, and 32 concurrent 1:1 calls is absurd — but absurd is not
+/// impossible, so a full map refuses admission (before anything starts)
+/// instead of silently dropping a live call, and a repeated id displaces
+/// with a full terminate rather than coexisting.
 const ACTIVE_CALL_CAPACITY: usize = 32;
 /// Mic packets queued while the engine is busy. Voice cadence is one packet
 /// per 20-60 ms, so this holds about a second; past it the bridge sheds
 /// newest-first and says so, which is the loss-tolerant contract end to end.
 const MIC_CHANNEL_CAPACITY: usize = 16;
-/// Decoded packets queued for the host callback. The facade already sheds
-/// into a full sink, so this only smooths callback jitter.
+/// Encoded packets queued for the host callback. The facade already sheds
+/// into a full sink channel, so this only smooths callback jitter.
 const SPEAKER_CHANNEL_CAPACITY: usize = 32;
 /// Ended calls whose final counters stay readable. The core documents
 /// post-end stats as the point of `media_stats`; evicting the record must
@@ -57,7 +60,17 @@ const PAST_STATS_CAPACITY: usize = 8;
 pub(super) struct CallRecord {
     pub(super) handle: CallHandle,
     pub(super) mic_tx: async_channel::Sender<Bytes>,
+    /// A second reader on the mic queue, held so muting can drain the
+    /// second of stale audio already queued (see `set_call_muted`).
+    pub(super) mic_drain: async_channel::Receiver<Bytes>,
+    /// Locally muted, applied at request time even when the announce
+    /// below cannot reach the wire: `call_push_audio` sheds while set.
+    pub(super) mic_muted: bool,
+    /// Speaker and end-watcher tasks, aborted at finish and at drop.
     pub(super) tasks: Vec<wacore::runtime::AbortHandle>,
+    /// Event-forwarding task, aborted at drop only: it drains queued
+    /// diagnostics after the record is gone, then exits on its own.
+    pub(super) forwarder: Option<wacore::runtime::AbortHandle>,
 }
 
 /// Fold one core event into the offer cache. Offers are retained; anything
@@ -105,18 +118,48 @@ pub(super) fn note_call_event(cache: &Mutex<OfferCache>, event: &Event) {
     }
 }
 
+/// One host media sink: the function plus the callbacks object it was read
+/// off, which stays its receiver. A class-based host reads its state off
+/// `this`, and invoking with NULL would detach it — the same reason the
+/// relay adapter keeps its owning objects.
+#[derive(Clone, Debug)]
+pub(super) struct MediaCallback {
+    func: js_sys::Function,
+    this: JsValue,
+}
+
+impl MediaCallback {
+    fn call(&self, arg: &JsValue) -> Result<JsValue, JsValue> {
+        self.func.call1(&self.this, arg)
+    }
+}
+
 /// Read one optional host callback off the callbacks object. Absent is the
 /// normal case for a host that only signals; a present-but-unusable value is
 /// ignored the same way, since these callbacks only ever fire into live
 /// calls the host asked for.
-pub(super) fn optional_callback(
+/// Read one optional host callback off the callbacks object. Only
+/// null/undefined is absent; a present-but-unusable value rejects client
+/// construction, the way every other optional event method behaves — a
+/// host that misspells the sink must hear it at install time, not as
+/// silently missing audio on the first live call.
+pub(super) fn media_callback(
     receiver: &JsValue,
     method: &'static str,
-) -> Option<js_sys::Function> {
-    js_sys::Reflect::get(receiver, &method.into())
-        .ok()?
-        .dyn_into::<js_sys::Function>()
-        .ok()
+) -> Result<Option<MediaCallback>, crate::errors::BridgeError> {
+    let value = js_sys::Reflect::get(receiver, &method.into()).map_err(|_| {
+        crate::errors::invalid_arg("on_event", "could not read the media callbacks")
+    })?;
+    if value.is_null() || value.is_undefined() {
+        return Ok(None);
+    }
+    let func = value.dyn_into::<js_sys::Function>().map_err(|_| {
+        crate::errors::invalid_arg(format!("on_event.{method}"), "must be a function")
+    })?;
+    Ok(Some(MediaCallback {
+        func,
+        this: receiver.clone(),
+    }))
 }
 
 #[wasm_bindgen]
@@ -134,8 +177,7 @@ impl WasmWhatsAppClient {
     pub async fn accept_call(
         &self,
         call_id: &str,
-        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")]
-        audio_format: Option<JsValue>,
+        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
     ) -> Result<String, crate::errors::BridgeError> {
         let format = call_audio_format(audio_format)?;
         let offer = self
@@ -152,6 +194,13 @@ impl WasmWhatsAppClient {
             })?;
         let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
         let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+        // A second reader for the mute drain; the engine owns the first
+        // once the builder below takes it.
+        let mic_drain = mic_rx.clone();
+        // Before the engine starts: a full map refuses admission while the
+        // refusal costs nothing, rather than orphaning a started call the
+        // bridge then has no record for.
+        self.check_call_capacity(Some(call_id))?;
         let handle = self
             .client
             .online()
@@ -167,7 +216,8 @@ impl WasmWhatsAppClient {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .remove(handle.call_id());
-        Ok(self.register_call(handle, mic_tx, speaker_rx))
+        self.displace_call(handle.call_id()).await;
+        Ok(self.register_call(handle, mic_tx, mic_drain, speaker_rx))
     }
 
     /// Dial a peer with encoded audio, and return the new call id.
@@ -179,13 +229,16 @@ impl WasmWhatsAppClient {
     pub async fn dial_call(
         &self,
         peer: &str,
-        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat | null | undefined")]
-        audio_format: Option<JsValue>,
+        #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
     ) -> Result<String, crate::errors::BridgeError> {
         let peer_jid = parse_named_jid("peer", peer)?;
         let format = call_audio_format(audio_format)?;
+        // The dial generates its id inside `start`, so only the count is
+        // known yet; a same-id collision it produces is displaced below.
+        self.check_call_capacity(None)?;
         let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
         let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+        let mic_drain = mic_rx.clone();
         let handle = self
             .client
             .online()
@@ -196,7 +249,8 @@ impl WasmWhatsAppClient {
             .start()
             .await
             .map_err(call_error_to_bridge)?;
-        Ok(self.register_call(handle, mic_tx, speaker_rx))
+        self.displace_call(handle.call_id()).await;
+        Ok(self.register_call(handle, mic_tx, mic_drain, speaker_rx))
     }
 
     /// Push one encoded audio packet toward the peer.
@@ -225,6 +279,11 @@ impl WasmWhatsAppClient {
                 "no live call for this call id (ended or never started)",
             ));
         };
+        // A muted mic sheds like backpressure does: the peer hears nothing
+        // either way, and the host paces on the same boolean.
+        if record.mic_muted {
+            return Ok(false);
+        }
         // One copy on the way in, matching the documented boundary cost:
         // typed array into an owned packet the engine frames without
         // inspecting.
@@ -238,33 +297,37 @@ impl WasmWhatsAppClient {
     }
 
     /// End a live call through its handle, and report how much of the peer
-    /// was told. The local side is down whatever comes back.
+    /// was told. The local side comes down whatever comes back — and it
+    /// comes down now, not after a reconnect: this never parks behind one.
+    /// A hangup held until a new socket would leave the peer talking while
+    /// the user already hung up, and a withdrawn one would release without
+    /// tearing anything down. The handle's own terminate degrades the same
+    /// way, tearing down locally when the stanza cannot go out.
     #[wasm_bindgen(js_name = endCall)]
     pub async fn end_call(
         &self,
         call_id: &str,
     ) -> Result<Ts<crate::result_types::CallEndResult>, crate::errors::BridgeError> {
-        // Before the gate: ending a call that is already gone is an answer,
-        // not something worth parking behind a reconnect.
-        if !self.call_records.borrow().contains_key(call_id) && !self.past_call_stats_has(call_id) {
+        if !self.call_records.borrow().contains_key(call_id) {
+            // Gone already, or never live: ending it again is an answer
+            // either way, and the past-stats map is what tells the two
+            // apart for counters, not for this.
+            if self.past_call_stats_has(call_id) {
+                return to_ts(crate::result_types::CallEndResult::AlreadyEnded);
+            }
             return Err(crate::errors::invalid_arg(
                 "callId",
                 "no live call for this call id (ended or never started)",
             ));
         }
-        if self.past_call_stats_has(call_id) {
-            return to_ts(crate::result_types::CallEndResult::AlreadyEnded);
-        }
-        // Held at the gate like accept: nothing has happened while parked,
-        // so withdrawing and re-issuing is not a repeat.
-        self.client.online().await?;
+        // The record may still vanish underneath (the end watcher finishing
+        // a peer hangup); that already emitted `ended`, so report it,
+        // don't repeat it.
         let handle = self
             .call_records
             .borrow()
             .get(call_id)
             .map(|record| record.handle.clone());
-        // The end watcher may have finished the call while the gate was
-        // held; that already emitted `ended`, so report it, don't repeat it.
         let Some(handle) = handle else {
             return to_ts(crate::result_types::CallEndResult::AlreadyEnded);
         };
@@ -274,27 +337,35 @@ impl WasmWhatsAppClient {
     }
 
     /// Mute or unmute the mic on a live call.
+    ///
+    /// The local half applies at request time, reconnect or not: the mic
+    /// stops queueing and the queued second drains, so the peer stops
+    /// hearing audio now. The wire announce is best-effort past this point
+    /// and its outcome is what crosses — an offline mute still holds
+    /// locally, and asking again is idempotent.
     #[wasm_bindgen(js_name = setCallMuted)]
     pub async fn set_call_muted(
         &self,
         call_id: &str,
         muted: bool,
     ) -> Result<(), crate::errors::BridgeError> {
-        let handle = self
-            .call_records
-            .borrow()
-            .get(call_id)
-            .map(|record| record.handle.clone())
-            .ok_or_else(|| {
-                crate::errors::invalid_arg(
+        let handle = {
+            let mut records = self.call_records.borrow_mut();
+            let Some(record) = records.get_mut(call_id) else {
+                return Err(crate::errors::invalid_arg(
                     "callId",
                     "no live call for this call id (ended or never started)",
-                )
-            })?;
-        // The mute itself rides the handle, which already knows the
-        // answering device; the record lookup above only gates on liveness,
-        // and the gate only waits out a reconnect in flight.
-        self.client.online().await?;
+                ));
+            };
+            record.mic_muted = muted;
+            if muted {
+                // Stale audio queued before the mute would otherwise play
+                // out after it — up to a second of it. The engine keeps
+                // pulling newer packets past the gap.
+                while record.mic_drain.try_recv().is_ok() {}
+            }
+            record.handle.clone()
+        };
         handle
             .set_muted(muted)
             .await
@@ -378,52 +449,92 @@ impl WasmWhatsAppClient {
 // ---------------------------------------------------------------------------
 
 impl WasmWhatsAppClient {
+    /// Whether a call id may take a record slot. A repeated id always may:
+    /// starting over it displaces the previous holder (see `displace_call`),
+    /// so it never grows the map.
+    fn check_call_capacity(&self, call_id: Option<&str>) -> Result<(), crate::errors::BridgeError> {
+        let records = self.call_records.borrow();
+        let known = call_id.is_some_and(|id| records.contains_key(id));
+        if !admits_call(records.len(), known) {
+            return Err(crate::errors::internal(
+                "too many live calls (32); end one and retry",
+            ));
+        }
+        Ok(())
+    }
+
+    /// End whatever holds this call id, so the newcomer takes a clean slot.
+    ///
+    /// Glare and retry can supersede a call under its own id. The old end
+    /// watcher would otherwise outlive into the replacement and remove its
+    /// record on firing — but `finish_call` aborts the old watcher's task
+    /// with the old record, and every path here is synchronous past the
+    /// terminate, so no interleaving can slip a removal between this and
+    /// the insert below.
+    async fn displace_call(&self, call_id: &str) {
+        let old = self
+            .call_records
+            .borrow()
+            .get(call_id)
+            .map(|record| record.handle.clone());
+        let Some(old) = old else {
+            return;
+        };
+        // The outcome is not the caller's: teardown runs regardless, and
+        // `finish_call` reports the displacement through the ended event.
+        let _ = old.terminate().await;
+        self.finish_call(call_id);
+    }
+
     /// Store a started call, pump it, and return its id.
     fn register_call(
         &self,
         handle: CallHandle,
         mic_tx: async_channel::Sender<Bytes>,
+        mic_drain: async_channel::Receiver<Bytes>,
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
     ) -> String {
         let call_id = handle.call_id().to_owned();
+        // Admission was checked before `start`, and same-id displacement ran
+        // above, so this insert cannot grow past capacity and cannot collide:
+        // both are re-checked in debug, not re-decided.
         {
             let mut records = self.call_records.borrow_mut();
-            if records.len() >= ACTIVE_CALL_CAPACITY && !records.contains_key(&call_id) {
-                // Same backstop reasoning as the offer cache: the core owns
-                // call policy, and unbounded host-side retention is worse
-                // than dropping the oldest handle (whose call runs on).
-                if let Some(evicted) = records.keys().next().cloned() {
-                    log::warn!("Active call map full; released handle for {evicted}");
-                    records.remove(&evicted);
-                }
-            }
+            debug_assert!(
+                admits_call(records.len(), records.contains_key(&call_id)),
+                "admission ran before start and displacement ran after"
+            );
             records.insert(
                 call_id.clone(),
                 CallRecord {
                     handle: handle.clone(),
                     mic_tx,
+                    mic_drain,
+                    mic_muted: false,
                     tasks: Vec::new(),
+                    forwarder: None,
                 },
             );
         }
+        // The speaker and the end watcher are aborted at finish; the event
+        // forwarder is not — it drains queued diagnostics after the record
+        // is gone, then exits on its own (and at drop, like everything).
+        let forwarder = self.spawn_call_event_task(&call_id, handle.clone());
         let tasks = vec![
             self.spawn_speaker_task(&call_id, speaker_rx),
-            self.spawn_call_event_task(&call_id, handle.clone()),
             self.spawn_call_end_task(&call_id, handle),
         ]
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
-        // The end watcher aborts its siblings when the call finishes; every
-        // task here ends with the call either way, so nothing here outlives
-        // `finish_call` except the watcher itself, which ends with it.
         if let Some(record) = self.call_records.borrow_mut().get_mut(&call_id) {
             record.tasks = tasks;
+            record.forwarder = forwarder;
         }
         call_id
     }
 
-    /// Forward decoded packets to the host audio callback. Only spawned when
+    /// Forward encoded packets to the host audio callback. Only spawned when
     /// the host registered one; without it the facade sheds into the full
     /// sink channel, which is the same loss-tolerant answer with no task.
     fn spawn_speaker_task(
@@ -455,7 +566,7 @@ impl WasmWhatsAppClient {
                 // A throwing callback is a broken host; stopping the pump
                 // sheds into the facade's own drop counter rather than
                 // throwing per packet for the rest of the call.
-                if callback.call1(&JsValue::NULL, &packet).is_err() {
+                if callback.call(&packet).is_err() {
                     log::error!("Call audio callback threw; stopping the pump for {call_id}");
                     break;
                 }
@@ -466,6 +577,14 @@ impl WasmWhatsAppClient {
     /// Forward the encoded-audio-relevant call events to the host event
     /// callback. Always spawned: the queue is bounded with eviction, so an
     /// undrained call would silently lose the events the host asked for.
+    ///
+    /// Outlives the record on purpose: when the call finishes while events
+    /// are still queued, the loop below drains them instead of dropping a
+    /// diagnostic the host never saw (a `media-setup-failed` arriving with
+    /// the teardown, say). `ended` may already have fired ahead of them —
+    /// the host correlates by call id, and a complete late picture beats a
+    /// timely hole. The driver dropping its sender ends the loop; the
+    /// iteration cap bounds a sender that never stops.
     fn spawn_call_event_task(
         &self,
         call_id: &str,
@@ -473,18 +592,31 @@ impl WasmWhatsAppClient {
     ) -> Option<wacore::runtime::AbortHandle> {
         let events = handle.events();
         let callback = self.call_event_callback.clone();
+        let records = self.call_records.clone();
         let call_id = call_id.to_owned();
         Some(self.runtime.spawn(Box::pin(async move {
-            while let Ok(event) = events.recv().await {
-                let Some(callback) = callback.as_ref() else {
-                    continue;
-                };
-                let Some(js_event) = translate_call_event(&call_id, &event) else {
-                    continue;
-                };
-                if callback.call1(&JsValue::NULL, &js_event).is_err() {
-                    log::error!("Call event callback threw; stopping forwarding for {call_id}");
+            loop {
+                if !records.borrow().contains_key(&call_id) {
+                    // The call finished: drain what arrived, then exit. New
+                    // arrivals during the drain lose the race openly rather
+                    // than parking a dead call's task.
+                    for _ in 0..FORWARDER_DRAIN_CAP {
+                        let Ok(event) = events.try_recv() else {
+                            break;
+                        };
+                        if !forward_call_event(&call_id, callback.as_ref(), &event) {
+                            break;
+                        }
+                    }
                     break;
+                }
+                match events.recv().await {
+                    Ok(event) => {
+                        if !forward_call_event(&call_id, callback.as_ref(), &event) {
+                            break;
+                        }
+                    }
+                    Err(_) => break,
                 }
             }
         })))
@@ -531,14 +663,40 @@ impl WasmWhatsAppClient {
     }
 }
 
-/// Release a call: abort its pumps, drop its offer, keep its final
+/// Forward one engine event, when the host registered a sink and the
+/// event has a shape in this slice. A throwing sink stops the pump;
+/// shedding into the facade's counters beats throwing per event.
+fn forward_call_event(call_id: &str, callback: Option<&MediaCallback>, event: &CallEvent) -> bool {
+    let Some(callback) = callback else {
+        return true;
+    };
+    let Some(js_event) = translate_call_event(call_id, event) else {
+        return true;
+    };
+    if callback.call(&js_event).is_err() {
+        log::error!("Call event callback threw; stopping forwarding for {call_id}");
+        return false;
+    }
+    true
+}
+
+/// How many queued events the forwarder drains after the record is gone
+/// before exiting regardless. teardown races can still be sending; an
+/// unbounded drain would park a dead call's task on a wedged driver.
+const FORWARDER_DRAIN_CAP: usize = 128;
+
+/// Release a call: abort its media pump, drop its offer, keep its final
 /// counters, and tell the host it ended. Idempotent — only the remover
 /// emits, so a racing `endCall` and end watcher cannot double-report.
+///
+/// The event forwarder is deliberately not aborted here: it drains queued
+/// diagnostics after the record is gone (see its task above). It is
+/// aborted at drop, like everything, so no task outlives the client.
 fn finish_call(
     records: &RefCell<HashMap<String, CallRecord>>,
     past: &Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>,
     offers: &Mutex<OfferCache>,
-    callback: Option<&js_sys::Function>,
+    callback: Option<&MediaCallback>,
     call_id: &str,
 ) {
     let Some(record) = records.borrow_mut().remove(call_id) else {
@@ -552,6 +710,14 @@ fn finish_call(
         .unwrap_or_else(|e| e.into_inner())
         .remove(call_id);
     let stats = call_media_stats_to_result(&record.handle.media_stats());
+    // The final counters ride the event itself, so a host that only ever
+    // listens learns the outcome without a follow-up read; the past-stats
+    // map stays as the bounded convenience window for later reads.
+    let stats_value = serde_wasm_bindgen::to_value(&stats)
+        .map_err(|e| {
+            log::error!("Ended stats refused to serialize: {e}");
+        })
+        .ok();
     {
         let mut past = past.lock().unwrap_or_else(|e| e.into_inner());
         past.push_back((call_id.to_owned(), stats));
@@ -560,9 +726,9 @@ fn finish_call(
         }
     }
     if let Some(callback) = callback {
-        match call_event_object(call_id, "ended") {
+        match ended_event_object(call_id, stats_value.as_ref()) {
             Ok(event) => {
-                if callback.call1(&JsValue::NULL, &event.into()).is_err() {
+                if callback.call(&event.into()).is_err() {
                     log::error!("Call event callback threw on ended for {call_id}");
                 }
             }
@@ -571,20 +737,34 @@ fn finish_call(
     }
 }
 
+/// The `ended` event object: `{ callId, kind, stats? }`. The counters ride
+/// along because the retention window above is bounded — nine endings
+/// without a read would otherwise expire the oldest call's forensics.
+fn ended_event_object(call_id: &str, stats: Option<&JsValue>) -> Result<js_sys::Object, JsValue> {
+    let event = call_event_object(call_id, "ended")?;
+    if let Some(stats) = stats {
+        js_sys::Reflect::set(&event, &"stats".into(), stats)?;
+    }
+    Ok(event)
+}
+
 // ---------------------------------------------------------------------------
 // Boundary shapes
 // ---------------------------------------------------------------------------
 
-/// Parse the encoded-audio promise, defaulting to MLOW. Validation happens
-/// before the gate: a misspelled format is the caller's own doing and should
-/// not sit out a reconnect to be told so.
-fn call_audio_format(value: Option<JsValue>) -> Result<AudioFormat, crate::errors::BridgeError> {
-    let format = match value {
-        Some(value) if !value.is_null() && !value.is_undefined() => {
-            from_js_input::<crate::result_types::CallAudioFormat>("audioFormat", value)?
-        }
-        _ => crate::result_types::CallAudioFormat::Mlow,
-    };
+/// Whether a call id may take a record slot: room, or a repeated id that
+/// displaces instead of growing. Split out so the policy is pinnable
+/// without a live call handle, which the test module cannot build.
+fn admits_call(record_count: usize, known_id: bool) -> bool {
+    known_id || record_count < ACTIVE_CALL_CAPACITY
+}
+
+/// Parse the encoded-audio promise. Required, with no bridge default: the
+/// core negotiates from this promise and supplies none of its own, so a
+/// silent MLOW would turn an absent caller choice into a failed negotiation
+/// against an Opus-only peer. Validation happens before the gate.
+fn call_audio_format(value: JsValue) -> Result<AudioFormat, crate::errors::BridgeError> {
+    let format = from_js_input::<crate::result_types::CallAudioFormat>("audioFormat", value)?;
     Ok(match format {
         crate::result_types::CallAudioFormat::Mlow => AudioFormat::MLOW_16KHZ_60MS,
         // The in-profile Opus escape on the MLOW clock, not native RFC 7587:
@@ -605,13 +785,17 @@ fn call_audio_codec_str(codec: &AudioCodec) -> String {
     }
 }
 
-/// Map an accept/dial failure across. Only the negotiation pair names a
-/// field: the encoded-audio promise disagrees with what the peer speaks, so
-/// the host answers by retrying with the other `audioFormat`. Everything
-/// else walks the chain — setup/media/response failures carry no caller
-/// action, and a peer that hung up mid-setup is already reported through the
-/// terminate event, so mapping them would invent precision the bridge does
-/// not have.
+/// Map an accept/dial failure across. Two shapes name something the host
+/// acts on: the negotiation pair (retry with the other `audioFormat`), and
+/// a missing own identity, which is the not-logged-in condition by another
+/// name — the host fixes it by pairing, so it reports `not-connected`,
+/// never `internal`. Everything else walks the chain: setup/media/response
+/// failures carry no caller action, and a peer that hung up mid-setup is
+/// already reported through the terminate event, so mapping them would
+/// invent precision the bridge does not have.
+///
+/// The identity arm tracks the core's literal message; re-check it on pin
+/// bumps, since a reword upstream silently returns this path to `internal`.
 fn call_error_to_bridge(error: CallError) -> crate::errors::BridgeError {
     match &error {
         CallError::AudioFormatNotOffered(rate) => crate::errors::invalid_arg(
@@ -625,6 +809,9 @@ fn call_error_to_bridge(error: CallError) -> crate::errors::BridgeError {
                 call_audio_codec_str(selected)
             ),
         ),
+        CallError::Media(message) if message == &"no own LID" => {
+            crate::errors::BridgeError::NotConnected
+        }
         _ => crate::errors::BridgeError::from(error),
     }
 }
@@ -860,6 +1047,17 @@ mod call_media_tests {
     }
 
     #[test]
+    fn admission_refuses_growth_but_never_a_takeover() {
+        assert!(admits_call(0, false));
+        assert!(admits_call(ACTIVE_CALL_CAPACITY - 1, false));
+        assert!(!admits_call(ACTIVE_CALL_CAPACITY, false));
+        assert!(!admits_call(ACTIVE_CALL_CAPACITY + 1, false));
+        // A repeated id displaces instead of growing, at any size.
+        assert!(admits_call(ACTIVE_CALL_CAPACITY, true));
+        assert!(admits_call(ACTIVE_CALL_CAPACITY + 1, true));
+    }
+
+    #[test]
     fn the_cache_is_bounded() {
         let cache = cache();
         for n in 0..OFFER_CACHE_CAPACITY + 4 {
@@ -891,34 +1089,90 @@ mod call_media_tests {
     }
 
     #[test]
-    fn the_format_promise_defaults_to_mlow() {
-        assert!(
-            matches!(
-                call_audio_format(None),
-                Ok(format) if format == AudioFormat::MLOW_16KHZ_60MS
-            ),
-            "absent format must promise MLOW"
-        );
-        assert!(
-            matches!(
-                call_audio_format(Some(JsValue::UNDEFINED)),
-                Ok(format) if format == AudioFormat::MLOW_16KHZ_60MS
-            ),
-            "undefined format must promise MLOW"
-        );
-        assert!(
-            matches!(
-                call_audio_format(Some(JsValue::from_str("opus"))),
-                Ok(format) if format == AudioFormat::OPUS_MLOW_16KHZ_60MS
-            ),
-            "opus must promise the in-profile escape"
-        );
-        match call_audio_format(Some(JsValue::from_str("g729"))) {
+    fn the_format_promise_is_explicit() {
+        // No bridge default: the core negotiates from this promise and
+        // supplies none, so absence rejects rather than silently promising
+        // MLOW against an Opus-only peer.
+        match call_audio_format(JsValue::UNDEFINED) {
             Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
                 assert_eq!(field, "audioFormat")
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }
+        assert!(
+            matches!(
+                call_audio_format(JsValue::from_str("mlow")),
+                Ok(format) if format == AudioFormat::MLOW_16KHZ_60MS
+            ),
+            "mlow must promise MLOW"
+        );
+        assert!(
+            matches!(
+                call_audio_format(JsValue::from_str("opus")),
+                Ok(format) if format == AudioFormat::OPUS_MLOW_16KHZ_60MS
+            ),
+            "opus must promise the in-profile escape"
+        );
+        match call_audio_format(JsValue::from_str("g729")) {
+            Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                assert_eq!(field, "audioFormat")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_missing_identity_is_not_connected() {
+        match call_error_to_bridge(CallError::Media("no own LID")) {
+            crate::errors::BridgeError::NotConnected => {}
+            other => panic!("expected not-connected, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_unusable_media_callback_rejects_construction() {
+        // A present-but-unusable sink must fail at install time, not as
+        // silently missing audio on the first live call.
+        let receiver = js_sys::Object::new();
+        js_sys::Reflect::set(&receiver, &"onCallAudio".into(), &JsValue::from_f64(42.0))
+            .expect("the test object accepts a key");
+        match media_callback(&receiver.into(), "onCallAudio") {
+            Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                assert_eq!(field, "on_event.onCallAudio")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        // An object without the sink reads as absent, the normal
+        // signaling-only host.
+        let bare = js_sys::Object::new();
+        assert!(
+            media_callback(&bare.into(), "onCallAudio")
+                .expect("a missing sink is absent")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn the_ended_event_carries_its_counters() {
+        let stats = call_media_stats_to_result(&wacore::voip::CallMediaStats::default());
+        let stats_value =
+            serde_wasm_bindgen::to_value(&stats).expect("the stats result serializes");
+        let event = ended_event_object("CALL-1", Some(&stats_value)).expect("the event builds");
+        for key in ["callId", "kind", "stats"] {
+            assert!(
+                js_sys::Reflect::has(&event, &key.into()).expect("the event is inspectable"),
+                "ended event is missing {key}"
+            );
+        }
+        let kind = js_sys::Reflect::get(&event, &"kind".into()).expect("the event carries a kind");
+        assert_eq!(kind.as_string().as_deref(), Some("ended"));
+
+        // Without counters the key stays absent rather than null.
+        let bare = ended_event_object("CALL-1", None).expect("the event builds");
+        assert!(
+            !js_sys::Reflect::has(&bare, &"stats".into()).expect("the event is inspectable"),
+            "an absent stats must not become a key"
+        );
     }
 
     /// Engine events the host asked for cross with their fields; everything

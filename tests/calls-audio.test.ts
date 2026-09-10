@@ -59,14 +59,22 @@ describe("call media validation", () => {
     }
   });
 
-  test("the audio format promise is validated before the gate", async () => {
+  test("the audio format promise is required and validated before the gate", async () => {
     const client = await offlineClient();
     try {
-      const error = await rejection(
+      const badFormat = await rejection(
         client.acceptCall("NEVER-RANG", "g729" as "mlow")
       );
-      expect(error.kind).toBe("invalid-argument");
-      expect(error.field).toBe("audioFormat");
+      expect(badFormat.kind).toBe("invalid-argument");
+      expect(badFormat.field).toBe("audioFormat");
+
+      // No bridge default: absence rejects instead of silently promising
+      // MLOW against whatever the peer speaks.
+      const absent = await rejection(
+        client.acceptCall("NEVER-RANG", undefined as unknown as "mlow")
+      );
+      expect(absent.kind).toBe("invalid-argument");
+      expect(absent.field).toBe("audioFormat");
     } finally {
       client.free();
     }
@@ -79,11 +87,11 @@ describe("call media validation", () => {
       expect(badPeer.kind).toBe("invalid-argument");
       expect(badPeer.field).toBe("peer");
 
-      // No session and no LID offline, but the core's own media error
-      // proves the dial crossed the boundary with its arguments intact.
+      // No session and no identity offline: the core's missing-LID error
+      // proves the dial crossed with its arguments intact, and it reports
+      // not-connected (pair first) rather than a bridge failure.
       const offline = await rejection(client.dialCall(PEER, "mlow"));
-      expect(offline.kind).toBe("internal");
-      expect(offline.message).toContain("no own LID");
+      expect(offline.kind).toBe("not-connected");
     } finally {
       client.free();
     }
@@ -132,6 +140,21 @@ describe("call media validation", () => {
       expect(error.field).toBe("provider");
     } finally {
       client.free();
+    }
+  });
+
+  test("an unusable media callback rejects construction", async () => {
+    try {
+      await createWhatsAppClient(
+        { connect() {}, send() {}, disconnect() {} },
+        createHttp(),
+        { onEvent() {}, onCallAudio: 42 } as never
+      );
+      throw new Error("expected construction to reject");
+    } catch (error) {
+      const coded = error as CodedError;
+      expect(coded.kind).toBe("invalid-argument");
+      expect(coded.field).toBe("on_event.onCallAudio");
     }
   });
 });

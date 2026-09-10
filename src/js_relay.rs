@@ -12,7 +12,7 @@
 //! re-enters WASM must not meet the extern-type object slab.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use async_channel::Receiver;
 use async_trait::async_trait;
@@ -156,40 +156,82 @@ impl RawRelayCallbacks {
         .map_err(|e| anyhow::anyhow!("relay params icePwd: {e:?}"))?;
 
         let events = relay_events_object(event_tx);
+        // The owning object stays the receiver: a class-based provider
+        // reads its state off `this`, and a NULL receiver would detach it.
         let result = self
             .create_fn
-            .call2(&JsValue::NULL, &params_obj.into(), &events)
+            .call2(&self._js_obj, &params_obj.into(), &events)
             .map_err(|e| anyhow::anyhow!("createRelayConnection threw: {e:?}"))?;
         JsRelayConnection::from_js(result).await
     }
 }
 
+/// Push one inbound packet, accounting sheds the engine never sees.
+/// Drops accumulate in `drops` and ride ahead of the next delivered packet
+/// — ahead because they happened earlier — instead of being fired into the
+/// same full channel, which could never succeed.
+fn push_packet(tx: &async_channel::Sender<RelayTransportEvent>, drops: &AtomicU32, bytes: Bytes) {
+    let pending = drops.swap(0, Ordering::AcqRel);
+    if pending > 0
+        && tx
+            .try_send(RelayTransportEvent::InboundDropped(pending))
+            .is_err()
+    {
+        drops.fetch_add(pending, Ordering::AcqRel);
+    }
+    match tx.try_send(RelayTransportEvent::PacketReceived(bytes)) {
+        Ok(()) => {}
+        Err(async_channel::TrySendError::Closed(_)) => {
+            log::debug!("Relay channel closed, packet dropped (teardown in progress)");
+        }
+        // VoIP is loss tolerant: shed here and count it above, rather than
+        // grow a queue behind a consumer that stopped reading.
+        Err(async_channel::TrySendError::Full(_)) => {
+            drops.fetch_add(1, Ordering::AcqRel);
+        }
+    }
+}
+
+/// Push the close event, flushing drops first. A close the queue cannot
+/// carry still terminates the call: closing the sender ends the stream,
+/// and the drive loop breaks on stream end the same way it breaks on the
+/// event — so a saturated queue can delay the news, never lose it.
+fn push_close(
+    tx: &async_channel::Sender<RelayTransportEvent>,
+    drops: &AtomicU32,
+    event: RelayTransportEvent,
+) {
+    let pending = drops.swap(0, Ordering::AcqRel);
+    if pending > 0 {
+        let _ = tx.try_send(RelayTransportEvent::InboundDropped(pending));
+    }
+    if tx.try_send(event).is_err() {
+        tx.close();
+    }
+}
+
 /// The events object handed to the constructor. Each closure pushes into the
-/// event channel and returns; a closed or full channel is a teardown in
-/// progress or a wedged consumer, and neither is answered by blocking a
-/// host callback.
+/// event channel and returns; a closed channel is a teardown in progress,
+/// and neither case is answered by blocking a host callback.
 fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> JsValue {
     let obj = js_sys::Object::new();
+    let drops = Arc::new(AtomicU32::new(0));
 
     let tx = event_tx.clone();
+    let drops_packets = drops.clone();
     let on_packet = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
-        let bytes = Bytes::from(crate::js_bytes::to_vec(&data));
-        match tx.try_send(RelayTransportEvent::PacketReceived(bytes)) {
-            Ok(()) => {}
-            Err(async_channel::TrySendError::Closed(_)) => {
-                log::debug!("Relay channel closed, packet dropped (teardown in progress)");
-            }
-            // VoIP is loss tolerant: shed here and let the engine count it,
-            // rather than grow a queue behind a consumer that stopped reading.
-            Err(async_channel::TrySendError::Full(_)) => {
-                let _ = tx.try_send(RelayTransportEvent::InboundDropped(1));
-            }
-        }
+        push_packet(
+            &tx,
+            &drops_packets,
+            Bytes::from(crate::js_bytes::to_vec(&data)),
+        );
     }) as Box<dyn FnMut(js_sys::Uint8Array)>);
     let _ = js_sys::Reflect::set(&obj, &"onPacket".into(), &on_packet.into_js_value());
 
     let tx = event_tx.clone();
     let on_open = Closure::wrap(Box::new(move || {
+        // Informational: the drive loop ignores it, so a drop here costs
+        // nothing and must not close a healthy call behind it.
         if tx.try_send(RelayTransportEvent::Connected).is_err() {
             log::debug!("Relay channel closed, open event dropped");
         }
@@ -203,9 +245,7 @@ fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> 
         } else {
             RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)
         };
-        if tx.try_send(event).is_err() {
-            log::debug!("Relay channel closed, close event dropped");
-        }
+        push_close(&tx, &drops, event);
     }) as Box<dyn FnMut(JsValue)>);
     let _ = js_sys::Reflect::set(&obj, &"onClose".into(), &on_close.into_js_value());
 
@@ -216,16 +256,22 @@ fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> 
 /// rejection as an error. A host `send`/`close` that never settles retains
 /// its resolve/reject pair for the life of the process, so the contract
 /// above requires settling.
+/// Await a host return that may or may not be a Promise.
+///
+/// Normalized through this realm's `Promise.resolve`, which adopts
+/// cross-realm promises and bare thenables alike: a realm-local
+/// `instanceof` would misread both as resolved values (and their
+/// rejections as successes). A synchronous return resolves on the next
+/// microtask, which costs nothing next to the packet copy. A value that
+/// never settles retains its resolve/reject pair for the life of the
+/// process, so the contract requires settling.
 async fn resolve_maybe(what: &str, val: JsValue) -> Result<(), anyhow::Error> {
-    if val.is_instance_of::<js_sys::Promise>() {
-        let promise = js_sys::Promise::unchecked_from_js(val);
-        // Annotated like the signaling transport's copy: the future's output
-        // is otherwise unconstrained and inference leaves it unsolved.
-        let future: JsFuture = JsFuture::from(promise);
-        future
-            .await
-            .map_err(|e| anyhow::anyhow!("relay {what} rejected: {e:?}"))?;
-    }
+    // Annotated: the future's output is otherwise unconstrained and
+    // inference leaves it unsolved.
+    let future: JsFuture = JsFuture::from(js_sys::Promise::resolve(&val));
+    future
+        .await
+        .map_err(|e| anyhow::anyhow!("relay {what} rejected: {e:?}"))?;
     Ok(())
 }
 
@@ -244,18 +290,18 @@ struct JsRelayConnection {
 
 impl JsRelayConnection {
     async fn from_js(val: JsValue) -> Result<Self, anyhow::Error> {
-        if val.is_instance_of::<js_sys::Promise>() {
-            let promise = js_sys::Promise::unchecked_from_js(val);
-            let future: JsFuture = JsFuture::from(promise);
-            let val = future
-                .await
-                .map_err(|e| anyhow::anyhow!("createRelayConnection rejected: {e:?}"))?;
-            return Self::from_handle(val);
-        }
+        // Normalized like every other host return (see `resolve_maybe`): a
+        // cross-realm promise or a bare thenable adopts here instead of
+        // being misread as the handle itself.
+        //
         // A synchronous handle is a host bug — the contract requires a
         // Promise — but refusing it here would strand a channel the host
         // already opened. Accept it and let the missing-open watchdog below
         // (the engine's own allocate deadline) bound the wait.
+        let future: JsFuture = JsFuture::from(js_sys::Promise::resolve(&val));
+        let val = future
+            .await
+            .map_err(|e| anyhow::anyhow!("createRelayConnection rejected: {e:?}"))?;
         Self::from_handle(val)
     }
 
@@ -277,11 +323,12 @@ impl JsRelayConnection {
 
     async fn call_send(&self, data: &[u8]) -> Result<(), anyhow::Error> {
         // One copy on the way out, matching the bridge's `Vec<u8>`-by-value
-        // precedent: linear memory into a typed array the host sends.
+        // precedent: linear memory into a typed array the host sends. The
+        // handle stays the receiver, for the reason `call_create` names.
         let uint8 = js_sys::Uint8Array::from(data);
         let result = self
             .send_fn
-            .call1(&JsValue::NULL, &uint8.into())
+            .call1(&self._js_obj, &uint8.into())
             .map_err(|e| anyhow::anyhow!("relay send threw: {e:?}"))?;
         resolve_maybe("send", result).await
     }
@@ -289,7 +336,7 @@ impl JsRelayConnection {
     async fn call_close(&self) -> Result<(), anyhow::Error> {
         let result = self
             .close_fn
-            .call0(&JsValue::NULL)
+            .call0(&self._js_obj)
             .map_err(|e| anyhow::anyhow!("relay close threw: {e:?}"))?;
         resolve_maybe("close", result).await
     }
@@ -412,5 +459,77 @@ impl RelayTransport for JsRelayTransport {
             }),
             event_rx,
         ))
+    }
+}
+
+#[cfg(test)]
+mod relay_event_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn packet(n: u8) -> Bytes {
+        Bytes::from(vec![n])
+    }
+
+    /// Sheds accumulate and ride ahead of the next delivered packet, in the
+    /// order they happened — never fired into the full channel that just
+    /// refused them.
+    #[test]
+    fn sheds_are_counted_and_reported_ahead() {
+        let (tx, rx) = async_channel::bounded(2);
+        let drops = AtomicU32::new(0);
+
+        push_packet(&tx, &drops, packet(1));
+        push_packet(&tx, &drops, packet(2));
+        // Full now: this shed must not reach the channel, only the counter.
+        push_packet(&tx, &drops, packet(3));
+        assert_eq!(drops.load(Ordering::Acquire), 1);
+
+        match rx.try_recv().expect("the first packet is queued") {
+            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(1)),
+            other => panic!("expected the queued packet, got {other:?}"),
+        }
+        // Room for one: the shed count rides ahead of the packet that
+        // follows it, in the order the two happened.
+        push_packet(&tx, &drops, packet(4));
+        assert_eq!(drops.load(Ordering::Acquire), 1);
+        match rx.try_recv().expect("the second packet is queued") {
+            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(2)),
+            other => panic!("expected the queued packet, got {other:?}"),
+        }
+        match rx.try_recv().expect("the shed count follows") {
+            RelayTransportEvent::InboundDropped(1) => {}
+            other => panic!("expected the shed count, got {other:?}"),
+        }
+        push_packet(&tx, &drops, packet(5));
+        assert_eq!(drops.load(Ordering::Acquire), 0);
+        match rx.try_recv().expect("the shed count precedes the packet") {
+            RelayTransportEvent::InboundDropped(1) => {}
+            other => panic!("expected the shed count, got {other:?}"),
+        }
+        match rx.try_recv().expect("the fifth packet follows its count") {
+            RelayTransportEvent::PacketReceived(data) => assert_eq!(data, packet(5)),
+            other => panic!("expected the queued packet, got {other:?}"),
+        }
+    }
+
+    /// A close the queue cannot carry still terminates the call: closing
+    /// the sender ends the stream, which the drive loop breaks on like the
+    /// event itself.
+    #[test]
+    fn an_undeliverable_close_still_ends_the_stream() {
+        let (tx, rx) = async_channel::bounded(1);
+        let drops = AtomicU32::new(0);
+
+        push_packet(&tx, &drops, packet(1));
+        push_close(
+            &tx,
+            &drops,
+            RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed),
+        );
+        // The queued packet still reads back; then the stream ends instead
+        // of hanging on a close event that never fit.
+        assert!(rx.try_recv().is_ok());
+        assert!(rx.try_recv().is_err());
     }
 }
