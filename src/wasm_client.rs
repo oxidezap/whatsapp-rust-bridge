@@ -737,7 +737,9 @@ const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
 /**
  * One encoded audio packet for a live call. `data` is exactly one codec
  * payload as the engine received it; `codec` names the grammar inside the
- * negotiated timing, and the remaining fields are its RTP metadata.
+ * negotiated timing, and the remaining fields are its RTP metadata. An
+ * `opus` frame carries the MLOW escape: restore the RFC TOC with
+ * `depacketizeOpusFromMlow` before handing it to a stock Opus decoder.
  */
 export interface CallAudioFrame {
   callId: string;

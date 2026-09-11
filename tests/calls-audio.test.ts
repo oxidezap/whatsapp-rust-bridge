@@ -10,7 +10,12 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { initWasmEngine, createWhatsAppClient } from "../dist/index.js";
+import {
+  initWasmEngine,
+  createWhatsAppClient,
+  packetizeOpusForMlow,
+  depacketizeOpusFromMlow,
+} from "../dist/index.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 import { createHttp } from "./helpers.js";
 
@@ -257,6 +262,42 @@ describe("call media validation", () => {
       expect(denyBadUser.field).toBe("user");
     } finally {
       client.free();
+    }
+  });
+});
+
+describe("mlow opus escape helpers", () => {
+  // The push path itself needs a live call, which no mock server covers in
+  // CI; what these prove is the transform the push applies. `callPushAudio`
+  // on an `"opus"` call rewrites exactly like `packetizeOpusForMlow`, so a
+  // host pushing ffmpeg-shaped CELT straight through is what the engine
+  // accepts.
+  test("packetize rewrites the CELT TOC and depacketize restores it", () => {
+    const original = new Uint8Array([0xbb, 0x03, 1, 2, 3, 4, 5, 6]);
+    const escaped = packetizeOpusForMlow(original);
+    expect(escaped[0]).toBe(0xdd);
+    expect(escaped.slice(1)).toEqual(original.slice(1));
+    expect(depacketizeOpusFromMlow(escaped)).toEqual(original);
+  });
+
+  test("dtx maps to the mlow sid", () => {
+    expect(packetizeOpusForMlow(new Uint8Array([0xb8]))).toEqual(
+      new Uint8Array([0x90])
+    );
+    expect(packetizeOpusForMlow(new Uint8Array([0xbb, 0x03]))).toEqual(
+      new Uint8Array([0x90])
+    );
+  });
+
+  test("non-celt packets and plain bytes reject on data", () => {
+    for (const bad of [
+      () => packetizeOpusForMlow(new Uint8Array([0x08, 1, 2])),
+      () => packetizeOpusForMlow(new Uint8Array(0)),
+      () => depacketizeOpusFromMlow(new Uint8Array([0x08, 1, 2])),
+    ]) {
+      const error = syncRejection(bad);
+      expect(error.kind).toBe("invalid-argument");
+      expect(error.field).toBe("data");
     }
   });
 });

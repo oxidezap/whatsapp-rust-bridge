@@ -73,6 +73,11 @@ pub(super) struct CallRecord {
     /// Locally muted, applied at request time even when the announce
     /// below cannot reach the wire: `call_push_audio` sheds while set.
     pub(super) mic_muted: bool,
+    /// The call promised the in-profile Opus escape (`audioFormat: "opus"`),
+    /// so `call_push_audio` rewrites each RFC Opus CELT packet to the MLOW
+    /// escape before queueing. Without the rewrite the engine drops the
+    /// packet as incompatible with the negotiated RTP profile.
+    pub(super) opus_mlow_escape: bool,
     /// A second reader on the decoded-audio queue, held so the watermark
     /// read does not disturb the pump that owns the first.
     pub(super) speaker_depth: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
@@ -279,6 +284,12 @@ impl WasmWhatsAppClient {
     /// loss-tolerant answer, not an error, which is why this resolves
     /// rather than rejects — and also the host's pacing signal, in place
     /// of a watermark readout the core does not expose yet.
+    ///
+    /// On an `"opus"` call the RFC Opus CELT packet is rewritten to the
+    /// MLOW escape in flight, so the host passes ffmpeg-shaped packets
+    /// straight through: pre-packetizing with `packetizeOpusForMlow` would
+    /// rewrite twice and corrupt the TOC. A packet the escape cannot carry
+    /// rejects as `invalid-argument` naming `data` instead.
     #[wasm_bindgen(js_name = callPushAudio)]
     pub fn call_push_audio(
         &self,
@@ -302,8 +313,17 @@ impl WasmWhatsAppClient {
         }
         // One copy on the way in, matching the documented boundary cost:
         // typed array into an owned packet the engine frames without
-        // inspecting.
-        match record.mic_tx.try_send(Bytes::copy_from_slice(data)) {
+        // inspecting. The escape rewrite runs on the owned copy, never on
+        // the caller's view.
+        let packet = if record.opus_mlow_escape {
+            let mut rewritten = data.to_vec();
+            wacore::voip::packetize_opus_for_mlow(&mut rewritten)
+                .map_err(opus_mlow_packet_error)?;
+            Bytes::from(rewritten)
+        } else {
+            Bytes::copy_from_slice(data)
+        };
+        match record.mic_tx.try_send(packet) {
             Ok(()) => Ok(true),
             Err(async_channel::TrySendError::Full(_)) => Ok(false),
             // The engine is gone but the end watcher has not run yet; the
@@ -729,6 +749,55 @@ impl WasmWhatsAppClient {
     }
 }
 
+/// Name a packet the MLOW escape cannot carry. Every variant is the
+/// caller's bytes, so this is `invalid-argument` on `data` — and each arm
+/// is written down rather than rendered from the core's `Debug`, with the
+/// wildcard keeping a variant added upstream identifiable instead of taking
+/// a neighbour's message.
+fn opus_mlow_packet_error(error: wacore::voip::OpusMlowPacketError) -> crate::errors::BridgeError {
+    use wacore::voip::OpusMlowPacketError as E;
+    let reason = match error {
+        E::Empty => "audio packet must not be empty".to_owned(),
+        E::NotCelt(config) => format!(
+            "opus config {config} is not CELT-only; the MLOW escape carries CELT frames only"
+        ),
+        E::InvalidFramePacking => "invalid opus frame packing".to_owned(),
+        other => other.to_string(),
+    };
+    crate::errors::invalid_arg("data", reason)
+}
+
+/// Rewrite one RFC Opus CELT packet to the MLOW in-profile escape.
+///
+/// Beside the automatic path, not before it: `callPushAudio` already
+/// rewrites on `"opus"` calls, so a host pushing through it never calls
+/// this — rewriting twice corrupts the TOC. Reach for this when the packet
+/// never goes through `callPushAudio`, or to prove a fixture in a test.
+/// Rejects what the escape cannot carry as `invalid-argument` on `data`.
+#[wasm_bindgen(js_name = packetizeOpusForMlow)]
+pub fn packetize_opus_for_mlow(
+    data: &[u8],
+) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
+    let mut packet = data.to_vec();
+    wacore::voip::packetize_opus_for_mlow(&mut packet).map_err(opus_mlow_packet_error)?;
+    Ok(crate::wasm_utils::byte_array(&packet))
+}
+
+/// Restore the RFC Opus TOC on one MLOW escape payload.
+///
+/// The receive side of the pair above: frames arriving over `onCallAudio`
+/// with `codec: "opus"` carry the escape, and a stock Opus decoder needs
+/// the plain TOC back first. Bytes that are not the escape reject as
+/// `invalid-argument` on `data` rather than guessing.
+#[wasm_bindgen(js_name = depacketizeOpusFromMlow)]
+pub fn depacketize_opus_from_mlow(
+    data: &[u8],
+) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
+    let mut packet = data.to_vec();
+    wacore::voip::depacketize_opus_from_mlow(&mut packet).map_err(opus_mlow_packet_error)?;
+    Ok(crate::wasm_utils::byte_array(&packet))
+}
+
 // ---------------------------------------------------------------------------
 // Call registry
 // ---------------------------------------------------------------------------
@@ -828,6 +897,7 @@ impl CallMedia {
     fn register_call(
         &self,
         handle: CallHandle,
+        audio_format: AudioFormat,
         mic_tx: async_channel::Sender<Bytes>,
         mic_drain: async_channel::Receiver<Bytes>,
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
@@ -857,6 +927,7 @@ impl CallMedia {
                     mic_tx,
                     mic_drain,
                     mic_muted: false,
+                    opus_mlow_escape: audio_format == AudioFormat::OPUS_MLOW_16KHZ_60MS,
                     speaker_depth,
                     video_tx: None,
                     video_in_depth: None,
@@ -1432,7 +1503,7 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
-        let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
+        let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
         slot.commit();
         Ok(id)
     }
@@ -1687,7 +1758,7 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
-        let id = self.register_call(handle, mic_tx, mic_drain, speaker_rx);
+        let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
         slot.commit();
         Ok(id)
     }
@@ -2458,6 +2529,66 @@ mod call_media_tests {
         let detail =
             js_sys::Reflect::get(&setup, &"detail".into()).expect("the event carries a detail");
         assert_eq!(detail.as_string().as_deref(), Some("no provider"));
+    }
+
+    /// The MLOW escape the push path applies: an ffmpeg-shaped CELT packet
+    /// comes back with the escape TOC and the payload untouched, and the
+    /// depacketize side restores the original byte for byte.
+    #[test]
+    fn opus_celt_packet_round_trips_through_the_escape() {
+        // RFC Opus: CELT wideband 20 ms mono, three-frame code 3.
+        let original = [0xBB, 0x03, 1, 2, 3, 4, 5, 6];
+        let escaped = packetize_opus_for_mlow(&original).expect("CELT packetizes");
+        let escaped = escaped.to_vec();
+        assert_eq!(escaped[0], 0xDD);
+        assert_eq!(&escaped[1..], &original[1..]);
+        let restored = depacketize_opus_from_mlow(&escaped).expect("escape restores");
+        assert_eq!(restored.to_vec(), original);
+    }
+
+    #[test]
+    fn opus_dtx_becomes_the_mlow_sid() {
+        // libopus DTX, including a repacketized 60 ms frame: the peer must
+        // see the SID token, not the speech-resume marker. The SID is the
+        // MLOW decoder's comfort noise, not the escape, so depacketizing it
+        // back rejects rather than inventing a TOC.
+        for dtx in [vec![0xB8], vec![0xBB, 0x03]] {
+            assert_eq!(
+                packetize_opus_for_mlow(&dtx).expect("DTX maps").to_vec(),
+                [0x90]
+            );
+        }
+        match depacketize_opus_from_mlow(&[0x90]) {
+            Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                assert_eq!(field, "data")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+    }
+
+    /// What the escape cannot carry rejects on `data`: a SILK-only TOC is
+    /// not CELT, and bytes that were never the escape do not depacketize.
+    #[test]
+    fn non_celt_packets_and_plain_bytes_reject() {
+        match packetize_opus_for_mlow(&[0x08, 1, 2]) {
+            Err(crate::errors::BridgeError::InvalidArgument { field, reason }) => {
+                assert_eq!(field, "data");
+                assert!(reason.contains("CELT"), "unexpected reason: {reason}");
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match packetize_opus_for_mlow(&[]) {
+            Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                assert_eq!(field, "data")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match depacketize_opus_from_mlow(&[0x08, 1, 2]) {
+            Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
+                assert_eq!(field, "data")
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
     }
 }
 
