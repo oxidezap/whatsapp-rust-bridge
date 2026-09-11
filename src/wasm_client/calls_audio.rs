@@ -258,10 +258,12 @@ impl WasmWhatsAppClient {
         &self,
         call_id: String,
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
+        with_video: Option<bool>,
     ) -> js_sys::Promise {
         // Synchronous prefix, owned future: see `CallMedia`.
         let media = CallMedia::of(self);
-        promise_value(async move { media.accept_call(call_id, audio_format).await })
+        let with_video = with_video.unwrap_or(false);
+        promise_value(async move { media.accept_call(call_id, audio_format, with_video).await })
     }
 
     /// Dial a peer with encoded audio, and return the new call id.
@@ -274,9 +276,11 @@ impl WasmWhatsAppClient {
         &self,
         peer: String,
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
+        with_video: Option<bool>,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        promise_value(async move { media.dial_call(peer, audio_format).await })
+        let with_video = with_video.unwrap_or(false);
+        promise_value(async move { media.dial_call(peer, audio_format, with_video).await })
     }
 
     /// Push one encoded audio packet toward the peer.
@@ -1375,6 +1379,7 @@ impl CallMedia {
         &self,
         call_id: String,
         audio_format: JsValue,
+        with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let format = call_audio_format(audio_format)?;
         let slot = self.reserve_call_slot(Some(&call_id), "acceptCall")?;
@@ -1399,16 +1404,24 @@ impl CallMedia {
         // A second reader for the mute drain; the engine owns the first
         // once the builder below takes it.
         let mic_drain = mic_rx.clone();
-        let handle = core
-            .voip()
+
+        let voip = core.voip();
+        let mut builder = voip
             .accept(&offer)
-            .encoded_audio(format, mic_rx, speaker_tx)
-            .start()
-            .await
-            .map_err(|error| {
-                restore_offer(&self.call_offers, call_id.clone(), offer);
-                call_error_to_bridge(error)
-            })?;
+            .encoded_audio(format, mic_rx, speaker_tx);
+        let video_channels = if with_video {
+            let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+            let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+            builder = builder.video(video_rx, sink_tx);
+            Some((video_tx, sink_rx))
+        } else {
+            None
+        };
+
+        let handle = builder.start().await.map_err(|error| {
+            restore_offer(&self.call_offers, call_id.clone(), offer);
+            call_error_to_bridge(error)
+        })?;
         // The engine owns the offer now; a re-answer would double-answer.
         // (The take above already consumed it; this only covers an offer
         // that arrived again under the same id while starting.)
@@ -1424,6 +1437,21 @@ impl CallMedia {
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
         let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
+
+        if let Some((video_tx, sink_rx)) = video_channels {
+            let sink_depth = sink_rx.clone();
+            let mut records = self.call_records.borrow_mut();
+            if let Some(record) = records.get_mut(&id) {
+                record.video_tx = Some(video_tx);
+                record.video_in_depth = Some(sink_depth);
+                if self.call_video_callback.is_some()
+                    && let Some(pump) = self.spawn_video_task(&id, sink_rx)
+                {
+                    record.tasks.push(pump);
+                }
+            }
+        }
+
         slot.commit();
         Ok(id)
     }
@@ -1625,6 +1653,7 @@ impl CallMedia {
         &self,
         peer: String,
         audio_format: JsValue,
+        with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let peer_jid = parse_named_jid("peer", &peer)?;
         let format = call_audio_format(audio_format)?;
@@ -1636,16 +1665,22 @@ impl CallMedia {
         let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
         let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
         let mic_drain = mic_rx.clone();
-        let handle = self
-            .client
-            .online()
-            .await?
-            .voip()
+
+        let online = self.client.online().await?;
+        let voip = online.voip();
+        let mut builder = voip
             .call(&peer_jid)
-            .encoded_audio(format, mic_rx, speaker_tx)
-            .start()
-            .await
-            .map_err(call_error_to_bridge)?;
+            .encoded_audio(format, mic_rx, speaker_tx);
+        let video_channels = if with_video {
+            let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+            let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+            builder = builder.video(video_rx, sink_tx);
+            Some((video_tx, sink_rx))
+        } else {
+            None
+        };
+
+        let handle = builder.start().await.map_err(call_error_to_bridge)?;
         // Serialized with concurrent starts under the admission lock:
         // two same-id starters would otherwise interleave termination and
         // insertion so the second insert silently drops the first
@@ -1654,6 +1689,21 @@ impl CallMedia {
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
         let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
+
+        if let Some((video_tx, sink_rx)) = video_channels {
+            let sink_depth = sink_rx.clone();
+            let mut records = self.call_records.borrow_mut();
+            if let Some(record) = records.get_mut(&id) {
+                record.video_tx = Some(video_tx);
+                record.video_in_depth = Some(sink_depth);
+                if self.call_video_callback.is_some()
+                    && let Some(pump) = self.spawn_video_task(&id, sink_rx)
+                {
+                    record.tasks.push(pump);
+                }
+            }
+        }
+
         slot.commit();
         Ok(id)
     }
@@ -1933,6 +1983,10 @@ fn call_error_to_bridge(error: CallError) -> crate::errors::BridgeError {
                 "the peer speaks {}; retry with that format",
                 call_audio_codec_str(selected)
             ),
+        ),
+        CallError::VideoNotOffered => crate::errors::invalid_arg(
+            "withVideo",
+            "the peer offered an audio-only call; cannot accept with video",
         ),
         CallError::Media(message) if message == &"no own LID" => {
             crate::errors::BridgeError::NotConnected
