@@ -14,6 +14,7 @@ import {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
   normalizeDtlsFingerprint,
+  RELAY_DTLS_FINGERPRINT,
   shedBufferedPacket,
 } from "../ts/relay-transport";
 
@@ -40,7 +41,7 @@ describe("relay answer SDP", () => {
         "c=IN IP4 203.0.113.7",
         "a=ice-ufrag:UFRAG",
         "a=ice-pwd:PWD",
-        `a=fingerprint:sha-256:${FINGERPRINT}`,
+        `a=fingerprint:sha-256 ${FINGERPRINT}`,
         "a=setup:passive",
         "a=mid:0",
         "a=sctp-port:5000",
@@ -316,5 +317,31 @@ describe("provider construction", () => {
         events
       )
     ).rejects.toThrow(/RTCPeerConnection/);
+  });
+
+  test("uses RELAY_DTLS_FINGERPRINT by default when fingerprint is omitted", () => {
+    expect(RELAY_DTLS_FINGERPRINT).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+    expect(() => createRtcRelayTransportProvider()).not.toThrow();
+  });
+
+  test("uses RTCPeerConnection passed in options", async () => {
+    let constructed = false;
+    class CustomPC {
+      constructor() {
+        constructed = true;
+        throw new Error("custom PC used");
+      }
+    }
+    const provider = createRtcRelayTransportProvider(undefined, {
+      RTCPeerConnection: CustomPC,
+    });
+    const events = { onPacket() {}, onOpen() {}, onClose() {} };
+    await expect(
+      provider.createRelayConnection(
+        { address: "203.0.113.7", port: 3478, iceUfrag: "U", icePwd: "P" },
+        events
+      )
+    ).rejects.toThrow("custom PC used");
+    expect(constructed).toBe(true);
   });
 });

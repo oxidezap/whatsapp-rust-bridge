@@ -61,7 +61,9 @@ export {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
   normalizeDtlsFingerprint,
+  RELAY_DTLS_FINGERPRINT,
   type RelayAnswerParts,
+  type RtcRelayTransportOptions,
 } from "./relay-transport";
 
 // initWasmEngine and createWhatsAppClient need explicit typing

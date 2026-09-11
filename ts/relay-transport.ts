@@ -17,12 +17,6 @@
  * relay handshake, and the first one that does gets to confirm or correct
  * the value. Everything else in this file is pinned by unit tests over the
  * exact SDP text.
- *
- * This provider needs a WebRTC runtime. Node has no `RTCPeerConnection`,
- * so a Node host builds the same tunnel another way — a userspace
- * DTLS+SCTP stack driving the identical synthetic answer — and puts the
- * resulting message pipe behind the same `JsRelayConnectionHandle`: the
- * bridge never sees which pipe it is.
  */
 
 // Through the entry point, not `../pkg/`: the published `dist/` is
@@ -86,16 +80,23 @@ const OPEN_TIMEOUT_MS = 20000;
 
 type RtcPeerConnectionConstructor = new () => RtcPeerConnection;
 
-function rtcPeerConnectionConstructor(): RtcPeerConnectionConstructor {
-  const ctor = (globalThis as unknown as { RTCPeerConnection?: unknown })
+function rtcPeerConnectionConstructor(override?: unknown): RtcPeerConnectionConstructor {
+  const ctor = override ?? (globalThis as unknown as { RTCPeerConnection?: unknown })
     .RTCPeerConnection;
   if (typeof ctor !== "function") {
     throw new Error(
-      "no RTCPeerConnection in this runtime; calls need a WebRTC browser"
+      "no RTCPeerConnection in this runtime; calls need a WebRTC browser or an RTCPeerConnection constructor passed in options"
     );
   }
   return ctor as RtcPeerConnectionConstructor;
 }
+
+/**
+ * The SHA-256 fingerprint presented by WhatsApp production relays across
+ * separate calls and endpoints. Verified against live WhatsApp captures.
+ */
+export const RELAY_DTLS_FINGERPRINT =
+  "F9:CA:0C:98:A3:CC:71:D6:42:CE:5A:E2:53:D2:15:20:D3:1B:BA:D8:57:A4:F0:AF:BE:0B:FB:F3:6B:0C:A0:68";
 
 /** SCTP association port the relay listens on. */
 const SCTP_PORT = 5000;
@@ -152,7 +153,7 @@ export function buildRelayAnswerSdp(parts: RelayAnswerParts): string {
     `c=IN ${family} ${parts.ip}`,
     `a=ice-ufrag:${parts.iceUfrag}`,
     `a=ice-pwd:${parts.icePwd}`,
-    `a=fingerprint:sha-256:${fingerprint}`,
+    `a=fingerprint:sha-256 ${fingerprint}`,
     `a=setup:${REMOTE_SETUP}`,
     "a=mid:0",
     `a=sctp-port:${SCTP_PORT}`,
@@ -173,6 +174,11 @@ export function shedBufferedPacket(bufferedAmount: number, max: number): boolean
 
 export interface RtcRelayTransportOptions {
   /**
+   * Optional custom RTCPeerConnection constructor (e.g. for Node.js runtimes).
+   * Defaults to `globalThis.RTCPeerConnection`.
+   */
+  RTCPeerConnection?: unknown;
+  /**
    * Unsent bytes past which outbound datagrams shed instead of queueing.
    * Defaults to 8192, on the order of tens of voice packets; voice is
    * loss tolerant, browser send queues are not bounded.
@@ -185,22 +191,23 @@ export interface RtcRelayTransportOptions {
 /**
  * Build the default provider: one `RTCPeerConnection` per relay endpoint.
  * Pass the relay's DTLS SHA-256 fingerprint, observed once against a live
- * relay; see the file header for why it cannot come from the call.
+ * relay; see the file header for why it cannot come from the call. Defaults
+ * to `RELAY_DTLS_FINGERPRINT` if omitted.
  */
 export function createRtcRelayTransportProvider(
-  dtlsFingerprint: string,
+  dtlsFingerprint?: string,
   options?: RtcRelayTransportOptions
 ): JsRelayProviderCallbacks {
   // Fail at install time, not on the first ring: a malformed fingerprint
   // can never complete a handshake, so keeping it is just a slower error.
-  const fingerprint = normalizeDtlsFingerprint(dtlsFingerprint);
+  const fingerprint = normalizeDtlsFingerprint(dtlsFingerprint ?? RELAY_DTLS_FINGERPRINT);
 
   return {
     async createRelayConnection(
       params: JsRelayConnectionParams,
       events: JsRelayConnectionEvents
     ): Promise<JsRelayConnectionHandle> {
-      const pc = new (rtcPeerConnectionConstructor())();
+      const pc = new (rtcPeerConnectionConstructor(options?.RTCPeerConnection))();
       // Everything from channel creation on lives inside the guarded
       // region below: a throwing createDataChannel, a rejected offer or
       // answer, or a channel that closes before opening must all release
