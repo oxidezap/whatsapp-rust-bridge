@@ -1978,9 +1978,11 @@ fn call_audio_format(value: JsValue) -> Result<AudioFormat, crate::errors::Bridg
     let format = from_js_input::<crate::result_types::CallAudioFormat>("audioFormat", value)?;
     Ok(match format {
         crate::result_types::CallAudioFormat::Mlow => AudioFormat::MLOW_16KHZ_60MS,
-        // The in-profile Opus escape on the MLOW clock, not native RFC 7587:
-        // same timing as `mlow`, decodable under the MLOW profile.
-        crate::result_types::CallAudioFormat::Opus => AudioFormat::OPUS_MLOW_16KHZ_60MS,
+        // Native WhatsApp 16 kHz Opus (StandardOpus RTP profile, PT 120, clearing
+        // MLOW bit 31 so the peer negotiates and delivers real Opus).
+        crate::result_types::CallAudioFormat::Opus => AudioFormat::OPUS_16KHZ_60MS,
+        // The in-profile Opus escape on the MLOW clock.
+        crate::result_types::CallAudioFormat::OpusMlow => AudioFormat::OPUS_MLOW_16KHZ_60MS,
     })
 }
 
@@ -2440,9 +2442,16 @@ mod call_media_tests {
         assert!(
             matches!(
                 call_audio_format(JsValue::from_str("opus")),
+                Ok(format) if format == AudioFormat::OPUS_16KHZ_60MS
+            ),
+            "opus must promise native Opus"
+        );
+        assert!(
+            matches!(
+                call_audio_format(JsValue::from_str("opus-mlow")),
                 Ok(format) if format == AudioFormat::OPUS_MLOW_16KHZ_60MS
             ),
-            "opus must promise the in-profile escape"
+            "opus-mlow must promise the in-profile escape"
         );
         match call_audio_format(JsValue::from_str("g729")) {
             Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
