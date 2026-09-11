@@ -3673,6 +3673,30 @@ fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
     JsValue::from_str(&e.to_string())
 }
 
+/// Drive a fallible async operation returning `()` into a JS Promise resolving `undefined`.
+fn promise_void<Fut>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<(), crate::errors::BridgeError>> + 'static,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await.map_err(|e| bridge_error_to_js_value(&e))?;
+        Ok(JsValue::UNDEFINED)
+    })
+}
+
+/// Drive a fallible async operation returning a value into a JS Promise.
+fn promise_value<Fut, T>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
+    T: Into<JsValue>,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await
+            .map(Into::into)
+            .map_err(|e| bridge_error_to_js_value(&e))
+    })
+}
+
 /// Parse one call-control JID, naming the argument it came from.
 ///
 /// The shared helper above reports every JID failure as `field: "jid"`,

@@ -42,13 +42,9 @@ impl WasmWhatsAppClient {
         let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
         let offers = self.call_offers.clone();
-        wasm_bindgen_futures::future_to_promise(async move {
-            // Mapped explicitly: `From<BridgeError> for JsValue` exists
-            // only on wasm32, and `?` inside a JsValue future would lean
-            // on it, breaking host builds.
-            let peer = parse_named_jid("peer", &peer).map_err(|e| bridge_error_to_js_value(&e))?;
-            let call_creator = parse_named_jid("callCreator", &call_creator)
-                .map_err(|e| bridge_error_to_js_value(&e))?;
+        promise_void(async move {
+            let peer = parse_named_jid("peer", &peer)?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)?;
             // ConnectionBound, not `online()`: a reject names a ringing
             // call, and a reconnect in flight may already have ended it.
             // Held past the new socket it would decline a call that is
@@ -58,15 +54,14 @@ impl WasmWhatsAppClient {
                 .voip()
                 .reject_call(&call_id, &peer, &call_creator)
                 .await
-                .map_err(crate::errors::BridgeError::from)
-                .map_err(|e| bridge_error_to_js_value(&e))?;
+                .map_err(crate::errors::BridgeError::from)?;
             // The ringing is over by our own hand: answering afterwards
             // would answer a declined call, so the retained offer goes
             // with it. A failed send keeps the offer — the call may
             // still be ringing.
             #[cfg(feature = "client-calls-audio")]
             super::calls_audio::evict_offer(&offers, &call_id);
-            Ok(JsValue::UNDEFINED)
+            Ok(())
         })
     }
 
@@ -86,22 +81,12 @@ impl WasmWhatsAppClient {
         let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
         let media = super::calls_audio::CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            let peer = parse_named_jid("peer", &peer).map_err(|e| bridge_error_to_js_value(&e))?;
-            let call_creator = parse_named_jid("callCreator", &call_creator)
-                .map_err(|e| bridge_error_to_js_value(&e))?;
+        promise_void(async move {
+            let peer = parse_named_jid("peer", &peer)?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)?;
             #[cfg(feature = "client-calls-audio")]
             {
-                return super::calls_audio::terminate_call(
-                    &media,
-                    &core,
-                    call_id,
-                    peer,
-                    call_creator,
-                )
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))
-                .map(|_| JsValue::UNDEFINED);
+                super::calls_audio::terminate_call(&media, &core, call_id, peer, call_creator).await
             }
             #[cfg(not(feature = "client-calls-audio"))]
             {
@@ -110,8 +95,6 @@ impl WasmWhatsAppClient {
                     .terminate(&call_id, &peer, &call_creator)
                     .await
                     .map_err(crate::errors::BridgeError::from)
-                    .map_err(|e| bridge_error_to_js_value(&e))?;
-                Ok(JsValue::UNDEFINED)
             }
         })
     }

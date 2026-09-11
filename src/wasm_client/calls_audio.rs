@@ -221,6 +221,20 @@ pub(super) fn media_callback(
     }))
 }
 
+/// Drive a fallible async operation returning a serializable value into a JS Promise
+/// via the standard `CallMedia::ok` serialization boundary.
+fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
+    T: serde::Serialize + 'static,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await
+            .map_err(|e| bridge_error_to_js_value(&e))
+            .and_then(CallMedia::ok)
+    })
+}
+
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
     // ── Call media ───────────────────────────────────────────────────────
@@ -247,13 +261,7 @@ impl WasmWhatsAppClient {
     ) -> js_sys::Promise {
         // Synchronous prefix, owned future: see `CallMedia`.
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .accept_call(call_id, audio_format)
-                .await
-                .map(JsValue::from)
-                .map_err(|e| bridge_error_to_js_value(&e))
-        })
+        promise_value(async move { media.accept_call(call_id, audio_format).await })
     }
 
     /// Dial a peer with encoded audio, and return the new call id.
@@ -268,13 +276,7 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .dial_call(peer, audio_format)
-                .await
-                .map(JsValue::from)
-                .map_err(|e| bridge_error_to_js_value(&e))
-        })
+        promise_value(async move { media.dial_call(peer, audio_format).await })
     }
 
     /// Push one encoded audio packet toward the peer.
@@ -342,13 +344,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = endCall, unchecked_return_type = "Promise<CallEndResult>")]
     pub fn end_call(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .end_call(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))
-                .and_then(CallMedia::ok)
-        })
+        promise_serialized(async move { media.end_call(call_id).await })
     }
 
     /// Mute or unmute the mic on a live call.
@@ -361,13 +357,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = setCallMuted, unchecked_return_type = "Promise<void>")]
     pub fn set_call_muted(&self, call_id: String, muted: bool) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .set_call_muted(call_id, muted)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.set_call_muted(call_id, muted).await })
     }
 
     /// Media counters for one call. Live calls read the handle; ended calls
@@ -431,13 +421,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = startCallVideo, unchecked_return_type = "Promise<void>")]
     pub fn start_call_video(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .start_call_video(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.start_call_video(call_id).await })
     }
 
     /// Accept the peer's video upgrade request: attaches the endpoints and
@@ -447,13 +431,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = acceptCallVideo, unchecked_return_type = "Promise<void>")]
     pub fn accept_call_video(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .accept_call_video(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.accept_call_video(call_id).await })
     }
 
     /// Stop our video direction: tears the local plane down first, then
@@ -461,26 +439,14 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = stopCallVideo, unchecked_return_type = "Promise<void>")]
     pub fn stop_call_video(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .stop_call_video(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.stop_call_video(call_id).await })
     }
 
     /// Re-add our stopped video direction without a second upgrade handshake.
     #[wasm_bindgen(js_name = resumeCallVideo, unchecked_return_type = "Promise<void>")]
     pub fn resume_call_video(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .resume_call_video(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.resume_call_video(call_id).await })
     }
 
     /// Re-emit the video upgrade request for a live call. The core arms its
@@ -488,13 +454,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = retryCallVideoUpgrade, unchecked_return_type = "Promise<void>")]
     pub fn retry_call_video_upgrade(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .retry_call_video_upgrade(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.retry_call_video_upgrade(call_id).await })
     }
 
     /// Ask the peer for a video keyframe, by RTCP PLI. Call it when the
@@ -563,13 +523,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = preacceptGroupInvite, unchecked_return_type = "Promise<void>")]
     pub fn preaccept_group_invite(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .preaccept_group_invite(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.preaccept_group_invite(call_id).await })
     }
 
     /// Accept an active group-call invitation at the signaling level. The
@@ -579,13 +533,7 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = acceptGroupInvite, unchecked_return_type = "Promise<void>")]
     pub fn accept_group_invite(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .accept_group_invite(call_id)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.accept_group_invite(call_id).await })
     }
 
     /// Create a reusable audio or video call link, and return its token
@@ -597,13 +545,7 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallLinkMediaKind")] media: JsValue,
     ) -> js_sys::Promise {
         let media_ = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media_
-                .create_call_link(media)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))
-                .and_then(CallMedia::ok)
-        })
+        promise_serialized(async move { media_.create_call_link(media).await })
     }
 
     /// Inspect a call link without joining it. Takes the token or the full
@@ -615,13 +557,7 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallLinkMediaKind")] media: JsValue,
     ) -> js_sys::Promise {
         let media_ = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media_
-                .preview_call_link(token_or_url, media)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))
-                .and_then(CallMedia::ok)
-        })
+        promise_serialized(async move { media_.preview_call_link(token_or_url, media).await })
     }
 
     /// Raise or lower our hand in a group call.
@@ -633,12 +569,10 @@ impl WasmWhatsAppClient {
         raised: bool,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
+        promise_void(async move {
             media
                 .set_group_hand_raised(call_id, call_creator, raised)
                 .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
         })
     }
 
@@ -653,12 +587,10 @@ impl WasmWhatsAppClient {
         screen_share_id: Option<f64>,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
+        promise_void(async move {
             media
                 .set_group_screen_share(call_id, call_creator, state, screen_share_id)
                 .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
         })
     }
 
@@ -671,13 +603,7 @@ impl WasmWhatsAppClient {
         user: String,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .admit_waiting_user(call_id, call_creator, user)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.admit_waiting_user(call_id, call_creator, user).await })
     }
 
     /// Deny one user from a call-link waiting room.
@@ -689,13 +615,7 @@ impl WasmWhatsAppClient {
         user: String,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
-        wasm_bindgen_futures::future_to_promise(async move {
-            media
-                .deny_waiting_user(call_id, call_creator, user)
-                .await
-                .map_err(|e| bridge_error_to_js_value(&e))?;
-            Ok(JsValue::UNDEFINED)
-        })
+        promise_void(async move { media.deny_waiting_user(call_id, call_creator, user).await })
     }
 
     /// Bridge pump depths for one call: packets queued, by direction. The
@@ -1537,17 +1457,24 @@ impl CallMedia {
         Ok(call_termination_to_result(&outcome))
     }
 
-    async fn start_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
-        let (handle, generation) = self.live_record(&call_id)?;
+    async fn attach_video_plane<F, Fut>(
+        &self,
+        call_id: &str,
+        generation: u64,
+        attach: F,
+    ) -> Result<(), crate::errors::BridgeError>
+    where
+        F: FnOnce(async_channel::Receiver<Vec<u8>>, async_channel::Sender<VideoFrame>) -> Fut,
+        Fut: std::future::Future<Output = Result<(), whatsapp_rust::CallError>>,
+    {
         let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
         let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
         let sink_depth = sink_rx.clone();
-        handle
-            .start_video(video_rx, sink_tx)
+        attach(video_rx, sink_tx)
             .await
             .map_err(crate::errors::BridgeError::from)?;
         let mut records = self.call_records.borrow_mut();
-        let Some(record) = records.get_mut(&call_id).filter(|record| {
+        let Some(record) = records.get_mut(call_id).filter(|record| {
             // A same-id replacement registered while starting owns the
             // slot now: storing our queues into it would cross two calls'
             // media. The core attached to our generation, and its own
@@ -1559,11 +1486,17 @@ impl CallMedia {
         record.video_tx = Some(video_tx);
         record.video_in_depth = Some(sink_depth);
         if self.call_video_callback.is_some()
-            && let Some(pump) = self.spawn_video_task(&call_id, sink_rx)
+            && let Some(pump) = self.spawn_video_task(call_id, sink_rx)
         {
             record.tasks.push(pump);
         }
         Ok(())
+    }
+
+    async fn start_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
+        let (handle, generation) = self.live_record(&call_id)?;
+        self.attach_video_plane(&call_id, generation, |rx, tx| handle.start_video(rx, tx))
+            .await
     }
 
     async fn accept_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
@@ -1581,28 +1514,10 @@ impl CallMedia {
                 "no pending video upgrade request for this call",
             ));
         };
-        let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
-        let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
-        let sink_depth = sink_rx.clone();
-        handle
-            .accept_video(token, video_rx, sink_tx)
-            .await
-            .map_err(crate::errors::BridgeError::from)?;
-        if let Some(record) = self
-            .call_records
-            .borrow_mut()
-            .get_mut(&call_id)
-            .filter(|record| record.generation == generation)
-        {
-            record.video_tx = Some(video_tx);
-            record.video_in_depth = Some(sink_depth);
-            if self.call_video_callback.is_some()
-                && let Some(pump) = self.spawn_video_task(&call_id, sink_rx)
-            {
-                record.tasks.push(pump);
-            }
-        }
-        Ok(())
+        self.attach_video_plane(&call_id, generation, |rx, tx| {
+            handle.accept_video(token, rx, tx)
+        })
+        .await
     }
 
     async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
@@ -1628,28 +1543,8 @@ impl CallMedia {
 
     async fn resume_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
-        let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
-        let sink_depth = sink_rx.clone();
-        handle
-            .resume_video(video_rx, sink_tx)
+        self.attach_video_plane(&call_id, generation, |rx, tx| handle.resume_video(rx, tx))
             .await
-            .map_err(crate::errors::BridgeError::from)?;
-        if let Some(record) = self
-            .call_records
-            .borrow_mut()
-            .get_mut(&call_id)
-            .filter(|record| record.generation == generation)
-        {
-            record.video_tx = Some(video_tx);
-            record.video_in_depth = Some(sink_depth);
-            if self.call_video_callback.is_some()
-                && let Some(pump) = self.spawn_video_task(&call_id, sink_rx)
-            {
-                record.tasks.push(pump);
-            }
-        }
-        Ok(())
     }
 
     async fn retry_call_video_upgrade(
@@ -1859,20 +1754,37 @@ impl CallMedia {
             .map_err(group_control_error)
     }
 
+    async fn resolve_waiting_user<F, Fut>(
+        &self,
+        call_creator: &str,
+        user: &str,
+        action: F,
+    ) -> Result<(), crate::errors::BridgeError>
+    where
+        F: FnOnce(Jid, Jid) -> Fut,
+        Fut: std::future::Future<Output = Result<(), whatsapp_rust::CallError>>,
+    {
+        let call_creator = parse_named_jid("callCreator", call_creator)?;
+        let user = parse_named_jid("user", user)?;
+        action(call_creator, user)
+            .await
+            .map_err(group_control_error)
+    }
+
     async fn admit_waiting_user(
         &self,
         call_id: String,
         call_creator: String,
         user: String,
     ) -> Result<(), crate::errors::BridgeError> {
-        let call_creator = parse_named_jid("callCreator", &call_creator)?;
-        let user = parse_named_jid("user", &user)?;
-        self.client
-            .unwaited(Unwaited::ConnectionBound)
-            .voip()
-            .admit_waiting_user(&call_id, &call_creator, &user)
-            .await
-            .map_err(group_control_error)
+        self.resolve_waiting_user(&call_creator, &user, |creator, user| async move {
+            self.client
+                .unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .admit_waiting_user(&call_id, &creator, &user)
+                .await
+        })
+        .await
     }
 
     async fn deny_waiting_user(
@@ -1881,14 +1793,14 @@ impl CallMedia {
         call_creator: String,
         user: String,
     ) -> Result<(), crate::errors::BridgeError> {
-        let call_creator = parse_named_jid("callCreator", &call_creator)?;
-        let user = parse_named_jid("user", &user)?;
-        self.client
-            .unwaited(Unwaited::ConnectionBound)
-            .voip()
-            .deny_waiting_user(&call_id, &call_creator, &user)
-            .await
-            .map_err(group_control_error)
+        self.resolve_waiting_user(&call_creator, &user, |creator, user| async move {
+            self.client
+                .unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .deny_waiting_user(&call_id, &creator, &user)
+                .await
+        })
+        .await
     }
 }
 
