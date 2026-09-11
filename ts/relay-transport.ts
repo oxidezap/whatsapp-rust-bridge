@@ -17,6 +17,12 @@
  * relay handshake, and the first one that does gets to confirm or correct
  * the value. Everything else in this file is pinned by unit tests over the
  * exact SDP text.
+ *
+ * This provider needs a WebRTC runtime. Node has no `RTCPeerConnection`,
+ * so a Node host builds the same tunnel another way — a userspace
+ * DTLS+SCTP stack driving the identical synthetic answer — and puts the
+ * resulting message pipe behind the same `JsRelayConnectionHandle`: the
+ * bridge never sees which pipe it is.
  */
 
 // Through the entry point, not `../pkg/`: the published `dist/` is

@@ -700,6 +700,19 @@ const TS_RELAY: &str = r#"
  * Every Promise handed back must settle, including on failure: reject rather
  * than leaving it pending. The bridge awaits through `JsFuture`, whose
  * resolve/reject pair is only released when the promise settles.
+ *
+ * The handle is pipe-agnostic: `send` ships one bounded byte message and
+ * `onPacket` delivers one, whether the host put a UDP socket or a
+ * DataChannel behind it. Production relays only take the tunneled form —
+ * a DTLS client handshake over UDP, an SCTP association on port 5000, and
+ * the pre-negotiated id=0 channel (`ordered: false, maxRetransmits: 0`,
+ * label `pre-negotiated`) carrying STUN/RTP/RTCP as binary messages — and
+ * drop a cleartext allocate silently. Cleartext UDP stays only as the mock
+ * fallback. A verifying stack (browsers, userspace SCTP/DTLS on Node) also
+ * needs the relay's DTLS fingerprint, which the call never names: observe
+ * it once against a live relay and pass it to the provider that builds the
+ * tunnel. The native stack skips verification instead, which is why only
+ * the verifying paths need it.
  */
 export interface JsRelayConnectionParams {
     address: string;
