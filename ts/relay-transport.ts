@@ -265,7 +265,14 @@ export function createRtcRelayTransportProvider(
         });
         channel.binaryType = "arraybuffer";
         channel.onmessage = (event) => {
-          events.onPacket(new Uint8Array(event.data as ArrayBuffer));
+          const raw = event.data;
+          const bytes =
+            raw instanceof Uint8Array
+              ? raw
+              : ArrayBuffer.isView(raw)
+              ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
+              : new Uint8Array(raw as ArrayBuffer);
+          events.onPacket(bytes);
         };
         channel.onopen = () => {
           events.onOpen();
@@ -338,9 +345,14 @@ export function createRtcRelayTransportProvider(
         },
         close() {
           try {
-            channel.close();
-          } finally {
+            channel?.close();
+          } catch {
+            // Already closed or failed
+          }
+          try {
             pc.close();
+          } catch {
+            // Already closed or failed
           }
         },
       };
