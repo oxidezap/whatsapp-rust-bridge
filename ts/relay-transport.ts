@@ -202,6 +202,57 @@ export function isRelayControlPacket(data: Uint8Array): boolean {
 }
 
 /**
+ * Stateful tracker that determines whether an outbound datagram should be sent or dropped,
+ * holding admission verdicts across whole H.264 access units without allocating per packet.
+ */
+export class OutboundAuTracker {
+  state: OutboundAuState = "between";
+
+  constructor(
+    public readonly maxBufferedAmount: number = 65536,
+    public readonly hardCeiling: number = maxBufferedAmount * 8
+  ) {}
+
+  shouldSend(data: Uint8Array, bufferedAmount: number): boolean {
+    // Control traffic is never dropped: STUN keeps the relay binding alive
+    // and RTCP carries receiver/sender reports and PLI keyframe requests.
+    if (isRelayControlPacket(data)) {
+      return true;
+    }
+
+    const overCeiling = bufferedAmount > this.maxBufferedAmount;
+    const wedged = bufferedAmount > this.hardCeiling;
+
+    // Short or non-RTP packets: decide by soft ceiling alone
+    if (data.length < 2) {
+      return !overCeiling;
+    }
+
+    const second = data[1]!;
+    const pt = second & 0x7f;
+
+    // Audio (Opus) or other non-video media: exempt from soft ceiling so video
+    // bursts do not starve voice; dropped only if the channel is wedged.
+    if (pt !== RTP_PAYLOAD_TYPE_H264) {
+      return !wedged;
+    }
+
+    // Video: drop whole access units, never a fragment of one.
+    // The marker bit (0x80) indicates the last packet of an access unit.
+    const endsUnit = (second & 0x80) !== 0;
+    const verdict: "send" | "drop" =
+      this.state === "between" ? (overCeiling ? "drop" : "send") : this.state;
+
+    this.state = endsUnit ? "between" : verdict;
+    return verdict === "send";
+  }
+
+  reset(): void {
+    this.state = "between";
+  }
+}
+
+/**
  * Determine whether an outbound packet should be sent or dropped.
  *
  * Drops whole access units, never a fraction of one. The browser relay queue
@@ -217,38 +268,12 @@ export function evaluateOutboundPacket(
   maxBufferedAmount: number,
   hardCeiling: number = maxBufferedAmount * 8
 ): { shouldSend: boolean; nextState: OutboundAuState } {
-  // Control traffic is never dropped: STUN keeps the relay binding alive
-  // and RTCP carries receiver/sender reports and PLI keyframe requests.
-  if (isRelayControlPacket(data)) {
-    return { shouldSend: true, nextState: state };
-  }
-
-  const overCeiling = bufferedAmount > maxBufferedAmount;
-  const wedged = bufferedAmount > hardCeiling;
-
-  // Short or non-RTP packets: decide by soft ceiling alone
-  if (data.length < 2) {
-    return { shouldSend: !overCeiling, nextState: state };
-  }
-
-  const second = data[1]!;
-  const pt = second & 0x7f;
-
-  // Audio (Opus) or other non-video media: exempt from soft ceiling so video
-  // bursts do not starve voice; dropped only if the channel is wedged.
-  if (pt !== RTP_PAYLOAD_TYPE_H264) {
-    return { shouldSend: !wedged, nextState: state };
-  }
-
-  // Video: drop whole access units, never a fragment of one.
-  // The marker bit (0x80) indicates the last packet of an access unit.
-  const endsUnit = (second & 0x80) !== 0;
-  const verdict: "send" | "drop" =
-    state === "between" ? (overCeiling ? "drop" : "send") : state;
-
+  const tracker = new OutboundAuTracker(maxBufferedAmount, hardCeiling);
+  tracker.state = state;
+  const shouldSend = tracker.shouldSend(data, bufferedAmount);
   return {
-    shouldSend: verdict === "send",
-    nextState: endsUnit ? "between" : verdict,
+    shouldSend,
+    nextState: tracker.state,
   };
 }
 
@@ -406,15 +431,7 @@ export function createRtcRelayTransportProvider(
       const maxBuffered = options?.maxBufferedAmount ?? 65536;
       const hardCeiling = options?.hardCeiling ?? maxBuffered * 8;
       const dropped = options?.onPacketsDropped;
-      let shed = 0;
-      let auState: OutboundAuState = "between";
-      const reportShed = () => {
-        if (shed > 0) {
-          const count = shed;
-          shed = 0;
-          dropped?.(count);
-        }
-      };
+      const tracker = new OutboundAuTracker(maxBuffered, hardCeiling);
 
       return {
         send(data: Uint8Array) {
@@ -423,17 +440,8 @@ export function createRtcRelayTransportProvider(
               `relay DataChannel is ${channel.readyState}, not open`
             );
           }
-          const verdict = evaluateOutboundPacket(
-            data,
-            channel.bufferedAmount,
-            auState,
-            maxBuffered,
-            hardCeiling
-          );
-          auState = verdict.nextState;
-          if (!verdict.shouldSend) {
-            shed += 1;
-            reportShed();
+          if (!tracker.shouldSend(data, channel.bufferedAmount)) {
+            dropped?.(1);
             return;
           }
           channel.send(data);

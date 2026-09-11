@@ -16,6 +16,7 @@ import {
   evaluateOutboundPacket,
   isRelayControlPacket,
   normalizeDtlsFingerprint,
+  OutboundAuTracker,
   RELAY_DTLS_FINGERPRINT,
   RTP_PAYLOAD_TYPE_H264,
   shedBufferedPacket,
@@ -405,6 +406,35 @@ describe("outbound packet admission and AU awareness", () => {
     const opus = new Uint8Array([0x80, 102, 0, 1]);
     expect(evaluateOutboundPacket(opus, 100_000, "between", 65536).shouldSend).toBe(true);
     expect(evaluateOutboundPacket(opus, 600_000, "between", 65536).shouldSend).toBe(false);
+  });
+
+  test("OutboundAuTracker manages access unit state across packets without allocation", () => {
+    const tracker = new OutboundAuTracker(65536, 524288);
+    expect(tracker.state).toBe("between");
+
+    const frag1 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 1]);
+    const frag2 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 2]);
+    const frag3 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264 | 0x80, 0, 3]);
+
+    expect(tracker.shouldSend(frag1, 1000)).toBe(true);
+    expect(tracker.state).toBe("send");
+    expect(tracker.shouldSend(frag2, 100_000)).toBe(true);
+    expect(tracker.state).toBe("send");
+    expect(tracker.shouldSend(frag3, 120_000)).toBe(true);
+    expect(tracker.state).toBe("between");
+
+    // Next AU admitted when over ceiling is dropped to completion
+    expect(tracker.shouldSend(frag1, 70_000)).toBe(false);
+    expect(tracker.state).toBe("drop");
+    expect(tracker.shouldSend(frag2, 1000)).toBe(false);
+    expect(tracker.state).toBe("drop");
+    expect(tracker.shouldSend(frag3, 1000)).toBe(false);
+    expect(tracker.state).toBe("between");
+
+    // Reset restores between state
+    tracker.state = "drop";
+    tracker.reset();
+    expect(tracker.state).toBe("between");
   });
 });
 

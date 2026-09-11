@@ -63,6 +63,7 @@ export {
   evaluateOutboundPacket,
   isRelayControlPacket,
   normalizeDtlsFingerprint,
+  OutboundAuTracker,
   RELAY_DTLS_FINGERPRINT,
   RTP_PAYLOAD_TYPE_H264,
   shedBufferedPacket,
