@@ -13,8 +13,11 @@ import { afterEach, describe, test, expect } from "bun:test";
 import {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
+  evaluateOutboundPacket,
+  isRelayControlPacket,
   normalizeDtlsFingerprint,
   RELAY_DTLS_FINGERPRINT,
+  RTP_PAYLOAD_TYPE_H264,
   shedBufferedPacket,
 } from "../ts/relay-transport";
 
@@ -300,6 +303,108 @@ describe("send path", () => {
     handle.send(new Uint8Array([2]));
     expect(channel.sent.length).toBe(0);
     expect(dropped).toEqual([1, 1]);
+  });
+
+  test("a video access unit is sent completely even if buffer exceeds ceiling during burst", async () => {
+    const dropped: number[] = [];
+    const { handle, channel } = await openHandle({
+      maxBufferedAmount: 100,
+      onPacketsDropped: (count) => dropped.push(count),
+    });
+    channel.bufferedAmount = 0;
+
+    const frag1 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 1]);
+    const frag2 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 2]);
+    const frag3 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264 | 0x80, 0, 3]); // marker = 1
+
+    handle.send(frag1);
+    // Buffer grows past 100 during send
+    channel.bufferedAmount = 500;
+    handle.send(frag2);
+    channel.bufferedAmount = 600;
+    handle.send(frag3);
+
+    expect(channel.sent.length).toBe(3);
+    expect(dropped.length).toBe(0);
+  });
+
+  test("control packets pass unconditionally even when buffer is saturated", async () => {
+    const { handle, channel } = await openHandle({ maxBufferedAmount: 8 });
+    channel.bufferedAmount = 65536;
+
+    const stun = new Uint8Array([0x00, 0x01, 0, 0]);
+    const rtcp = new Uint8Array([0x80, 206, 0, 0, 0, 0, 0, 0]); // PLI feedback
+
+    handle.send(stun);
+    handle.send(rtcp);
+
+    expect(channel.sent.length).toBe(2);
+  });
+});
+
+describe("outbound packet admission and AU awareness", () => {
+  test("identifies STUN and RTCP control packets", () => {
+    expect(isRelayControlPacket(new Uint8Array([0x00, 0x01, 0, 0]))).toBe(true);
+    expect(isRelayControlPacket(new Uint8Array([0x01, 0x01, 0, 0]))).toBe(true);
+    expect(isRelayControlPacket(new Uint8Array([0x80, 200, 0, 0, 0, 0, 0, 0]))).toBe(true);
+    expect(isRelayControlPacket(new Uint8Array([0x80, 201, 0, 0, 0, 0, 0, 0]))).toBe(true);
+    expect(isRelayControlPacket(new Uint8Array([0x80, 206, 0, 0, 0, 0, 0, 0]))).toBe(true);
+    expect(isRelayControlPacket(new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 0, 0, 0, 0, 0]))).toBe(false);
+    expect(isRelayControlPacket(new Uint8Array([0x80]))).toBe(false);
+  });
+
+  test("control packets are never dropped even when buffer is huge", () => {
+    const stun = new Uint8Array([0x00, 0x01, 0, 0]);
+    const rtcp = new Uint8Array([0x80, 206, 0, 0, 0, 0, 0, 0]);
+    expect(evaluateOutboundPacket(stun, 10_000_000, "between", 65536).shouldSend).toBe(true);
+    expect(evaluateOutboundPacket(rtcp, 10_000_000, "between", 65536).shouldSend).toBe(true);
+  });
+
+  test("video access units are sent to completion once begun", () => {
+    const frag1 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 1]);
+    const frag2 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 2]);
+    const frag3 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264 | 0x80, 0, 3]);
+
+    const v1 = evaluateOutboundPacket(frag1, 1000, "between", 65536);
+    expect(v1.shouldSend).toBe(true);
+    expect(v1.nextState).toBe("send");
+
+    const v2 = evaluateOutboundPacket(frag2, 100_000, v1.nextState, 65536);
+    expect(v2.shouldSend).toBe(true);
+    expect(v2.nextState).toBe("send");
+
+    const v3 = evaluateOutboundPacket(frag3, 120_000, v2.nextState, 65536);
+    expect(v3.shouldSend).toBe(true);
+    expect(v3.nextState).toBe("between");
+  });
+
+  test("video access units are dropped entirely if over ceiling at start", () => {
+    const frag1 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 1]);
+    const frag2 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 2]);
+    const frag3 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264 | 0x80, 0, 3]);
+
+    const v1 = evaluateOutboundPacket(frag1, 70_000, "between", 65536);
+    expect(v1.shouldSend).toBe(false);
+    expect(v1.nextState).toBe("drop");
+
+    const v2 = evaluateOutboundPacket(frag2, 1000, v1.nextState, 65536);
+    expect(v2.shouldSend).toBe(false);
+    expect(v2.nextState).toBe("drop");
+
+    const v3 = evaluateOutboundPacket(frag3, 1000, v2.nextState, 65536);
+    expect(v3.shouldSend).toBe(false);
+    expect(v3.nextState).toBe("between");
+
+    const nextAuFrag1 = new Uint8Array([0x80, RTP_PAYLOAD_TYPE_H264, 0, 4]);
+    const v4 = evaluateOutboundPacket(nextAuFrag1, 1000, v3.nextState, 65536);
+    expect(v4.shouldSend).toBe(true);
+    expect(v4.nextState).toBe("send");
+  });
+
+  test("audio packets are exempt from soft ceiling but drop when wedged", () => {
+    const opus = new Uint8Array([0x80, 102, 0, 1]);
+    expect(evaluateOutboundPacket(opus, 100_000, "between", 65536).shouldSend).toBe(true);
+    expect(evaluateOutboundPacket(opus, 600_000, "between", 65536).shouldSend).toBe(false);
   });
 });
 

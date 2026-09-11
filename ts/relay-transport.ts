@@ -172,6 +172,86 @@ export function shedBufferedPacket(bufferedAmount: number, max: number): boolean
   return bufferedAmount > max;
 }
 
+export type OutboundAuState = "between" | "send" | "drop";
+
+/** RTP payload type used by WhatsApp for H.264 video. */
+export const RTP_PAYLOAD_TYPE_H264 = 97;
+
+/**
+ * Check if packet is control traffic (STUN or RTCP).
+ * Control traffic is never dropped to preserve NAT bindings and keyframe/feedback requests.
+ */
+export function isRelayControlPacket(data: Uint8Array): boolean {
+  if (data.length < 2) {
+    return false;
+  }
+  // STUN: top two bits of first byte are 0 (RFC 5389 / RFC 7983)
+  if ((data[0]! & 0xc0) === 0) {
+    return true;
+  }
+  // RTCP: RTP version 2 (top two bits == 2) and payload type in 192..223 (RFC 5761)
+  if (
+    data.length >= 8 &&
+    data[0]! >> 6 === 2 &&
+    data[1]! >= 192 &&
+    data[1]! <= 223
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Determine whether an outbound packet should be sent or dropped.
+ *
+ * Drops whole access units, never a fraction of one. The browser relay queue
+ * ceiling must not be consulted mid-unit: one Opus packet is one frame, but
+ * a 720p H.264 IDR is tens of fragments and is itself large enough to cross
+ * the ceiling while being written. What reaches the peer would be a keyframe
+ * with a hole in it, causing the peer hardware decoder to reject the stream.
+ */
+export function evaluateOutboundPacket(
+  data: Uint8Array,
+  bufferedAmount: number,
+  state: OutboundAuState,
+  maxBufferedAmount: number,
+  hardCeiling: number = maxBufferedAmount * 8
+): { shouldSend: boolean; nextState: OutboundAuState } {
+  // Control traffic is never dropped: STUN keeps the relay binding alive
+  // and RTCP carries receiver/sender reports and PLI keyframe requests.
+  if (isRelayControlPacket(data)) {
+    return { shouldSend: true, nextState: state };
+  }
+
+  const overCeiling = bufferedAmount > maxBufferedAmount;
+  const wedged = bufferedAmount > hardCeiling;
+
+  // Short or non-RTP packets: decide by soft ceiling alone
+  if (data.length < 2) {
+    return { shouldSend: !overCeiling, nextState: state };
+  }
+
+  const second = data[1]!;
+  const pt = second & 0x7f;
+
+  // Audio (Opus) or other non-video media: exempt from soft ceiling so video
+  // bursts do not starve voice; dropped only if the channel is wedged.
+  if (pt !== RTP_PAYLOAD_TYPE_H264) {
+    return { shouldSend: !wedged, nextState: state };
+  }
+
+  // Video: drop whole access units, never a fragment of one.
+  // The marker bit (0x80) indicates the last packet of an access unit.
+  const endsUnit = (second & 0x80) !== 0;
+  const verdict: "send" | "drop" =
+    state === "between" ? (overCeiling ? "drop" : "send") : state;
+
+  return {
+    shouldSend: verdict === "send",
+    nextState: endsUnit ? "between" : verdict,
+  };
+}
+
 export interface RtcRelayTransportOptions {
   /**
    * Optional custom RTCPeerConnection constructor (e.g. for Node.js runtimes).
@@ -179,11 +259,16 @@ export interface RtcRelayTransportOptions {
    */
   RTCPeerConnection?: unknown;
   /**
-   * Unsent bytes past which outbound datagrams shed instead of queueing.
-   * Defaults to 8192, on the order of tens of voice packets; voice is
-   * loss tolerant, browser send queues are not bounded.
+   * Unsent bytes past which outbound video datagrams shed access units instead of queueing.
+   * Defaults to 65536 (64 KiB), generous enough for video keyframes (access units)
+   * while preventing boundless queue latency.
    */
   maxBufferedAmount?: number;
+  /**
+   * Hard buffer ceiling past which all media packets (including audio) shed
+   * to protect against completely wedged channels. Defaults to 8 * maxBufferedAmount.
+   */
+  hardCeiling?: number;
   /** Called with the shed count, so host-side loss stays observable. */
   onPacketsDropped?: (count: number) => void;
 }
@@ -318,9 +403,11 @@ export function createRtcRelayTransportProvider(
         throw err;
       }
 
-      const maxBuffered = options?.maxBufferedAmount ?? 8192;
+      const maxBuffered = options?.maxBufferedAmount ?? 65536;
+      const hardCeiling = options?.hardCeiling ?? maxBuffered * 8;
       const dropped = options?.onPacketsDropped;
       let shed = 0;
+      let auState: OutboundAuState = "between";
       const reportShed = () => {
         if (shed > 0) {
           const count = shed;
@@ -336,7 +423,15 @@ export function createRtcRelayTransportProvider(
               `relay DataChannel is ${channel.readyState}, not open`
             );
           }
-          if (shedBufferedPacket(channel.bufferedAmount, maxBuffered)) {
+          const verdict = evaluateOutboundPacket(
+            data,
+            channel.bufferedAmount,
+            auState,
+            maxBuffered,
+            hardCeiling
+          );
+          auState = verdict.nextState;
+          if (!verdict.shouldSend) {
             shed += 1;
             reportShed();
             return;

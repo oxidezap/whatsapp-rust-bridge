@@ -60,8 +60,13 @@ export { proto } from "./proto-namespace";
 export {
   buildRelayAnswerSdp,
   createRtcRelayTransportProvider,
+  evaluateOutboundPacket,
+  isRelayControlPacket,
   normalizeDtlsFingerprint,
   RELAY_DTLS_FINGERPRINT,
+  RTP_PAYLOAD_TYPE_H264,
+  shedBufferedPacket,
+  type OutboundAuState,
   type RelayAnswerParts,
   type RtcRelayTransportOptions,
 } from "./relay-transport";
