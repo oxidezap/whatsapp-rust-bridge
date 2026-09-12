@@ -237,11 +237,18 @@ export class OutboundAuTracker {
       return !wedged;
     }
 
-    // Video: drop whole access units, never a fragment of one.
+    // Video: drop whole access units, never a fragment of one,
+    // unless the channel is wedged past the hard ceiling.
     // The marker bit (0x80) indicates the last packet of an access unit.
     const endsUnit = (second & 0x80) !== 0;
     const verdict: "send" | "drop" =
-      this.state === "between" ? (overCeiling ? "drop" : "send") : this.state;
+      wedged
+        ? "drop"
+        : this.state === "between"
+        ? overCeiling
+          ? "drop"
+          : "send"
+        : this.state;
 
     this.state = endsUnit ? "between" : verdict;
     return verdict === "send";
@@ -326,7 +333,11 @@ export function createRtcRelayTransportProvider(
       // connection with its ICE agent and sockets.
       let channel: RtcDataChannel | undefined;
       const release = () => {
+        clearTimeout(openTimer);
+        pc.onconnectionstatechange = null;
         if (channel !== undefined) {
+          channel.onmessage = null;
+          channel.onopen = null;
           channel.onclose = null;
           channel.onerror = null;
           try {
@@ -425,6 +436,7 @@ export function createRtcRelayTransportProvider(
         await opened;
       } catch (err) {
         release();
+        opened.catch(() => {});
         throw err;
       }
 

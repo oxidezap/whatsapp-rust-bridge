@@ -34,11 +34,102 @@ use whatsapp_rust::wacore::voip::{
 };
 use whatsapp_rust::{CallError, wacore};
 
+/// One entry in the incoming offer cache.
+#[derive(Clone, Debug)]
+pub(super) enum OfferEntry {
+    /// A ringing incoming call that can be answered.
+    Ringing(Box<IncomingCall>, u64),
+    /// An answer is currently in flight (`builder.start().await`).
+    Answering(u64),
+    /// The call was terminated, rejected, answered, missed, or resolved elsewhere.
+    Resolved,
+}
+
 /// Offers that rang and have not resolved yet, by call id. Inserted from the
 /// event handler, consumed by `acceptCall`, evicted by anything that ends the
 /// ringing. Bounded: concurrent ringing offers past this are absurd, and an
 /// unbounded map would let a peer-sized trickle pin memory.
-pub(super) type OfferCache = HashMap<String, IncomingCall>;
+#[derive(Default)]
+pub(super) struct OfferCache {
+    entries: HashMap<String, OfferEntry>,
+    next_generation: u64,
+}
+
+impl OfferCache {
+    pub(super) fn note_offer(&mut self, call_id: String, offer: IncomingCall) {
+        if self.entries.len() >= OFFER_CACHE_CAPACITY && !self.entries.contains_key(&call_id) {
+            self.entries
+                .retain(|_, v| !matches!(v, OfferEntry::Resolved));
+        }
+        if self.entries.len() >= OFFER_CACHE_CAPACITY
+            && !self.entries.contains_key(&call_id)
+            && let Some(evicted) = self.entries.keys().next().cloned()
+        {
+            self.entries.remove(&evicted);
+            log::warn!("Offer cache full; dropped ringing offer {evicted}");
+        }
+        let generation = self.next_generation;
+        self.next_generation = self.next_generation.wrapping_add(1);
+        self.entries
+            .insert(call_id, OfferEntry::Ringing(Box::new(offer), generation));
+    }
+
+    pub(super) fn take_for_answer(
+        &mut self,
+        call_id: &str,
+    ) -> Result<(IncomingCall, u64), crate::errors::BridgeError> {
+        match self.entries.get(call_id) {
+            Some(OfferEntry::Ringing(offer, generation)) => {
+                let offer = (**offer).clone();
+                let generation = *generation;
+                self.entries
+                    .insert(call_id.to_owned(), OfferEntry::Answering(generation));
+                Ok((offer, generation))
+            }
+            _ => Err(crate::errors::invalid_arg(
+                "callId",
+                "no live incoming offer for this call id (answered, missed, or never rang)",
+            )),
+        }
+    }
+
+    pub(super) fn restore_offer(&mut self, call_id: &str, expected_gen: u64, offer: IncomingCall) {
+        if let Some(OfferEntry::Answering(generation)) = self.entries.get(call_id)
+            && *generation == expected_gen
+        {
+            self.entries.insert(
+                call_id.to_owned(),
+                OfferEntry::Ringing(Box::new(offer), expected_gen),
+            );
+        }
+    }
+
+    pub(super) fn resolve(&mut self, call_id: &str) {
+        if let Some(entry) = self.entries.get_mut(call_id) {
+            *entry = OfferEntry::Resolved;
+        }
+    }
+
+    pub(super) fn get_ringing(&self, call_id: &str) -> Option<&IncomingCall> {
+        match self.entries.get(call_id) {
+            Some(OfferEntry::Ringing(offer, _)) => Some(offer),
+            _ => None,
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn contains_key(&self, call_id: &str) -> bool {
+        matches!(self.entries.get(call_id), Some(OfferEntry::Ringing(_, _)))
+    }
+
+    #[cfg(test)]
+    pub(super) fn len(&self) -> usize {
+        self.entries
+            .values()
+            .filter(|v| matches!(v, OfferEntry::Ringing(_, _)))
+            .count()
+    }
+}
 
 const OFFER_CACHE_CAPACITY: usize = 32;
 /// Live calls by call id. A backstop, not a concurrency limit: the core owns
@@ -109,19 +200,18 @@ pub(super) fn evict_offer(cache: &Mutex<OfferCache>, call_id: &str) {
     cache
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .remove(call_id);
+        .resolve(call_id);
 }
 
 /// Put a taken offer back after a failed start — only when nothing newer
 /// took the slot meanwhile. A resolving event or a re-offer that arrived
 /// mid-start owns it now; overwriting either would answer a dead call or
 /// drop a live ringing.
-fn restore_offer(cache: &Mutex<OfferCache>, call_id: String, offer: IncomingCall) {
+fn restore_offer(cache: &Mutex<OfferCache>, call_id: &str, generation: u64, offer: IncomingCall) {
     cache
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .entry(call_id)
-        .or_insert(offer);
+        .restore_offer(call_id, generation, offer);
 }
 
 /// Whether an action tag ends the ringing it arrived for. Only these
@@ -142,36 +232,19 @@ pub(super) fn note_call_event(cache: &Mutex<OfferCache>, event: &Event) {
             // `#[non_exhaustive]`, and the tag is the whole of what the cache
             // decides on.
             if call.action.wire_tag() == "offer" {
-                let mut cache = cache.lock().unwrap_or_else(|e| e.into_inner());
-                if cache.len() >= OFFER_CACHE_CAPACITY && !cache.contains_key(call.action.call_id())
-                {
-                    // Arbitrary, and documented as such: past this many
-                    // concurrent ringing offers something is wrong, and
-                    // growing without bound is worse than dropping one ring.
-                    if let Some(evicted) = cache.keys().next().cloned() {
-                        cache.remove(&evicted);
-                        log::warn!("Offer cache full; dropped ringing offer {evicted}");
-                    }
-                }
-                cache.insert(call.action.call_id().to_owned(), (**call).clone());
-            } else if resolves_offer(call.action.wire_tag()) {
                 cache
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
-                    .remove(call.action.call_id());
+                    .note_offer(call.action.call_id().to_owned(), (**call).clone());
+            } else if resolves_offer(call.action.wire_tag()) {
+                evict_offer(cache, call.action.call_id());
             }
         }
         Event::MissedCall(missed) => {
-            cache
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .remove(&missed.call_id);
+            evict_offer(cache, &missed.call_id);
         }
         Event::CallEndedElsewhere(elsewhere) => {
-            cache
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .remove(&elsewhere.call_id);
+            evict_offer(cache, &elsewhere.call_id);
         }
         _ => {}
     }
@@ -260,10 +333,14 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
         with_video: Option<bool>,
     ) -> js_sys::Promise {
-        // Synchronous prefix, owned future: see `CallMedia`.
+        let format = call_audio_format(&audio_format);
         let media = CallMedia::of(self);
         let with_video = with_video.unwrap_or(false);
-        promise_value(async move { media.accept_call(call_id, audio_format, with_video).await })
+        promise_value(async move {
+            let format = format?;
+            // Keep the large accept future out of the Promise constructor's stack frame.
+            Box::pin(media.accept_call(call_id, format, with_video)).await
+        })
     }
 
     /// Dial a peer with encoded audio, and return the new call id.
@@ -278,9 +355,13 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
         with_video: Option<bool>,
     ) -> js_sys::Promise {
+        let format = call_audio_format(&audio_format);
         let media = CallMedia::of(self);
         let with_video = with_video.unwrap_or(false);
-        promise_value(async move { media.dial_call(peer, audio_format, with_video).await })
+        promise_value(async move {
+            let format = format?;
+            media.dial_call(peer, format, with_video).await
+        })
     }
 
     /// Push one encoded audio packet toward the peer.
@@ -748,7 +829,7 @@ impl CallMedia {
         self.call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .get(call_id)
+            .get_ringing(call_id)
             .cloned()
             .ok_or_else(|| {
                 crate::errors::invalid_arg(
@@ -762,16 +843,16 @@ impl CallMedia {
     /// is TOCTOU: concurrent starts each pass it, then all insert past
     /// capacity (and trip the debug assert below in debug builds). The
     /// reservation counts alongside the map until it converts into the
-    /// record or its guard drops on any failure path. A repeated id never
-    /// reserves: starting over it displaces instead of growing.
+    /// record or its guard drops on any failure path. Replacements reserve
+    /// too, since their old record may end before startup finishes.
     fn reserve_call_slot(
         &self,
         call_id: Option<&str>,
         op: &'static str,
     ) -> Result<SlotGuard, crate::errors::BridgeError> {
         let known = call_id.is_some_and(|id| self.call_records.borrow().contains_key(id));
-        let effective = self.call_records.borrow().len() + self.call_reserved.get() as usize;
-        if !admits_call(effective, known) {
+        let count = self.call_records.borrow().len() + self.call_reserved.get() as usize;
+        if !admits_call(count, known) {
             // The operation, not an argument: no argument is wrong, and the
             // host remedies this by ending a call and retrying — the same
             // shape `connect()` uses when the call itself is the mistake.
@@ -780,15 +861,9 @@ impl CallMedia {
                 "too many live calls (32); end one and retry",
             ));
         }
-        if !known {
-            self.call_reserved.set(self.call_reserved.get() + 1);
-        }
+        self.call_reserved.set(self.call_reserved.get() + 1);
         Ok(SlotGuard {
-            reserved: if known {
-                None
-            } else {
-                Some(self.call_reserved.clone())
-            },
+            reserved: Some(self.call_reserved.clone()),
         })
     }
 
@@ -868,7 +943,7 @@ impl CallMedia {
         // same-id replacement never reads as its own call.
         let forwarder = self.spawn_call_event_task(&call_id, generation, handle.clone());
         let tasks = vec![
-            self.spawn_speaker_task(&call_id, speaker_rx),
+            self.spawn_speaker_task(&call_id, audio_format, speaker_rx),
             self.spawn_call_end_task(&call_id, generation, handle),
         ]
         .into_iter()
@@ -887,6 +962,7 @@ impl CallMedia {
     fn spawn_speaker_task(
         &self,
         call_id: &str,
+        audio_format: AudioFormat,
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
     ) -> Option<wacore::runtime::AbortHandle> {
         let callback = self.call_audio_callback.clone()?;
@@ -909,6 +985,7 @@ impl CallMedia {
                 if set("callId", &call_id.clone().into()).is_err()
                     || set("data", &data.into()).is_err()
                     || set("codec", &call_audio_codec_str(&frame.codec).into()).is_err()
+                    || set("format", &call_audio_format_str(audio_format).into()).is_err()
                     || set("payloadType", &(f64::from(frame.payload_type)).into()).is_err()
                     || set("sequenceNumber", &(f64::from(frame.sequence_number)).into()).is_err()
                     || set("timestamp", &(f64::from(frame.timestamp)).into()).is_err()
@@ -1022,8 +1099,12 @@ impl CallMedia {
                             let Ok(event) = events.try_recv() else {
                                 break;
                             };
-                            if !forward_engine_event(&records, &call_id, callback.as_ref(), &event)
-                            {
+                            if !forward_engine_event(
+                                &records,
+                                &call_id,
+                                callback.as_deref(),
+                                &event,
+                            ) {
                                 break;
                             }
                         }
@@ -1044,7 +1125,7 @@ impl CallMedia {
                         if current.is_some_and(|current| current != generation) {
                             break;
                         }
-                        if !forward_engine_event(&records, &call_id, callback.as_ref(), &event) {
+                        if !forward_engine_event(&records, &call_id, callback.as_deref(), &event) {
                             break;
                         }
                     }
@@ -1078,7 +1159,7 @@ impl CallMedia {
                 &records,
                 &past,
                 &offers,
-                callback.as_ref(),
+                callback.as_deref(),
                 &alive,
                 &call_id,
                 generation,
@@ -1104,7 +1185,7 @@ impl CallMedia {
             &self.call_records,
             &self.past_call_stats,
             &self.call_offers,
-            self.call_event_callback.as_ref(),
+            self.call_event_callback.as_deref(),
             &self.calls_live,
             call_id,
             generation,
@@ -1233,7 +1314,7 @@ fn finish_call(
     offers
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .remove(call_id);
+        .resolve(call_id);
     let stats = call_media_stats_to_result(&record.handle.media_stats());
     // The final counters ride the event itself, so a host that only ever
     // listens learns the outcome without a follow-up read; the past-stats
@@ -1288,7 +1369,12 @@ fn ended_event_object(call_id: &str, stats: Option<&JsValue>) -> Result<js_sys::
 /// displaces instead of growing. Split out so the policy is pinnable
 /// without a live call handle, which the test module cannot build.
 fn admits_call(record_count: usize, known_id: bool) -> bool {
-    known_id || record_count < ACTIVE_CALL_CAPACITY
+    let effective = if known_id {
+        record_count.saturating_sub(1)
+    } else {
+        record_count
+    };
+    effective < ACTIVE_CALL_CAPACITY
 }
 
 /// Hang up by id: through the tracked handle when one exists, by raw
@@ -1330,9 +1416,9 @@ pub(super) struct CallMedia {
     call_offers: Arc<Mutex<OfferCache>>,
     past_call_stats: Arc<Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
     runtime: Arc<dyn wacore::runtime::Runtime>,
-    call_audio_callback: Option<MediaCallback>,
-    call_event_callback: Option<MediaCallback>,
-    call_video_callback: Option<MediaCallback>,
+    call_audio_callback: Option<std::rc::Rc<MediaCallback>>,
+    call_event_callback: Option<std::rc::Rc<MediaCallback>>,
+    call_video_callback: Option<std::rc::Rc<MediaCallback>>,
     call_generation: std::rc::Rc<std::cell::Cell<u64>>,
     call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
     calls_live: std::rc::Rc<std::cell::Cell<bool>>,
@@ -1378,27 +1464,34 @@ impl CallMedia {
     async fn accept_call(
         &self,
         call_id: String,
-        audio_format: JsValue,
+        format: AudioFormat,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
-        let format = call_audio_format(audio_format)?;
-        let slot = self.reserve_call_slot(Some(&call_id), "acceptCall")?;
-        let core = self.client.online().await?;
-        // Taken, not cloned, and only after the gate: a concurrent second
-        // answer must find nothing rather than answer the same offer twice,
-        // and state may have changed while parked. A failed start puts it
-        // back, so the refusal costs nothing either way.
-        let offer = self
+        let (offer, offer_gen) = self
             .call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .remove(&call_id)
-            .ok_or_else(|| {
-                crate::errors::invalid_arg(
-                    "callId",
-                    "no live incoming offer for this call id (answered, missed, or never rang)",
-                )
-            })?;
+            .take_for_answer(&call_id)?;
+        let slot = match self.reserve_call_slot(Some(&call_id), "acceptCall") {
+            Ok(slot) => slot,
+            Err(error) => {
+                restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                return Err(error);
+            }
+        };
+        let core = match self.client.online().await {
+            Ok(core) => core,
+            Err(error) => {
+                restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                return Err(error);
+            }
+        };
+        if !matches!(
+            self.call_offers.lock().unwrap_or_else(|e| e.into_inner()).entries.get(&call_id),
+            Some(OfferEntry::Answering(generation)) if *generation == offer_gen
+        ) {
+            return Err(unknown_call());
+        }
         let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
         let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
         // A second reader for the mute drain; the engine owns the first
@@ -1418,17 +1511,17 @@ impl CallMedia {
             None
         };
 
-        let handle = builder.start().await.map_err(|error| {
-            restore_offer(&self.call_offers, call_id.clone(), offer);
-            call_error_to_bridge(error)
-        })?;
-        // The engine owns the offer now; a re-answer would double-answer.
-        // (The take above already consumed it; this only covers an offer
-        // that arrived again under the same id while starting.)
+        let handle = match builder.start().await {
+            Ok(handle) => handle,
+            Err(error) => {
+                restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                return Err(call_error_to_bridge(error));
+            }
+        };
         self.call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .remove(handle.call_id());
+            .resolve(&call_id);
         // Serialized with concurrent starts under the admission lock:
         // two same-id starters would otherwise interleave termination and
         // insertion so the second insert silently drops the first
@@ -1550,10 +1643,10 @@ impl CallMedia {
 
     async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        handle
+        let result = handle
             .stop_video()
             .await
-            .map_err(crate::errors::BridgeError::from)?;
+            .map_err(crate::errors::BridgeError::from);
         // Generation-guarded like the starts: clearing a replacement's
         // fresh video state for our stale stop would lie about its plane.
         if let Some(record) = self
@@ -1566,7 +1659,7 @@ impl CallMedia {
             record.video_in_depth = None;
             record.pending_upgrade = None;
         }
-        Ok(())
+        result
     }
 
     async fn resume_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
@@ -1652,11 +1745,10 @@ impl CallMedia {
     async fn dial_call(
         &self,
         peer: String,
-        audio_format: JsValue,
+        format: AudioFormat,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let peer_jid = parse_named_jid("peer", &peer)?;
-        let format = call_audio_format(audio_format)?;
         // The dial generates its id inside `start`, so only the count is
         // known yet; a same-id collision it produces is displaced below.
         // The guard releases on every failure path, converting only when
@@ -1936,16 +2028,29 @@ fn parse_optional_u32(
 /// core negotiates from this promise and supplies none of its own, so a
 /// silent MLOW would turn an absent caller choice into a failed negotiation
 /// against an Opus-only peer. Validation happens before the gate.
-fn call_audio_format(value: JsValue) -> Result<AudioFormat, crate::errors::BridgeError> {
-    let format = from_js_input::<crate::result_types::CallAudioFormat>("audioFormat", value)?;
-    Ok(match format {
-        crate::result_types::CallAudioFormat::Mlow => AudioFormat::MLOW_16KHZ_60MS,
-        // Native WhatsApp 16 kHz Opus (StandardOpus RTP profile, PT 120, clearing
-        // MLOW bit 31 so the peer negotiates and delivers real Opus).
-        crate::result_types::CallAudioFormat::Opus => AudioFormat::OPUS_16KHZ_60MS,
-        // The in-profile Opus escape on the MLOW clock.
-        crate::result_types::CallAudioFormat::OpusMlow => AudioFormat::OPUS_MLOW_16KHZ_60MS,
-    })
+fn call_audio_format(value: &JsValue) -> Result<AudioFormat, crate::errors::BridgeError> {
+    match value.as_string().as_deref() {
+        Some("mlow") => Ok(AudioFormat::MLOW_16KHZ_60MS),
+        Some("opus") => Ok(AudioFormat::OPUS_16KHZ_60MS),
+        Some("opus-mlow") => Ok(AudioFormat::OPUS_MLOW_16KHZ_60MS),
+        Some(other) => Err(crate::errors::invalid_arg(
+            "audioFormat",
+            format!("unknown audio format {other:?}"),
+        )),
+        None => Err(crate::errors::invalid_arg(
+            "audioFormat",
+            "must be one of \"mlow\", \"opus\", or \"opus-mlow\"",
+        )),
+    }
+}
+
+fn call_audio_format_str(format: AudioFormat) -> &'static str {
+    match format {
+        format if format == AudioFormat::MLOW_16KHZ_60MS => "mlow",
+        format if format == AudioFormat::OPUS_16KHZ_60MS => "opus",
+        format if format == AudioFormat::OPUS_MLOW_16KHZ_60MS => "opus-mlow",
+        _ => unreachable!("only validated call audio formats reach the speaker task"),
+    }
 }
 
 /// The JS spelling of a core audio codec, written down here rather than
@@ -2313,22 +2418,51 @@ mod call_media_tests {
         let cache = cache();
         // Nothing cached: the taken offer goes back.
         let old = offered_call("CALL-R", &[("opus", "16000")]);
-        restore_offer(&cache, "CALL-R".to_owned(), old);
+        let old_gen = {
+            let mut cache = cache.lock().unwrap();
+            cache.note_offer("CALL-R".to_owned(), old);
+            let (_, generation) = cache.take_for_answer("CALL-R").expect("offer is ringing");
+            generation
+        };
+        restore_offer(
+            &cache,
+            "CALL-R",
+            old_gen,
+            offered_call("CALL-R", &[("opus", "16000")]),
+        );
         assert!(cache.lock().unwrap().contains_key("CALL-R"));
 
         // A re-offer arrived meanwhile: the stale restore must not win.
         let newer = offered_call("CALL-R", &[("pcmu", "8000")]);
-        cache.lock().unwrap().insert("CALL-R".to_owned(), newer);
+        cache.lock().unwrap().note_offer("CALL-R".to_owned(), newer);
         let stale = offered_call("CALL-R", &[("opus", "16000")]);
-        restore_offer(&cache, "CALL-R".to_owned(), stale);
+        restore_offer(&cache, "CALL-R", old_gen, stale);
         let cached = cache.lock().unwrap();
-        let kept_newer = match &cached.get("CALL-R").expect("still cached").action {
+        let kept_newer = match &cached.get_ringing("CALL-R").expect("still cached").action {
             whatsapp_rust::wacore::types::call::CallAction::Offer { audio, .. } => {
                 audio.iter().any(|codec| codec.enc == "pcmu")
             }
             _ => false,
         };
         assert!(kept_newer, "the newer offer must survive");
+    }
+
+    #[test]
+    fn resolved_offers_are_not_restored_after_startup_failure() {
+        let mut cache = OfferCache::default();
+        cache.note_offer(
+            "CALL-R".into(),
+            offered_call("CALL-R", &[("opus", "16000")]),
+        );
+        let (offer, generation) = cache.take_for_answer("CALL-R").unwrap();
+        assert!(cache.take_for_answer("CALL-R").is_err());
+        cache.resolve("CALL-R");
+        cache.restore_offer("CALL-R", generation, offer);
+        assert!(cache.take_for_answer("CALL-R").is_err());
+        for n in 0..100 {
+            cache.resolve(&format!("UNKNOWN-{n}"));
+        }
+        assert_eq!(cache.entries.len(), 1);
     }
 
     #[test]
@@ -2346,14 +2480,13 @@ mod call_media_tests {
     }
 
     #[test]
-    fn admission_refuses_growth_but_never_a_takeover() {
+    fn admission_counts_replacement_reservations() {
         assert!(admits_call(0, false));
         assert!(admits_call(ACTIVE_CALL_CAPACITY - 1, false));
         assert!(!admits_call(ACTIVE_CALL_CAPACITY, false));
         assert!(!admits_call(ACTIVE_CALL_CAPACITY + 1, false));
-        // A repeated id displaces instead of growing, at any size.
         assert!(admits_call(ACTIVE_CALL_CAPACITY, true));
-        assert!(admits_call(ACTIVE_CALL_CAPACITY + 1, true));
+        assert!(!admits_call(ACTIVE_CALL_CAPACITY + 1, true));
     }
 
     #[test]
@@ -2392,7 +2525,7 @@ mod call_media_tests {
         // No bridge default: the core negotiates from this promise and
         // supplies none, so absence rejects rather than silently promising
         // MLOW against an Opus-only peer.
-        match call_audio_format(JsValue::UNDEFINED) {
+        match call_audio_format(&JsValue::UNDEFINED) {
             Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
                 assert_eq!(field, "audioFormat")
             }
@@ -2400,26 +2533,26 @@ mod call_media_tests {
         }
         assert!(
             matches!(
-                call_audio_format(JsValue::from_str("mlow")),
+                call_audio_format(&JsValue::from_str("mlow")),
                 Ok(format) if format == AudioFormat::MLOW_16KHZ_60MS
             ),
             "mlow must promise MLOW"
         );
         assert!(
             matches!(
-                call_audio_format(JsValue::from_str("opus")),
+                call_audio_format(&JsValue::from_str("opus")),
                 Ok(format) if format == AudioFormat::OPUS_16KHZ_60MS
             ),
             "opus must promise native Opus"
         );
         assert!(
             matches!(
-                call_audio_format(JsValue::from_str("opus-mlow")),
+                call_audio_format(&JsValue::from_str("opus-mlow")),
                 Ok(format) if format == AudioFormat::OPUS_MLOW_16KHZ_60MS
             ),
             "opus-mlow must promise the in-profile escape"
         );
-        match call_audio_format(JsValue::from_str("g729")) {
+        match call_audio_format(&JsValue::from_str("g729")) {
             Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
                 assert_eq!(field, "audioFormat")
             }

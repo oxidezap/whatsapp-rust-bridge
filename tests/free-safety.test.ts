@@ -30,10 +30,10 @@ function childSource(body: string): string {
       { execute: async () => ({ statusCode: 0, body: new Uint8Array(0) }) }
     );
     console.log("READY");
-    ${body}
+    const p = (${body}).catch(() => {});
     c.free();
     for (let i = 0; i < 200; i++) getEnabledFeatures();
-    await new Promise((r) => setTimeout(r, 1500));
+    await p;
   `;
 }
 
@@ -67,7 +67,7 @@ async function runChild(
 
 describe("free() with a call in flight", () => {
   test("freeing with fetchBlocklist pending exits cleanly", async () => {
-    const outcome = await runChild(`c.fetchBlocklist().catch(() => {});`);
+    const outcome = await runChild(`c.fetchBlocklist()`);
     expect(outcome.stdout).toContain("READY");
     expect(outcome.code).toBe(0);
     for (const fault of WASM_MEMORY_FAULTS) {
@@ -76,7 +76,7 @@ describe("free() with a call in flight", () => {
   }, 30000);
 
   test("freeing with logout pending exits cleanly", async () => {
-    const outcome = await runChild(`c.logout().catch(() => {});`);
+    const outcome = await runChild(`c.logout()`);
     expect(outcome.stdout).toContain("READY");
     expect(outcome.code).toBe(0);
     for (const fault of WASM_MEMORY_FAULTS) {
@@ -89,10 +89,10 @@ describe("free() with a call in flight", () => {
   // heap luck. One body per shape: validation failure, gate plus core
   // failure, unknown record, and stanza send.
   const callBodies = [
-    `c.acceptCall("NEVER-RANG", "mlow").catch(() => {});`,
-    `c.dialCall("5511999999999@s.whatsapp.net", "mlow").catch(() => {});`,
-    `c.endCall("NEVER-LIVE").catch(() => {});`,
-    `c.rejectCall("ID", "5511999999999@s.whatsapp.net", "5511888888888@s.whatsapp.net").catch(() => {});`,
+    `c.acceptCall("NEVER-RANG", "mlow")`,
+    `c.dialCall("5511999999999@s.whatsapp.net", "mlow")`,
+    `c.endCall("NEVER-LIVE")`,
+    `c.rejectCall("ID", "5511999999999@s.whatsapp.net", "5511888888888@s.whatsapp.net")`,
   ];
 
   for (const body of callBodies) {

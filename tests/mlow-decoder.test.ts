@@ -14,6 +14,21 @@ beforeAll(() => {
 });
 
 describe("MlowAudioDecoder", () => {
+  test("rejects invalid RTP payload types before narrowing", () => {
+    const decoder = new MlowAudioDecoder();
+    try {
+      for (const value of [377, 121.5, -1, NaN, Infinity, "121", {}]) {
+        try {
+          decoder.decode(new Uint8Array(), value as number);
+          throw new Error("expected invalid payload type to throw");
+        } catch (error) {
+          expect(error).toMatchObject({ name: "WhatsAppError", kind: "invalid-argument", field: "payloadType" });
+        }
+      }
+    } finally {
+      decoder.free();
+    }
+  });
   test("instantiates independently without WasmWhatsAppClient or network", () => {
     const decoder = new MlowAudioDecoder();
     try {
@@ -53,7 +68,7 @@ describe("MlowAudioDecoder", () => {
     }
   });
 
-  test("120 ms frame (TOC 0x58) decodes to 1920 samples of 16 kHz mono PCM", () => {
+  test("120 ms-shaped payload produces bounded 1920-sample output", () => {
     const decoder = new MlowAudioDecoder();
     try {
       const packet = new Uint8Array([
@@ -68,6 +83,40 @@ describe("MlowAudioDecoder", () => {
       }
     } finally {
       decoder.free();
+    }
+  });
+
+  test("decoder maintains state across successive packets in a stream", () => {
+    const streamDecoder = new MlowAudioDecoder();
+    const freshDecoder = new MlowAudioDecoder();
+    try {
+      const packet1 = Buffer.from(
+        "50e5638cd7b84c934ad6200696fdd57ad59328d16487059c4ceba9a663aee2f5acab3abcbf296a877865651e1ca70d7f4567d13c3ab300866f5fd31dc6d808bfff1d996ee98d8a3307b9e8277a4d9cd5771d7915ebb8fd348d18b34f7102aae659577fa18959f7217d7f9f8ab2469e7a3d1a9f9daff512062639e7c32b457a4201c75ead85a3da95d42825ed3d0c7b97aad7f37fae01b58dc8f92a61cbd9fa92bef45c3180",
+        "hex"
+      );
+      const packet2 = Buffer.from(
+        "50e5ea1b94e8710736a2e91ccb2b4d22d5749f72a52de80b3311f6894ee7cf492abad60b77ad18aec84e537a8dc5bdf339b3be1e3deab8afc0afd300debc9c9b8d08fb37237d99be57f81d5285c864cbb87433ea91582c7dd267f3caafa3340546bb11f9b7e8ead0f06c6f5a2ad0c5dba80b92898759c03ae8166c59fc189f416e59feaaf67cba0319d899ab4652f4c2cc66193e5178c703f98ad874a52ed8ffbf945d595ec9d9e4e0832710",
+        "hex"
+      );
+
+      // Prime streamDecoder with packet 1
+      streamDecoder.decode(packet1, 120);
+      // Decode packet 2 on the primed stream vs fresh
+      const streamPcm = streamDecoder.decode(packet2, 120);
+      const freshPcm = freshDecoder.decode(packet2, 120);
+
+      expect(streamPcm.length).toBe(960);
+      expect(freshPcm.length).toBe(960);
+      // Internal predictor/CELP filter history makes subsequent packet output state-dependent
+      expect(streamPcm).not.toEqual(freshPcm);
+
+      // Resetting the primed decoder restores it to cold-start behavior
+      streamDecoder.reset();
+      const afterResetPcm = streamDecoder.decode(packet2, 120);
+      expect(afterResetPcm).toEqual(freshPcm);
+    } finally {
+      streamDecoder.free();
+      freshDecoder.free();
     }
   });
 

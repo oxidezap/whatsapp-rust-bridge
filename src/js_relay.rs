@@ -154,11 +154,29 @@ fn push_close(
     event: RelayTransportEvent,
 ) {
     let pending = drops.swap(0, Ordering::AcqRel);
-    if pending > 0 {
-        let _ = tx.try_send(RelayTransportEvent::InboundDropped(pending));
+    if pending > 0
+        && tx
+            .try_send(RelayTransportEvent::InboundDropped(pending))
+            .is_err()
+    {
+        let tx = tx.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = tx.send(RelayTransportEvent::InboundDropped(pending)).await;
+            let _ = tx.send(event).await;
+            tx.close();
+        });
+        return;
     }
-    if tx.try_send(event).is_err() {
-        tx.close();
+    match tx.try_send(event) {
+        Ok(()) => {}
+        Err(async_channel::TrySendError::Full(event)) => {
+            let tx = tx.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = tx.send(event).await;
+                tx.close();
+            });
+        }
+        Err(async_channel::TrySendError::Closed(_)) => {}
     }
 }
 
@@ -478,9 +496,9 @@ mod relay_event_tests {
     /// the sender ends the stream, which the drive loop breaks on like the
     /// event itself.
     #[test]
-    fn an_undeliverable_close_still_ends_the_stream() {
+    async fn an_undeliverable_close_still_ends_the_stream() {
         let (tx, rx) = async_channel::bounded(1);
-        let drops = AtomicU32::new(0);
+        let drops = AtomicU32::new(3);
 
         push_packet(&tx, &drops, packet(1));
         push_close(
@@ -491,6 +509,14 @@ mod relay_event_tests {
         // The queued packet still reads back; then the stream ends instead
         // of hanging on a close event that never fit.
         assert!(rx.try_recv().is_ok());
-        assert!(rx.try_recv().is_err());
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            RelayTransportEvent::InboundDropped(3)
+        ));
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)
+        ));
+        assert!(rx.recv().await.is_err());
     }
 }

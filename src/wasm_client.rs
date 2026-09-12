@@ -750,14 +750,19 @@ const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
 /**
  * One encoded audio packet for a live call. `data` is exactly one codec
  * payload as the engine received it; `codec` names the grammar inside the
- * negotiated timing, and the remaining fields are its RTP metadata. An
- * `opus` frame carries the MLOW escape: restore the RFC TOC with
- * `depacketizeOpusFromMlow` before handing it to a stock Opus decoder.
+ * negotiated timing, `format` names the negotiated audio format, and the
+ * remaining fields are its RTP metadata.
+ *
+ * When an `opus` frame was negotiated under the MLOW profile (`format: "opus-mlow"`),
+ * it carries the MLOW escape: restore the RFC TOC with `depacketizeOpusFromMlow`
+ * before handing it to a stock Opus decoder. Native Opus (`format: "opus"`)
+ * already carries the standard RFC Opus TOC.
  */
 export interface CallAudioFrame {
   callId: string;
   data: Uint8Array;
   codec: "mlow" | "opus";
+  format: "mlow" | "opus" | "opus-mlow";
   payloadType: number;
   sequenceNumber: number;
   timestamp: number;
@@ -2809,6 +2814,17 @@ pub async fn create_whatsapp_client(
     let http_client =
         Arc::new(JsHttpClientAdapter::from_js(http_config)?) as Arc<dyn wacore::net::HttpClient>;
 
+    #[cfg(feature = "client-calls-audio")]
+    let call_media_callbacks = if let Some(callback) = on_event.as_ref() {
+        (
+            calls_audio::media_callback(callback, "onCallAudio")?.map(std::rc::Rc::new),
+            calls_audio::media_callback(callback, "onCallEvent")?.map(std::rc::Rc::new),
+            calls_audio::media_callback(callback, "onCallVideo")?.map(std::rc::Rc::new),
+        )
+    } else {
+        (None, None, None)
+    };
+
     let persistence_manager: Arc<whatsapp_rust::store::persistence_manager::PersistenceManager> =
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
@@ -2862,25 +2878,8 @@ pub async fn create_whatsapp_client(
     // shape regardless.
     #[cfg(feature = "client-calls-audio")]
     let call_offers = Arc::new(Mutex::new(calls_audio::OfferCache::default()));
-    #[cfg(feature = "client-calls-audio")]
-    let mut call_media_callbacks: (
-        Option<calls_audio::MediaCallback>,
-        Option<calls_audio::MediaCallback>,
-        Option<calls_audio::MediaCallback>,
-    ) = (None, None, None);
 
     let event_subscription = if let Some(callback) = on_event {
-        // Media sinks are read off the raw callbacks object before it moves
-        // into the parsed form: both are optional, and absence is the normal
-        // signaling-only host.
-        #[cfg(feature = "client-calls-audio")]
-        {
-            call_media_callbacks = (
-                calls_audio::media_callback(&callback, "onCallAudio")?,
-                calls_audio::media_callback(&callback, "onCallEvent")?,
-                calls_audio::media_callback(&callback, "onCallVideo")?,
-            );
-        }
         let callbacks = JsEventCallbacks::from_js(callback)?;
         #[cfg(feature = "client-calls-audio")]
         let handler =
@@ -3249,13 +3248,13 @@ pub struct WasmWhatsAppClient {
         Arc<Mutex<std::collections::VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
     /// Host sink for encoded packets, when the callbacks object carried one.
     #[cfg(feature = "client-calls-audio")]
-    call_audio_callback: Option<calls_audio::MediaCallback>,
+    call_audio_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Host sink for call lifecycle events, when one was registered.
     #[cfg(feature = "client-calls-audio")]
-    call_event_callback: Option<calls_audio::MediaCallback>,
+    call_event_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Host sink for peer video access units, when one was registered.
     #[cfg(feature = "client-calls-audio")]
-    call_video_callback: Option<calls_audio::MediaCallback>,
+    call_video_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Call registration counter. Hands each record a generation so a
     /// finish path removes only its own registration, never a same-id
     /// replacement that superseded it mid-await. Shared, not plain:

@@ -6,9 +6,7 @@
 
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::voip::MlowDecoder;
-
-/// RTP payload type for WhatsApp MLOW redundancy packets (SplitRed).
-pub const RTP_PAYLOAD_TYPE_MLOW_RED: u8 = 121;
+pub use whatsapp_rust::wacore::voip::rtp::RTP_PAYLOAD_TYPE_MLOW_RED;
 
 /// Stateful pure-Rust decoder for WhatsApp's proprietary MLOW audio streams.
 ///
@@ -41,10 +39,32 @@ impl MlowAudioDecoder {
     /// Accepts the optional RTP `payload_type` (e.g. 120 for bare MLOW, 121 for MLOW RED).
     /// When payload type 121 is passed, the decoder activates RED depacketization for that packet.
     /// Redundancy state does not stay sticky: omitting `payload_type` or passing 120 decodes bare frames.
-    pub fn decode(&mut self, packet: &[u8], payload_type: Option<u8>) -> Box<[f32]> {
+    #[wasm_bindgen(js_name = decode)]
+    pub fn decode(
+        &mut self,
+        packet: &[u8],
+        #[wasm_bindgen(unchecked_optional_param_type = "number | null")] payload_type: JsValue,
+    ) -> Result<Box<[f32]>, JsValue> {
+        let pt: Option<u8> = if payload_type.is_undefined() || payload_type.is_null() {
+            None
+        } else if let Some(n) = payload_type.as_f64() {
+            if n.is_finite() && n.fract() == 0.0 && (0.0..=255.0).contains(&n) {
+                Some(n as u8)
+            } else {
+                return Err(crate::errors::to_js_error(&crate::errors::invalid_arg(
+                    "payloadType",
+                    format!("expected RTP payload type integer between 0 and 255, got {n}"),
+                )));
+            }
+        } else {
+            return Err(crate::errors::to_js_error(&crate::errors::invalid_arg(
+                "payloadType",
+                "expected RTP payload type number",
+            )));
+        };
         self.inner
-            .set_redundancy(i32::from(payload_type == Some(RTP_PAYLOAD_TYPE_MLOW_RED)));
-        self.inner.decode(packet).into_boxed_slice()
+            .set_redundancy(i32::from(pt == Some(RTP_PAYLOAD_TYPE_MLOW_RED)));
+        Ok(self.inner.decode(packet).into_boxed_slice())
     }
 
     /// Reset internal filter, predictor, and synthesis state.
@@ -71,10 +91,16 @@ mod tests {
             .collect()
     }
 
+    fn pt(value: u8) -> JsValue {
+        JsValue::from_f64(f64::from(value))
+    }
+
     #[test]
     fn empty_payload_conceals_to_60ms_silence() {
         let mut decoder = MlowAudioDecoder::new();
-        let samples = decoder.decode(&[], None);
+        let samples = decoder
+            .decode(&[], JsValue::UNDEFINED)
+            .expect("decode silence");
         assert_eq!(samples.len(), 960);
         assert!(samples.iter().all(|&s| s == 0.0));
     }
@@ -82,7 +108,9 @@ mod tests {
     #[test]
     fn twenty_ms_payload_decodes_to_320_samples() {
         let mut decoder = MlowAudioDecoder::new();
-        let samples = decoder.decode(&[0x48, 0xaa, 0xbb, 0xcc], None);
+        let samples = decoder
+            .decode(&[0x48, 0xaa, 0xbb, 0xcc], JsValue::UNDEFINED)
+            .expect("decode payload");
         assert_eq!(samples.len(), 320);
         for &s in samples.iter() {
             assert!((-1.0..=1.0).contains(&s));
@@ -96,7 +124,7 @@ mod tests {
         let packet = encoder.encode(&pcm).expect("encode frame");
 
         let mut decoder = MlowAudioDecoder::new();
-        let decoded = decoder.decode(&packet, Some(120));
+        let decoded = decoder.decode(&packet, pt(120)).expect("decode voice");
         assert_eq!(decoded.len(), 960);
         assert!(decoded.iter().all(|s| s.is_finite()));
         // Proves real voice reconstruction rather than zero-silence concealment
@@ -116,12 +144,12 @@ mod tests {
 
         // Stateful decode: frame A then frame B
         let mut dec_stream = MlowAudioDecoder::new();
-        let _ = dec_stream.decode(&packet_a, Some(120));
-        let stateful_b = dec_stream.decode(&packet_b, Some(120));
+        let _ = dec_stream.decode(&packet_a, pt(120)).expect("decode A");
+        let stateful_b = dec_stream.decode(&packet_b, pt(120)).expect("decode B");
 
         // Cold decode: frame B directly without preceding frame A
         let mut dec_cold = MlowAudioDecoder::new();
-        let cold_b = dec_cold.decode(&packet_b, Some(120));
+        let cold_b = dec_cold.decode(&packet_b, pt(120)).expect("cold decode");
 
         assert_eq!(stateful_b.len(), 960);
         assert_eq!(cold_b.len(), 960);
@@ -134,7 +162,9 @@ mod tests {
 
         // Reset restores state back to clean initial condition
         dec_stream.reset();
-        let after_reset_b = dec_stream.decode(&packet_b, Some(120));
+        let after_reset_b = dec_stream
+            .decode(&packet_b, pt(120))
+            .expect("decode after reset");
         assert_eq!(
             after_reset_b.as_ref(),
             cold_b.as_ref(),
@@ -158,11 +188,11 @@ mod tests {
         env.extend_from_slice(&bare_a);
 
         let mut dec_bare = MlowAudioDecoder::new();
-        let bare_pcm = dec_bare.decode(&bare_a, Some(120));
+        let bare_pcm = dec_bare.decode(&bare_a, pt(120)).expect("decode bare");
 
         let mut dec_red = MlowAudioDecoder::new();
         // PT 121 activates RED depacketizer
-        let red_pcm = dec_red.decode(&env, Some(121));
+        let red_pcm = dec_red.decode(&env, pt(121)).expect("decode RED");
         assert_eq!(
             red_pcm.as_ref(),
             bare_pcm.as_ref(),
@@ -171,9 +201,9 @@ mod tests {
 
         // Subsequent bare frame with PT 120 or None must NOT keep sticky redundancy
         dec_red.reset();
-        let bare_next = dec_red.decode(&bare_b, Some(120));
+        let bare_next = dec_red.decode(&bare_b, pt(120)).expect("decode next");
         let mut dec_clean = MlowAudioDecoder::new();
-        let expected_next = dec_clean.decode(&bare_b, Some(120));
+        let expected_next = dec_clean.decode(&bare_b, pt(120)).expect("decode expected");
         assert_eq!(
             bare_next.as_ref(),
             expected_next.as_ref(),
