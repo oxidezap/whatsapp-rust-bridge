@@ -830,8 +830,6 @@ interface WhatsAppEventCallbacks {
    * `audio_sink_dropped` in the call stats.
    */
   onCallAudio?(frame: CallAudioFrame): void;
-  /** Decoded mono 16 kHz signed 16-bit PCM from the core's playout path. */
-  onCallPcm?(frame: CallPcmFrame): void;
   /**
    * Lifecycle sink for live calls. `ended` fires exactly once per call the
    * bridge held a handle for, whoever ended it; the per-call methods stay
@@ -845,6 +843,15 @@ interface WhatsAppEventCallbacks {
    * twin.
    */
   onCallVideo?(frame: CallVideoFrame): void;
+}
+"#;
+
+#[cfg(feature = "client-calls-pcm")]
+#[wasm_bindgen(typescript_custom_section)]
+const _TS_CALL_PCM_CALLBACK: &str = r#"
+interface WhatsAppEventCallbacks {
+  /** Decoded mono 16 kHz signed 16-bit PCM from the core's playout path. */
+  onCallPcm?(frame: CallPcmFrame): void;
 }
 
 export interface CallPcmFrame {
@@ -3731,6 +3738,25 @@ where
         fut.await
             .map(Into::into)
             .map_err(|e| bridge_error_to_js_value(&e))
+    })
+}
+
+#[cfg(not(feature = "client-calls-audio"))]
+fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
+    T: serde::Serialize + 'static,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await
+            .map_err(|e| bridge_error_to_js_value(&e))
+            .and_then(|value| {
+                crate::proto::to_js_value(&value).map_err(|_| {
+                    bridge_error_to_js_value(&crate::errors::internal(
+                        "call result refused to serialize",
+                    ))
+                })
+            })
     })
 }
 

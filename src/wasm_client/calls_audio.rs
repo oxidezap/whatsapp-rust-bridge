@@ -60,12 +60,19 @@ impl OfferCache {
             self.entries
                 .retain(|_, v| !matches!(v, OfferEntry::Resolved));
         }
-        if self.entries.len() >= OFFER_CACHE_CAPACITY
-            && !self.entries.contains_key(&call_id)
-            && let Some(evicted) = self.entries.keys().next().cloned()
-        {
-            self.entries.remove(&evicted);
-            log::warn!("Offer cache full; dropped ringing offer {evicted}");
+        if self.entries.len() >= OFFER_CACHE_CAPACITY && !self.entries.contains_key(&call_id) {
+            if let Some(evicted) = self
+                .entries
+                .iter()
+                .find(|(_, entry)| matches!(entry, OfferEntry::Ringing(..)))
+                .map(|(id, _)| id.clone())
+            {
+                self.entries.remove(&evicted);
+                log::warn!("Offer cache full; dropped ringing offer {evicted}");
+            } else {
+                log::warn!("Offer cache full with answers in flight; dropped new offer {call_id}");
+                return;
+            }
         }
         let generation = self.next_generation;
         self.next_generation = self.next_generation.wrapping_add(1);
@@ -330,7 +337,7 @@ pub(super) fn media_callback(
 
 /// Drive a fallible async operation returning a serializable value into a JS Promise
 /// via the standard `CallMedia::ok` serialization boundary.
-fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
+pub(super) fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
 where
     Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
     T: serde::Serialize + 'static,
@@ -1638,7 +1645,7 @@ impl CallMedia {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .take_for_answer(&call_id)?;
-        let slot = match self.reserve_call_slot(Some(&call_id), "acceptCall") {
+        let slot = match self.reserve_call_slot(Some(&call_id), operation) {
             Ok(slot) => slot,
             Err(error) => {
                 restore_offer(&self.call_offers, &call_id, offer_gen, offer);
@@ -1722,6 +1729,10 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
+        if !self.calls_live.get() {
+            handle.hangup_local().await;
+            return Err(crate::errors::internal("client freed during call startup"));
+        }
         let id = self.register_call(handle, registration);
 
         if let Some((video_tx, sink_rx)) = video_channels {
@@ -1955,7 +1966,7 @@ impl CallMedia {
         // known yet; a same-id collision it produces is displaced below.
         // The guard releases on every failure path, converting only when
         // the record below inserts.
-        let slot = self.reserve_call_slot(None, "dialCall")?;
+        let slot = self.reserve_call_slot(None, operation)?;
         let online = self.client.online().await?;
         let voip = online.voip();
         let (mut builder, registration) = match mode {
@@ -2009,6 +2020,10 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
+        if !self.calls_live.get() {
+            handle.hangup_local().await;
+            return Err(crate::errors::internal("client freed during call startup"));
+        }
         let id = self.register_call(handle, registration);
 
         if let Some((video_tx, sink_rx)) = video_channels {
@@ -2779,6 +2794,27 @@ mod call_media_tests {
             note_call_event(&cache, &Event::IncomingCall(Box::new(offer)));
         }
         assert!(cache.lock().unwrap().len() <= OFFER_CACHE_CAPACITY);
+    }
+
+    #[test]
+    fn a_full_cache_does_not_evict_answers_in_flight() {
+        let mut cache = OfferCache::default();
+        for n in 0..OFFER_CACHE_CAPACITY {
+            let id = format!("CALL-{n}");
+            cache.note_offer(id.clone(), offered_call(&id, &[("opus", "16000")]));
+            cache.take_for_answer(&id).expect("offer is answerable");
+        }
+        cache.note_offer(
+            "CALL-NEW".into(),
+            offered_call("CALL-NEW", &[("opus", "16000")]),
+        );
+        assert!(
+            cache
+                .entries
+                .values()
+                .all(|entry| matches!(entry, OfferEntry::Answering(_)))
+        );
+        assert!(!cache.entries.contains_key("CALL-NEW"));
     }
 
     /// The negotiation arm names the field the host retries with. The twin

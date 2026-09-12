@@ -273,6 +273,21 @@ describe("handshake lifecycle", () => {
 });
 
 describe("send path", () => {
+  test("rejects non-finite or negative buffer ceilings before opening a peer connection", () => {
+    expect(() => createRtcRelayTransportProvider(FINGERPRINT, { maxBufferedAmount: NaN })).toThrow(
+      /maxBufferedAmount/
+    );
+    expect(() => createRtcRelayTransportProvider(FINGERPRINT, { maxBufferedAmount: -1 })).toThrow(
+      /maxBufferedAmount/
+    );
+    expect(() => createRtcRelayTransportProvider(FINGERPRINT, { hardCeiling: Infinity })).toThrow(
+      /hardCeiling/
+    );
+    expect(() => createRtcRelayTransportProvider(FINGERPRINT, { hardCeiling: -1 })).toThrow(
+      /hardCeiling/
+    );
+  });
+
   async function openHandle(
     options?: Parameters<typeof createRtcRelayTransportProvider>[1]
   ) {
@@ -304,6 +319,18 @@ describe("send path", () => {
     handle.send(new Uint8Array([2]));
     expect(channel.sent.length).toBe(0);
     expect(dropped).toEqual([1, 1]);
+  });
+
+  test("a throwing drop observer does not fail the relay send", async () => {
+    const { handle, channel } = await openHandle({
+      maxBufferedAmount: 8,
+      onPacketsDropped: () => {
+        throw new Error("observer failed");
+      },
+    });
+    channel.bufferedAmount = 1024;
+    expect(() => handle.send(new Uint8Array([1]))).not.toThrow();
+    expect(channel.sent.length).toBe(0);
   });
 
   test("a video access unit is sent completely even if buffer exceeds ceiling during burst", async () => {

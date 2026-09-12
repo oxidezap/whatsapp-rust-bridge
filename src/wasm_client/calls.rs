@@ -65,13 +65,8 @@ impl WasmWhatsAppClient {
         })
     }
 
-    /// Hang up an active call.
-    ///
-    /// Same fire-and-forget shape as [`Self::reject_call`]: resolving means
-    /// the `<terminate>` stanza went out. Same argument sources, and the same
-    /// gate for the same reason — a terminate names a live call, not a state
-    /// worth carrying across a reconnect.
-    #[wasm_bindgen(js_name = terminateCall, unchecked_return_type = "Promise<void>")]
+    /// Hang up an active call and return the core's termination outcome.
+    #[wasm_bindgen(js_name = terminateCall, unchecked_return_type = "Promise<CallEndResult>")]
     pub fn terminate_call(
         &self,
         call_id: String,
@@ -81,21 +76,22 @@ impl WasmWhatsAppClient {
         let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
         let media = super::calls_audio::CallMedia::of(self);
-        promise_void(async move {
+        #[cfg(feature = "client-calls-audio")]
+        return super::calls_audio::promise_serialized(async move {
             let peer = parse_named_jid("peer", &peer)?;
             let call_creator = parse_named_jid("callCreator", &call_creator)?;
-            #[cfg(feature = "client-calls-audio")]
-            {
-                super::calls_audio::terminate_call(&media, &core, call_id, peer, call_creator).await
-            }
-            #[cfg(not(feature = "client-calls-audio"))]
-            {
-                core.unwaited(Unwaited::ConnectionBound)
-                    .voip()
-                    .terminate(&call_id, &peer, &call_creator)
-                    .await
-                    .map_err(crate::errors::BridgeError::from)
-            }
+            super::calls_audio::terminate_call(&media, &core, call_id, peer, call_creator).await
+        });
+        #[cfg(not(feature = "client-calls-audio"))]
+        super::promise_serialized(async move {
+            let peer = parse_named_jid("peer", &peer)?;
+            let call_creator = parse_named_jid("callCreator", &call_creator)?;
+            core.unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .terminate(&call_id, &peer, &call_creator)
+                .await
+                .map_err(crate::errors::BridgeError::from)?;
+            Ok(crate::result_types::CallEndResult::PeerNotified)
         })
     }
 }

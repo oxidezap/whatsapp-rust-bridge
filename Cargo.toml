@@ -93,7 +93,7 @@ client-calls-audio = ["whatsapp-rust/voip-encoded"]
 client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 # Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
 # for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
-client-calls-mlow = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
+client-calls-mlow = ["whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []

@@ -315,6 +315,14 @@ export function createRtcRelayTransportProvider(
   dtlsFingerprint?: string,
   options?: RtcRelayTransportOptions
 ): JsRelayProviderCallbacks {
+  const maxBuffered = options?.maxBufferedAmount ?? 65536;
+  const hardCeiling = options?.hardCeiling ?? maxBuffered * 8;
+  if (!Number.isFinite(maxBuffered) || maxBuffered < 0) {
+    throw new TypeError("maxBufferedAmount must be finite and non-negative");
+  }
+  if (!Number.isFinite(hardCeiling) || hardCeiling < 0) {
+    throw new TypeError("hardCeiling must be finite and non-negative");
+  }
   // Fail at install time, not on the first ring: a malformed fingerprint
   // can never complete a handshake, so keeping it is just a slower error.
   const fingerprint = normalizeDtlsFingerprint(dtlsFingerprint ?? RELAY_DTLS_FINGERPRINT);
@@ -440,8 +448,6 @@ export function createRtcRelayTransportProvider(
         throw err;
       }
 
-      const maxBuffered = options?.maxBufferedAmount ?? 65536;
-      const hardCeiling = options?.hardCeiling ?? maxBuffered * 8;
       const dropped = options?.onPacketsDropped;
       const tracker = new OutboundAuTracker(maxBuffered, hardCeiling);
 
@@ -453,7 +459,11 @@ export function createRtcRelayTransportProvider(
             );
           }
           if (!tracker.shouldSend(data, channel.bufferedAmount)) {
-            dropped?.(1);
+            try {
+              dropped?.(1);
+            } catch (error) {
+              console.warn("onPacketsDropped threw", error);
+            }
             return;
           }
           channel.send(data);
