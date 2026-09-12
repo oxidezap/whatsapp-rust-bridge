@@ -192,6 +192,7 @@ enum CallAudioRegistration {
     },
 }
 
+#[derive(Clone, Copy)]
 enum CallAudioMode {
     Encoded(AudioFormat),
     #[cfg(feature = "client-calls-pcm")]
@@ -1627,6 +1628,11 @@ impl CallMedia {
         mode: CallAudioMode,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
+        let operation = match mode {
+            CallAudioMode::Encoded(_) => "acceptCall",
+            #[cfg(feature = "client-calls-pcm")]
+            CallAudioMode::Pcm => "acceptCallPcm",
+        };
         let (offer, offer_gen) = self
             .call_offers
             .lock()
@@ -1697,7 +1703,7 @@ impl CallMedia {
             Ok(handle) => handle,
             Err(error) => {
                 restore_offer(&self.call_offers, &call_id, offer_gen, offer);
-                return Err(call_error_to_bridge(error));
+                return Err(call_error_to_bridge(error, operation));
             }
         };
         let current = self
@@ -1780,7 +1786,7 @@ impl CallMedia {
         let sink_depth = sink_rx.clone();
         attach(video_rx, sink_tx)
             .await
-            .map_err(call_error_to_bridge)?;
+            .map_err(|error| call_error_to_bridge(error, "video"))?;
         let mut records = self.call_records.borrow_mut();
         let Some(record) = records.get_mut(call_id).filter(|record| {
             // A same-id replacement registered while starting owns the
@@ -1830,7 +1836,10 @@ impl CallMedia {
 
     async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        let result = handle.stop_video().await.map_err(call_error_to_bridge);
+        let result = handle
+            .stop_video()
+            .await
+            .map_err(|error| call_error_to_bridge(error, "video"));
         // Generation-guarded like the starts: clearing a replacement's
         // fresh video state for our stale stop would lie about its plane.
         if let Some(record) = self
@@ -1936,6 +1945,11 @@ impl CallMedia {
         mode: CallAudioMode,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
+        let operation = match mode {
+            CallAudioMode::Encoded(_) => "dialCall",
+            #[cfg(feature = "client-calls-pcm")]
+            CallAudioMode::Pcm => "dialCallPcm",
+        };
         let peer_jid = parse_named_jid("peer", &peer)?;
         // The dial generates its id inside `start`, so only the count is
         // known yet; a same-id collision it produces is displaced below.
@@ -1984,7 +1998,10 @@ impl CallMedia {
             None
         };
 
-        let handle = builder.start().await.map_err(call_error_to_bridge)?;
+        let handle = builder
+            .start()
+            .await
+            .map_err(|error| call_error_to_bridge(error, operation))?;
         // Serialized with concurrent starts under the admission lock:
         // two same-id starters would otherwise interleave termination and
         // insertion so the second insert silently drops the first
@@ -2308,10 +2325,14 @@ fn call_audio_codec_str(codec: &AudioCodec) -> String {
 ///
 /// The identity arm tracks the core's literal message; re-check it on pin
 /// bumps, since a reword upstream silently returns this path to `internal`.
-fn call_error_to_bridge(error: CallError) -> crate::errors::BridgeError {
+fn call_error_to_bridge(error: CallError, operation: &'static str) -> crate::errors::BridgeError {
     match &error {
         CallError::AudioFormatNotOffered(rate) => crate::errors::invalid_arg(
-            "audioFormat",
+            if operation.ends_with("Pcm") {
+                operation
+            } else {
+                "audioFormat"
+            },
             format!("the peer offered no audio at {rate} Hz; retry with the other format"),
         ),
         CallError::EncodedAudioCodecNotNegotiated { selected, .. } => crate::errors::invalid_arg(
@@ -2766,10 +2787,21 @@ mod call_media_tests {
     /// outside the core, so no test here can hold one.
     #[test]
     fn an_unoffered_format_names_the_format_field() {
-        match call_error_to_bridge(CallError::AudioFormatNotOffered(8000)) {
+        match call_error_to_bridge(CallError::AudioFormatNotOffered(8000), "acceptCall") {
             crate::errors::BridgeError::InvalidArgument { field, reason } => {
                 assert_eq!(field, "audioFormat");
                 assert!(reason.contains("8000"), "unexpected reason: {reason}");
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+    }
+
+    #[cfg(feature = "client-calls-pcm")]
+    #[test]
+    fn an_unoffered_pcm_format_names_the_operation() {
+        match call_error_to_bridge(CallError::AudioFormatNotOffered(8000), "acceptCallPcm") {
+            crate::errors::BridgeError::InvalidArgument { field, .. } => {
+                assert_eq!(field, "acceptCallPcm");
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }
@@ -2901,7 +2933,7 @@ mod call_media_tests {
 
     #[test]
     fn a_missing_identity_is_not_connected() {
-        match call_error_to_bridge(CallError::Media("no own LID")) {
+        match call_error_to_bridge(CallError::Media("no own LID"), "acceptCall") {
             crate::errors::BridgeError::NotConnected => {}
             other => panic!("expected not-connected, got {other:?}"),
         }

@@ -91,6 +91,8 @@ describe("free() with a call in flight", () => {
   const callBodies = [
     `c.acceptCall("NEVER-RANG", "mlow")`,
     `c.dialCall("5511999999999@s.whatsapp.net", "mlow")`,
+    `c.acceptCallPcm("NEVER-RANG")`,
+    `c.dialCallPcm("5511999999999@s.whatsapp.net")`,
     `c.endCall("NEVER-LIVE")`,
     `c.rejectCall("ID", "5511999999999@s.whatsapp.net", "5511888888888@s.whatsapp.net")`,
   ];
