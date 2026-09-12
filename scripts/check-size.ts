@@ -34,7 +34,9 @@ import { packedContents } from "./pack";
  * 6.41 MB); trimming would mean cutting the slice, so it buys the same
  * headroom over the new floor instead.
  */
-const MAX_UNPACKED_BYTES = 8_950_000;
+// PR #115 measured 9.17 MB in CI. The maintainer approved this headroom;
+// attribution and reduction of the growth remain a follow-up in the PR body.
+const MAX_UNPACKED_BYTES = 9_500_000;
 
 const { files, unpackedSize: total } = packedContents();
 
