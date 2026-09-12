@@ -63,6 +63,7 @@ default = [
     "client-business",
     "client-calls",
     "client-calls-audio",
+    "client-calls-mlow",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
@@ -86,6 +87,9 @@ client-calls = []
 # the relay socket itself stays on the host side, behind
 # `setRelayTransportProvider`.
 client-calls-audio = ["whatsapp-rust/voip-encoded"]
+# Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
+# for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
+client-calls-mlow = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []

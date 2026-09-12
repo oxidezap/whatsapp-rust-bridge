@@ -30,6 +30,8 @@ pub mod js_transport;
 pub mod legacy_session;
 pub mod logger;
 pub mod memory_profile;
+#[cfg(feature = "client-calls-mlow")]
+pub mod mlow;
 #[cfg(test)]
 mod noise_cert_profile;
 pub mod proto;
