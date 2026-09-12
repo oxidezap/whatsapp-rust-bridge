@@ -102,6 +102,21 @@ describe("call media validation", () => {
     }
   });
 
+  test("PCM call methods validate their boundary arguments", async () => {
+    const client = await offlineClient();
+    try {
+      const accept = await rejection(client.acceptCallPcm("NEVER-RANG"));
+      expect(accept.kind).toBe("invalid-argument");
+      expect(accept.field).toBe("callId");
+
+      const badPeer = await rejection(client.dialCallPcm("not-a-jid"));
+      expect(badPeer.kind).toBe("invalid-argument");
+      expect(badPeer.field).toBe("peer");
+    } finally {
+      client.free();
+    }
+  });
+
   test("push, stats, end and mute name an unknown call id", async () => {
     const client = await offlineClient();
     try {
@@ -135,6 +150,27 @@ describe("call media validation", () => {
     }
   });
 
+  test("PCM input requires one complete core-sized frame", async () => {
+    const client = await offlineClient();
+    try {
+      for (const length of [0, 959, 961]) {
+        const error = syncRejection(() =>
+          client.callPushPcm16("NEVER-LIVE", new Int16Array(length))
+        );
+        expect(error.kind, `${length} samples`).toBe("invalid-argument");
+        expect(error.field, `${length} samples`).toBe("samples");
+      }
+
+      const unknown = syncRejection(() =>
+        client.callPushPcm16("NEVER-LIVE", new Int16Array(960))
+      );
+      expect(unknown.kind).toBe("invalid-argument");
+      expect(unknown.field).toBe("callId");
+    } finally {
+      client.free();
+    }
+  });
+
   test("the relay provider names a missing constructor", async () => {
     const client = await offlineClient();
     try {
@@ -153,6 +189,7 @@ describe("call media validation", () => {
       ["onCallAudio", "on_event.onCallAudio"],
       ["onCallEvent", "on_event.onCallEvent"],
       ["onCallVideo", "on_event.onCallVideo"],
+      ["onCallPcm", "on_event.onCallPcm"],
     ] as const) {
       try {
         await createWhatsAppClient(

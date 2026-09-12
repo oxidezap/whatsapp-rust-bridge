@@ -63,6 +63,7 @@ default = [
     "client-business",
     "client-calls",
     "client-calls-audio",
+    "client-calls-pcm",
     "client-calls-mlow",
     "client-chat-actions",
     "client-contacts",
@@ -87,6 +88,9 @@ client-calls = []
 # the relay socket itself stays on the host side, behind
 # `setRelayTransportProvider`.
 client-calls-audio = ["whatsapp-rust/voip-encoded"]
+# Core-owned PCM calls use the portable MLOW codec path. The encoded surface
+# above remains available without this feature.
+client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 # Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
 # for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
 client-calls-mlow = ["client-calls-audio", "whatsapp-rust/voip-mlow"]

@@ -1,16 +1,15 @@
-//! Encoded-audio call media: answer, dial, push audio, stats, hangup.
+//! Call media: encoded and core-owned PCM audio, video, stats, and hangup.
 //!
 //! One of the per-domain `impl` blocks for [`WasmWhatsAppClient`];
 //! see `wasm_client.rs` for the type, its construction and the shared
 //! conversion helpers.
 //!
-//! Signaling-only control stays in `calls.rs`. This module is the media half,
-//! behind `client-calls-audio`, and it is what pulls the core's portable
-//! `voip-encoded` profile: the sans-IO engine plus its crypto, no socket, no
-//! codec. The relay socket is the host's: the bridge implements the core's
+//! Signaling-only control stays in `calls.rs`. Encoded calls use the portable
+//! `voip-encoded` profile. PCM calls use the core's `audio(source, sink)` path
+//! and keep codec selection, switching, and playout inside `whatsapp-rust`.
+//! The relay socket is the host's: the bridge implements the core's
 //! `RelayTransportProvider` over the callbacks installed with
-//! `setRelayTransportProvider` (see `js_relay.rs`), and encoded packets cross
-//! as `Uint8Array` views copied once each way.
+//! `setRelayTransportProvider` (see `js_relay.rs`).
 //!
 //! Retaining offers is the bridge's own job. `Voip::accept` borrows the full
 //! `IncomingCall` — including media material that never crosses to JS — so
@@ -159,6 +158,46 @@ const SPEAKER_CHANNEL_CAPACITY: usize = 32;
 /// not take them with it.
 const PAST_STATS_CAPACITY: usize = 8;
 
+enum CallMic {
+    Encoded {
+        tx: async_channel::Sender<Bytes>,
+        drain: async_channel::Receiver<Bytes>,
+        opus_mlow_escape: bool,
+    },
+    #[cfg(feature = "client-calls-pcm")]
+    Pcm {
+        tx: async_channel::Sender<Vec<i16>>,
+        drain: async_channel::Receiver<Vec<i16>>,
+    },
+}
+
+enum CallSpeaker {
+    Encoded(async_channel::Receiver<wacore::voip::EncodedAudioFrame>),
+    #[cfg(feature = "client-calls-pcm")]
+    Pcm(async_channel::Receiver<Vec<i16>>),
+}
+
+enum CallAudioRegistration {
+    Encoded {
+        format: AudioFormat,
+        mic_tx: async_channel::Sender<Bytes>,
+        mic_drain: async_channel::Receiver<Bytes>,
+        speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
+    },
+    #[cfg(feature = "client-calls-pcm")]
+    Pcm {
+        mic_tx: async_channel::Sender<Vec<i16>>,
+        mic_drain: async_channel::Receiver<Vec<i16>>,
+        speaker_rx: async_channel::Receiver<Vec<i16>>,
+    },
+}
+
+enum CallAudioMode {
+    Encoded(AudioFormat),
+    #[cfg(feature = "client-calls-pcm")]
+    Pcm,
+}
+
 /// One live call: its handle, its mic queue, and the tasks pumping it.
 pub(super) struct CallRecord {
     pub(super) handle: CallHandle,
@@ -166,21 +205,13 @@ pub(super) struct CallRecord {
     /// finish path removes only its own generation, so a racing end can
     /// never take down the call that superseded it.
     pub(super) generation: u64,
-    pub(super) mic_tx: async_channel::Sender<Bytes>,
-    /// A second reader on the mic queue, held so muting can drain the
-    /// second of stale audio already queued (see `set_call_muted`).
-    pub(super) mic_drain: async_channel::Receiver<Bytes>,
+    mic: CallMic,
     /// Locally muted, applied at request time even when the announce
     /// below cannot reach the wire: `call_push_audio` sheds while set.
     pub(super) mic_muted: bool,
-    /// The call promised the in-profile Opus escape (`audioFormat: "opus-mlow"`),
-    /// so `call_push_audio` rewrites each RFC Opus CELT packet to the MLOW
-    /// escape before queueing. Without the rewrite the engine drops the
-    /// packet as incompatible with the negotiated RTP profile.
-    pub(super) opus_mlow_escape: bool,
-    /// A second reader on the decoded-audio queue, held so the watermark
-    /// read does not disturb the pump that owns the first.
-    pub(super) speaker_depth: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
+    /// A second reader on the audio queue, held so the watermark read does
+    /// not disturb the pump that owns the first.
+    speaker: CallSpeaker,
     /// Camera queue and peer-video queue depth, present only while video
     /// is up. The pumps own the first readers; these seconds only measure.
     pub(super) video_tx: Option<async_channel::Sender<Vec<u8>>>,
@@ -331,7 +362,8 @@ impl WasmWhatsAppClient {
         promise_value(async move {
             let format = format?;
             // Keep the large accept future out of the Promise constructor's stack frame.
-            Box::pin(media.accept_call(call_id, format, with_video)).await
+            Box::pin(media.accept_call_mode(call_id, CallAudioMode::Encoded(format), with_video))
+                .await
         })
     }
 
@@ -352,7 +384,36 @@ impl WasmWhatsAppClient {
         let with_video = with_video.unwrap_or(false);
         promise_value(async move {
             let format = format?;
-            media.dial_call(peer, format, with_video).await
+            media
+                .dial_call_mode(peer, CallAudioMode::Encoded(format), with_video)
+                .await
+        })
+    }
+
+    /// Answer a ringing call with the core's PCM audio pipeline.
+    #[cfg(feature = "client-calls-pcm")]
+    #[wasm_bindgen(js_name = acceptCallPcm, unchecked_return_type = "Promise<string>")]
+    pub fn accept_call_pcm(&self, call_id: String, with_video: Option<bool>) -> js_sys::Promise {
+        let media = CallMedia::of(self);
+        promise_value(async move {
+            Box::pin(media.accept_call_mode(
+                call_id,
+                CallAudioMode::Pcm,
+                with_video.unwrap_or(false),
+            ))
+            .await
+        })
+    }
+
+    /// Dial a peer with the core's PCM audio pipeline.
+    #[cfg(feature = "client-calls-pcm")]
+    #[wasm_bindgen(js_name = dialCallPcm, unchecked_return_type = "Promise<string>")]
+    pub fn dial_call_pcm(&self, peer: String, with_video: Option<bool>) -> js_sys::Promise {
+        let media = CallMedia::of(self);
+        promise_value(async move {
+            media
+                .dial_call_mode(peer, CallAudioMode::Pcm, with_video.unwrap_or(false))
+                .await
         })
     }
 
@@ -394,7 +455,21 @@ impl WasmWhatsAppClient {
         // typed array into an owned packet the engine frames without
         // inspecting. The escape rewrite runs on the owned copy, never on
         // the caller's view.
-        let packet = if record.opus_mlow_escape {
+        let (tx, opus_mlow_escape) = match &record.mic {
+            CallMic::Encoded {
+                tx,
+                opus_mlow_escape,
+                ..
+            } => (tx, *opus_mlow_escape),
+            #[cfg(feature = "client-calls-pcm")]
+            CallMic::Pcm { .. } => {
+                return Err(crate::errors::invalid_arg(
+                    "callId",
+                    "call uses the PCM audio API",
+                ));
+            }
+        };
+        let packet = if opus_mlow_escape {
             let mut rewritten = data.to_vec();
             wacore::voip::packetize_opus_for_mlow(&mut rewritten)
                 .map_err(opus_mlow_packet_error)?;
@@ -402,12 +477,50 @@ impl WasmWhatsAppClient {
         } else {
             Bytes::copy_from_slice(data)
         };
-        match record.mic_tx.try_send(packet) {
+        match tx.try_send(packet) {
             Ok(()) => Ok(true),
             Err(async_channel::TrySendError::Full(_)) => Ok(false),
             // The engine is gone but the end watcher has not run yet; the
             // packet has nowhere to go, which reads the same as shed.
             Err(async_channel::TrySendError::Closed(_)) => Ok(false),
+        }
+    }
+
+    /// Push exactly one 60 ms mono 16 kHz PCM microphone frame. The core owns
+    /// codec selection and encoding; this boundary copies the samples once.
+    #[cfg(feature = "client-calls-pcm")]
+    #[wasm_bindgen(js_name = callPushPcm16)]
+    pub fn call_push_pcm16(
+        &self,
+        call_id: &str,
+        samples: &[i16],
+    ) -> Result<bool, crate::errors::BridgeError> {
+        if samples.len() != whatsapp_rust::voip::audio::WA_FRAME_SAMPLES {
+            return Err(crate::errors::invalid_arg(
+                "samples",
+                format!(
+                    "PCM frame must contain exactly {} samples",
+                    whatsapp_rust::voip::audio::WA_FRAME_SAMPLES
+                ),
+            ));
+        }
+        let records = self.call_records.borrow();
+        let Some(record) = records.get(call_id) else {
+            return Err(unknown_call());
+        };
+        let CallMic::Pcm { tx, .. } = &record.mic else {
+            return Err(crate::errors::invalid_arg(
+                "callId",
+                "call uses the encoded audio API",
+            ));
+        };
+        if record.mic_muted {
+            return Ok(false);
+        }
+        match tx.try_send(samples.to_vec()) {
+            Ok(()) => Ok(true),
+            Err(async_channel::TrySendError::Full(_))
+            | Err(async_channel::TrySendError::Closed(_)) => Ok(false),
         }
     }
 
@@ -708,10 +821,26 @@ impl WasmWhatsAppClient {
             return Err(unknown_call());
         };
         to_ts(crate::result_types::CallAudioBufferResult {
-            outbound_queued: record.mic_tx.len() as f64,
-            outbound_capacity: record.mic_tx.capacity().unwrap_or(0) as f64,
-            inbound_queued: record.speaker_depth.len() as f64,
-            inbound_capacity: record.speaker_depth.capacity().unwrap_or(0) as f64,
+            outbound_queued: match &record.mic {
+                CallMic::Encoded { tx, .. } => tx.len() as f64,
+                #[cfg(feature = "client-calls-pcm")]
+                CallMic::Pcm { tx, .. } => tx.len() as f64,
+            },
+            outbound_capacity: match &record.mic {
+                CallMic::Encoded { tx, .. } => tx.capacity().unwrap_or(0) as f64,
+                #[cfg(feature = "client-calls-pcm")]
+                CallMic::Pcm { tx, .. } => tx.capacity().unwrap_or(0) as f64,
+            },
+            inbound_queued: match &record.speaker {
+                CallSpeaker::Encoded(rx) => rx.len() as f64,
+                #[cfg(feature = "client-calls-pcm")]
+                CallSpeaker::Pcm(rx) => rx.len() as f64,
+            },
+            inbound_capacity: match &record.speaker {
+                CallSpeaker::Encoded(rx) => rx.capacity().unwrap_or(0) as f64,
+                #[cfg(feature = "client-calls-pcm")]
+                CallSpeaker::Pcm(rx) => rx.capacity().unwrap_or(0) as f64,
+            },
             video_outbound_queued: record.video_tx.as_ref().map(|tx| tx.len() as f64),
             video_inbound_queued: record.video_in_depth.as_ref().map(|rx| rx.len() as f64),
         })
@@ -885,15 +1014,34 @@ impl CallMedia {
     }
 
     /// Store a started call, pump it, and return its id.
-    fn register_call(
-        &self,
-        handle: CallHandle,
-        audio_format: AudioFormat,
-        mic_tx: async_channel::Sender<Bytes>,
-        mic_drain: async_channel::Receiver<Bytes>,
-        speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
-    ) -> String {
-        let speaker_depth = speaker_rx.clone();
+    fn register_call(&self, handle: CallHandle, registration: CallAudioRegistration) -> String {
+        let (mic, speaker) = match registration {
+            CallAudioRegistration::Encoded {
+                format,
+                mic_tx,
+                mic_drain,
+                speaker_rx,
+            } => (
+                CallMic::Encoded {
+                    tx: mic_tx,
+                    drain: mic_drain,
+                    opus_mlow_escape: format == AudioFormat::OPUS_MLOW_16KHZ_60MS,
+                },
+                CallSpeaker::Encoded(speaker_rx),
+            ),
+            #[cfg(feature = "client-calls-pcm")]
+            CallAudioRegistration::Pcm {
+                mic_tx,
+                mic_drain,
+                speaker_rx,
+            } => (
+                CallMic::Pcm {
+                    tx: mic_tx,
+                    drain: mic_drain,
+                },
+                CallSpeaker::Pcm(speaker_rx),
+            ),
+        };
         let call_id = handle.call_id().to_owned();
         // Reservation held across startup, displacement ran above, and no
         // await falls between here and the insert — so the bound holds and
@@ -915,11 +1063,9 @@ impl CallMedia {
                 CallRecord {
                     handle: handle.clone(),
                     generation,
-                    mic_tx,
-                    mic_drain,
+                    mic,
                     mic_muted: false,
-                    opus_mlow_escape: audio_format == AudioFormat::OPUS_MLOW_16KHZ_60MS,
-                    speaker_depth,
+                    speaker,
                     video_tx: None,
                     video_in_depth: None,
                     pending_upgrade: None,
@@ -934,8 +1080,13 @@ impl CallMedia {
         // Every task learns the registration generation it serves, so a
         // same-id replacement never reads as its own call.
         let forwarder = self.spawn_call_event_task(&call_id, generation, handle.clone());
+        let speaker_task = match &self.call_records.borrow()[&call_id].speaker {
+            CallSpeaker::Encoded(rx) => self.spawn_speaker_task(&call_id, rx.clone()),
+            #[cfg(feature = "client-calls-pcm")]
+            CallSpeaker::Pcm(rx) => self.spawn_pcm_speaker_task(&call_id, rx.clone()),
+        };
         let tasks = vec![
-            self.spawn_speaker_task(&call_id, speaker_rx),
+            speaker_task,
             self.spawn_call_end_task(&call_id, generation, handle),
         ]
         .into_iter()
@@ -976,6 +1127,36 @@ impl CallMedia {
                 // throwing per packet for the rest of the call.
                 if callback.call(&packet).is_err() {
                     log::error!("Call audio callback threw; stopping the pump for {call_id}");
+                    break;
+                }
+            }
+        })))
+    }
+
+    #[cfg(feature = "client-calls-pcm")]
+    fn spawn_pcm_speaker_task(
+        &self,
+        call_id: &str,
+        speaker_rx: async_channel::Receiver<Vec<i16>>,
+    ) -> Option<wacore::runtime::AbortHandle> {
+        let callback = self.call_pcm_callback.clone()?;
+        let alive = self.calls_live.clone();
+        let call_id = call_id.to_owned();
+        Some(self.runtime.spawn(Box::pin(async move {
+            while let Ok(samples) = speaker_rx.recv().await {
+                if !alive.get() {
+                    break;
+                }
+                let frame = js_sys::Object::new();
+                let data = js_sys::Int16Array::from(samples.as_slice());
+                if js_sys::Reflect::set(&frame, &"callId".into(), &call_id.clone().into()).is_err()
+                    || js_sys::Reflect::set(&frame, &"data".into(), &data.into()).is_err()
+                {
+                    log::error!("PCM frame object rejected its fields; stopping the pump");
+                    break;
+                }
+                if callback.call(&frame.into()).is_err() {
+                    log::error!("Call PCM callback threw; stopping the pump for {call_id}");
                     break;
                 }
             }
@@ -1394,6 +1575,8 @@ pub(super) struct CallMedia {
     past_call_stats: Arc<Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
     runtime: Arc<dyn wacore::runtime::Runtime>,
     call_audio_callback: Option<std::rc::Rc<MediaCallback>>,
+    #[cfg(feature = "client-calls-pcm")]
+    call_pcm_callback: Option<std::rc::Rc<MediaCallback>>,
     call_event_callback: Option<std::rc::Rc<MediaCallback>>,
     call_video_callback: Option<std::rc::Rc<MediaCallback>>,
     call_generation: std::rc::Rc<std::cell::Cell<u64>>,
@@ -1411,6 +1594,8 @@ impl CallMedia {
             past_call_stats: client.past_call_stats.clone(),
             runtime: client.runtime.clone(),
             call_audio_callback: client.call_audio_callback.clone(),
+            #[cfg(feature = "client-calls-pcm")]
+            call_pcm_callback: client.call_pcm_callback.clone(),
             call_event_callback: client.call_event_callback.clone(),
             call_video_callback: client.call_video_callback.clone(),
             call_generation: client.call_generation.clone(),
@@ -1438,10 +1623,10 @@ impl CallMedia {
             })
     }
 
-    async fn accept_call(
+    async fn accept_call_mode(
         &self,
         call_id: String,
-        format: AudioFormat,
+        mode: CallAudioMode,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let (offer, offer_gen) = self
@@ -1469,16 +1654,38 @@ impl CallMedia {
         ) {
             return Err(unknown_call());
         }
-        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
-        let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
-        // A second reader for the mute drain; the engine owns the first
-        // once the builder below takes it.
-        let mic_drain = mic_rx.clone();
-
         let voip = core.voip();
-        let mut builder = voip
-            .accept(&offer)
-            .encoded_audio(format, mic_rx, speaker_tx);
+        let (mut builder, registration) = match mode {
+            CallAudioMode::Encoded(format) => {
+                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                let mic_drain = mic_rx.clone();
+                (
+                    voip.accept(&offer)
+                        .encoded_audio(format, mic_rx, speaker_tx),
+                    CallAudioRegistration::Encoded {
+                        format,
+                        mic_tx,
+                        mic_drain,
+                        speaker_rx,
+                    },
+                )
+            }
+            #[cfg(feature = "client-calls-pcm")]
+            CallAudioMode::Pcm => {
+                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                let mic_drain = mic_rx.clone();
+                (
+                    voip.accept(&offer).audio(mic_rx, speaker_tx),
+                    CallAudioRegistration::Pcm {
+                        mic_tx,
+                        mic_drain,
+                        speaker_rx,
+                    },
+                )
+            }
+        };
         let video_channels = if with_video {
             let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
             let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
@@ -1511,7 +1718,7 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
-        let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
+        let id = self.register_call(handle, registration);
 
         if let Some((video_tx, sink_rx)) = video_channels {
             let sink_depth = sink_rx.clone();
@@ -1691,7 +1898,11 @@ impl CallMedia {
                 // Stale audio queued before the mute would otherwise play
                 // out after it — up to a second of it. The engine keeps
                 // pulling newer packets past the gap.
-                while record.mic_drain.try_recv().is_ok() {}
+                match &record.mic {
+                    CallMic::Encoded { drain, .. } => while drain.try_recv().is_ok() {},
+                    #[cfg(feature = "client-calls-pcm")]
+                    CallMic::Pcm { drain, .. } => while drain.try_recv().is_ok() {},
+                }
             }
             record.handle.clone()
         };
@@ -1724,10 +1935,10 @@ impl CallMedia {
             .map_err(group_control_error)
     }
 
-    async fn dial_call(
+    async fn dial_call_mode(
         &self,
         peer: String,
-        format: AudioFormat,
+        mode: CallAudioMode,
         with_video: bool,
     ) -> Result<String, crate::errors::BridgeError> {
         let peer_jid = parse_named_jid("peer", &peer)?;
@@ -1736,15 +1947,39 @@ impl CallMedia {
         // The guard releases on every failure path, converting only when
         // the record below inserts.
         let slot = self.reserve_call_slot(None, "dialCall")?;
-        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
-        let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
-        let mic_drain = mic_rx.clone();
-
         let online = self.client.online().await?;
         let voip = online.voip();
-        let mut builder = voip
-            .call(&peer_jid)
-            .encoded_audio(format, mic_rx, speaker_tx);
+        let (mut builder, registration) = match mode {
+            CallAudioMode::Encoded(format) => {
+                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                let mic_drain = mic_rx.clone();
+                (
+                    voip.call(&peer_jid)
+                        .encoded_audio(format, mic_rx, speaker_tx),
+                    CallAudioRegistration::Encoded {
+                        format,
+                        mic_tx,
+                        mic_drain,
+                        speaker_rx,
+                    },
+                )
+            }
+            #[cfg(feature = "client-calls-pcm")]
+            CallAudioMode::Pcm => {
+                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                let mic_drain = mic_rx.clone();
+                (
+                    voip.call(&peer_jid).audio(mic_rx, speaker_tx),
+                    CallAudioRegistration::Pcm {
+                        mic_tx,
+                        mic_drain,
+                        speaker_rx,
+                    },
+                )
+            }
+        };
         let video_channels = if with_video {
             let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
             let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
@@ -1762,7 +1997,7 @@ impl CallMedia {
         // startup, so unrelated calls never wait on each other.
         let _admission = self.call_admission.lock().await;
         self.displace_call(handle.call_id()).await;
-        let id = self.register_call(handle, format, mic_tx, mic_drain, speaker_rx);
+        let id = self.register_call(handle, registration);
 
         if let Some((video_tx, sink_rx)) = video_channels {
             let sink_depth = sink_rx.clone();
