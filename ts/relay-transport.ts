@@ -76,7 +76,7 @@ interface RtcPeerConnection {
  * DataChannel event at all), releasing peer connections no handle could
  * ever close.
  */
-const OPEN_TIMEOUT_MS = 20000;
+const OPEN_TIMEOUT_MS = 14000;
 
 type RtcPeerConnectionConstructor = new () => RtcPeerConnection;
 
@@ -371,7 +371,7 @@ export function createRtcRelayTransportProvider(
       const openTimer = setTimeout(() => {
         settleOpen(() =>
           openHooks.reject?.(
-            new Error("relay DataChannel did not open within 20s")
+            new Error("relay DataChannel did not open within 14s")
           )
         );
       }, OPEN_TIMEOUT_MS);

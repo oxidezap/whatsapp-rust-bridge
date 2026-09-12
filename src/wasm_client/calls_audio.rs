@@ -125,6 +125,16 @@ impl OfferCache {
         true
     }
 
+    fn resolve_generation(&mut self, call_id: &str, generation: u64) {
+        if matches!(
+            self.entries.get(call_id),
+            Some(OfferEntry::Ringing(_, current) | OfferEntry::Answering(current))
+                if *current == generation
+        ) {
+            self.resolve(call_id);
+        }
+    }
+
     pub(super) fn get_ringing(&self, call_id: &str) -> Option<&IncomingCall> {
         match self.entries.get(call_id) {
             Some(OfferEntry::Ringing(offer, _)) => Some(offer),
@@ -1483,7 +1493,7 @@ fn finish_call(
     offers
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .resolve(call_id);
+        .resolve_generation(call_id, generation);
     let stats = call_media_stats_to_result(&record.handle.media_stats());
     // The final counters ride the event itself, so a host that only ever
     // listens learns the outcome without a follow-up read; the past-stats
@@ -1558,9 +1568,9 @@ pub(super) async fn terminate_call(
     call_id: String,
     peer: Jid,
     call_creator: Jid,
-) -> Result<(), crate::errors::BridgeError> {
+) -> Result<crate::result_types::CallEndResult, crate::errors::BridgeError> {
     if media.call_records.borrow().contains_key(&call_id) {
-        return media.end_call(call_id).await.map(|_| ());
+        return media.end_call(call_id).await;
     }
     core.unwaited(Unwaited::ConnectionBound)
         .voip()
@@ -1569,7 +1579,7 @@ pub(super) async fn terminate_call(
         .map_err(crate::errors::BridgeError::from)?;
     // Success ends the ringing, failure keeps the offer for a retry.
     evict_offer(&media.call_offers, &call_id);
-    Ok(())
+    Ok(crate::result_types::CallEndResult::PeerNotified)
 }
 
 /// Everything a call method touches, owned. Built synchronously at call
