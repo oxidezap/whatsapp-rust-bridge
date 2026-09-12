@@ -1276,6 +1276,9 @@ impl CallMedia {
                         // registered while suspended owns the id now, and
                         // this generation's event must neither read as its
                         // diagnostic nor write its upgrade token.
+                        if !alive.get() {
+                            break;
+                        }
                         let current = records
                             .borrow()
                             .get(&call_id)
@@ -1613,14 +1616,9 @@ impl CallMedia {
     where
         T: serde::Serialize,
     {
-        serde_json::to_value(&value)
-            .ok()
-            .and_then(|json| serde_wasm_bindgen::to_value(&json).ok())
-            .ok_or_else(|| {
-                bridge_error_to_js_value(&crate::errors::internal(
-                    "call result refused to serialize",
-                ))
-            })
+        crate::proto::to_js_value(&value).map_err(|_| {
+            bridge_error_to_js_value(&crate::errors::internal("call result refused to serialize"))
+        })
     }
 
     async fn accept_call_mode(
@@ -1782,7 +1780,7 @@ impl CallMedia {
         let sink_depth = sink_rx.clone();
         attach(video_rx, sink_tx)
             .await
-            .map_err(crate::errors::BridgeError::from)?;
+            .map_err(call_error_to_bridge)?;
         let mut records = self.call_records.borrow_mut();
         let Some(record) = records.get_mut(call_id).filter(|record| {
             // A same-id replacement registered while starting owns the
@@ -1832,10 +1830,7 @@ impl CallMedia {
 
     async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        let result = handle
-            .stop_video()
-            .await
-            .map_err(crate::errors::BridgeError::from);
+        let result = handle.stop_video().await.map_err(call_error_to_bridge);
         // Generation-guarded like the starts: clearing a replacement's
         // fresh video state for our stale stop would lie about its plane.
         if let Some(record) = self
