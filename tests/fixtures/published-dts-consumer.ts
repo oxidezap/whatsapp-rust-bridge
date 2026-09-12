@@ -128,7 +128,7 @@ type _EditPinsAStanzaId = Assert<
 type _MlowDecoderDecode = Assert<
   Resolves<
     MlowAudioDecoder["decode"],
-    (packet: Uint8Array) => Float32Array
+    (packet: Uint8Array, payload_type?: number | null) => Float32Array
   >
 >;
 

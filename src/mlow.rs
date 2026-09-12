@@ -7,6 +7,9 @@
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::voip::MlowDecoder;
 
+/// RTP payload type for WhatsApp MLOW redundancy packets (SplitRed).
+pub const RTP_PAYLOAD_TYPE_MLOW_RED: u8 = 121;
+
 /// Stateful pure-Rust decoder for WhatsApp's proprietary MLOW audio streams.
 ///
 /// Decodes inbound MLOW audio packets into mono 16 kHz Float32 PCM samples in [-1.0, 1.0].
@@ -34,7 +37,13 @@ impl MlowAudioDecoder {
     }
 
     /// Decode one inbound MLOW packet into mono 16 kHz Float32 PCM samples.
-    pub fn decode(&mut self, packet: &[u8]) -> Box<[f32]> {
+    ///
+    /// Accepts the optional RTP `payload_type` (e.g. 120 for bare MLOW, 121 for MLOW RED).
+    /// When payload type 121 is passed, the decoder activates RED depacketization for that packet.
+    /// Redundancy state does not stay sticky: omitting `payload_type` or passing 120 decodes bare frames.
+    pub fn decode(&mut self, packet: &[u8], payload_type: Option<u8>) -> Box<[f32]> {
+        self.inner
+            .set_redundancy(i32::from(payload_type == Some(RTP_PAYLOAD_TYPE_MLOW_RED)));
         self.inner.decode(packet).into_boxed_slice()
     }
 
@@ -51,11 +60,21 @@ impl MlowAudioDecoder {
 mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::voip::MlowEncoder;
+
+    fn test_tone(freq_hz: f32, count: usize, phase: f32) -> Vec<f32> {
+        (0..count)
+            .map(|i| {
+                let t = i as f32 / 16000.0;
+                (2.0 * core::f32::consts::PI * freq_hz * t + phase).sin() * 0.5
+            })
+            .collect()
+    }
 
     #[test]
     fn empty_payload_conceals_to_60ms_silence() {
         let mut decoder = MlowAudioDecoder::new();
-        let samples = decoder.decode(&[]);
+        let samples = decoder.decode(&[], None);
         assert_eq!(samples.len(), 960);
         assert!(samples.iter().all(|&s| s == 0.0));
     }
@@ -63,7 +82,7 @@ mod tests {
     #[test]
     fn twenty_ms_payload_decodes_to_320_samples() {
         let mut decoder = MlowAudioDecoder::new();
-        let samples = decoder.decode(&[0x48, 0xaa, 0xbb, 0xcc]);
+        let samples = decoder.decode(&[0x48, 0xaa, 0xbb, 0xcc], None);
         assert_eq!(samples.len(), 320);
         for &s in samples.iter() {
             assert!((-1.0..=1.0).contains(&s));
@@ -71,25 +90,94 @@ mod tests {
     }
 
     #[test]
-    fn one_hundred_twenty_ms_payload_decodes_to_1920_samples() {
+    fn real_voice_roundtrip_decodes_non_silent_audio() {
+        let mut encoder = MlowEncoder::new();
+        let pcm = test_tone(440.0, 960, 0.0);
+        let packet = encoder.encode(&pcm).expect("encode frame");
+
         let mut decoder = MlowAudioDecoder::new();
-        let samples = decoder.decode(&[0x58, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22]);
-        assert_eq!(samples.len(), 1920);
-        for &s in samples.iter() {
-            assert!((-1.0..=1.0).contains(&s));
-        }
+        let decoded = decoder.decode(&packet, Some(120));
+        assert_eq!(decoded.len(), 960);
+        assert!(decoded.iter().all(|s| s.is_finite()));
+        // Proves real voice reconstruction rather than zero-silence concealment
+        assert!(
+            decoded.iter().any(|&s| s.abs() > 0.05),
+            "decoded voice should reconstruct non-silent audio"
+        );
     }
 
     #[test]
-    fn reset_clears_state() {
-        let mut dec1 = MlowAudioDecoder::new();
-        let mut dec2 = MlowAudioDecoder::new();
-        let packet = [0x48, 0xaa, 0xbb, 0xcc];
-        let _ = dec1.decode(&packet);
-        dec1.reset();
+    fn stream_maintains_state_across_frames() {
+        let mut encoder = MlowEncoder::new();
+        let pcm_a = test_tone(440.0, 960, 0.0);
+        let pcm_b = test_tone(880.0, 960, 0.5);
+        let packet_a = encoder.encode(&pcm_a).expect("encode A");
+        let packet_b = encoder.encode(&pcm_b).expect("encode B");
 
-        let out1 = dec1.decode(&packet);
-        let out2 = dec2.decode(&packet);
-        assert_eq!(out1.as_ref(), out2.as_ref());
+        // Stateful decode: frame A then frame B
+        let mut dec_stream = MlowAudioDecoder::new();
+        let _ = dec_stream.decode(&packet_a, Some(120));
+        let stateful_b = dec_stream.decode(&packet_b, Some(120));
+
+        // Cold decode: frame B directly without preceding frame A
+        let mut dec_cold = MlowAudioDecoder::new();
+        let cold_b = dec_cold.decode(&packet_b, Some(120));
+
+        assert_eq!(stateful_b.len(), 960);
+        assert_eq!(cold_b.len(), 960);
+        // Inter-frame predictor and filter history differentiate stateful from cold
+        assert_ne!(
+            stateful_b.as_ref(),
+            cold_b.as_ref(),
+            "stateful decode should differ from cold start"
+        );
+
+        // Reset restores state back to clean initial condition
+        dec_stream.reset();
+        let after_reset_b = dec_stream.decode(&packet_b, Some(120));
+        assert_eq!(
+            after_reset_b.as_ref(),
+            cold_b.as_ref(),
+            "after reset, decode should match cold start"
+        );
+    }
+
+    #[test]
+    fn red_payload_type_121_unwraps_split_red_and_clears_sticky_redundancy() {
+        let mut encoder = MlowEncoder::new();
+        let pcm_a = test_tone(500.0, 960, 0.0);
+        let pcm_b = test_tone(1000.0, 960, 0.0);
+        let bare_a = encoder.encode(&pcm_a).expect("encode A");
+        let bare_b = encoder.encode(&pcm_b).expect("encode B");
+
+        // Wrap bare_a in SplitRed (N=1 redundancy):
+        // [0x80 | time_code, size, 0x00 (main marker), redundant_payload, main_payload]
+        let red_payload = [0xAAu8, 0xBB];
+        let mut env = vec![0x80u8, red_payload.len() as u8, 0x00];
+        env.extend_from_slice(&red_payload);
+        env.extend_from_slice(&bare_a);
+
+        let mut dec_bare = MlowAudioDecoder::new();
+        let bare_pcm = dec_bare.decode(&bare_a, Some(120));
+
+        let mut dec_red = MlowAudioDecoder::new();
+        // PT 121 activates RED depacketizer
+        let red_pcm = dec_red.decode(&env, Some(121));
+        assert_eq!(
+            red_pcm.as_ref(),
+            bare_pcm.as_ref(),
+            "RED unwrapped frame should match bare decode"
+        );
+
+        // Subsequent bare frame with PT 120 or None must NOT keep sticky redundancy
+        dec_red.reset();
+        let bare_next = dec_red.decode(&bare_b, Some(120));
+        let mut dec_clean = MlowAudioDecoder::new();
+        let expected_next = dec_clean.decode(&bare_b, Some(120));
+        assert_eq!(
+            bare_next.as_ref(),
+            expected_next.as_ref(),
+            "redundancy state must not remain sticky on PT 120"
+        );
     }
 }

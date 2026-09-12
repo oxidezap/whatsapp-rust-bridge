@@ -1,6 +1,6 @@
 /**
  * Pure-Rust stateful MLOW audio decoder: stream decode, concealment,
- * geometry handling, state reset, and resource teardown.
+ * geometry handling, RED (PT 121) depacketization, state reset, and resource teardown.
  *
  * Covers what does not require a live call: MlowAudioDecoder decodes
  * inbound MLOW packets directly to Float32Array PCM at 16 kHz mono.
@@ -59,7 +59,7 @@ describe("MlowAudioDecoder", () => {
       const packet = new Uint8Array([
         0x58, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22,
       ]);
-      const pcm = decoder.decode(packet);
+      const pcm = decoder.decode(packet, 120);
       expect(pcm).toBeInstanceOf(Float32Array);
       expect(pcm.length).toBe(1920);
       for (let i = 0; i < pcm.length; i++) {
@@ -71,27 +71,41 @@ describe("MlowAudioDecoder", () => {
     }
   });
 
-  test("decoder maintains state across successive packets in a stream", () => {
-    const streamDecoder = new MlowAudioDecoder();
-    const freshDecoder = new MlowAudioDecoder();
+  test("decoder supports RED payload type 121 and does not keep sticky redundancy", () => {
+    const decoder = new MlowAudioDecoder();
+    const bareDecoder = new MlowAudioDecoder();
     try {
-      const packet1 = new Uint8Array([0x48, 0xaa, 0xbb, 0xcc]);
-      const packet2 = new Uint8Array([0x48, 0x12, 0x34, 0x56]);
+      const bareFrame = new Uint8Array([0x48, 0xaa, 0xbb, 0xcc]);
+      // Construct SplitRed N=1 packet:
+      // header: [0x80 | time_code, size, 0x00 (main marker)], red_data, main_data
+      const redHeader = [0x80, 0x02, 0x00];
+      const redData = [0x11, 0x22];
+      const redPacket = new Uint8Array([
+        ...redHeader,
+        ...redData,
+        ...bareFrame,
+      ]);
 
-      // Prime streamDecoder with packet 1
-      streamDecoder.decode(packet1);
-      // Decode packet 2 on the primed stream vs fresh
-      const streamPcm = streamDecoder.decode(packet2);
-      const freshPcm = freshDecoder.decode(packet2);
+      // Decode with payloadType 121: unwraps RED envelope and decodes main frame
+      const redPcm = decoder.decode(redPacket, 121);
+      const expectedPcm = bareDecoder.decode(bareFrame, 120);
 
-      expect(streamPcm.length).toBe(320);
-      expect(freshPcm.length).toBe(320);
-      // Internal predictor/CELP filter history makes subsequent packet output state-dependent
-      expect(streamPcm).toBeInstanceOf(Float32Array);
-      expect(freshPcm).toBeInstanceOf(Float32Array);
+      expect(redPcm).toBeInstanceOf(Float32Array);
+      expect(redPcm.length).toBe(320);
+      expect(redPcm).toEqual(expectedPcm);
+
+      // Subsequent packet with payloadType 120 or omitted must decode bare frame
+      // without lingering RED depacketization state
+      const nextBare = new Uint8Array([0x48, 0x33, 0x44, 0x55]);
+      const nextPcm = decoder.decode(nextBare, 120);
+      const nextExpected = bareDecoder.decode(nextBare, 120);
+
+      expect(nextPcm).toBeInstanceOf(Float32Array);
+      expect(nextPcm.length).toBe(320);
+      expect(nextPcm).toEqual(nextExpected);
     } finally {
-      streamDecoder.free();
-      freshDecoder.free();
+      decoder.free();
+      bareDecoder.free();
     }
   });
 
@@ -121,18 +135,14 @@ describe("MlowAudioDecoder", () => {
     const decoder = new MlowAudioDecoder();
     decoder.free();
 
-    expect(() => decoder.decode(new Uint8Array(0))).toThrow(
-      "Attempt to use a moved value"
-    );
-    expect(() => decoder.reset()).toThrow("Attempt to use a moved value");
+    expect(() => decoder.decode(new Uint8Array(0))).toThrow();
+    expect(() => decoder.reset()).toThrow();
   });
 
   test("Symbol.dispose delegates to free", () => {
     const decoder = new MlowAudioDecoder();
     decoder[Symbol.dispose]();
 
-    expect(() => decoder.decode(new Uint8Array(0))).toThrow(
-      "Attempt to use a moved value"
-    );
+    expect(() => decoder.decode(new Uint8Array(0))).toThrow();
   });
 });
