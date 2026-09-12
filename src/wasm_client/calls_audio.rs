@@ -110,6 +110,15 @@ impl OfferCache {
         }
     }
 
+    fn resolve_answer(&mut self, call_id: &str, generation: u64) -> bool {
+        if !matches!(self.entries.get(call_id), Some(OfferEntry::Answering(current)) if *current == generation)
+        {
+            return false;
+        }
+        self.resolve(call_id);
+        true
+    }
+
     pub(super) fn get_ringing(&self, call_id: &str) -> Option<&IncomingCall> {
         match self.entries.get(call_id) {
             Some(OfferEntry::Ringing(offer, _)) => Some(offer),
@@ -164,7 +173,7 @@ pub(super) struct CallRecord {
     /// Locally muted, applied at request time even when the announce
     /// below cannot reach the wire: `call_push_audio` sheds while set.
     pub(super) mic_muted: bool,
-    /// The call promised the in-profile Opus escape (`audioFormat: "opus"`),
+    /// The call promised the in-profile Opus escape (`audioFormat: "opus-mlow"`),
     /// so `call_push_audio` rewrites each RFC Opus CELT packet to the MLOW
     /// escape before queueing. Without the rewrite the engine drops the
     /// packet as incompatible with the negotiated RTP profile.
@@ -266,15 +275,8 @@ impl MediaCallback {
     }
 }
 
-/// Read one optional host callback off the callbacks object. Absent is the
-/// normal case for a host that only signals; a present-but-unusable value is
-/// ignored the same way, since these callbacks only ever fire into live
-/// calls the host asked for.
-/// Read one optional host callback off the callbacks object. Only
-/// null/undefined is absent; a present-but-unusable value rejects client
-/// construction, the way every other optional event method behaves — a
-/// host that misspells the sink must hear it at install time, not as
-/// silently missing audio on the first live call.
+/// Reject unusable media callbacks before client construction can start work.
+/// Only null and undefined mean the host omitted the callback.
 pub(super) fn media_callback(
     receiver: &JsValue,
     method: &'static str,
@@ -314,18 +316,8 @@ impl WasmWhatsAppClient {
 
     /// Answer a ringing call with encoded audio, and return its call id.
     ///
-    /// The offer stays cached across a reconnect: a call held at the gate
-    /// that is withdrawn or fails before starting leaves the cache intact,
-    /// so asking again after the reconnect is a retry, not a repeat.
-    /// Consumed only once the engine starts; a failed start keeps it for a
-    /// retry with the other format.
-    /// Answer a ringing call with encoded audio, and return its call id.
-    ///
-    /// The offer stays cached across a reconnect: a call held at the gate
-    /// that is withdrawn or fails before starting leaves the cache intact,
-    /// so asking again after the reconnect is a retry, not a repeat.
-    /// Consumed only once the engine starts; a failed start keeps it for a
-    /// retry with the other format.
+    /// A withdrawn or failed start restores the offer only if no resolution
+    /// or replacement arrived. A superseded successful start is torn down locally.
     #[wasm_bindgen(js_name = acceptCall, unchecked_return_type = "Promise<string>")]
     pub fn accept_call(
         &self,
@@ -372,7 +364,7 @@ impl WasmWhatsAppClient {
     /// rather than rejects — and also the host's pacing signal, in place
     /// of a watermark readout the core does not expose yet.
     ///
-    /// On an `"opus"` call the RFC Opus CELT packet is rewritten to the
+    /// On an `"opus-mlow"` call the RFC Opus CELT packet is rewritten to the
     /// MLOW escape in flight, so the host passes ffmpeg-shaped packets
     /// straight through: pre-packetizing with `packetizeOpusForMlow` would
     /// rewrite twice and corrupt the TOC. A packet the escape cannot carry
@@ -943,7 +935,7 @@ impl CallMedia {
         // same-id replacement never reads as its own call.
         let forwarder = self.spawn_call_event_task(&call_id, generation, handle.clone());
         let tasks = vec![
-            self.spawn_speaker_task(&call_id, audio_format, speaker_rx),
+            self.spawn_speaker_task(&call_id, speaker_rx),
             self.spawn_call_end_task(&call_id, generation, handle),
         ]
         .into_iter()
@@ -962,7 +954,6 @@ impl CallMedia {
     fn spawn_speaker_task(
         &self,
         call_id: &str,
-        audio_format: AudioFormat,
         speaker_rx: async_channel::Receiver<wacore::voip::EncodedAudioFrame>,
     ) -> Option<wacore::runtime::AbortHandle> {
         let callback = self.call_audio_callback.clone()?;
@@ -976,24 +967,10 @@ impl CallMedia {
                 if !alive.get() {
                     break;
                 }
-                let packet = js_sys::Object::new();
-                let set =
-                    |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
-                // One copy on the way out: owned packet bytes into a typed
-                // array the host decodes or plays.
-                let data = js_sys::Uint8Array::from(frame.data.as_ref());
-                if set("callId", &call_id.clone().into()).is_err()
-                    || set("data", &data.into()).is_err()
-                    || set("codec", &call_audio_codec_str(&frame.codec).into()).is_err()
-                    || set("format", &call_audio_format_str(audio_format).into()).is_err()
-                    || set("payloadType", &(f64::from(frame.payload_type)).into()).is_err()
-                    || set("sequenceNumber", &(f64::from(frame.sequence_number)).into()).is_err()
-                    || set("timestamp", &(f64::from(frame.timestamp)).into()).is_err()
-                    || set("marker", &frame.marker.into()).is_err()
-                {
+                let Ok(packet) = audio_frame_object(&call_id, &frame) else {
                     log::error!("Audio packet object rejected its fields; stopping the pump");
                     break;
-                }
+                };
                 // A throwing callback is a broken host; stopping the pump
                 // sheds into the facade's own drop counter rather than
                 // throwing per packet for the rest of the call.
@@ -1518,10 +1495,15 @@ impl CallMedia {
                 return Err(call_error_to_bridge(error));
             }
         };
-        self.call_offers
+        let current = self
+            .call_offers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .resolve(&call_id);
+            .resolve_answer(&call_id, offer_gen);
+        if !current {
+            handle.hangup_local().await;
+            return Err(unknown_call());
+        }
         // Serialized with concurrent starts under the admission lock:
         // two same-id starters would otherwise interleave termination and
         // insertion so the second insert silently drops the first
@@ -2044,6 +2026,26 @@ fn call_audio_format(value: &JsValue) -> Result<AudioFormat, crate::errors::Brid
     }
 }
 
+fn audio_frame_object(
+    call_id: &str,
+    frame: &wacore::voip::EncodedAudioFrame,
+) -> Result<js_sys::Object, JsValue> {
+    let packet = js_sys::Object::new();
+    let set = |key: &str, value: &JsValue| js_sys::Reflect::set(&packet, &key.into(), value);
+    set("callId", &call_id.into())?;
+    set(
+        "data",
+        &js_sys::Uint8Array::from(frame.data.as_ref()).into(),
+    )?;
+    set("codec", &call_audio_codec_str(&frame.codec).into())?;
+    set("format", &call_audio_format_str(frame.format).into())?;
+    set("payloadType", &f64::from(frame.payload_type).into())?;
+    set("sequenceNumber", &f64::from(frame.sequence_number).into())?;
+    set("timestamp", &f64::from(frame.timestamp).into())?;
+    set("marker", &frame.marker.into())?;
+    Ok(packet)
+}
+
 fn call_audio_format_str(format: AudioFormat) -> &'static str {
     match format {
         format if format == AudioFormat::MLOW_16KHZ_60MS => "mlow",
@@ -2466,6 +2468,35 @@ mod call_media_tests {
     }
 
     #[test]
+    fn successful_answer_cannot_resolve_a_replacement_offer() {
+        let mut cache = OfferCache::default();
+        cache.note_offer(
+            "CALL-R".into(),
+            offered_call("CALL-R", &[("opus", "16000")]),
+        );
+        let (_, old) = cache.take_for_answer("CALL-R").unwrap();
+        cache.note_offer("CALL-R".into(), offered_call("CALL-R", &[("pcmu", "8000")]));
+        assert!(!cache.resolve_answer("CALL-R", old));
+        let (_, current) = cache.take_for_answer("CALL-R").unwrap();
+        assert!(!cache.resolve_answer("CALL-R", old));
+        assert!(cache.resolve_answer("CALL-R", current));
+        assert!(cache.take_for_answer("CALL-R").is_err());
+    }
+
+    #[test]
+    fn successful_answer_cannot_override_resolution() {
+        let mut cache = OfferCache::default();
+        cache.note_offer(
+            "CALL-R".into(),
+            offered_call("CALL-R", &[("opus", "16000")]),
+        );
+        let (_, generation) = cache.take_for_answer("CALL-R").unwrap();
+        cache.resolve("CALL-R");
+        assert!(!cache.resolve_answer("CALL-R", generation));
+        assert!(cache.take_for_answer("CALL-R").is_err());
+    }
+
+    #[test]
     fn unrelated_calls_do_not_evict_each_other() {
         let cache = cache();
         for id in ["CALL-A", "CALL-B"] {
@@ -2512,6 +2543,84 @@ mod call_media_tests {
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn audio_frame_object_follows_the_core_codec_switch() {
+        use wacore::voip::audio::AudioConfig;
+        use wacore::voip::engine::{
+            CallConfig, CallEngine, CodecDecisionSource, Input, Output, SequentialTxIds,
+        };
+        use wacore::voip::session::{CallDirection, MediaPipeline, MediaPipelineParams};
+
+        let key: Vec<u8> = (0..32).collect();
+        let mut engine = CallEngine::new(
+            CallConfig {
+                call_id: "FORMAT".into(),
+                direction: CallDirection::Incoming,
+                self_lid: "111111111111111:0@lid".into(),
+                peer_lid: "222222222222222:0@lid".into(),
+                call_key: key.clone(),
+                ssrc: 0x57410001,
+                audio: AudioConfig::encoded(AudioFormat::MLOW_16KHZ_60MS),
+                relay_token: vec![0xab; 16],
+                auth_token: vec![0xcd; 8],
+                relay_ip: "203.0.113.7".into(),
+                relay_port: 3478,
+                integrity_key: b"relay-key".to_vec(),
+                warp_mi_tag_len: 4,
+                enable_media: true,
+                enable_video: false,
+                enable_sframe: false,
+            },
+            Box::new(SequentialTxIds::new()),
+        )
+        .unwrap();
+        engine.start(0, 0);
+        while !matches!(engine.poll_output(), Output::Timeout(_)) {}
+        engine
+            .switch_audio_codec(AudioCodec::Opus, CodecDecisionSource::Negotiated)
+            .unwrap();
+        let mut peer = MediaPipeline::new(&MediaPipelineParams {
+            call_key: &key,
+            self_lid: "222222222222222:0@lid",
+            peer_lid: "111111111111111:0@lid",
+            ssrc: 0x57410001,
+            samples_per_packet: 960,
+            warp_mi_tag_len: 4,
+        })
+        .unwrap();
+        let body: Vec<u8> = std::iter::once(0x58).chain(0..40).collect();
+        let packet = peer.protect_audio(&body);
+        engine.handle_input(1, Input::RelayPacket(&packet));
+        let frame = loop {
+            match engine.poll_output() {
+                Output::EncodedAudio(frame) => break frame,
+                Output::Timeout(_) => panic!("core did not emit an encoded frame"),
+                _ => {}
+            }
+        };
+        assert_eq!(frame.format, AudioFormat::OPUS_16KHZ_60MS);
+        let object = audio_frame_object("FORMAT", &frame).unwrap();
+        assert_eq!(
+            js_sys::Reflect::get(&object, &"format".into())
+                .unwrap()
+                .as_string()
+                .as_deref(),
+            Some("opus")
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&object, &"codec".into())
+                .unwrap()
+                .as_string()
+                .as_deref(),
+            Some("opus")
+        );
+        assert_eq!(
+            js_sys::Uint8Array::new(&js_sys::Reflect::get(&object, &"data".into()).unwrap())
+                .to_vec(),
+            body
+        );
     }
 
     #[test]

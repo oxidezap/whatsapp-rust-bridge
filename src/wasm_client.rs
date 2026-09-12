@@ -750,7 +750,7 @@ const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
 /**
  * One encoded audio packet for a live call. `data` is exactly one codec
  * payload as the engine received it; `codec` names the grammar inside the
- * negotiated timing, `format` names the negotiated audio format, and the
+ * negotiated timing, `format` is the core's format for this frame, and the
  * remaining fields are its RTP metadata.
  *
  * When an `opus` frame was negotiated under the MLOW profile (`format: "opus-mlow"`),
