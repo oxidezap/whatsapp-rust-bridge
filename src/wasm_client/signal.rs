@@ -1,33 +1,16 @@
-//! Calls, Signal protocol and raw transport.
+//! Signal protocol and raw transport.
 //!
 //! One of the per-domain `impl` blocks for [`WasmWhatsAppClient`];
 //! see `wasm_client.rs` for the type, its construction and the shared
 //! conversion helpers.
+//!
+//! Call control lives in `calls.rs`; only the stanza-level ack/reject
+//! primitives stay here.
 
 use super::*;
 
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
-    // ── Calls ────────────────────────────────────────────────────────────
-
-    /// Reject an incoming call.
-    #[wasm_bindgen(js_name = rejectCall)]
-    pub async fn reject_call(
-        &self,
-        call_id: &str,
-        peer: &str,
-        call_creator: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_jid(peer)?;
-        let call_creator = parse_jid(call_creator)?;
-        self.client
-            .unwaited(Unwaited::ConnectionBound)
-            .voip()
-            .reject_call(call_id, &peer, &call_creator)
-            .await
-            .map_err(crate::errors::BridgeError::from)
-    }
-
     // ── Signal / low-level protocol ──────────────────────────────────────
 
     /// Enable or disable raw node forwarding. When enabled, a `raw_node` event

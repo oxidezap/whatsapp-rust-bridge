@@ -55,6 +55,23 @@ export {
 // without a hand-maintained shim — see `proto-namespace.ts` for details.
 export { proto } from "./proto-namespace";
 
+// Default relay media channel for encoded-audio calls (RTCPeerConnection
+// with a synthetic SDP answer), plus the SDP builder it stands on.
+export {
+  buildRelayAnswerSdp,
+  createRtcRelayTransportProvider,
+  evaluateOutboundPacket,
+  isRelayControlPacket,
+  normalizeDtlsFingerprint,
+  OutboundAuTracker,
+  RELAY_DTLS_FINGERPRINT,
+  RTP_PAYLOAD_TYPE_H264,
+  shedBufferedPacket,
+  type OutboundAuState,
+  type RelayAnswerParts,
+  type RtcRelayTransportOptions,
+} from "./relay-transport";
+
 // initWasmEngine and createWhatsAppClient need explicit typing
 // because they use skip_typescript in Rust for complex params.
 import {

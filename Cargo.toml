@@ -61,6 +61,9 @@ crate-type = ["cdylib", "rlib"]
 # nothing is ever removed from this list without a major bump.
 default = [
     "client-business",
+    "client-calls",
+    "client-calls-audio",
+    "client-calls-mlow",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
@@ -77,6 +80,16 @@ sticker = ["dep:img-parts"]
 # messaging have no feature: a client that cannot connect or send is not a
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
+client-calls = []
+# Encoded-audio call media: answering and dialing 1:1 calls over a
+# host-supplied relay transport. Pulls the core's portable `voip-encoded`
+# profile (sans-IO engine plus AES-GCM/SFrame crypto, no socket, no codec);
+# the relay socket itself stays on the host side, behind
+# `setRelayTransportProvider`.
+client-calls-audio = ["whatsapp-rust/voip-encoded"]
+# Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
+# for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
+client-calls-mlow = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []
@@ -142,7 +155,7 @@ web-sys = { version = "0.3", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "e14300d18da6b0446e77b4777027b6ebbe995c03", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "6502b871e35664ffb80044ba7c6317a6427754e2", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
