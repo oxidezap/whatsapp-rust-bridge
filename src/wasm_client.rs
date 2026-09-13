@@ -597,7 +597,8 @@ export interface HistorySyncAdmissionMetadata {
   syncType?: number;
   chunkOrder?: number;
   progress?: number;
-  fileLength?: number;
+  /** Decimal string preserves the full unsigned 64-bit value. */
+  fileLength?: string;
   inlinePayloadLen?: number;
   peerDataRequestSessionId?: string;
 }

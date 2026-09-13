@@ -67,11 +67,7 @@ impl HistorySyncAdmission for JsHistorySyncAdmission {
             "progress",
             metadata.progress.map(|value| value as f64),
         );
-        set_optional_number(
-            &value,
-            "fileLength",
-            metadata.file_length.map(|value| value as f64),
-        );
+        set_file_length(&value, metadata.file_length);
         set_optional_number(
             &value,
             "inlinePayloadLen",
@@ -92,6 +88,16 @@ impl HistorySyncAdmission for JsHistorySyncAdmission {
 fn set_optional_number(object: &Object, name: &str, value: Option<f64>) {
     if let Some(value) = value {
         let _ = Reflect::set(object, &name.into(), &JsValue::from_f64(value));
+    }
+}
+
+fn set_file_length(object: &Object, value: Option<u64>) {
+    if let Some(value) = value {
+        let _ = Reflect::set(
+            object,
+            &"fileLength".into(),
+            &JsValue::from_str(&value.to_string()),
+        );
     }
 }
 
@@ -143,5 +149,17 @@ mod tests {
                 HistorySyncDecision::RejectAndAcknowledge
             );
         }
+    }
+
+    #[test]
+    fn file_length_keeps_all_uint64_digits() {
+        let object = Object::new();
+        set_file_length(&object, Some(u64::MAX));
+        assert_eq!(
+            Reflect::get(&object, &"fileLength".into())
+                .unwrap()
+                .as_string(),
+            Some(u64::MAX.to_string())
+        );
     }
 }
