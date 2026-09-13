@@ -39,14 +39,9 @@ const WITNESSES: Record<string, string> = {
 /** The `default = [...]` list, in declaration order. */
 function defaultFeatures(): string[] {
   const manifest = readFileSync(join(ROOT, "Cargo.toml"), "utf8");
-  const parsed = Bun.TOML.parse(manifest) as {
-    features?: { default?: unknown };
-  };
-  const defaults = parsed.features?.default;
-  if (!Array.isArray(defaults) || !defaults.every((value) => typeof value === "string")) {
-    throw new Error("Cargo.toml features.default must be a string array");
-  }
-  return defaults;
+  const list = manifest.match(/^default = \[([^\]]*)\]/m);
+  if (!list) throw new Error("Cargo.toml has no `default = [...]`");
+  return [...list[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 }
 
 test("every gated domain is in the default feature set", () => {

@@ -592,13 +592,22 @@ export interface JsStoreCallbacks {
  */
 export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
 
-/** History-sync notification metadata. Fields absent in the core are omitted. */
+/**
+ * The intentionally small metadata view exposed to admission policies.
+ * Fields absent in the core are omitted. It does not include the notification's
+ * keys or media paths.
+ */
 export interface HistorySyncAdmissionMetadata {
   syncType?: number;
   chunkOrder?: number;
   progress?: number;
-  /** Decimal string preserves the full unsigned 64-bit value. */
+  /**
+   * Sender-declared file length. The core does not validate this value.
+   * A decimal string preserves the full uint64 range. Use BigInt(fileLength)
+   * for numeric comparisons.
+   */
   fileLength?: string;
+  /** Number of bytes present in the inline payload. */
   inlinePayloadLen?: number;
   peerDataRequestSessionId?: string;
 }
@@ -606,10 +615,13 @@ export interface HistorySyncAdmissionMetadata {
 export interface ClientPolicies {
   /**
    * Synchronously decide whether to accept a history-sync chunk.
-   * Only the boolean true accepts. False, thrown errors and non-boolean results
-   * reject and acknowledge the chunk, including Promise results.
-   * The callback runs with this policies object as its receiver.
-   * Omitting the callback leaves the core's default admission policy in place.
+    * Only the boolean true accepts. False permanently acknowledges the chunk
+    * and prevents retry. Thrown errors and non-boolean results do the same,
+    * including Promise results. Do not use this for transient load shedding.
+    * The callback runs with this policies object as its receiver.
+    * The function is captured at client construction. Mutable state it reads
+    * may still change, but replacing the property does not replace the policy.
+    * Omitting the callback leaves the core's default admission policy in place.
    */
   historySyncAdmission?(metadata: HistorySyncAdmissionMetadata): boolean;
 }
@@ -784,7 +796,7 @@ fn history_sync_wire_batch_next_capacity(current: usize, required: usize) -> usi
 /// being checked for. Functions count, being objects that can carry a `then`.
 /// Reached only when the callback returned one of those, which a conforming
 /// `void` callback never does.
-fn is_thenable(value: &JsValue) -> bool {
+pub(crate) fn is_thenable(value: &JsValue) -> bool {
     (value.is_object() || value.is_function())
         && js_sys::Reflect::get(value, &"then".into()).is_ok_and(|then| then.is_function())
 }

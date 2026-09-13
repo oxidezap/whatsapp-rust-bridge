@@ -1,4 +1,4 @@
-use js_sys::{Function, Object, Reflect};
+use js_sys::{Array, Function, Object, Reflect};
 use wasm_bindgen::{JsCast, JsValue};
 use whatsapp_rust::{HistorySyncAdmission, HistorySyncDecision, HistorySyncMetadata};
 
@@ -16,7 +16,7 @@ impl JsHistorySyncAdmission {
         let Some(value) = value.filter(|value| !value.is_null() && !value.is_undefined()) else {
             return Ok(None);
         };
-        if !value.is_object() {
+        if !value.is_object() || Array::is_array(value) {
             return Err(crate::errors::invalid_arg("policies", "must be an object"));
         }
         let callback = Reflect::get(value, &"historySyncAdmission".into()).map_err(|_| {
@@ -40,7 +40,18 @@ impl JsHistorySyncAdmission {
     fn call(&self, value: &JsValue) -> HistorySyncDecision {
         match self.callback.call1(&self.receiver, value) {
             Ok(result) if result.as_bool() == Some(true) => HistorySyncDecision::Accept,
-            Ok(_) => HistorySyncDecision::RejectAndAcknowledge,
+            Ok(result) if result.as_bool() == Some(false) => {
+                HistorySyncDecision::RejectAndAcknowledge
+            }
+            Ok(result) => {
+                if crate::wasm_client::is_thenable(&result) {
+                    observe_thenable_rejection(&result);
+                }
+                log::error!(
+                    "historySyncAdmission must return a boolean synchronously; rejecting and acknowledging the chunk"
+                );
+                HistorySyncDecision::RejectAndAcknowledge
+            }
             Err(error) => {
                 log::error!(
                     "historySyncAdmission callback failed: {}",
@@ -52,40 +63,56 @@ impl JsHistorySyncAdmission {
     }
 }
 
+fn observe_thenable_rejection(value: &JsValue) {
+    let Ok(then) = Reflect::get(value, &"then".into()) else {
+        return;
+    };
+    let Ok(then) = then.dyn_into::<Function>() else {
+        return;
+    };
+    let noop = Function::new_no_args("");
+    let _ = then.call2(value, &noop, &noop);
+}
+
 impl HistorySyncAdmission for JsHistorySyncAdmission {
     fn decide(&self, metadata: &HistorySyncMetadata<'_>) -> HistorySyncDecision {
-        let value = Object::new();
-        set_optional_number(
-            &value,
-            "syncType",
-            metadata.sync_type.map(|value| value as f64),
-        );
-        set_optional_number(
-            &value,
-            "chunkOrder",
-            metadata.chunk_order.map(|value| value as f64),
-        );
-        set_optional_number(
-            &value,
-            "progress",
-            metadata.progress.map(|value| value as f64),
-        );
-        set_file_length(&value, metadata.file_length);
-        set_optional_number(
-            &value,
-            "inlinePayloadLen",
-            metadata.inline_payload_len.map(|value| value as f64),
-        );
-        if let Some(session_id) = metadata.peer_data_request_session_id {
-            let _ = Reflect::set(
-                &value,
-                &"peerDataRequestSessionId".into(),
-                &JsValue::from_str(session_id),
-            );
-        }
-
-        self.call(&value)
+        self.call(&metadata_value(
+            metadata.sync_type,
+            metadata.chunk_order,
+            metadata.progress,
+            metadata.file_length,
+            metadata.inline_payload_len,
+            metadata.peer_data_request_session_id,
+        ))
     }
+}
+
+fn metadata_value(
+    sync_type: Option<i32>,
+    chunk_order: Option<u32>,
+    progress: Option<u32>,
+    file_length: Option<u64>,
+    inline_payload_len: Option<usize>,
+    peer_data_request_session_id: Option<&str>,
+) -> Object {
+    let value = Object::new();
+    set_optional_number(&value, "syncType", sync_type.map(|value| value as f64));
+    set_optional_number(&value, "chunkOrder", chunk_order.map(|value| value as f64));
+    set_optional_number(&value, "progress", progress.map(|value| value as f64));
+    set_file_length(&value, file_length);
+    set_optional_number(
+        &value,
+        "inlinePayloadLen",
+        inline_payload_len.map(|value| value as f64),
+    );
+    if let Some(session_id) = peer_data_request_session_id {
+        let _ = Reflect::set(
+            &value,
+            &"peerDataRequestSessionId".into(),
+            &JsValue::from_str(session_id),
+        );
+    }
+    value
 }
 
 fn set_optional_number(object: &Object, name: &str, value: Option<f64>) {
@@ -149,6 +176,7 @@ mod tests {
             "return 1",
             "return 'true'",
             "return Promise.resolve(true)",
+            "return Promise.reject(new Error('failure'))",
         ] {
             let policies = Object::new();
             Reflect::set(
@@ -177,6 +205,60 @@ mod tests {
                 .as_string(),
             Some(u64::MAX.to_string())
         );
+    }
+
+    #[test]
+    fn metadata_mapping_preserves_fields_and_omits_absent_values() {
+        let value = metadata_value(
+            Some(-1),
+            Some(2),
+            Some(3),
+            Some(4),
+            Some(5),
+            Some("session"),
+        );
+        assert_eq!(
+            Reflect::get(&value, &"syncType".into()).unwrap().as_f64(),
+            Some(-1.0)
+        );
+        assert_eq!(
+            Reflect::get(&value, &"chunkOrder".into()).unwrap().as_f64(),
+            Some(2.0)
+        );
+        assert_eq!(
+            Reflect::get(&value, &"progress".into()).unwrap().as_f64(),
+            Some(3.0)
+        );
+        assert_eq!(
+            Reflect::get(&value, &"fileLength".into())
+                .unwrap()
+                .as_string(),
+            Some("4".into())
+        );
+        assert_eq!(
+            Reflect::get(&value, &"inlinePayloadLen".into())
+                .unwrap()
+                .as_f64(),
+            Some(5.0)
+        );
+        assert_eq!(
+            Reflect::get(&value, &"peerDataRequestSessionId".into())
+                .unwrap()
+                .as_string(),
+            Some("session".into())
+        );
+
+        let absent = metadata_value(None, None, None, None, None, None);
+        for field in [
+            "syncType",
+            "chunkOrder",
+            "progress",
+            "fileLength",
+            "inlinePayloadLen",
+            "peerDataRequestSessionId",
+        ] {
+            assert!(Reflect::get(&absent, &field.into()).unwrap().is_undefined());
+        }
     }
 
     #[test]
