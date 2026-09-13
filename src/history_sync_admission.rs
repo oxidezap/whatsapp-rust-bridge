@@ -42,7 +42,10 @@ impl JsHistorySyncAdmission {
             Ok(result) if result.as_bool() == Some(true) => HistorySyncDecision::Accept,
             Ok(_) => HistorySyncDecision::RejectAndAcknowledge,
             Err(error) => {
-                log::error!("historySyncAdmission callback failed: {:?}", error);
+                log::error!(
+                    "historySyncAdmission callback failed: {}",
+                    js_error_message(&error)
+                );
                 HistorySyncDecision::RejectAndAcknowledge
             }
         }
@@ -99,6 +102,19 @@ fn set_file_length(object: &Object, value: Option<u64>) {
             &JsValue::from_str(&value.to_string()),
         );
     }
+}
+
+fn js_error_message(error: &JsValue) -> String {
+    if let Some(message) = error.as_string() {
+        return message;
+    }
+    if let Some(message) = Reflect::get(error, &"message".into())
+        .ok()
+        .and_then(|message| message.as_string())
+    {
+        return message;
+    }
+    "JavaScript callback threw a non-string value".to_owned()
 }
 
 #[cfg(test)]
@@ -160,6 +176,18 @@ mod tests {
                 .unwrap()
                 .as_string(),
             Some(u64::MAX.to_string())
+        );
+    }
+
+    #[test]
+    fn callback_error_messages_use_stable_js_values() {
+        assert_eq!(js_error_message(&JsValue::from_str("failure")), "failure");
+        let error = Object::new();
+        Reflect::set(&error, &"message".into(), &JsValue::from_str("broken")).unwrap();
+        assert_eq!(js_error_message(&error.into()), "broken");
+        assert_eq!(
+            js_error_message(&JsValue::TRUE),
+            "JavaScript callback threw a non-string value"
         );
     }
 }
