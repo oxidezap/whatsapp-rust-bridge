@@ -592,6 +592,27 @@ export interface JsStoreCallbacks {
  */
 export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
 
+/** History-sync notification metadata. Fields absent in the core are omitted. */
+export interface HistorySyncAdmissionMetadata {
+  syncType?: number;
+  chunkOrder?: number;
+  progress?: number;
+  fileLength?: number;
+  inlinePayloadLen?: number;
+  peerDataRequestSessionId?: string;
+}
+
+export interface ClientPolicies {
+  /**
+   * Synchronously decide whether to accept a history-sync chunk.
+   * Only the boolean true accepts. False, thrown errors and non-boolean results
+   * reject and acknowledge the chunk, including Promise results.
+   * The callback runs with this policies object as its receiver.
+   * Omitting the callback leaves the core's default admission policy in place.
+   */
+  historySyncAdmission?(metadata: HistorySyncAdmissionMetadata): boolean;
+}
+
 /**
  * Create a full WhatsApp client running in WASM.
  *
@@ -609,6 +630,7 @@ export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
  *   rooted in WhatsApp's issuer. Absent, null or false keeps strict
  *   verification; only an explicit `true` opts in. Anything else rejects the
  *   construction as invalid-argument.
+ * @param policies Optional ninth argument. See ClientPolicies; existing calls may omit it.
  */
 export function createWhatsAppClient(
   transport_config: JsTransportCallbacks,
@@ -619,6 +641,7 @@ export function createWhatsAppClient(
   version?: readonly [number, number, number] | null,
   wanted_pre_key_count?: number | null,
   danger_skip_cert_chain_verify?: boolean | null,
+  policies?: ClientPolicies | null,
 ): Promise<WasmWhatsAppClient>;
 
 /** Cache entry configuration. */
@@ -2486,7 +2509,7 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// await client.run();
 /// ```
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
-// Eight positional arguments is the reviewed JS contract: wasm-bindgen
+// Nine positional arguments is the reviewed JS contract: wasm-bindgen
 // exports cannot take a builder, so the arity grows with the surface.
 #[allow(clippy::too_many_arguments)]
 pub async fn create_whatsapp_client(
@@ -2498,6 +2521,7 @@ pub async fn create_whatsapp_client(
     version_js: Option<JsValue>,
     wanted_pre_key_count_js: Option<JsValue>,
     noise_cert_policy_js: Option<JsValue>,
+    policies_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
     // Block on every in-flight `Drop` cleanup before allocating new state.
     // Each `Drop` registers a oneshot; we await all of them. Closes the race
@@ -2508,6 +2532,8 @@ pub async fn create_whatsapp_client(
     // Validate the construction inputs before touching persistence or the
     // client so a bad argument settles without storage callbacks firing.
     let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
+    let history_sync_admission =
+        crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
 
     let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
@@ -2635,6 +2661,11 @@ pub async fn create_whatsapp_client(
         .with_http_client_arc(http_client)
         .with_cache_config(cache_config)
         .with_noise_cert_policy(noise_cert_policy);
+    let builder = if let Some(admission) = history_sync_admission {
+        builder.with_history_sync_admission(admission)
+    } else {
+        builder
+    };
     let builder = match override_version {
         Some(version) => builder.with_version_override(version),
         None => builder,

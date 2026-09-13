@@ -61,7 +61,7 @@ import {
   initWasmEngine as _initWasmEngine,
   createWhatsAppClient as _createWhatsAppClient,
 } from "../pkg/whatsapp_rust_bridge.js";
-import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig } from "../pkg/whatsapp_rust_bridge.js";
+import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
@@ -75,4 +75,5 @@ export const createWhatsAppClient: (
   version?: readonly [number, number, number] | null,
   wantedPreKeyCount?: number | null,
   dangerSkipCertChainVerify?: boolean | null,
+  policies?: ClientPolicies | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
