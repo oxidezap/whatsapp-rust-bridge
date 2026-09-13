@@ -20,16 +20,16 @@ impl JsHistorySyncAdmission {
             return Err(crate::errors::invalid_arg("policies", "must be an object"));
         }
         let callback = Reflect::get(value, &"historySyncAdmission".into()).map_err(|_| {
-            crate::errors::invalid_arg(
-                "policies.historySyncAdmission",
-                "could not read the callback",
-            )
+            crate::errors::invalid_arg("policies", "could not read policies.historySyncAdmission")
         })?;
         if callback.is_undefined() || callback.is_null() {
             return Ok(None);
         }
         let callback = callback.dyn_into::<Function>().map_err(|_| {
-            crate::errors::invalid_arg("policies.historySyncAdmission", "must be a function")
+            crate::errors::invalid_arg(
+                "policies",
+                "policies.historySyncAdmission must be a function",
+            )
         })?;
         Ok(Some(Self {
             callback,
