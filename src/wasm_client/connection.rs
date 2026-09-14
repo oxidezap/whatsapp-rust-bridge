@@ -267,30 +267,42 @@ impl WasmWhatsAppClient {
     /// Sends `remove-companion-device` IQ to the server (best-effort),
     /// then disconnects. Does NOT clear stored keys — the caller should
     /// delete the store to fully clear credentials.
-    pub async fn logout(&self) -> Result<(), crate::errors::BridgeError> {
-        self.client.unwaited(Unwaited::ThisSocket).logout().await;
-        if let Some(handle) = self
+    ///
+    /// A synchronous prefix clones the core client and takes the worker
+    /// handles while the wrapper is alive; the remainder runs on owned
+    /// state (see `fetch_blocklist`), so freeing mid-logout cannot leave
+    /// a future holding freed wrapper memory. `Drop` still takes whatever
+    /// handles remain, so whichever runs first owns the abort and the
+    /// other finds nothing — and the run task is left to finish rather
+    /// than aborted, exactly as before.
+    #[wasm_bindgen(js_name = logout, unchecked_return_type = "Promise<void>")]
+    pub fn logout(&self) -> js_sys::Promise {
+        let core = self.client.clone();
+        let saver = self
             .saver_handle
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .take()
-        {
-            handle.abort();
-        }
-        // As in `disconnect()`: the run task publishes the supervision ending
-        // that logging out produced, so it is left to finish rather than
-        // aborted. Whatever the core observed (a shutdown or a
-        // reconnect-disabled exit while deregistration was in flight) crosses
-        // unchanged.
-        if let Some(handle) = self
+            .take();
+        let sync_worker = self
             .sync_worker_handle
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .take()
-        {
-            handle.abort();
-        }
-        Ok(())
+            .take();
+        wasm_bindgen_futures::future_to_promise(async move {
+            core.unwaited(Unwaited::ThisSocket).logout().await;
+            // As in `disconnect()`: the run task publishes the supervision
+            // ending that logging out produced, so it is left to finish
+            // rather than aborted. Whatever the core observed (a shutdown
+            // or a reconnect-disabled exit while deregistration was in
+            // flight) crosses unchanged.
+            if let Some(handle) = saver {
+                handle.abort();
+            }
+            if let Some(handle) = sync_worker {
+                handle.abort();
+            }
+            Ok(JsValue::UNDEFINED)
+        })
     }
 
     /// Enable or disable automatic reconnection on disconnect.
@@ -761,18 +773,6 @@ impl WasmWhatsAppClient {
 // ---------------------------------------------------------------------------
 // Run completion observation mapping
 // ---------------------------------------------------------------------------
-
-#[cfg(target_arch = "wasm32")]
-fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
-    crate::errors::to_js_error(e)
-}
-
-/// Host-target builds never drive the promise future; the rejection shape
-/// only has to be a `JsValue` so the export keeps one surface per target.
-#[cfg(not(target_arch = "wasm32"))]
-fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
-    JsValue::from_str(&e.to_string())
-}
 
 /// The core's completion reason, typed per branch for the `waitForRunCompletion`
 /// promise. Known variants are named explicitly rather than rendered through

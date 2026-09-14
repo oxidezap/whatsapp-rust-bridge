@@ -27,6 +27,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** One export per feature, chosen because only that feature can emit it. */
 const WITNESSES: Record<string, string> = {
   "client-business": "getBusinessProfile",
+  "client-calls": "terminateCall",
+  "client-calls-audio": "acceptCall",
+  "client-calls-pcm": "acceptCallPcm",
+  "client-calls-mlow": "MlowAudioDecoder",
   "client-chat-actions": "pinChat",
   "client-contacts": "isOnWhatsApp",
   "client-groups": "getGroupMetadata",
@@ -58,7 +62,7 @@ test("the built declarations carry every gated domain's exports", () => {
   // being gated out. Searching for the bare name reported five of eight
   // domains missing from an artifact that had lost all eight.
   const declared = (exported: string) =>
-    new RegExp(`^\\s*(export function )?${exported}\\(`, "m").test(dts);
+    new RegExp(`^\\s*(?:export (?:function|class) )?${exported}\\s*[\\({]`, "m").test(dts);
   const missing = Object.entries(WITNESSES)
     .filter(([, exported]) => !declared(exported))
     .map(([feature, exported]) => `${feature} (${exported})`);

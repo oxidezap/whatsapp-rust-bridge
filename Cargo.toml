@@ -61,6 +61,10 @@ crate-type = ["cdylib", "rlib"]
 # nothing is ever removed from this list without a major bump.
 default = [
     "client-business",
+    "client-calls",
+    "client-calls-audio",
+    "client-calls-pcm",
+    "client-calls-mlow",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
@@ -77,6 +81,19 @@ sticker = ["dep:img-parts"]
 # messaging have no feature: a client that cannot connect or send is not a
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
+client-calls = []
+# Encoded-audio call media: answering and dialing 1:1 calls over a
+# host-supplied relay transport. Pulls the core's portable `voip-encoded`
+# profile (sans-IO engine plus AES-GCM/SFrame crypto, no socket, no codec);
+# the relay socket itself stays on the host side, behind
+# `setRelayTransportProvider`.
+client-calls-audio = ["whatsapp-rust/voip-encoded"]
+# Core-owned PCM calls use the portable MLOW codec path. The encoded surface
+# above remains available without this feature.
+client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
+# Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
+# for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
+client-calls-mlow = ["whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []
@@ -142,7 +159,7 @@ web-sys = { version = "0.3", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "4f5363ed0d8bc7980111c48accc1653e324cf93a", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "24652ea9e5fce77b56c2bc7a900ea06209a87da8", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
@@ -191,6 +208,9 @@ opt-level = 3
 # that path (sha2, subtle, digest) measured flat and stay size-optimized.
 [profile.release.package.curve25519-dalek]
 opt-level = 3
+
+[profile.release.package.wacore]
+opt-level = 2
 
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]
