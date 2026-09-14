@@ -425,23 +425,29 @@ export function createRtcRelayTransportProvider(
           );
         };
 
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await pc.setRemoteDescription({
-          type: "answer",
-          sdp: buildRelayAnswerSdp({
-            ip: params.address,
-            port: params.port,
-            iceUfrag: params.iceUfrag,
-            icePwd: params.icePwd,
-            fingerprint,
-          }),
+        const setup = async () => {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          await pc.setRemoteDescription({
+            type: "answer",
+            sdp: buildRelayAnswerSdp({
+              ip: params.address,
+              port: params.port,
+              iceUfrag: params.iceUfrag,
+              icePwd: params.icePwd,
+              fingerprint,
+            }),
+          });
+          // setRemoteDescription resolves while the channel is usually still
+          // connecting; returning here would hand back a handle whose send
+          // throws until onopen. Resolve the construction only once the
+          // channel carries datagrams, and reject on an intervening close.
+          await opened;
+        };
+        const failed = new Promise<never>((_, reject) => {
+          opened.catch(reject);
         });
-        // setRemoteDescription resolves while the channel is usually still
-        // connecting; returning here would hand back a handle whose send
-        // throws until onopen. Resolve the construction only once the
-        // channel carries datagrams, and reject on an intervening close.
-        await opened;
+        await Promise.race([setup(), failed]);
       } catch (err) {
         release();
         opened.catch(() => {});

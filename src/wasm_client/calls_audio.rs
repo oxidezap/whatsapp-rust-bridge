@@ -142,6 +142,13 @@ impl OfferCache {
         }
     }
 
+    pub(super) fn get_generation(&self, call_id: &str) -> Option<u64> {
+        match self.entries.get(call_id) {
+            Some(OfferEntry::Ringing(_, current) | OfferEntry::Answering(current)) => Some(*current),
+            _ => None,
+        }
+    }
+
     #[cfg(test)]
     pub(super) fn contains_key(&self, call_id: &str) -> bool {
         matches!(self.entries.get(call_id), Some(OfferEntry::Ringing(_, _)))
@@ -223,6 +230,8 @@ pub(super) struct CallRecord {
     /// finish path removes only its own generation, so a racing end can
     /// never take down the call that superseded it.
     pub(super) generation: u64,
+    /// The offer generation that originated this call if accepted from an incoming offer.
+    pub(super) offer_generation: Option<u64>,
     mic: CallMic,
     /// Locally muted, applied at request time even when the announce
     /// below cannot reach the wire: `call_push_audio` sheds while set.
@@ -259,6 +268,20 @@ pub(super) fn evict_offer(cache: &Mutex<OfferCache>, call_id: &str) {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .resolve(call_id);
+}
+
+pub(super) fn evict_offer_generation(cache: &Mutex<OfferCache>, call_id: &str, generation: u64) {
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .resolve_generation(call_id, generation);
+}
+
+pub(super) fn current_offer_generation(cache: &Mutex<OfferCache>, call_id: &str) -> Option<u64> {
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get_generation(call_id)
 }
 
 /// Put a taken offer back after a failed start — only when nothing newer
@@ -473,12 +496,12 @@ impl WasmWhatsAppClient {
         // typed array into an owned packet the engine frames without
         // inspecting. The escape rewrite runs on the owned copy, never on
         // the caller's view.
-        let (tx, opus_mlow_escape) = match &record.mic {
+        let (tx, drain, opus_mlow_escape) = match &record.mic {
             CallMic::Encoded {
                 tx,
+                drain,
                 opus_mlow_escape,
-                ..
-            } => (tx, *opus_mlow_escape),
+            } => (tx, drain, *opus_mlow_escape),
             #[cfg(feature = "client-calls-pcm")]
             CallMic::Pcm { .. } => {
                 return Err(crate::errors::invalid_arg(
@@ -497,7 +520,13 @@ impl WasmWhatsAppClient {
         };
         match tx.try_send(packet) {
             Ok(()) => Ok(true),
-            Err(async_channel::TrySendError::Full(_)) => Ok(false),
+            Err(async_channel::TrySendError::Full(packet)) => {
+                let _ = drain.try_recv();
+                match tx.try_send(packet) {
+                    Ok(()) => Ok(true),
+                    Err(_) => Ok(false),
+                }
+            }
             // The engine is gone but the end watcher has not run yet; the
             // packet has nowhere to go, which reads the same as shed.
             Err(async_channel::TrySendError::Closed(_)) => Ok(false),
@@ -526,7 +555,7 @@ impl WasmWhatsAppClient {
         let Some(record) = records.get(call_id) else {
             return Err(unknown_call());
         };
-        let CallMic::Pcm { tx, .. } = &record.mic else {
+        let CallMic::Pcm { tx, drain } = &record.mic else {
             return Err(crate::errors::invalid_arg(
                 "callId",
                 "call uses the encoded audio API",
@@ -537,8 +566,14 @@ impl WasmWhatsAppClient {
         }
         match tx.try_send(samples.to_vec()) {
             Ok(()) => Ok(true),
-            Err(async_channel::TrySendError::Full(_))
-            | Err(async_channel::TrySendError::Closed(_)) => Ok(false),
+            Err(async_channel::TrySendError::Full(samples)) => {
+                let _ = drain.try_recv();
+                match tx.try_send(samples) {
+                    Ok(()) => Ok(true),
+                    Err(_) => Ok(false),
+                }
+            }
+            Err(async_channel::TrySendError::Closed(_)) => Ok(false),
         }
     }
 
@@ -792,7 +827,7 @@ impl WasmWhatsAppClient {
         call_id: String,
         call_creator: String,
         #[wasm_bindgen(unchecked_param_type = "GroupScreenShareState")] state: JsValue,
-        screen_share_id: Option<f64>,
+        #[wasm_bindgen(unchecked_param_type = "number | undefined")] screen_share_id: JsValue,
     ) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_void(async move {
@@ -914,7 +949,7 @@ fn opus_mlow_packet_error(error: wacore::voip::OpusMlowPacketError) -> crate::er
 /// Rewrite one RFC Opus CELT packet to the MLOW in-profile escape.
 ///
 /// Beside the automatic path, not before it: `callPushAudio` already
-/// rewrites on `"opus"` calls, so a host pushing through it never calls
+/// rewrites on `"opus-mlow"` calls, so a host pushing through it never calls
 /// this — rewriting twice corrupts the TOC. Reach for this when the packet
 /// never goes through `callPushAudio`, or to prove a fixture in a test.
 /// Rejects what the escape cannot carry as `invalid-argument` on `data`.
@@ -930,7 +965,7 @@ pub fn packetize_opus_for_mlow(
 /// Restore the RFC Opus TOC on one MLOW escape payload.
 ///
 /// The receive side of the pair above: frames arriving over `onCallAudio`
-/// with `codec: "opus"` carry the escape, and a stock Opus decoder needs
+/// with `format: "opus-mlow"` carry the escape, and a stock Opus decoder needs
 /// the plain TOC back first. Bytes that are not the escape reject as
 /// `invalid-argument` on `data` rather than guessing.
 #[wasm_bindgen(js_name = depacketizeOpusFromMlow)]
@@ -1032,7 +1067,12 @@ impl CallMedia {
     }
 
     /// Store a started call, pump it, and return its id.
-    fn register_call(&self, handle: CallHandle, registration: CallAudioRegistration) -> String {
+    fn register_call(
+        &self,
+        handle: CallHandle,
+        registration: CallAudioRegistration,
+        offer_generation: Option<u64>,
+    ) -> String {
         let (mic, speaker) = match registration {
             CallAudioRegistration::Encoded {
                 format,
@@ -1081,6 +1121,7 @@ impl CallMedia {
                 CallRecord {
                     handle: handle.clone(),
                     generation,
+                    offer_generation,
                     mic,
                     mic_muted: false,
                     speaker,
@@ -1490,10 +1531,12 @@ fn finish_call(
     for task in &record.tasks {
         task.abort();
     }
-    offers
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .resolve_generation(call_id, generation);
+    if let Some(offer_gen) = record.offer_generation {
+        offers
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .resolve_generation(call_id, offer_gen);
+    }
     let stats = call_media_stats_to_result(&record.handle.media_stats());
     // The final counters ride the event itself, so a host that only ever
     // listens learns the outcome without a follow-up read; the past-stats
@@ -1741,9 +1784,9 @@ impl CallMedia {
         self.displace_call(handle.call_id()).await;
         if !self.calls_live.get() {
             handle.hangup_local().await;
-            return Err(crate::errors::internal("client freed during call startup"));
+            return Err(crate::errors::BridgeError::NotConnected);
         }
-        let id = self.register_call(handle, registration);
+        let id = self.register_call(handle, registration, Some(offer_gen));
 
         if let Some((video_tx, sink_rx)) = video_channels {
             let sink_depth = sink_rx.clone();
@@ -1796,6 +1839,7 @@ impl CallMedia {
         &self,
         call_id: &str,
         generation: u64,
+        operation: &'static str,
         attach: F,
     ) -> Result<(), crate::errors::BridgeError>
     where
@@ -1807,7 +1851,7 @@ impl CallMedia {
         let sink_depth = sink_rx.clone();
         attach(video_rx, sink_tx)
             .await
-            .map_err(|error| call_error_to_bridge(error, "video"))?;
+            .map_err(|error| call_error_to_bridge(error, operation))?;
         let mut records = self.call_records.borrow_mut();
         let Some(record) = records.get_mut(call_id).filter(|record| {
             // A same-id replacement registered while starting owns the
@@ -1830,7 +1874,7 @@ impl CallMedia {
 
     async fn start_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        self.attach_video_plane(&call_id, generation, |rx, tx| handle.start_video(rx, tx))
+        self.attach_video_plane(&call_id, generation, "startCallVideo", |rx, tx| handle.start_video(rx, tx))
             .await
     }
 
@@ -1849,7 +1893,7 @@ impl CallMedia {
                 "no pending video upgrade request for this call",
             ));
         };
-        self.attach_video_plane(&call_id, generation, |rx, tx| {
+        self.attach_video_plane(&call_id, generation, "acceptCallVideo", |rx, tx| {
             handle.accept_video(token, rx, tx)
         })
         .await
@@ -1860,7 +1904,7 @@ impl CallMedia {
         let result = handle
             .stop_video()
             .await
-            .map_err(|error| call_error_to_bridge(error, "video"));
+            .map_err(|error| call_error_to_bridge(error, "stopCallVideo"));
         // Generation-guarded like the starts: clearing a replacement's
         // fresh video state for our stale stop would lie about its plane.
         if let Some(record) = self
@@ -1878,7 +1922,7 @@ impl CallMedia {
 
     async fn resume_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        self.attach_video_plane(&call_id, generation, |rx, tx| handle.resume_video(rx, tx))
+        self.attach_video_plane(&call_id, generation, "resumeCallVideo", |rx, tx| handle.resume_video(rx, tx))
             .await
     }
 
@@ -2032,9 +2076,9 @@ impl CallMedia {
         self.displace_call(handle.call_id()).await;
         if !self.calls_live.get() {
             handle.hangup_local().await;
-            return Err(crate::errors::internal("client freed during call startup"));
+            return Err(crate::errors::BridgeError::NotConnected);
         }
-        let id = self.register_call(handle, registration);
+        let id = self.register_call(handle, registration, None);
 
         if let Some((video_tx, sink_rx)) = video_channels {
             let sink_depth = sink_rx.clone();
@@ -2133,7 +2177,7 @@ impl CallMedia {
         call_id: String,
         call_creator: String,
         state: JsValue,
-        screen_share_id: Option<f64>,
+        screen_share_id: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let call_creator = parse_named_jid("callCreator", &call_creator)?;
         let state = from_js_input::<crate::result_types::GroupScreenShareState>("state", state)?;
@@ -2258,24 +2302,25 @@ fn group_control_error(error: CallError) -> crate::errors::BridgeError {
 /// an overflow.
 fn parse_optional_u32(
     field: &'static str,
-    value: Option<f64>,
+    value: JsValue,
 ) -> Result<Option<u32>, crate::errors::BridgeError> {
-    match value {
-        None => Ok(None),
-        Some(value) => {
-            if !value.is_finite()
-                || value.fract() != 0.0
-                || value < 0.0
-                || value > f64::from(u32::MAX)
-            {
-                return Err(crate::errors::invalid_arg(
-                    field,
-                    "must be an integer 0..4294967295",
-                ));
-            }
-            Ok(Some(value as u32))
-        }
+    if value.is_undefined() || value.is_null() {
+        return Ok(None);
     }
+    let Some(value) = value.as_f64() else {
+        return Err(crate::errors::invalid_arg(field, "expected number"));
+    };
+    if !value.is_finite()
+        || value.fract() != 0.0
+        || value < 0.0
+        || value > f64::from(u32::MAX)
+    {
+        return Err(crate::errors::invalid_arg(
+            field,
+            "must be an integer 0..4294967295",
+        ));
+    }
+    Ok(Some(value as u32))
 }
 
 /// Parse the encoded-audio promise. Required, with no bridge default: the
@@ -2368,8 +2413,22 @@ fn call_error_to_bridge(error: CallError, operation: &'static str) -> crate::err
             ),
         ),
         CallError::VideoNotOffered => crate::errors::invalid_arg(
-            "withVideo",
-            "the peer offered an audio-only call; cannot accept with video",
+            if operation == "acceptCall"
+                || operation == "acceptCallPcm"
+                || operation == "dialCall"
+                || operation == "dialCallPcm"
+            {
+                "withVideo"
+            } else {
+                operation
+            },
+            if operation == "acceptCall" || operation == "acceptCallPcm" {
+                "the peer offered an audio-only call; cannot accept with video"
+            } else if operation == "dialCall" || operation == "dialCallPcm" {
+                "the call was initiated without video"
+            } else {
+                "the call was not offered with video"
+            },
         ),
         CallError::Media(message) if message == &"no own LID" => {
             crate::errors::BridgeError::NotConnected
@@ -2854,6 +2913,38 @@ mod call_media_tests {
     }
 
     #[test]
+    fn video_not_offered_names_operation_or_with_video() {
+        match call_error_to_bridge(CallError::VideoNotOffered, "acceptCall") {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "withVideo");
+                assert!(reason.contains("audio-only"));
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match call_error_to_bridge(CallError::VideoNotOffered, "dialCall") {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "withVideo");
+                assert!(reason.contains("without video"));
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match call_error_to_bridge(CallError::VideoNotOffered, "startCallVideo") {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "startCallVideo");
+                assert!(reason.contains("not offered with video"));
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+        match call_error_to_bridge(CallError::VideoNotOffered, "resumeCallVideo") {
+            crate::errors::BridgeError::InvalidArgument { field, reason } => {
+                assert_eq!(field, "resumeCallVideo");
+                assert!(reason.contains("not offered with video"));
+            }
+            other => panic!("expected invalid-argument, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn audio_frame_object_follows_the_core_codec_switch() {
         use wacore::voip::audio::AudioConfig;
         use wacore::voip::engine::{
@@ -3158,19 +3249,37 @@ mod call_group_tests {
     #[test]
     fn share_ids_parse_strictly() {
         assert_eq!(
-            parse_optional_u32("screenShareId", None).expect("absent"),
+            parse_optional_u32("screenShareId", JsValue::UNDEFINED).expect("absent undefined"),
             None
         );
         assert_eq!(
-            parse_optional_u32("screenShareId", Some(3.0)).expect("integer"),
+            parse_optional_u32("screenShareId", JsValue::NULL).expect("absent null"),
+            None
+        );
+        assert_eq!(
+            parse_optional_u32("screenShareId", JsValue::from_f64(3.0)).expect("integer"),
             Some(3)
         );
-        for bad in [f64::NAN, -1.0, 1.5, f64::from(u32::MAX) + 1.0] {
-            match parse_optional_u32("screenShareId", Some(bad)) {
-                Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
-                    assert_eq!(field, "screenShareId")
+        for bad_num in [f64::NAN, -1.0, 1.5, f64::from(u32::MAX) + 1.0] {
+            match parse_optional_u32("screenShareId", JsValue::from_f64(bad_num)) {
+                Err(crate::errors::BridgeError::InvalidArgument { field, reason }) => {
+                    assert_eq!(field, "screenShareId");
+                    assert!(reason.contains("0..4294967295"));
                 }
-                other => panic!("expected invalid-argument for {bad}, got {other:?}"),
+                other => panic!("expected invalid-argument for {bad_num}, got {other:?}"),
+            }
+        }
+        for bad_type in [
+            JsValue::from_str("3"),
+            JsValue::from_bool(true),
+            JsValue::from_bool(false),
+        ] {
+            match parse_optional_u32("screenShareId", bad_type) {
+                Err(crate::errors::BridgeError::InvalidArgument { field, reason }) => {
+                    assert_eq!(field, "screenShareId");
+                    assert_eq!(reason, "expected number");
+                }
+                other => panic!("expected invalid-argument for type, got {other:?}"),
             }
         }
     }

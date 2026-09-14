@@ -42,6 +42,8 @@ impl WasmWhatsAppClient {
         let core = self.client.clone();
         #[cfg(feature = "client-calls-audio")]
         let offers = self.call_offers.clone();
+        #[cfg(feature = "client-calls-audio")]
+        let offer_gen = super::calls_audio::current_offer_generation(&offers, &call_id);
         promise_void(async move {
             let peer = parse_named_jid("peer", &peer)?;
             let call_creator = parse_named_jid("callCreator", &call_creator)?;
@@ -58,9 +60,12 @@ impl WasmWhatsAppClient {
             // The ringing is over by our own hand: answering afterwards
             // would answer a declined call, so the retained offer goes
             // with it. A failed send keeps the offer — the call may
-            // still be ringing.
+            // still be ringing. Only evict the generation that was rejected:
+            // a replacement offer that arrived mid-await stays intact.
             #[cfg(feature = "client-calls-audio")]
-            super::calls_audio::evict_offer(&offers, &call_id);
+            if let Some(generation) = offer_gen {
+                super::calls_audio::evict_offer_generation(&offers, &call_id, generation);
+            }
             Ok(())
         })
     }

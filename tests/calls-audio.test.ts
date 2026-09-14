@@ -286,6 +286,18 @@ describe("call media validation", () => {
       expect(badShareId.kind).toBe("invalid-argument");
       expect(badShareId.field).toBe("screenShareId");
 
+      const stringShareId = await rejection(
+        client.setGroupScreenShare("ID", PEER, "started", "123" as any)
+      );
+      expect(stringShareId.kind).toBe("invalid-argument");
+      expect(stringShareId.field).toBe("screenShareId");
+
+      const boolShareId = await rejection(
+        client.setGroupScreenShare("ID", PEER, "started", true as any)
+      );
+      expect(boolShareId.kind).toBe("invalid-argument");
+      expect(boolShareId.field).toBe("screenShareId");
+
       const badUser = await rejection(
         client.admitWaitingUser("ID", PEER, "not-a-jid")
       );
@@ -306,7 +318,7 @@ describe("call media validation", () => {
 describe("mlow opus escape helpers", () => {
   // The push path itself needs a live call, which no mock server covers in
   // CI; what these prove is the transform the push applies. `callPushAudio`
-  // on an `"opus"` call rewrites exactly like `packetizeOpusForMlow`, so a
+  // on an `"opus-mlow"` call rewrites exactly like `packetizeOpusForMlow`, so a
   // host pushing ffmpeg-shaped CELT straight through is what the engine
   // accepts.
   test("packetize rewrites the CELT TOC and depacketize restores it", () => {
