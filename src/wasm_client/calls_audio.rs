@@ -144,7 +144,9 @@ impl OfferCache {
 
     pub(super) fn get_generation(&self, call_id: &str) -> Option<u64> {
         match self.entries.get(call_id) {
-            Some(OfferEntry::Ringing(_, current) | OfferEntry::Answering(current)) => Some(*current),
+            Some(OfferEntry::Ringing(_, current) | OfferEntry::Answering(current)) => {
+                Some(*current)
+            }
             _ => None,
         }
     }
@@ -1874,8 +1876,10 @@ impl CallMedia {
 
     async fn start_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        self.attach_video_plane(&call_id, generation, "startCallVideo", |rx, tx| handle.start_video(rx, tx))
-            .await
+        self.attach_video_plane(&call_id, generation, "startCallVideo", |rx, tx| {
+            handle.start_video(rx, tx)
+        })
+        .await
     }
 
     async fn accept_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
@@ -1922,8 +1926,10 @@ impl CallMedia {
 
     async fn resume_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
-        self.attach_video_plane(&call_id, generation, "resumeCallVideo", |rx, tx| handle.resume_video(rx, tx))
-            .await
+        self.attach_video_plane(&call_id, generation, "resumeCallVideo", |rx, tx| {
+            handle.resume_video(rx, tx)
+        })
+        .await
     }
 
     async fn retry_call_video_upgrade(
@@ -2310,11 +2316,7 @@ fn parse_optional_u32(
     let Some(value) = value.as_f64() else {
         return Err(crate::errors::invalid_arg(field, "expected number"));
     };
-    if !value.is_finite()
-        || value.fract() != 0.0
-        || value < 0.0
-        || value > f64::from(u32::MAX)
-    {
+    if !value.is_finite() || value.fract() != 0.0 || value < 0.0 || value > f64::from(u32::MAX) {
         return Err(crate::errors::invalid_arg(
             field,
             "must be an integer 0..4294967295",
