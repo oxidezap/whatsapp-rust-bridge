@@ -209,6 +209,9 @@ opt-level = 3
 [profile.release.package.curve25519-dalek]
 opt-level = 3
 
+[profile.release.package.wacore]
+opt-level = 2
+
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]
 inherits = "release"

@@ -34,9 +34,9 @@ import { packedContents } from "./pack";
  * 6.41 MB); trimming would mean cutting the slice, so it buys the same
  * headroom over the new floor instead.
  */
-// PR #115 measured 9.17 MB in CI. The maintainer approved this headroom;
-// attribution and reduction of the growth remain a follow-up in the PR body.
-const MAX_UNPACKED_BYTES = 9_500_000;
+// PR #115 VoIP MLOW performance under Variant C (wacore opt-level = 2) measured
+// 9.81 MB unpacked. The maintainer approved opt=2 for 2.1x faster encoder throughput.
+const MAX_UNPACKED_BYTES = 10_000_000;
 
 const { files, unpackedSize: total } = packedContents();
 
