@@ -355,14 +355,13 @@ pub(super) fn media_callback(
     receiver: &JsValue,
     method: &'static str,
 ) -> Result<Option<MediaCallback>, crate::errors::BridgeError> {
-    let value = js_sys::Reflect::get(receiver, &method.into()).map_err(|_| {
-        crate::errors::invalid_arg("on_event", "could not read the media callbacks")
-    })?;
+    let value = js_sys::Reflect::get(receiver, &method.into())
+        .map_err(|_| crate::errors::invalid_arg("onEvent", "could not read the media callbacks"))?;
     if value.is_null() || value.is_undefined() {
         return Ok(None);
     }
     let func = value.dyn_into::<js_sys::Function>().map_err(|_| {
-        crate::errors::invalid_arg(format!("on_event.{method}"), "must be a function")
+        crate::errors::invalid_arg(format!("onEvent.{method}"), "must be a function")
     })?;
     Ok(Some(MediaCallback {
         func,
@@ -1617,13 +1616,18 @@ pub(super) async fn terminate_call(
     if media.call_records.borrow().contains_key(&call_id) {
         return media.end_call(call_id).await;
     }
+    let offer_generation = current_offer_generation(&media.call_offers, &call_id);
     core.unwaited(Unwaited::ConnectionBound)
         .voip()
         .terminate(&call_id, &peer, &call_creator)
         .await
         .map_err(crate::errors::BridgeError::from)?;
-    // Success ends the ringing, failure keeps the offer for a retry.
-    evict_offer(&media.call_offers, &call_id);
+    // Success ends the ringing, failure keeps the offer for a retry. Only
+    // evict the generation that was terminated: a replacement offer that
+    // arrived mid-await stays intact.
+    if let Some(generation) = offer_generation {
+        evict_offer_generation(&media.call_offers, &call_id, generation);
+    }
     Ok(crate::result_types::CallEndResult::PeerNotified)
 }
 
@@ -3087,7 +3091,7 @@ mod call_media_tests {
             .expect("the test object accepts a key");
         match media_callback(&receiver.into(), "onCallAudio") {
             Err(crate::errors::BridgeError::InvalidArgument { field, .. }) => {
-                assert_eq!(field, "on_event.onCallAudio")
+                assert_eq!(field, "onEvent.onCallAudio")
             }
             other => panic!("expected invalid-argument, got {other:?}"),
         }

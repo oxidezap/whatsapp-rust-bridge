@@ -186,10 +186,10 @@ describe("call media validation", () => {
 
   test("an unusable media callback rejects construction", async () => {
     for (const [method, field] of [
-      ["onCallAudio", "on_event.onCallAudio"],
-      ["onCallEvent", "on_event.onCallEvent"],
-      ["onCallVideo", "on_event.onCallVideo"],
-      ["onCallPcm", "on_event.onCallPcm"],
+      ["onCallAudio", "onEvent.onCallAudio"],
+      ["onCallEvent", "onEvent.onCallEvent"],
+      ["onCallVideo", "onEvent.onCallVideo"],
+      ["onCallPcm", "onEvent.onCallPcm"],
     ] as const) {
       try {
         await createWhatsAppClient(
