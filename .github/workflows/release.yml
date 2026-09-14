@@ -214,7 +214,7 @@ jobs:
       - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@5bf6ce016fd2e72eefc647cbca1e4213f65955b8 # v2.87.5
+        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
         with:
           # protoc is needed because `bun run build` regenerates the proto
           # codec. Pinned to the same versions ci.yml uses, so a break shows up
