@@ -16,6 +16,7 @@ pub mod crypto;
 pub mod device_props;
 pub mod errors;
 mod generated_types;
+mod history_sync_admission;
 pub mod js_backend;
 mod js_bytes;
 pub mod js_cache_store;

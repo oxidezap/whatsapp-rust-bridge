@@ -12,6 +12,8 @@
 
 import type {
   ArchiveUpdate,
+  ClientPolicies,
+  createWhatsAppClient,
   BridgeError,
   InboundMessage,
   JsonValue,
@@ -152,3 +154,7 @@ export type Checked = [
   _EditPinsAStanzaId,
   _MlowDecoderDecode,
 ];
+
+type _ClientPoliciesArgument = Assert<
+  Resolves<Parameters<typeof createWhatsAppClient>[8], ClientPolicies | null | undefined>
+>;

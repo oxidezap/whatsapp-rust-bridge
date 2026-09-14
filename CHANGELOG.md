@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.4...v0.22.0) (2026-09-13)
+
+
+### Features
+
+* **history:** add history sync admission policy ([#118](https://github.com/oxidezap/whatsapp-rust-bridge/issues/118)) ([7b79255](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7b792559767d00c2fed1ce6de872a85d8554b639))
+
+## [0.21.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.3...v0.21.4) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** move @bufbuild/protobuf to devDependencies ([#113](https://github.com/oxidezap/whatsapp-rust-bridge/issues/113)) ([f29da28](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f29da287c88aa62a67ff99d8e53211ab1009bf27))
+
 ## [0.21.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.2...v0.21.3) (2026-09-09)
 
 
