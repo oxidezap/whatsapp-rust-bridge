@@ -280,6 +280,7 @@ bridge_events! {
         PinUpdate                      => "pin_update"                      => "PinUpdate" => action,
         MuteUpdate                     => "mute_update"                     => "MuteUpdate" => action,
         ArchiveUpdate                  => "archive_update"                  => "ArchiveUpdate" => action,
+        LockChatUpdate                 => "lock_chat_update"                => "LockChatUpdate" => action,
         StarUpdate                     => "star_update"                     => "StarUpdate" => action,
         MarkChatAsReadUpdate           => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate" => action,
         DeleteChatUpdate               => "delete_chat_update"              => "DeleteChatUpdate" => action,
@@ -4877,16 +4878,16 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
         AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
-        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate,
-        MuteUpdate, PairingCodeError, PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
-        UnavailableType, UndecryptableMessage,
+        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, LockChatUpdate,
+        MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
+        PinUpdate, QuickReplyUpdate, UnavailableType, UndecryptableMessage,
     };
     use whatsapp_rust::wacore::types::message::{
         EncMediaType, MessageInfo, PollType, StanzaMessageType,
     };
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
-        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
+        ArchiveChatAction, ContactAction, LabelAssociationAction, LockChatAction, MuteAction,
+        PinAction, PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
         SyncActionMessageRange,
     };
     use whatsapp_rust::waproto::whatsapp::{CallLogRecord, MessageKey};
@@ -5162,6 +5163,34 @@ mod dispatched_event_tests {
         assert_eq!(field(&end, "low").as_f64(), Some(1_700_000_000.0));
         assert_eq!(field(&end, "high").as_f64(), Some(0.0));
         assert!(field(&action, "mute_end_timestamp").is_undefined());
+    }
+
+    /// Chat lock's "off" state is a Set carrying `locked: false`, so both
+    /// directions arrive as the same event and the value is the transition.
+    #[test]
+    async fn a_lock_chat_update_carries_the_chat_and_its_locked_state() {
+        let (name, data) = deliver(Event::LockChatUpdate(
+            LockChatUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(LockChatAction {
+                    locked: Some(false),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "lock_chat_update");
+        assert_eq!(
+            field(&field(&data, "jid"), "user").as_string().as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
+        assert_eq!(
+            field(&field(&data, "action"), "locked").as_bool(),
+            Some(false)
+        );
     }
 
     #[test]
