@@ -56,6 +56,7 @@ const PUBLISHED: Record<string, string> = {
   pin_update: "PinUpdate",
   mute_update: "MuteUpdate",
   archive_update: "ArchiveUpdate",
+  lock_chat_update: "LockChatUpdate",
   star_update: "StarUpdate",
   mark_chat_as_read_update: "MarkChatAsReadUpdate",
   delete_chat_update: "DeleteChatUpdate",

@@ -858,6 +858,14 @@ export interface LidPnMappingEntry {
   learning_source: string;
 }
 
+export interface LockChatUpdate {
+  /** The chat being locked or unlocked (chat lock, the hidden "locked chats" folder on the primary device). */
+  jid: Jid;
+  timestamp: string;
+  action: import('./proto-types').proto.SyncActionValue.ILockChatAction;
+  from_full_sync: boolean;
+}
+
 export interface LoggedOut {
   on_connect: boolean;
   reason: ConnectFailureReason;
@@ -1695,4 +1703,5 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "CallLogSync",
     "ClientExpirationChanged",
     "OfflineSyncInterrupted",
+    "LockChatUpdate",
 ];
