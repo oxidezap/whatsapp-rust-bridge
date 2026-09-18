@@ -418,6 +418,42 @@ jobs:
       - name: Run Rust unit tests (wasm32 in Node)
         run: bun run test:rust
 
+  voip-control-seam:
+    # The call-control plane must compile and resolve without the media
+    # engine: `client-voip-control` on, the three engine carriers off. Two
+    # legs — `cargo tree` shows `whatsapp-rust/voip-control` and no
+    # `wacore/voip`, and the names-kept dev artifact links no engine code
+    # symbol — plus a proof that the seam adds no runtime crate beyond the
+    # core feature itself. The script builds the control-only artifact, so
+    # this job needs only Rust and Node: no wasm-bindgen, no wasm-opt. It
+    # does not scan the published artifact, which still ships the resident
+    # engine until the engine leaves for its own module — a stripped release
+    # build carries no symbol names either way and would pass vacuously.
+    name: VoIP control seam without engine
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-04-05
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fail if the control plane pulls the media engine
+        run: node scripts/check-voip-control-seam.mjs
+
   # The one check worth requiring on a branch. It has to report on every run,
   # including the ones where the jobs above were skipped, or a required check
   # that never appears blocks the release pull request forever — so `always()`
@@ -425,7 +461,7 @@ jobs:
   success:
     name: All checks passed
     if: always()
-    needs: [changes, fmt-clippy, build-and-test, published-tarball, rust-tests]
+    needs: [changes, fmt-clippy, build-and-test, published-tarball, rust-tests, voip-control-seam]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job passed or was deliberately skipped

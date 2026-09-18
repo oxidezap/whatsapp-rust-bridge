@@ -20,6 +20,7 @@
         feature = "client-media",
         feature = "client-newsletter",
         feature = "client-signal",
+        feature = "client-voip-control",
     )),
     allow(dead_code)
 )]

@@ -71,6 +71,7 @@ default = [
     "client-media",
     "client-newsletter",
     "client-signal",
+    "client-voip-control",
     "legacy-session",
 ]
 audio = ["dep:symphonia"]
@@ -101,6 +102,12 @@ client-media = []
 client-newsletter = []
 # The standalone Signal record codecs and the group-message crypto exports.
 client-signal = []
+# The core's neutral call-control seam (`wacore::voip_control`): the signaling
+# and call-lifecycle plane compiles and operates without the media engine.
+# The engine reaches the artifact only through the `client-calls-audio`,
+# `client-calls-pcm` and `client-calls-mlow` features below; this one never
+# turns `wacore/voip` on.
+client-voip-control = ["whatsapp-rust/voip-control"]
 # Typed interop with the decoded libsignal SessionRecord v1 model, for
 # migrating externally produced auth state. The core keeps this off by default
 # so a client carries no migration surface; the bridge turns it on for the

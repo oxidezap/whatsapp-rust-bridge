@@ -56,6 +56,7 @@
         "check:wasm-shape": "node scripts/check-wasm-shape.mjs",
         "check:test-clock": "bun run scripts/check-test-clock.ts",
         "check:published-tarball": "bun run scripts/check-published-tarball.ts",
+        "check:voip-control-seam": "node scripts/check-voip-control-seam.mjs",
         "measure:fn-sizes": "node scripts/wasm-fn-sizes.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "measure:zone-peak": "node scripts/wasm-zone-peak.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "prepack": "bun run scripts/check-pack.ts",
