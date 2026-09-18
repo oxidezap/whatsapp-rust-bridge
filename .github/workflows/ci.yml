@@ -172,6 +172,21 @@ jobs:
           cargo clippy --manifest-path codegen/Cargo.toml --all-targets --target "$HOST" -- -D warnings
           cargo test --manifest-path codegen/Cargo.toml --target "$HOST"
 
+      # `crates/voip-abi/` is its own package like `codegen/`, so the steps
+      # above do not reach it. Same host-target reasoning: the default build
+      # target is wasm32, which cannot execute a test binary.
+      #
+      # The dependency assertion is the point beside the tests: the ABI is a
+      # hand-written binary protocol, so a serialization framework
+      # (serde_json, protobuf) reaching its graph fails here, not in review.
+      - name: VoIP ABI format, lints, dependency graph and tests
+        run: |
+          HOST=$(rustc -vV | sed -n 's/^host: //p')
+          cargo fmt --manifest-path crates/voip-abi/Cargo.toml --all -- --check
+          cargo clippy --manifest-path crates/voip-abi/Cargo.toml --all-targets --target "$HOST" -- -D warnings
+          test "$(cargo tree --manifest-path crates/voip-abi/Cargo.toml --prefix none | wc -l)" = "1"
+          cargo test --manifest-path crates/voip-abi/Cargo.toml --target "$HOST"
+
   build-and-test:
     # The benchmark step that used to run here invoked `bench:node`, whose
     # targets under benches/ were deleted in 157f43a. It never surfaced because
