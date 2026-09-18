@@ -40,7 +40,7 @@ impl FakeBackend {
                 let req = HelloRequest::decode(&frame.payload).expect("HELLO body");
                 let agreed =
                     negotiate(frame.major, frame.minor, ABI_MINOR).expect("major already checked");
-                assert_eq!(agreed.minor, frame.minor.min(ABI_MINOR));
+                assert_eq!(agreed.minor, ABI_MINOR);
                 let common = req.capabilities & self.caps;
                 Frame::respond(
                     &frame,
