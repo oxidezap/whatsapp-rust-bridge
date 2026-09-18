@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.22.0...v0.22.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin onto core main for chat lock and profile-picture changes ([#122](https://github.com/oxidezap/whatsapp-rust-bridge/issues/122)) ([4b55ad4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4b55ad47da76c5216bd7f7c1b9c6d54b5a650026))
+
 ## [0.22.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.4...v0.22.0) (2026-09-13)
 
 
