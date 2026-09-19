@@ -100,3 +100,13 @@ export const createWhatsAppClient: (
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
 
 export type { VoipBackendCallbacks, ClientExtensions } from "./voip-backend";
+
+// The relay-transport contract the engine-side plugin (`voip.wasm`) dials:
+// a `VoipRelayTransport` per endpoint, a `VoipRelayConnection` per call.
+// Contract only — no WebRTC stack, no Node implementation.
+export type {
+  VoipRelayConnection,
+  VoipRelayConnectionEvents,
+  VoipRelayEndpoint,
+  VoipRelayTransport,
+} from "./voip-relay-transport";
