@@ -10,14 +10,14 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import {
-  initWasmEngine,
-  createWhatsAppClient,
-  packetizeOpusForMlow,
-  depacketizeOpusFromMlow,
-} from "../dist/index.js";
+import * as dist from "../dist/index.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 import { createHttp } from "./helpers.js";
+
+const { initWasmEngine, createWhatsAppClient } = dist;
+const packetizeOpusForMlow = (dist as any).packetizeOpusForMlow;
+const depacketizeOpusFromMlow = (dist as any).depacketizeOpusFromMlow;
+const hasCallsAudio = typeof packetizeOpusForMlow !== "undefined";
 
 beforeAll(() => {
   initWasmEngine();
@@ -52,7 +52,7 @@ function syncRejection(fn: () => unknown): CodedError {
 
 const PEER = "5511999999999@s.whatsapp.net";
 
-describe("call media validation", () => {
+describe.skipIf(!hasCallsAudio)("call media validation", () => {
   test("accepting needs a live offer for the id", async () => {
     const client = await offlineClient();
     try {
@@ -315,7 +315,7 @@ describe("call media validation", () => {
   });
 });
 
-describe("mlow opus escape helpers", () => {
+describe.skipIf(!hasCallsAudio)("mlow opus escape helpers", () => {
   // The push path itself needs a live call, which no mock server covers in
   // CI; what these prove is the transform the push applies. `callPushAudio`
   // on an `"opus-mlow"` call rewrites exactly like `packetizeOpusForMlow`, so a

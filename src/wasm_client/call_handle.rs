@@ -37,9 +37,18 @@ pub struct WasmCallHandle {
     generation: u64,
 }
 
+#[cfg(not(feature = "client-calls-audio"))]
+#[wasm_bindgen]
+pub struct WasmCallHandle {
+    _private: (),
+}
+
 #[cfg(feature = "client-calls-audio")]
 // SAFETY: WASM is single-threaded; the Rc<RefCell<...>> inside CallMedia is
 // never shared across threads. The wasm_send_sync! macro declares this.
+crate::wasm_send_sync!(WasmCallHandle);
+
+#[cfg(not(feature = "client-calls-audio"))]
 crate::wasm_send_sync!(WasmCallHandle);
 
 #[cfg(feature = "client-calls-audio")]

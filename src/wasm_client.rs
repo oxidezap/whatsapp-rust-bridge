@@ -3445,7 +3445,7 @@ pub struct WasmWhatsAppClient {
 // messaging are not optional. See `[features]` in Cargo.toml.
 #[cfg(feature = "client-business")]
 mod business;
-#[cfg(feature = "client-calls-audio")]
+#[cfg(any(feature = "client-calls", feature = "client-calls-audio"))]
 mod call_handle;
 #[cfg(feature = "client-calls")]
 mod calls;

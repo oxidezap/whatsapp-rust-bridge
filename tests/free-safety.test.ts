@@ -11,6 +11,7 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
+import * as dist from "../dist/index.js";
 
 const WASM_MEMORY_FAULTS = [
   "memory access out of bounds",
@@ -88,12 +89,16 @@ describe("free() with a call in flight", () => {
   // so freeing underneath them is safe by construction rather than by
   // heap luck. One body per shape: validation failure, gate plus core
   // failure, unknown record, and stanza send.
+  const hasCallsAudio = typeof (dist as any).packetizeOpusForMlow !== "undefined";
+
   const callBodies = [
-    `c.acceptCall("NEVER-RANG", "mlow")`,
-    `c.dialCall("5511999999999@s.whatsapp.net", "mlow")`,
-    `c.acceptCallPcm("NEVER-RANG")`,
-    `c.dialCallPcm("5511999999999@s.whatsapp.net")`,
-    `c.endCall("NEVER-LIVE")`,
+    ...(hasCallsAudio
+      ? [
+          `c.acceptCall("NEVER-RANG", "mlow")`,
+          `c.dialCall("5511999999999@s.whatsapp.net", "mlow")`,
+          `c.endCall("NEVER-LIVE")`,
+        ]
+      : []),
     `c.rejectCall("ID", "5511999999999@s.whatsapp.net", "5511888888888@s.whatsapp.net")`,
   ];
 

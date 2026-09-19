@@ -7,13 +7,18 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import { initWasmEngine, MlowAudioDecoder } from "../dist/index.js";
+import * as dist from "../dist/index.js";
+
+const MlowAudioDecoder = (dist as any).MlowAudioDecoder;
+const hasMlow = typeof MlowAudioDecoder !== "undefined";
 
 beforeAll(() => {
-  initWasmEngine();
+  if (hasMlow) {
+    dist.initWasmEngine();
+  }
 });
 
-describe("MlowAudioDecoder", () => {
+describe.skipIf(!hasMlow)("MlowAudioDecoder", () => {
   test("rejects invalid RTP payload types before narrowing", () => {
     const decoder = new MlowAudioDecoder();
     try {

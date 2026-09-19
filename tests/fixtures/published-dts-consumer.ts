@@ -19,7 +19,6 @@ import type {
   JsonValue,
   MessageInfo,
   MexResponse,
-  MlowAudioDecoder,
   MsgSecretEntry,
   PairError,
   PairSuccess,
@@ -127,13 +126,6 @@ type _EditPinsAStanzaId = Assert<
   >
 >;
 
-type _MlowDecoderDecode = Assert<
-  Resolves<
-    MlowAudioDecoder["decode"],
-    (packet: Uint8Array, payload_type?: number | null) => Float32Array
-  >
->;
-
 export type Checked = [
   _Boxed,
   _RejectionNarrows,
@@ -152,7 +144,6 @@ export type Checked = [
   _RejectsObject,
   _RejectsUnknown,
   _EditPinsAStanzaId,
-  _MlowDecoderDecode,
 ];
 
 type _ClientPoliciesArgument = Assert<

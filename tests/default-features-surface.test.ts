@@ -28,9 +28,6 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WITNESSES: Record<string, string> = {
   "client-business": "getBusinessProfile",
   "client-calls": "terminateCall",
-  "client-calls-audio": "acceptCall",
-  "client-calls-pcm": "acceptCallPcm",
-  "client-calls-mlow": "MlowAudioDecoder",
   "client-chat-actions": "pinChat",
   "client-contacts": "isOnWhatsApp",
   "client-groups": "getGroupMetadata",

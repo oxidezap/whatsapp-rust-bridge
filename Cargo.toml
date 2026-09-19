@@ -62,9 +62,6 @@ crate-type = ["cdylib", "rlib"]
 default = [
     "client-business",
     "client-calls",
-    "client-calls-audio",
-    "client-calls-pcm",
-    "client-calls-mlow",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
