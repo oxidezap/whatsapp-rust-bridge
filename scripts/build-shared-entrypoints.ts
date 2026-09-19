@@ -31,53 +31,59 @@ const MAX_SHELL_BYTES = 8_192;
 // Build into a scratch dir, not dist/: a previous run's bridge.js would
 // otherwise sit beside the new hashed chunk and read as two chunks.
 const SCRATCH = join(DIST, ".entrypoints-tmp");
-const built = await Bun.build({
-  entrypoints: [join(ROOT, "ts", "index.ts"), join(ROOT, "ts", "host.ts")],
-  outdir: SCRATCH,
-  target: "node",
-  minify: true,
-  splitting: true,
-  external: ["node:fs"],
-});
-
-if (!built.success) {
-  console.error(built.logs.map(String).join("\n"));
-  process.exit(1);
-}
-
-const outputs = readdirSync(SCRATCH).filter((name) => name.endsWith(".js"));
-const chunks = outputs.filter(
-  (name) => name !== "index.js" && name !== "host.js" && name !== "proto-types.js",
-);
-if (chunks.length !== 1) {
-  throw new Error(
-    `build-shared-entrypoints: expected one shared chunk, found [${chunks.join(", ")}]`,
-  );
-}
-const chunk = chunks[0]!;
-renameSync(join(SCRATCH, "index.js"), join(DIST, "index.js"));
-renameSync(join(SCRATCH, "host.js"), join(DIST, "host.js"));
-renameSync(join(SCRATCH, chunk), join(DIST, "bridge.js"));
-
-for (const shell of ["index.js", "host.js"]) {
-  const path = join(DIST, shell);
-  const source = readFileSync(path, "utf8");
-  const rewritten = source.replaceAll(`./${chunk}`, SHARED);
-  if (rewritten === source) {
-    throw new Error(
-      `build-shared-entrypoints: dist/${shell} does not import ./${chunk} — update build-shared-entrypoints.ts`,
-    );
-  }
-  writeFileSync(path, rewritten);
-  const size = Buffer.byteLength(rewritten, "utf8");
-  if (size > MAX_SHELL_BYTES) {
-    throw new Error(
-      `build-shared-entrypoints: dist/${shell} is ${size} bytes (over ${MAX_SHELL_BYTES}) — the bridge is no longer shared`,
-    );
-  }
-}
-
+// A killed or failed run can leave a previous scratch behind; clearing it
+// first as well as last keeps the chunk discovery below honest every time.
 rmSync(SCRATCH, { recursive: true, force: true });
-console.log(
-  `build-shared-entrypoints: dist/bridge.js + thin shells (./${chunk} -> ${SHARED})`,
-);
+try {
+  const built = await Bun.build({
+    entrypoints: [join(ROOT, "ts", "index.ts"), join(ROOT, "ts", "host.ts")],
+    outdir: SCRATCH,
+    target: "node",
+    minify: true,
+    splitting: true,
+    external: ["node:fs"],
+  });
+
+  if (!built.success) {
+    console.error(built.logs.map(String).join("\n"));
+    process.exit(1);
+  }
+
+  const outputs = readdirSync(SCRATCH).filter((name) => name.endsWith(".js"));
+  const chunks = outputs.filter(
+    (name) => name !== "index.js" && name !== "host.js" && name !== "proto-types.js",
+  );
+  if (chunks.length !== 1) {
+    throw new Error(
+      `build-shared-entrypoints: expected one shared chunk, found [${chunks.join(", ")}]`,
+    );
+  }
+  const chunk = chunks[0]!;
+  renameSync(join(SCRATCH, "index.js"), join(DIST, "index.js"));
+  renameSync(join(SCRATCH, "host.js"), join(DIST, "host.js"));
+  renameSync(join(SCRATCH, chunk), join(DIST, "bridge.js"));
+
+  for (const shell of ["index.js", "host.js"]) {
+    const path = join(DIST, shell);
+    const source = readFileSync(path, "utf8");
+    const rewritten = source.replaceAll(`./${chunk}`, SHARED);
+    if (rewritten === source) {
+      throw new Error(
+        `build-shared-entrypoints: dist/${shell} does not import ./${chunk} — update build-shared-entrypoints.ts`,
+      );
+    }
+    writeFileSync(path, rewritten);
+    const size = Buffer.byteLength(rewritten, "utf8");
+    if (size > MAX_SHELL_BYTES) {
+      throw new Error(
+        `build-shared-entrypoints: dist/${shell} is ${size} bytes (over ${MAX_SHELL_BYTES}) — the bridge is no longer shared`,
+      );
+    }
+  }
+
+  console.log(
+    `build-shared-entrypoints: dist/bridge.js + thin shells (./${chunk} -> ${SHARED})`,
+  );
+} finally {
+  rmSync(SCRATCH, { recursive: true, force: true });
+}

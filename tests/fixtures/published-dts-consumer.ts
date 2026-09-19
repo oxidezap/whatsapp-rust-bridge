@@ -153,17 +153,17 @@ type _ClientPoliciesArgument = Assert<
 // The host entrypoint re-exports wasm-bindgen's initializer, which takes
 // bytes or a compiled Module (SyncInitInput) — the union the host idioms
 // produce — and the client factory keeps the default entrypoint's signature.
-import type { initSync } from "../../dist/host.js";
+import { initSync } from "../../dist/host.js";
 import type { SyncInitInput } from "../../dist/whatsapp_rust_bridge.js";
 
 type _HostInit = Assert<
   Resolves<Parameters<typeof initSync>[0], SyncInitInput>
 >;
 
-// The ./wasm subpath is a binary asset, not a typed module: a `.wasm`
-// import's type comes from the host's own declaration (workerd types it as
-// `WebAssembly.Module`), so there is no `.d.ts` for this fixture to import.
-// The runtime contract — the asset the subpath names feeds `initSync` — is
-// pinned by tests/host-entrypoint.test.ts instead.
-declare const wasmAsset: SyncInitInput;
-type _WasmFeedsInitSync = Assert<Resolves<typeof wasmAsset, SyncInitInput>>;
+// The real published shape: the `./wasm` asset feeds `initSync` with no
+// conversion. Imported through the package's own exports map, so this is
+// the subpath contract typechecking — not the type agreeing with itself.
+import wasm from "@oxidezap/whatsapp-rust-bridge/wasm";
+
+type _WasmFeedsInitSync = Assert<Resolves<typeof wasm, SyncInitInput>>;
+initSync({ module: wasm });

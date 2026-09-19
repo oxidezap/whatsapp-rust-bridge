@@ -26,7 +26,10 @@
             "import": "./dist/host.js",
             "types": "./dist/host.d.ts"
         },
-        "./wasm": "./dist/whatsapp_rust_bridge_bg.wasm",
+        "./wasm": {
+            "types": "./dist/wasm.d.ts",
+            "default": "./dist/whatsapp_rust_bridge_bg.wasm"
+        },
         "./proto-types": {
             "import": "./dist/proto-types.js",
             "types": "./dist/proto-types.d.ts"
@@ -48,7 +51,7 @@
         "gen": "bun run gen:proto-codec && bun run gen:proto-types && bun run gen:bridge-types",
         "build:wasm": "wasm-pack build --target web --out-dir pkg --no-pack",
         "build:wasm:dev": "wasm-pack build --target web --out-dir pkg --no-pack --dev",
-        "build:ts": "bun run scripts/build-shared-entrypoints.ts && cp pkg/whatsapp_rust_bridge_bg.wasm dist/ && cp ts/proto-types.d.ts dist/proto-types.d.ts && cp ts/proto-types.d.ts pkg/proto-types.d.ts && printf 'export { proto } from \"./host.js\";\\n' > dist/proto-types.js",
+        "build:ts": "bun run scripts/build-shared-entrypoints.ts && cp pkg/whatsapp_rust_bridge_bg.wasm dist/ && cp ts/wasm.d.ts dist/wasm.d.ts && cp ts/proto-types.d.ts dist/proto-types.d.ts && cp ts/proto-types.d.ts pkg/proto-types.d.ts && printf 'export { proto } from \"./host.js\";\\n' > dist/proto-types.js",
         "build:finalize": "tsc -p tsconfig.json --outDir dist && rm -f dist/macro.d.ts && rm -rf dist/generated && bun run scripts/finalize-dist.ts",
         "build": "bun run gen && bun run build:wasm && bun run build:ts && bun run build:finalize",
         "build:dev": "bun run gen && bun run build:wasm:dev && bun run build:ts && bun run build:finalize",
