@@ -30,18 +30,22 @@ const BINDGEN_DTS = "whatsapp_rust_bridge.d.ts";
 
 copyFileSync(join(ROOT, "pkg", BINDGEN_DTS), join(DIST, BINDGEN_DTS));
 
-const indexDts = join(DIST, "index.d.ts");
-const source = readFileSync(indexDts, "utf8");
-const rewritten = source.replaceAll(
-  "../pkg/whatsapp_rust_bridge.js",
-  "./whatsapp_rust_bridge.js",
-);
-if (rewritten === source) {
-  throw new Error(
-    "dist/index.d.ts no longer references ../pkg/whatsapp_rust_bridge.js — update finalize-dist.ts",
+// Both entrypoints are emitted by tsc from extensionless sources, so both
+// carry the same `../pkg/` reference to rewrite.
+for (const entryDts of ["index.d.ts", "edge.d.ts"]) {
+  const entryPath = join(DIST, entryDts);
+  const source = readFileSync(entryPath, "utf8");
+  const rewritten = source.replaceAll(
+    "../pkg/whatsapp_rust_bridge.js",
+    "./whatsapp_rust_bridge.js",
   );
+  if (rewritten === source) {
+    throw new Error(
+      `dist/${entryDts} no longer references ../pkg/whatsapp_rust_bridge.js — update finalize-dist.ts`,
+    );
+  }
+  writeFileSync(entryPath, rewritten);
 }
-writeFileSync(indexDts, rewritten);
 
 const isDistFile = (relPath: string): boolean => {
   const path = join(DIST, relPath);

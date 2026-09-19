@@ -149,3 +149,12 @@ export type Checked = [
 type _ClientPoliciesArgument = Assert<
   Resolves<Parameters<typeof createWhatsAppClient>[8], ClientPolicies | null | undefined>
 >;
+
+// The edge entrypoint's host initializer takes wasm-bindgen's SyncInitInput
+// (bytes or a compiled Module) — the union the host idioms produce — and the
+// client factory keeps the default entrypoint's signature.
+import type { initEdge } from "../../dist/edge.js";
+
+type _EdgeInit = Assert<
+  Resolves<Parameters<typeof initEdge>[0], import("../../dist/edge.js").SyncInitInput>
+>;
