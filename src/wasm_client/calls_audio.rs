@@ -161,15 +161,16 @@ impl OfferCache {
         }
     }
 
-    /// Look up the call_id for a ringing offer by its handle (generation), then
-    /// transition it to Answering — the handle-based path for `acceptCall(offerHandle)`.
-    pub(super) fn take_for_answer_by_handle(
-        &mut self,
+    /// Look up the call_id for a ringing offer by its handle (generation).
+    /// Read-only: the `Ringing -> Answering` transition stays with
+    /// `take_for_answer(&call_id)` inside `accept_call_mode`, so the handle
+    /// path consumes the offer exactly once like the call-id path.
+    pub(super) fn call_id_for_offer_handle(
+        &self,
         offer_handle: u32,
-    ) -> Result<(String, IncomingCall, u64), crate::errors::BridgeError> {
+    ) -> Result<String, crate::errors::BridgeError> {
         let generation = offer_handle as u64;
-        let call_id = self
-            .entries
+        self.entries
             .iter()
             .find_map(|(id, entry)| match entry {
                 OfferEntry::Ringing(_, offer_gen) if *offer_gen == generation => Some(id.clone()),
@@ -180,14 +181,7 @@ impl OfferCache {
                     "offerHandle",
                     "no live incoming offer for this handle (answered, missed, or never rang)",
                 )
-            })?;
-        let offer = match self.entries.get(&call_id) {
-            Some(OfferEntry::Ringing(offer, _)) => (**offer).clone(),
-            _ => unreachable!("just found as Ringing"),
-        };
-        self.entries
-            .insert(call_id.clone(), OfferEntry::Answering(generation));
-        Ok((call_id, offer, generation))
+            })
     }
 
     #[cfg(test)]
@@ -444,12 +438,11 @@ impl WasmWhatsAppClient {
         promise_value(async move {
             let format = format?;
             let call_id = if let Some(handle) = offer_handle {
-                let (call_id, _offer, _gen) = media
+                media
                     .call_offers
                     .lock()
                     .unwrap()
-                    .take_for_answer_by_handle(handle)?;
-                call_id
+                    .call_id_for_offer_handle(handle)?
             } else {
                 call_id
             };
@@ -2996,6 +2989,31 @@ mod call_media_tests {
         let cache = cache.lock().unwrap();
         assert!(!cache.contains_key("CALL-A"));
         assert!(cache.contains_key("CALL-B"));
+    }
+
+    #[test]
+    fn the_offer_handle_path_consumes_the_offer_exactly_once() {
+        let cache = cache();
+        let offer = offered_call("CALL-H", &[("opus", "16000")]);
+        note_call_event(&cache, &Event::IncomingCall(Box::new(offer)));
+        let handle = cache
+            .lock()
+            .unwrap()
+            .offer_handle_for_call_id("CALL-H")
+            .expect("ringing offer has a handle");
+        // The handle path is read-only: resolving still goes through
+        // `take_for_answer(&call_id)` exactly like the call-id path.
+        let call_id = cache
+            .lock()
+            .unwrap()
+            .call_id_for_offer_handle(handle)
+            .expect("handle resolves while ringing");
+        assert_eq!(call_id, "CALL-H");
+        let mut cache = cache.lock().unwrap();
+        cache.take_for_answer(&call_id).expect("consumed once");
+        assert!(cache.take_for_answer(&call_id).is_err());
+        // An unknown handle never resolves.
+        assert!(cache.call_id_for_offer_handle(u32::MAX).is_err());
     }
 
     #[test]
