@@ -79,7 +79,9 @@ import {
   createWhatsAppClient as _createWhatsAppClient,
 } from "../pkg/whatsapp_rust_bridge.js";
 import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
-import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+import type { WasmCallHandle, WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+
+export type { WasmCallHandle };
 import type { ClientExtensions } from "./voip-backend";
 
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;

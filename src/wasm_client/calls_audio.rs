@@ -151,6 +151,45 @@ impl OfferCache {
         }
     }
 
+    /// Returns the offer handle (generation cast to u32) for an offer currently
+    /// in the Ringing state. Used to inject `offerHandle` into the `incoming_call`
+    /// JS event so JS can pass it back to `acceptCall(offerHandle, ...)`.
+    pub(super) fn offer_handle_for_call_id(&self, call_id: &str) -> Option<u32> {
+        match self.entries.get(call_id) {
+            Some(OfferEntry::Ringing(_, generation)) => Some(*generation as u32),
+            _ => None,
+        }
+    }
+
+    /// Look up the call_id for a ringing offer by its handle (generation), then
+    /// transition it to Answering — the handle-based path for `acceptCall(offerHandle)`.
+    pub(super) fn take_for_answer_by_handle(
+        &mut self,
+        offer_handle: u32,
+    ) -> Result<(String, IncomingCall, u64), crate::errors::BridgeError> {
+        let generation = offer_handle as u64;
+        let call_id = self
+            .entries
+            .iter()
+            .find_map(|(id, entry)| match entry {
+                OfferEntry::Ringing(_, offer_gen) if *offer_gen == generation => Some(id.clone()),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                crate::errors::invalid_arg(
+                    "offerHandle",
+                    "no live incoming offer for this handle (answered, missed, or never rang)",
+                )
+            })?;
+        let offer = match self.entries.get(&call_id) {
+            Some(OfferEntry::Ringing(offer, _)) => (**offer).clone(),
+            _ => unreachable!("just found as Ringing"),
+        };
+        self.entries
+            .insert(call_id.clone(), OfferEntry::Answering(generation));
+        Ok((call_id, offer, generation))
+    }
+
     #[cfg(test)]
     pub(super) fn contains_key(&self, call_id: &str) -> bool {
         matches!(self.entries.get(call_id), Some(OfferEntry::Ringing(_, _)))
@@ -391,20 +430,32 @@ impl WasmWhatsAppClient {
     ///
     /// A withdrawn or failed start restores the offer only if no resolution
     /// or replacement arrived. A superseded successful start is torn down locally.
-    #[wasm_bindgen(js_name = acceptCall, unchecked_return_type = "Promise<string>")]
+    #[wasm_bindgen(js_name = acceptCall, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn accept_call(
         &self,
         call_id: String,
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
         with_video: Option<bool>,
+        offer_handle: Option<u32>,
     ) -> js_sys::Promise {
         let format = call_audio_format(&audio_format);
         let media = CallMedia::of(self);
         let with_video = with_video.unwrap_or(false);
         promise_value(async move {
             let format = format?;
+            let call_id = if let Some(handle) = offer_handle {
+                let (call_id, _offer, _gen) = media
+                    .call_offers
+                    .lock()
+                    .unwrap()
+                    .take_for_answer_by_handle(handle)?;
+                call_id
+            } else {
+                call_id
+            };
             // Keep the large accept future out of the Promise constructor's stack frame.
-            Box::pin(media.accept_call_mode(call_id, CallAudioMode::Encoded(format), with_video))
+            media
+                .accept_call_mode(call_id, CallAudioMode::Encoded(format), with_video)
                 .await
         })
     }
@@ -414,7 +465,7 @@ impl WasmWhatsAppClient {
     /// The handle is dormant until the server acks the offer with a relay;
     /// mic packets pushed before then queue bounded and shed oldest-first
     /// once live, so a host can start its capture at dial time.
-    #[wasm_bindgen(js_name = dialCall, unchecked_return_type = "Promise<string>")]
+    #[wasm_bindgen(js_name = dialCall, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn dial_call(
         &self,
         peer: String,
@@ -434,22 +485,19 @@ impl WasmWhatsAppClient {
 
     /// Answer a ringing call with the core's PCM audio pipeline.
     #[cfg(feature = "client-calls-pcm")]
-    #[wasm_bindgen(js_name = acceptCallPcm, unchecked_return_type = "Promise<string>")]
+    #[wasm_bindgen(js_name = acceptCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn accept_call_pcm(&self, call_id: String, with_video: Option<bool>) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_value(async move {
-            Box::pin(media.accept_call_mode(
-                call_id,
-                CallAudioMode::Pcm,
-                with_video.unwrap_or(false),
-            ))
-            .await
+            media
+                .accept_call_mode(call_id, CallAudioMode::Pcm, with_video.unwrap_or(false))
+                .await
         })
     }
 
     /// Dial a peer with the core's PCM audio pipeline.
     #[cfg(feature = "client-calls-pcm")]
-    #[wasm_bindgen(js_name = dialCallPcm, unchecked_return_type = "Promise<string>")]
+    #[wasm_bindgen(js_name = dialCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn dial_call_pcm(&self, peer: String, with_video: Option<bool>) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_value(async move {
@@ -1412,6 +1460,78 @@ impl CallMedia {
             generation,
         );
     }
+
+    // ── Helpers delegated from WasmCallHandle ───────────────────────────────
+
+    /// Alias for `finish_call`, exposed so `WasmCallHandle::terminate_js` can
+    /// finalize the call record after `handle.terminate()` completes.
+    pub(super) fn finish_call_by_generation(&self, call_id: &str, generation: u64) {
+        self.finish_call(call_id, generation);
+    }
+
+    /// Mirror the mute flag on the live call record without issuing a stanza.
+    /// `call_push_audio` reads this flag and sheds outbound packets while set.
+    pub(super) fn set_mic_muted_flag(&self, call_id: &str, muted: bool) {
+        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
+            record.mic_muted = muted;
+        }
+    }
+
+    /// Start a video plane from an external async closure, used by `WasmCallHandle`.
+    /// The closure receives channels and attaches them to the underlying handle.
+    pub(super) async fn attach_video_plane_external<F, Fut>(
+        &self,
+        call_id: &str,
+        generation: u64,
+        operation: &'static str,
+        attach: F,
+    ) -> Result<(), crate::errors::BridgeError>
+    where
+        F: FnOnce(async_channel::Receiver<Vec<u8>>, async_channel::Sender<VideoFrame>) -> Fut,
+        Fut: std::future::Future<Output = Result<(), whatsapp_rust::CallError>>,
+    {
+        self.attach_video_plane(call_id, generation, operation, attach)
+            .await
+    }
+
+    /// Accept a video upgrade by generation. Mirrors `accept_call_video` but
+    /// uses a generation guard so WasmCallHandle doesn't need a live borrow on
+    /// the record at construction time.
+    pub(super) async fn accept_call_video_by_generation(
+        &self,
+        call_id: &str,
+        generation: u64,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let (handle, record_generation, token) = {
+            let mut records = self.call_records.borrow_mut();
+            let Some(record) = records.get_mut(call_id) else {
+                return Err(unknown_call());
+            };
+            if record.generation != generation {
+                return Err(unknown_call());
+            }
+            let token = record.pending_upgrade.take();
+            (record.handle.clone(), record.generation, token)
+        };
+        let Some(token) = token else {
+            return Err(crate::errors::invalid_arg(
+                "acceptVideo",
+                "no pending video upgrade request for this call",
+            ));
+        };
+        self.attach_video_plane(call_id, record_generation, "acceptVideo", |rx, tx| {
+            handle.accept_video(token, rx, tx)
+        })
+        .await
+    }
+
+    /// Clear the pending video upgrade token. Called by `WasmCallHandle::rejectVideo`
+    /// to prevent a stale token from being consumed by a later `acceptVideo`.
+    pub(super) fn clear_pending_video_upgrade(&self, call_id: &str) {
+        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
+            record.pending_upgrade = None;
+        }
+    }
 }
 
 /// Forward one engine event, retaining a peer video-upgrade request on
@@ -1689,11 +1809,11 @@ impl CallMedia {
     }
 
     async fn accept_call_mode(
-        &self,
+        self,
         call_id: String,
         mode: CallAudioMode,
         with_video: bool,
-    ) -> Result<String, crate::errors::BridgeError> {
+    ) -> Result<super::call_handle::WasmCallHandle, crate::errors::BridgeError> {
         let operation = match mode {
             CallAudioMode::Encoded(_) => "acceptCall",
             #[cfg(feature = "client-calls-pcm")]
@@ -1809,7 +1929,13 @@ impl CallMedia {
         }
 
         slot.commit();
-        Ok(id)
+        // Release the admission guard before moving `self` into the handle:
+        // the serialized tail above is done, only the read-back remains.
+        drop(_admission);
+        let (handle, generation) = self.live_record(&id)?;
+        Ok(super::call_handle::WasmCallHandle::new(
+            handle, generation, self,
+        ))
     }
 
     async fn end_call(
@@ -1907,7 +2033,10 @@ impl CallMedia {
         .await
     }
 
-    async fn stop_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
+    pub(super) async fn stop_call_video(
+        &self,
+        call_id: String,
+    ) -> Result<(), crate::errors::BridgeError> {
         let (handle, generation) = self.live_record(&call_id)?;
         let result = handle
             .stop_video()
@@ -2015,11 +2144,11 @@ impl CallMedia {
     }
 
     async fn dial_call_mode(
-        &self,
+        self,
         peer: String,
         mode: CallAudioMode,
         with_video: bool,
-    ) -> Result<String, crate::errors::BridgeError> {
+    ) -> Result<super::call_handle::WasmCallHandle, crate::errors::BridgeError> {
         let operation = match mode {
             CallAudioMode::Encoded(_) => "dialCall",
             #[cfg(feature = "client-calls-pcm")]
@@ -2105,7 +2234,13 @@ impl CallMedia {
         }
 
         slot.commit();
-        Ok(id)
+        // Release the admission guard before moving `self` into the handle:
+        // the serialized tail above is done, only the read-back remains.
+        drop(_admission);
+        let (handle, generation) = self.live_record(&id)?;
+        Ok(super::call_handle::WasmCallHandle::new(
+            handle, generation, self,
+        ))
     }
 
     async fn create_call_link(
@@ -2401,7 +2536,10 @@ fn call_audio_codec_str(codec: &AudioCodec) -> String {
 ///
 /// The identity arm tracks the core's literal message; re-check it on pin
 /// bumps, since a reword upstream silently returns this path to `internal`.
-fn call_error_to_bridge(error: CallError, operation: &'static str) -> crate::errors::BridgeError {
+pub(super) fn call_error_to_bridge(
+    error: CallError,
+    operation: &'static str,
+) -> crate::errors::BridgeError {
     match &error {
         CallError::AudioFormatNotOffered(rate) => crate::errors::invalid_arg(
             if operation.ends_with("Pcm") {
@@ -2443,7 +2581,9 @@ fn call_error_to_bridge(error: CallError, operation: &'static str) -> crate::err
     }
 }
 
-fn call_termination_to_result(outcome: &CallTermination) -> crate::result_types::CallEndResult {
+pub(super) fn call_termination_to_result(
+    outcome: &CallTermination,
+) -> crate::result_types::CallEndResult {
     use crate::result_types::CallEndResult as R;
     match outcome {
         CallTermination::PeerNotified => R::PeerNotified,
@@ -2469,7 +2609,7 @@ fn call_termination_to_result(outcome: &CallTermination) -> crate::result_types:
     }
 }
 
-fn call_media_stats_to_result(
+pub(super) fn call_media_stats_to_result(
     stats: &wacore::voip::CallMediaStats,
 ) -> crate::result_types::CallMediaStatsResult {
     crate::result_types::CallMediaStatsResult {
@@ -2494,6 +2634,13 @@ fn call_media_stats_to_result(
         forwarding_envelope_rejected: stats.forwarding_envelope_rejected as f64,
         codec_switches: f64::from(stats.codec_switches),
     }
+}
+
+/// Alias for `call_media_stats_to_result`, used by `WasmCallHandle`.
+pub(super) fn stats_to_result(
+    stats: &wacore::voip::CallMediaStats,
+) -> crate::result_types::CallMediaStatsResult {
+    call_media_stats_to_result(stats)
 }
 
 /// One call-media event object: `{ callId, kind, ... }`, where absence stays

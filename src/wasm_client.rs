@@ -1524,6 +1524,7 @@ impl BatchDelivery {
 async fn run_event_consumer(
     callbacks: &JsEventCallbacks,
     event_rx: async_channel::Receiver<Arc<Event>>,
+    #[cfg(feature = "client-calls-audio")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     let mut budget = EventDispatchBudget::default();
     let mut pending_event = None;
@@ -1554,6 +1555,8 @@ async fn run_event_consumer(
             &mut pending_event,
             &mut budget,
             &mut delivery,
+            #[cfg(feature = "client-calls-audio")]
+            &call_offers,
         )
         .await;
     }
@@ -1566,8 +1569,16 @@ impl JsEventHandler {
     ) -> Self {
         let (event_tx, event_rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
 
+        #[cfg(feature = "client-calls-audio")]
+        let call_offers_for_consumer = call_offers.clone();
         wasm_bindgen_futures::spawn_local(async move {
-            run_event_consumer(&callbacks, event_rx).await;
+            run_event_consumer(
+                &callbacks,
+                event_rx,
+                #[cfg(feature = "client-calls-audio")]
+                call_offers_for_consumer,
+            )
+            .await;
         });
 
         Self {
@@ -1599,6 +1610,7 @@ async fn dispatch_event_to_js(
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
     delivery: &mut BatchDelivery,
+    #[cfg(feature = "client-calls-audio")] call_offers: &Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     // Anything that is not buffered into the open run has to see it delivered
     // first: the host observes batches in the order the events arrived, and a
@@ -1681,7 +1693,39 @@ async fn dispatch_event_to_js(
     }
 
     match event_to_js(&event) {
-        Ok(js_event) => dispatch_js_value(callbacks, js_event, budget, !event_rx.is_empty()).await,
+        Ok(js_event) => {
+            // For offer-action IncomingCall events, inject the opaque `offerHandle`
+            // number so JS can pass it back to `acceptCall(offerHandle, ...)` to
+            // recover the Rust IncomingCall without round-tripping through serialization.
+            // The offer was already cached (with its generation) by `note_call_event`
+            // before this event was enqueued, so the lookup is always consistent.
+            #[cfg(feature = "client-calls-audio")]
+            if let Event::IncomingCall(call) = event.as_ref()
+                && call.action.wire_tag() == "offer"
+            {
+                let call_id = call.action.call_id();
+                if let Some(handle) = call_offers
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .offer_handle_for_call_id(call_id)
+                {
+                    // event_to_js wraps as { type, data }. Inject `offerHandle`
+                    // into the data sub-object so the JS event carries it alongside
+                    // the existing IncomingCall fields. The object is mutable; no
+                    // re-set of `data` is needed — the Reflect::set on the inner
+                    // object is sufficient.
+                    if let Ok(data) = js_sys::Reflect::get(&js_event, &"data".into()) {
+                        let _ = js_sys::Reflect::set(
+                            &data,
+                            &"offerHandle".into(),
+                            &JsValue::from_f64(handle as f64),
+                        );
+                    }
+                }
+            }
+
+            dispatch_js_value(callbacks, js_event, budget, !event_rx.is_empty()).await
+        }
         Err(e) => log::warn!("Event serialization failed: {e:?}"),
     }
 }
@@ -3401,6 +3445,8 @@ pub struct WasmWhatsAppClient {
 // messaging are not optional. See `[features]` in Cargo.toml.
 #[cfg(feature = "client-business")]
 mod business;
+#[cfg(feature = "client-calls-audio")]
+mod call_handle;
 #[cfg(feature = "client-calls")]
 mod calls;
 #[cfg(feature = "client-calls-audio")]
@@ -5037,7 +5083,16 @@ mod event_delivery_tests {
             tx.try_send(Arc::new(event)).expect("the channel accepts");
         }
         tx.close();
-        run_event_consumer(&callbacks, rx).await;
+        #[cfg(feature = "client-calls-audio")]
+        let call_offers =
+            std::sync::Arc::new(std::sync::Mutex::new(calls_audio::OfferCache::default()));
+        run_event_consumer(
+            &callbacks,
+            rx,
+            #[cfg(feature = "client-calls-audio")]
+            call_offers,
+        )
+        .await;
     }
 
     const LEGACY_HOST: &[&str] = &[
