@@ -28,8 +28,8 @@
  * `WebAssembly.Module` or raw bytes (`SyncInitInput`), and the host idioms
  * produce exactly those — workerd/wrangler static imports compile to a
  * `WebAssembly.Module`, Deno/raw-import and bundler `?module` styles produce
- * bytes. Verified with evidence in `docs/host-entrypoint.md`; there is no
- * workerd-only path because workerd needs nothing this module does not take.
+ * bytes. There is no workerd-only path because workerd needs nothing this
+ * module does not take.
  *
  * Two constraints the host must respect, both from the platform, not the bridge:
  * call `initSync` once per isolate (a second call is a no-op returning the

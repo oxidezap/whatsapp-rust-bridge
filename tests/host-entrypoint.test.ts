@@ -8,8 +8,7 @@
  * workerd deploy), both shells stay thin over the one shared `dist/bridge.js`
  * implementation (so the package never pays for the bridge twice), and the
  * host export shape matches the default entrypoint's. It proves nothing about
- * any runtime — workerd/wrangler/Deno smoke lives in `docs/host-entrypoint.md`
- * with the evidence, not here.
+ * any runtime; a smoke per runtime stays manual.
  *
  * Run: bun run build && bun test tests/host-entrypoint.test.ts
  */
@@ -87,5 +86,15 @@ describe("host entrypoint", () => {
     const dts = requireDist("host.d.ts");
     expect(dts).not.toContain("../pkg/");
     expect(dts).toContain("initSync");
+  });
+
+  test("dist/proto-types.js stays host-neutral", () => {
+    // The subpath only needs the pure-JS proto namespace. Routing it through
+    // the default entry would drag its node:fs read (and wasm init) into
+    // every consumer that only wants `proto` — workerd included.
+    const runtime = requireDist("proto-types.js");
+    expect(nodeImports(runtime)).toEqual([]);
+    expect(runtime).not.toContain("readFileSync");
+    expect(runtime).not.toContain("node:fs");
   });
 });

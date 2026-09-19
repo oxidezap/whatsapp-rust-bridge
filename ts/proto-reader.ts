@@ -310,13 +310,12 @@ export class BinaryWriter extends BaseBinaryWriter {
  * Buf's public BigInt/string behavior for direct users.
  */
 /**
- * One decoder per realm, shared by every reader in it. `TextDecoder.decode`
- * on a view is allocation-free output-wise and within ~10% of `Buffer` on
- * the Node/Bun hot path (faster on Bun); a fresh decoder per read would pay
- * construction instead. Stateful across calls, so never used with
- * `{ stream: true }` — each `string()` is one complete decode.
+ * `ignoreBOM` keeps a leading U+FEFF instead of eating it as a byte-order
+ * mark. The wire carries text, not files: a value that opens with one is the
+ * peer's own character, and dropping it also loses the three bytes every
+ * length behind it is counted in.
  */
-const utf8Decoder = new TextDecoder();
+const utf8Decoder = new TextDecoder("utf-8", { ignoreBOM: true });
 const utf8Encoder = new TextEncoder();
 
 export class BinaryReader extends BaseBinaryReader {

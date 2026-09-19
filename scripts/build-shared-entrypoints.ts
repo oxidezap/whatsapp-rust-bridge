@@ -18,7 +18,7 @@
  *
  * Run: `bun run scripts/build-shared-entrypoints.ts` (via `build:ts`).
  */
-import { readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
@@ -28,9 +28,12 @@ const SHARED = "./bridge.js";
 /** A shell that outgrew this is carrying its own bridge copy. */
 const MAX_SHELL_BYTES = 8_192;
 
+// Build into a scratch dir, not dist/: a previous run's bridge.js would
+// otherwise sit beside the new hashed chunk and read as two chunks.
+const SCRATCH = join(DIST, ".entrypoints-tmp");
 const built = await Bun.build({
   entrypoints: [join(ROOT, "ts", "index.ts"), join(ROOT, "ts", "host.ts")],
-  outdir: DIST,
+  outdir: SCRATCH,
   target: "node",
   minify: true,
   splitting: true,
@@ -42,7 +45,7 @@ if (!built.success) {
   process.exit(1);
 }
 
-const outputs = readdirSync(DIST).filter((name) => name.endsWith(".js"));
+const outputs = readdirSync(SCRATCH).filter((name) => name.endsWith(".js"));
 const chunks = outputs.filter(
   (name) => name !== "index.js" && name !== "host.js" && name !== "proto-types.js",
 );
@@ -52,7 +55,9 @@ if (chunks.length !== 1) {
   );
 }
 const chunk = chunks[0]!;
-renameSync(join(DIST, chunk), join(DIST, "bridge.js"));
+renameSync(join(SCRATCH, "index.js"), join(DIST, "index.js"));
+renameSync(join(SCRATCH, "host.js"), join(DIST, "host.js"));
+renameSync(join(SCRATCH, chunk), join(DIST, "bridge.js"));
 
 for (const shell of ["index.js", "host.js"]) {
   const path = join(DIST, shell);
@@ -72,6 +77,7 @@ for (const shell of ["index.js", "host.js"]) {
   }
 }
 
+rmSync(SCRATCH, { recursive: true, force: true });
 console.log(
   `build-shared-entrypoints: dist/bridge.js + thin shells (./${chunk} -> ${SHARED})`,
 );

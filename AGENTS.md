@@ -26,8 +26,7 @@ src/
   proto.rs, wire_batch.rs
 ts/
   index.ts              entry point; initialises the wasm and re-exports it
-  host.ts               same bridge with host-supplied wasm bytes (`initSync`),
-                        for Workers/workerd/Deno — see `docs/host-entrypoint.md`
+  host.ts               same bridge with host-supplied wasm bytes (`initSync`)
   surface.ts            the one JS API both entrypoints re-export
   proto*.ts, wire-info.ts
 tests/                  the client surface (Bun)

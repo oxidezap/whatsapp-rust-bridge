@@ -159,3 +159,11 @@ import type { SyncInitInput } from "../../dist/whatsapp_rust_bridge.js";
 type _HostInit = Assert<
   Resolves<Parameters<typeof initSync>[0], SyncInitInput>
 >;
+
+// The ./wasm subpath is a binary asset, not a typed module: a `.wasm`
+// import's type comes from the host's own declaration (workerd types it as
+// `WebAssembly.Module`), so there is no `.d.ts` for this fixture to import.
+// The runtime contract — the asset the subpath names feeds `initSync` — is
+// pinned by tests/host-entrypoint.test.ts instead.
+declare const wasmAsset: SyncInitInput;
+type _WasmFeedsInitSync = Assert<Resolves<typeof wasmAsset, SyncInitInput>>;
