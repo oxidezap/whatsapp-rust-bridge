@@ -303,7 +303,7 @@ const canonicalizeEmptyPackedRepeatedFields = (source: string): string => {
 		out.push(lines[index]!)
 		index++
 	}
-	if (transformed === 0 || transformed !== packedBranches) {
+	if (transformed !== packedBranches) {
 		throw new Error(`ts-proto emitted a packed repeated decode in an unhandled shape (${transformed}/${packedBranches})`)
 	}
 	return out.join('\n')
