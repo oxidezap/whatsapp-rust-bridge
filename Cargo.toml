@@ -61,12 +61,14 @@ crate-type = ["cdylib", "rlib"]
 # nothing is ever removed from this list without a major bump.
 default = [
     "client-business",
+    "client-calls",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
     "client-media",
     "client-newsletter",
     "client-signal",
+    "client-voip-control",
     "legacy-session",
 ]
 audio = ["dep:symphonia"]
@@ -77,6 +79,19 @@ sticker = ["dep:img-parts"]
 # messaging have no feature: a client that cannot connect or send is not a
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
+client-calls = []
+# Encoded-audio call media: answering and dialing 1:1 calls over a
+# host-supplied relay transport. Pulls the core's portable `voip-encoded`
+# profile (sans-IO engine plus AES-GCM/SFrame crypto, no socket, no codec);
+# the relay socket itself stays on the host side, behind
+# `setRelayTransportProvider`.
+client-calls-audio = ["whatsapp-rust/voip-encoded"]
+# Core-owned PCM calls use the portable MLOW codec path. The encoded surface
+# above remains available without this feature.
+client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
+# Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
+# for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
+client-calls-mlow = ["whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []
@@ -84,6 +99,12 @@ client-media = []
 client-newsletter = []
 # The standalone Signal record codecs and the group-message crypto exports.
 client-signal = []
+# The core's neutral call-control seam (`wacore::voip_control`): the signaling
+# and call-lifecycle plane compiles and operates without the media engine.
+# The engine reaches the artifact only through the `client-calls-audio`,
+# `client-calls-pcm` and `client-calls-mlow` features below; this one never
+# turns `wacore/voip` on.
+client-voip-control = ["whatsapp-rust/voip-control", "dep:voip-abi"]
 # Typed interop with the decoded libsignal SessionRecord v1 model, for
 # migrating externally produced auth state. The core keeps this off by default
 # so a client carries no migration surface; the bridge turns it on for the
@@ -132,6 +153,7 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"], op
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
 tsify = { version = "0.5.6", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
+voip-abi = { path = "crates/voip-abi", optional = true }
 
 wasm-bindgen = "0.2.121"
 wasm-bindgen-futures = "0.4.71"
@@ -142,7 +164,7 @@ web-sys = { version = "0.3", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "ae3cefd86065872a577bbd0ad5ee21b60c86c616", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "7acae337a1acc8bff31e15db56880ca982128332", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
@@ -191,6 +213,9 @@ opt-level = 3
 # that path (sha2, subtle, digest) measured flat and stay size-optimized.
 [profile.release.package.curve25519-dalek]
 opt-level = 3
+
+[profile.release.package.wacore]
+opt-level = 2
 
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]

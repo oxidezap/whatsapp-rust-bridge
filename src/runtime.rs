@@ -309,6 +309,72 @@ fn enqueue_spawn(task: SpawnTask) {
     }
 }
 
+thread_local! {
+    /// Wakers of spawn drains parked between batches. Kept out of
+    /// `SLEEP_WAKERS` on purpose: the drain's yield is scheduler-internal,
+    /// and the runtime tests assert exact sleep-registry counts on the
+    /// shared loop — a parked drain firing mid-test would read as a
+    /// vanished sleep.
+    static DRAIN_WAKERS: RefCell<VecDeque<Waker>> = const { RefCell::new(VecDeque::new()) };
+    static DRAIN_TIMER_CB: RefCell<Option<JsValue>> = const { RefCell::new(None) };
+}
+
+/// Create the shared drain-timer callback once.
+fn ensure_drain_callback() {
+    DRAIN_TIMER_CB.with(|cached| {
+        if cached.borrow().is_some() {
+            return;
+        }
+        let callback = Closure::wrap(Box::new(|| {
+            DRAIN_WAKERS.with(|wakers| {
+                if let Some(waker) = wakers.borrow_mut().pop_front() {
+                    waker.wake();
+                }
+            });
+        }) as Box<dyn FnMut()>);
+        *cached.borrow_mut() = Some(callback.into_js_value());
+    });
+}
+
+/// Yield to the JS timer queue without touching the sleep registry. Same
+/// `setTimeout(0)` as `set_timeout_yield`, minus the accounting — and, like
+/// `SetImmediateYield`, with no `Drop` cleanup: a stale waker wakes a dead
+/// task, which the executor ignores.
+fn drain_timer_yield() -> Pin<Box<dyn Future<Output = ()>>> {
+    struct DrainYield {
+        registered: bool,
+    }
+    impl Future for DrainYield {
+        type Output = ();
+
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+            if self.registered {
+                return Poll::Ready(());
+            }
+            self.registered = true;
+            ensure_drain_callback();
+            let armed = DRAIN_TIMER_CB.with(|cached| {
+                let cached = cached.borrow();
+                let cb = cached.as_ref()?;
+                let set_timeout_fn = get_set_timeout()?;
+                set_timeout_fn.call1(&JsValue::NULL, cb).ok()?;
+                DRAIN_WAKERS.with(|wakers| {
+                    wakers.borrow_mut().push_back(cx.waker().clone());
+                });
+                Some(())
+            });
+            // No timer could be armed; parking here would stall every later
+            // spawn, so complete instead. The waker only queues after a
+            // successful call, so there is nothing to clean up.
+            if armed.is_none() {
+                return Poll::Ready(());
+            }
+            Poll::Pending
+        }
+    }
+    Box::pin(DrainYield { registered: false })
+}
+
 /// Drain loop: starts tasks in batches, yielding to the JS timer queue between
 /// batches so setTimeout/setInterval/Promise callbacks can run.
 async fn drain_spawn_queue() {
@@ -334,7 +400,9 @@ async fn drain_spawn_queue() {
         // Yield to the JS timer queue between batches. Uses setTimeout(0) so
         // timer callbacks (setInterval, storage Promises) can interleave.
         // MessageChannel has higher priority than timers and would still starve.
-        set_timeout_yield().await;
+        // The drain's own timer stays out of the sleep registry (see
+        // `drain_timer_yield`) so a parked drain never disturbs sleep accounting.
+        drain_timer_yield().await;
 
         // After yielding, check if more tasks were enqueued while we were waiting
     }

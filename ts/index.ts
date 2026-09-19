@@ -55,6 +55,23 @@ export {
 // without a hand-maintained shim — see `proto-namespace.ts` for details.
 export { proto } from "./proto-namespace";
 
+// Default relay media channel for encoded-audio calls (RTCPeerConnection
+// with a synthetic SDP answer), plus the SDP builder it stands on.
+export {
+  buildRelayAnswerSdp,
+  createRtcRelayTransportProvider,
+  evaluateOutboundPacket,
+  isRelayControlPacket,
+  normalizeDtlsFingerprint,
+  OutboundAuTracker,
+  RELAY_DTLS_FINGERPRINT,
+  RTP_PAYLOAD_TYPE_H264,
+  shedBufferedPacket,
+  type OutboundAuState,
+  type RelayAnswerParts,
+  type RtcRelayTransportOptions,
+} from "./relay-transport";
+
 // initWasmEngine and createWhatsAppClient need explicit typing
 // because they use skip_typescript in Rust for complex params.
 import {
@@ -62,7 +79,10 @@ import {
   createWhatsAppClient as _createWhatsAppClient,
 } from "../pkg/whatsapp_rust_bridge.js";
 import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
-import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+import type { WasmCallHandle, WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+
+export type { WasmCallHandle };
+import type { ClientExtensions } from "./voip-backend";
 
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
 
@@ -76,4 +96,17 @@ export const createWhatsAppClient: (
   wantedPreKeyCount?: number | null,
   dangerSkipCertChainVerify?: boolean | null,
   policies?: ClientPolicies | null,
+  extensions?: ClientExtensions | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
+
+export type { VoipBackendCallbacks, ClientExtensions } from "./voip-backend";
+
+// The relay-transport contract the engine-side plugin (`voip.wasm`) dials:
+// a `VoipRelayTransport` per endpoint, a `VoipRelayConnection` per call.
+// Contract only — no WebRTC stack, no Node implementation.
+export type {
+  VoipRelayConnection,
+  VoipRelayConnectionEvents,
+  VoipRelayEndpoint,
+  VoipRelayTransport,
+} from "./voip-relay-transport";

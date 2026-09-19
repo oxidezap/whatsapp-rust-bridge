@@ -1472,3 +1472,171 @@ pub struct NewChatMessageCappingResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remaining_quota: Option<f64>,
 }
+
+// ---------------------------------------------------------------------------
+// Encoded-audio call media (`client-calls-audio`)
+// ---------------------------------------------------------------------------
+
+/// Which codec the application's encoded-audio packets promise to carry.
+///
+/// The value is a promise about the bytes pushed through `callPushAudio`, and
+/// the call negotiates against it: answering an offer that only speaks the
+/// other codec fails with `invalid-argument` on this field so the host can
+/// What audio grammar a new call promises. The callee accepts with what the
+/// incoming offer names, or with the other format if negotiation failed and
+/// the offer is still live; outbound dials choose either and let the peer
+/// retry with the other promise. `opus` is native WhatsApp 16 kHz Opus,
+/// while `opus-mlow` is the in-profile MLOW escape.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallAudioFormat {
+    Mlow,
+    Opus,
+    #[serde(rename = "opus-mlow")]
+    OpusMlow,
+}
+
+/// How ending a call through its handle went. The local side is down in every
+/// case; this reports how much of the peer was told.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(tag = "outcome")]
+pub enum CallEndResult {
+    /// `<terminate>` went out to every address the call had to reach.
+    #[serde(rename = "peer-notified")]
+    PeerNotified,
+    /// Some of a still-ringing call's devices were told and the rest could
+    /// not be confirmed, so those may keep ringing until their own transport
+    /// gives up.
+    #[serde(rename = "partly-notified", rename_all = "camelCase")]
+    PartlyNotified { notified: f64, unconfirmed: f64 },
+    /// No send was confirmed, so the peer may keep ringing or talking until
+    /// its own transport gives up. Carries why the send failed; the bytes may
+    /// still have reached the wire.
+    #[serde(rename = "local-only")]
+    LocalOnly { failure: String },
+    /// The call was already over: nothing was sent and nothing was torn down.
+    #[serde(rename = "already-ended")]
+    AlreadyEnded,
+}
+
+/// One live call the bridge holds a handle for.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ActiveCallResult {
+    pub call_id: String,
+    /// The peer this call is with, as the `<terminate>` target: the device
+    /// that answered once one has, else the peer the offer rang.
+    pub peer_jid: String,
+}
+
+/// Media counters for one call, mirroring the core's `CallMediaStats`.
+/// All-zero until the media plane attaches, additive after that; sample twice
+/// and subtract for a rate. Readable after the call ends.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallMediaStatsResult {
+    pub rtp_received: f64,
+    pub rtp_payload_type_unexpected: f64,
+    pub srtp_unprotect_failed: f64,
+    pub sframe_decrypt_failed: f64,
+    pub audio_frames_decoded: f64,
+    pub audio_frames_delivered: f64,
+    pub audio_frames_concealed: f64,
+    pub mlow_off_point_dropped: f64,
+    pub mlow_inactive_or_sid: f64,
+    pub foreign_frames_decoded: f64,
+    pub audio_frames_without_decoder: f64,
+    pub outbound_frames_without_encoder: f64,
+    pub playout_trimmed_samples: f64,
+    pub inbound_pipe_dropped: f64,
+    pub audio_sink_dropped: f64,
+    pub video_sink_dropped: f64,
+    pub peer_keyframe_requests: f64,
+    pub relay_packet_unclassified: f64,
+    pub forwarding_envelope_rejected: f64,
+    pub codec_switches: f64,
+}
+
+/// Which media a new call link carries. The value goes straight into the
+/// link URL (`call.whatsapp.com/<media>/<token>`), so it is required, like
+/// every other promise the bridge forwards without a core default.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallLinkMediaKind {
+    Audio,
+    Video,
+}
+
+/// Screen-share direction for a group call.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum GroupScreenShareState {
+    Started,
+    Stopped,
+}
+
+/// How hard to ask the peer for a video keyframe. `coalesced` folds into
+/// the engine's throttle; `immediate` shortens it for a decoder that
+/// already reset. Required: silence here would be a choice the bridge
+/// has no business making.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum CallKeyframeUrgency {
+    Coalesced,
+    Immediate,
+}
+
+/// A reusable call link just created.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallLinkResult {
+    pub token: String,
+    pub media: String,
+    pub url: String,
+}
+
+/// A call link inspected without joining it.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallLinkPreviewResult {
+    pub token: String,
+    pub media: String,
+    pub creator: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_pn: Option<String>,
+    pub waiting_room_enabled: bool,
+    pub is_admin: bool,
+}
+
+/// Bridge pump depths for one call: packets queued, by direction. Counts,
+/// not milliseconds — the host multiplies by its own packet duration.
+/// The engine's own counters live in `CallMediaStatsResult`; these are the
+/// two queues the bridge itself owns, which is what makes them readable
+/// without a core change.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallAudioBufferResult {
+    /// Mic packets queued toward the peer.
+    pub outbound_queued: f64,
+    pub outbound_capacity: f64,
+    /// Decoded packets queued toward the host callback.
+    pub inbound_queued: f64,
+    pub inbound_capacity: f64,
+    /// Camera access units queued, when video is up.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_outbound_queued: Option<f64>,
+    /// Peer access units queued, when video is up.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_inbound_queued: Option<f64>,
+}
+
+/// The core's direction-local video negotiation state for one live call.
+/// `selfState` and `peerState` are the wire numbers from `VideoState`; the
+/// timeout is the core's public `VIDEO_UPGRADE_TIMEOUT`, in milliseconds.
+#[derive(Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CallVideoDiagnosticsResult {
+    pub self_state: f64,
+    pub peer_state: f64,
+    pub upgrade_timeout_ms: f64,
+}
