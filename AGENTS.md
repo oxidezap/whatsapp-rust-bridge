@@ -26,6 +26,8 @@ src/
   proto.rs, wire_batch.rs
 ts/
   index.ts              entry point; initialises the wasm and re-exports it
+  host.ts               same bridge with host-supplied wasm bytes (`initSync`)
+  surface.ts            the one JS API both entrypoints re-export
   proto*.ts, wire-info.ts
 tests/                  the client surface (Bun)
 test/                   the feature-gated codecs: audio, image, sticker (Bun)
