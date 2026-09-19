@@ -257,6 +257,58 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
+const PACKED_REPEATED_GUARD = /^(\s*)if \(message\.([A-Za-z0-9_]+) === undefined\) \{$/;
+const PACKED_REPEATED_ALLOC = /^(\s*)message\.([A-Za-z0-9_]+) = \[\];$/;
+const PACKED_REPEATED_PUSH = /^(\s*)message\.([A-Za-z0-9_]+)!\.push\(/;
+const PACKED_BRANCH_END = 'const end2 = reader.uint32() + reader.pos;';
+const PACKED_BRANCH_LOOP = 'while (reader.pos < end2) {';
+
+/**
+ * Repeated fields carry no presence: a zero-length packed occurrence adds no
+ * elements, so allocating `[]` for it reads differently from no occurrence.
+ * Guarding the allocation on a nonempty payload keeps empty occurrences absent.
+ */
+const canonicalizeEmptyPackedRepeatedFields = (source: string): string => {
+	const lines = source.split('\n')
+	const packedBranches = source.split(PACKED_BRANCH_END).length - 1
+	const out: string[] = []
+	let transformed = 0
+	let index = 0
+	while (index < lines.length) {
+		const guard = PACKED_REPEATED_GUARD.exec(lines[index]!)
+		const alloc = index + 5 < lines.length ? PACKED_REPEATED_ALLOC.exec(lines[index + 1]!) : null
+		const push = index + 5 < lines.length ? PACKED_REPEATED_PUSH.exec(lines[index + 5]!) : null
+		if (
+			guard &&
+			alloc &&
+			push &&
+			alloc[1] === `${guard[1]}  ` &&
+			alloc[2] === guard[2] &&
+			lines[index + 2] === `${guard[1]}}` &&
+			lines[index + 3] === `${guard[1]}${PACKED_BRANCH_END}` &&
+			lines[index + 4] === `${guard[1]}${PACKED_BRANCH_LOOP}` &&
+			push[1] === `${guard[1]}  ` &&
+			push[2] === guard[2]
+		) {
+			out.push(
+				`${guard[1]}${PACKED_BRANCH_END}`,
+				`${guard[1]}if (reader.pos < end2 && message.${guard[2]} === undefined) {`,
+				`${guard[1]}  message.${guard[2]} = [];`,
+				`${guard[1]}}`
+			)
+			transformed++
+			index += 4
+			continue
+		}
+		out.push(lines[index]!)
+		index++
+	}
+	if (transformed === 0 || transformed !== packedBranches) {
+		throw new Error(`ts-proto emitted a packed repeated decode in an unhandled shape (${transformed}/${packedBranches})`)
+	}
+	return out.join('\n')
+}
+
 const DECODE_LOOP_EPILOGUE =
 	/^([ \t]+)if \(\(tag & 7\) === 4 \|\| tag === 0\) \{\n[ \t]+break;\n[ \t]+\}$/gm
 
@@ -501,6 +553,7 @@ try {
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = stripRecursionGuard(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
+	generatedSource = canonicalizeEmptyPackedRepeatedFields(generatedSource)
 	generatedSource = rejectIllegalTags(generatedSource)
 	const descriptor = readFileSync(descriptorFile)
 	assertWireTypeGuards(generatedSource, descriptor)

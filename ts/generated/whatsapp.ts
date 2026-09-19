@@ -8416,10 +8416,10 @@ export const ADVKeyIndexList: MessageFns<ADVKeyIndexList> = {
           }
 
           if (tag === 34) {
-            if (message.validIndexes === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.validIndexes === undefined) {
               message.validIndexes = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.validIndexes!.push(reader.uint32());
             }
@@ -12017,10 +12017,10 @@ export const BotCapabilityMetadata: MessageFns<BotCapabilityMetadata> = {
           }
 
           if (tag === 10) {
-            if (message.capabilities === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.capabilities === undefined) {
               message.capabilities = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.capabilities!.push(reader.int32() as any);
             }
@@ -14675,10 +14675,10 @@ export const BotModeSelectionMetadata: MessageFns<BotModeSelectionMetadata> = {
           }
 
           if (tag === 10) {
-            if (message.mode === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.mode === undefined) {
               message.mode = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.mode!.push(reader.int32() as any);
             }
@@ -14699,10 +14699,10 @@ export const BotModeSelectionMetadata: MessageFns<BotModeSelectionMetadata> = {
           }
 
           if (tag === 18) {
-            if (message.overrideMode === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.overrideMode === undefined) {
               message.overrideMode = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.overrideMode!.push(reader.uint32());
             }
@@ -18305,10 +18305,10 @@ export const ClientPayload: MessageFns<ClientPayload> = {
           }
 
           if (tag === 114) {
-            if (message.shards === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.shards === undefined) {
               message.shards = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.shards!.push(reader.int32());
             }
@@ -28619,10 +28619,10 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
           }
 
           if (tag === 26) {
-            if (message.senderKeyIndexes === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.senderKeyIndexes === undefined) {
               message.senderKeyIndexes = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.senderKeyIndexes!.push(reader.uint32());
             }
@@ -28675,10 +28675,10 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
           }
 
           if (tag === 82) {
-            if (message.recipientKeyIndexes === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.recipientKeyIndexes === undefined) {
               message.recipientKeyIndexes = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.recipientKeyIndexes!.push(reader.uint32());
             }
@@ -28813,10 +28813,10 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
           }
 
           if (tag === 50) {
-            if (message.supportedEncryptionVersions === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.supportedEncryptionVersions === undefined) {
               message.supportedEncryptionVersions = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.supportedEncryptionVersions!.push(reader.int32());
             }
@@ -38630,10 +38630,10 @@ export const MediaEntry_ProgressiveJpegDetails: MessageFns<MediaEntry_Progressiv
           }
 
           if (tag === 10) {
-            if (message.scanLengths === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.scanLengths === undefined) {
               message.scanLengths = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.scanLengths!.push(reader.uint32());
             }
@@ -41089,10 +41089,10 @@ export const Message_AppStateSyncKeyFingerprint: MessageFns<Message_AppStateSync
           }
 
           if (tag === 26) {
-            if (message.deviceIndexes === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.deviceIndexes === undefined) {
               message.deviceIndexes = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.deviceIndexes!.push(reader.uint32());
             }
@@ -46417,10 +46417,10 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
           }
 
           if (tag === 178) {
-            if (message.scanLengths === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.scanLengths === undefined) {
               message.scanLengths = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.scanLengths!.push(reader.uint32());
             }
@@ -66353,10 +66353,10 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
           }
 
           if (tag === 10) {
-            if (message.regionId === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.regionId === undefined) {
               message.regionId = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.regionId!.push(reader.int32());
             }
@@ -66377,10 +66377,10 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
           }
 
           if (tag === 18) {
-            if (message.clusterId === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.clusterId === undefined) {
               message.clusterId = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.clusterId!.push(reader.int32());
             }
@@ -72924,10 +72924,10 @@ export const SyncActionValue_LabelReorderingAction: MessageFns<SyncActionValue_L
           }
 
           if (tag === 10) {
-            if (message.sortedLabelIds === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.sortedLabelIds === undefined) {
               message.sortedLabelIds = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.sortedLabelIds!.push(reader.int32());
             }
@@ -75557,10 +75557,10 @@ export const SyncActionValue_StatusPrivacyAction: MessageFns<SyncActionValue_Sta
           }
 
           if (tag === 50) {
-            if (message.modes === undefined) {
+            const end2 = reader.uint32() + reader.pos;
+            if (reader.pos < end2 && message.modes === undefined) {
               message.modes = [];
             }
-            const end2 = reader.uint32() + reader.pos;
             while (reader.pos < end2) {
               message.modes!.push(reader.int32() as any);
             }
