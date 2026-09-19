@@ -12,8 +12,13 @@ edition = "2024"
 [dependencies]
 voip-abi = { path = "../voip-abi" }
 wacore = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "7acae337a1acc8bff31e15db56880ca982128332", default-features = false, features = ["voip", "voip-mlow", "js"] }
+wacore-binary = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "7acae337a1acc8bff31e15db56880ca982128332" }
+anyhow = { version = "1.0", default-features = false }
 async-channel = { version = "2.5.0", default-features = false, features = ["std"] }
+async-trait = "0.1.89"
 bytes = { version = "1.11", default-features = false }
+futures = { version = "0.3", default-features = false, features = ["alloc", "async-await", "executor", "std"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
 js-sys = "0.3"
 wasm-bindgen = "0.2.121"
 wasm-bindgen-futures = "0.4.71"

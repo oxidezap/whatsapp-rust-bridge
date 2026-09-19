@@ -14,16 +14,21 @@
 //! `STATS`, `MEDIA_ENDED`, the `_OUT` media frames) leave through the
 //! handler installed by [`set_push_handler`].
 //!
-//! The engine itself is not yet wired: the handshake, the reservation table,
-//! and the frame routing below are live, but `BeginOpen` acknowledges
-//! without building a `CallEngine`. Wiring the engine needs the relay
-//! transport the plugin side supplies (`VoipRelayTransport` in `ts/`), and
-//! inventing its shape here would be guessing at the contract. That is the
-//! stub, recorded honestly: no engine runs in this revision.
+//! `BeginOpen` builds a real `CallEngine` from the open params (see
+//! [`spec`]), dials the relay through the plugin transport installed by
+//! [`relay::set_relay_transport`], and runs `run_call` on the [`runtime`].
+//! The engine's outputs fan back out as pushes in [`call`]: decoded PCM,
+//! encoded packets, video units, events, stats, and the terminal close.
+
+mod call;
+mod relay;
+mod runtime;
+mod spec;
 
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
+use crate::call::{EncodedAudioOut, LiveCall, event_push, stats_push};
 use voip_abi::{
     ABI_MAJOR, ABI_MINOR, AbiErrorCode, BeginOpenRequest, CancelOpenRequest, CancelOpenResponse,
     CancelOutcome, Capabilities, CommandRequest, Frame, GroupFitsRequest, GroupFitsResponse,
@@ -32,10 +37,10 @@ use voip_abi::{
 };
 use wasm_bindgen::prelude::*;
 
-/// Capability bits this side offers: everything the (stub) engine will
-/// carry once wired. `RELAY_RECONNECT` stays out: the relay lives on the
-/// plugin's transport, so this side must not promise reconnect help it
-/// never gives. Mirrors `ABI_CAPABILITIES` on the core side.
+/// Capability bits this side offers: everything the engine carries.
+/// `RELAY_RECONNECT` stays out: the relay lives on the plugin's transport,
+/// which redials out of band, so this side must not promise reconnect help
+/// it never gives. Mirrors `ABI_CAPABILITIES` on the core side.
 const ENGINE_CAPABILITIES: u32 = Capabilities::PCM
     | Capabilities::ENCODED_AUDIO
     | Capabilities::VIDEO
@@ -54,8 +59,9 @@ struct EngineSession {
     call_id: String,
     /// Whether `BeginOpen` has been acknowledged for this session.
     opening: bool,
-    /// Whether `BeginOpen` has completed (the `OPEN` push went out).
-    open: bool,
+    /// The running call, once `BeginOpen` built its engine and the `OPEN`
+    /// push went out. `None` while setup is still in flight.
+    live_call: Option<LiveCall>,
 }
 
 /// The engine module's mutable state, behind one lock.
@@ -247,7 +253,7 @@ fn on_reserve(req: &Frame) -> Frame {
             id: reserve.session,
             call_id: reserve.call_id,
             opening: false,
-            open: false,
+            live_call: None,
         },
     );
     Frame::respond(req, Vec::new())
@@ -255,47 +261,172 @@ fn on_reserve(req: &Frame) -> Frame {
 
 /// Starts asynchronous setup with the open params. The ack means setup
 /// started, not finished; completion arrives as an `OPEN` push. The engine
-/// itself is not yet wired, so this revision completes setup inline: the
-/// ack goes out and the `OPEN` push follows, with no media flowing yet.
+/// builds on a spawned task: the params become a `MediaSessionSpec`, the
+/// spec becomes a `CallEngine` plus a relay dial, and `run_call` drives the
+/// call from there. The `OPEN` push goes out only after the task is up; a
+/// refusal fails the ack inline with the field that was wrong.
 fn on_begin_open(req: &Frame) -> Frame {
     let Ok(begin) = BeginOpenRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("BEGIN_OPEN misformed"));
     };
-    let mut st = match state().lock() {
-        Ok(st) => st,
-        Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
+    let (call_id, params) = match state().lock() {
+        Ok(mut st) => {
+            if let Err(e) = st.sessions.validate(begin.session) {
+                return session_error(req, e);
+            }
+            let Some(session) = st.live.get_mut(&begin.session.handle) else {
+                return Frame::fail(
+                    req,
+                    AbiErrorCode::UnknownSession,
+                    Some("session is not reserved"),
+                );
+            };
+            if session.id.generation != begin.session.generation {
+                return Frame::fail(
+                    req,
+                    AbiErrorCode::StaleGeneration,
+                    Some("session generation is not current"),
+                );
+            }
+            if session.opening || session.live_call.is_some() {
+                return Frame::fail(req, AbiErrorCode::Busy, Some("open already in flight"));
+            }
+            session.opening = true;
+            (session.call_id.clone(), begin.params)
+        }
+        Err(_) => {
+            return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged"));
+        }
     };
-    if let Err(e) = st.sessions.validate(begin.session) {
-        return session_error(req, e);
-    }
-    let Some(session) = st.live.get_mut(&begin.session.handle) else {
-        return Frame::fail(
-            req,
-            AbiErrorCode::UnknownSession,
-            Some("session is not reserved"),
-        );
+    let ack = Frame::respond(req, Vec::new());
+    let session = begin.session;
+    wasm_bindgen_futures::spawn_local(async move {
+        open_async(session, call_id, params).await;
+    });
+    ack
+}
+
+/// Builds the engine and starts the drive loop off the request path: `dial`
+/// awaits the plugin's JS transport, so it cannot run inside `send_frame`.
+/// On success the `OPEN` push goes out; on refusal the session is released
+/// back to reserved so the core can retry or close, and the failure rides
+/// an `EVENT(MEDIA_SETUP_FAILED)` the core's session raises.
+async fn open_async(session: SessionId, call_id: String, params: voip_abi::OpenParams) {
+    use crate::call::PushSinks;
+    let live = LiveCall::open(
+        session,
+        call_id,
+        params,
+        PushSinks {
+            event: Arc::new(|id, event| push(event_push(id, event))),
+            stats: Arc::new(|id, stats| push(stats_push(id, stats))),
+            pcm: Arc::new(push_pcm),
+            encoded: Arc::new(push_encoded),
+            video: Arc::new(push_video),
+            ended: Arc::new(push_ended),
+        },
+    )
+    .await;
+    let Ok(mut st) = state().lock() else { return };
+    let Some(entry) = st.live.get_mut(&session.handle) else {
+        return;
     };
-    if session.id.generation != begin.session.generation {
-        return Frame::fail(
-            req,
-            AbiErrorCode::StaleGeneration,
-            Some("session generation is not current"),
-        );
+    if entry.id.generation != session.generation {
+        return;
     }
-    if session.opening || session.open {
-        return Frame::fail(req, AbiErrorCode::Busy, Some("open already in flight"));
+    match live {
+        Ok(call) => {
+            entry.opening = false;
+            entry.live_call = Some(call);
+            drop(st);
+            push_open(session);
+        }
+        Err(error) => {
+            entry.opening = false;
+            drop(st);
+            push_setup_failed(session, &error);
+        }
     }
-    // The params decode above; the engine they would build does not exist
-    // yet. Record the intent so `CANCEL_OPEN` has something to abort and
-    // complete inline: ack now, `OPEN` push next.
-    let _params = begin.params;
-    session.opening = true;
-    session.open = true;
-    session.opening = false;
-    let id = session.id;
-    drop(st);
-    push_open(id);
-    Frame::respond(req, Vec::new())
+}
+
+/// Emits the `EVENT(MEDIA_SETUP_FAILED)` for an open that never became a
+/// call, so the core's `wait_opened` fails instead of hanging to its
+/// ceiling. The session stays reserved: the failure named the params, not
+/// the handle, so the core may retry or close. The wire code rides beside
+/// the detail so the core's setup grammar (`Connect` vs setup) survives
+/// the push.
+fn push_setup_failed(session: SessionId, error: &crate::call::OpenError) {
+    push(event_push(
+        session,
+        voip_abi::AbiEvent::MediaSetupFailed(format!("{}: {error:?}", error.code().name())),
+    ));
+}
+
+fn push_pcm(session: SessionId, seq: u32, data: Vec<u8>) {
+    push(
+        Frame {
+            major: ABI_MAJOR,
+            minor: ABI_MINOR,
+            opcode: Opcode::PcmOut,
+            flags: 0,
+            payload: MediaFrame { session, seq, data }.encode(),
+        }
+        .encode(),
+    );
+}
+
+fn push_encoded(session: SessionId, seq: u32, frame: voip_abi::EncodedFrameDto) {
+    push(
+        Frame {
+            major: ABI_MAJOR,
+            minor: ABI_MINOR,
+            opcode: Opcode::EncodedAudioOut,
+            flags: 0,
+            payload: EncodedAudioOut {
+                session,
+                seq,
+                frame,
+            }
+            .encode(),
+        }
+        .encode(),
+    );
+}
+
+fn push_video(session: SessionId, seq: u32, frame: voip_abi::VideoFrameDto) {
+    push(
+        Frame {
+            major: ABI_MAJOR,
+            minor: ABI_MINOR,
+            opcode: Opcode::VideoOut,
+            flags: 0,
+            payload: voip_abi::VideoOut {
+                session,
+                seq,
+                frame,
+            }
+            .encode(),
+        }
+        .encode(),
+    );
+}
+
+fn push_ended(session: SessionId, reason: voip_abi::CloseReason, detail: Option<String>) {
+    push(
+        Frame {
+            major: ABI_MAJOR,
+            minor: ABI_MINOR,
+            opcode: Opcode::MediaEnded,
+            flags: 0,
+            payload: voip_abi::CloseRequest {
+                session,
+                reason,
+                detail,
+            }
+            .encode(),
+        }
+        .encode(),
+    );
 }
 
 /// Emits the `OPEN` notification for a session whose setup completed.
@@ -313,25 +444,29 @@ fn push_open(session: SessionId) {
     );
 }
 
-/// Aborts an in-flight `BeginOpen`. The ack carries the outcome: setup
-/// here completes inline, so there is never anything in flight — an open
-/// session reports `AlreadyOpen`, anything else `Unknown`.
+/// Aborts an in-flight `BeginOpen`. The ack carries the outcome: an
+/// opening session reports `Aborted` and releases back to reserved, an
+/// open session reports `AlreadyOpen`, anything else `Unknown`.
 fn on_cancel_open(req: &Frame) -> Frame {
     let Ok(cancel) = CancelOpenRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("CANCEL_OPEN misformed"));
     };
-    let st = match state().lock() {
+    let mut st = match state().lock() {
         Ok(st) => st,
         Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
     };
     if let Err(e) = st.sessions.validate(cancel.session) {
         return session_error(req, e);
     }
-    let outcome = match st.live.get(&cancel.session.handle) {
+    let outcome = match st.live.get_mut(&cancel.session.handle) {
         Some(session) if session.id.generation == cancel.session.generation => {
             if session.opening {
+                // The spawned open still runs, but its completion finds no
+                // opening session and drops the call it built: the abort is
+                // what the core was promised, even if the task outlives it.
+                session.opening = false;
                 CancelOutcome::Aborted
-            } else if session.open {
+            } else if session.live_call.is_some() {
                 CancelOutcome::AlreadyOpen
             } else {
                 CancelOutcome::Unknown
@@ -342,21 +477,21 @@ fn on_cancel_open(req: &Frame) -> Frame {
     Frame::respond(req, CancelOpenResponse { outcome }.encode())
 }
 
-/// Applies one control intent to a live session. The stub engine accepts
-/// every well-formed command; the behavior they name arrives with the
-/// engine wiring.
+/// Applies one control intent to the live call. A well-formed command for
+/// a session with no running engine is `Busy`, not an acceptance: the
+/// stub's blanket ack is gone with the engine wiring.
 fn on_command(req: &Frame) -> Frame {
     let Ok(cmd) = CommandRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("COMMAND misformed"));
     };
-    let st = match state().lock() {
+    let mut st = match state().lock() {
         Ok(st) => st,
         Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
     };
     if let Err(e) = st.sessions.validate(cmd.session) {
         return session_error(req, e);
     }
-    let Some(session) = st.live.get(&cmd.session.handle) else {
+    let Some(session) = st.live.get_mut(&cmd.session.handle) else {
         return Frame::fail(
             req,
             AbiErrorCode::UnknownSession,
@@ -370,16 +505,20 @@ fn on_command(req: &Frame) -> Frame {
             Some("session generation is not current"),
         );
     }
-    // The command decoded; applying it is engine work that does not exist
-    // yet. Accept it so the core's command grammar stays exercised across
-    // the boundary.
-    let _command = cmd.command;
-    Frame::respond(req, Vec::new())
+    let Some(call) = session.live_call.as_mut() else {
+        return Frame::fail(req, AbiErrorCode::Busy, Some("call is not open"));
+    };
+    if call.command(cmd.command) {
+        Frame::respond(req, Vec::new())
+    } else {
+        Frame::fail(req, AbiErrorCode::Busy, Some("command refused"))
+    }
 }
 
-/// Admission probe for a group roster. The stub engine fits nothing: it
-/// carries no participant limit of its own, so it refuses rather than
-/// invents one.
+/// Admission probe for a group roster. A live group plane answers from its
+/// own fit; a 1:1 call fits no roster. A session with no running engine is
+/// `Busy`, not an acceptance: the stub's zeroed answer is gone with the
+/// engine wiring.
 fn on_group_fits(req: &Frame) -> Frame {
     let Ok(fits) = GroupFitsRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("GROUP_FITS misformed"));
@@ -391,12 +530,31 @@ fn on_group_fits(req: &Frame) -> Frame {
     if let Err(e) = st.sessions.validate(fits.session) {
         return session_error(req, e);
     }
-    let _update = fits.update;
-    Frame::respond(req, GroupFitsResponse { fits: 0, limit: 0 }.encode())
+    let Some(session) = st.live.get(&fits.session.handle) else {
+        return Frame::fail(
+            req,
+            AbiErrorCode::UnknownSession,
+            Some("session is not reserved"),
+        );
+    };
+    if session.id.generation != fits.session.generation {
+        return Frame::fail(
+            req,
+            AbiErrorCode::StaleGeneration,
+            Some("session generation is not current"),
+        );
+    }
+    let Some(call) = session.live_call.as_ref() else {
+        return Frame::fail(req, AbiErrorCode::Busy, Some("call is not open"));
+    };
+    let (fits, limit) = call.group_fits(&fits.update);
+    Frame::respond(req, GroupFitsResponse { fits, limit }.encode())
 }
 
-/// Releases a session. Closing is idempotent: dropping half-open state
-/// twice is normal on the teardown path.
+/// Releases a session. Closing drops the live call with it: the `LiveCall`
+/// leaves the table and its drive task aborts, which drops the transport
+/// and closes the relay channel. Closing is idempotent: dropping half-open
+/// state twice is normal on the teardown path.
 fn on_close(req: &Frame) -> Frame {
     let Ok(close) = voip_abi::CloseRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("CLOSE misformed"));
@@ -422,14 +580,20 @@ fn on_close(req: &Frame) -> Frame {
         }
     }
     let _reason = close.reason;
-    st.live.remove(&close.session.handle);
+    if let Some(session) = st.live.remove(&close.session.handle)
+        && let Some(call) = session.live_call
+    {
+        // The abort drops the transport and closes the relay channel;
+        // the ended fan already pushed `MEDIA_ENDED`, so no extra push.
+        call.close();
+    }
     st.sessions.remove(close.session.handle);
     Frame::respond(req, Vec::new())
 }
 
-/// Serves a stats poll for one session. The stub engine has counted
-/// nothing, so it answers zeroes — the shape the core caches, with no
-/// counters invented.
+/// Serves a stats poll for one session from the live call's published
+/// counters. A session with no running engine answers zeroes — the shape
+/// the core caches, with no counters invented.
 fn on_stats(req: &Frame) -> Frame {
     let Ok(poll) = StatsRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("STATS misformed"));
@@ -441,13 +605,30 @@ fn on_stats(req: &Frame) -> Frame {
     if let Err(e) = st.sessions.validate(poll.session) {
         return session_error(req, e);
     }
-    Frame::respond(req, zero_stats().encode())
+    let stats = st
+        .live
+        .get(&poll.session.handle)
+        .filter(|session| session.id.generation == poll.session.generation)
+        .and_then(|session| session.live_call.as_ref())
+        .map(LiveCall::stats)
+        .unwrap_or_else(zero_stats);
+    Frame::respond(req, stats.encode())
 }
 
-/// Consumes one inbound media frame. The stub engine drops it after the
-/// session check: the bytes decoded, the generation matched, nothing
-/// flowed. The ack is the whole of the behavior.
+/// Consumes one inbound media frame into the live call's mailboxes. The
+/// bytes decoded and the generation matched; a session with no running
+/// engine still acks, because media may overtake the `OPEN` push. The ack
+/// is the whole of the behavior.
 fn on_media_in(req: &Frame) -> Frame {
+    let opcode = req.opcode;
+    match opcode {
+        Opcode::PcmIn | Opcode::EncodedAudioIn => on_audio_in(req),
+        Opcode::VideoIn => on_video_in(req),
+        _ => Frame::fail(req, AbiErrorCode::BadPayload, Some("media frame misformed")),
+    }
+}
+
+fn on_audio_in(req: &Frame) -> Frame {
     let Ok(frame) = MediaFrame::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("media frame misformed"));
     };
@@ -472,7 +653,43 @@ fn on_media_in(req: &Frame) -> Frame {
             Some("session generation is not current"),
         );
     }
-    let _bytes = frame.data;
+    if let Some(call) = session.live_call.as_ref() {
+        match req.opcode {
+            Opcode::PcmIn => call.pcm_in(&frame),
+            _ => call.encoded_in(&frame.data),
+        }
+    }
+    Frame::respond(req, Vec::new())
+}
+
+fn on_video_in(req: &Frame) -> Frame {
+    let Ok(frame) = voip_abi::VideoIn::decode(&req.payload) else {
+        return Frame::fail(req, AbiErrorCode::BadPayload, Some("media frame misformed"));
+    };
+    let st = match state().lock() {
+        Ok(st) => st,
+        Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
+    };
+    if let Err(e) = st.sessions.validate(frame.session) {
+        return session_error(req, e);
+    }
+    let Some(session) = st.live.get(&frame.session.handle) else {
+        return Frame::fail(
+            req,
+            AbiErrorCode::UnknownSession,
+            Some("session is not reserved"),
+        );
+    };
+    if session.id.generation != frame.session.generation {
+        return Frame::fail(
+            req,
+            AbiErrorCode::StaleGeneration,
+            Some("session generation is not current"),
+        );
+    }
+    if let Some(call) = session.live_call.as_ref() {
+        call.video_in(&frame.input);
+    }
     Frame::respond(req, Vec::new())
 }
 

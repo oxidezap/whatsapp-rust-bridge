@@ -33,10 +33,19 @@ import { packedContents } from "./pack";
  * adapter, and the RTC helper. The wasm holds nearly all of it (5.91 MB to
  * 6.41 MB); trimming would mean cutting the slice, so it buys the same
  * headroom over the new floor instead.
+ *
+ * Raised from 10,000,000 for the wired call engine in `voip.wasm` (PR #115),
+ * which grew the package by ~980,000 bytes: the engine skeleton's 67K stub
+ * became a 1.05 MB `whatsapp_rust_voip_bg.wasm` carrying the real `CallEngine`,
+ * the MLOW codec, and the OZVP frame routing (`BeginOpen` builds the engine
+ * and drives `run_call`; `Command`/`GroupFits`/`Close`/media route to the
+ * live call; events/stats/media fan back out as pushes). Trimming would mean
+ * unwiring the engine, so it buys the same headroom over the new floor.
  */
 // PR #115 VoIP MLOW performance under Variant C (wacore opt-level = 2) measured
 // 9.81 MB unpacked. The maintainer approved opt=2 for 2.1x faster encoder throughput.
-const MAX_UNPACKED_BYTES = 10_000_000;
+// PR #115 wired engine measured 10.97 MB unpacked; same headroom over the new floor.
+const MAX_UNPACKED_BYTES = 11_500_000;
 
 const { files, unpackedSize: total } = packedContents();
 
