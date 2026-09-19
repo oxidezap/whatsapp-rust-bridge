@@ -2,14 +2,12 @@ import {
   BinaryReader as BaseBinaryReader,
   BinaryWriter as BaseBinaryWriter,
 } from "@bufbuild/protobuf/wire";
-import { Buffer } from "node:buffer";
 
 const PROTO_WORD_BITS = 32;
 const PROTO_WORD_BASE = 2 ** PROTO_WORD_BITS;
 const PROTO_VARINT_DATA_BITS = 7;
 const PROTO_VARINT_CONTINUATION_BIT = 1 << PROTO_VARINT_DATA_BITS;
 const PROTO_VARINT_DATA_MASK = PROTO_VARINT_CONTINUATION_BIT - 1;
-const UTF8_ENCODING = "utf8";
 const REPLACEMENT_CHARACTER = "\uFFFD";
 const SURROGATE_MIN = 0xd800;
 const HIGH_SURROGATE_MAX = 0xdbff;
@@ -311,16 +309,21 @@ export class BinaryWriter extends BaseBinaryWriter {
  * methods below avoid both intermediates, while the inherited methods retain
  * Buf's public BigInt/string behavior for direct users.
  */
+/**
+ * One decoder per realm, shared by every reader in it. `TextDecoder.decode`
+ * on a view is allocation-free output-wise and within ~10% of `Buffer` on
+ * the Node/Bun hot path (faster on Bun); a fresh decoder per read would pay
+ * construction instead. Stateful across calls, so never used with
+ * `{ stream: true }` — each `string()` is one complete decode.
+ */
+const utf8Decoder = new TextDecoder();
+const utf8Encoder = new TextEncoder();
+
 export class BinaryReader extends BaseBinaryReader {
-  protected readonly utf8Buffer: Buffer;
-  private readonly wireBytes: Uint8Array;
+  protected readonly wireBytes: Uint8Array;
 
   constructor(buf: Uint8Array) {
     super(buf);
-    // Buffer.from(ArrayBuffer, offset, length) is a view, not a copy. Keeping
-    // one per reader lets every ordinary string decode use byte offsets
-    // directly instead of allocating a temporary Uint8Array subarray.
-    this.utf8Buffer = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
     this.wireBytes = buf;
   }
 
@@ -374,7 +377,7 @@ export class BinaryReader extends BaseBinaryReader {
     const start = this.pos;
     this.pos += byteLength;
     this.checkBounds();
-    return this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
+    return utf8Decoder.decode(this.wireBytes.subarray(start, this.pos));
   }
 
   override bool(): boolean {
@@ -461,7 +464,7 @@ export class InvalidUtf8CountingReader extends BinaryReader {
     const start = this.pos;
     this.pos += byteLength;
     this.checkBounds();
-    const text = this.utf8Buffer.toString(UTF8_ENCODING, start, this.pos);
+    const text = utf8Decoder.decode(this.wireBytes.subarray(start, this.pos));
     if (text.includes(REPLACEMENT_CHARACTER) && !this.decodedExactly(text, start, this.pos)) {
       this.invalidUtf8Fields++;
     }
@@ -470,7 +473,12 @@ export class InvalidUtf8CountingReader extends BinaryReader {
 
   /** A U+FFFD the peer actually sent re-encodes to the bytes it arrived as; a substituted one does not. */
   private decodedExactly(text: string, start: number, end: number): boolean {
-    const reencoded = Buffer.from(text, UTF8_ENCODING);
-    return this.utf8Buffer.compare(reencoded, 0, reencoded.length, start, end) === 0;
+    const reencoded = utf8Encoder.encode(text);
+    if (reencoded.length !== end - start) return false;
+    const bytes = this.wireBytes;
+    for (let i = 0; i < reencoded.length; i++) {
+      if (reencoded[i] !== bytes[start + i]) return false;
+    }
+    return true;
   }
 }

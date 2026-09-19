@@ -150,11 +150,12 @@ type _ClientPoliciesArgument = Assert<
   Resolves<Parameters<typeof createWhatsAppClient>[8], ClientPolicies | null | undefined>
 >;
 
-// The edge entrypoint's host initializer takes wasm-bindgen's SyncInitInput
-// (bytes or a compiled Module) — the union the host idioms produce — and the
-// client factory keeps the default entrypoint's signature.
-import type { initEdge } from "../../dist/edge.js";
+// The host entrypoint re-exports wasm-bindgen's initializer, which takes
+// bytes or a compiled Module (SyncInitInput) — the union the host idioms
+// produce — and the client factory keeps the default entrypoint's signature.
+import type { initSync } from "../../dist/host.js";
+import type { SyncInitInput } from "../../dist/whatsapp_rust_bridge.js";
 
-type _EdgeInit = Assert<
-  Resolves<Parameters<typeof initEdge>[0], import("../../dist/edge.js").SyncInitInput>
+type _HostInit = Assert<
+  Resolves<Parameters<typeof initSync>[0], SyncInitInput>
 >;

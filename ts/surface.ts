@@ -1,0 +1,73 @@
+/**
+ * The one JS surface every entrypoint publishes.
+ *
+ * `ts/index.ts` (default: finds and loads the wasm itself) and `ts/host.ts`
+ * (host-supplied wasm bytes) both re-export this module, so the API exists in
+ * exactly one source. A method added here reaches both entrypoints; a typo in
+ * one entrypoint cannot drift the other's client signature.
+ */
+
+export * from "../pkg/whatsapp_rust_bridge.js";
+
+export {
+  encodeProto,
+  decodeProto,
+  decodeProtoBatch,
+  UnpairedSurrogateError,
+  type ProtoDecodeReport,
+} from "./proto";
+export {
+  BinaryReader,
+  InvalidUtf8CountingReader,
+  longToBigInt,
+  type Int64,
+  type Long,
+} from "./proto-reader";
+
+export {
+  decodeEventWireEnvelope,
+  decodeMessageWireBatch,
+  decodeReceiptWireBatch,
+  decodeServerAckWireBatch,
+  encodeEventWireEnvelope,
+  encodeMessageWireBatch,
+  encodeReceiptWireBatch,
+  encodeServerAckWireBatch,
+  EVENT_SEGMENT_KIND_MESSAGE,
+  EVENT_SEGMENT_KIND_RECEIPT,
+  EVENT_SEGMENT_KIND_SERVER_ACK,
+  MESSAGE_WIRE_INFO_RECORD_WIDTH,
+  type EventWireSegment,
+  type MessageWireBatchView,
+  type MessageWireEntry,
+  type MessageWireInfo,
+  type PackedWireBatch,
+  type ReceiptWireData,
+  type ServerAckWireData,
+  type WireJid,
+} from "./wire-info";
+
+export { proto } from "./proto-namespace";
+
+import {
+  initWasmEngine as _initWasmEngine,
+  createWhatsAppClient as _createWhatsAppClient,
+} from "../pkg/whatsapp_rust_bridge.js";
+import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
+import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+
+// initWasmEngine and createWhatsAppClient need explicit typing
+// because they use skip_typescript in Rust for complex params.
+export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
+
+export const createWhatsAppClient: (
+  transport: JsTransportCallbacks,
+  httpClient: JsHttpClientConfig,
+  onEvent?: WhatsAppEventHandler | null,
+  store?: JsStoreCallbacks | null,
+  cache?: CacheConfig | null,
+  version?: readonly [number, number, number] | null,
+  wantedPreKeyCount?: number | null,
+  dangerSkipCertChainVerify?: boolean | null,
+  policies?: ClientPolicies | null,
+) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;

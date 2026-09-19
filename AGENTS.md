@@ -26,8 +26,9 @@ src/
   proto.rs, wire_batch.rs
 ts/
   index.ts              entry point; initialises the wasm and re-exports it
-  edge.ts               same bridge with host-supplied wasm bytes (`initEdge`),
-                        for Workers/workerd/Deno — see `docs/edge-entrypoint.md`
+  host.ts               same bridge with host-supplied wasm bytes (`initSync`),
+                        for Workers/workerd/Deno — see `docs/host-entrypoint.md`
+  surface.ts            the one JS API both entrypoints re-export
   proto*.ts, wire-info.ts
 tests/                  the client surface (Bun)
 test/                   the feature-gated codecs: audio, image, sticker (Bun)
