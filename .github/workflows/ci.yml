@@ -187,6 +187,20 @@ jobs:
           test "$(cargo tree --manifest-path crates/voip-abi/Cargo.toml --prefix none | wc -l)" = "1"
           cargo test --manifest-path crates/voip-abi/Cargo.toml --target "$HOST"
 
+      # `crates/voip-wasm/` is the second WASM: the OZVP engine side. Its own
+      # package like `voip-abi`, so the same host-target reasoning for clippy.
+      # The `cargo check` is the wasm32 target the artifact ships on, and the
+      # dependency assertion is the gate that matters: the engine side must
+      # never name the WhatsApp client, so `whatsapp-rust` in its tree fails
+      # here, not in review.
+      - name: VoIP engine WASM format, lints, wasm check and client gate
+        run: |
+          HOST=$(rustc -vV | sed -n 's/^host: //p')
+          cargo fmt --manifest-path crates/voip-wasm/Cargo.toml --all -- --check
+          cargo clippy --manifest-path crates/voip-wasm/Cargo.toml --all-targets --target "$HOST" -- -D warnings
+          cargo check --manifest-path crates/voip-wasm/Cargo.toml --lib --target wasm32-unknown-unknown
+          test "$(cargo tree --manifest-path crates/voip-wasm/Cargo.toml --prefix none | grep -c '^whatsapp-rust ')" = "0"
+
   build-and-test:
     # The benchmark step that used to run here invoked `bench:node`, whose
     # targets under benches/ were deleted in 157f43a. It never surfaced because
