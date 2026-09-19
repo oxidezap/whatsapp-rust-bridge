@@ -29,9 +29,9 @@ impl FakeBackend {
         }
     }
 
-    /// One framed request in, zero or one framed responses out. Notifications
-    /// this produces (OPEN, EVENT, MEDIA_ENDED) are returned separately by
-    /// the helpers that cause them.
+    /// One framed request in, one framed response out. Notifications this
+    /// produces (OPEN, EVENT, MEDIA_ENDED) are returned separately by the
+    /// helpers that cause them.
     fn handle(&mut self, bytes: &[u8]) -> Vec<u8> {
         let frame = Frame::decode(bytes).expect("fake backend reads the frame");
         assert_eq!(frame.major, ABI_MAJOR, "major checked before dispatch");
@@ -72,7 +72,8 @@ impl FakeBackend {
                         .encode();
                 }
                 // Params must survive the crossing intact, secrets included.
-                assert_eq!(req.params.audio_codec, AudioCodec::Mlow);
+                assert_eq!(req.params.audio_format.codec, AudioCodecWire::Mlow);
+                assert_eq!(req.params.call_key.as_bytes(), &[0x33; 32]);
                 self.opening
                     .insert(req.session.handle, req.session.generation);
                 Frame::respond(&frame, Vec::new()).encode()
@@ -150,21 +151,77 @@ fn decode_session_of(opcode: Opcode, payload: &[u8]) -> SessionId {
     session
 }
 
+fn test_format() -> AudioFormatDto {
+    AudioFormatDto {
+        codec: AudioCodecWire::Mlow,
+        rtp_profile: RtpProfile::Mlow,
+        signaling_rate: 16_000,
+        sample_rate: 16_000,
+        channels: 1,
+        samples_per_frame: 960,
+        rtp_clock_rate: 16_000,
+        rtp_timestamp_step: 960,
+        rtp_payload_type: 120,
+    }
+}
+
 fn test_params() -> OpenParams {
     OpenParams {
-        audio_codec: AudioCodec::Mlow,
-        sample_rate_hz: 16_000,
-        channels: 1,
-        muted: 0,
-        relay_host: "relay.example".to_owned(),
-        relay_port: 3478,
+        direction: Direction::Outgoing,
+        self_lid: "self:1@test".to_owned(),
+        peer_lid: "peer:2@test".to_owned(),
+        ssrc: 0x1234_5678,
+        audio_io: AudioIo::Encoded,
+        audio_format: test_format(),
         relay_token: SecretBytes::new(vec![0x11; 16]),
         auth_token: SecretBytes::new(vec![0x22; 16]),
         call_key: SecretBytes::new(vec![0x33; 32]),
+        relay_host: "relay.example".to_owned(),
+        relay_port: 3478,
         integrity_key: SecretBytes::new(vec![0x44; 32]),
-        video: VideoCaps::SEND | VideoCaps::RECV,
-        group_id: None,
-        group_epoch: None,
+        warp_mi_tag_len: 16,
+        enable_media: 1,
+        enable_video: 0,
+        enable_sframe: 1,
+        muted: 0,
+        video: 0,
+        initial_codec: None,
+        peer_orientations: vec![(None, 1)],
+        group: Some(GroupOpenSpec {
+            call_creator: "creator@test".to_owned(),
+            self_jid: "self:1@test".to_owned(),
+            initial_update: test_update(),
+            direct_peer: None,
+            epoch_transaction_id: Some(11),
+            epoch: Some(SecretBytes::new(vec![0x55; 24])),
+        }),
+    }
+}
+
+fn test_update() -> GroupCallUpdateDto {
+    GroupCallUpdateDto {
+        call_id: "call-g".to_owned(),
+        call_creator: "creator@test".to_owned(),
+        group_jid: Some("group@test".to_owned()),
+        transaction_id: 9,
+        media: "audio".to_owned(),
+        connected_limit: 8,
+        joinable: 1,
+        av_upgradable: 0,
+        rekey_requested: 0,
+        participants: vec![GroupParticipantDto {
+            jid: "p@test".to_owned(),
+            pn: None,
+            state: Some("connected".to_owned()),
+            participant_type: None,
+            devices: vec![GroupDeviceDto {
+                jid: "p:1@test".to_owned(),
+                platform: Some("android".to_owned()),
+                pid: Some(3),
+                capability_version: None,
+            }],
+        }],
+        relay: None,
     }
 }
 
@@ -248,6 +305,7 @@ fn fake_backend_drives_reserve_begin_open_and_cancel() {
         ReserveRequest {
             session,
             call_id: "call-1".to_owned(),
+            direction: Direction::Outgoing,
         }
         .encode(),
     );
@@ -297,6 +355,7 @@ fn fake_backend_completes_open_then_serves_commands_and_stats() {
         ReserveRequest {
             session,
             call_id: "call-9".to_owned(),
+            direction: Direction::Incoming,
         }
         .encode(),
     );
@@ -352,6 +411,7 @@ fn fake_backend_completes_open_then_serves_commands_and_stats() {
         CloseRequest {
             session,
             reason: CloseReason::LocalHangup,
+            detail: None,
         }
         .encode(),
     );
@@ -376,6 +436,7 @@ fn stale_generation_never_touches_the_replacement() {
         ReserveRequest {
             session: old,
             call_id: "call-4a".to_owned(),
+            direction: Direction::Outgoing,
         }
         .encode(),
     );
@@ -385,6 +446,7 @@ fn stale_generation_never_touches_the_replacement() {
         CloseRequest {
             session: old,
             reason: CloseReason::Replaced,
+            detail: None,
         }
         .encode(),
     );
@@ -394,6 +456,7 @@ fn stale_generation_never_touches_the_replacement() {
         ReserveRequest {
             session: new,
             call_id: "call-4b".to_owned(),
+            direction: Direction::Outgoing,
         }
         .encode(),
     );
@@ -403,7 +466,7 @@ fn stale_generation_never_touches_the_replacement() {
         Opcode::Command,
         CommandRequest {
             session: old,
-            command: MediaCommand::MuteAudio,
+            command: MediaCommand::VideoDisable,
         }
         .encode(),
     );
@@ -418,7 +481,7 @@ fn stale_generation_never_touches_the_replacement() {
         Opcode::Command,
         CommandRequest {
             session: new,
-            command: MediaCommand::MuteAudio,
+            command: MediaCommand::VideoDisable,
         }
         .encode(),
     );
@@ -443,6 +506,7 @@ fn reserve_refuses_to_overwrite_a_live_handle() {
         ReserveRequest {
             session: first,
             call_id: "call-5a".to_owned(),
+            direction: Direction::Outgoing,
         }
         .encode(),
     );
@@ -451,6 +515,7 @@ fn reserve_refuses_to_overwrite_a_live_handle() {
         ReserveRequest {
             session: second,
             call_id: "call-5b".to_owned(),
+            direction: Direction::Outgoing,
         }
         .encode(),
     );
@@ -469,7 +534,7 @@ fn newer_minor_fields_are_ignored_but_truncation_fails() {
     // A newer minor appends a field: the older reader skips it.
     params.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]);
     let decoded = OpenParams::decode(&params).expect("trailing bytes ignored");
-    assert_eq!(decoded.sample_rate_hz, 16_000);
+    assert_eq!(decoded.audio_format.sample_rate, 16_000);
 
     // A short payload is a failure, not a partial read.
     let short = &params[..params.len() - 8];
@@ -540,10 +605,28 @@ fn every_message_round_trips() {
         ReserveRequest,
         ReserveRequest {
             session,
-            call_id: "c".to_owned()
+            call_id: "c".to_owned(),
+            direction: Direction::Incoming,
         }
     );
+    check!(AudioFormatDto, test_format());
     check!(OpenParams, params.clone());
+    check!(GroupCallUpdateDto, test_update());
+    check!(
+        GroupOpenSpec,
+        GroupOpenSpec {
+            call_creator: "c@test".to_owned(),
+            self_jid: "s@test".to_owned(),
+            initial_update: test_update(),
+            direct_peer: Some(DirectPeerDto {
+                user_jid: "u@test".to_owned(),
+                device_jid: "u:1@test".to_owned(),
+                call_key: SecretBytes::new(vec![7; 32]),
+            }),
+            epoch_transaction_id: None,
+            epoch: None,
+        }
+    );
     check!(
         BeginOpenRequest,
         BeginOpenRequest {
@@ -563,14 +646,18 @@ fn every_message_round_trips() {
         CommandRequest,
         CommandRequest {
             session,
-            command: MediaCommand::Rekey(SecretBytes::new(vec![9; 16]))
+            command: MediaCommand::RekeyRecv {
+                answering_lid: "a@test".to_owned(),
+                audio_codec: Some(AudioCodecWire::Opus),
+            }
         }
     );
     check!(
         GroupFitsRequest,
         GroupFitsRequest {
             session,
-            participant_count: 8
+            update: test_update(),
+            is_call_link: 1,
         }
     );
     check!(GroupFitsResponse, GroupFitsResponse { fits: 1, limit: 32 });
@@ -578,27 +665,45 @@ fn every_message_round_trips() {
         CloseRequest,
         CloseRequest {
             session,
-            reason: CloseReason::Timeout
+            reason: CloseReason::Timeout,
+            detail: Some("d".to_owned()),
         }
     );
     check!(
         EventNotification,
         EventNotification {
             session,
-            event: MediaEvent::PeerVideo {
-                peer: "peer".to_owned(),
-                state: PeerVideoState::On,
+            event: AbiEvent::AudioCodecSwitched {
+                from: AudioCodecWire::Mlow,
+                to: AudioCodecWire::Opus,
+                source: CodecSource::Negotiated,
+                packets_observed: 12,
             },
         }
     );
     check!(
         StatsData,
         StatsData {
-            rtt_ms: 42,
-            tx_bitrate_bps: 24_000,
-            rx_bitrate_bps: 25_000,
-            packets_lost: 3,
-            jitter_ms: 5,
+            rtp_received: 100,
+            rtp_payload_type_unexpected: 1,
+            srtp_unprotect_failed: 0,
+            sframe_decrypt_failed: 0,
+            audio_frames_decoded: 90,
+            audio_frames_delivered: 0,
+            audio_frames_concealed: 2,
+            mlow_off_point_dropped: 0,
+            mlow_inactive_or_sid: 0,
+            foreign_frames_decoded: 0,
+            audio_frames_without_decoder: 0,
+            outbound_frames_without_encoder: 0,
+            playout_trimmed_samples: 0,
+            inbound_pipe_dropped: 0,
+            audio_sink_dropped: 0,
+            video_sink_dropped: 0,
+            peer_keyframe_requests: 1,
+            relay_packet_unclassified: 0,
+            forwarding_envelope_rejected: 0,
+            codec_switches: 1,
         }
     );
     check!(StatsRequest, StatsRequest { session });
@@ -611,44 +716,152 @@ fn every_message_round_trips() {
         }
     );
     check!(
-        MediaEndedNotification,
-        MediaEndedNotification {
+        EncodedAudioOut,
+        EncodedAudioOut {
             session,
-            reason: CloseReason::RemoteEnd
+            seq: 3,
+            frame: EncodedFrameDto {
+                codec: AudioCodecWire::Opus,
+                data: vec![9, 9],
+                payload_type: 111,
+                sequence_number: 77,
+                timestamp: 123_456,
+                marker: 1,
+                sender: Some("s@test".to_owned()),
+                device: None,
+            },
+        }
+    );
+    check!(
+        VideoIn,
+        VideoIn {
+            session,
+            seq: 4,
+            input: VideoInputDto {
+                data: vec![0, 0, 0, 1],
+                timestamp: Some(90_000),
+                input_generation: Some(2),
+            },
+        }
+    );
+    check!(
+        VideoOut,
+        VideoOut {
+            session,
+            seq: 5,
+            frame: VideoFrameDto {
+                data: vec![0, 0, 0, 1],
+                keyframe: 1,
+                orientation: 0,
+                sender: None,
+                device: None,
+                pid: Some(7),
+            },
         }
     );
 
     // Every command and event variant, so a new one has to extend this list.
     for cmd in [
-        MediaCommand::MuteAudio,
-        MediaCommand::UnmuteAudio,
         MediaCommand::VideoEnable,
         MediaCommand::VideoEnableAwaitingAccept,
         MediaCommand::VideoDisable,
         MediaCommand::VideoDisableOutbound,
         MediaCommand::VideoDisableKeepLegacy,
+        MediaCommand::VideoRequireKeyframe,
+        MediaCommand::VideoRequestPeerKeyframe(Urgency::Immediate),
+        MediaCommand::VideoSetOrientation {
+            participant: Some("p@test".to_owned()),
+            orientation: 2,
+        },
         MediaCommand::VideoSetInputGeneration(7),
-        MediaCommand::VideoSetTimestampStride(3),
-        MediaCommand::VideoSetOrientation(90),
-        MediaCommand::VideoRequestKeyframe,
-        MediaCommand::Rekey(SecretBytes::new(vec![1])),
+        MediaCommand::VideoSetTimestampStride(3_000),
+        MediaCommand::RekeyRecv {
+            answering_lid: "a".to_owned(),
+            audio_codec: None,
+        },
+        MediaCommand::GroupApplyUpdate(test_update()),
+        MediaCommand::GroupApplyTransition {
+            update: test_update(),
+            transaction_id: 4,
+            epoch: SecretBytes::new(vec![5; 24]),
+        },
+        MediaCommand::GroupApplyEpoch {
+            transaction_id: 6,
+            epoch: SecretBytes::new(vec![6; 24]),
+        },
+        MediaCommand::GroupSendReaction("👋".to_owned()),
+        MediaCommand::AudioMute(1),
     ] {
         let back = MediaCommand::decode(&cmd.encode()).expect("command round trip");
         assert_eq!(cmd, back);
     }
     for ev in [
-        MediaEvent::State(MediaState::Active),
-        MediaEvent::PeerVideo {
-            peer: "p".to_owned(),
-            state: PeerVideoState::Paused,
+        AbiEvent::RelayAllocated,
+        AbiEvent::ForeignAudio(vec![1, 2]),
+        AbiEvent::ForeignGroupAudio(EncodedFrameDto {
+            codec: AudioCodecWire::Mlow,
+            data: vec![3],
+            payload_type: 120,
+            sequence_number: 1,
+            timestamp: 960,
+            marker: 0,
+            sender: None,
+            device: None,
+        }),
+        AbiEvent::AudioFormatMismatch {
+            expected_rate: 16_000,
+            received_rates: vec![8_000],
         },
-        MediaEvent::Error {
-            code: 9,
-            detail: "d".to_owned(),
+        AbiEvent::RelayAllocateFailed(401),
+        AbiEvent::RelayAllocateTimedOut,
+        AbiEvent::MediaSetupFailed("no relay".to_owned()),
+        AbiEvent::RelayReconnectTimedOut,
+        AbiEvent::VideoKeyframeNeeded,
+        AbiEvent::RtcpReceived {
+            packet_types: vec![201],
+            sender_ssrc: 11,
+            referenced_ssrcs: vec![12],
+            reports_audio: 1,
+            reports_video: 0,
+            report_blocks: vec![RtcpBlockDto {
+                ssrc: 12,
+                fraction_lost: 0,
+                cumulative_lost: -3,
+                extended_highest_sequence: 99,
+                jitter: 4,
+                last_sender_report: 0,
+                delay_since_last_sender_report: 0,
+                profile_extension: vec![],
+            }],
+            feedback: vec![],
         },
-        MediaEvent::GroupMedia { epoch: 2, count: 5 },
+        AbiEvent::OutboundMediaDropped {
+            video_access_units: 2,
+            packets: 5,
+        },
+        AbiEvent::AudioSilent {
+            silent_for_ms: 3_000,
+            rtp_received: 50,
+            frames_produced: 0,
+            dominant_reason: SilenceReason::AuthenticationFailing,
+        },
+        AbiEvent::AudioCodecSwitched {
+            from: AudioCodecWire::Mlow,
+            to: AudioCodecWire::Opus,
+            source: CodecSource::Content,
+            packets_observed: 30,
+        },
+        AbiEvent::AudioCodecSourceIsFixed {
+            sending: AudioCodecWire::Opus,
+            peer_expects: AudioCodecWire::Mlow,
+            source: CodecSource::Negotiated,
+        },
+        AbiEvent::AudioReceptionStalled {
+            silent_for_ms: 5_000,
+        },
+        AbiEvent::Closed(CloseReason::RelayDropped),
     ] {
-        let back = MediaEvent::decode(&ev.encode()).expect("event round trip");
+        let back = AbiEvent::decode(&ev.encode()).expect("event round trip");
         assert_eq!(ev, back);
     }
 }

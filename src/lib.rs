@@ -40,6 +40,8 @@ pub mod result_types;
 pub mod runtime;
 #[cfg(feature = "client-signal")]
 pub mod signal_records;
+#[cfg(feature = "client-voip-control")]
+pub mod voip;
 pub mod wasm_client;
 mod wasm_utils;
 mod wire_batch;

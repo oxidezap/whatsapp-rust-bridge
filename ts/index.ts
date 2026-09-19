@@ -80,6 +80,7 @@ import {
 } from "../pkg/whatsapp_rust_bridge.js";
 import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+import type { ClientExtensions } from "./voip-backend";
 
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
 
@@ -93,4 +94,7 @@ export const createWhatsAppClient: (
   wantedPreKeyCount?: number | null,
   dangerSkipCertChainVerify?: boolean | null,
   policies?: ClientPolicies | null,
+  extensions?: ClientExtensions | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
+
+export type { VoipBackendCallbacks, ClientExtensions } from "./voip-backend";

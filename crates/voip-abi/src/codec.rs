@@ -57,7 +57,9 @@ impl core::fmt::Display for DecodeError {
 
 impl std::error::Error for DecodeError {}
 
-/// Appends the fixed repertoire to a byte buffer.
+/// Appends the fixed repertoire to a byte buffer. Signed integers travel as
+/// two's complement little-endian: the one signed core field
+/// (`cumulative_lost`) keeps its sign without a second encoding.
 #[derive(Debug, Default)]
 pub struct Writer {
     buf: Vec<u8>,
@@ -91,6 +93,11 @@ impl Writer {
 
     /// 64-bit little-endian: generations, epochs.
     pub fn u64_le(&mut self, v: u64) {
+        self.buf.extend_from_slice(&v.to_le_bytes());
+    }
+
+    /// 32-bit signed little-endian, two's complement.
+    pub fn i32_le(&mut self, v: i32) {
         self.buf.extend_from_slice(&v.to_le_bytes());
     }
 
@@ -172,6 +179,12 @@ impl<'a> Reader<'a> {
         Ok(u64::from_le_bytes([
             b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
         ]))
+    }
+
+    /// 32-bit signed little-endian, two's complement.
+    pub fn i32_le(&mut self) -> Result<i32, DecodeError> {
+        let b = self.take(4)?;
+        Ok(i32::from_le_bytes([b[0], b[1], b[2], b[3]]))
     }
 
     /// `u32` length prefix plus the raw bytes.

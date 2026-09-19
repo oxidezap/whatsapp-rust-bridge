@@ -2739,8 +2739,10 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// await client.run();
 /// ```
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
-// Nine positional arguments is the reviewed JS contract: wasm-bindgen
-// exports cannot take a builder, so the arity grows with the surface.
+// Ten positional arguments is the reviewed JS contract: wasm-bindgen
+// exports cannot take a builder, so the arity grows with the surface. The
+// tenth is the trailing `extensions` object, optional and inert when absent:
+// it carries whole plugin families (`voipBackend`), never one loose knob.
 #[allow(clippy::too_many_arguments)]
 pub async fn create_whatsapp_client(
     transport_config: JsValue,
@@ -2752,6 +2754,7 @@ pub async fn create_whatsapp_client(
     wanted_pre_key_count_js: Option<JsValue>,
     noise_cert_policy_js: Option<JsValue>,
     policies_js: Option<JsValue>,
+    extensions_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
     // Block on every in-flight `Drop` cleanup before allocating new state.
     // Each `Drop` registers a oneshot; we await all of them. Closes the race
@@ -2764,6 +2767,10 @@ pub async fn create_whatsapp_client(
     let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
     let history_sync_admission =
         crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
+    #[cfg(feature = "client-voip-control")]
+    let extensions = crate::voip::ClientExtensions::from_js(extensions_js.as_ref())?;
+    #[cfg(not(feature = "client-voip-control"))]
+    reject_voip_extensions(extensions_js.as_ref())?;
 
     let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
@@ -2917,6 +2924,17 @@ pub async fn create_whatsapp_client(
     };
     let builder = match override_version {
         Some(version) => builder.with_version_override(version),
+        None => builder,
+    };
+    // The media plugin installs here, on the builder, never after: the
+    // handshake versions the plugin before the client exists, and the
+    // registry the facade reads is fixed at build.
+    #[cfg(feature = "client-voip-control")]
+    let builder = match extensions.voip_backend {
+        Some(callbacks) => {
+            let agreed = crate::voip::handshake(&callbacks).await?;
+            crate::voip::install(builder, callbacks, agreed, runtime.clone())?
+        }
         None => builder,
     };
     let (client, sync_rx) = builder
@@ -3823,6 +3841,36 @@ fn parse_named_jid(field: &'static str, value: &str) -> Result<Jid, crate::error
 /// throws from inside the async shim, where the throw escapes as an uncaught
 /// exception and leaves the promise pending for good. The declared TypeScript
 /// type is preserved by `unchecked_param_type` on the parameter.
+/// Rejects a media plugin the build cannot honor. Without the control
+/// seam there is no backend to install it on, so carrying on silently
+/// would drop the caller's media path without a word.
+#[cfg(not(feature = "client-voip-control"))]
+fn reject_voip_extensions(
+    extensions_js: Option<&JsValue>,
+) -> Result<(), crate::errors::BridgeError> {
+    let Some(obj) = extensions_js else {
+        return Ok(());
+    };
+    if obj.is_null() || obj.is_undefined() {
+        return Ok(());
+    };
+    if !obj.is_object() {
+        return Err(crate::errors::invalid_arg(
+            "extensions",
+            "extensions must be an object",
+        ));
+    }
+    let backend = js_sys::Reflect::get(obj, &"voipBackend".into())
+        .map_err(|_| crate::errors::invalid_arg("extensions", "extensions is unreadable"))?;
+    if backend.is_null() || backend.is_undefined() {
+        return Ok(());
+    }
+    Err(crate::errors::invalid_arg(
+        "extensions",
+        "voipBackend requires the client-voip-control feature",
+    ))
+}
+
 fn from_js_input<T: serde::de::DeserializeOwned>(
     field: &'static str,
     value: JsValue,

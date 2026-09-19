@@ -1490,6 +1490,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "voip-abi"
+version = "0.1.0"
+
+[[package]]
 name = "wacore"
 version = "0.7.0"
 source = "git+https://github.com/oxidezap/whatsapp-rust?rev=7acae337a1acc8bff31e15db56880ca982128332#7acae337a1acc8bff31e15db56880ca982128332"
@@ -1842,6 +1846,7 @@ dependencies = [
  "tracing-core",
  "tsify",
  "uuid",
+ "voip-abi",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",

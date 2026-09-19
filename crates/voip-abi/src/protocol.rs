@@ -188,6 +188,9 @@ pub enum AbiErrorCode {
     Busy = 6,
     /// Anything else on the responder side.
     Internal = 7,
+    /// The media transport failed: refused connect, expired dial, dropped
+    /// socket. Maps to `MediaSetupError::Connect`, never to setup.
+    Transport = 8,
 }
 
 impl AbiErrorCode {
@@ -206,6 +209,7 @@ impl AbiErrorCode {
             5 => AbiErrorCode::NotSupported,
             6 => AbiErrorCode::Busy,
             7 => AbiErrorCode::Internal,
+            8 => AbiErrorCode::Transport,
             _ => return None,
         };
         Some(code)
@@ -221,6 +225,7 @@ impl AbiErrorCode {
             AbiErrorCode::NotSupported => "NOT_SUPPORTED",
             AbiErrorCode::Busy => "BUSY",
             AbiErrorCode::Internal => "INTERNAL",
+            AbiErrorCode::Transport => "TRANSPORT",
         }
     }
 }

@@ -107,7 +107,7 @@ client-signal = []
 # The engine reaches the artifact only through the `client-calls-audio`,
 # `client-calls-pcm` and `client-calls-mlow` features below; this one never
 # turns `wacore/voip` on.
-client-voip-control = ["whatsapp-rust/voip-control"]
+client-voip-control = ["whatsapp-rust/voip-control", "dep:voip-abi"]
 # Typed interop with the decoded libsignal SessionRecord v1 model, for
 # migrating externally produced auth state. The core keeps this off by default
 # so a client carries no migration surface; the bridge turns it on for the
@@ -156,6 +156,7 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"], op
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
 tsify = { version = "0.5.6", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
+voip-abi = { path = "crates/voip-abi", optional = true }
 
 wasm-bindgen = "0.2.121"
 wasm-bindgen-futures = "0.4.71"
