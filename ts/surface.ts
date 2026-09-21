@@ -60,6 +60,11 @@ import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 // because they use skip_typescript in Rust for complex params.
 export const initWasmEngine: (logger?: any, crypto?: any) => void = _initWasmEngine;
 
+/**
+ * The factory promise is the initialization barrier. Once it resolves,
+ * persistence, adapters, and the core client are ready; it does not imply a
+ * socket, authentication, a started run loop, or completed history sync.
+ */
 export const createWhatsAppClient: (
   transport: JsTransportCallbacks,
   httpClient: JsHttpClientConfig,

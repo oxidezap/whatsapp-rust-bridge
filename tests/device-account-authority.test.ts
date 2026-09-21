@@ -73,6 +73,53 @@ afterEach(async () => {
 });
 
 describe("device/account persistence failures", () => {
+  test("factory resolution is the initialization barrier", async () => {
+    const store = mapStore();
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let firstGet = true;
+    const gated = {
+      ...store.callbacks,
+      async get(...args: Parameters<typeof store.callbacks.get>) {
+        if (firstGet) {
+          firstGet = false;
+          entered();
+          await hold;
+        }
+        return store.callbacks.get(...args);
+      },
+    };
+
+    const creating = createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      gated as never
+    );
+    await enteredPromise;
+    let settled = false;
+    void creating.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      }
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    release();
+    const client = await track(await creating);
+    expect(client).toBeDefined();
+  });
+
   test("creation over an empty store succeeds", async () => {
     const store = mapStore();
     const client = await track(

@@ -80,6 +80,10 @@ describe("host entrypoint", () => {
     const host = exportedNames(requireDist("host.js"));
     const index = exportedNames(requireDist("index.js"));
     expect([...index].sort()).toEqual([...host].sort());
+    for (const name of ["aesGcm256Encrypt", "aesGcm256Decrypt", "sha256"]) {
+      expect(index).toContain(name);
+      expect(host).toContain(name);
+    }
   });
 
   test("dist/host.d.ts exists and references only dist siblings", () => {
