@@ -3,6 +3,7 @@
 
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::crypto as core_crypto;
@@ -38,6 +39,23 @@ pub fn md5_digest(input: &[u8]) -> Uint8Array {
     byte_array(&core_crypto::md5_digest(input))
 }
 
+static ENGINE_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+pub(crate) fn mark_engine_initialized() {
+    ENGINE_INITIALIZED.store(true, Ordering::Release);
+}
+
+fn require_engine_initialized() -> Result<(), BridgeError> {
+    if ENGINE_INITIALIZED.load(Ordering::Acquire) {
+        Ok(())
+    } else {
+        Err(BridgeError::InvalidArgument {
+            field: "initWasmEngine".into(),
+            reason: "must be called before AES-GCM operations".into(),
+        })
+    }
+}
+
 fn fixed_bytes<const N: usize>(field: &'static str, input: &[u8]) -> Result<[u8; N], BridgeError> {
     input.try_into().map_err(|_| BridgeError::InvalidArgument {
         field: field.into(),
@@ -63,6 +81,7 @@ pub fn aes_gcm_256_encrypt(
     aad: &[u8],
     plaintext: &[u8],
 ) -> Result<Uint8Array, BridgeError> {
+    require_engine_initialized()?;
     let key = fixed_bytes::<32>("key", key)?;
     let nonce = fixed_bytes::<12>("nonce", nonce)?;
     let mut output = Vec::with_capacity(plaintext.len() + 16);
@@ -79,6 +98,7 @@ pub fn aes_gcm_256_decrypt(
     aad: &[u8],
     ciphertext_with_tag: &[u8],
 ) -> Result<Uint8Array, BridgeError> {
+    require_engine_initialized()?;
     let key = fixed_bytes::<32>("key", key)?;
     let nonce = fixed_bytes::<12>("nonce", nonce)?;
     if ciphertext_with_tag.len() < 16 {
@@ -102,7 +122,12 @@ pub fn sha256_digest(input: &[u8]) -> Result<Uint8Array, BridgeError> {
         }
     })?;
     hash.update(input);
-    Ok(byte_array(&hash.finalize()))
+    let mut digest = [0u8; signal_crypto::SHA256_OUTPUT_SIZE];
+    hash.finalize_into(&mut digest)
+        .map_err(|error| BridgeError::Internal {
+            message: format!("finalize SHA-256: {error}"),
+        })?;
+    Ok(byte_array(&digest))
 }
 
 #[wasm_bindgen(js_name = hkdf)]

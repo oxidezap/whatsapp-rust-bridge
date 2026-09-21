@@ -2451,7 +2451,8 @@ fn parse_timestamp_ms(field: &'static str, value: f64) -> Result<i64, crate::err
 // Initialization
 // ---------------------------------------------------------------------------
 
-/// Initialize the WASM environment. Must be called once before creating clients.
+/// Initialize the WASM environment. Must be called once before creating clients
+/// or using provider-routed AES-GCM exports.
 ///
 /// Accepts an optional JS logger (pino-compatible) to route all Rust logs through.
 /// If no logger is provided, falls back to console.log with "warn" level.
@@ -2480,6 +2481,8 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
     if let Err(e) = crate::js_crypto::try_install_from_js(&crypto) {
         log::warn!("skipping native crypto provider: {e:?}");
     }
+
+    crate::crypto::mark_engine_initialized();
 }
 
 // ---------------------------------------------------------------------------

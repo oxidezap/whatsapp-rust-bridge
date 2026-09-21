@@ -134,6 +134,36 @@ describe("device/account persistence failures", () => {
     expect(store.kept.has("device/device")).toBe(true);
   });
 
+  test("factory barrier leaves no store work after teardown resolves", async () => {
+    const store = mapStore();
+    const operations: string[] = [];
+    const callbacks = {
+      async get(...args: Parameters<typeof store.callbacks.get>) {
+        operations.push(`get:${args[0]}/${args[1]}`);
+        return store.callbacks.get(...args);
+      },
+      async set(...args: Parameters<typeof store.callbacks.set>) {
+        operations.push(`set:${args[0]}/${args[1]}`);
+        return store.callbacks.set(...args);
+      },
+      async delete(...args: Parameters<typeof store.callbacks.delete>) {
+        operations.push(`delete:${args[0]}/${args[1]}`);
+        return store.callbacks.delete(...args);
+      },
+    };
+    const client = await createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      callbacks as never
+    );
+    await client.disconnect();
+    const afterDisconnect = operations.length;
+    client.free();
+    await Promise.resolve();
+    expect(operations.length).toBe(afterDisconnect);
+  });
+
   test("corrupt sidecar on a missing-inline record rejects as storage", async () => {
     const store = mapStore();
     // The seeding client owns a background saver that would rewrite the
