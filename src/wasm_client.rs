@@ -2451,7 +2451,8 @@ fn parse_timestamp_ms(field: &'static str, value: f64) -> Result<i64, crate::err
 // Initialization
 // ---------------------------------------------------------------------------
 
-/// Initialize the WASM environment. Must be called once before creating clients.
+/// Initialize the WASM environment. Must be called once before creating clients
+/// or using provider-routed AES-GCM exports.
 ///
 /// Accepts an optional JS logger (pino-compatible) to route all Rust logs through.
 /// If no logger is provided, falls back to console.log with "warn" level.
@@ -2480,6 +2481,8 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
     if let Err(e) = crate::js_crypto::try_install_from_js(&crypto) {
         log::warn!("skipping native crypto provider: {e:?}");
     }
+
+    crate::crypto::mark_engine_initialized();
 }
 
 // ---------------------------------------------------------------------------
@@ -2492,8 +2495,16 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// ```js
 /// initWasmEngine();
 /// const client = await createWhatsAppClient(transportConfig, httpConfig, onEvent);
+/// // Resolution is the initialization barrier: persistence, adapters and the
+/// // core client are ready. It does not mean connected, authenticated, or run.
 /// await client.run();
 /// ```
+///
+/// The returned promise resolves only after constructor-originated asynchronous
+/// initialization completes. It rejects with the original structured error and
+/// is not a connection or history-sync readiness signal; use `connect()`,
+/// `waitForConnected()`, or events for those states. This preserves the
+/// existing factory shape while making its completion contract explicit.
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
 // Nine positional arguments is the reviewed JS contract: wasm-bindgen
 // exports cannot take a builder, so the arity grows with the surface.

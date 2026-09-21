@@ -138,6 +138,22 @@ fn append_returned_bytes(out: &mut Vec<u8>, value: JsValue) -> Result<(), Crypto
 }
 
 #[inline]
+fn append_exact_returned_bytes(
+    out: &mut Vec<u8>,
+    value: JsValue,
+    expected_len: usize,
+) -> Result<(), CryptoProviderError> {
+    let arr: Uint8Array = value
+        .dyn_into()
+        .map_err(|_| CryptoProviderError::BackendFailed)?;
+    if arr.length() as usize != expected_len {
+        return Err(CryptoProviderError::BackendFailed);
+    }
+    js_bytes::append(out, &arr);
+    Ok(())
+}
+
+#[inline]
 fn copy_hmac_result(value: JsValue) -> [u8; HMAC_SHA256_BYTES] {
     let arr: Uint8Array = value
         .dyn_into()
@@ -250,7 +266,11 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
         let ret = unsafe { call4_bytes(&self.aes_gcm_encrypt, key, nonce, aad, plaintext)? };
-        append_returned_bytes(out, ret)
+        let expected_len = plaintext
+            .len()
+            .checked_add(GCM_AUTH_TAG_BYTES)
+            .ok_or(CryptoProviderError::BackendFailed)?;
+        append_exact_returned_bytes(out, ret, expected_len)
     }
 
     fn aes_256_gcm_decrypt(
@@ -267,7 +287,11 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         let ret =
             unsafe { call4_bytes(&self.aes_gcm_decrypt, key, nonce, aad, ciphertext_with_tag) }
                 .map_err(|_| CryptoProviderError::AuthFailed)?;
-        append_returned_bytes(out, ret)
+        let expected_len = ciphertext_with_tag
+            .len()
+            .checked_sub(GCM_AUTH_TAG_BYTES)
+            .ok_or(CryptoProviderError::BadInput)?;
+        append_exact_returned_bytes(out, ret, expected_len)
     }
 
     fn hmac_sha256(&self, key: &[u8], input: &[u8]) -> [u8; 32] {

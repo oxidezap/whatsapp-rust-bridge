@@ -73,6 +73,53 @@ afterEach(async () => {
 });
 
 describe("device/account persistence failures", () => {
+  test("factory resolution is the initialization barrier", async () => {
+    const store = mapStore();
+    let entered!: () => void;
+    const enteredPromise = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let firstGet = true;
+    const gated = {
+      ...store.callbacks,
+      async get(...args: Parameters<typeof store.callbacks.get>) {
+        if (firstGet) {
+          firstGet = false;
+          entered();
+          await hold;
+        }
+        return store.callbacks.get(...args);
+      },
+    };
+
+    const creating = createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      gated as never
+    );
+    await enteredPromise;
+    let settled = false;
+    void creating.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      }
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    release();
+    const client = await track(await creating);
+    expect(client).toBeDefined();
+  });
+
   test("creation over an empty store succeeds", async () => {
     const store = mapStore();
     const client = await track(
@@ -85,6 +132,36 @@ describe("device/account persistence failures", () => {
     );
     expect(client).toBeDefined();
     expect(store.kept.has("device/device")).toBe(true);
+  });
+
+  test("factory barrier leaves no store work after teardown resolves", async () => {
+    const store = mapStore();
+    const operations: string[] = [];
+    const callbacks = {
+      async get(...args: Parameters<typeof store.callbacks.get>) {
+        operations.push(`get:${args[0]}/${args[1]}`);
+        return store.callbacks.get(...args);
+      },
+      async set(...args: Parameters<typeof store.callbacks.set>) {
+        operations.push(`set:${args[0]}/${args[1]}`);
+        return store.callbacks.set(...args);
+      },
+      async delete(...args: Parameters<typeof store.callbacks.delete>) {
+        operations.push(`delete:${args[0]}/${args[1]}`);
+        return store.callbacks.delete(...args);
+      },
+    };
+    const client = await createWhatsAppClient(
+      offlineTransport(),
+      createHttp(),
+      null,
+      callbacks as never
+    );
+    await client.disconnect();
+    const afterDisconnect = operations.length;
+    client.free();
+    await Promise.resolve();
+    expect(operations.length).toBe(afterDisconnect);
   });
 
   test("corrupt sidecar on a missing-inline record rejects as storage", async () => {

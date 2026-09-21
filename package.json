@@ -38,6 +38,7 @@
     "scripts": {
         "bench": "bun run build && bun run benches/binary.ts && bun run benches/signal.ts && bun run benches/curve.ts && bun run benches/crypto.ts",
         "bench:node": "bun run build && node --expose-gc benches/binary.ts && node --expose-gc benches/signal.ts && node --expose-gc benches/curve.ts && node --expose-gc benches/crypto.ts",
+        "bench:crypto": "bun run benches/crypto.ts",
         "bench:proto": "bun run benches/proto-encode.ts",
         "bench:wire": "bun run benches/wire-batch-decode.ts",
         "bench:wire:message": "bun run benches/message-wire-batch.ts",
