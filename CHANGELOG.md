@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.1...v0.24.0) (2026-09-21)
+
+
+### Features
+
+* **crypto:** expose provider-routed sync primitives ([#130](https://github.com/oxidezap/whatsapp-rust-bridge/issues/130)) ([6fbed58](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6fbed58b31ef1b08d9f07c6edbf3497aace6eabe))
+
 ## [0.23.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.0...v0.23.1) (2026-09-20)
 
 
