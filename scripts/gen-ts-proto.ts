@@ -257,6 +257,97 @@ const mergeRepeatedMessageFields = (source: string): string => {
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
 }
 
+const PACKED_REPEATED_GUARD = /^(\s*)if \(message\.([A-Za-z0-9_]+) === undefined\) \{$/;
+const PACKED_REPEATED_ALLOC = /^(\s*)message\.([A-Za-z0-9_]+) = \[\];$/;
+const PACKED_REPEATED_PUSH = /^(\s*)message\.([A-Za-z0-9_]+)!\.push\(/;
+const PACKED_BRANCH_END = 'const end2 = reader.uint32() + reader.pos;';
+const PACKED_BRANCH_LOOP = 'while (reader.pos < end2) {';
+
+// Every packable protobuf scalar: ts-proto accepts the packed form for any of
+// these on a repeated field, so the schema — not the generated source — says
+// how many packed decode branches to expect.
+const PACKABLE_TYPES = new Set([
+	Type.DOUBLE,
+	Type.FLOAT,
+	Type.INT64,
+	Type.UINT64,
+	Type.INT32,
+	Type.FIXED64,
+	Type.FIXED32,
+	Type.BOOL,
+	Type.UINT32,
+	Type.ENUM,
+	Type.SFIXED32,
+	Type.SFIXED64,
+	Type.SINT32,
+	Type.SINT64
+])
+
+const countPackableRepeatedFields = (descriptor: Uint8Array): number => {
+	const set = fromBinary(FileDescriptorSetSchema, descriptor)
+	const countMessage = (message: DescriptorProto): number => {
+		// Map entries included: ts-proto emits a codec for each one, but a map's
+		// key/value pair never takes the packed branch.
+		let count = message.options?.mapEntry
+			? 0
+			: message.field.filter(
+				field => field.label === Label.REPEATED && PACKABLE_TYPES.has(field.type)
+			).length
+		for (const nested of message.nestedType) count += countMessage(nested)
+		return count
+	}
+	let count = 0
+	for (const file of set.file) {
+		for (const message of file.messageType) count += countMessage(message)
+	}
+	return count
+}
+
+/**
+ * Repeated fields carry no presence: a zero-length packed occurrence adds no
+ * elements, so allocating `[]` for it reads differently from no occurrence.
+ * Guarding the allocation on a nonempty payload keeps empty occurrences absent.
+ */
+const canonicalizeEmptyPackedRepeatedFields = (source: string, expectedPackedBranches: number): string => {
+	const lines = source.split('\n')
+	const out: string[] = []
+	let transformed = 0
+	let index = 0
+	while (index < lines.length) {
+		const guard = PACKED_REPEATED_GUARD.exec(lines[index]!)
+		const alloc = index + 5 < lines.length ? PACKED_REPEATED_ALLOC.exec(lines[index + 1]!) : null
+		const push = index + 5 < lines.length ? PACKED_REPEATED_PUSH.exec(lines[index + 5]!) : null
+		if (
+			guard &&
+			alloc &&
+			push &&
+			alloc[1] === `${guard[1]}  ` &&
+			alloc[2] === guard[2] &&
+			lines[index + 2] === `${guard[1]}}` &&
+			lines[index + 3] === `${guard[1]}${PACKED_BRANCH_END}` &&
+			lines[index + 4] === `${guard[1]}${PACKED_BRANCH_LOOP}` &&
+			push[1] === `${guard[1]}  ` &&
+			push[2] === guard[2]
+		) {
+			out.push(
+				`${guard[1]}${PACKED_BRANCH_END}`,
+				`${guard[1]}if (reader.pos < end2 && message.${guard[2]} === undefined) {`,
+				`${guard[1]}  message.${guard[2]} = [];`,
+				`${guard[1]}}`
+			)
+			transformed++
+			index += 4
+			continue
+		}
+		out.push(lines[index]!)
+		index++
+	}
+	if (transformed !== expectedPackedBranches) {
+		throw new Error(`ts-proto emitted packed repeated decodes in an unhandled shape (${transformed}/${expectedPackedBranches})`)
+	}
+	return out.join('\n')
+}
+
 const DECODE_LOOP_EPILOGUE =
 	/^([ \t]+)if \(\(tag & 7\) === 4 \|\| tag === 0\) \{\n[ \t]+break;\n[ \t]+\}$/gm
 
@@ -501,8 +592,12 @@ try {
 	generatedSource = retypeInt64Fields(generatedSource)
 	generatedSource = stripRecursionGuard(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
-	generatedSource = rejectIllegalTags(generatedSource)
 	const descriptor = readFileSync(descriptorFile)
+	generatedSource = canonicalizeEmptyPackedRepeatedFields(
+		generatedSource,
+		countPackableRepeatedFields(descriptor)
+	)
+	generatedSource = rejectIllegalTags(generatedSource)
 	assertWireTypeGuards(generatedSource, descriptor)
 	writeFileSync(generatedFile, generatedSource)
 	writeFileSync(SURFACE_FILE, buildSurface(descriptor))

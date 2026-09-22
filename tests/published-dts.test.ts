@@ -20,6 +20,9 @@ import ts from "typescript";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRY = join(ROOT, "dist", "index.d.ts");
 const CONSUMER = join(ROOT, "tests", "fixtures", "published-dts-consumer.ts");
+// The consumer imports the package by its own name (`@oxidezap/.../wasm`)
+// for the `./wasm` subpath assertion, which only resolves through the
+// `exports` map — no nested package.json may shadow the root one.
 
 /**
  * The lib set a consumer would have: `dom` for the stream/fetch globals the

@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.24.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.1...v0.24.0) (2026-09-21)
+
+
+### Features
+
+* **crypto:** expose provider-routed sync primitives ([#130](https://github.com/oxidezap/whatsapp-rust-bridge/issues/130)) ([6fbed58](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6fbed58b31ef1b08d9f07c6edbf3497aace6eabe))
+
+## [0.23.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.0...v0.23.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* serialize client teardown and make free passive ([#128](https://github.com/oxidezap/whatsapp-rust-bridge/issues/128)) ([cf378e4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/cf378e4a051e68573e4cf37db66e834d8297ef8c))
+
+## [0.23.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.22.1...v0.23.0) (2026-09-19)
+
+
+### Features
+
+* add host-loaded entrypoint sharing one bridge implementation ([#127](https://github.com/oxidezap/whatsapp-rust-bridge/issues/127)) ([7c67e80](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7c67e808b4ea155063023a2a27db20469c38edb1))
+
+
+### Bug Fixes
+
+* canonicalize zero-length packed repeated fields to absent ([#124](https://github.com/oxidezap/whatsapp-rust-bridge/issues/124)) ([82bb5e4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/82bb5e426f8348bb00e920e0d1a655833b0a5216))
+* **deps:** bump whatsapp-rust pin for voip control-plane split and cache-memory fixes ([#126](https://github.com/oxidezap/whatsapp-rust-bridge/issues/126)) ([49419a7](https://github.com/oxidezap/whatsapp-rust-bridge/commit/49419a7164adde5c7cb748dcde5df9abf63e63c9))
+
 ## [0.22.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.22.0...v0.22.1) (2026-09-17)
 
 

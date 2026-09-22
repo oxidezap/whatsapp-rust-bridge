@@ -149,3 +149,21 @@ export type Checked = [
 type _ClientPoliciesArgument = Assert<
   Resolves<Parameters<typeof createWhatsAppClient>[8], ClientPolicies | null | undefined>
 >;
+
+// The host entrypoint re-exports wasm-bindgen's initializer, which takes
+// bytes or a compiled Module (SyncInitInput) — the union the host idioms
+// produce — and the client factory keeps the default entrypoint's signature.
+import { initSync } from "../../dist/host.js";
+import type { SyncInitInput } from "../../dist/whatsapp_rust_bridge.js";
+
+type _HostInit = Assert<
+  Resolves<Parameters<typeof initSync>[0], SyncInitInput>
+>;
+
+// The real published shape: the `./wasm` asset feeds `initSync` with no
+// conversion. Imported through the package's own exports map, so this is
+// the subpath contract typechecking — not the type agreeing with itself.
+import wasm from "@oxidezap/whatsapp-rust-bridge/wasm";
+
+type _WasmFeedsInitSync = Assert<Resolves<typeof wasm, SyncInitInput>>;
+initSync({ module: wasm });

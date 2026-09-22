@@ -26,6 +26,8 @@ src/
   proto.rs, wire_batch.rs
 ts/
   index.ts              entry point; initialises the wasm and re-exports it
+  host.ts               same bridge with host-supplied wasm bytes (`initSync`)
+  surface.ts            the one JS API both entrypoints re-export
   proto*.ts, wire-info.ts
 tests/                  the client surface (Bun)
 test/                   the feature-gated codecs: audio, image, sticker (Bun)
@@ -120,7 +122,7 @@ numeric write method needs an entry in both.
 
 Widening rather than throwing is the point: one out-of-range field used to fail the whole `decodeProto` call, and the consumer lost every other field with it. `BigInt` is not an option on this path — `JSON.stringify` refuses it.
 
-**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
+**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written. Repeated fields do not track presence. A zero-length packed occurrence contributes zero elements and therefore canonicalizes to the same API state as no occurrences. Do not materialize an empty array merely because the packed tag appeared on the wire.
 
 **A message field read twice merges.** Well-formed protobuf has one reading, and
 for an embedded message field the wire format says what it is: repeated instances

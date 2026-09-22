@@ -103,8 +103,9 @@ describe("WASM Client E2E", () => {
       await client.disconnect();
       expect(client.isConnected()).toBe(false);
     } finally {
-      // `free()` signals shutdown and disconnects on its own, so it covers the
-      // paths that never reached the disconnect above.
+      // `free()` is intentionally passive, so close the mock WebSocket even
+      // when the assertions above throw before the explicit teardown.
+      await client.disconnect();
       client.free();
     }
   }, 25000);

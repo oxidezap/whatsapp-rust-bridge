@@ -6,6 +6,18 @@
 
 use super::*;
 
+fn abort_teardown_task(slot: &Arc<Mutex<Option<wacore::runtime::AbortHandle>>>) {
+    if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+        handle.abort();
+    }
+}
+
+fn detach_teardown_task(slot: &Arc<Mutex<Option<wacore::runtime::AbortHandle>>>) {
+    if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+        handle.detach();
+    }
+}
+
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
     // ── Connection ───────────────────────────────────────────────────────
@@ -160,45 +172,68 @@ impl WasmWhatsAppClient {
     /// connection until it ends. The core hands `connect()` back a `Connection`
     /// that decodes nothing until it is driven, so without that reader no event
     /// would ever fire and every request would time out.
-    pub async fn connect(&self) -> Result<(), crate::errors::BridgeError> {
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn connect(&self) -> js_sys::Promise {
+        if self
+            .connection_handle
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_some()
+        {
+            return wasm_bindgen_futures::future_to_promise(async {
+                Err(bridge_error_to_js_value(&crate::errors::invalid_arg(
+                    "connect",
+                    "connect() is already in progress",
+                )))
+            });
+        }
+
         let client = self.client.unwaited(Unwaited::ThisSocket).clone();
+        let runtime = self.runtime.clone();
+        let connection_handle = self.connection_handle.clone();
+        let connection_established = self.connection_established.clone();
+        let reader_handle_slot = connection_handle.clone();
+        let reader_established = connection_established.clone();
         let (handshake_tx, handshake_rx) = async_channel::bounded(1);
 
-        // Connecting and reading live in one task because `Connection` borrows
-        // the client it came from: the borrow cannot outlive this call, so the
-        // handshake result travels back over the channel instead.
-        let handle = self.runtime.spawn(Box::pin(async move {
+        // Clone every value used after the first await. This keeps `free()`
+        // from dropping a wrapper borrowed by a pending connect promise.
+        let handle = runtime.spawn(Box::pin(async move {
             match client.connect().await {
                 Err(e) => {
                     let _ = handshake_tx.send(Err(e)).await;
                 }
                 Ok(connection) => {
+                    reader_established.store(true, std::sync::atomic::Ordering::Release);
                     let _ = handshake_tx.send(Ok(())).await;
                     let _ = connection.read_until_disconnected().await;
                     info!("Client connection reader exited.");
+                    reader_established.store(false, std::sync::atomic::Ordering::Release);
+                    detach_teardown_task(&reader_handle_slot);
                 }
             }
         }));
+        // Publish the abort handle before waiting for the handshake. A host
+        // can free a client while transport.connect() is still pending.
+        *connection_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
 
-        let handshake = handshake_rx.recv().await.map_err(|_| {
-            crate::errors::internal("connect task ended without reporting a handshake result")
-        })?;
+        wasm_bindgen_futures::future_to_promise(async move {
+            let handshake = handshake_rx
+                .recv()
+                .await
+                .map_err(|_| bridge_error_to_js_value(&crate::errors::BridgeError::NotConnected))?;
 
-        match handshake {
-            Ok(()) => {
-                *self
-                    .connection_handle
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner()) = Some(handle);
-                Ok(())
+            match handshake {
+                Ok(()) => Ok(JsValue::UNDEFINED),
+                Err(e) => {
+                    connection_established.store(false, std::sync::atomic::Ordering::Release);
+                    abort_teardown_task(&connection_handle);
+                    Err(bridge_error_to_js_value(&crate::errors::BridgeError::from(
+                        e,
+                    )))
+                }
             }
-            // The task is already finished; keep the slot pointing at whatever
-            // reader is still live rather than at this failed attempt.
-            Err(e) => {
-                handle.abort();
-                Err(crate::errors::BridgeError::from(e))
-            }
-        }
+        })
     }
 
     /// Fetch the account's reachout-timelock state.
@@ -230,36 +265,48 @@ impl WasmWhatsAppClient {
     }
 
     /// Disconnect the client and flush pending state to storage.
-    pub async fn disconnect(&self) {
-        self.client
-            .unwaited(Unwaited::ThisSocket)
-            .disconnect()
-            .await;
-        // Core disconnect owns the final persistence flush. Abort the bridge
-        // background saver afterwards so its pending timer cannot keep the
-        // host event loop alive.
-        if let Some(handle) = self
-            .saver_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take()
-        {
-            handle.abort();
+    ///
+    /// This is an explicit teardown barrier: the promise does not resolve until
+    /// the core has flushed persistence and the bridge-owned background tasks
+    /// have been stopped. The shared gate makes concurrent `disconnect()` and
+    /// `logout()` calls idempotent instead of entering the core teardown paths
+    /// together. If a host disconnect callback re-enters teardown, the callback
+    /// wait is cancelled so the two teardown operations cannot wait on each other.
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn disconnect(&self) -> js_sys::Promise {
+        let admission = self.teardown_gate.admit();
+        if matches!(&admission, TeardownAdmission::Waiting(_)) {
+            self.transport_callback_state.cancel_disconnect_wait();
         }
-        // The run task is deliberately not aborted: disconnecting is what ends
-        // supervision, and the task publishes that ending (`shutdown-requested`
-        // or whatever the core observed) to the run observation. Aborting it
-        // here would destroy the reason `waitForRunCompletion()` exists to
-        // carry. `Drop` still aborts it for the `free()`-without-disconnect
-        // path, where no completion can be published anymore.
-        if let Some(handle) = self
-            .sync_worker_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take()
-        {
-            handle.abort();
-        }
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
+        let teardown_gate = self.teardown_gate.clone();
+        let teardown_kind = self.teardown_kind.clone();
+        let saver_handle = self.saver_handle.clone();
+        let connection_handle = self.connection_handle.clone();
+        let connection_established = self.connection_established.clone();
+        let sync_worker_handle = self.sync_worker_handle.clone();
+
+        wasm_bindgen_futures::future_to_promise(async move {
+            match admission {
+                TeardownAdmission::Owner => {
+                    teardown_kind.store(TEARDOWN_DISCONNECT, std::sync::atomic::Ordering::Release);
+                }
+                TeardownAdmission::Waiting(waiter) => {
+                    let _ = waiter.await;
+                    return Ok(JsValue::UNDEFINED);
+                }
+                TeardownAdmission::Complete => return Ok(JsValue::UNDEFINED),
+            }
+
+            client.disconnect().await;
+            abort_teardown_task(&saver_handle);
+            if !connection_established.load(std::sync::atomic::Ordering::Acquire) {
+                abort_teardown_task(&connection_handle);
+            }
+            abort_teardown_task(&sync_worker_handle);
+            teardown_gate.complete();
+            Ok(JsValue::UNDEFINED)
+        })
     }
 
     /// Logout from WhatsApp — deregisters this companion device and disconnects.
@@ -267,40 +314,64 @@ impl WasmWhatsAppClient {
     /// Sends `remove-companion-device` IQ to the server (best-effort),
     /// then disconnects. Does NOT clear stored keys — the caller should
     /// delete the store to fully clear credentials.
-    ///
-    /// A synchronous prefix clones the core client and takes the worker
-    /// handles while the wrapper is alive; the remainder runs on owned
-    /// state (see `fetch_blocklist`), so freeing mid-logout cannot leave
-    /// a future holding freed wrapper memory. `Drop` still takes whatever
-    /// handles remain, so whichever runs first owns the abort and the
-    /// other finds nothing — and the run task is left to finish rather
-    /// than aborted, exactly as before.
-    #[wasm_bindgen(js_name = logout, unchecked_return_type = "Promise<void>")]
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
     pub fn logout(&self) -> js_sys::Promise {
-        let core = self.client.clone();
-        let saver = self
-            .saver_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
-        let sync_worker = self
-            .sync_worker_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let teardown_gate = self.teardown_gate.clone();
+        let admission = teardown_gate.admit();
+        if matches!(&admission, TeardownAdmission::Waiting(_)) {
+            self.transport_callback_state.cancel_disconnect_wait();
+        }
+        let owns_teardown = matches!(&admission, TeardownAdmission::Owner);
+        if owns_teardown {
+            self.teardown_kind
+                .store(TEARDOWN_LOGOUT, std::sync::atomic::Ordering::Release);
+        }
+        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
+        let teardown_kind = self.teardown_kind.clone();
+        let saver_handle = self.saver_handle.clone();
+        let sync_worker_handle = self.sync_worker_handle.clone();
+        let run_handle = self.run_handle.clone();
+        let connection_handle = self.connection_handle.clone();
+        let connection_established = self.connection_established.clone();
+
         wasm_bindgen_futures::future_to_promise(async move {
-            core.unwaited(Unwaited::ThisSocket).logout().await;
-            // As in `disconnect()`: the run task publishes the supervision
-            // ending that logging out produced, so it is left to finish
-            // rather than aborted. Whatever the core observed (a shutdown
-            // or a reconnect-disabled exit while deregistration was in
-            // flight) crosses unchanged.
-            if let Some(handle) = saver {
-                handle.abort();
+            match admission {
+                TeardownAdmission::Owner => {}
+                TeardownAdmission::Waiting(waiter) => {
+                    let _ = waiter.await;
+                    if teardown_kind.load(std::sync::atomic::Ordering::Acquire) == TEARDOWN_LOGOUT {
+                        return Ok(JsValue::UNDEFINED);
+                    }
+                    return Err(bridge_error_to_js_value(
+                        &crate::errors::BridgeError::NotConnected,
+                    ));
+                }
+                TeardownAdmission::Complete => {
+                    if teardown_kind.load(std::sync::atomic::Ordering::Acquire) == TEARDOWN_LOGOUT {
+                        return Ok(JsValue::UNDEFINED);
+                    }
+                    return Err(bridge_error_to_js_value(
+                        &crate::errors::BridgeError::NotConnected,
+                    ));
+                }
             }
-            if let Some(handle) = sync_worker {
-                handle.abort();
+            debug_assert_eq!(
+                teardown_kind.load(std::sync::atomic::Ordering::Acquire),
+                TEARDOWN_LOGOUT
+            );
+            client.logout().await;
+            abort_teardown_task(&saver_handle);
+            abort_teardown_task(&sync_worker_handle);
+            // The core shutdown lets supervision and an established reader
+            // publish their normal terminal outcomes. A pending handshake has
+            // no transport to finish and must be aborted instead.
+            detach_teardown_task(&run_handle);
+            if connection_established.load(std::sync::atomic::Ordering::Acquire) {
+                detach_teardown_task(&connection_handle);
+            } else {
+                abort_teardown_task(&connection_handle);
             }
+            teardown_gate.complete();
             Ok(JsValue::UNDEFINED)
         })
     }
