@@ -2,16 +2,10 @@
  * Isolated-tarball contract check: pack the built package, install it in a
  * fresh directory outside the repository — so no parent `node_modules` can
  * leak in — and prove an ordinary consumer typechecks in both Bundler and
- * NodeNext modes and runs the real exports, using only the package plus
- * explicit TypeScript/Node tooling.
- *
- * The package ships with no runtime dependencies (`dist/index.js` is bundled),
- * so the fixture installs nothing else. The one `@bufbuild/protobuf` name left
- * in `dist/` is the base wire-type import in `proto-reader.d.ts`, which the
- * default `skipLibCheck: true` every consumer template sets does not resolve —
- * and the fixture below typechecks exactly that way. A consumer who turns
- * `skipLibCheck` off installs `@bufbuild/protobuf` itself; the in-tree
- * `tests/published-dts.test.ts` covers the strict mode from devDependencies.
+ * NodeNext modes and runs the real exports, using the package plus explicit
+ * TypeScript/Node tooling. Published declarations reference
+ * `@bufbuild/protobuf/wire`, so strict consumer checks prove the packed
+ * manifest supplies that dependency rather than relying on this checkout.
  *
  * Run: `bun run check:published-tarball` (needs `dist/`, i.e. a build first).
  * Pack plus two installs plus two typechecks is too heavy for the per-test
@@ -46,8 +40,8 @@ const manifest = JSON.parse(
 ) as Manifest;
 
 check(
-  Object.keys(manifest.dependencies ?? {}).length === 0,
-  "package.json declares no runtime dependencies",
+  manifest.dependencies?.["@bufbuild/protobuf"] === "^2.14.1",
+  "package.json declares @bufbuild/protobuf for published declaration resolution",
 );
 
 const SCRATCH = mkdtempSync(join(tmpdir(), "published-tarball-"));
@@ -95,6 +89,7 @@ const consumer = (name: string): string => `import {
   proto,
   type WasmWhatsAppClient,
   type WasmCallHandle,
+  UnpairedSurrogateError,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
 import { loadVoip, packetizeOpusForMlow } from "${name}/voip";
@@ -132,6 +127,7 @@ export function shutdownCompletion(): RunCompletion {
   return { reason: "shutdown-requested", generation: 0 };
 }
 
+export const stringEncodingError = new UnpairedSurrogateError(0, 0xd800);
 
 export function roundtrip(): boolean {
   const bytes: Uint8Array = proto.Message.encode({
@@ -187,7 +183,7 @@ const tsconfigs: Record<string, string> = {
   bundler: JSON.stringify({
     compilerOptions: {
       strict: true,
-      skipLibCheck: true,
+      skipLibCheck: false,
       noEmit: true,
       target: "ES2022",
       module: "ESNext",
@@ -200,7 +196,7 @@ const tsconfigs: Record<string, string> = {
   nodenext: JSON.stringify({
     compilerOptions: {
       strict: true,
-      skipLibCheck: true,
+      skipLibCheck: false,
       noEmit: true,
       target: "ES2022",
       module: "NodeNext",
@@ -270,7 +266,7 @@ try {
       }
       return { ok: true as const, log: "" };
     })();
-    check(result.ok, `isolated ${mode} consumer typechecks with skipLibCheck:true`);
+    check(result.ok, `isolated ${mode} consumer typechecks with skipLibCheck:false`);
     if (!result.ok) console.error(result.log);
   }
 
@@ -283,16 +279,18 @@ try {
   );
   if (!smokeRun.output.includes("smoke: ok")) console.error(smokeRun.output);
 
-  const isolated = await run(
-    ["npm", "ls", "--omit=dev"],
-    join(SCRATCH, "bundler"),
-    120_000,
+  const isolatedPackageJson = join(
+    SCRATCH,
+    "bundler",
+    "node_modules",
+    "@bufbuild",
+    "protobuf",
+    "package.json",
   );
   check(
-    isolated.exit === 0 && !isolated.output.includes("@bufbuild/protobuf"),
-    "the isolated install carries no @bufbuild/protobuf",
+    existsSync(isolatedPackageJson),
+    "the isolated install carries @bufbuild/protobuf from the package dependency",
   );
-  if (isolated.exit !== 0) console.error(isolated.output);
 } finally {
   if (!failed) rmSync(SCRATCH, { recursive: true, force: true });
   else console.error(`leaving scratch dir for inspection: ${SCRATCH}`);
