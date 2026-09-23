@@ -831,7 +831,7 @@ export interface CallVideoFrame {
   timestamp: number;
 }
 
-interface WhatsAppEventCallbacks {
+export interface WhatsAppEventCallbacks {
   /**
    * Encoded-packet sink for live calls. Called synchronously per packet, at
    * voice cadence; decode or copy the frame before returning and never hand
@@ -859,7 +859,7 @@ interface WhatsAppEventCallbacks {
 #[cfg(feature = "client-calls-pcm")]
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CALL_PCM_CALLBACK: &str = r#"
-interface WhatsAppEventCallbacks {
+export interface WhatsAppEventCallbacks {
   /** Decoded mono 16 kHz signed 16-bit PCM from the core's playout path. */
   onCallPcm?(frame: CallPcmFrame): void;
 }
