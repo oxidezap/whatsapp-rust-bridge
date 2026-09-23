@@ -112,11 +112,14 @@ pub fn spawn_drive(future: impl std::future::Future<Output = ()> + 'static) -> A
 pub async fn set_timeout_future(ms: i32) {
     struct Sleep {
         id: Option<JsValue>,
+        fired: std::rc::Rc<std::cell::Cell<bool>>,
+        waker: std::rc::Rc<std::cell::RefCell<Option<std::task::Waker>>>,
         done: bool,
         ms: i32,
     }
     impl Drop for Sleep {
         fn drop(&mut self) {
+            self.waker.borrow_mut().take();
             if !self.done
                 && let Some(id) = self.id.take()
             {
@@ -135,16 +138,24 @@ pub async fn set_timeout_future(ms: i32) {
         type Output = ();
         fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<()> {
             let this = self.get_mut();
-            if this.done {
+            // A wake requests another poll; only the fired flag completes it.
+            if this.done || this.fired.get() {
+                this.done = true;
                 return std::task::Poll::Ready(());
             }
+            *this.waker.borrow_mut() = Some(cx.waker().clone());
             if this.id.is_some() {
                 return std::task::Poll::Pending;
             }
-            let waker = cx.waker().clone();
+            let fired = this.fired.clone();
+            let waker = this.waker.clone();
             let ms = this.ms;
             let closure = Closure::once(move || {
-                waker.wake();
+                fired.set(true);
+                let wake = waker.borrow_mut().take();
+                if let Some(wake) = wake {
+                    wake.wake();
+                }
             });
             let id = SET_TIMEOUT.with(|slot| {
                 if slot.borrow().is_none() {
@@ -171,10 +182,48 @@ pub async fn set_timeout_future(ms: i32) {
     }
     Sleep {
         id: None,
+        fired: std::rc::Rc::new(std::cell::Cell::new(false)),
+        waker: std::rc::Rc::new(std::cell::RefCell::new(None)),
         done: false,
         ms,
     }
     .await;
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+    use futures::channel::oneshot;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test(async)]
+    async fn timeout_completes_after_its_callback() {
+        let sleep = set_timeout_future(0);
+        futures::pin_mut!(sleep);
+        assert!(matches!(
+            futures::poll!(sleep.as_mut()),
+            std::task::Poll::Pending
+        ));
+        let (marker_tx, marker_rx) = oneshot::channel();
+        let marker = Closure::once(move || {
+            let _ = marker_tx.send(());
+        });
+        let timeout = global_fn("setTimeout").expect("host provides timers");
+        timeout
+            .call2(
+                &JsValue::NULL,
+                marker.as_ref().unchecked_ref(),
+                &JsValue::from(0),
+            )
+            .expect("marker timer arms");
+        marker.forget();
+        marker_rx.await.expect("marker timer fired");
+        // The earlier zero-delay timer has fired; a second poll must finish.
+        assert!(
+            matches!(futures::poll!(sleep.as_mut()), std::task::Poll::Ready(())),
+            "timer was woken but never completed"
+        );
+    }
 }
 
 #[cfg(target_arch = "wasm32")]

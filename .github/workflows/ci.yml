@@ -447,6 +447,11 @@ jobs:
       - name: Run Rust unit tests (wasm32 in Node)
         run: bun run test:rust
 
+      # The media engine has its own WASM clock and push tasks; host tests
+      # cannot execute the setTimeout-backed runtime those tasks depend on.
+      - name: Run VoIP engine runtime tests (wasm32 in Node)
+        run: wasm-pack test --node crates/voip-wasm
+
   voip-control-seam:
     # The call-control plane must compile and resolve without the media
     # engine: `client-voip-control` on, the three engine carriers off. Two
