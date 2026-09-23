@@ -19,6 +19,7 @@ use voip_abi::{
     AbiEvent, CloseReason, CodecSource, EncodedFrameDto, MediaCommand, MediaFrame, OpenParams,
     SessionId, SilenceReason, StatsData, Urgency, VideoFrameDto, VideoInputDto,
 };
+use wacore::runtime::Runtime;
 use wacore::voip::driver::{CallChannels, video_control_channel};
 use wacore::voip::engine::{CallEngine, GroupEngineConfig};
 use wacore::voip::transport::RelayEndpointParams;
@@ -57,6 +58,7 @@ pub struct LiveCall {
     events: async_channel::Receiver<MediaEvent>,
     stats: Arc<media_stats::MediaStatsCell>,
     task: wacore::runtime::AbortHandle,
+    _stats_task: wacore::runtime::AbortHandle,
     muted: bool,
 }
 
@@ -158,7 +160,7 @@ impl LiveCall {
             drop(drive);
             wacore::runtime::AbortHandle::noop()
         };
-        let live = LiveCall {
+        let mut live = LiveCall {
             id: session,
             call_id,
             format,
@@ -176,10 +178,11 @@ impl LiveCall {
             events: ev_rx,
             stats,
             task,
+            _stats_task: wacore::runtime::AbortHandle::noop(),
             muted: ctx.muted,
         };
         live.replay_orientations(&ctx.peer_orientations);
-        live.spawn_fans(spk_rx, enc_out_rx, vout_rx, sinks);
+        live._stats_task = live.spawn_fans(spk_rx, enc_out_rx, vout_rx, sinks);
         Ok(live)
     }
 
@@ -189,7 +192,7 @@ impl LiveCall {
         encoded_out: async_channel::Receiver<MediaEncodedFrame>,
         video_out: async_channel::Receiver<wacore::voip_control::ports::VideoFrame>,
         sinks: PushSinks,
-    ) {
+    ) -> wacore::runtime::AbortHandle {
         let PushSinks {
             event: push_event,
             stats: push_stats,
@@ -248,7 +251,9 @@ impl LiveCall {
         // this interval keeps a quiet call quiet.
         let id = self.id;
         let stats = self.stats.clone();
-        wasm_bindgen_futures::spawn_local(async move {
+        // Unlike the channel fans, this loop has no sender that closes with
+        // the drive task. Its abort handle must belong to the live call.
+        EngineRuntime.spawn(Box::pin(async move {
             let mut last = wacore::voip_control::MediaStats::default();
             loop {
                 set_timeout_ms(1000).await;
@@ -258,7 +263,7 @@ impl LiveCall {
                     push_stats(id, stats_to_wire(&now));
                 }
             }
-        });
+        }))
     }
 
     /// Feeds one inbound PCM frame to the engine's mic mailbox. Loss
