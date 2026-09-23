@@ -80,9 +80,11 @@ unavailable during global-scope evaluation).
 `acceptCall`/`dialCall` (encoded audio), `acceptCallPcm`/`dialCallPcm`
 (decoded mono PCM), video push, call callbacks and stats are available on the
 default client, but media requires the separate engine.
-Loading the normal entrypoint does **not** load `voip.wasm`. A Node/Bun host
-loads it explicitly and supplies its relay transport (ICE/DTLS/SCTP over a
-pre-negotiated DataChannel) before constructing the client:
+Loading the normal entrypoint does **not** load `voip.wasm`. Call `loadVoip`
+(or `initVoipSync`) once **per client**: each call creates an independent WASM
+instance, so two sockets cannot exchange session handles, relay transports or
+media callbacks. A Node/Bun host supplies a relay transport (ICE/DTLS/SCTP over
+a pre-negotiated DataChannel) before constructing each client:
 
 ```ts
 import { createWhatsAppClient, initWasmEngine } from "@oxidezap/whatsapp-rust-bridge";
