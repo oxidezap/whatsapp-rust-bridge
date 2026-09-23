@@ -119,20 +119,15 @@ test("the published declarations typecheck under NodeNext without skipLibCheck",
 }, TIMEOUT_MS);
 
 /**
- * `package.json` declares no runtime dependencies: `dist/index.js` is bundled,
- * so the only `@bufbuild/protobuf` reference left in `dist/` is the base
- * `BinaryReader`/`BinaryWriter` import in `proto-reader.d.ts`. That name
- * resolves in this checkout from `devDependencies` (the first two tests above
- * rely on it), which is also where the build scripts, benches and tests import
- * it from. A consumer on the default `skipLibCheck: true` never needs it; a
- * consumer who turns that off installs it. The isolated-tarball proof
- * (`bun run check:published-tarball`, its own CI job outside the unit-test
- * clock) covers the default-config install.
+ * `dist/index.js` is bundled, but `proto-reader.d.ts` exposes the base
+ * `BinaryReader`/`BinaryWriter` types from `@bufbuild/protobuf/wire`. A clean
+ * strict consumer therefore needs the package declared by the published
+ * manifest, not merely available from this checkout's devDependencies.
  */
-test("package.json declares no runtime dependencies, with the wire types on devDependencies", () => {
+test("package.json declares the wire-type dependency used by published declarations", () => {
   const manifest = JSON.parse(
     readFileSync(join(ROOT, "package.json"), "utf8"),
   ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-  expect(manifest.dependencies ?? {}).toEqual({});
-  expect(manifest.devDependencies?.["@bufbuild/protobuf"]).toBeDefined();
+  expect(manifest.dependencies?.["@bufbuild/protobuf"]).toBe("^2.14.1");
+  expect(manifest.devDependencies?.["@bufbuild/protobuf"]).toBeUndefined();
 });
