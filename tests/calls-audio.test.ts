@@ -11,16 +11,18 @@
 
 import { describe, test, expect, beforeAll } from "bun:test";
 import * as dist from "../dist/index.js";
+import { loadVoip, packetizeOpusForMlow, depacketizeOpusFromMlow } from "../dist/voip.js";
 import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 import { createHttp } from "./helpers.js";
 
 const { initWasmEngine, createWhatsAppClient } = dist;
-const packetizeOpusForMlow = (dist as any).packetizeOpusForMlow;
-const depacketizeOpusFromMlow = (dist as any).depacketizeOpusFromMlow;
-const hasCallsAudio = typeof packetizeOpusForMlow !== "undefined";
+const hasCallsAudio = typeof dist.WasmWhatsAppClient.prototype.acceptCall === "function";
+const hasPcm = typeof (dist.WasmWhatsAppClient.prototype as any).acceptCallPcm === "function";
+const hasResidentRelay = typeof (dist.WasmWhatsAppClient.prototype as any).setRelayTransportProvider === "function";
 
 beforeAll(() => {
   initWasmEngine();
+  loadVoip({ connect: async () => { throw new Error("no relay in the offline suite"); } });
 });
 
 async function offlineClient(): Promise<WasmWhatsAppClient> {
@@ -102,7 +104,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
     }
   });
 
-  test("PCM call methods validate their boundary arguments", async () => {
+  test.skipIf(!hasPcm)("PCM call methods validate their boundary arguments", async () => {
     const client = await offlineClient();
     try {
       const accept = await rejection(client.acceptCallPcm("NEVER-RANG"));
@@ -150,7 +152,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
     }
   });
 
-  test("PCM input requires one complete core-sized frame", async () => {
+  test.skipIf(!hasPcm)("PCM input requires one complete core-sized frame", async () => {
     const client = await offlineClient();
     try {
       for (const length of [0, 959, 961]) {
@@ -171,7 +173,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
     }
   });
 
-  test("the relay provider names a missing constructor", async () => {
+  test.skipIf(!hasResidentRelay)("the resident relay provider names a missing constructor", async () => {
     const client = await offlineClient();
     try {
       const error = syncRejection(() =>
@@ -189,7 +191,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
       ["onCallAudio", "onEvent.onCallAudio"],
       ["onCallEvent", "onEvent.onCallEvent"],
       ["onCallVideo", "onEvent.onCallVideo"],
-      ["onCallPcm", "onEvent.onCallPcm"],
+      ...(hasPcm ? [["onCallPcm", "onEvent.onCallPcm"]] as const : []),
     ] as const) {
       try {
         await createWhatsAppClient(
@@ -315,12 +317,9 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
   });
 });
 
-describe.skipIf(!hasCallsAudio)("mlow opus escape helpers", () => {
-  // The push path itself needs a live call, which no mock server covers in
-  // CI; what these prove is the transform the push applies. `callPushAudio`
-  // on an `"opus-mlow"` call rewrites exactly like `packetizeOpusForMlow`, so a
-  // host pushing ffmpeg-shaped CELT straight through is what the engine
-  // accepts.
+describe("voip.wasm mlow opus escape helpers", () => {
+  // These test the actual plugin codec. The live push path is not covered
+  // offline; it uses this engine-side transform for opus-mlow audio.
   test("packetize rewrites the CELT TOC and depacketize restores it", () => {
     const original = new Uint8Array([0xbb, 0x03, 1, 2, 3, 4, 5, 6]);
     const escaped = packetizeOpusForMlow(original);
@@ -345,8 +344,7 @@ describe.skipIf(!hasCallsAudio)("mlow opus escape helpers", () => {
       () => depacketizeOpusFromMlow(new Uint8Array([0x08, 1, 2])),
     ]) {
       const error = syncRejection(bad);
-      expect(error.kind).toBe("invalid-argument");
-      expect(error.field).toBe("data");
+      expect(String(error)).toContain("data:");
     }
   });
 });

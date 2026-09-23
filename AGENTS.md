@@ -175,16 +175,17 @@ Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode n
 ## Cargo features
 
 `default` is what the published artifact carries, and `bun run build` passes no
-`--features` — so anything not in `default` has never shipped. That includes
-`audio`, `image`, `sticker` and `memory-profiling`.
+`--features` — so features outside `default` are opt-in source builds. Audio
+utilities, image, sticker, memory-profiling, and the resident-engine profiles
+`client-calls-audio`/`client-calls-pcm`/`client-calls-mlow` are opt-in. The
+published `client-calls-media` facade uses the neutral `client-voip-control`
+seam; its engine and MLOW decoder live in the separately loaded `./voip` WASM
+(see `ts/voip.ts` and `ts/voip-host.ts`), never core.wasm.
 
-The `client-*` features and `legacy-session` are the other direction: all of
-them are in `default`, and a consumer building from source subtracts with
-`--no-default-features --features …`. Each one gates one `#[wasm_bindgen]`
-domain, and the core paths only that domain could reach go with it — the whole
-set is worth 1.23 MiB of `Private_Dirty` per process, measured in
-`docs/wasm-artifact-private-memory.md`. Never remove one from `default`: that
-is a breaking change to the published surface, not a size win.
+The domain `client-*` features in `default` and `legacy-session` support source
+feature subtraction via `--no-default-features --features …`; removing one
+from `default` changes the published surface. See `Cargo.toml`,
+`tests/default-features-surface.test.ts` and `docs/wasm-artifact-private-memory.md`.
 
 Adding a domain module means adding its feature, and the `#![cfg_attr(…,
 allow(dead_code))]` list at the top of `src/wasm_client.rs` has to name it too

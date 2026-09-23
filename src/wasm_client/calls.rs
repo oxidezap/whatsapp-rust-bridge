@@ -40,9 +40,9 @@ impl WasmWhatsAppClient {
         // `CoreClient`). The peer JIDs parse without the wrapper; the
         // core client and the offer cache cross owned.
         let core = self.client.clone();
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let offers = self.call_offers.clone();
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let offer_gen = super::calls_audio::current_offer_generation(&offers, &call_id);
         promise_void(async move {
             let peer = parse_named_jid("peer", &peer)?;
@@ -62,7 +62,7 @@ impl WasmWhatsAppClient {
             // with it. A failed send keeps the offer — the call may
             // still be ringing. Only evict the generation that was rejected:
             // a replacement offer that arrived mid-await stays intact.
-            #[cfg(feature = "client-calls-audio")]
+            #[cfg(feature = "client-calls-media")]
             if let Some(generation) = offer_gen {
                 super::calls_audio::evict_offer_generation(&offers, &call_id, generation);
             }
@@ -79,15 +79,15 @@ impl WasmWhatsAppClient {
         call_creator: String,
     ) -> js_sys::Promise {
         let core = self.client.clone();
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let media = super::calls_audio::CallMedia::of(self);
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         return super::calls_audio::promise_serialized(async move {
             let peer = parse_named_jid("peer", &peer)?;
             let call_creator = parse_named_jid("callCreator", &call_creator)?;
             super::calls_audio::terminate_call(&media, &core, call_id, peer, call_creator).await
         });
-        #[cfg(not(feature = "client-calls-audio"))]
+        #[cfg(not(feature = "client-calls-media"))]
         super::promise_serialized(async move {
             let peer = parse_named_jid("peer", &peer)?;
             let call_creator = parse_named_jid("callCreator", &call_creator)?;

@@ -1474,19 +1474,12 @@ pub struct NewChatMessageCappingResult {
 }
 
 // ---------------------------------------------------------------------------
-// Encoded-audio call media (`client-calls-audio`)
+// Encoded-audio call media (`client-calls-media`)
 // ---------------------------------------------------------------------------
 
-/// Which codec the application's encoded-audio packets promise to carry.
-///
-/// The value is a promise about the bytes pushed through `callPushAudio`, and
-/// the call negotiates against it: answering an offer that only speaks the
-/// other codec fails with `invalid-argument` on this field so the host can
-/// What audio grammar a new call promises. The callee accepts with what the
-/// incoming offer names, or with the other format if negotiation failed and
-/// the offer is still live; outbound dials choose either and let the peer
-/// retry with the other promise. `opus` is native WhatsApp 16 kHz Opus,
-/// while `opus-mlow` is the in-profile MLOW escape.
+/// The encoded-audio grammar the caller promises to supply. The core
+/// negotiates against the offer; `opus-mlow` sends Opus through MLOW's escape
+/// in the separate engine, while `opus` is native WhatsApp 16 kHz Opus.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "lowercase")]
 pub enum CallAudioFormat {

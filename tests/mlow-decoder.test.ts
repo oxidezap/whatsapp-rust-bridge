@@ -7,18 +7,13 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
-import * as dist from "../dist/index.js";
-
-const MlowAudioDecoder = (dist as any).MlowAudioDecoder;
-const hasMlow = typeof MlowAudioDecoder !== "undefined";
+import { loadVoip, MlowAudioDecoder } from "../dist/voip.js";
 
 beforeAll(() => {
-  if (hasMlow) {
-    dist.initWasmEngine();
-  }
+  loadVoip({ connect: async () => { throw new Error("offline"); } });
 });
 
-describe.skipIf(!hasMlow)("MlowAudioDecoder", () => {
+describe("MlowAudioDecoder in voip.wasm", () => {
   test("rejects invalid RTP payload types before narrowing", () => {
     const decoder = new MlowAudioDecoder();
     try {
@@ -27,7 +22,7 @@ describe.skipIf(!hasMlow)("MlowAudioDecoder", () => {
           decoder.decode(new Uint8Array(), value as number);
           throw new Error("expected invalid payload type to throw");
         } catch (error) {
-          expect(error).toMatchObject({ name: "WhatsAppError", kind: "invalid-argument", field: "payloadType" });
+          expect(String(error)).toContain("payloadType:");
         }
       }
     } finally {

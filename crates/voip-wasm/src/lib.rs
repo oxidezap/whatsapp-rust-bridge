@@ -21,7 +21,9 @@
 //! encoded packets, video units, events, stats, and the terminal close.
 
 mod call;
+mod mlow;
 mod relay;
+pub use mlow::MlowAudioDecoder;
 mod runtime;
 mod spec;
 
@@ -108,6 +110,24 @@ fn push(payload: Vec<u8>) {
     let Some(handler) = handler else { return };
     let bytes = js_sys::Uint8Array::from(payload.as_slice());
     let _ = handler.call1(&JsValue::UNDEFINED, &bytes.into());
+}
+
+/// Rewrite an RFC Opus CELT packet into WhatsApp's MLOW escape.
+#[wasm_bindgen(js_name = packetizeOpusForMlow)]
+pub fn packetize_opus_for_mlow(data: &[u8]) -> Result<Vec<u8>, JsValue> {
+    let mut packet = data.to_vec();
+    wacore::voip::packetize_opus_for_mlow(&mut packet)
+        .map_err(|e| JsValue::from_str(&format!("data: {e}")))?;
+    Ok(packet)
+}
+
+/// Restore the original RFC Opus TOC before handing the packet to a decoder.
+#[wasm_bindgen(js_name = depacketizeOpusFromMlow)]
+pub fn depacketize_opus_from_mlow(data: &[u8]) -> Result<Vec<u8>, JsValue> {
+    let mut packet = data.to_vec();
+    wacore::voip::depacketize_opus_from_mlow(&mut packet)
+        .map_err(|e| JsValue::from_str(&format!("data: {e}")))?;
+    Ok(packet)
 }
 
 /// The handshake: the core probes with `HELLO`, and the version gate runs

@@ -11,9 +11,9 @@
 
 use wasm_bindgen::prelude::*;
 
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 use super::calls_audio::CallMedia;
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 use whatsapp_rust::voip::CallHandle;
 
 /// An active call handle returned by `acceptCall(offerHandle, ...)` or `dialCall(...)`.
@@ -22,7 +22,7 @@ use whatsapp_rust::voip::CallHandle;
 /// task and the call's event channel both outlive the client. Video methods
 /// need the bridge's pump infrastructure and will fail gracefully if the
 /// client has been freed.
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 #[wasm_bindgen]
 pub struct WasmCallHandle {
     /// The whatsapp-rust call handle — owns the engine task reference.
@@ -37,21 +37,21 @@ pub struct WasmCallHandle {
     generation: u64,
 }
 
-#[cfg(not(feature = "client-calls-audio"))]
+#[cfg(not(feature = "client-calls-media"))]
 #[wasm_bindgen]
 pub struct WasmCallHandle {
     _private: (),
 }
 
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 // SAFETY: WASM is single-threaded; the Rc<RefCell<...>> inside CallMedia is
 // never shared across threads. The wasm_send_sync! macro declares this.
 crate::wasm_send_sync!(WasmCallHandle);
 
-#[cfg(not(feature = "client-calls-audio"))]
+#[cfg(not(feature = "client-calls-media"))]
 crate::wasm_send_sync!(WasmCallHandle);
 
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 impl WasmCallHandle {
     /// Construct from a live call handle and the client's media infrastructure.
     pub(super) fn new(handle: CallHandle, generation: u64, media: CallMedia) -> Self {
@@ -65,7 +65,7 @@ impl WasmCallHandle {
     }
 }
 
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 #[wasm_bindgen]
 impl WasmCallHandle {
     /// The call-id this handle controls.

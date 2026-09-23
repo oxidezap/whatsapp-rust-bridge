@@ -2,13 +2,11 @@
  * Seam gate: the control-only build must carry the call-control plane without
  * the media engine.
  *
- * The default artifact still ships the resident engine (`client-calls-audio`
- * pulls `whatsapp-rust/voip-encoded`, which is the engine composition), so
- * this gate does not scan it — a byte scan there passes vacuously, because
- * release + strip + wasm-opt leave no symbol names behind at all. It scans
- * the build the split will stand on instead: every default feature except the
- * three engine carriers (`client-calls-audio`, `client-calls-pcm`,
- * `client-calls-mlow`), plus the explicit `client-voip-control`.
+ * The default core artifact carries `client-calls-media` over the neutral
+ * `client-voip-control` seam, not the resident engine. The three opt-in
+ * engine carriers (`client-calls-audio`, `client-calls-pcm`,
+ * `client-calls-mlow`) stay out of this scan. Release strips names, so the
+ * gate builds a names-kept dev artifact from the default feature set.
  *
  * Three legs, all of which have been seen to fail:
  *
@@ -17,11 +15,10 @@
  *    `voip-engine-wacore`, `voip-runtime`, `voip-encoded`, `voip-mlow`,
  *    `voip-libopus`, `voip`). Removing the explicit bridge feature, or wiring
  *    an engine carrier back in, fails here.
- * 2. The control-only dev artifact (names kept: dev profile never strips)
- *    carries no engine code symbol in its `name` custom section. The default
- *    dev artifact carries all seven; the stripped release artifact carries
- *    none either way, which is why the scan refuses an artifact without a
- *    name section rather than passing it.
+ * 2. The default dev artifact (names kept: dev profile never strips)
+ *    carries no engine code symbol in its `name` custom section. An opt-in
+ *    resident-engine build carries them; a stripped release artifact carries
+ *    no names either way, so this scan refuses an artifact without a section.
  * 3. The control-only dependency set is a subset of the default one: enabling
  *    the seam explicitly must not add a runtime crate beyond
  *    `whatsapp-rust/voip-control` (which was already on transitively).
@@ -44,11 +41,12 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
-// Default minus the three engine carriers, plus the explicit seam feature.
+// The default domains and the neutral seam, not the opt-in resident engine.
 // This list is the gate: drift it and leg 1 or leg 2 says so.
 const CONTROL_FEATURES = [
   "client-business",
   "client-calls",
+  "client-calls-media",
   "client-chat-actions",
   "client-contacts",
   "client-groups",

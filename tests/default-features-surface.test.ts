@@ -1,8 +1,8 @@
 /**
  * The published default carries every optional domain.
  *
- * The `client-*` features and `legacy-session` exist so a consumer building
- * from source can subtract from the artifact (see
+ * The default `client-*` features and `legacy-session` exist so a consumer
+ * building from source can subtract from the artifact (see
  * `docs/wasm-artifact-private-memory.md`). Nothing else about them is a
  * choice: `default` has all of them, and dropping one from `default` removes
  * exports from the published package. That is a shape change to argue for, not
@@ -28,6 +28,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WITNESSES: Record<string, string> = {
   "client-business": "getBusinessProfile",
   "client-calls": "terminateCall",
+  "client-calls-media": "acceptCall",
   "client-chat-actions": "pinChat",
   "client-contacts": "isOnWhatsApp",
   "client-groups": "getGroupMetadata",

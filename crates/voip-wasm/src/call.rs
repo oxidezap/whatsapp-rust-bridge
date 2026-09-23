@@ -46,6 +46,7 @@ pub struct LiveCall {
     id: SessionId,
     call_id: String,
     format: wacore::voip_control::MediaAudioFormat,
+    opus_mlow_escape: bool,
     mic_tx: async_channel::Sender<Vec<i16>>,
     encoded_tx: async_channel::Sender<Bytes>,
     video_tx: async_channel::Sender<Vec<u8>>,
@@ -84,6 +85,7 @@ impl LiveCall {
         let (spec, ctx) =
             spec_from_params(params, &call_id, generation).map_err(OpenError::Spec)?;
         let endpoint = RelayEndpointParams::from_spec(&spec).ok_or(OpenError::Endpoint)?;
+        let opus_mlow_escape = spec.audio.format == MediaAudioFormat::OPUS_MLOW_16KHZ_60MS;
         let parts = wacore::voip_control::engine_bridge::into_engine_parts(spec)
             .map_err(OpenError::Spec)?;
         let mut engine = CallEngine::new(parts.config, Box::new(RandTxIds))
@@ -160,6 +162,7 @@ impl LiveCall {
             id: session,
             call_id,
             format,
+            opus_mlow_escape,
             mic_tx,
             encoded_tx: enc_tx,
             video_tx: vin_tx,
@@ -274,7 +277,9 @@ impl LiveCall {
 
     /// Feeds one encoded packet to the engine's encoded mailbox.
     pub fn encoded_in(&self, data: &[u8]) {
-        let _ = self.encoded_tx.try_send(Bytes::copy_from_slice(data));
+        if let Some(packet) = encoded_input_packet(data, self.opus_mlow_escape) {
+            let _ = self.encoded_tx.try_send(packet);
+        }
     }
 
     /// Feeds one outbound access unit to the engine's video mailbox: timed
@@ -940,9 +945,34 @@ async fn set_timeout_ms(ms: u32) {
 // implemented `Runtime`/`RelayTransport` for fakes and hit exactly that:
 // the host traits demand `Send`, the wasm32 ones do not, so one impl cannot
 // satisfy `clippy --all-targets` on both. The sans-IO engine needs neither.)
+/// The engine, not core.wasm, owns the codec payload grammar. Invalid CELT
+/// packets must not reach the engine under an MLOW RTP profile.
+fn encoded_input_packet(data: &[u8], opus_mlow_escape: bool) -> Option<Bytes> {
+    let mut packet = data.to_vec();
+    if opus_mlow_escape && wacore::voip::packetize_opus_for_mlow(&mut packet).is_err() {
+        return None;
+    }
+    Some(Bytes::from(packet))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[wasm_bindgen_test::wasm_bindgen_test]
+    fn encoded_input_rewrites_only_opus_mlow() {
+        let celt = [0xbb, 0x03, 1, 2, 3, 4, 5, 6];
+        let escaped = encoded_input_packet(&celt, true).expect("CELT packet");
+        assert_eq!(escaped[0], 0xdd);
+        assert_eq!(&escaped[1..], &celt[1..]);
+        assert_eq!(encoded_input_packet(&celt, false).unwrap().as_ref(), celt);
+        assert_eq!(
+            encoded_input_packet(&[0xbb, 0x03], true).unwrap().as_ref(),
+            [0x90]
+        );
+        assert!(encoded_input_packet(&[0x08, 1, 2], true).is_none());
+    }
+
     use wacore::voip::engine::{Input, Output, SequentialTxIds};
 
     fn open_params() -> OpenParams {

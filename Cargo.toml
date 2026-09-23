@@ -55,13 +55,13 @@ wasm-opt = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# Everything the published artifact carries today. A consumer who wants a
-# smaller one turns features off from here with `--no-default-features` plus
-# the ones it keeps; `default` itself stays the surface that shipped, so
-# nothing is ever removed from this list without a major bump.
+# The published core artifact. Its media facade uses the control-plane plugin
+# seam; the optional resident engine features below stay out of this list.
+# Consumers building from source subtract domains with `--no-default-features`.
 default = [
     "client-business",
     "client-calls",
+    "client-calls-media",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
@@ -80,14 +80,14 @@ sticker = ["dep:img-parts"]
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
 client-calls = []
-# Encoded-audio call media: answering and dialing 1:1 calls over a
-# host-supplied relay transport. Pulls the core's portable `voip-encoded`
-# profile (sans-IO engine plus AES-GCM/SFrame crypto, no socket, no codec);
-# the relay socket itself stays on the host side, behind
-# `setRelayTransportProvider`.
-client-calls-audio = ["whatsapp-rust/voip-encoded"]
-# Core-owned PCM calls use the portable MLOW codec path. The encoded surface
-# above remains available without this feature.
+# Public call media facade over the neutral control plane. The actual engine
+# lives in voip.wasm, loaded explicitly by the host through ./voip.
+client-calls-media = ["client-voip-control"]
+# Preserve the opt-in resident engine profile for source builds, without
+# pulling that engine into the published core artifact.
+client-calls-audio = ["client-calls-media", "whatsapp-rust/voip-encoded"]
+# Opt-in resident PCM calls pull the portable MLOW codec path. The default
+# plugin-backed encoded surface remains available without this feature.
 client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 # Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
 # for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
@@ -101,9 +101,8 @@ client-newsletter = []
 client-signal = []
 # The core's neutral call-control seam (`wacore::voip_control`): the signaling
 # and call-lifecycle plane compiles and operates without the media engine.
-# The engine reaches the artifact only through the `client-calls-audio`,
-# `client-calls-pcm` and `client-calls-mlow` features below; this one never
-# turns `wacore/voip` on.
+# The engine reaches core.wasm only through the opt-in resident engine
+# profiles; this one never turns `wacore/voip` on.
 client-voip-control = ["whatsapp-rust/voip-control", "dep:voip-abi"]
 # Typed interop with the decoded libsignal SessionRecord v1 model, for
 # migrating externally produced auth state. The core keeps this off by default

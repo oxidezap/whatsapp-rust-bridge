@@ -11,8 +11,8 @@ edition = "2024"
 # `whatsapp-rust` entry for this crate.
 [dependencies]
 voip-abi = { path = "../voip-abi" }
-wacore = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "7acae337a1acc8bff31e15db56880ca982128332", default-features = false, features = ["voip", "voip-mlow", "js"] }
-wacore-binary = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "7acae337a1acc8bff31e15db56880ca982128332" }
+wacore = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "c4dc16d223917d1aab759e9828f6ea82904f0c99", default-features = false, features = ["voip", "voip-mlow", "js"] }
+wacore-binary = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "c4dc16d223917d1aab759e9828f6ea82904f0c99" }
 anyhow = { version = "1.0", default-features = false }
 async-channel = { version = "2.5.0", default-features = false, features = ["std"] }
 async-trait = "0.1.89"
@@ -22,6 +22,9 @@ getrandom = { version = "0.4", features = ["wasm_js"] }
 js-sys = "0.3"
 wasm-bindgen = "0.2.121"
 wasm-bindgen-futures = "0.4.71"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

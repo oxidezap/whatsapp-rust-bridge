@@ -12,8 +12,7 @@
     not(all(
         feature = "client-business",
         feature = "client-calls",
-        feature = "client-calls-audio",
-        feature = "client-calls-pcm",
+        feature = "client-calls-media",
         feature = "client-chat-actions",
         feature = "client-contacts",
         feature = "client-groups",
@@ -753,9 +752,9 @@ export interface JsRelayProviderCallbacks {
 
 // Merged into `WhatsAppEventCallbacks` above by TypeScript declaration
 // merging, so the media sinks stay optional members of the same callbacks
-// object. Gated with the feature: without `client-calls-audio` there is no
+// object. Gated with the feature: without `client-calls-media` there is no
 // call to sink them into.
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
 /**
@@ -889,7 +888,7 @@ struct JsEventHandler {
     event_tx: async_channel::Sender<Arc<Event>>,
     /// Offers retained for `acceptCall`. Shared with the client wrapper,
     /// which consumes them; the handler only inserts and evicts.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_offers: Arc<Mutex<calls_audio::OfferCache>>,
 }
 
@@ -1496,7 +1495,7 @@ impl BatchDelivery {
 async fn run_event_consumer(
     callbacks: &JsEventCallbacks,
     event_rx: async_channel::Receiver<Arc<Event>>,
-    #[cfg(feature = "client-calls-audio")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
+    #[cfg(feature = "client-calls-media")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     let mut budget = EventDispatchBudget::default();
     let mut pending_event = None;
@@ -1527,7 +1526,7 @@ async fn run_event_consumer(
             &mut pending_event,
             &mut budget,
             &mut delivery,
-            #[cfg(feature = "client-calls-audio")]
+            #[cfg(feature = "client-calls-media")]
             &call_offers,
         )
         .await;
@@ -1537,17 +1536,17 @@ async fn run_event_consumer(
 impl JsEventHandler {
     fn new(
         callbacks: JsEventCallbacks,
-        #[cfg(feature = "client-calls-audio")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
+        #[cfg(feature = "client-calls-media")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
     ) -> Self {
         let (event_tx, event_rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
 
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let call_offers_for_consumer = call_offers.clone();
         wasm_bindgen_futures::spawn_local(async move {
             run_event_consumer(
                 &callbacks,
                 event_rx,
-                #[cfg(feature = "client-calls-audio")]
+                #[cfg(feature = "client-calls-media")]
                 call_offers_for_consumer,
             )
             .await;
@@ -1555,7 +1554,7 @@ impl JsEventHandler {
 
         Self {
             event_tx,
-            #[cfg(feature = "client-calls-audio")]
+            #[cfg(feature = "client-calls-media")]
             call_offers,
         }
     }
@@ -1582,7 +1581,7 @@ async fn dispatch_event_to_js(
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
     delivery: &mut BatchDelivery,
-    #[cfg(feature = "client-calls-audio")] call_offers: &Arc<Mutex<calls_audio::OfferCache>>,
+    #[cfg(feature = "client-calls-media")] call_offers: &Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     // Anything that is not buffered into the open run has to see it delivered
     // first: the host observes batches in the order the events arrived, and a
@@ -1671,7 +1670,7 @@ async fn dispatch_event_to_js(
             // recover the Rust IncomingCall without round-tripping through serialization.
             // The offer was already cached (with its generation) by `note_call_event`
             // before this event was enqueued, so the lookup is always consistent.
-            #[cfg(feature = "client-calls-audio")]
+            #[cfg(feature = "client-calls-media")]
             if let Event::IncomingCall(call) = event.as_ref()
                 && call.action.wire_tag() == "offer"
             {
@@ -2124,7 +2123,7 @@ impl EventHandler for JsEventHandler {
     fn handle_event(&self, event: Arc<Event>) {
         // Retain ringing offers before the queue: `acceptCall` consumes the
         // cache, and serialization must not decide what survives it.
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         calls_audio::note_call_event(&self.call_offers, &event);
         self.enqueue(event);
     }
@@ -2899,7 +2898,7 @@ pub async fn create_whatsapp_client(
     let http_client =
         Arc::new(JsHttpClientAdapter::from_js(http_config)?) as Arc<dyn wacore::net::HttpClient>;
 
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     let call_media_callbacks = if let Some(callback) = on_event.as_ref() {
         (
             calls_audio::media_callback(callback, "onCallAudio")?.map(std::rc::Rc::new),
@@ -2985,15 +2984,15 @@ pub async fn create_whatsapp_client(
     // offer cache) and the client wrapper (which consumes it). Without an
     // event sink both stay empty but present, so the audio methods keep one
     // shape regardless.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     let call_offers = Arc::new(Mutex::new(calls_audio::OfferCache::default()));
 
     let event_subscription = if let Some(callback) = on_event {
         let callbacks = JsEventCallbacks::from_js(callback)?;
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let handler =
             Arc::new(JsEventHandler::new(callbacks, call_offers.clone())) as Arc<dyn EventHandler>;
-        #[cfg(not(feature = "client-calls-audio"))]
+        #[cfg(not(feature = "client-calls-media"))]
         let handler = Arc::new(JsEventHandler::new(callbacks)) as Arc<dyn EventHandler>;
         Some(client.subscribe_handler(handler))
     } else {
@@ -3016,17 +3015,17 @@ pub async fn create_whatsapp_client(
         teardown_gate: Arc::new(TeardownGate::new()),
         teardown_kind: Arc::new(std::sync::atomic::AtomicU8::new(0)),
         alloc_meter,
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_offers,
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_records: std::rc::Rc::new(std::cell::RefCell::new(HashMap::new())),
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         past_call_stats: Arc::new(Mutex::new(std::collections::VecDeque::new())),
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_audio_callback: call_media_callbacks.0,
         #[cfg(feature = "client-calls-pcm")]
         call_pcm_callback: call_media_callbacks.1,
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_event_callback: {
             #[cfg(feature = "client-calls-pcm")]
             {
@@ -3037,7 +3036,7 @@ pub async fn create_whatsapp_client(
                 call_media_callbacks.1
             }
         },
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_video_callback: {
             #[cfg(feature = "client-calls-pcm")]
             {
@@ -3048,13 +3047,13 @@ pub async fn create_whatsapp_client(
                 call_media_callbacks.2
             }
         },
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_generation: std::rc::Rc::new(std::cell::Cell::new(0)),
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_reserved: std::rc::Rc::new(std::cell::Cell::new(0)),
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         call_admission: Arc::new(async_lock::Mutex::new(())),
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
 }
@@ -3435,7 +3434,7 @@ pub struct WasmWhatsAppClient {
     alloc_meter: Option<Arc<wacore::stats::AllocMeter>>,
     /// Ringing offers retained for `acceptCall`, by call id. The media
     /// module owns the cache; the event handler feeds it.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_offers: Arc<Mutex<calls_audio::OfferCache>>,
     // Live calls by call id, with their mic queues and pump tasks.
     //
@@ -3445,35 +3444,35 @@ pub struct WasmWhatsAppClient {
     // thread is all this heap ever sees, and no borrow is held across a
     // JS call or an await anywhere below — the pumps only ever clone out
     // of it — so the `RefCell` cannot observe reentrancy.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_records: std::rc::Rc<std::cell::RefCell<HashMap<String, calls_audio::CallRecord>>>,
     /// Final counters of ended calls, so stats stay readable after `ended`.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     past_call_stats:
         Arc<Mutex<std::collections::VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
     /// Host sink for encoded packets, when the callbacks object carried one.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_audio_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     #[cfg(feature = "client-calls-pcm")]
     call_pcm_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Host sink for call lifecycle events, when one was registered.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_event_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Host sink for peer video access units, when one was registered.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_video_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Call registration counter. Hands each record a generation so a
     /// finish path removes only its own registration, never a same-id
     /// replacement that superseded it mid-await. Shared, not plain:
     /// method futures outlive the wrapper, so counters they touch must
     /// live in shared ownership like every other record below.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_generation: std::rc::Rc<std::cell::Cell<u64>>,
     /// Reservation count for calls past validation but not yet recorded.
     /// Admission checks it alongside the map so concurrent starts cannot
     /// each pass the count and then all insert past capacity. Shared for
     /// the reason above.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
     /// Serializes the displace-plus-register tail of call starts. Two
     /// same-id starters could otherwise interleave termination and
@@ -3481,13 +3480,13 @@ pub struct WasmWhatsAppClient {
     /// replacement's record; under the lock each start displaces what is
     /// actually there. Held only across the tail — never across core
     /// startup — so unrelated calls never wait on each other.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     call_admission: Arc<async_lock::Mutex<()>>,
     /// Still-true until `free()`. Call tasks check it before invoking
     /// host callbacks: aborting is signaled, not synchronous, so a task
     /// that outlives teardown must not call into a freed heap on its way
     /// out — it breaks instead.
-    #[cfg(feature = "client-calls-audio")]
+    #[cfg(feature = "client-calls-media")]
     calls_live: std::rc::Rc<std::cell::Cell<bool>>,
 }
 
@@ -3499,11 +3498,11 @@ pub struct WasmWhatsAppClient {
 // messaging are not optional. See `[features]` in Cargo.toml.
 #[cfg(feature = "client-business")]
 mod business;
-#[cfg(any(feature = "client-calls", feature = "client-calls-audio"))]
+#[cfg(any(feature = "client-calls", feature = "client-calls-media"))]
 mod call_handle;
 #[cfg(feature = "client-calls")]
 mod calls;
-#[cfg(feature = "client-calls-audio")]
+#[cfg(feature = "client-calls-media")]
 mod calls_audio;
 #[cfg(feature = "client-chat-actions")]
 mod chat_actions;
@@ -3559,7 +3558,7 @@ impl Drop for WasmWhatsAppClient {
         // the flag and break instead of invoking a host callback on its
         // way out. The flag flips before the aborts so even a task that
         // never polls again cannot call past it.
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         {
             self.calls_live.set(false);
             for record in self.call_records.borrow().values() {
@@ -3891,7 +3890,7 @@ where
     })
 }
 
-#[cfg(not(feature = "client-calls-audio"))]
+#[cfg(not(feature = "client-calls-media"))]
 fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
 where
     Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
@@ -5123,13 +5122,13 @@ mod event_delivery_tests {
             tx.try_send(Arc::new(event)).expect("the channel accepts");
         }
         tx.close();
-        #[cfg(feature = "client-calls-audio")]
+        #[cfg(feature = "client-calls-media")]
         let call_offers =
             std::sync::Arc::new(std::sync::Mutex::new(calls_audio::OfferCache::default()));
         run_event_consumer(
             &callbacks,
             rx,
-            #[cfg(feature = "client-calls-audio")]
+            #[cfg(feature = "client-calls-media")]
             call_offers,
         )
         .await;
