@@ -74,3 +74,49 @@ initSync({ module: wasm });
 Call `initSync` once per isolate, and on workerd create clients inside a
 request handler rather than at global scope (`crypto.getRandomValues` is
 unavailable during global-scope evaluation).
+
+## VoIP media (opt-in engine)
+
+`acceptCall`/`dialCall` (encoded audio), `acceptCallPcm`/`dialCallPcm`
+(decoded mono PCM), video push, call callbacks and stats are available on the
+default client, but media requires the separate engine.
+Loading the normal entrypoint does **not** load `voip.wasm`. Call `loadVoip`
+(or `initVoipSync`) once **per client**: each call creates an independent WASM
+instance, so two sockets cannot exchange session handles, relay transports or
+media callbacks. A Node/Bun host supplies a relay transport (ICE/DTLS/SCTP over
+a pre-negotiated DataChannel) before constructing each client:
+
+```ts
+import { createWhatsAppClient, initWasmEngine } from "@oxidezap/whatsapp-rust-bridge";
+import { loadVoip, MlowAudioDecoder, depacketizeOpusFromMlow } from "@oxidezap/whatsapp-rust-bridge/voip";
+
+initWasmEngine();
+const { voipBackend } = loadVoip(relayTransport);
+const client = await createWhatsAppClient(
+  transport, httpClient,
+  { onEvent(event) {}, onCallAudio(frame) {}, onCallPcm(frame) {}, onCallVideo(frame) {}, onCallEvent(event) {} },
+  null, null, null, null, null, null, { voipBackend },
+);
+const call = await client.acceptCall(callId, "opus-mlow", false, offerHandle);
+client.callPushAudio(call.callId, opusCeltPacket);
+await call.terminate();
+```
+
+`offerHandle` comes from the incoming offer event; a `callId` alone also
+works. For decoded audio, call `acceptCallPcm(callId)` or `dialCallPcm(peer)`, pass
+one `Int16Array(960)` of mono 16 kHz PCM to `callPushPcm16(callId, samples)`,
+and handle decoded `Int16Array` frames in `onCallPcm`; voip.wasm handles
+MLOW encoding and decoding. Both PCM and encoded methods return `WasmCallHandle`
+(with `callId`,
+`mediaStats`, `waitEnded`, and video controls); `endCall(callId)` and
+`getCallMediaStats(callId)` are available on the client. Video push accepts
+encoded H.264 Annex-B access units, not raw pixels. The engine converts
+outgoing CELT Opus to MLOW escape on an `"opus-mlow"` call; inbound MLOW can
+be decoded with a stateful `MlowAudioDecoder` per call. The codec helpers are
+exported only from `./voip`, not the core entrypoint.
+
+A host without `node:fs` imports `@oxidezap/whatsapp-rust-bridge/voip/wasm`
+and calls `initVoipSync(wasm, relayTransport)` from `./voip/host` instead of
+`loadVoip`. Install its returned `voipBackend` at client creation the same
+way. Neither engine loader invents a relay connection: the host supplies one
+implementing `VoipRelayTransport` (see `ts/voip-relay-transport.ts`).

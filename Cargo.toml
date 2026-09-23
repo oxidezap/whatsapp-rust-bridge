@@ -55,18 +55,20 @@ wasm-opt = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# Everything the published artifact carries today. A consumer who wants a
-# smaller one turns features off from here with `--no-default-features` plus
-# the ones it keeps; `default` itself stays the surface that shipped, so
-# nothing is ever removed from this list without a major bump.
+# The published core artifact. Its media facade uses the control-plane plugin
+# seam; the optional resident engine features below stay out of this list.
+# Consumers building from source subtract domains with `--no-default-features`.
 default = [
     "client-business",
+    "client-calls",
+    "client-calls-media",
     "client-chat-actions",
     "client-contacts",
     "client-groups",
     "client-media",
     "client-newsletter",
     "client-signal",
+    "client-voip-control",
     "legacy-session",
 ]
 audio = ["dep:symphonia"]
@@ -77,6 +79,19 @@ sticker = ["dep:img-parts"]
 # messaging have no feature: a client that cannot connect or send is not a
 # client, and everything else in the graph hangs off those two anyway.
 client-business = []
+client-calls = []
+# Public call media facade over the neutral control plane. The actual engine
+# lives in voip.wasm, loaded explicitly by the host through ./voip.
+client-calls-media = ["client-voip-control"]
+# Preserve the opt-in resident engine profile for source builds, without
+# pulling that engine into the published core artifact.
+client-calls-audio = ["client-calls-media", "whatsapp-rust/voip-encoded"]
+# Opt-in resident PCM calls pull the MLOW engine into core.wasm. Default
+# plugin-backed PCM methods ship with client-calls-media without this feature.
+client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
+# Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
+# for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.
+client-calls-mlow = ["whatsapp-rust/voip-mlow"]
 client-chat-actions = []
 client-contacts = []
 client-groups = []
@@ -84,6 +99,11 @@ client-media = []
 client-newsletter = []
 # The standalone Signal record codecs and the group-message crypto exports.
 client-signal = []
+# The core's neutral call-control seam (`wacore::voip_control`): the signaling
+# and call-lifecycle plane compiles and operates without the media engine.
+# The engine reaches core.wasm only through the opt-in resident engine
+# profiles; this one never turns `wacore/voip` on.
+client-voip-control = ["whatsapp-rust/voip-control", "dep:voip-abi"]
 # Typed interop with the decoded libsignal SessionRecord v1 model, for
 # migrating externally produced auth state. The core keeps this off by default
 # so a client carries no migration surface; the bridge turns it on for the
@@ -132,6 +152,7 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"], op
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
 tsify = { version = "0.5.6", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
+voip-abi = { path = "crates/voip-abi", optional = true }
 
 wasm-bindgen = "0.2.128"
 wasm-bindgen-futures = "0.4.71"
@@ -191,6 +212,9 @@ opt-level = 3
 # that path (sha2, subtle, digest) measured flat and stay size-optimized.
 [profile.release.package.curve25519-dalek]
 opt-level = 3
+
+[profile.release.package.wacore]
+opt-level = 2
 
 # Optimized with function names for profiling: bun run build:profile
 [profile.profiling]

@@ -845,18 +845,6 @@ impl WasmWhatsAppClient {
 // Run completion observation mapping
 // ---------------------------------------------------------------------------
 
-#[cfg(target_arch = "wasm32")]
-fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
-    crate::errors::to_js_error(e)
-}
-
-/// Host-target builds never drive the promise future; the rejection shape
-/// only has to be a `JsValue` so the export keeps one surface per target.
-#[cfg(not(target_arch = "wasm32"))]
-fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
-    JsValue::from_str(&e.to_string())
-}
-
 /// The core's completion reason, typed per branch for the `waitForRunCompletion`
 /// promise. Known variants are named explicitly rather than rendered through
 /// `Debug`; the wildcard the core's `#[non_exhaustive]` forces keeps the

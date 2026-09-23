@@ -29,17 +29,18 @@ const DIST = join(ROOT, "dist");
 const BINDGEN_DTS = "whatsapp_rust_bridge.d.ts";
 
 copyFileSync(join(ROOT, "pkg", BINDGEN_DTS), join(DIST, BINDGEN_DTS));
+copyFileSync(join(ROOT, "pkg-voip", "whatsapp_rust_voip.d.ts"), join(DIST, "whatsapp_rust_voip.d.ts"));
 
 // `surface.d.ts` and `host.d.ts` are emitted by tsc from extensionless
 // sources, so each carries the same `../pkg/` reference to rewrite.
 // `index.d.ts` only re-exports `./surface` and has no `../pkg/` reference;
 // the loop below still rewrites its `.js` specifiers like every other file.
-for (const entryDts of ["surface.d.ts", "host.d.ts"]) {
+for (const entryDts of ["surface.d.ts", "host.d.ts", "voip-host.d.ts"]) {
   const entryPath = join(DIST, entryDts);
   const source = readFileSync(entryPath, "utf8");
   const rewritten = source.replaceAll(
-    "../pkg/whatsapp_rust_bridge.js",
-    "./whatsapp_rust_bridge.js",
+    entryDts === "voip-host.d.ts" ? "../pkg-voip/whatsapp_rust_voip.js" : "../pkg/whatsapp_rust_bridge.js",
+    entryDts === "voip-host.d.ts" ? "./whatsapp_rust_voip.js" : "./whatsapp_rust_bridge.js",
   );
   if (rewritten === source) {
     throw new Error(
