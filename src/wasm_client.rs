@@ -660,9 +660,10 @@ export interface CacheConfig {
   messageRetry?: CacheEntryConfig;
 }
 
-// Augment WasmWhatsAppClient with methods that need skip_typescript
-// (Record returns can't be expressed by wasm-bindgen)
-interface WasmWhatsAppClient {
+// Augment the exported class with methods that need skip_typescript
+// (Record returns can't be expressed by wasm-bindgen). The declaration
+// must also be exported for TypeScript to merge it with the generated class.
+export interface WasmWhatsAppClient {
   /** Fetch all groups the user is participating in. */
   groupFetchAllParticipating(): Promise<Record<string, GroupMetadataResult>>;
   /** Fetch all parent groups the user is participating in. */
