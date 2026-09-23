@@ -245,25 +245,7 @@ impl LiveCall {
                 seq = seq.wrapping_add(1);
             }
         });
-        // The counters fan polls the cell the drive loop publishes into: the
-        // engine has no stats event, so a poll is the only read. A push on
-        // every change would match the core's `STATS_PUSH` cadence better;
-        // this interval keeps a quiet call quiet.
-        let id = self.id;
-        let stats = self.stats.clone();
-        // Unlike the channel fans, this loop has no sender that closes with
-        // the drive task. Its abort handle must belong to the live call.
-        EngineRuntime.spawn(Box::pin(async move {
-            let mut last = wacore::voip_control::MediaStats::default();
-            loop {
-                set_timeout_ms(1000).await;
-                let now = stats.snapshot();
-                if now != last {
-                    last = now;
-                    push_stats(id, stats_to_wire(&now));
-                }
-            }
-        }))
+        spawn_stats_fan(self.id, self.stats.clone(), push_stats)
     }
 
     /// Feeds one inbound PCM frame to the engine's mic mailbox. Loss
@@ -486,6 +468,27 @@ impl LiveCall {
         drop(self.task);
         (id, call_id)
     }
+}
+
+/// The counters fan polls the cell the drive loop publishes into. Unlike the
+/// channel fans, it has no sender that closes with the drive task: its abort
+/// handle belongs to the live call so a completed call leaves no timer.
+fn spawn_stats_fan(
+    id: SessionId,
+    stats: Arc<media_stats::MediaStatsCell>,
+    push_stats: Arc<dyn Fn(SessionId, StatsData) + Send + Sync>,
+) -> wacore::runtime::AbortHandle {
+    EngineRuntime.spawn(Box::pin(async move {
+        let mut last = wacore::voip_control::MediaStats::default();
+        loop {
+            set_timeout_ms(1000).await;
+            let now = stats.snapshot();
+            if now != last {
+                last = now;
+                push_stats(id, stats_to_wire(&now));
+            }
+        }
+    }))
 }
 
 /// One encoded packet out of the engine, re-exported for the push path.
@@ -963,6 +966,34 @@ fn encoded_input_packet(data: &[u8], opus_mlow_escape: bool) -> Option<Bytes> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen_test::wasm_bindgen_test(async)]
+    async fn live_stats_fan_pushes_published_counters() {
+        let (tx, rx) = futures::channel::oneshot::channel();
+        let sender = Arc::new(std::sync::Mutex::new(Some(tx)));
+        let push = Arc::new(move |_: SessionId, snapshot: StatsData| {
+            if let Some(tx) = sender.lock().unwrap().take() {
+                let _ = tx.send(snapshot);
+            }
+        });
+        let cell = Arc::new(media_stats::MediaStatsCell::default());
+        let fan = spawn_stats_fan(
+            SessionId {
+                handle: 1,
+                generation: 1,
+            },
+            cell.clone(),
+            push,
+        );
+        cell.publish(
+            wacore::voip_control::MediaStats::builder()
+                .rtp_received(7)
+                .build(),
+        );
+        assert_eq!(rx.await.expect("stats pushed").rtp_received, 7);
+        drop(fan);
+    }
 
     #[wasm_bindgen_test::wasm_bindgen_test]
     fn encoded_input_rewrites_only_opus_mlow() {
