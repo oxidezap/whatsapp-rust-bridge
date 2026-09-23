@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.0...v0.24.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* declare protobuf wire type dependency ([#135](https://github.com/oxidezap/whatsapp-rust-bridge/issues/135)) ([2a20541](https://github.com/oxidezap/whatsapp-rust-bridge/commit/2a205410259e4a55ca78e0a135e9df73e185914c))
+
 ## [0.24.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.1...v0.24.0) (2026-09-21)
 
 
