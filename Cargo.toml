@@ -86,8 +86,8 @@ client-calls-media = ["client-voip-control"]
 # Preserve the opt-in resident engine profile for source builds, without
 # pulling that engine into the published core artifact.
 client-calls-audio = ["client-calls-media", "whatsapp-rust/voip-encoded"]
-# Opt-in resident PCM calls pull the portable MLOW codec path. The default
-# plugin-backed encoded surface remains available without this feature.
+# Opt-in resident PCM calls pull the MLOW engine into core.wasm. Default
+# plugin-backed PCM methods ship with client-calls-media without this feature.
 client-calls-pcm = ["client-calls-audio", "whatsapp-rust/voip-mlow"]
 # Pure-Rust stateful MLOW audio decoder: exposes `MlowAudioDecoder` to WASM/JS
 # for decoding inbound WhatsApp call audio packets to 16 kHz Float32 PCM.

@@ -17,7 +17,6 @@ import { createHttp } from "./helpers.js";
 
 const { initWasmEngine, createWhatsAppClient } = dist;
 const hasCallsAudio = typeof dist.WasmWhatsAppClient.prototype.acceptCall === "function";
-const hasPcm = typeof (dist.WasmWhatsAppClient.prototype as any).acceptCallPcm === "function";
 const hasResidentRelay = typeof (dist.WasmWhatsAppClient.prototype as any).setRelayTransportProvider === "function";
 
 beforeAll(() => {
@@ -104,7 +103,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
     }
   });
 
-  test.skipIf(!hasPcm)("PCM call methods validate their boundary arguments", async () => {
+  test("PCM call methods validate their boundary arguments", async () => {
     const client = await offlineClient();
     try {
       const accept = await rejection(client.acceptCallPcm("NEVER-RANG"));
@@ -152,7 +151,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
     }
   });
 
-  test.skipIf(!hasPcm)("PCM input requires one complete core-sized frame", async () => {
+  test("PCM input requires one complete core-sized frame", async () => {
     const client = await offlineClient();
     try {
       for (const length of [0, 959, 961]) {
@@ -191,7 +190,7 @@ describe.skipIf(!hasCallsAudio)("call media validation", () => {
       ["onCallAudio", "onEvent.onCallAudio"],
       ["onCallEvent", "onEvent.onCallEvent"],
       ["onCallVideo", "onEvent.onCallVideo"],
-      ...(hasPcm ? [["onCallPcm", "onEvent.onCallPcm"]] as const : []),
+      ["onCallPcm", "onEvent.onCallPcm"],
     ] as const) {
       try {
         await createWhatsAppClient(

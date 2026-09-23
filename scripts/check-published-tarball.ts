@@ -94,17 +94,21 @@ const consumer = (name: string): string => `import {
   encodeProto,
   proto,
   type WasmWhatsAppClient,
+  type WasmCallHandle,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
 import { loadVoip, packetizeOpusForMlow } from "${name}/voip";
 import { initVoipSync } from "${name}/voip/host";
 import type { VoipRelayTransport } from "${name}";
 
-export function voipContracts(transport: VoipRelayTransport) {
+export function voipContracts(transport: VoipRelayTransport, client: WasmWhatsAppClient) {
   const plugin = loadVoip(transport).voipBackend;
   const fromHost = initVoipSync(new Uint8Array(), transport).voipBackend;
   const packet: Uint8Array = packetizeOpusForMlow(new Uint8Array([0xbb, 3]));
-  return { plugin, fromHost, packet };
+  const accepted: Promise<WasmCallHandle> = client.acceptCallPcm("ringing", true);
+  const dialed: Promise<WasmCallHandle> = client.dialCallPcm("peer@s.whatsapp.net", true);
+  const pushed: boolean = client.callPushPcm16("ringing", new Int16Array(960));
+  return { plugin, fromHost, packet, accepted, dialed, pushed };
 }
 
 // The run-observation contract, derived from the export itself: a

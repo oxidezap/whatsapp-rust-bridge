@@ -856,7 +856,7 @@ export interface WhatsAppEventCallbacks {
 }
 "#;
 
-#[cfg(feature = "client-calls-pcm")]
+#[cfg(feature = "client-calls-media")]
 #[wasm_bindgen(typescript_custom_section)]
 const _TS_CALL_PCM_CALLBACK: &str = r#"
 export interface WhatsAppEventCallbacks {
@@ -2903,19 +2903,12 @@ pub async fn create_whatsapp_client(
     let call_media_callbacks = if let Some(callback) = on_event.as_ref() {
         (
             calls_audio::media_callback(callback, "onCallAudio")?.map(std::rc::Rc::new),
-            #[cfg(feature = "client-calls-pcm")]
             calls_audio::media_callback(callback, "onCallPcm")?.map(std::rc::Rc::new),
             calls_audio::media_callback(callback, "onCallEvent")?.map(std::rc::Rc::new),
             calls_audio::media_callback(callback, "onCallVideo")?.map(std::rc::Rc::new),
         )
     } else {
-        (
-            None,
-            #[cfg(feature = "client-calls-pcm")]
-            None,
-            None,
-            None,
-        )
+        (None, None, None, None)
     };
 
     let persistence_manager: Arc<whatsapp_rust::store::persistence_manager::PersistenceManager> =
@@ -3024,30 +3017,12 @@ pub async fn create_whatsapp_client(
         past_call_stats: Arc::new(Mutex::new(std::collections::VecDeque::new())),
         #[cfg(feature = "client-calls-media")]
         call_audio_callback: call_media_callbacks.0,
-        #[cfg(feature = "client-calls-pcm")]
+        #[cfg(feature = "client-calls-media")]
         call_pcm_callback: call_media_callbacks.1,
         #[cfg(feature = "client-calls-media")]
-        call_event_callback: {
-            #[cfg(feature = "client-calls-pcm")]
-            {
-                call_media_callbacks.2
-            }
-            #[cfg(not(feature = "client-calls-pcm"))]
-            {
-                call_media_callbacks.1
-            }
-        },
+        call_event_callback: call_media_callbacks.2,
         #[cfg(feature = "client-calls-media")]
-        call_video_callback: {
-            #[cfg(feature = "client-calls-pcm")]
-            {
-                call_media_callbacks.3
-            }
-            #[cfg(not(feature = "client-calls-pcm"))]
-            {
-                call_media_callbacks.2
-            }
-        },
+        call_video_callback: call_media_callbacks.3,
         #[cfg(feature = "client-calls-media")]
         call_generation: std::rc::Rc::new(std::cell::Cell::new(0)),
         #[cfg(feature = "client-calls-media")]
@@ -3454,7 +3429,7 @@ pub struct WasmWhatsAppClient {
     /// Host sink for encoded packets, when the callbacks object carried one.
     #[cfg(feature = "client-calls-media")]
     call_audio_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
-    #[cfg(feature = "client-calls-pcm")]
+    #[cfg(feature = "client-calls-media")]
     call_pcm_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
     /// Host sink for call lifecycle events, when one was registered.
     #[cfg(feature = "client-calls-media")]

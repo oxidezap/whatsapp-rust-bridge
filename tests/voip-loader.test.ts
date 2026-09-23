@@ -30,6 +30,9 @@ describe("published VoIP facade", () => {
     try {
       expect(typeof client.acceptCall).toBe("function");
       expect(typeof client.dialCall).toBe("function");
+      expect(typeof client.acceptCallPcm).toBe("function");
+      expect(typeof client.dialCallPcm).toBe("function");
+      expect(typeof client.callPushPcm16).toBe("function");
       expect(typeof client.callPushAudio).toBe("function");
       expect(typeof client.callPushVideo).toBe("function");
       expect(typeof client.endCall).toBe("function");
@@ -40,6 +43,14 @@ describe("published VoIP facade", () => {
       await expect(client.acceptCall("NO-SUCH-OFFER", "mlow")).rejects.toMatchObject({
         kind: "invalid-argument", field: "callId",
       });
+      await expect(client.acceptCallPcm("NO-SUCH-OFFER")).rejects.toMatchObject({
+        kind: "invalid-argument", field: "callId",
+      });
+      await expect(client.dialCallPcm("not-a-jid")).rejects.toMatchObject({
+        kind: "invalid-argument", field: "peer",
+      });
+      expect(() => client.callPushPcm16("NO-SUCH-CALL", new Int16Array(960)))
+        .toThrowError(expect.objectContaining({ kind: "invalid-argument", field: "callId" }));
     } finally {
       client.free();
     }
@@ -52,6 +63,7 @@ describe("published VoIP facade", () => {
     const response = await engine.voipBackend.sendFrame(hello);
     expect(response.slice(0, 7)).toEqual(hello.slice(0, 7));
     expect(response[7]).toBe(1); // RESPONSE
+    expect(response[13]! & 0x01).toBe(0x01); // PCM capability
   });
 
   test("codec helpers and decoder are live in voip.wasm", () => {

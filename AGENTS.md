@@ -178,8 +178,8 @@ Nothing beyond UTF-8 is checked here. Length, permitted characters and Unicode n
 `--features` — so features outside `default` are opt-in source builds. Audio
 utilities, image, sticker, memory-profiling, and the resident-engine profiles
 `client-calls-audio`/`client-calls-pcm`/`client-calls-mlow` are opt-in. The
-published `client-calls-media` facade uses the neutral `client-voip-control`
-seam; its engine and MLOW decoder live in the separately loaded `./voip` WASM
+published `client-calls-media` facade includes encoded audio, PCM and video over
+the neutral `client-voip-control` seam; its engine and MLOW decoder live in the separately loaded `./voip` WASM
 (see `ts/voip.ts` and `ts/voip-host.ts`), never core.wasm.
 
 The domain `client-*` features in `default` and `legacy-session` support source

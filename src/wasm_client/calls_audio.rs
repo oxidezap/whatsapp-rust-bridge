@@ -1,4 +1,4 @@
-//! Call media: encoded and opt-in PCM audio, video, stats, and hangup.
+//! Call media: encoded and PCM audio, video, stats, and hangup.
 //!
 //! The default facade uses `voip-control` without linking the media engine.
 //! `ForeignVoipBackend` transports frames to the explicitly loaded voip.wasm;
@@ -217,7 +217,6 @@ enum CallMic {
         tx: async_channel::Sender<Bytes>,
         drain: async_channel::Receiver<Bytes>,
     },
-    #[cfg(feature = "client-calls-pcm")]
     Pcm {
         tx: async_channel::Sender<Vec<i16>>,
         drain: async_channel::Receiver<Vec<i16>>,
@@ -226,7 +225,6 @@ enum CallMic {
 
 enum CallSpeaker {
     Encoded(async_channel::Receiver<EncodedAudioFrame>),
-    #[cfg(feature = "client-calls-pcm")]
     Pcm(async_channel::Receiver<Vec<i16>>),
 }
 
@@ -236,7 +234,6 @@ enum CallAudioRegistration {
         mic_drain: async_channel::Receiver<Bytes>,
         speaker_rx: async_channel::Receiver<EncodedAudioFrame>,
     },
-    #[cfg(feature = "client-calls-pcm")]
     Pcm {
         mic_tx: async_channel::Sender<Vec<i16>>,
         mic_drain: async_channel::Receiver<Vec<i16>>,
@@ -247,7 +244,6 @@ enum CallAudioRegistration {
 #[derive(Clone, Copy)]
 enum CallAudioMode {
     Encoded(AudioFormat),
-    #[cfg(feature = "client-calls-pcm")]
     Pcm,
 }
 
@@ -469,8 +465,7 @@ impl WasmWhatsAppClient {
         })
     }
 
-    /// Answer a ringing call with the core's PCM audio pipeline.
-    #[cfg(feature = "client-calls-pcm")]
+    /// Answer a ringing call with PCM through the selected media backend.
     #[wasm_bindgen(js_name = acceptCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn accept_call_pcm(&self, call_id: String, with_video: Option<bool>) -> js_sys::Promise {
         let media = CallMedia::of(self);
@@ -481,8 +476,7 @@ impl WasmWhatsAppClient {
         })
     }
 
-    /// Dial a peer with the core's PCM audio pipeline.
-    #[cfg(feature = "client-calls-pcm")]
+    /// Dial a peer with PCM through the selected media backend.
     #[wasm_bindgen(js_name = dialCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
     pub fn dial_call_pcm(&self, peer: String, with_video: Option<bool>) -> js_sys::Promise {
         let media = CallMedia::of(self);
@@ -529,7 +523,6 @@ impl WasmWhatsAppClient {
         // the escape on its own copy, never on the caller's view.
         let (tx, drain) = match &record.mic {
             CallMic::Encoded { tx, drain } => (tx, drain),
-            #[cfg(feature = "client-calls-pcm")]
             CallMic::Pcm { .. } => {
                 return Err(crate::errors::invalid_arg(
                     "callId",
@@ -553,21 +546,20 @@ impl WasmWhatsAppClient {
         }
     }
 
-    /// Push exactly one 60 ms mono 16 kHz PCM microphone frame. The core owns
-    /// codec selection and encoding; this boundary copies the samples once.
-    #[cfg(feature = "client-calls-pcm")]
+    /// Push exactly one 60 ms mono 16 kHz PCM microphone frame. The plugin
+    /// owns codec selection and encoding; this boundary copies samples once.
     #[wasm_bindgen(js_name = callPushPcm16)]
     pub fn call_push_pcm16(
         &self,
         call_id: &str,
         samples: &[i16],
     ) -> Result<bool, crate::errors::BridgeError> {
-        if samples.len() != whatsapp_rust::voip::audio::WA_FRAME_SAMPLES {
+        if samples.len() != AudioFormat::MLOW_16KHZ_60MS.samples_per_frame as usize {
             return Err(crate::errors::invalid_arg(
                 "samples",
                 format!(
                     "PCM frame must contain exactly {} samples",
-                    whatsapp_rust::voip::audio::WA_FRAME_SAMPLES
+                    AudioFormat::MLOW_16KHZ_60MS.samples_per_frame
                 ),
             ));
         }
@@ -896,22 +888,18 @@ impl WasmWhatsAppClient {
         to_ts(crate::result_types::CallAudioBufferResult {
             outbound_queued: match &record.mic {
                 CallMic::Encoded { tx, .. } => tx.len() as f64,
-                #[cfg(feature = "client-calls-pcm")]
                 CallMic::Pcm { tx, .. } => tx.len() as f64,
             },
             outbound_capacity: match &record.mic {
                 CallMic::Encoded { tx, .. } => tx.capacity().unwrap_or(0) as f64,
-                #[cfg(feature = "client-calls-pcm")]
                 CallMic::Pcm { tx, .. } => tx.capacity().unwrap_or(0) as f64,
             },
             inbound_queued: match &record.speaker {
                 CallSpeaker::Encoded(rx) => rx.len() as f64,
-                #[cfg(feature = "client-calls-pcm")]
                 CallSpeaker::Pcm(rx) => rx.len() as f64,
             },
             inbound_capacity: match &record.speaker {
                 CallSpeaker::Encoded(rx) => rx.capacity().unwrap_or(0) as f64,
-                #[cfg(feature = "client-calls-pcm")]
                 CallSpeaker::Pcm(rx) => rx.capacity().unwrap_or(0) as f64,
             },
             video_outbound_queued: record.video_tx.as_ref().map(|tx| tx.len() as f64),
@@ -1057,7 +1045,6 @@ impl CallMedia {
                 },
                 CallSpeaker::Encoded(speaker_rx),
             ),
-            #[cfg(feature = "client-calls-pcm")]
             CallAudioRegistration::Pcm {
                 mic_tx,
                 mic_drain,
@@ -1111,7 +1098,6 @@ impl CallMedia {
         let forwarder = self.spawn_call_event_task(&call_id, generation, handle.clone());
         let speaker_task = match &self.call_records.borrow()[&call_id].speaker {
             CallSpeaker::Encoded(rx) => self.spawn_speaker_task(&call_id, rx.clone()),
-            #[cfg(feature = "client-calls-pcm")]
             CallSpeaker::Pcm(rx) => self.spawn_pcm_speaker_task(&call_id, rx.clone()),
         };
         let tasks = vec![
@@ -1162,7 +1148,6 @@ impl CallMedia {
         })))
     }
 
-    #[cfg(feature = "client-calls-pcm")]
     fn spawn_pcm_speaker_task(
         &self,
         call_id: &str,
@@ -1686,7 +1671,6 @@ pub(super) struct CallMedia {
     past_call_stats: Arc<Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
     runtime: Arc<dyn wacore::runtime::Runtime>,
     call_audio_callback: Option<std::rc::Rc<MediaCallback>>,
-    #[cfg(feature = "client-calls-pcm")]
     call_pcm_callback: Option<std::rc::Rc<MediaCallback>>,
     call_event_callback: Option<std::rc::Rc<MediaCallback>>,
     call_video_callback: Option<std::rc::Rc<MediaCallback>>,
@@ -1705,7 +1689,6 @@ impl CallMedia {
             past_call_stats: client.past_call_stats.clone(),
             runtime: client.runtime.clone(),
             call_audio_callback: client.call_audio_callback.clone(),
-            #[cfg(feature = "client-calls-pcm")]
             call_pcm_callback: client.call_pcm_callback.clone(),
             call_event_callback: client.call_event_callback.clone(),
             call_video_callback: client.call_video_callback.clone(),
@@ -1737,7 +1720,6 @@ impl CallMedia {
     ) -> Result<super::call_handle::WasmCallHandle, crate::errors::BridgeError> {
         let operation = match mode {
             CallAudioMode::Encoded(_) => "acceptCall",
-            #[cfg(feature = "client-calls-pcm")]
             CallAudioMode::Pcm => "acceptCallPcm",
         };
         let (offer, offer_gen) = self
@@ -1781,7 +1763,6 @@ impl CallMedia {
                     },
                 )
             }
-            #[cfg(feature = "client-calls-pcm")]
             CallAudioMode::Pcm => {
                 let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
                 let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
@@ -2028,7 +2009,6 @@ impl CallMedia {
                 // pulling newer packets past the gap.
                 match &record.mic {
                     CallMic::Encoded { drain, .. } => while drain.try_recv().is_ok() {},
-                    #[cfg(feature = "client-calls-pcm")]
                     CallMic::Pcm { drain, .. } => while drain.try_recv().is_ok() {},
                 }
             }
@@ -2071,7 +2051,6 @@ impl CallMedia {
     ) -> Result<super::call_handle::WasmCallHandle, crate::errors::BridgeError> {
         let operation = match mode {
             CallAudioMode::Encoded(_) => "dialCall",
-            #[cfg(feature = "client-calls-pcm")]
             CallAudioMode::Pcm => "dialCallPcm",
         };
         let peer_jid = parse_named_jid("peer", &peer)?;
@@ -2097,7 +2076,6 @@ impl CallMedia {
                     },
                 )
             }
-            #[cfg(feature = "client-calls-pcm")]
             CallAudioMode::Pcm => {
                 let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
                 let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
@@ -2993,7 +2971,6 @@ mod call_media_tests {
         }
     }
 
-    #[cfg(feature = "client-calls-pcm")]
     #[test]
     fn an_unoffered_pcm_format_names_the_operation() {
         match call_error_to_bridge(CallError::AudioFormatNotOffered(8000), "acceptCallPcm") {
