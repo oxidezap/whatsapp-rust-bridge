@@ -9,8 +9,9 @@ public exports, or new field/default policies.
 
 The normal default producer, with unchanged optimizer flags and ceilings, gives
 an 84,288-byte largest WASM body versus 111,694 at `12ece04`. The supported
-package after preserving bindgen declaration formatting is 8,296,807 bytes
-against 8,300,000. This is tight headroom, not a changed budget. Unsafe declaration
+selected package after preserving bindgen declaration formatting and the bounded
+performance selection is 8,298,701 bytes against 8,300,000 (1,299 bytes of room).
+This is tight headroom, not a changed budget. Unsafe declaration
 aliases and ineffective event-splitting/Map-tail experiments are not adopted.
 
 The generated JS codec separately shares unknown-field framing, ordered scalar
@@ -20,7 +21,40 @@ protobuf declaration trivia is compacted. Bindgen text is retained because four
 existing generated-output consumers depended on its formatting; their assertions
 were not changed.
 
-## Observed tradeoffs, not neutrality
+## Bounded performance selection
+
+The retained media input follows `Message` → `Message_ImageMessage` → `ContextInfo`
+→ `DisappearingMode`, plus its quoted `Message`. `Message` already had no shared
+scalar runs. Restoring the original scalar statements for these exact identities
+and `ClientPayload` leaves 486 shared runs / 2,056 fields, with framing, create,
+base construction and the native forwarding operations unchanged. This is a
+producer selection, not a new codec or a general consumer-specific hot list.
+
+One counterfactual increased the actual package by 1,894 bytes and kept both
+ceilings green. Nine rotating fresh-process rounds reused the same inputs and
+harness against the original, preserved candidate and narrowed candidate:
+
+| operation | original ns/op | preserved ns/op | selected ns/op |
+|---|---:|---:|---:|
+| `Message.fromPartial`, conversation | 1,272 | 1,335 | 1,310 |
+| `Message.fromPartial`, media/context | 3,398 | 7,924 | 3,312 |
+| `ClientPayload.fromPartial` | 185 | 1,553 | 196 |
+| media decode | 2,455 | 1,988 | 2,372 |
+| unknown-field decode | 294 | 282 | 283 |
+
+The measured expensive paths recovered; `ClientPayload` remained 5.9% / 11 ns
+above the original in this sample. Other still-shared projections were not
+benchmarked. Different sample magnitudes are retained, not spliced across rounds
+to manufacture a speedup or a neutrality claim.
+
+The selected package's 15 alternating import/touch rounds retained +57/+53 KiB
+of heap versus the original. Private-dirty medians were +4,816 KiB cold and
+−308 KiB after touch. The cold increase remains negative evidence; neither probe
+initializes WASM, connects, or establishes a consumer's overall memory cost.
+Its WASM is byte-identical to the preserved candidate, so the eager V8 results
+below also apply to that same selected WASM artifact.
+
+## Original candidate tradeoffs, retained as negative evidence
 
 Local Node 26.5/Bun 1.4.2 results are not CI's Node 24/Bun 1.3.14. Matching the
 actual built host modules in nine alternating fresh-process rounds, with 100,000
@@ -34,8 +68,8 @@ warmup and 150,000 measured operations per case, produced these median costs:
 | media decode | 1,735 | 1,719 |
 | unknown-field decode | 231 | 243 |
 
-The scalar copier's dynamic lookup/set loop is slower than specialized property
-access. In particular, the measured `ClientPayload.fromPartial` path is **11.36×**
+The original candidate's scalar copier dynamic lookup/set loop was slower than
+specialized property access. In particular, the measured `ClientPayload.fromPartial` path is **11.36×**
 as costly, an additional 1.13 microseconds per operation. This is not an
 encode-throughput, server, or connected-runtime neutrality claim. Getter/setter
 order, first-error identity, partial effects, ownership and representation are
@@ -54,6 +88,6 @@ samples also included a +0.298 MiB private-memory increase. None proves absence
 of a connected-runtime regression; authenticated WhatsApp activity was not run.
 
 Raw samples, source/artifact hashes, failed counterfactuals, and full validation
-outputs are retained in the task's numbered evidence archive. These costs must
-be reviewed with the package/body savings; green functional/size gates do not
-turn them into a claim of runtime neutrality.
+outputs are retained in the task's numbered evidence archive. Configured PR reviews and CI assess these tradeoffs with the package/body
+savings; there is no separate manual cost gate. Green functional/size gates do
+not turn these observations into a claim of runtime neutrality.

@@ -53,14 +53,40 @@ export const Mixed = {
 };
 `;
 
-async function modules() {
-  const shared = shareProtoPrivateWork(SOURCE);
+async function modules(source = SOURCE) {
+  const shared = shareProtoPrivateWork(source);
   const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
   const load = (source: string) => import(`data:text/javascript;base64,${Buffer.from(transpiler.transformSync(source)).toString("base64")}`);
-  const original = await load(SOURCE);
+  const original = await load(source);
   const candidate = await load(shared.text);
   return { original, candidate, shared };
 }
+
+test("measured codec selection retains direct projection behavior and all other sharing", async () => {
+  for (const name of ["ClientPayload", "Message", "Message_ImageMessage", "ContextInfo", "DisappearingMode"]) {
+    const { original, candidate, shared } = await modules(SOURCE.replaceAll("Leaf", name));
+    expect(shared).toMatchObject({ unknownEpilogues: 1, scalarRuns: 2, scalarFields: 6, createMethods: 2 });
+    expect(Object.keys(candidate)).toEqual(Object.keys(original));
+    const effects: string[][] = [];
+    for (const module of [original, candidate]) {
+      const trace: string[] = [];
+      const sentinel = new Error("selected getter failed");
+      const input = new Proxy({ a: 0, b: false }, { get(target, key, receiver) {
+        trace.push(String(key));
+        expect(module[name].create({ a: "reentrant" })).toEqual({ a: "reentrant", b: undefined });
+        return Reflect.get(target, key, receiver);
+      } });
+      expect(module[name].fromPartial(input)).toEqual({ a: 0, b: false });
+      expect(trace).toEqual(["a", "b"]);
+      let failure: unknown;
+      try { module[name].fromPartial({ get a() { throw sentinel; }, get b() { throw new Error("later getter"); } }); }
+      catch (error) { failure = error; }
+      expect(failure).toBe(sentinel);
+      effects.push(trace);
+    }
+    expect(effects[1]).toEqual(effects[0]);
+  }
+});
 
 test("private sharing retains exports, public methods, construction, ordered reads and representation", async () => {
   const { original, candidate, shared } = await modules();

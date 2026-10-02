@@ -17997,27 +17997,50 @@ export const ClientPayload: MessageFns<ClientPayload> = {
   },
   fromPartial(object: DeepPartial<ClientPayload>): ClientPayload {
     const message = createBaseClientPayload();
-    copyPartialScalars(message, object, 258, 260);
+    message.username = object.username ?? undefined;
+    message.passive = object.passive ?? undefined;
     message.userAgent = (object.userAgent !== undefined && object.userAgent !== null)
       ? ClientPayload_UserAgent.fromPartial(object.userAgent)
       : undefined;
     message.webInfo = (object.webInfo !== undefined && object.webInfo !== null)
       ? ClientPayload_WebInfo.fromPartial(object.webInfo)
       : undefined;
-    copyPartialScalars(message, object, 260, 265);
+    message.pushName = object.pushName ?? undefined;
+    message.sessionId = object.sessionId ?? undefined;
+    message.shortConnect = object.shortConnect ?? undefined;
+    message.connectType = object.connectType ?? undefined;
+    message.connectReason = object.connectReason ?? undefined;
     message.shards = object.shards?.map((e) => e) || undefined;
     message.dnsSource = (object.dnsSource !== undefined && object.dnsSource !== null)
       ? ClientPayload_DNSSource.fromPartial(object.dnsSource)
       : undefined;
-    copyPartialScalars(message, object, 265, 267);
+    message.connectAttemptCount = object.connectAttemptCount ?? undefined;
+    message.device = object.device ?? undefined;
     message.devicePairingData = (object.devicePairingData !== undefined && object.devicePairingData !== null)
       ? ClientPayload_DevicePairingRegistrationData.fromPartial(object.devicePairingData)
       : undefined;
-    copyPartialScalars(message, object, 267, 279);
+    message.product = object.product ?? undefined;
+    message.fbCat = object.fbCat ?? undefined;
+    message.fbUserAgent = object.fbUserAgent ?? undefined;
+    message.oc = object.oc ?? undefined;
+    message.lc = object.lc ?? undefined;
+    message.iosAppExtension = object.iosAppExtension ?? undefined;
+    message.fbAppId = object.fbAppId ?? undefined;
+    message.fbDeviceId = object.fbDeviceId ?? undefined;
+    message.pull = object.pull ?? undefined;
+    message.paddingBytes = object.paddingBytes ?? undefined;
+    message.yearClass = object.yearClass ?? undefined;
+    message.memClass = object.memClass ?? undefined;
     message.interopData = (object.interopData !== undefined && object.interopData !== null)
       ? ClientPayload_InteropData.fromPartial(object.interopData)
       : undefined;
-    copyPartialScalars(message, object, 279, 286);
+    message.trafficAnonymization = object.trafficAnonymization ?? undefined;
+    message.lidDbMigrated = object.lidDbMigrated ?? undefined;
+    message.accountType = object.accountType ?? undefined;
+    message.connectionSequenceInfo = object.connectionSequenceInfo ?? undefined;
+    message.paaLink = object.paaLink ?? undefined;
+    message.preacksCount = object.preacksCount ?? undefined;
+    message.processingQueueSize = object.processingQueueSize ?? undefined;
     message.pairedPeripherals = object.pairedPeripherals?.map((e) => e) || undefined;
     message.testIsolationId = object.testIsolationId ?? undefined;
     return message;
@@ -18073,7 +18096,7 @@ export const ClientPayload_DNSSource: MessageFns<ClientPayload_DNSSource> = {
   },
   fromPartial(object: DeepPartial<ClientPayload_DNSSource>): ClientPayload_DNSSource {
     const message = createBaseClientPayload_DNSSource();
-    copyPartialScalars(message, object, 286, 288);
+    copyPartialScalars(message, object, 258, 260);
     return message;
   },
 };
@@ -18198,7 +18221,7 @@ export const ClientPayload_DevicePairingRegistrationData: MessageFns<ClientPaylo
     object: DeepPartial<ClientPayload_DevicePairingRegistrationData>,
   ): ClientPayload_DevicePairingRegistrationData {
     const message = createBaseClientPayload_DevicePairingRegistrationData();
-    copyPartialScalars(message, object, 288, 296);
+    copyPartialScalars(message, object, 260, 268);
     return message;
   },
 };
@@ -18263,7 +18286,7 @@ export const ClientPayload_InteropData: MessageFns<ClientPayload_InteropData> = 
   },
   fromPartial(object: DeepPartial<ClientPayload_InteropData>): ClientPayload_InteropData {
     const message = createBaseClientPayload_InteropData();
-    copyPartialScalars(message, object, 296, 299);
+    copyPartialScalars(message, object, 268, 271);
     return message;
   },
 };
@@ -18486,7 +18509,7 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
     message.appVersion = (object.appVersion !== undefined && object.appVersion !== null)
       ? ClientPayload_UserAgent_AppVersion.fromPartial(object.appVersion)
       : undefined;
-    copyPartialScalars(message, object, 299, 314);
+    copyPartialScalars(message, object, 271, 286);
     return message;
   },
 };
@@ -18573,7 +18596,7 @@ export const ClientPayload_UserAgent_AppVersion: MessageFns<ClientPayload_UserAg
   },
   fromPartial(object: DeepPartial<ClientPayload_UserAgent_AppVersion>): ClientPayload_UserAgent_AppVersion {
     const message = createBaseClientPayload_UserAgent_AppVersion();
-    copyPartialScalars(message, object, 314, 319);
+    copyPartialScalars(message, object, 286, 291);
     return message;
   },
 };
@@ -18671,11 +18694,11 @@ export const ClientPayload_WebInfo: MessageFns<ClientPayload_WebInfo> = {
   },
   fromPartial(object: DeepPartial<ClientPayload_WebInfo>): ClientPayload_WebInfo {
     const message = createBaseClientPayload_WebInfo();
-    copyPartialScalars(message, object, 319, 321);
+    copyPartialScalars(message, object, 291, 293);
     message.webdPayload = (object.webdPayload !== undefined && object.webdPayload !== null)
       ? ClientPayload_WebInfo_WebdPayload.fromPartial(object.webdPayload)
       : undefined;
-    copyPartialScalars(message, object, 321, 324);
+    copyPartialScalars(message, object, 293, 296);
     return message;
   },
 };
@@ -18828,7 +18851,7 @@ export const ClientPayload_WebInfo_WebdPayload: MessageFns<ClientPayload_WebInfo
   },
   fromPartial(object: DeepPartial<ClientPayload_WebInfo_WebdPayload>): ClientPayload_WebInfo_WebdPayload {
     const message = createBaseClientPayload_WebInfo_WebdPayload();
-    copyPartialScalars(message, object, 324, 335);
+    copyPartialScalars(message, object, 296, 307);
     return message;
   },
 };
@@ -19025,7 +19048,7 @@ export const CoexStateSync_Mutation: MessageFns<CoexStateSync_Mutation> = {
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncdValue.fromPartial(object.value)
       : undefined;
-    copyPartialScalars(message, object, 335, 337);
+    copyPartialScalars(message, object, 307, 309);
     return message;
   },
 };
@@ -19172,7 +19195,7 @@ export const Command: MessageFns<Command> = {
   },
   fromPartial(object: DeepPartial<Command>): Command {
     const message = createBaseCommand();
-    copyPartialScalars(message, object, 337, 341);
+    copyPartialScalars(message, object, 309, 313);
     return message;
   },
 };
@@ -19337,7 +19360,7 @@ export const CompanionEphemeralIdentity: MessageFns<CompanionEphemeralIdentity> 
   },
   fromPartial(object: DeepPartial<CompanionEphemeralIdentity>): CompanionEphemeralIdentity {
     const message = createBaseCompanionEphemeralIdentity();
-    copyPartialScalars(message, object, 341, 344);
+    copyPartialScalars(message, object, 313, 316);
     return message;
   },
 };
@@ -20253,7 +20276,7 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
     message.text = (object.text !== undefined && object.text !== null)
       ? MessageText.fromPartial(object.text)
       : undefined;
-    copyPartialScalars(message, object, 344, 348);
+    copyPartialScalars(message, object, 316, 320);
     message.thumbnail = (object.thumbnail !== undefined && object.thumbnail !== null)
       ? SubProtocol.fromPartial(object.thumbnail)
       : undefined;
@@ -20355,7 +20378,7 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
   },
   fromPartial(object: DeepPartial<ConsumerApplication_GroupInviteMessage>): ConsumerApplication_GroupInviteMessage {
     const message = createBaseConsumerApplication_GroupInviteMessage();
-    copyPartialScalars(message, object, 348, 353);
+    copyPartialScalars(message, object, 320, 325);
     message.caption = (object.caption !== undefined && object.caption !== null)
       ? MessageText.fromPartial(object.caption)
       : undefined;
@@ -20596,11 +20619,11 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
     message.location = (object.location !== undefined && object.location !== null)
       ? ConsumerApplication_Location.fromPartial(object.location)
       : undefined;
-    copyPartialScalars(message, object, 353, 356);
+    copyPartialScalars(message, object, 325, 328);
     message.caption = (object.caption !== undefined && object.caption !== null)
       ? MessageText.fromPartial(object.caption)
       : undefined;
-    copyPartialScalars(message, object, 356, 358);
+    copyPartialScalars(message, object, 328, 330);
     return message;
   },
 };
@@ -20665,7 +20688,7 @@ export const ConsumerApplication_Location: MessageFns<ConsumerApplication_Locati
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Location>): ConsumerApplication_Location {
     const message = createBaseConsumerApplication_Location();
-    copyPartialScalars(message, object, 358, 361);
+    copyPartialScalars(message, object, 330, 333);
     return message;
   },
 };
@@ -20994,7 +21017,7 @@ export const ConsumerApplication_Point: MessageFns<ConsumerApplication_Point> = 
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Point>): ConsumerApplication_Point {
     const message = createBaseConsumerApplication_Point();
-    copyPartialScalars(message, object, 361, 363);
+    copyPartialScalars(message, object, 333, 335);
     return message;
   },
 };
@@ -21129,7 +21152,7 @@ export const ConsumerApplication_PollCreationMessage: MessageFns<ConsumerApplica
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollCreationMessage>): ConsumerApplication_PollCreationMessage {
     const message = createBaseConsumerApplication_PollCreationMessage();
-    copyPartialScalars(message, object, 363, 365);
+    copyPartialScalars(message, object, 335, 337);
     message.options = object.options?.map((e) => ConsumerApplication_Option.fromPartial(e)) || undefined;
     message.selectableOptionsCount = object.selectableOptionsCount ?? undefined;
     return message;
@@ -21185,7 +21208,7 @@ export const ConsumerApplication_PollEncValue: MessageFns<ConsumerApplication_Po
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollEncValue>): ConsumerApplication_PollEncValue {
     const message = createBaseConsumerApplication_PollEncValue();
-    copyPartialScalars(message, object, 365, 367);
+    copyPartialScalars(message, object, 337, 339);
     return message;
   },
 };
@@ -21421,7 +21444,7 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
   fromPartial(object: DeepPartial<ConsumerApplication_ReactionMessage>): ConsumerApplication_ReactionMessage {
     const message = createBaseConsumerApplication_ReactionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 367, 372);
+    copyPartialScalars(message, object, 339, 344);
     return message;
   },
 };
@@ -21574,7 +21597,7 @@ export const ConsumerApplication_StatusTextMesage: MessageFns<ConsumerApplicatio
     message.text = (object.text !== undefined && object.text !== null)
       ? ConsumerApplication_ExtendedTextMessage.fromPartial(object.text)
       : undefined;
-    copyPartialScalars(message, object, 372, 375);
+    copyPartialScalars(message, object, 344, 347);
     return message;
   },
 };
@@ -22545,31 +22568,44 @@ export const ContextInfo: MessageFns<ContextInfo> = {
   },
   fromPartial(object: DeepPartial<ContextInfo>): ContextInfo {
     const message = createBaseContextInfo();
-    copyPartialScalars(message, object, 375, 377);
+    message.stanzaId = object.stanzaId ?? undefined;
+    message.participant = object.participant ?? undefined;
     message.quotedMessage = (object.quotedMessage !== undefined && object.quotedMessage !== null)
       ? Message.fromPartial(object.quotedMessage)
       : undefined;
     message.remoteJid = object.remoteJid ?? undefined;
     message.mentionedJid = object.mentionedJid?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 377, 382);
+    message.conversionSource = object.conversionSource ?? undefined;
+    message.conversionData = object.conversionData ?? undefined;
+    message.conversionDelaySeconds = object.conversionDelaySeconds ?? undefined;
+    message.forwardingScore = object.forwardingScore ?? undefined;
+    message.isForwarded = object.isForwarded ?? undefined;
     message.quotedAd = (object.quotedAd !== undefined && object.quotedAd !== null)
       ? ContextInfo_AdReplyInfo.fromPartial(object.quotedAd)
       : undefined;
     message.placeholderKey = (object.placeholderKey !== undefined && object.placeholderKey !== null)
       ? MessageKey.fromPartial(object.placeholderKey)
       : undefined;
-    copyPartialScalars(message, object, 382, 385);
+    message.expiration = object.expiration ?? undefined;
+    message.ephemeralSettingTimestamp = object.ephemeralSettingTimestamp ?? undefined;
+    message.ephemeralSharedSecret = object.ephemeralSharedSecret ?? undefined;
     message.externalAdReply = (object.externalAdReply !== undefined && object.externalAdReply !== null)
       ? ContextInfo_ExternalAdReplyInfo.fromPartial(object.externalAdReply)
       : undefined;
-    copyPartialScalars(message, object, 385, 388);
+    message.entryPointConversionSource = object.entryPointConversionSource ?? undefined;
+    message.entryPointConversionApp = object.entryPointConversionApp ?? undefined;
+    message.entryPointConversionDelaySeconds = object.entryPointConversionDelaySeconds ?? undefined;
     message.disappearingMode = (object.disappearingMode !== undefined && object.disappearingMode !== null)
       ? DisappearingMode.fromPartial(object.disappearingMode)
       : undefined;
     message.actionLink = (object.actionLink !== undefined && object.actionLink !== null)
       ? ActionLink.fromPartial(object.actionLink)
       : undefined;
-    copyPartialScalars(message, object, 388, 393);
+    message.groupSubject = object.groupSubject ?? undefined;
+    message.parentGroupJid = object.parentGroupJid ?? undefined;
+    message.trustBannerType = object.trustBannerType ?? undefined;
+    message.trustBannerAction = object.trustBannerAction ?? undefined;
+    message.isSampled = object.isSampled ?? undefined;
     message.groupMentions = object.groupMentions?.map((e) => GroupMention.fromPartial(e)) || undefined;
     message.utm = (object.utm !== undefined && object.utm !== null)
       ? ContextInfo_UTMInfo.fromPartial(object.utm)
@@ -22582,7 +22618,8 @@ export const ContextInfo: MessageFns<ContextInfo> = {
       (object.businessMessageForwardInfo !== undefined && object.businessMessageForwardInfo !== null)
         ? ContextInfo_BusinessMessageForwardInfo.fromPartial(object.businessMessageForwardInfo)
         : undefined;
-    copyPartialScalars(message, object, 393, 395);
+    message.smbClientCampaignId = object.smbClientCampaignId ?? undefined;
+    message.smbServerCampaignId = object.smbServerCampaignId ?? undefined;
     message.dataSharingContext = (object.dataSharingContext !== undefined && object.dataSharingContext !== null)
       ? ContextInfo_DataSharingContext.fromPartial(object.dataSharingContext)
       : undefined;
@@ -22590,7 +22627,10 @@ export const ContextInfo: MessageFns<ContextInfo> = {
     message.featureEligibilities = (object.featureEligibilities !== undefined && object.featureEligibilities !== null)
       ? ContextInfo_FeatureEligibilities.fromPartial(object.featureEligibilities)
       : undefined;
-    copyPartialScalars(message, object, 395, 399);
+    message.entryPointConversionExternalSource = object.entryPointConversionExternalSource ?? undefined;
+    message.entryPointConversionExternalMedium = object.entryPointConversionExternalMedium ?? undefined;
+    message.ctwaSignals = object.ctwaSignals ?? undefined;
+    message.ctwaPayload = object.ctwaPayload ?? undefined;
     message.forwardedAiBotMessageInfo =
       (object.forwardedAiBotMessageInfo !== undefined && object.forwardedAiBotMessageInfo !== null)
         ? ForwardedAIBotMessageInfo.fromPartial(object.forwardedAiBotMessageInfo)
@@ -22599,13 +22639,16 @@ export const ContextInfo: MessageFns<ContextInfo> = {
     message.urlTrackingMap = (object.urlTrackingMap !== undefined && object.urlTrackingMap !== null)
       ? UrlTrackingMap.fromPartial(object.urlTrackingMap)
       : undefined;
-    copyPartialScalars(message, object, 399, 401);
+    message.pairedMediaType = object.pairedMediaType ?? undefined;
+    message.rankingVersion = object.rankingVersion ?? undefined;
     message.memberLabel = (object.memberLabel !== undefined && object.memberLabel !== null)
       ? MemberLabel.fromPartial(object.memberLabel)
       : undefined;
-    copyPartialScalars(message, object, 401, 403);
+    message.isQuestion = object.isQuestion ?? undefined;
+    message.statusSourceType = object.statusSourceType ?? undefined;
     message.statusAttributions = object.statusAttributions?.map((e) => StatusAttribution.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 403, 405);
+    message.isGroupStatus = object.isGroupStatus ?? undefined;
+    message.forwardOrigin = object.forwardOrigin ?? undefined;
     message.questionReplyQuotedMessage =
       (object.questionReplyQuotedMessage !== undefined && object.questionReplyQuotedMessage !== null)
         ? ContextInfo_QuestionReplyQuotedMessage.fromPartial(object.questionReplyQuotedMessage)
@@ -22614,7 +22657,8 @@ export const ContextInfo: MessageFns<ContextInfo> = {
       (object.statusAudienceMetadata !== undefined && object.statusAudienceMetadata !== null)
         ? ContextInfo_StatusAudienceMetadata.fromPartial(object.statusAudienceMetadata)
         : undefined;
-    copyPartialScalars(message, object, 405, 407);
+    message.nonJidMentions = object.nonJidMentions ?? undefined;
+    message.quotedType = object.quotedType ?? undefined;
     message.botMessageSharingInfo =
       (object.botMessageSharingInfo !== undefined && object.botMessageSharingInfo !== null)
         ? BotMessageSharingInfo.fromPartial(object.botMessageSharingInfo)
@@ -22627,7 +22671,8 @@ export const ContextInfo: MessageFns<ContextInfo> = {
       (object.partiallySelectedContent !== undefined && object.partiallySelectedContent !== null)
         ? ContextInfo_PartiallySelectedContent.fromPartial(object.partiallySelectedContent)
         : undefined;
-    copyPartialScalars(message, object, 407, 409);
+    message.afterReadDuration = object.afterReadDuration ?? undefined;
+    message.crossAppSource = object.crossAppSource ?? undefined;
     message.businessInteractionPills =
       (object.businessInteractionPills !== undefined && object.businessInteractionPills !== null)
         ? ContextInfo_BusinessInteractionPills.fromPartial(object.businessInteractionPills)
@@ -22714,7 +22759,7 @@ export const ContextInfo_AdReplyInfo: MessageFns<ContextInfo_AdReplyInfo> = {
   },
   fromPartial(object: DeepPartial<ContextInfo_AdReplyInfo>): ContextInfo_AdReplyInfo {
     const message = createBaseContextInfo_AdReplyInfo();
-    copyPartialScalars(message, object, 409, 413);
+    copyPartialScalars(message, object, 347, 351);
     return message;
   },
 };
@@ -22826,7 +22871,7 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
     const message = createBaseContextInfo_BusinessInteractionPills();
     message.businessJid = object.businessJid ?? undefined;
     message.pills = object.pills?.map((e) => ContextInfo_BusinessInteractionPills_Pill.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 413, 415);
+    copyPartialScalars(message, object, 351, 353);
     message.signatureEnvelope = (object.signatureEnvelope !== undefined && object.signatureEnvelope !== null)
       ? BotSignatureVerificationMetadata.fromPartial(object.signatureEnvelope)
       : undefined;
@@ -22891,7 +22936,7 @@ export const ContextInfo_BusinessInteractionPills_Pill: MessageFns<ContextInfo_B
     object: DeepPartial<ContextInfo_BusinessInteractionPills_Pill>,
   ): ContextInfo_BusinessInteractionPills_Pill {
     const message = createBaseContextInfo_BusinessInteractionPills_Pill();
-    copyPartialScalars(message, object, 415, 417);
+    copyPartialScalars(message, object, 353, 355);
     return message;
   },
 };
@@ -23048,7 +23093,7 @@ export const ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadat
     object: DeepPartial<ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata>,
   ): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
     const message = createBaseContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata();
-    copyPartialScalars(message, object, 417, 421);
+    copyPartialScalars(message, object, 355, 359);
     return message;
   },
 };
@@ -23175,7 +23220,7 @@ export const ContextInfo_DataSharingContext: MessageFns<ContextInfo_DataSharingC
   },
   fromPartial(object: DeepPartial<ContextInfo_DataSharingContext>): ContextInfo_DataSharingContext {
     const message = createBaseContextInfo_DataSharingContext();
-    copyPartialScalars(message, object, 421, 423);
+    copyPartialScalars(message, object, 359, 361);
     message.parameters = object.parameters?.map((e) => ContextInfo_DataSharingContext_Parameters.fromPartial(e)) ||
       undefined;
     message.dataSharingFlags = object.dataSharingFlags ?? undefined;
@@ -23267,7 +23312,7 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
     object: DeepPartial<ContextInfo_DataSharingContext_Parameters>,
   ): ContextInfo_DataSharingContext_Parameters {
     const message = createBaseContextInfo_DataSharingContext_Parameters();
-    copyPartialScalars(message, object, 423, 427);
+    copyPartialScalars(message, object, 361, 365);
     message.contents = (object.contents !== undefined && object.contents !== null)
       ? ContextInfo_DataSharingContext_Parameters.fromPartial(object.contents)
       : undefined;
@@ -23654,7 +23699,7 @@ export const ContextInfo_ExternalAdReplyInfo: MessageFns<ContextInfo_ExternalAdR
   },
   fromPartial(object: DeepPartial<ContextInfo_ExternalAdReplyInfo>): ContextInfo_ExternalAdReplyInfo {
     const message = createBaseContextInfo_ExternalAdReplyInfo();
-    copyPartialScalars(message, object, 427, 459);
+    copyPartialScalars(message, object, 365, 397);
     return message;
   },
 };
@@ -23741,7 +23786,7 @@ export const ContextInfo_FeatureEligibilities: MessageFns<ContextInfo_FeatureEli
   },
   fromPartial(object: DeepPartial<ContextInfo_FeatureEligibilities>): ContextInfo_FeatureEligibilities {
     const message = createBaseContextInfo_FeatureEligibilities();
-    copyPartialScalars(message, object, 459, 464);
+    copyPartialScalars(message, object, 397, 402);
     return message;
   },
 };
@@ -23841,7 +23886,7 @@ export const ContextInfo_ForwardedNewsletterMessageInfo: MessageFns<ContextInfo_
     object: DeepPartial<ContextInfo_ForwardedNewsletterMessageInfo>,
   ): ContextInfo_ForwardedNewsletterMessageInfo {
     const message = createBaseContextInfo_ForwardedNewsletterMessageInfo();
-    copyPartialScalars(message, object, 464, 470);
+    copyPartialScalars(message, object, 402, 408);
     return message;
   },
 };
@@ -24063,7 +24108,7 @@ export const ContextInfo_StatusAudienceMetadata: MessageFns<ContextInfo_StatusAu
   },
   fromPartial(object: DeepPartial<ContextInfo_StatusAudienceMetadata>): ContextInfo_StatusAudienceMetadata {
     const message = createBaseContextInfo_StatusAudienceMetadata();
-    copyPartialScalars(message, object, 470, 473);
+    copyPartialScalars(message, object, 408, 411);
     return message;
   },
 };
@@ -24117,7 +24162,7 @@ export const ContextInfo_UTMInfo: MessageFns<ContextInfo_UTMInfo> = {
   },
   fromPartial(object: DeepPartial<ContextInfo_UTMInfo>): ContextInfo_UTMInfo {
     const message = createBaseContextInfo_UTMInfo();
-    copyPartialScalars(message, object, 473, 475);
+    copyPartialScalars(message, object, 411, 413);
     return message;
   },
 };
@@ -24860,17 +24905,17 @@ export const Conversation: MessageFns<Conversation> = {
     const message = createBaseConversation();
     message.id = object.id ?? undefined;
     message.messages = object.messages?.map((e) => HistorySyncMsg.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 475, 489);
+    copyPartialScalars(message, object, 413, 427);
     message.disappearingMode = (object.disappearingMode !== undefined && object.disappearingMode !== null)
       ? DisappearingMode.fromPartial(object.disappearingMode)
       : undefined;
-    copyPartialScalars(message, object, 489, 491);
+    copyPartialScalars(message, object, 427, 429);
     message.participant = object.participant?.map((e) => GroupParticipant.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 491, 496);
+    copyPartialScalars(message, object, 429, 434);
     message.wallpaper = (object.wallpaper !== undefined && object.wallpaper !== null)
       ? WallpaperSettings.fromPartial(object.wallpaper)
       : undefined;
-    copyPartialScalars(message, object, 496, 532);
+    copyPartialScalars(message, object, 434, 470);
     message.identityVerification = (object.identityVerification !== undefined && object.identityVerification !== null)
       ? IdentityVerificationState.fromPartial(object.identityVerification)
       : undefined;
@@ -24927,7 +24972,7 @@ export const CreateBackupInput: MessageFns<CreateBackupInput> = {
   },
   fromPartial(object: DeepPartial<CreateBackupInput>): CreateBackupInput {
     const message = createBaseCreateBackupInput();
-    copyPartialScalars(message, object, 532, 534);
+    copyPartialScalars(message, object, 470, 472);
     return message;
   },
 };
@@ -25023,7 +25068,7 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
     message.epoch0 = (object.epoch0 !== undefined && object.epoch0 !== null)
       ? Epoch0Output.fromPartial(object.epoch0)
       : undefined;
-    copyPartialScalars(message, object, 534, 536);
+    copyPartialScalars(message, object, 472, 474);
     return message;
   },
 };
@@ -25139,7 +25184,7 @@ export const DecryptMekForDistributionFromTransportSenderInput: MessageFns<
         object.mekDistribution,
       )
       : undefined;
-    copyPartialScalars(message, object, 536, 540);
+    copyPartialScalars(message, object, 474, 478);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -25243,7 +25288,7 @@ export const DecryptMekForDistributionFromTransportSenderInput_TransportSenderME
     ): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
       const message =
         createBaseDecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient();
-      copyPartialScalars(message, object, 540, 545);
+      copyPartialScalars(message, object, 478, 483);
       return message;
     },
   };
@@ -25492,7 +25537,7 @@ export const DecryptMekForDistributionInput: MessageFns<DecryptMekForDistributio
   },
   fromPartial(object: DeepPartial<DecryptMekForDistributionInput>): DecryptMekForDistributionInput {
     const message = createBaseDecryptMekForDistributionInput();
-    copyPartialScalars(message, object, 545, 553);
+    copyPartialScalars(message, object, 483, 491);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -25682,7 +25727,7 @@ export const DecryptMessageInput: MessageFns<DecryptMessageInput> = {
   },
   fromPartial(object: DeepPartial<DecryptMessageInput>): DecryptMessageInput {
     const message = createBaseDecryptMessageInput();
-    copyPartialScalars(message, object, 553, 558);
+    copyPartialScalars(message, object, 491, 496);
     return message;
   },
 };
@@ -25736,7 +25781,7 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
   },
   fromPartial(object: DeepPartial<DecryptMessageOutput>): DecryptMessageOutput {
     const message = createBaseDecryptMessageOutput();
-    copyPartialScalars(message, object, 558, 560);
+    copyPartialScalars(message, object, 496, 498);
     return message;
   },
 };
@@ -25801,7 +25846,7 @@ export const DecryptSelfMmkDistributionInput: MessageFns<DecryptSelfMmkDistribut
   },
   fromPartial(object: DeepPartial<DecryptSelfMmkDistributionInput>): DecryptSelfMmkDistributionInput {
     const message = createBaseDecryptSelfMmkDistributionInput();
-    copyPartialScalars(message, object, 560, 563);
+    copyPartialScalars(message, object, 498, 501);
     return message;
   },
 };
@@ -26127,7 +26172,7 @@ export const DeriveMailboxAuthKeypairInput: MessageFns<DeriveMailboxAuthKeypairI
   },
   fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairInput>): DeriveMailboxAuthKeypairInput {
     const message = createBaseDeriveMailboxAuthKeypairInput();
-    copyPartialScalars(message, object, 563, 565);
+    copyPartialScalars(message, object, 501, 503);
     return message;
   },
 };
@@ -26181,7 +26226,7 @@ export const DeriveMailboxAuthKeypairResult: MessageFns<DeriveMailboxAuthKeypair
   },
   fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairResult>): DeriveMailboxAuthKeypairResult {
     const message = createBaseDeriveMailboxAuthKeypairResult();
-    copyPartialScalars(message, object, 565, 567);
+    copyPartialScalars(message, object, 503, 505);
     return message;
   },
 };
@@ -26235,7 +26280,7 @@ export const DeriveMailboxEncryptionKeypairInput: MessageFns<DeriveMailboxEncryp
   },
   fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairInput>): DeriveMailboxEncryptionKeypairInput {
     const message = createBaseDeriveMailboxEncryptionKeypairInput();
-    copyPartialScalars(message, object, 567, 569);
+    copyPartialScalars(message, object, 505, 507);
     return message;
   },
 };
@@ -26289,7 +26334,7 @@ export const DeriveMailboxEncryptionKeypairResult: MessageFns<DeriveMailboxEncry
   },
   fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairResult>): DeriveMailboxEncryptionKeypairResult {
     const message = createBaseDeriveMailboxEncryptionKeypairResult();
-    copyPartialScalars(message, object, 569, 571);
+    copyPartialScalars(message, object, 507, 509);
     return message;
   },
 };
@@ -26343,7 +26388,7 @@ export const DeriveMailboxSigningKeypairInput: MessageFns<DeriveMailboxSigningKe
   },
   fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairInput>): DeriveMailboxSigningKeypairInput {
     const message = createBaseDeriveMailboxSigningKeypairInput();
-    copyPartialScalars(message, object, 571, 573);
+    copyPartialScalars(message, object, 509, 511);
     return message;
   },
 };
@@ -26454,7 +26499,7 @@ export const DeriveMailboxSigningKeypairSuccess: MessageFns<DeriveMailboxSigning
   },
   fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairSuccess>): DeriveMailboxSigningKeypairSuccess {
     const message = createBaseDeriveMailboxSigningKeypairSuccess();
-    copyPartialScalars(message, object, 573, 575);
+    copyPartialScalars(message, object, 511, 513);
     return message;
   },
 };
@@ -26519,7 +26564,7 @@ export const DeriveMessageKeyInput: MessageFns<DeriveMessageKeyInput> = {
   },
   fromPartial(object: DeepPartial<DeriveMessageKeyInput>): DeriveMessageKeyInput {
     const message = createBaseDeriveMessageKeyInput();
-    copyPartialScalars(message, object, 575, 578);
+    copyPartialScalars(message, object, 513, 516);
     return message;
   },
 };
@@ -26573,7 +26618,7 @@ export const DeriveMessageKeyOutput: MessageFns<DeriveMessageKeyOutput> = {
   },
   fromPartial(object: DeepPartial<DeriveMessageKeyOutput>): DeriveMessageKeyOutput {
     const message = createBaseDeriveMessageKeyOutput();
-    copyPartialScalars(message, object, 578, 580);
+    copyPartialScalars(message, object, 516, 518);
     return message;
   },
 };
@@ -26749,7 +26794,7 @@ export const DeriveMessagingMailboxKeypairsSuccess: MessageFns<DeriveMessagingMa
   },
   fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsSuccess>): DeriveMessagingMailboxKeypairsSuccess {
     const message = createBaseDeriveMessagingMailboxKeypairsSuccess();
-    copyPartialScalars(message, object, 580, 584);
+    copyPartialScalars(message, object, 518, 522);
     return message;
   },
 };
@@ -26847,7 +26892,7 @@ export const DetachedDevicePublicData: MessageFns<DetachedDevicePublicData> = {
   },
   fromPartial(object: DeepPartial<DetachedDevicePublicData>): DetachedDevicePublicData {
     const message = createBaseDetachedDevicePublicData();
-    copyPartialScalars(message, object, 584, 590);
+    copyPartialScalars(message, object, 522, 528);
     return message;
   },
 };
@@ -27216,7 +27261,7 @@ export const DeviceCapabilities_BusinessBroadcast: MessageFns<DeviceCapabilities
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_BusinessBroadcast>): DeviceCapabilities_BusinessBroadcast {
     const message = createBaseDeviceCapabilities_BusinessBroadcast();
-    copyPartialScalars(message, object, 590, 595);
+    copyPartialScalars(message, object, 528, 533);
     return message;
   },
 };
@@ -27399,7 +27444,7 @@ export const DeviceConsistencyCodeMessage: MessageFns<DeviceConsistencyCodeMessa
   },
   fromPartial(object: DeepPartial<DeviceConsistencyCodeMessage>): DeviceConsistencyCodeMessage {
     const message = createBaseDeviceConsistencyCodeMessage();
-    copyPartialScalars(message, object, 595, 597);
+    copyPartialScalars(message, object, 533, 535);
     return message;
   },
 };
@@ -27559,9 +27604,9 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
   },
   fromPartial(object: DeepPartial<DeviceListMetadata>): DeviceListMetadata {
     const message = createBaseDeviceListMetadata();
-    copyPartialScalars(message, object, 597, 599);
+    copyPartialScalars(message, object, 535, 537);
     message.senderKeyIndexes = object.senderKeyIndexes?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 599, 603);
+    copyPartialScalars(message, object, 537, 541);
     message.recipientKeyIndexes = object.recipientKeyIndexes?.map((e) => e) || undefined;
     return message;
   },
@@ -27722,9 +27767,9 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
   },
   fromPartial(object: DeepPartial<DeviceOutput>): DeviceOutput {
     const message = createBaseDeviceOutput();
-    copyPartialScalars(message, object, 603, 608);
+    copyPartialScalars(message, object, 541, 546);
     message.supportedEncryptionVersions = object.supportedEncryptionVersions?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 608, 612);
+    copyPartialScalars(message, object, 546, 550);
     return message;
   },
 };
@@ -27815,7 +27860,7 @@ export const DeviceProps: MessageFns<DeviceProps> = {
     message.version = (object.version !== undefined && object.version !== null)
       ? DeviceProps_AppVersion.fromPartial(object.version)
       : undefined;
-    copyPartialScalars(message, object, 612, 614);
+    copyPartialScalars(message, object, 550, 552);
     message.historySyncConfig = (object.historySyncConfig !== undefined && object.historySyncConfig !== null)
       ? DeviceProps_HistorySyncConfig.fromPartial(object.historySyncConfig)
       : undefined;
@@ -27905,7 +27950,7 @@ export const DeviceProps_AppVersion: MessageFns<DeviceProps_AppVersion> = {
   },
   fromPartial(object: DeepPartial<DeviceProps_AppVersion>): DeviceProps_AppVersion {
     const message = createBaseDeviceProps_AppVersion();
-    copyPartialScalars(message, object, 614, 619);
+    copyPartialScalars(message, object, 552, 557);
     return message;
   },
 };
@@ -28220,9 +28265,9 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
   },
   fromPartial(object: DeepPartial<DeviceProps_HistorySyncConfig>): DeviceProps_HistorySyncConfig {
     const message = createBaseDeviceProps_HistorySyncConfig();
-    copyPartialScalars(message, object, 619, 641);
+    copyPartialScalars(message, object, 557, 579);
     message.supportedBotChannelFbids = object.supportedBotChannelFbids?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 641, 643);
+    copyPartialScalars(message, object, 579, 581);
     return message;
   },
 };
@@ -28298,7 +28343,10 @@ export const DisappearingMode: MessageFns<DisappearingMode> = {
   },
   fromPartial(object: DeepPartial<DisappearingMode>): DisappearingMode {
     const message = createBaseDisappearingMode();
-    copyPartialScalars(message, object, 643, 647);
+    message.initiator = object.initiator ?? undefined;
+    message.trigger = object.trigger ?? undefined;
+    message.initiatorDeviceJid = object.initiatorDeviceJid ?? undefined;
+    message.initiatedByMe = object.initiatedByMe ?? undefined;
     return message;
   },
 };
@@ -28600,7 +28648,7 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
   },
   fromPartial(object: DeepPartial<EmbeddedMusic>): EmbeddedMusic {
     const message = createBaseEmbeddedMusic();
-    copyPartialScalars(message, object, 647, 661);
+    copyPartialScalars(message, object, 581, 595);
     return message;
   },
 };
@@ -28698,7 +28746,7 @@ export const EncryptMekForDistributionInput: MessageFns<EncryptMekForDistributio
   },
   fromPartial(object: DeepPartial<EncryptMekForDistributionInput>): EncryptMekForDistributionInput {
     const message = createBaseEncryptMekForDistributionInput();
-    copyPartialScalars(message, object, 661, 663);
+    copyPartialScalars(message, object, 595, 597);
     message.fromKeypair = (object.fromKeypair !== undefined && object.fromKeypair !== null)
       ? EncryptMekForDistributionInput_MailboxAuthKP.fromPartial(object.fromKeypair)
       : undefined;
@@ -28767,7 +28815,7 @@ export const EncryptMekForDistributionInput_MailboxAuthKP: MessageFns<EncryptMek
     object: DeepPartial<EncryptMekForDistributionInput_MailboxAuthKP>,
   ): EncryptMekForDistributionInput_MailboxAuthKP {
     const message = createBaseEncryptMekForDistributionInput_MailboxAuthKP();
-    copyPartialScalars(message, object, 663, 665);
+    copyPartialScalars(message, object, 597, 599);
     return message;
   },
 };
@@ -28821,7 +28869,7 @@ export const EncryptMekForDistributionResult: MessageFns<EncryptMekForDistributi
   },
   fromPartial(object: DeepPartial<EncryptMekForDistributionResult>): EncryptMekForDistributionResult {
     const message = createBaseEncryptMekForDistributionResult();
-    copyPartialScalars(message, object, 665, 667);
+    copyPartialScalars(message, object, 599, 601);
     return message;
   },
 };
@@ -29007,7 +29055,7 @@ export const EncryptMeksForDistributionFromTransportSenderInput_TransportSigning
     object: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP>,
   ): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
     const message = createBaseEncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP();
-    copyPartialScalars(message, object, 667, 669);
+    copyPartialScalars(message, object, 601, 603);
     return message;
   },
 };
@@ -29112,7 +29160,7 @@ export const EncryptMeksForDistributionFromTransportSenderResult: MessageFns<
   ): EncryptMeksForDistributionFromTransportSenderResult {
     const message = createBaseEncryptMeksForDistributionFromTransportSenderResult();
     message.encryptedMeks = object.encryptedMeks?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 669, 673);
+    copyPartialScalars(message, object, 603, 607);
     return message;
   },
 };
@@ -29265,7 +29313,7 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
   },
   fromPartial(object: DeepPartial<EncryptMessageInput>): EncryptMessageInput {
     const message = createBaseEncryptMessageInput();
-    copyPartialScalars(message, object, 673, 684);
+    copyPartialScalars(message, object, 607, 618);
     return message;
   },
 };
@@ -29363,7 +29411,7 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
   },
   fromPartial(object: DeepPartial<EncryptMessageOutput>): EncryptMessageOutput {
     const message = createBaseEncryptMessageOutput();
-    copyPartialScalars(message, object, 684, 690);
+    copyPartialScalars(message, object, 618, 624);
     return message;
   },
 };
@@ -29417,7 +29465,7 @@ export const EncryptedPairingRequest: MessageFns<EncryptedPairingRequest> = {
   },
   fromPartial(object: DeepPartial<EncryptedPairingRequest>): EncryptedPairingRequest {
     const message = createBaseEncryptedPairingRequest();
-    copyPartialScalars(message, object, 690, 692);
+    copyPartialScalars(message, object, 624, 626);
     return message;
   },
 };
@@ -29537,7 +29585,7 @@ export const EncryptedSecretValuesOutput: MessageFns<EncryptedSecretValuesOutput
   },
   fromPartial(object: DeepPartial<EncryptedSecretValuesOutput>): EncryptedSecretValuesOutput {
     const message = createBaseEncryptedSecretValuesOutput();
-    copyPartialScalars(message, object, 692, 700);
+    copyPartialScalars(message, object, 626, 634);
     return message;
   },
 };
@@ -29591,7 +29639,7 @@ export const EphemeralSetting: MessageFns<EphemeralSetting> = {
   },
   fromPartial(object: DeepPartial<EphemeralSetting>): EphemeralSetting {
     const message = createBaseEphemeralSetting();
-    copyPartialScalars(message, object, 700, 702);
+    copyPartialScalars(message, object, 634, 636);
     return message;
   },
 };
@@ -29700,7 +29748,7 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
   },
   fromPartial(object: DeepPartial<Epoch0Output>): Epoch0Output {
     const message = createBaseEpoch0Output();
-    copyPartialScalars(message, object, 702, 709);
+    copyPartialScalars(message, object, 636, 643);
     return message;
   },
 };
@@ -29798,7 +29846,7 @@ export const EpochPublicData: MessageFns<EpochPublicData> = {
   },
   fromPartial(object: DeepPartial<EpochPublicData>): EpochPublicData {
     const message = createBaseEpochPublicData();
-    copyPartialScalars(message, object, 709, 715);
+    copyPartialScalars(message, object, 643, 649);
     return message;
   },
 };
@@ -29852,7 +29900,7 @@ export const EpochSignatures: MessageFns<EpochSignatures> = {
   },
   fromPartial(object: DeepPartial<EpochSignatures>): EpochSignatures {
     const message = createBaseEpochSignatures();
-    copyPartialScalars(message, object, 715, 717);
+    copyPartialScalars(message, object, 649, 651);
     return message;
   },
 };
@@ -30033,7 +30081,7 @@ export const ExitCode: MessageFns<ExitCode> = {
   },
   fromPartial(object: DeepPartial<ExitCode>): ExitCode {
     const message = createBaseExitCode();
-    copyPartialScalars(message, object, 717, 719);
+    copyPartialScalars(message, object, 651, 653);
     return message;
   },
 };
@@ -30427,21 +30475,21 @@ export const ExtendedContentMessage: MessageFns<ExtendedContentMessage> = {
     message.associatedMessage = (object.associatedMessage !== undefined && object.associatedMessage !== null)
       ? SubProtocol.fromPartial(object.associatedMessage)
       : undefined;
-    copyPartialScalars(message, object, 719, 724);
+    copyPartialScalars(message, object, 653, 658);
     message.ctas = object.ctas?.map((e) => ExtendedContentMessage_CTA.fromPartial(e)) || undefined;
     message.previews = object.previews?.map((e) => SubProtocol.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 724, 728);
+    copyPartialScalars(message, object, 658, 662);
     message.favicon = (object.favicon !== undefined && object.favicon !== null)
       ? SubProtocol.fromPartial(object.favicon)
       : undefined;
     message.headerImage = (object.headerImage !== undefined && object.headerImage !== null)
       ? SubProtocol.fromPartial(object.headerImage)
       : undefined;
-    copyPartialScalars(message, object, 728, 737);
+    copyPartialScalars(message, object, 662, 671);
     message.mentionedJid = object.mentionedJid?.map((e) => e) || undefined;
     message.commands = object.commands?.map((e) => Command.fromPartial(e)) || undefined;
     message.mentions = object.mentions?.map((e) => Mention.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 737, 740);
+    copyPartialScalars(message, object, 671, 674);
     return message;
   },
 };
@@ -30539,7 +30587,7 @@ export const ExtendedContentMessage_CTA: MessageFns<ExtendedContentMessage_CTA> 
   },
   fromPartial(object: DeepPartial<ExtendedContentMessage_CTA>): ExtendedContentMessage_CTA {
     const message = createBaseExtendedContentMessage_CTA();
-    copyPartialScalars(message, object, 740, 746);
+    copyPartialScalars(message, object, 674, 680);
     return message;
   },
 };
@@ -30637,7 +30685,7 @@ export const ExternalBlobReference: MessageFns<ExternalBlobReference> = {
   },
   fromPartial(object: DeepPartial<ExternalBlobReference>): ExternalBlobReference {
     const message = createBaseExternalBlobReference();
-    copyPartialScalars(message, object, 746, 752);
+    copyPartialScalars(message, object, 680, 686);
     return message;
   },
 };
@@ -30730,7 +30778,7 @@ export const Field: MessageFns<Field> = {
   },
   fromPartial(object: DeepPartial<Field>): Field {
     const message = createBaseField();
-    copyPartialScalars(message, object, 752, 756);
+    copyPartialScalars(message, object, 686, 690);
     message.subfield = (object.subfield === undefined || object.subfield === null)
       ? undefined
       : (globalThis.Object.entries(object.subfield ?? {}) as [string, Field][]).reduce(
@@ -30894,7 +30942,7 @@ export const FingerprintData: MessageFns<FingerprintData> = {
   },
   fromPartial(object: DeepPartial<FingerprintData>): FingerprintData {
     const message = createBaseFingerprintData();
-    copyPartialScalars(message, object, 756, 762);
+    copyPartialScalars(message, object, 690, 696);
     return message;
   },
 };
@@ -30959,7 +31007,7 @@ export const ForwardedAIBotMessageInfo: MessageFns<ForwardedAIBotMessageInfo> = 
   },
   fromPartial(object: DeepPartial<ForwardedAIBotMessageInfo>): ForwardedAIBotMessageInfo {
     const message = createBaseForwardedAIBotMessageInfo();
-    copyPartialScalars(message, object, 762, 765);
+    copyPartialScalars(message, object, 696, 699);
     return message;
   },
 };
@@ -31415,11 +31463,11 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
     message.autoDownloadRoaming = (object.autoDownloadRoaming !== undefined && object.autoDownloadRoaming !== null)
       ? AutoDownloadSettings.fromPartial(object.autoDownloadRoaming)
       : undefined;
-    copyPartialScalars(message, object, 765, 769);
+    copyPartialScalars(message, object, 699, 703);
     message.avatarUserSettings = (object.avatarUserSettings !== undefined && object.avatarUserSettings !== null)
       ? AvatarUserSettings.fromPartial(object.avatarUserSettings)
       : undefined;
-    copyPartialScalars(message, object, 769, 774);
+    copyPartialScalars(message, object, 703, 708);
     message.individualNotificationSettings =
       (object.individualNotificationSettings !== undefined && object.individualNotificationSettings !== null)
         ? NotificationSettings.fromPartial(object.individualNotificationSettings)
@@ -31829,7 +31877,7 @@ export const GroupMention: MessageFns<GroupMention> = {
   },
   fromPartial(object: DeepPartial<GroupMention>): GroupMention {
     const message = createBaseGroupMention();
-    copyPartialScalars(message, object, 774, 776);
+    copyPartialScalars(message, object, 708, 710);
     return message;
   },
 };
@@ -31894,7 +31942,7 @@ export const GroupParticipant: MessageFns<GroupParticipant> = {
   },
   fromPartial(object: DeepPartial<GroupParticipant>): GroupParticipant {
     const message = createBaseGroupParticipant();
-    copyPartialScalars(message, object, 776, 778);
+    copyPartialScalars(message, object, 710, 712);
     message.memberLabel = (object.memberLabel !== undefined && object.memberLabel !== null)
       ? MemberLabel.fromPartial(object.memberLabel)
       : undefined;
@@ -32024,7 +32072,7 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
   },
   fromPartial(object: DeepPartial<GroupRootKeyShareEntry>): GroupRootKeyShareEntry {
     const message = createBaseGroupRootKeyShareEntry();
-    copyPartialScalars(message, object, 778, 782);
+    copyPartialScalars(message, object, 712, 716);
     return message;
   },
 };
@@ -32184,7 +32232,7 @@ export const HandshakeMessage_ClientFinish: MessageFns<HandshakeMessage_ClientFi
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ClientFinish>): HandshakeMessage_ClientFinish {
     const message = createBaseHandshakeMessage_ClientFinish();
-    copyPartialScalars(message, object, 782, 787);
+    copyPartialScalars(message, object, 716, 721);
     return message;
   },
 };
@@ -32326,7 +32374,7 @@ export const HandshakeMessage_ClientHello: MessageFns<HandshakeMessage_ClientHel
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ClientHello>): HandshakeMessage_ClientHello {
     const message = createBaseHandshakeMessage_ClientHello();
-    copyPartialScalars(message, object, 787, 797);
+    copyPartialScalars(message, object, 721, 731);
     return message;
   },
 };
@@ -32424,7 +32472,7 @@ export const HandshakeMessage_ServerHello: MessageFns<HandshakeMessage_ServerHel
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ServerHello>): HandshakeMessage_ServerHello {
     const message = createBaseHandshakeMessage_ServerHello();
-    copyPartialScalars(message, object, 797, 803);
+    copyPartialScalars(message, object, 731, 737);
     return message;
   },
 };
@@ -32489,7 +32537,7 @@ export const HatchMetadataSync: MessageFns<HatchMetadataSync> = {
   },
   fromPartial(object: DeepPartial<HatchMetadataSync>): HatchMetadataSync {
     const message = createBaseHatchMetadataSync();
-    copyPartialScalars(message, object, 803, 806);
+    copyPartialScalars(message, object, 737, 740);
     return message;
   },
 };
@@ -32816,19 +32864,19 @@ export const HistorySync: MessageFns<HistorySync> = {
     message.syncType = object.syncType ?? undefined;
     message.conversations = object.conversations?.map((e) => Conversation.fromPartial(e)) || undefined;
     message.statusV3Messages = object.statusV3Messages?.map((e) => WebMessageInfo.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 806, 808);
+    copyPartialScalars(message, object, 740, 742);
     message.pushnames = object.pushnames?.map((e) => Pushname.fromPartial(e)) || undefined;
     message.globalSettings = (object.globalSettings !== undefined && object.globalSettings !== null)
       ? GlobalSettings.fromPartial(object.globalSettings)
       : undefined;
-    copyPartialScalars(message, object, 808, 810);
+    copyPartialScalars(message, object, 742, 744);
     message.recentStickers = object.recentStickers?.map((e) => StickerMetadata.fromPartial(e)) || undefined;
     message.pastParticipants = object.pastParticipants?.map((e) => PastParticipants.fromPartial(e)) || undefined;
     message.callLogRecords = object.callLogRecords?.map((e) => CallLogRecord.fromPartial(e)) || undefined;
     message.aiWaitListState = object.aiWaitListState ?? undefined;
     message.phoneNumberToLidMappings =
       object.phoneNumberToLidMappings?.map((e) => PhoneNumberToLIDMapping.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 810, 812);
+    copyPartialScalars(message, object, 744, 746);
     message.accounts = object.accounts?.map((e) => Account.fromPartial(e)) || undefined;
     message.nctSalt = object.nctSalt ?? undefined;
     message.inlineContacts = object.inlineContacts?.map((e) => InlineContact.fromPartial(e)) || undefined;
@@ -33030,7 +33078,7 @@ export const HydratedTemplateButton_HydratedCallButton: MessageFns<HydratedTempl
     object: DeepPartial<HydratedTemplateButton_HydratedCallButton>,
   ): HydratedTemplateButton_HydratedCallButton {
     const message = createBaseHydratedTemplateButton_HydratedCallButton();
-    copyPartialScalars(message, object, 812, 814);
+    copyPartialScalars(message, object, 746, 748);
     return message;
   },
 };
@@ -33093,7 +33141,7 @@ export const HydratedTemplateButton_HydratedQuickReplyButton: MessageFns<
     object: DeepPartial<HydratedTemplateButton_HydratedQuickReplyButton>,
   ): HydratedTemplateButton_HydratedQuickReplyButton {
     const message = createBaseHydratedTemplateButton_HydratedQuickReplyButton();
-    copyPartialScalars(message, object, 814, 816);
+    copyPartialScalars(message, object, 748, 750);
     return message;
   },
 };
@@ -33169,7 +33217,7 @@ export const HydratedTemplateButton_HydratedURLButton: MessageFns<HydratedTempla
   },
   fromPartial(object: DeepPartial<HydratedTemplateButton_HydratedURLButton>): HydratedTemplateButton_HydratedURLButton {
     const message = createBaseHydratedTemplateButton_HydratedURLButton();
-    copyPartialScalars(message, object, 816, 820);
+    copyPartialScalars(message, object, 750, 754);
     return message;
   },
 };
@@ -33223,7 +33271,7 @@ export const IdentityKeyPairStructure: MessageFns<IdentityKeyPairStructure> = {
   },
   fromPartial(object: DeepPartial<IdentityKeyPairStructure>): IdentityKeyPairStructure {
     const message = createBaseIdentityKeyPairStructure();
-    copyPartialScalars(message, object, 820, 822);
+    copyPartialScalars(message, object, 754, 756);
     return message;
   },
 };
@@ -33277,7 +33325,7 @@ export const IdentityVerificationState: MessageFns<IdentityVerificationState> = 
   },
   fromPartial(object: DeepPartial<IdentityVerificationState>): IdentityVerificationState {
     const message = createBaseIdentityVerificationState();
-    copyPartialScalars(message, object, 822, 824);
+    copyPartialScalars(message, object, 756, 758);
     return message;
   },
 };
@@ -33523,15 +33571,15 @@ export const InThreadSurveyMetadata: MessageFns<InThreadSurveyMetadata> = {
   },
   fromPartial(object: DeepPartial<InThreadSurveyMetadata>): InThreadSurveyMetadata {
     const message = createBaseInThreadSurveyMetadata();
-    copyPartialScalars(message, object, 824, 835);
+    copyPartialScalars(message, object, 758, 769);
     message.questions = object.questions?.map((e) => InThreadSurveyMetadata_InThreadSurveyQuestion.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 835, 838);
+    copyPartialScalars(message, object, 769, 772);
     message.privacyStatementParts =
       object.privacyStatementParts?.map((e) =>
         InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart.fromPartial(e)
       ) || undefined;
-    copyPartialScalars(message, object, 838, 840);
+    copyPartialScalars(message, object, 772, 774);
     return message;
   },
 };
@@ -33601,7 +33649,7 @@ export const InThreadSurveyMetadata_InThreadSurveyOption: MessageFns<InThreadSur
     object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyOption>,
   ): InThreadSurveyMetadata_InThreadSurveyOption {
     const message = createBaseInThreadSurveyMetadata_InThreadSurveyOption();
-    copyPartialScalars(message, object, 840, 843);
+    copyPartialScalars(message, object, 774, 777);
     return message;
   },
 };
@@ -33664,7 +33712,7 @@ export const InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart: MessageF
     object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart>,
   ): InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart {
     const message = createBaseInThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart();
-    copyPartialScalars(message, object, 843, 845);
+    copyPartialScalars(message, object, 777, 779);
     return message;
   },
 };
@@ -33745,7 +33793,7 @@ export const InThreadSurveyMetadata_InThreadSurveyQuestion: MessageFns<InThreadS
       object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyQuestion>,
     ): InThreadSurveyMetadata_InThreadSurveyQuestion {
       const message = createBaseInThreadSurveyMetadata_InThreadSurveyQuestion();
-      copyPartialScalars(message, object, 845, 847);
+      copyPartialScalars(message, object, 779, 781);
       message.questionOptions =
         object.questionOptions?.map((e) => InThreadSurveyMetadata_InThreadSurveyOption.fromPartial(e)) || undefined;
       return message;
@@ -33834,7 +33882,7 @@ export const InlineContact: MessageFns<InlineContact> = {
   },
   fromPartial(object: DeepPartial<InlineContact>): InlineContact {
     const message = createBaseInlineContact();
-    copyPartialScalars(message, object, 847, 852);
+    copyPartialScalars(message, object, 781, 786);
     return message;
   },
 };
@@ -34118,9 +34166,9 @@ export const KeepInChat: MessageFns<KeepInChat> = {
   },
   fromPartial(object: DeepPartial<KeepInChat>): KeepInChat {
     const message = createBaseKeepInChat();
-    copyPartialScalars(message, object, 852, 854);
+    copyPartialScalars(message, object, 786, 788);
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 854, 857);
+    copyPartialScalars(message, object, 788, 791);
     return message;
   },
 };
@@ -34207,7 +34255,7 @@ export const KeyExchangeMessage: MessageFns<KeyExchangeMessage> = {
   },
   fromPartial(object: DeepPartial<KeyExchangeMessage>): KeyExchangeMessage {
     const message = createBaseKeyExchangeMessage();
-    copyPartialScalars(message, object, 857, 862);
+    copyPartialScalars(message, object, 791, 796);
     return message;
   },
 };
@@ -34358,7 +34406,7 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
   },
   fromPartial(object: DeepPartial<LIDMigrationMapping>): LIDMigrationMapping {
     const message = createBaseLIDMigrationMapping();
-    copyPartialScalars(message, object, 862, 865);
+    copyPartialScalars(message, object, 796, 799);
     return message;
   },
 };
@@ -34672,7 +34720,7 @@ export const LimitSharing: MessageFns<LimitSharing> = {
   },
   fromPartial(object: DeepPartial<LimitSharing>): LimitSharing {
     const message = createBaseLimitSharing();
-    copyPartialScalars(message, object, 865, 869);
+    copyPartialScalars(message, object, 799, 803);
     return message;
   },
 };
@@ -34737,7 +34785,7 @@ export const LocalizedName: MessageFns<LocalizedName> = {
   },
   fromPartial(object: DeepPartial<LocalizedName>): LocalizedName {
     const message = createBaseLocalizedName();
-    copyPartialScalars(message, object, 869, 872);
+    copyPartialScalars(message, object, 803, 806);
     return message;
   },
 };
@@ -34802,7 +34850,7 @@ export const Location: MessageFns<Location> = {
   },
   fromPartial(object: DeepPartial<Location>): Location {
     const message = createBaseLocation();
-    copyPartialScalars(message, object, 872, 875);
+    copyPartialScalars(message, object, 806, 809);
     return message;
   },
 };
@@ -34958,7 +35006,7 @@ export const MandrakeDecryptMekInput: MessageFns<MandrakeDecryptMekInput> = {
   },
   fromPartial(object: DeepPartial<MandrakeDecryptMekInput>): MandrakeDecryptMekInput {
     const message = createBaseMandrakeDecryptMekInput();
-    copyPartialScalars(message, object, 875, 879);
+    copyPartialScalars(message, object, 809, 813);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -35145,7 +35193,7 @@ export const MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData: MessageFn
     object: DeepPartial<MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData>,
   ): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
     const message = createBaseMandrakeDecryptMekInput_PrecomputedEpochSenderPublicData();
-    copyPartialScalars(message, object, 879, 881);
+    copyPartialScalars(message, object, 813, 815);
     return message;
   },
 };
@@ -35443,7 +35491,7 @@ export const MandrakeEncryptMekInput_DetachedDeviceSender: MessageFns<MandrakeEn
       (object.detachedDevicePublicData !== undefined && object.detachedDevicePublicData !== null)
         ? DetachedDevicePublicData.fromPartial(object.detachedDevicePublicData)
         : undefined;
-    copyPartialScalars(message, object, 881, 883);
+    copyPartialScalars(message, object, 815, 817);
     return message;
   },
 };
@@ -35511,7 +35559,7 @@ export const MandrakeEncryptMekInput_EpochSender: MessageFns<MandrakeEncryptMekI
     message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
       ? EpochPublicData.fromPartial(object.epochPublicData)
       : undefined;
-    copyPartialScalars(message, object, 883, 885);
+    copyPartialScalars(message, object, 817, 819);
     return message;
   },
 };
@@ -35579,7 +35627,7 @@ export const MandrakeEncryptMekInput_MmkSender: MessageFns<MandrakeEncryptMekInp
     message.mmkPublicData = (object.mmkPublicData !== undefined && object.mmkPublicData !== null)
       ? MessagingMailboxPublicData.fromPartial(object.mmkPublicData)
       : undefined;
-    copyPartialScalars(message, object, 885, 887);
+    copyPartialScalars(message, object, 819, 821);
     return message;
   },
 };
@@ -35712,7 +35760,7 @@ export const MandrakeEncryptMekSuccess: MessageFns<MandrakeEncryptMekSuccess> = 
     message.distributions =
       object.distributions?.map((e) => MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 887, 889);
+    copyPartialScalars(message, object, 821, 823);
     return message;
   },
 };
@@ -35858,7 +35906,7 @@ export const MandrakeMekBundle: MessageFns<MandrakeMekBundle> = {
   },
   fromPartial(object: DeepPartial<MandrakeMekBundle>): MandrakeMekBundle {
     const message = createBaseMandrakeMekBundle();
-    copyPartialScalars(message, object, 889, 892);
+    copyPartialScalars(message, object, 823, 826);
     return message;
   },
 };
@@ -35986,7 +36034,7 @@ export const MandrakeOpenEpochInput: MessageFns<MandrakeOpenEpochInput> = {
   },
   fromPartial(object: DeepPartial<MandrakeOpenEpochInput>): MandrakeOpenEpochInput {
     const message = createBaseMandrakeOpenEpochInput();
-    copyPartialScalars(message, object, 892, 898);
+    copyPartialScalars(message, object, 826, 832);
     message.previousMmk = (object.previousMmk !== undefined && object.previousMmk !== null)
       ? MessagingMailboxPublicData.fromPartial(object.previousMmk)
       : undefined;
@@ -36191,7 +36239,7 @@ export const MandrakeOpenInitialEpochInput: MessageFns<MandrakeOpenInitialEpochI
   },
   fromPartial(object: DeepPartial<MandrakeOpenInitialEpochInput>): MandrakeOpenInitialEpochInput {
     const message = createBaseMandrakeOpenInitialEpochInput();
-    copyPartialScalars(message, object, 898, 901);
+    copyPartialScalars(message, object, 832, 835);
     message.detachedDevices = object.detachedDevices?.map((e) => DetachedDevicePublicData.fromPartial(e)) || undefined;
     return message;
   },
@@ -36467,7 +36515,7 @@ export const MandrakeValidateNewMmkResult: MessageFns<MandrakeValidateNewMmkResu
   },
   fromPartial(object: DeepPartial<MandrakeValidateNewMmkResult>): MandrakeValidateNewMmkResult {
     const message = createBaseMandrakeValidateNewMmkResult();
-    copyPartialScalars(message, object, 901, 903);
+    copyPartialScalars(message, object, 835, 837);
     return message;
   },
 };
@@ -36564,7 +36612,7 @@ export const MediaDomainInfo: MessageFns<MediaDomainInfo> = {
   },
   fromPartial(object: DeepPartial<MediaDomainInfo>): MediaDomainInfo {
     const message = createBaseMediaDomainInfo();
-    copyPartialScalars(message, object, 903, 905);
+    copyPartialScalars(message, object, 837, 839);
     return message;
   },
 };
@@ -36783,17 +36831,17 @@ export const MediaEntry: MessageFns<MediaEntry> = {
   },
   fromPartial(object: DeepPartial<MediaEntry>): MediaEntry {
     const message = createBaseMediaEntry();
-    copyPartialScalars(message, object, 905, 916);
+    copyPartialScalars(message, object, 839, 850);
     message.downloadableThumbnail =
       (object.downloadableThumbnail !== undefined && object.downloadableThumbnail !== null)
         ? MediaEntry_DownloadableThumbnail.fromPartial(object.downloadableThumbnail)
         : undefined;
-    copyPartialScalars(message, object, 916, 918);
+    copyPartialScalars(message, object, 850, 852);
     message.progressiveJpegDetails =
       (object.progressiveJpegDetails !== undefined && object.progressiveJpegDetails !== null)
         ? MediaEntry_ProgressiveJpegDetails.fromPartial(object.progressiveJpegDetails)
         : undefined;
-    copyPartialScalars(message, object, 918, 920);
+    copyPartialScalars(message, object, 852, 854);
     return message;
   },
 };
@@ -36891,7 +36939,7 @@ export const MediaEntry_DownloadableThumbnail: MessageFns<MediaEntry_Downloadabl
   },
   fromPartial(object: DeepPartial<MediaEntry_DownloadableThumbnail>): MediaEntry_DownloadableThumbnail {
     const message = createBaseMediaEntry_DownloadableThumbnail();
-    copyPartialScalars(message, object, 920, 926);
+    copyPartialScalars(message, object, 854, 860);
     return message;
   },
 };
@@ -37029,7 +37077,7 @@ export const MediaNotifyMessage: MessageFns<MediaNotifyMessage> = {
   },
   fromPartial(object: DeepPartial<MediaNotifyMessage>): MediaNotifyMessage {
     const message = createBaseMediaNotifyMessage();
-    copyPartialScalars(message, object, 926, 929);
+    copyPartialScalars(message, object, 860, 863);
     return message;
   },
 };
@@ -37105,7 +37153,7 @@ export const MediaRetryNotification: MessageFns<MediaRetryNotification> = {
   },
   fromPartial(object: DeepPartial<MediaRetryNotification>): MediaRetryNotification {
     const message = createBaseMediaRetryNotification();
-    copyPartialScalars(message, object, 929, 933);
+    copyPartialScalars(message, object, 863, 867);
     return message;
   },
 };
@@ -37170,7 +37218,7 @@ export const MekBundle: MessageFns<MekBundle> = {
   },
   fromPartial(object: DeepPartial<MekBundle>): MekBundle {
     const message = createBaseMekBundle();
-    copyPartialScalars(message, object, 933, 936);
+    copyPartialScalars(message, object, 867, 870);
     return message;
   },
 };
@@ -37224,7 +37272,7 @@ export const MemberLabel: MessageFns<MemberLabel> = {
   },
   fromPartial(object: DeepPartial<MemberLabel>): MemberLabel {
     const message = createBaseMemberLabel();
-    copyPartialScalars(message, object, 936, 938);
+    copyPartialScalars(message, object, 870, 872);
     return message;
   },
 };
@@ -37300,7 +37348,7 @@ export const Mention: MessageFns<Mention> = {
   },
   fromPartial(object: DeepPartial<Mention>): Mention {
     const message = createBaseMention();
-    copyPartialScalars(message, object, 938, 942);
+    copyPartialScalars(message, object, 872, 876);
     return message;
   },
 };
@@ -37376,7 +37424,7 @@ export const MerkleMembershipProof: MessageFns<MerkleMembershipProof> = {
   },
   fromPartial(object: DeepPartial<MerkleMembershipProof>): MerkleMembershipProof {
     const message = createBaseMerkleMembershipProof();
-    copyPartialScalars(message, object, 942, 946);
+    copyPartialScalars(message, object, 876, 880);
     return message;
   },
 };
@@ -39082,7 +39130,7 @@ export const Message_AlbumMessage: MessageFns<Message_AlbumMessage> = {
   },
   fromPartial(object: DeepPartial<Message_AlbumMessage>): Message_AlbumMessage {
     const message = createBaseMessage_AlbumMessage();
-    copyPartialScalars(message, object, 946, 948);
+    copyPartialScalars(message, object, 880, 882);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -39363,7 +39411,7 @@ export const Message_AppStateSyncKeyFingerprint: MessageFns<Message_AppStateSync
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyFingerprint>): Message_AppStateSyncKeyFingerprint {
     const message = createBaseMessage_AppStateSyncKeyFingerprint();
-    copyPartialScalars(message, object, 948, 950);
+    copyPartialScalars(message, object, 882, 884);
     message.deviceIndexes = object.deviceIndexes?.map((e) => e) || undefined;
     return message;
   },
@@ -39717,11 +39765,11 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
   },
   fromPartial(object: DeepPartial<Message_AudioMessage>): Message_AudioMessage {
     const message = createBaseMessage_AudioMessage();
-    copyPartialScalars(message, object, 950, 960);
+    copyPartialScalars(message, object, 884, 894);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 960, 965);
+    copyPartialScalars(message, object, 894, 899);
     return message;
   },
 };
@@ -39797,7 +39845,7 @@ export const Message_BCallMessage: MessageFns<Message_BCallMessage> = {
   },
   fromPartial(object: DeepPartial<Message_BCallMessage>): Message_BCallMessage {
     const message = createBaseMessage_BCallMessage();
-    copyPartialScalars(message, object, 965, 969);
+    copyPartialScalars(message, object, 899, 903);
     return message;
   },
 };
@@ -39870,7 +39918,7 @@ export const Message_BotHistoryShareSyncMetadata: MessageFns<Message_BotHistoryS
   },
   fromPartial(object: DeepPartial<Message_BotHistoryShareSyncMetadata>): Message_BotHistoryShareSyncMetadata {
     const message = createBaseMessage_BotHistoryShareSyncMetadata();
-    copyPartialScalars(message, object, 969, 971);
+    copyPartialScalars(message, object, 903, 905);
     message.historyShareMessages =
       object.historyShareMessages?.map((e) => Message_HistoryShareMessageEntry.fromPartial(e)) || undefined;
     return message;
@@ -40022,12 +40070,12 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
   },
   fromPartial(object: DeepPartial<Message_ButtonsMessage>): Message_ButtonsMessage {
     const message = createBaseMessage_ButtonsMessage();
-    copyPartialScalars(message, object, 971, 973);
+    copyPartialScalars(message, object, 905, 907);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
     message.buttons = object.buttons?.map((e) => Message_ButtonsMessage_Button.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 973, 975);
+    copyPartialScalars(message, object, 907, 909);
     message.documentMessage = (object.documentMessage !== undefined && object.documentMessage !== null)
       ? Message_DocumentMessage.fromPartial(object.documentMessage)
       : undefined;
@@ -40226,7 +40274,7 @@ export const Message_ButtonsMessage_Button_NativeFlowInfo: MessageFns<Message_Bu
     object: DeepPartial<Message_ButtonsMessage_Button_NativeFlowInfo>,
   ): Message_ButtonsMessage_Button_NativeFlowInfo {
     const message = createBaseMessage_ButtonsMessage_Button_NativeFlowInfo();
-    copyPartialScalars(message, object, 975, 977);
+    copyPartialScalars(message, object, 909, 911);
     return message;
   },
 };
@@ -40306,7 +40354,7 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 977, 979);
+    copyPartialScalars(message, object, 911, 913);
     return message;
   },
 };
@@ -40470,15 +40518,15 @@ export const Message_Call: MessageFns<Message_Call> = {
   },
   fromPartial(object: DeepPartial<Message_Call>): Message_Call {
     const message = createBaseMessage_Call();
-    copyPartialScalars(message, object, 979, 985);
+    copyPartialScalars(message, object, 913, 919);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 985, 987);
+    copyPartialScalars(message, object, 919, 921);
     message.messageContextInfo = (object.messageContextInfo !== undefined && object.messageContextInfo !== null)
       ? MessageContextInfo.fromPartial(object.messageContextInfo)
       : undefined;
-    copyPartialScalars(message, object, 987, 989);
+    copyPartialScalars(message, object, 921, 923);
     return message;
   },
 };
@@ -40573,7 +40621,7 @@ export const Message_CallLogMessage: MessageFns<Message_CallLogMessage> = {
   },
   fromPartial(object: DeepPartial<Message_CallLogMessage>): Message_CallLogMessage {
     const message = createBaseMessage_CallLogMessage();
-    copyPartialScalars(message, object, 989, 993);
+    copyPartialScalars(message, object, 923, 927);
     message.participants = object.participants?.map((e) => Message_CallLogMessage_CallParticipant.fromPartial(e)) ||
       undefined;
     return message;
@@ -40629,7 +40677,7 @@ export const Message_CallLogMessage_CallParticipant: MessageFns<Message_CallLogM
   },
   fromPartial(object: DeepPartial<Message_CallLogMessage_CallParticipant>): Message_CallLogMessage_CallParticipant {
     const message = createBaseMessage_CallLogMessage_CallParticipant();
-    copyPartialScalars(message, object, 993, 995);
+    copyPartialScalars(message, object, 927, 929);
     return message;
   },
 };
@@ -40726,7 +40774,7 @@ export const Message_Chat: MessageFns<Message_Chat> = {
   },
   fromPartial(object: DeepPartial<Message_Chat>): Message_Chat {
     const message = createBaseMessage_Chat();
-    copyPartialScalars(message, object, 995, 997);
+    copyPartialScalars(message, object, 929, 931);
     return message;
   },
 };
@@ -40813,7 +40861,7 @@ export const Message_ChatCustomImageWallpaper: MessageFns<Message_ChatCustomImag
   },
   fromPartial(object: DeepPartial<Message_ChatCustomImageWallpaper>): Message_ChatCustomImageWallpaper {
     const message = createBaseMessage_ChatCustomImageWallpaper();
-    copyPartialScalars(message, object, 997, 1002);
+    copyPartialScalars(message, object, 931, 936);
     return message;
   },
 };
@@ -40921,7 +40969,7 @@ export const Message_ChatSolidColorWallpaper: MessageFns<Message_ChatSolidColorW
   },
   fromPartial(object: DeepPartial<Message_ChatSolidColorWallpaper>): Message_ChatSolidColorWallpaper {
     const message = createBaseMessage_ChatSolidColorWallpaper();
-    copyPartialScalars(message, object, 1002, 1005);
+    copyPartialScalars(message, object, 936, 939);
     return message;
   },
 };
@@ -40975,7 +41023,7 @@ export const Message_ChatStockImageWallpaper: MessageFns<Message_ChatStockImageW
   },
   fromPartial(object: DeepPartial<Message_ChatStockImageWallpaper>): Message_ChatStockImageWallpaper {
     const message = createBaseMessage_ChatStockImageWallpaper();
-    copyPartialScalars(message, object, 1005, 1007);
+    copyPartialScalars(message, object, 939, 941);
     return message;
   },
 };
@@ -41084,7 +41132,7 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
   },
   fromPartial(object: DeepPartial<Message_ChatThemeSetting>): Message_ChatThemeSetting {
     const message = createBaseMessage_ChatThemeSetting();
-    copyPartialScalars(message, object, 1007, 1010);
+    copyPartialScalars(message, object, 941, 944);
     message.defaultWallpaper = (object.defaultWallpaper !== undefined && object.defaultWallpaper !== null)
       ? Message_ChatDefaultWallpaper.fromPartial(object.defaultWallpaper)
       : undefined;
@@ -41200,7 +41248,7 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
     object: DeepPartial<Message_CloudAPIThreadControlNotification>,
   ): Message_CloudAPIThreadControlNotification {
     const message = createBaseMessage_CloudAPIThreadControlNotification();
-    copyPartialScalars(message, object, 1010, 1014);
+    copyPartialScalars(message, object, 944, 948);
     message.notificationContent = (object.notificationContent !== undefined && object.notificationContent !== null)
       ? Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent.fromPartial(
         object.notificationContent,
@@ -41269,7 +41317,7 @@ export const Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNoti
     object: DeepPartial<Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent>,
   ): Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent {
     const message = createBaseMessage_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent();
-    copyPartialScalars(message, object, 1014, 1016);
+    copyPartialScalars(message, object, 948, 950);
     return message;
   },
 };
@@ -41404,7 +41452,7 @@ export const Message_ConditionalRevealMessage: MessageFns<Message_ConditionalRev
   },
   fromPartial(object: DeepPartial<Message_ConditionalRevealMessage>): Message_ConditionalRevealMessage {
     const message = createBaseMessage_ConditionalRevealMessage();
-    copyPartialScalars(message, object, 1016, 1020);
+    copyPartialScalars(message, object, 950, 954);
     return message;
   },
 };
@@ -41480,7 +41528,7 @@ export const Message_ContactMessage: MessageFns<Message_ContactMessage> = {
   },
   fromPartial(object: DeepPartial<Message_ContactMessage>): Message_ContactMessage {
     const message = createBaseMessage_ContactMessage();
-    copyPartialScalars(message, object, 1020, 1022);
+    copyPartialScalars(message, object, 954, 956);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -41936,11 +41984,11 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
   },
   fromPartial(object: DeepPartial<Message_DocumentMessage>): Message_DocumentMessage {
     const message = createBaseMessage_DocumentMessage();
-    copyPartialScalars(message, object, 1022, 1038);
+    copyPartialScalars(message, object, 956, 972);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1038, 1042);
+    copyPartialScalars(message, object, 972, 976);
     return message;
   },
 };
@@ -42008,7 +42056,7 @@ export const Message_EncCommentMessage: MessageFns<Message_EncCommentMessage> = 
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    copyPartialScalars(message, object, 1042, 1044);
+    copyPartialScalars(message, object, 976, 978);
     return message;
   },
 };
@@ -42077,7 +42125,7 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
       (object.eventCreationMessageKey !== undefined && object.eventCreationMessageKey !== null)
         ? MessageKey.fromPartial(object.eventCreationMessageKey)
         : undefined;
-    copyPartialScalars(message, object, 1044, 1046);
+    copyPartialScalars(message, object, 978, 980);
     return message;
   },
 };
@@ -42145,7 +42193,7 @@ export const Message_EncReactionMessage: MessageFns<Message_EncReactionMessage> 
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    copyPartialScalars(message, object, 1046, 1048);
+    copyPartialScalars(message, object, 980, 982);
     return message;
   },
 };
@@ -42279,7 +42327,7 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1048, 1056);
+    copyPartialScalars(message, object, 982, 990);
     return message;
   },
 };
@@ -42446,11 +42494,11 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1056, 1059);
+    copyPartialScalars(message, object, 990, 993);
     message.location = (object.location !== undefined && object.location !== null)
       ? Message_LocationMessage.fromPartial(object.location)
       : undefined;
-    copyPartialScalars(message, object, 1059, 1066);
+    copyPartialScalars(message, object, 993, 1000);
     return message;
   },
 };
@@ -42515,7 +42563,7 @@ export const Message_EventResponseMessage: MessageFns<Message_EventResponseMessa
   },
   fromPartial(object: DeepPartial<Message_EventResponseMessage>): Message_EventResponseMessage {
     const message = createBaseMessage_EventResponseMessage();
-    copyPartialScalars(message, object, 1066, 1069);
+    copyPartialScalars(message, object, 1000, 1003);
     return message;
   },
 };
@@ -42907,11 +42955,11 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
   },
   fromPartial(object: DeepPartial<Message_ExtendedTextMessage>): Message_ExtendedTextMessage {
     const message = createBaseMessage_ExtendedTextMessage();
-    copyPartialScalars(message, object, 1069, 1078);
+    copyPartialScalars(message, object, 1003, 1012);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1078, 1093);
+    copyPartialScalars(message, object, 1012, 1027);
     message.faviconMmsMetadata = (object.faviconMmsMetadata !== undefined && object.faviconMmsMetadata !== null)
       ? Message_MMSThumbnailMetadata.fromPartial(object.faviconMmsMetadata)
       : undefined;
@@ -42983,7 +43031,7 @@ export const Message_FullHistorySyncOnDemandConfig: MessageFns<Message_FullHisto
   },
   fromPartial(object: DeepPartial<Message_FullHistorySyncOnDemandConfig>): Message_FullHistorySyncOnDemandConfig {
     const message = createBaseMessage_FullHistorySyncOnDemandConfig();
-    copyPartialScalars(message, object, 1093, 1095);
+    copyPartialScalars(message, object, 1027, 1029);
     return message;
   },
 };
@@ -43057,7 +43105,7 @@ export const Message_FullHistorySyncOnDemandRequestMetadata: MessageFns<
     object: DeepPartial<Message_FullHistorySyncOnDemandRequestMetadata>,
   ): Message_FullHistorySyncOnDemandRequestMetadata {
     const message = createBaseMessage_FullHistorySyncOnDemandRequestMetadata();
-    copyPartialScalars(message, object, 1095, 1098);
+    copyPartialScalars(message, object, 1029, 1032);
     return message;
   },
 };
@@ -43222,7 +43270,7 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
   },
   fromPartial(object: DeepPartial<Message_GroupInviteMessage>): Message_GroupInviteMessage {
     const message = createBaseMessage_GroupInviteMessage();
-    copyPartialScalars(message, object, 1098, 1104);
+    copyPartialScalars(message, object, 1032, 1038);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -43373,13 +43421,13 @@ export const Message_HighlyStructuredMessage: MessageFns<Message_HighlyStructure
   },
   fromPartial(object: DeepPartial<Message_HighlyStructuredMessage>): Message_HighlyStructuredMessage {
     const message = createBaseMessage_HighlyStructuredMessage();
-    copyPartialScalars(message, object, 1104, 1106);
+    copyPartialScalars(message, object, 1038, 1040);
     message.params = object.params?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1106, 1108);
+    copyPartialScalars(message, object, 1040, 1042);
     message.localizableParams =
       object.localizableParams?.map((e) => Message_HighlyStructuredMessage_HSMLocalizableParameter.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 1108, 1110);
+    copyPartialScalars(message, object, 1042, 1044);
     message.hydratedHsm = (object.hydratedHsm !== undefined && object.hydratedHsm !== null)
       ? Message_TemplateMessage.fromPartial(object.hydratedHsm)
       : undefined;
@@ -43531,7 +43579,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
     const message = createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency();
-    copyPartialScalars(message, object, 1110, 1112);
+    copyPartialScalars(message, object, 1044, 1046);
     return message;
   },
 };
@@ -43731,7 +43779,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent {
     const message =
       createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent();
-    copyPartialScalars(message, object, 1112, 1119);
+    copyPartialScalars(message, object, 1046, 1053);
     return message;
   },
 };
@@ -43839,7 +43887,7 @@ export const Message_HistoryShareMessageEntry: MessageFns<Message_HistoryShareMe
   },
   fromPartial(object: DeepPartial<Message_HistoryShareMessageEntry>): Message_HistoryShareMessageEntry {
     const message = createBaseMessage_HistoryShareMessageEntry();
-    copyPartialScalars(message, object, 1119, 1121);
+    copyPartialScalars(message, object, 1053, 1055);
     return message;
   },
 };
@@ -44082,7 +44130,7 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
   },
   fromPartial(object: DeepPartial<Message_HistorySyncNotification>): Message_HistorySyncNotification {
     const message = createBaseMessage_HistorySyncNotification();
-    copyPartialScalars(message, object, 1121, 1133);
+    copyPartialScalars(message, object, 1055, 1067);
     message.fullHistorySyncOnDemandRequestMetadata =
       (object.fullHistorySyncOnDemandRequestMetadata !== undefined &&
           object.fullHistorySyncOnDemandRequestMetadata !== null)
@@ -44487,18 +44535,39 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
   },
   fromPartial(object: DeepPartial<Message_ImageMessage>): Message_ImageMessage {
     const message = createBaseMessage_ImageMessage();
-    copyPartialScalars(message, object, 1133, 1142);
+    message.url = object.url ?? undefined;
+    message.mimetype = object.mimetype ?? undefined;
+    message.caption = object.caption ?? undefined;
+    message.fileSha256 = object.fileSha256 ?? undefined;
+    message.fileLength = object.fileLength ?? undefined;
+    message.height = object.height ?? undefined;
+    message.width = object.width ?? undefined;
+    message.mediaKey = object.mediaKey ?? undefined;
+    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
     message.interactiveAnnotations = object.interactiveAnnotations?.map((e) => InteractiveAnnotation.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 1142, 1145);
+    message.directPath = object.directPath ?? undefined;
+    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
+    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1145, 1149);
+    message.firstScanSidecar = object.firstScanSidecar ?? undefined;
+    message.firstScanLength = object.firstScanLength ?? undefined;
+    message.experimentGroupId = object.experimentGroupId ?? undefined;
+    message.scansSidecar = object.scansSidecar ?? undefined;
     message.scanLengths = object.scanLengths?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1149, 1156);
+    message.midQualityFileSha256 = object.midQualityFileSha256 ?? undefined;
+    message.midQualityFileEncSha256 = object.midQualityFileEncSha256 ?? undefined;
+    message.viewOnce = object.viewOnce ?? undefined;
+    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
+    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
+    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
+    message.staticUrl = object.staticUrl ?? undefined;
     message.annotations = object.annotations?.map((e) => InteractiveAnnotation.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1156, 1159);
+    message.imageSourceType = object.imageSourceType ?? undefined;
+    message.accessibilityLabel = object.accessibilityLabel ?? undefined;
+    message.qrUrl = object.qrUrl ?? undefined;
     return message;
   },
 };
@@ -44798,7 +44867,7 @@ export const Message_InteractiveMessage_BloksWidget: MessageFns<Message_Interact
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_BloksWidget>): Message_InteractiveMessage_BloksWidget {
     const message = createBaseMessage_InteractiveMessage_BloksWidget();
-    copyPartialScalars(message, object, 1159, 1163);
+    copyPartialScalars(message, object, 1067, 1071);
     return message;
   },
 };
@@ -44917,7 +44986,7 @@ export const Message_InteractiveMessage_CarouselMessage: MessageFns<Message_Inte
   ): Message_InteractiveMessage_CarouselMessage {
     const message = createBaseMessage_InteractiveMessage_CarouselMessage();
     message.cards = object.cards?.map((e) => Message_InteractiveMessage.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1163, 1165);
+    copyPartialScalars(message, object, 1071, 1073);
     return message;
   },
 };
@@ -44989,7 +45058,7 @@ export const Message_InteractiveMessage_CollectionMessage: MessageFns<Message_In
     object: DeepPartial<Message_InteractiveMessage_CollectionMessage>,
   ): Message_InteractiveMessage_CollectionMessage {
     const message = createBaseMessage_InteractiveMessage_CollectionMessage();
-    copyPartialScalars(message, object, 1165, 1168);
+    copyPartialScalars(message, object, 1073, 1076);
     return message;
   },
 };
@@ -45054,7 +45123,7 @@ export const Message_InteractiveMessage_Footer: MessageFns<Message_InteractiveMe
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_Footer>): Message_InteractiveMessage_Footer {
     const message = createBaseMessage_InteractiveMessage_Footer();
-    copyPartialScalars(message, object, 1168, 1170);
+    copyPartialScalars(message, object, 1076, 1078);
     message.audioMessage = (object.audioMessage !== undefined && object.audioMessage !== null)
       ? Message_AudioMessage.fromPartial(object.audioMessage)
       : undefined;
@@ -45199,7 +45268,7 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_Header>): Message_InteractiveMessage_Header {
     const message = createBaseMessage_InteractiveMessage_Header();
-    copyPartialScalars(message, object, 1170, 1173);
+    copyPartialScalars(message, object, 1078, 1081);
     message.bloksWidget = (object.bloksWidget !== undefined && object.bloksWidget !== null)
       ? Message_InteractiveMessage_BloksWidget.fromPartial(object.bloksWidget)
       : undefined;
@@ -45301,7 +45370,7 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
     message.buttons =
       object.buttons?.map((e) => Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 1173, 1175);
+    copyPartialScalars(message, object, 1081, 1083);
     return message;
   },
 };
@@ -45364,7 +45433,7 @@ export const Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton: Mess
     object: DeepPartial<Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton>,
   ): Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton {
     const message = createBaseMessage_InteractiveMessage_NativeFlowMessage_NativeFlowButton();
-    copyPartialScalars(message, object, 1175, 1177);
+    copyPartialScalars(message, object, 1083, 1085);
     return message;
   },
 };
@@ -45429,7 +45498,7 @@ export const Message_InteractiveMessage_ShopMessage: MessageFns<Message_Interact
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_ShopMessage>): Message_InteractiveMessage_ShopMessage {
     const message = createBaseMessage_InteractiveMessage_ShopMessage();
-    copyPartialScalars(message, object, 1177, 1180);
+    copyPartialScalars(message, object, 1085, 1088);
     return message;
   },
 };
@@ -45560,7 +45629,7 @@ export const Message_InteractiveResponseMessage_Body: MessageFns<Message_Interac
   },
   fromPartial(object: DeepPartial<Message_InteractiveResponseMessage_Body>): Message_InteractiveResponseMessage_Body {
     const message = createBaseMessage_InteractiveResponseMessage_Body();
-    copyPartialScalars(message, object, 1180, 1182);
+    copyPartialScalars(message, object, 1088, 1090);
     return message;
   },
 };
@@ -45634,7 +45703,7 @@ export const Message_InteractiveResponseMessage_NativeFlowResponseMessage: Messa
     object: DeepPartial<Message_InteractiveResponseMessage_NativeFlowResponseMessage>,
   ): Message_InteractiveResponseMessage_NativeFlowResponseMessage {
     const message = createBaseMessage_InteractiveResponseMessage_NativeFlowResponseMessage();
-    copyPartialScalars(message, object, 1182, 1185);
+    copyPartialScalars(message, object, 1090, 1093);
     return message;
   },
 };
@@ -45776,7 +45845,7 @@ export const Message_InvoiceMessage: MessageFns<Message_InvoiceMessage> = {
   },
   fromPartial(object: DeepPartial<Message_InvoiceMessage>): Message_InvoiceMessage {
     const message = createBaseMessage_InvoiceMessage();
-    copyPartialScalars(message, object, 1185, 1195);
+    copyPartialScalars(message, object, 1093, 1103);
     return message;
   },
 };
@@ -45842,7 +45911,7 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
   fromPartial(object: DeepPartial<Message_KeepInChatMessage>): Message_KeepInChatMessage {
     const message = createBaseMessage_KeepInChatMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1195, 1197);
+    copyPartialScalars(message, object, 1103, 1105);
     return message;
   },
 };
@@ -45979,7 +46048,7 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
     message.urlMetadata = (object.urlMetadata !== undefined && object.urlMetadata !== null)
       ? Message_URLMetadata.fromPartial(object.urlMetadata)
       : undefined;
-    copyPartialScalars(message, object, 1197, 1202);
+    copyPartialScalars(message, object, 1105, 1110);
     message.musicMetadata = (object.musicMetadata !== undefined && object.musicMetadata !== null)
       ? EmbeddedMusic.fromPartial(object.musicMetadata)
       : undefined;
@@ -46111,7 +46180,7 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
   },
   fromPartial(object: DeepPartial<Message_ListMessage>): Message_ListMessage {
     const message = createBaseMessage_ListMessage();
-    copyPartialScalars(message, object, 1202, 1206);
+    copyPartialScalars(message, object, 1110, 1114);
     message.sections = object.sections?.map((e) => Message_ListMessage_Section.fromPartial(e)) || undefined;
     message.productListInfo = (object.productListInfo !== undefined && object.productListInfo !== null)
       ? Message_ListMessage_ProductListInfo.fromPartial(object.productListInfo)
@@ -46218,7 +46287,7 @@ export const Message_ListMessage_ProductListHeaderImage: MessageFns<Message_List
     object: DeepPartial<Message_ListMessage_ProductListHeaderImage>,
   ): Message_ListMessage_ProductListHeaderImage {
     const message = createBaseMessage_ListMessage_ProductListHeaderImage();
-    copyPartialScalars(message, object, 1206, 1208);
+    copyPartialScalars(message, object, 1114, 1116);
     return message;
   },
 };
@@ -46424,7 +46493,7 @@ export const Message_ListMessage_Row: MessageFns<Message_ListMessage_Row> = {
   },
   fromPartial(object: DeepPartial<Message_ListMessage_Row>): Message_ListMessage_Row {
     const message = createBaseMessage_ListMessage_Row();
-    copyPartialScalars(message, object, 1208, 1211);
+    copyPartialScalars(message, object, 1116, 1119);
     return message;
   },
 };
@@ -46574,7 +46643,7 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
   },
   fromPartial(object: DeepPartial<Message_ListResponseMessage>): Message_ListResponseMessage {
     const message = createBaseMessage_ListResponseMessage();
-    copyPartialScalars(message, object, 1211, 1213);
+    copyPartialScalars(message, object, 1119, 1121);
     message.singleSelectReply = (object.singleSelectReply !== undefined && object.singleSelectReply !== null)
       ? Message_ListResponseMessage_SingleSelectReply.fromPartial(object.singleSelectReply)
       : undefined;
@@ -46774,7 +46843,7 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
   },
   fromPartial(object: DeepPartial<Message_LiveLocationMessage>): Message_LiveLocationMessage {
     const message = createBaseMessage_LiveLocationMessage();
-    copyPartialScalars(message, object, 1213, 1222);
+    copyPartialScalars(message, object, 1121, 1130);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -46941,7 +47010,7 @@ export const Message_LocationMessage: MessageFns<Message_LocationMessage> = {
   },
   fromPartial(object: DeepPartial<Message_LocationMessage>): Message_LocationMessage {
     const message = createBaseMessage_LocationMessage();
-    copyPartialScalars(message, object, 1222, 1233);
+    copyPartialScalars(message, object, 1130, 1141);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47053,7 +47122,7 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
   },
   fromPartial(object: DeepPartial<Message_MMSThumbnailMetadata>): Message_MMSThumbnailMetadata {
     const message = createBaseMessage_MMSThumbnailMetadata();
-    copyPartialScalars(message, object, 1233, 1240);
+    copyPartialScalars(message, object, 1141, 1148);
     return message;
   },
 };
@@ -47129,7 +47198,7 @@ export const Message_MarkAsVerifiedAction: MessageFns<Message_MarkAsVerifiedActi
   },
   fromPartial(object: DeepPartial<Message_MarkAsVerifiedAction>): Message_MarkAsVerifiedAction {
     const message = createBaseMessage_MarkAsVerifiedAction();
-    copyPartialScalars(message, object, 1240, 1244);
+    copyPartialScalars(message, object, 1148, 1152);
     return message;
   },
 };
@@ -47249,7 +47318,7 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
   },
   fromPartial(object: DeepPartial<Message_MessageHistoryBundle>): Message_MessageHistoryBundle {
     const message = createBaseMessage_MessageHistoryBundle();
-    copyPartialScalars(message, object, 1244, 1250);
+    copyPartialScalars(message, object, 1152, 1158);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47360,7 +47429,7 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
   fromPartial(object: DeepPartial<Message_MessageHistoryMetadata>): Message_MessageHistoryMetadata {
     const message = createBaseMessage_MessageHistoryMetadata();
     message.historyReceivers = object.historyReceivers?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1250, 1252);
+    copyPartialScalars(message, object, 1158, 1160);
     message.nonHistoryReceivers = object.nonHistoryReceivers?.map((e) => e) || undefined;
     message.oldestMessageTimestampInBundle = object.oldestMessageTimestampInBundle ?? undefined;
     return message;
@@ -47527,7 +47596,7 @@ export const Message_MusicMessage: MessageFns<Message_MusicMessage> = {
     message.embeddedMusic = (object.embeddedMusic !== undefined && object.embeddedMusic !== null)
       ? EmbeddedMusic.fromPartial(object.embeddedMusic)
       : undefined;
-    copyPartialScalars(message, object, 1252, 1255);
+    copyPartialScalars(message, object, 1160, 1163);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47628,7 +47697,7 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
   },
   fromPartial(object: DeepPartial<Message_NewsletterAdminInviteMessage>): Message_NewsletterAdminInviteMessage {
     const message = createBaseMessage_NewsletterAdminInviteMessage();
-    copyPartialScalars(message, object, 1255, 1260);
+    copyPartialScalars(message, object, 1163, 1168);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47718,7 +47787,7 @@ export const Message_NewsletterFollowerInviteMessage: MessageFns<Message_Newslet
   },
   fromPartial(object: DeepPartial<Message_NewsletterFollowerInviteMessage>): Message_NewsletterFollowerInviteMessage {
     const message = createBaseMessage_NewsletterFollowerInviteMessage();
-    copyPartialScalars(message, object, 1260, 1264);
+    copyPartialScalars(message, object, 1168, 1172);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47918,7 +47987,7 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
   },
   fromPartial(object: DeepPartial<Message_OrderMessage>): Message_OrderMessage {
     const message = createBaseMessage_OrderMessage();
-    copyPartialScalars(message, object, 1264, 1275);
+    copyPartialScalars(message, object, 1172, 1183);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -47992,7 +48061,7 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
   },
   fromPartial(object: DeepPartial<Message_PaymentExtendedMetadata>): Message_PaymentExtendedMetadata {
     const message = createBaseMessage_PaymentExtendedMetadata();
-    copyPartialScalars(message, object, 1275, 1278);
+    copyPartialScalars(message, object, 1183, 1186);
     return message;
   },
 };
@@ -48079,7 +48148,7 @@ export const Message_PaymentInviteMessage: MessageFns<Message_PaymentInviteMessa
   },
   fromPartial(object: DeepPartial<Message_PaymentInviteMessage>): Message_PaymentInviteMessage {
     const message = createBaseMessage_PaymentInviteMessage();
-    copyPartialScalars(message, object, 1278, 1283);
+    copyPartialScalars(message, object, 1186, 1191);
     return message;
   },
 };
@@ -48437,7 +48506,7 @@ export const Message_PaymentReminderMessage: MessageFns<Message_PaymentReminderM
   },
   fromPartial(object: DeepPartial<Message_PaymentReminderMessage>): Message_PaymentReminderMessage {
     const message = createBaseMessage_PaymentReminderMessage();
-    copyPartialScalars(message, object, 1283, 1291);
+    copyPartialScalars(message, object, 1191, 1199);
     message.amount = (object.amount !== undefined && object.amount !== null)
       ? Money.fromPartial(object.amount)
       : undefined;
@@ -49057,7 +49126,7 @@ export const Message_PeerDataOperationRequestMessage_GalaxyFlowAction: MessageFn
     object: DeepPartial<Message_PeerDataOperationRequestMessage_GalaxyFlowAction>,
   ): Message_PeerDataOperationRequestMessage_GalaxyFlowAction {
     const message = createBaseMessage_PeerDataOperationRequestMessage_GalaxyFlowAction();
-    copyPartialScalars(message, object, 1291, 1296);
+    copyPartialScalars(message, object, 1199, 1204);
     return message;
   },
 };
@@ -49142,7 +49211,7 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryReques
     object: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest();
-    copyPartialScalars(message, object, 1296, 1300);
+    copyPartialScalars(message, object, 1204, 1208);
     return message;
   },
 };
@@ -49260,7 +49329,7 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
     object: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest();
-    copyPartialScalars(message, object, 1300, 1307);
+    copyPartialScalars(message, object, 1208, 1215);
     return message;
   },
 };
@@ -49429,7 +49498,7 @@ export const Message_PeerDataOperationRequestMessage_RequestUrlPreview: MessageF
     object: DeepPartial<Message_PeerDataOperationRequestMessage_RequestUrlPreview>,
   ): Message_PeerDataOperationRequestMessage_RequestUrlPreview {
     const message = createBaseMessage_PeerDataOperationRequestMessage_RequestUrlPreview();
-    copyPartialScalars(message, object, 1307, 1309);
+    copyPartialScalars(message, object, 1215, 1217);
     return message;
   },
 };
@@ -49492,7 +49561,7 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
     object: DeepPartial<Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest>,
   ): Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest();
-    copyPartialScalars(message, object, 1309, 1311);
+    copyPartialScalars(message, object, 1217, 1219);
     return message;
   },
 };
@@ -49578,7 +49647,7 @@ export const Message_PeerDataOperationRequestResponseMessage: MessageFns<
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage>,
   ): Message_PeerDataOperationRequestResponseMessage {
     const message = createBaseMessage_PeerDataOperationRequestResponseMessage();
-    copyPartialScalars(message, object, 1311, 1313);
+    copyPartialScalars(message, object, 1219, 1221);
     message.peerDataOperationResult =
       object.peerDataOperationResult?.map((e) =>
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult.fromPartial(e)
@@ -49969,7 +50038,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse();
-      copyPartialScalars(message, object, 1313, 1315);
+      copyPartialScalars(message, object, 1221, 1223);
       message.contacts = object.contacts?.map((e) =>
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState
           .fromPartial(e)
@@ -50043,7 +50112,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState {
         const message =
           createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState();
-        copyPartialScalars(message, object, 1315, 1317);
+        copyPartialScalars(message, object, 1223, 1225);
         return message;
       },
     };
@@ -50125,7 +50194,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse();
-      copyPartialScalars(message, object, 1317, 1320);
+      copyPartialScalars(message, object, 1225, 1228);
       return message;
     },
   };
@@ -50280,7 +50349,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse();
     message.coveredRequestIds = object.coveredRequestIds?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1320, 1323);
+    copyPartialScalars(message, object, 1228, 1231);
     return message;
   },
 };
@@ -50433,7 +50502,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle();
-    copyPartialScalars(message, object, 1323, 1333);
+    copyPartialScalars(message, object, 1231, 1241);
     return message;
   },
 };
@@ -50608,7 +50677,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse();
-      copyPartialScalars(message, object, 1333, 1338);
+      copyPartialScalars(message, object, 1241, 1246);
       return message;
     },
   };
@@ -50745,7 +50814,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse {
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse();
-    copyPartialScalars(message, object, 1338, 1344);
+    copyPartialScalars(message, object, 1246, 1252);
     message.hqThumbnail = (object.hqThumbnail !== undefined && object.hqThumbnail !== null)
       ? Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail
         .fromPartial(object.hqThumbnail)
@@ -50879,7 +50948,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail();
-      copyPartialScalars(message, object, 1344, 1351);
+      copyPartialScalars(message, object, 1252, 1259);
       return message;
     },
   };
@@ -50983,7 +51052,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata();
-      copyPartialScalars(message, object, 1351, 1356);
+      copyPartialScalars(message, object, 1259, 1264);
       return message;
     },
   };
@@ -51113,7 +51182,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse();
-      copyPartialScalars(message, object, 1356, 1358);
+      copyPartialScalars(message, object, 1264, 1266);
       return message;
     },
   };
@@ -51181,7 +51250,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse();
-      copyPartialScalars(message, object, 1358, 1360);
+      copyPartialScalars(message, object, 1266, 1268);
       return message;
     },
   };
@@ -51247,7 +51316,7 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
   fromPartial(object: DeepPartial<Message_PinInChatMessage>): Message_PinInChatMessage {
     const message = createBaseMessage_PinInChatMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1360, 1362);
+    copyPartialScalars(message, object, 1268, 1270);
     return message;
   },
 };
@@ -51525,17 +51594,17 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
   },
   fromPartial(object: DeepPartial<Message_PollCreationMessage>): Message_PollCreationMessage {
     const message = createBaseMessage_PollCreationMessage();
-    copyPartialScalars(message, object, 1362, 1364);
+    copyPartialScalars(message, object, 1270, 1272);
     message.options = object.options?.map((e) => Message_PollCreationMessage_Option.fromPartial(e)) || undefined;
     message.selectableOptionsCount = object.selectableOptionsCount ?? undefined;
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1364, 1366);
+    copyPartialScalars(message, object, 1272, 1274);
     message.correctAnswer = (object.correctAnswer !== undefined && object.correctAnswer !== null)
       ? Message_PollCreationMessage_Option.fromPartial(object.correctAnswer)
       : undefined;
-    copyPartialScalars(message, object, 1366, 1369);
+    copyPartialScalars(message, object, 1274, 1277);
     return message;
   },
 };
@@ -51589,7 +51658,7 @@ export const Message_PollCreationMessage_Option: MessageFns<Message_PollCreation
   },
   fromPartial(object: DeepPartial<Message_PollCreationMessage_Option>): Message_PollCreationMessage_Option {
     const message = createBaseMessage_PollCreationMessage_Option();
-    copyPartialScalars(message, object, 1369, 1371);
+    copyPartialScalars(message, object, 1277, 1279);
     return message;
   },
 };
@@ -51643,7 +51712,7 @@ export const Message_PollEncValue: MessageFns<Message_PollEncValue> = {
   },
   fromPartial(object: DeepPartial<Message_PollEncValue>): Message_PollEncValue {
     const message = createBaseMessage_PollEncValue();
-    copyPartialScalars(message, object, 1371, 1373);
+    copyPartialScalars(message, object, 1279, 1281);
     return message;
   },
 };
@@ -51789,7 +51858,7 @@ export const Message_PollResultSnapshotMessage_PollVote: MessageFns<Message_Poll
     object: DeepPartial<Message_PollResultSnapshotMessage_PollVote>,
   ): Message_PollResultSnapshotMessage_PollVote {
     const message = createBaseMessage_PollResultSnapshotMessage_PollVote();
-    copyPartialScalars(message, object, 1373, 1375);
+    copyPartialScalars(message, object, 1281, 1283);
     return message;
   },
 };
@@ -51929,7 +51998,7 @@ export const Message_PollUpdateMessageMetadata: MessageFns<Message_PollUpdateMes
   },
   fromPartial(object: DeepPartial<Message_PollUpdateMessageMetadata>): Message_PollUpdateMessageMetadata {
     const message = createBaseMessage_PollUpdateMessageMetadata();
-    copyPartialScalars(message, object, 1375, 1377);
+    copyPartialScalars(message, object, 1283, 1285);
     return message;
   },
 };
@@ -52085,7 +52154,7 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
     message.catalog = (object.catalog !== undefined && object.catalog !== null)
       ? Message_ProductMessage_CatalogSnapshot.fromPartial(object.catalog)
       : undefined;
-    copyPartialScalars(message, object, 1377, 1379);
+    copyPartialScalars(message, object, 1285, 1287);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -52156,7 +52225,7 @@ export const Message_ProductMessage_CatalogSnapshot: MessageFns<Message_ProductM
     message.catalogImage = (object.catalogImage !== undefined && object.catalogImage !== null)
       ? Message_ImageMessage.fromPartial(object.catalogImage)
       : undefined;
-    copyPartialScalars(message, object, 1379, 1381);
+    copyPartialScalars(message, object, 1287, 1289);
     return message;
   },
 };
@@ -52323,7 +52392,7 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
     message.productImage = (object.productImage !== undefined && object.productImage !== null)
       ? Message_ImageMessage.fromPartial(object.productImage)
       : undefined;
-    copyPartialScalars(message, object, 1381, 1392);
+    copyPartialScalars(message, object, 1289, 1300);
     return message;
   },
 };
@@ -52700,7 +52769,7 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
   fromPartial(object: DeepPartial<Message_ProtocolMessage>): Message_ProtocolMessage {
     const message = createBaseMessage_ProtocolMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1392, 1395);
+    copyPartialScalars(message, object, 1300, 1303);
     message.historySyncNotification =
       (object.historySyncNotification !== undefined && object.historySyncNotification !== null)
         ? Message_HistorySyncNotification.fromPartial(object.historySyncNotification)
@@ -52914,7 +52983,7 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
   fromPartial(object: DeepPartial<Message_ReactionMessage>): Message_ReactionMessage {
     const message = createBaseMessage_ReactionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1395, 1398);
+    copyPartialScalars(message, object, 1303, 1306);
     return message;
   },
 };
@@ -53026,7 +53095,7 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
     message.noteMessage = (object.noteMessage !== undefined && object.noteMessage !== null)
       ? Message.fromPartial(object.noteMessage)
       : undefined;
-    copyPartialScalars(message, object, 1398, 1402);
+    copyPartialScalars(message, object, 1306, 1310);
     message.amount = (object.amount !== undefined && object.amount !== null)
       ? Money.fromPartial(object.amount)
       : undefined;
@@ -53142,7 +53211,7 @@ export const Message_RequestWelcomeMessageMetadata: MessageFns<Message_RequestWe
   },
   fromPartial(object: DeepPartial<Message_RequestWelcomeMessageMetadata>): Message_RequestWelcomeMessageMetadata {
     const message = createBaseMessage_RequestWelcomeMessageMetadata();
-    copyPartialScalars(message, object, 1402, 1404);
+    copyPartialScalars(message, object, 1310, 1312);
     message.botAgentMetadata = (object.botAgentMetadata !== undefined && object.botAgentMetadata !== null)
       ? BotAgentMetadata.fromPartial(object.botAgentMetadata)
       : undefined;
@@ -53253,7 +53322,7 @@ export const Message_ScheduledCallCreationMessage: MessageFns<Message_ScheduledC
   },
   fromPartial(object: DeepPartial<Message_ScheduledCallCreationMessage>): Message_ScheduledCallCreationMessage {
     const message = createBaseMessage_ScheduledCallCreationMessage();
-    copyPartialScalars(message, object, 1404, 1407);
+    copyPartialScalars(message, object, 1312, 1315);
     return message;
   },
 };
@@ -53398,7 +53467,7 @@ export const Message_SecretEncryptedMessage: MessageFns<Message_SecretEncryptedM
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    copyPartialScalars(message, object, 1407, 1411);
+    copyPartialScalars(message, object, 1315, 1319);
     return message;
   },
 };
@@ -53537,7 +53606,7 @@ export const Message_SenderKeyDistributionMessage: MessageFns<Message_SenderKeyD
   },
   fromPartial(object: DeepPartial<Message_SenderKeyDistributionMessage>): Message_SenderKeyDistributionMessage {
     const message = createBaseMessage_SenderKeyDistributionMessage();
-    copyPartialScalars(message, object, 1411, 1413);
+    copyPartialScalars(message, object, 1319, 1321);
     return message;
   },
 };
@@ -53658,7 +53727,7 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
     message.totalAmount = (object.totalAmount !== undefined && object.totalAmount !== null)
       ? Money.fromPartial(object.totalAmount)
       : undefined;
-    copyPartialScalars(message, object, 1413, 1415);
+    copyPartialScalars(message, object, 1321, 1323);
     message.participants = object.participants?.map((e) => Message_SplitPaymentParticipant.fromPartial(e)) || undefined;
     message.createdAtMs = object.createdAtMs ?? undefined;
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
@@ -53786,7 +53855,7 @@ export const Message_SplitPaymentUpdateMessage: MessageFns<Message_SplitPaymentU
   },
   fromPartial(object: DeepPartial<Message_SplitPaymentUpdateMessage>): Message_SplitPaymentUpdateMessage {
     const message = createBaseMessage_SplitPaymentUpdateMessage();
-    copyPartialScalars(message, object, 1415, 1417);
+    copyPartialScalars(message, object, 1323, 1325);
     return message;
   },
 };
@@ -54031,7 +54100,7 @@ export const Message_StatusQuotedMessage: MessageFns<Message_StatusQuotedMessage
   },
   fromPartial(object: DeepPartial<Message_StatusQuotedMessage>): Message_StatusQuotedMessage {
     const message = createBaseMessage_StatusQuotedMessage();
-    copyPartialScalars(message, object, 1417, 1420);
+    copyPartialScalars(message, object, 1325, 1328);
     message.originalStatusId = (object.originalStatusId !== undefined && object.originalStatusId !== null)
       ? MessageKey.fromPartial(object.originalStatusId)
       : undefined;
@@ -54100,7 +54169,7 @@ export const Message_StatusStickerInteractionMessage: MessageFns<Message_StatusS
   fromPartial(object: DeepPartial<Message_StatusStickerInteractionMessage>): Message_StatusStickerInteractionMessage {
     const message = createBaseMessage_StatusStickerInteractionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1420, 1422);
+    copyPartialScalars(message, object, 1328, 1330);
     return message;
   },
 };
@@ -54374,11 +54443,11 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
   },
   fromPartial(object: DeepPartial<Message_StickerMessage>): Message_StickerMessage {
     const message = createBaseMessage_StickerMessage();
-    copyPartialScalars(message, object, 1422, 1436);
+    copyPartialScalars(message, object, 1330, 1344);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1436, 1443);
+    copyPartialScalars(message, object, 1344, 1351);
     return message;
   },
 };
@@ -54660,13 +54729,13 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
   },
   fromPartial(object: DeepPartial<Message_StickerPackMessage>): Message_StickerPackMessage {
     const message = createBaseMessage_StickerPackMessage();
-    copyPartialScalars(message, object, 1443, 1446);
+    copyPartialScalars(message, object, 1351, 1354);
     message.stickers = object.stickers?.map((e) => Message_StickerPackMessage_Sticker.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1446, 1452);
+    copyPartialScalars(message, object, 1354, 1360);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1452, 1463);
+    copyPartialScalars(message, object, 1360, 1371);
     return message;
   },
 };
@@ -54783,9 +54852,9 @@ export const Message_StickerPackMessage_Sticker: MessageFns<Message_StickerPackM
   },
   fromPartial(object: DeepPartial<Message_StickerPackMessage_Sticker>): Message_StickerPackMessage_Sticker {
     const message = createBaseMessage_StickerPackMessage_Sticker();
-    copyPartialScalars(message, object, 1463, 1465);
+    copyPartialScalars(message, object, 1371, 1373);
     message.emojis = object.emojis?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1465, 1469);
+    copyPartialScalars(message, object, 1373, 1377);
     return message;
   },
 };
@@ -54859,7 +54928,7 @@ export const Message_StickerSyncRMRMessage: MessageFns<Message_StickerSyncRMRMes
   fromPartial(object: DeepPartial<Message_StickerSyncRMRMessage>): Message_StickerSyncRMRMessage {
     const message = createBaseMessage_StickerSyncRMRMessage();
     message.filehash = object.filehash?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1469, 1471);
+    copyPartialScalars(message, object, 1377, 1379);
     return message;
   },
 };
@@ -54946,11 +55015,11 @@ export const Message_TemplateButtonReplyMessage: MessageFns<Message_TemplateButt
   },
   fromPartial(object: DeepPartial<Message_TemplateButtonReplyMessage>): Message_TemplateButtonReplyMessage {
     const message = createBaseMessage_TemplateButtonReplyMessage();
-    copyPartialScalars(message, object, 1471, 1473);
+    copyPartialScalars(message, object, 1379, 1381);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1473, 1475);
+    copyPartialScalars(message, object, 1381, 1383);
     return message;
   },
 };
@@ -55375,9 +55444,9 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
     object: DeepPartial<Message_TemplateMessage_HydratedFourRowTemplate>,
   ): Message_TemplateMessage_HydratedFourRowTemplate {
     const message = createBaseMessage_TemplateMessage_HydratedFourRowTemplate();
-    copyPartialScalars(message, object, 1475, 1477);
+    copyPartialScalars(message, object, 1383, 1385);
     message.hydratedButtons = object.hydratedButtons?.map((e) => HydratedTemplateButton.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1477, 1479);
+    copyPartialScalars(message, object, 1385, 1387);
     message.documentMessage = (object.documentMessage !== undefined && object.documentMessage !== null)
       ? Message_DocumentMessage.fromPartial(object.documentMessage)
       : undefined;
@@ -55509,7 +55578,7 @@ export const Message_VideoEndCard: MessageFns<Message_VideoEndCard> = {
   },
   fromPartial(object: DeepPartial<Message_VideoEndCard>): Message_VideoEndCard {
     const message = createBaseMessage_VideoEndCard();
-    copyPartialScalars(message, object, 1479, 1483);
+    copyPartialScalars(message, object, 1387, 1391);
     return message;
   },
 };
@@ -55895,18 +55964,18 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
   },
   fromPartial(object: DeepPartial<Message_VideoMessage>): Message_VideoMessage {
     const message = createBaseMessage_VideoMessage();
-    copyPartialScalars(message, object, 1483, 1494);
+    copyPartialScalars(message, object, 1391, 1402);
     message.interactiveAnnotations = object.interactiveAnnotations?.map((e) => InteractiveAnnotation.fromPartial(e)) ||
       undefined;
-    copyPartialScalars(message, object, 1494, 1497);
+    copyPartialScalars(message, object, 1402, 1405);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    copyPartialScalars(message, object, 1497, 1504);
+    copyPartialScalars(message, object, 1405, 1412);
     message.annotations = object.annotations?.map((e) => InteractiveAnnotation.fromPartial(e)) || undefined;
     message.accessibilityLabel = object.accessibilityLabel ?? undefined;
     message.processedVideos = object.processedVideos?.map((e) => ProcessedVideo.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1504, 1508);
+    copyPartialScalars(message, object, 1412, 1416);
     return message;
   },
 };
@@ -56030,7 +56099,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
     message.messageAddOn = (object.messageAddOn !== undefined && object.messageAddOn !== null)
       ? Message.fromPartial(object.messageAddOn)
       : undefined;
-    copyPartialScalars(message, object, 1508, 1511);
+    copyPartialScalars(message, object, 1416, 1419);
     message.addOnContextInfo = (object.addOnContextInfo !== undefined && object.addOnContextInfo !== null)
       ? MessageAddOnContextInfo.fromPartial(object.addOnContextInfo)
       : undefined;
@@ -56093,7 +56162,7 @@ export const MessageAddOnContextInfo: MessageFns<MessageAddOnContextInfo> = {
   },
   fromPartial(object: DeepPartial<MessageAddOnContextInfo>): MessageAddOnContextInfo {
     const message = createBaseMessageAddOnContextInfo();
-    copyPartialScalars(message, object, 1511, 1513);
+    copyPartialScalars(message, object, 1419, 1421);
     return message;
   },
 };
@@ -56414,15 +56483,15 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
     message.deviceListMetadata = (object.deviceListMetadata !== undefined && object.deviceListMetadata !== null)
       ? DeviceListMetadata.fromPartial(object.deviceListMetadata)
       : undefined;
-    copyPartialScalars(message, object, 1513, 1518);
+    copyPartialScalars(message, object, 1421, 1426);
     message.botMetadata = (object.botMetadata !== undefined && object.botMetadata !== null)
       ? BotMetadata.fromPartial(object.botMetadata)
       : undefined;
-    copyPartialScalars(message, object, 1518, 1520);
+    copyPartialScalars(message, object, 1426, 1428);
     message.messageAssociation = (object.messageAssociation !== undefined && object.messageAssociation !== null)
       ? MessageAssociation.fromPartial(object.messageAssociation)
       : undefined;
-    copyPartialScalars(message, object, 1520, 1522);
+    copyPartialScalars(message, object, 1428, 1430);
     message.limitSharing = (object.limitSharing !== undefined && object.limitSharing !== null)
       ? LimitSharing.fromPartial(object.limitSharing)
       : undefined;
@@ -56430,7 +56499,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
       ? LimitSharing.fromPartial(object.limitSharingV2)
       : undefined;
     message.threadId = object.threadId?.map((e) => ThreadID.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1522, 1524);
+    copyPartialScalars(message, object, 1430, 1432);
     message.accountEncryptionAttestation =
       (object.accountEncryptionAttestation !== undefined && object.accountEncryptionAttestation !== null)
         ? NonE2EEAttestation.fromPartial(object.accountEncryptionAttestation)
@@ -56511,7 +56580,7 @@ export const MessageKey: MessageFns<MessageKey> = {
   },
   fromPartial(object: DeepPartial<MessageKey>): MessageKey {
     const message = createBaseMessageKey();
-    copyPartialScalars(message, object, 1524, 1528);
+    copyPartialScalars(message, object, 1432, 1436);
     return message;
   },
 };
@@ -56576,7 +56645,7 @@ export const MessageSecretMessage: MessageFns<MessageSecretMessage> = {
   },
   fromPartial(object: DeepPartial<MessageSecretMessage>): MessageSecretMessage {
     const message = createBaseMessageSecretMessage();
-    copyPartialScalars(message, object, 1528, 1531);
+    copyPartialScalars(message, object, 1436, 1439);
     return message;
   },
 };
@@ -56777,7 +56846,7 @@ export const MessagingMailboxPublicData: MessageFns<MessagingMailboxPublicData> 
   },
   fromPartial(object: DeepPartial<MessagingMailboxPublicData>): MessagingMailboxPublicData {
     const message = createBaseMessagingMailboxPublicData();
-    copyPartialScalars(message, object, 1531, 1537);
+    copyPartialScalars(message, object, 1439, 1445);
     return message;
   },
 };
@@ -56831,7 +56900,7 @@ export const MinosClientConfig: MessageFns<MinosClientConfig> = {
   },
   fromPartial(object: DeepPartial<MinosClientConfig>): MinosClientConfig {
     const message = createBaseMinosClientConfig();
-    copyPartialScalars(message, object, 1537, 1539);
+    copyPartialScalars(message, object, 1445, 1447);
     return message;
   },
 };
@@ -57428,7 +57497,7 @@ export const MinosDecryptAndVerifyMessageInput: MessageFns<MinosDecryptAndVerify
   },
   fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageInput>): MinosDecryptAndVerifyMessageInput {
     const message = createBaseMinosDecryptAndVerifyMessageInput();
-    copyPartialScalars(message, object, 1539, 1543);
+    copyPartialScalars(message, object, 1447, 1451);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? MinosMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -57633,7 +57702,7 @@ export const MinosEncryptAndSignMessageInput: MessageFns<MinosEncryptAndSignMess
   },
   fromPartial(object: DeepPartial<MinosEncryptAndSignMessageInput>): MinosEncryptAndSignMessageInput {
     const message = createBaseMinosEncryptAndSignMessageInput();
-    copyPartialScalars(message, object, 1543, 1546);
+    copyPartialScalars(message, object, 1451, 1454);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? MinosMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -57705,7 +57774,7 @@ export const MinosEncryptAndSignMessageResult: MessageFns<MinosEncryptAndSignMes
   },
   fromPartial(object: DeepPartial<MinosEncryptAndSignMessageResult>): MinosEncryptAndSignMessageResult {
     const message = createBaseMinosEncryptAndSignMessageResult();
-    copyPartialScalars(message, object, 1546, 1549);
+    copyPartialScalars(message, object, 1454, 1457);
     return message;
   },
 };
@@ -57781,7 +57850,7 @@ export const MinosMessageMetadata: MessageFns<MinosMessageMetadata> = {
   },
   fromPartial(object: DeepPartial<MinosMessageMetadata>): MinosMessageMetadata {
     const message = createBaseMinosMessageMetadata();
-    copyPartialScalars(message, object, 1549, 1553);
+    copyPartialScalars(message, object, 1457, 1461);
     return message;
   },
 };
@@ -57879,7 +57948,7 @@ export const MinosOpenEpochInput: MessageFns<MinosOpenEpochInput> = {
   },
   fromPartial(object: DeepPartial<MinosOpenEpochInput>): MinosOpenEpochInput {
     const message = createBaseMinosOpenEpochInput();
-    copyPartialScalars(message, object, 1553, 1559);
+    copyPartialScalars(message, object, 1461, 1467);
     return message;
   },
 };
@@ -57989,7 +58058,7 @@ export const MinosOpenInitialEpochInput: MessageFns<MinosOpenInitialEpochInput> 
   },
   fromPartial(object: DeepPartial<MinosOpenInitialEpochInput>): MinosOpenInitialEpochInput {
     const message = createBaseMinosOpenInitialEpochInput();
-    copyPartialScalars(message, object, 1559, 1562);
+    copyPartialScalars(message, object, 1467, 1470);
     return message;
   },
 };
@@ -58245,7 +58314,7 @@ export const MinosThreadIdFromOneToOneThreadInput: MessageFns<MinosThreadIdFromO
   },
   fromPartial(object: DeepPartial<MinosThreadIdFromOneToOneThreadInput>): MinosThreadIdFromOneToOneThreadInput {
     const message = createBaseMinosThreadIdFromOneToOneThreadInput();
-    copyPartialScalars(message, object, 1562, 1564);
+    copyPartialScalars(message, object, 1470, 1472);
     return message;
   },
 };
@@ -58416,7 +58485,7 @@ export const MinosValidateEpochResult: MessageFns<MinosValidateEpochResult> = {
   },
   fromPartial(object: DeepPartial<MinosValidateEpochResult>): MinosValidateEpochResult {
     const message = createBaseMinosValidateEpochResult();
-    copyPartialScalars(message, object, 1564, 1566);
+    copyPartialScalars(message, object, 1472, 1474);
     return message;
   },
 };
@@ -58648,7 +58717,7 @@ export const MmkDistributionToDetachedDevice: MessageFns<MmkDistributionToDetach
   },
   fromPartial(object: DeepPartial<MmkDistributionToDetachedDevice>): MmkDistributionToDetachedDevice {
     const message = createBaseMmkDistributionToDetachedDevice();
-    copyPartialScalars(message, object, 1566, 1568);
+    copyPartialScalars(message, object, 1474, 1476);
     return message;
   },
 };
@@ -58702,7 +58771,7 @@ export const MmkDistributionToMailbox: MessageFns<MmkDistributionToMailbox> = {
   },
   fromPartial(object: DeepPartial<MmkDistributionToMailbox>): MmkDistributionToMailbox {
     const message = createBaseMmkDistributionToMailbox();
-    copyPartialScalars(message, object, 1568, 1570);
+    copyPartialScalars(message, object, 1476, 1478);
     return message;
   },
 };
@@ -58840,7 +58909,7 @@ export const Money: MessageFns<Money> = {
   },
   fromPartial(object: DeepPartial<Money>): Money {
     const message = createBaseMoney();
-    copyPartialScalars(message, object, 1570, 1573);
+    copyPartialScalars(message, object, 1478, 1481);
     return message;
   },
 };
@@ -59485,21 +59554,21 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
   },
   fromPartial(object: DeepPartial<MsgOpaqueData>): MsgOpaqueData {
     const message = createBaseMsgOpaqueData();
-    copyPartialScalars(message, object, 1573, 1587);
+    copyPartialScalars(message, object, 1481, 1495);
     message.pollOptions = object.pollOptions?.map((e) => MsgOpaqueData_PollOption.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1587, 1592);
+    copyPartialScalars(message, object, 1495, 1500);
     message.encPollVote = (object.encPollVote !== undefined && object.encPollVote !== null)
       ? PollEncValue.fromPartial(object.encPollVote)
       : undefined;
-    copyPartialScalars(message, object, 1592, 1596);
+    copyPartialScalars(message, object, 1500, 1504);
     message.pollVotesSnapshot = (object.pollVotesSnapshot !== undefined && object.pollVotesSnapshot !== null)
       ? MsgOpaqueData_PollVotesSnapshot.fromPartial(object.pollVotesSnapshot)
       : undefined;
-    copyPartialScalars(message, object, 1596, 1608);
+    copyPartialScalars(message, object, 1504, 1516);
     message.eventLocation = (object.eventLocation !== undefined && object.eventLocation !== null)
       ? MsgOpaqueData_EventLocation.fromPartial(object.eventLocation)
       : undefined;
-    copyPartialScalars(message, object, 1608, 1624);
+    copyPartialScalars(message, object, 1516, 1532);
     return message;
   },
 };
@@ -59597,7 +59666,7 @@ export const MsgOpaqueData_EventLocation: MessageFns<MsgOpaqueData_EventLocation
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_EventLocation>): MsgOpaqueData_EventLocation {
     const message = createBaseMsgOpaqueData_EventLocation();
-    copyPartialScalars(message, object, 1624, 1630);
+    copyPartialScalars(message, object, 1532, 1538);
     return message;
   },
 };
@@ -59651,7 +59720,7 @@ export const MsgOpaqueData_PollOption: MessageFns<MsgOpaqueData_PollOption> = {
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_PollOption>): MsgOpaqueData_PollOption {
     const message = createBaseMsgOpaqueData_PollOption();
-    copyPartialScalars(message, object, 1630, 1632);
+    copyPartialScalars(message, object, 1538, 1540);
     return message;
   },
 };
@@ -59872,7 +59941,7 @@ export const NoiseCertificate: MessageFns<NoiseCertificate> = {
   },
   fromPartial(object: DeepPartial<NoiseCertificate>): NoiseCertificate {
     const message = createBaseNoiseCertificate();
-    copyPartialScalars(message, object, 1632, 1634);
+    copyPartialScalars(message, object, 1540, 1542);
     return message;
   },
 };
@@ -59959,7 +60028,7 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
   },
   fromPartial(object: DeepPartial<NoiseCertificate_Details>): NoiseCertificate_Details {
     const message = createBaseNoiseCertificate_Details();
-    copyPartialScalars(message, object, 1634, 1639);
+    copyPartialScalars(message, object, 1542, 1547);
     return message;
   },
 };
@@ -60082,7 +60151,7 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
     message.message = (object.message !== undefined && object.message !== null)
       ? Message.fromPartial(object.message)
       : undefined;
-    copyPartialScalars(message, object, 1639, 1641);
+    copyPartialScalars(message, object, 1547, 1549);
     return message;
   },
 };
@@ -60180,7 +60249,7 @@ export const NotificationSettings: MessageFns<NotificationSettings> = {
   },
   fromPartial(object: DeepPartial<NotificationSettings>): NotificationSettings {
     const message = createBaseNotificationSettings();
-    copyPartialScalars(message, object, 1641, 1647);
+    copyPartialScalars(message, object, 1549, 1555);
     return message;
   },
 };
@@ -60234,7 +60303,7 @@ export const OrfThreadIdInput: MessageFns<OrfThreadIdInput> = {
   },
   fromPartial(object: DeepPartial<OrfThreadIdInput>): OrfThreadIdInput {
     const message = createBaseOrfThreadIdInput();
-    copyPartialScalars(message, object, 1647, 1649);
+    copyPartialScalars(message, object, 1555, 1557);
     return message;
   },
 };
@@ -60288,7 +60357,7 @@ export const OrfThreadIdOutput: MessageFns<OrfThreadIdOutput> = {
   },
   fromPartial(object: DeepPartial<OrfThreadIdOutput>): OrfThreadIdOutput {
     const message = createBaseOrfThreadIdOutput();
-    copyPartialScalars(message, object, 1649, 1651);
+    copyPartialScalars(message, object, 1557, 1559);
     return message;
   },
 };
@@ -60353,7 +60422,7 @@ export const PairingRequest: MessageFns<PairingRequest> = {
   },
   fromPartial(object: DeepPartial<PairingRequest>): PairingRequest {
     const message = createBasePairingRequest();
-    copyPartialScalars(message, object, 1651, 1654);
+    copyPartialScalars(message, object, 1559, 1562);
     return message;
   },
 };
@@ -60418,7 +60487,7 @@ export const PastParticipant: MessageFns<PastParticipant> = {
   },
   fromPartial(object: DeepPartial<PastParticipant>): PastParticipant {
     const message = createBasePastParticipant();
-    copyPartialScalars(message, object, 1654, 1657);
+    copyPartialScalars(message, object, 1562, 1565);
     return message;
   },
 };
@@ -60634,7 +60703,7 @@ export const PatchDebugData: MessageFns<PatchDebugData> = {
   },
   fromPartial(object: DeepPartial<PatchDebugData>): PatchDebugData {
     const message = createBasePatchDebugData();
-    copyPartialScalars(message, object, 1657, 1668);
+    copyPartialScalars(message, object, 1565, 1576);
     return message;
   },
 };
@@ -60776,7 +60845,7 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
   },
   fromPartial(object: DeepPartial<PaymentBackground>): PaymentBackground {
     const message = createBasePaymentBackground();
-    copyPartialScalars(message, object, 1668, 1676);
+    copyPartialScalars(message, object, 1576, 1584);
     message.mediaData = (object.mediaData !== undefined && object.mediaData !== null)
       ? PaymentBackground_MediaData.fromPartial(object.mediaData)
       : undefined;
@@ -60867,7 +60936,7 @@ export const PaymentBackground_MediaData: MessageFns<PaymentBackground_MediaData
   },
   fromPartial(object: DeepPartial<PaymentBackground_MediaData>): PaymentBackground_MediaData {
     const message = createBasePaymentBackground_MediaData();
-    copyPartialScalars(message, object, 1676, 1681);
+    copyPartialScalars(message, object, 1584, 1589);
     return message;
   },
 };
@@ -61042,11 +61111,11 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
   },
   fromPartial(object: DeepPartial<PaymentInfo>): PaymentInfo {
     const message = createBasePaymentInfo();
-    copyPartialScalars(message, object, 1681, 1686);
+    copyPartialScalars(message, object, 1589, 1594);
     message.requestMessageKey = (object.requestMessageKey !== undefined && object.requestMessageKey !== null)
       ? MessageKey.fromPartial(object.requestMessageKey)
       : undefined;
-    copyPartialScalars(message, object, 1686, 1691);
+    copyPartialScalars(message, object, 1594, 1599);
     message.primaryAmount = (object.primaryAmount !== undefined && object.primaryAmount !== null)
       ? Money.fromPartial(object.primaryAmount)
       : undefined;
@@ -61106,7 +61175,7 @@ export const PhoneNumberToLIDMapping: MessageFns<PhoneNumberToLIDMapping> = {
   },
   fromPartial(object: DeepPartial<PhoneNumberToLIDMapping>): PhoneNumberToLIDMapping {
     const message = createBasePhoneNumberToLIDMapping();
-    copyPartialScalars(message, object, 1691, 1693);
+    copyPartialScalars(message, object, 1599, 1601);
     return message;
   },
 };
@@ -61171,7 +61240,7 @@ export const PhotoChange: MessageFns<PhotoChange> = {
   },
   fromPartial(object: DeepPartial<PhotoChange>): PhotoChange {
     const message = createBasePhotoChange();
-    copyPartialScalars(message, object, 1693, 1696);
+    copyPartialScalars(message, object, 1601, 1604);
     return message;
   },
 };
@@ -61260,7 +61329,7 @@ export const PinInChat: MessageFns<PinInChat> = {
     const message = createBasePinInChat();
     message.type = object.type ?? undefined;
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1696, 1698);
+    copyPartialScalars(message, object, 1604, 1606);
     message.messageAddOnContextInfo =
       (object.messageAddOnContextInfo !== undefined && object.messageAddOnContextInfo !== null)
         ? MessageAddOnContextInfo.fromPartial(object.messageAddOnContextInfo)
@@ -61340,7 +61409,7 @@ export const Point: MessageFns<Point> = {
   },
   fromPartial(object: DeepPartial<Point>): Point {
     const message = createBasePoint();
-    copyPartialScalars(message, object, 1698, 1702);
+    copyPartialScalars(message, object, 1606, 1610);
     return message;
   },
 };
@@ -61468,7 +61537,7 @@ export const PollAdditionalMetadata_PollNameHashHistoryEntry: MessageFns<
     object: DeepPartial<PollAdditionalMetadata_PollNameHashHistoryEntry>,
   ): PollAdditionalMetadata_PollNameHashHistoryEntry {
     const message = createBasePollAdditionalMetadata_PollNameHashHistoryEntry();
-    copyPartialScalars(message, object, 1702, 1704);
+    copyPartialScalars(message, object, 1610, 1612);
     return message;
   },
 };
@@ -61522,7 +61591,7 @@ export const PollEncValue: MessageFns<PollEncValue> = {
   },
   fromPartial(object: DeepPartial<PollEncValue>): PollEncValue {
     const message = createBasePollEncValue();
-    copyPartialScalars(message, object, 1704, 1706);
+    copyPartialScalars(message, object, 1612, 1614);
     return message;
   },
 };
@@ -61626,7 +61695,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
     message.vote = (object.vote !== undefined && object.vote !== null)
       ? Message_PollVoteMessage.fromPartial(object.vote)
       : undefined;
-    copyPartialScalars(message, object, 1706, 1709);
+    copyPartialScalars(message, object, 1614, 1617);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? Message_PollUpdateMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -61694,7 +61763,7 @@ export const PreKeyRecordStructure: MessageFns<PreKeyRecordStructure> = {
   },
   fromPartial(object: DeepPartial<PreKeyRecordStructure>): PreKeyRecordStructure {
     const message = createBasePreKeyRecordStructure();
-    copyPartialScalars(message, object, 1709, 1712);
+    copyPartialScalars(message, object, 1617, 1620);
     return message;
   },
 };
@@ -61814,7 +61883,7 @@ export const PreKeySignalMessage: MessageFns<PreKeySignalMessage> = {
   },
   fromPartial(object: DeepPartial<PreKeySignalMessage>): PreKeySignalMessage {
     const message = createBasePreKeySignalMessage();
-    copyPartialScalars(message, object, 1712, 1720);
+    copyPartialScalars(message, object, 1620, 1628);
     return message;
   },
 };
@@ -61911,7 +61980,7 @@ export const PrimaryEphemeralIdentity: MessageFns<PrimaryEphemeralIdentity> = {
   },
   fromPartial(object: DeepPartial<PrimaryEphemeralIdentity>): PrimaryEphemeralIdentity {
     const message = createBasePrimaryEphemeralIdentity();
-    copyPartialScalars(message, object, 1720, 1722);
+    copyPartialScalars(message, object, 1628, 1630);
     return message;
   },
 };
@@ -62039,7 +62108,7 @@ export const ProcessedVideo: MessageFns<ProcessedVideo> = {
   },
   fromPartial(object: DeepPartial<ProcessedVideo>): ProcessedVideo {
     const message = createBaseProcessedVideo();
-    copyPartialScalars(message, object, 1722, 1729);
+    copyPartialScalars(message, object, 1630, 1637);
     message.capabilities = object.capabilities?.map((e) => e) || undefined;
     return message;
   },
@@ -62151,7 +62220,7 @@ export const Pushname: MessageFns<Pushname> = {
   },
   fromPartial(object: DeepPartial<Pushname>): Pushname {
     const message = createBasePushname();
-    copyPartialScalars(message, object, 1729, 1731);
+    copyPartialScalars(message, object, 1637, 1639);
     return message;
   },
 };
@@ -62268,7 +62337,7 @@ export const QP_Filter: MessageFns<QP_Filter> = {
     const message = createBaseQP_Filter();
     message.filterName = object.filterName ?? undefined;
     message.parameters = object.parameters?.map((e) => QP_FilterParameters.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1731, 1733);
+    copyPartialScalars(message, object, 1639, 1641);
     return message;
   },
 };
@@ -62405,7 +62474,7 @@ export const QP_FilterParameters: MessageFns<QP_FilterParameters> = {
   },
   fromPartial(object: DeepPartial<QP_FilterParameters>): QP_FilterParameters {
     const message = createBaseQP_FilterParameters();
-    copyPartialScalars(message, object, 1733, 1735);
+    copyPartialScalars(message, object, 1641, 1643);
     return message;
   },
 };
@@ -62459,7 +62528,7 @@ export const QuarantinedMessage: MessageFns<QuarantinedMessage> = {
   },
   fromPartial(object: DeepPartial<QuarantinedMessage>): QuarantinedMessage {
     const message = createBaseQuarantinedMessage();
-    copyPartialScalars(message, object, 1735, 1737);
+    copyPartialScalars(message, object, 1643, 1645);
     return message;
   },
 };
@@ -62547,7 +62616,7 @@ export const Reaction: MessageFns<Reaction> = {
   fromPartial(object: DeepPartial<Reaction>): Reaction {
     const message = createBaseReaction();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    copyPartialScalars(message, object, 1737, 1741);
+    copyPartialScalars(message, object, 1645, 1649);
     return message;
   },
 };
@@ -62601,7 +62670,7 @@ export const RecentEmojiWeight: MessageFns<RecentEmojiWeight> = {
   },
   fromPartial(object: DeepPartial<RecentEmojiWeight>): RecentEmojiWeight {
     const message = createBaseRecentEmojiWeight();
-    copyPartialScalars(message, object, 1741, 1743);
+    copyPartialScalars(message, object, 1649, 1651);
     return message;
   },
 };
@@ -62742,7 +62811,7 @@ export const Reportable: MessageFns<Reportable> = {
   },
   fromPartial(object: DeepPartial<Reportable>): Reportable {
     const message = createBaseReportable();
-    copyPartialScalars(message, object, 1743, 1747);
+    copyPartialScalars(message, object, 1651, 1655);
     return message;
   },
 };
@@ -62796,7 +62865,7 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
   },
   fromPartial(object: DeepPartial<ReportingTokenInfo>): ReportingTokenInfo {
     const message = createBaseReportingTokenInfo();
-    copyPartialScalars(message, object, 1747, 1749);
+    copyPartialScalars(message, object, 1655, 1657);
     return message;
   },
 };
@@ -62891,7 +62960,7 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
   },
   fromPartial(object: DeepPartial<RotateEpochInput>): RotateEpochInput {
     const message = createBaseRotateEpochInput();
-    copyPartialScalars(message, object, 1749, 1753);
+    copyPartialScalars(message, object, 1657, 1661);
     message.members = object.members?.map((e) => RotateEpochMemberInput.fromPartial(e)) || undefined;
     return message;
   },
@@ -62957,7 +63026,7 @@ export const RotateEpochMemberEdge: MessageFns<RotateEpochMemberEdge> = {
   },
   fromPartial(object: DeepPartial<RotateEpochMemberEdge>): RotateEpochMemberEdge {
     const message = createBaseRotateEpochMemberEdge();
-    copyPartialScalars(message, object, 1753, 1756);
+    copyPartialScalars(message, object, 1661, 1664);
     return message;
   },
 };
@@ -63022,7 +63091,7 @@ export const RotateEpochMemberInput: MessageFns<RotateEpochMemberInput> = {
   },
   fromPartial(object: DeepPartial<RotateEpochMemberInput>): RotateEpochMemberInput {
     const message = createBaseRotateEpochMemberInput();
-    copyPartialScalars(message, object, 1756, 1759);
+    copyPartialScalars(message, object, 1664, 1667);
     return message;
   },
 };
@@ -63150,12 +63219,12 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
   },
   fromPartial(object: DeepPartial<RotateEpochOutput>): RotateEpochOutput {
     const message = createBaseRotateEpochOutput();
-    copyPartialScalars(message, object, 1759, 1763);
+    copyPartialScalars(message, object, 1667, 1671);
     message.backwardEdge = (object.backwardEdge !== undefined && object.backwardEdge !== null)
       ? BackwardEdge.fromPartial(object.backwardEdge)
       : undefined;
     message.memberEdges = object.memberEdges?.map((e) => RotateEpochMemberEdge.fromPartial(e)) || undefined;
-    copyPartialScalars(message, object, 1763, 1765);
+    copyPartialScalars(message, object, 1671, 1673);
     return message;
   },
 };
@@ -63291,7 +63360,7 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
     const message = createBaseRoutingInfo();
     message.regionId = object.regionId?.map((e) => e) || undefined;
     message.clusterId = object.clusterId?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1765, 1769);
+    copyPartialScalars(message, object, 1673, 1677);
     return message;
   },
 };
@@ -63356,7 +63425,7 @@ export const ScheduledMessageMetadata: MessageFns<ScheduledMessageMetadata> = {
   },
   fromPartial(object: DeepPartial<ScheduledMessageMetadata>): ScheduledMessageMetadata {
     const message = createBaseScheduledMessageMetadata();
-    copyPartialScalars(message, object, 1769, 1772);
+    copyPartialScalars(message, object, 1677, 1680);
     return message;
   },
 };
@@ -63432,7 +63501,7 @@ export const SenderKeyDistributionMessage: MessageFns<SenderKeyDistributionMessa
   },
   fromPartial(object: DeepPartial<SenderKeyDistributionMessage>): SenderKeyDistributionMessage {
     const message = createBaseSenderKeyDistributionMessage();
-    copyPartialScalars(message, object, 1772, 1776);
+    copyPartialScalars(message, object, 1680, 1684);
     return message;
   },
 };
@@ -63497,7 +63566,7 @@ export const SenderKeyMessage: MessageFns<SenderKeyMessage> = {
   },
   fromPartial(object: DeepPartial<SenderKeyMessage>): SenderKeyMessage {
     const message = createBaseSenderKeyMessage();
-    copyPartialScalars(message, object, 1776, 1779);
+    copyPartialScalars(message, object, 1684, 1687);
     return message;
   },
 };
@@ -63694,7 +63763,7 @@ export const SenderKeyStateStructure_SenderChainKey: MessageFns<SenderKeyStateSt
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderChainKey>): SenderKeyStateStructure_SenderChainKey {
     const message = createBaseSenderKeyStateStructure_SenderChainKey();
-    copyPartialScalars(message, object, 1779, 1781);
+    copyPartialScalars(message, object, 1687, 1689);
     return message;
   },
 };
@@ -63748,7 +63817,7 @@ export const SenderKeyStateStructure_SenderMessageKey: MessageFns<SenderKeyState
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderMessageKey>): SenderKeyStateStructure_SenderMessageKey {
     const message = createBaseSenderKeyStateStructure_SenderMessageKey();
-    copyPartialScalars(message, object, 1781, 1783);
+    copyPartialScalars(message, object, 1689, 1691);
     return message;
   },
 };
@@ -63802,7 +63871,7 @@ export const SenderKeyStateStructure_SenderSigningKey: MessageFns<SenderKeyState
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderSigningKey>): SenderKeyStateStructure_SenderSigningKey {
     const message = createBaseSenderKeyStateStructure_SenderSigningKey();
-    copyPartialScalars(message, object, 1783, 1785);
+    copyPartialScalars(message, object, 1691, 1693);
     return message;
   },
 };
@@ -64028,7 +64097,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
   },
   fromPartial(object: DeepPartial<SessionStructure>): SessionStructure {
     const message = createBaseSessionStructure();
-    copyPartialScalars(message, object, 1785, 1790);
+    copyPartialScalars(message, object, 1693, 1698);
     message.senderChain = (object.senderChain !== undefined && object.senderChain !== null)
       ? SessionStructure_Chain.fromPartial(object.senderChain)
       : undefined;
@@ -64039,7 +64108,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
     message.pendingPreKey = (object.pendingPreKey !== undefined && object.pendingPreKey !== null)
       ? SessionStructure_PendingPreKey.fromPartial(object.pendingPreKey)
       : undefined;
-    copyPartialScalars(message, object, 1790, 1794);
+    copyPartialScalars(message, object, 1698, 1702);
     return message;
   },
 };
@@ -64123,7 +64192,7 @@ export const SessionStructure_Chain: MessageFns<SessionStructure_Chain> = {
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain>): SessionStructure_Chain {
     const message = createBaseSessionStructure_Chain();
-    copyPartialScalars(message, object, 1794, 1796);
+    copyPartialScalars(message, object, 1702, 1704);
     message.chainKey = (object.chainKey !== undefined && object.chainKey !== null)
       ? SessionStructure_Chain_ChainKey.fromPartial(object.chainKey)
       : undefined;
@@ -64181,7 +64250,7 @@ export const SessionStructure_Chain_ChainKey: MessageFns<SessionStructure_Chain_
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain_ChainKey>): SessionStructure_Chain_ChainKey {
     const message = createBaseSessionStructure_Chain_ChainKey();
-    copyPartialScalars(message, object, 1796, 1798);
+    copyPartialScalars(message, object, 1704, 1706);
     return message;
   },
 };
@@ -64257,7 +64326,7 @@ export const SessionStructure_Chain_MessageKey: MessageFns<SessionStructure_Chai
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain_MessageKey>): SessionStructure_Chain_MessageKey {
     const message = createBaseSessionStructure_Chain_MessageKey();
-    copyPartialScalars(message, object, 1798, 1802);
+    copyPartialScalars(message, object, 1706, 1710);
     return message;
   },
 };
@@ -64366,7 +64435,7 @@ export const SessionStructure_PendingKeyExchange: MessageFns<SessionStructure_Pe
   },
   fromPartial(object: DeepPartial<SessionStructure_PendingKeyExchange>): SessionStructure_PendingKeyExchange {
     const message = createBaseSessionStructure_PendingKeyExchange();
-    copyPartialScalars(message, object, 1802, 1809);
+    copyPartialScalars(message, object, 1710, 1717);
     return message;
   },
 };
@@ -64453,7 +64522,7 @@ export const SessionStructure_PendingPreKey: MessageFns<SessionStructure_Pending
   },
   fromPartial(object: DeepPartial<SessionStructure_PendingPreKey>): SessionStructure_PendingPreKey {
     const message = createBaseSessionStructure_PendingPreKey();
-    copyPartialScalars(message, object, 1809, 1814);
+    copyPartialScalars(message, object, 1717, 1722);
     return message;
   },
 };
@@ -64518,7 +64587,7 @@ export const SessionTransparencyMetadata: MessageFns<SessionTransparencyMetadata
   },
   fromPartial(object: DeepPartial<SessionTransparencyMetadata>): SessionTransparencyMetadata {
     const message = createBaseSessionTransparencyMetadata();
-    copyPartialScalars(message, object, 1814, 1817);
+    copyPartialScalars(message, object, 1722, 1725);
     return message;
   },
 };
@@ -64594,7 +64663,7 @@ export const SignalMessage: MessageFns<SignalMessage> = {
   },
   fromPartial(object: DeepPartial<SignalMessage>): SignalMessage {
     const message = createBaseSignalMessage();
-    copyPartialScalars(message, object, 1817, 1821);
+    copyPartialScalars(message, object, 1725, 1729);
     return message;
   },
 };
@@ -64752,7 +64821,7 @@ export const SignedPreKeyRecordStructure: MessageFns<SignedPreKeyRecordStructure
   },
   fromPartial(object: DeepPartial<SignedPreKeyRecordStructure>): SignedPreKeyRecordStructure {
     const message = createBaseSignedPreKeyRecordStructure();
-    copyPartialScalars(message, object, 1821, 1826);
+    copyPartialScalars(message, object, 1729, 1734);
     return message;
   },
 };
@@ -64872,7 +64941,7 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
   },
   fromPartial(object: DeepPartial<StatusAttribution>): StatusAttribution {
     const message = createBaseStatusAttribution();
-    copyPartialScalars(message, object, 1826, 1828);
+    copyPartialScalars(message, object, 1734, 1736);
     message.statusReshare = (object.statusReshare !== undefined && object.statusReshare !== null)
       ? StatusAttribution_StatusReshare.fromPartial(object.statusReshare)
       : undefined;
@@ -65009,7 +65078,7 @@ export const StatusAttribution_ExternalShare: MessageFns<StatusAttribution_Exter
   },
   fromPartial(object: DeepPartial<StatusAttribution_ExternalShare>): StatusAttribution_ExternalShare {
     const message = createBaseStatusAttribution_ExternalShare();
-    copyPartialScalars(message, object, 1828, 1832);
+    copyPartialScalars(message, object, 1736, 1740);
     return message;
   },
 };
@@ -65150,7 +65219,7 @@ export const StatusAttribution_Music: MessageFns<StatusAttribution_Music> = {
   },
   fromPartial(object: DeepPartial<StatusAttribution_Music>): StatusAttribution_Music {
     const message = createBaseStatusAttribution_Music();
-    copyPartialScalars(message, object, 1832, 1838);
+    copyPartialScalars(message, object, 1740, 1746);
     return message;
   },
 };
@@ -65326,7 +65395,7 @@ export const StatusAttribution_StatusReshare_Metadata: MessageFns<StatusAttribut
   },
   fromPartial(object: DeepPartial<StatusAttribution_StatusReshare_Metadata>): StatusAttribution_StatusReshare_Metadata {
     const message = createBaseStatusAttribution_StatusReshare_Metadata();
-    copyPartialScalars(message, object, 1838, 1842);
+    copyPartialScalars(message, object, 1746, 1750);
     return message;
   },
 };
@@ -65425,7 +65494,7 @@ export const StatusPSA: MessageFns<StatusPSA> = {
   },
   fromPartial(object: DeepPartial<StatusPSA>): StatusPSA {
     const message = createBaseStatusPSA();
-    copyPartialScalars(message, object, 1842, 1844);
+    copyPartialScalars(message, object, 1750, 1752);
     return message;
   },
 };
@@ -65611,7 +65680,7 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
   },
   fromPartial(object: DeepPartial<StickerMetadata>): StickerMetadata {
     const message = createBaseStickerMetadata();
-    copyPartialScalars(message, object, 1844, 1858);
+    copyPartialScalars(message, object, 1752, 1766);
     return message;
   },
 };
@@ -65665,7 +65734,7 @@ export const SubProtocol: MessageFns<SubProtocol> = {
   },
   fromPartial(object: DeepPartial<SubProtocol>): SubProtocol {
     const message = createBaseSubProtocol();
-    copyPartialScalars(message, object, 1858, 1860);
+    copyPartialScalars(message, object, 1766, 1768);
     return message;
   },
 };
@@ -65745,7 +65814,7 @@ export const SyncActionData: MessageFns<SyncActionData> = {
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncActionValue.fromPartial(object.value)
       : undefined;
-    copyPartialScalars(message, object, 1860, 1862);
+    copyPartialScalars(message, object, 1768, 1770);
     return message;
   },
 };
@@ -67126,7 +67195,7 @@ export const SyncActionValue_AgentAction: MessageFns<SyncActionValue_AgentAction
   },
   fromPartial(object: DeepPartial<SyncActionValue_AgentAction>): SyncActionValue_AgentAction {
     const message = createBaseSyncActionValue_AgentAction();
-    copyPartialScalars(message, object, 1862, 1865);
+    copyPartialScalars(message, object, 1770, 1773);
     return message;
   },
 };
@@ -67452,7 +67521,7 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
   },
   fromPartial(object: DeepPartial<SyncActionValue_BizAISettingsNudgeAction>): SyncActionValue_BizAISettingsNudgeAction {
     const message = createBaseSyncActionValue_BizAISettingsNudgeAction();
-    copyPartialScalars(message, object, 1865, 1868);
+    copyPartialScalars(message, object, 1773, 1776);
     return message;
   },
 };
@@ -67549,7 +67618,7 @@ export const SyncActionValue_BroadcastListParticipant: MessageFns<SyncActionValu
   },
   fromPartial(object: DeepPartial<SyncActionValue_BroadcastListParticipant>): SyncActionValue_BroadcastListParticipant {
     const message = createBaseSyncActionValue_BroadcastListParticipant();
-    copyPartialScalars(message, object, 1868, 1870);
+    copyPartialScalars(message, object, 1776, 1778);
     return message;
   },
 };
@@ -67784,7 +67853,7 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
     object: DeepPartial<SyncActionValue_BusinessBroadcastCampaignAction>,
   ): SyncActionValue_BusinessBroadcastCampaignAction {
     const message = createBaseSyncActionValue_BusinessBroadcastCampaignAction();
-    copyPartialScalars(message, object, 1870, 1879);
+    copyPartialScalars(message, object, 1778, 1787);
     return message;
   },
 };
@@ -67880,7 +67949,7 @@ export const SyncActionValue_BusinessBroadcastInsightsAction: MessageFns<
     object: DeepPartial<SyncActionValue_BusinessBroadcastInsightsAction>,
   ): SyncActionValue_BusinessBroadcastInsightsAction {
     const message = createBaseSyncActionValue_BusinessBroadcastInsightsAction();
-    copyPartialScalars(message, object, 1879, 1884);
+    copyPartialScalars(message, object, 1787, 1792);
     return message;
   },
 };
@@ -68004,7 +68073,7 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
       undefined;
     message.listName = object.listName ?? undefined;
     message.labelIds = object.labelIds?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1884, 1886);
+    copyPartialScalars(message, object, 1792, 1794);
     return message;
   },
 };
@@ -68330,7 +68399,7 @@ export const SyncActionValue_ContactAction: MessageFns<SyncActionValue_ContactAc
   },
   fromPartial(object: DeepPartial<SyncActionValue_ContactAction>): SyncActionValue_ContactAction {
     const message = createBaseSyncActionValue_ContactAction();
-    copyPartialScalars(message, object, 1886, 1892);
+    copyPartialScalars(message, object, 1794, 1800);
     return message;
   },
 };
@@ -68511,7 +68580,7 @@ export const SyncActionValue_CustomPaymentMethod: MessageFns<SyncActionValue_Cus
   },
   fromPartial(object: DeepPartial<SyncActionValue_CustomPaymentMethod>): SyncActionValue_CustomPaymentMethod {
     const message = createBaseSyncActionValue_CustomPaymentMethod();
-    copyPartialScalars(message, object, 1892, 1895);
+    copyPartialScalars(message, object, 1800, 1803);
     message.metadata = object.metadata?.map((e) => SyncActionValue_CustomPaymentMethodMetadata.fromPartial(e)) ||
       undefined;
     return message;
@@ -68572,7 +68641,7 @@ export const SyncActionValue_CustomPaymentMethodMetadata: MessageFns<SyncActionV
     object: DeepPartial<SyncActionValue_CustomPaymentMethodMetadata>,
   ): SyncActionValue_CustomPaymentMethodMetadata {
     const message = createBaseSyncActionValue_CustomPaymentMethodMetadata();
-    copyPartialScalars(message, object, 1895, 1897);
+    copyPartialScalars(message, object, 1803, 1805);
     return message;
   },
 };
@@ -68779,7 +68848,7 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
   },
   fromPartial(object: DeepPartial<SyncActionValue_CustomerDataAction>): SyncActionValue_CustomerDataAction {
     const message = createBaseSyncActionValue_CustomerDataAction();
-    copyPartialScalars(message, object, 1897, 1908);
+    copyPartialScalars(message, object, 1805, 1816);
     return message;
   },
 };
@@ -68886,7 +68955,7 @@ export const SyncActionValue_DeleteIndividualCallLogAction: MessageFns<SyncActio
       object: DeepPartial<SyncActionValue_DeleteIndividualCallLogAction>,
     ): SyncActionValue_DeleteIndividualCallLogAction {
       const message = createBaseSyncActionValue_DeleteIndividualCallLogAction();
-      copyPartialScalars(message, object, 1908, 1910);
+      copyPartialScalars(message, object, 1816, 1818);
       return message;
     },
   };
@@ -68940,7 +69009,7 @@ export const SyncActionValue_DeleteMessageForMeAction: MessageFns<SyncActionValu
   },
   fromPartial(object: DeepPartial<SyncActionValue_DeleteMessageForMeAction>): SyncActionValue_DeleteMessageForMeAction {
     const message = createBaseSyncActionValue_DeleteMessageForMeAction();
-    copyPartialScalars(message, object, 1910, 1912);
+    copyPartialScalars(message, object, 1818, 1820);
     return message;
   },
 };
@@ -69182,7 +69251,7 @@ export const SyncActionValue_InteractiveMessageAction: MessageFns<SyncActionValu
   },
   fromPartial(object: DeepPartial<SyncActionValue_InteractiveMessageAction>): SyncActionValue_InteractiveMessageAction {
     const message = createBaseSyncActionValue_InteractiveMessageAction();
-    copyPartialScalars(message, object, 1912, 1914);
+    copyPartialScalars(message, object, 1820, 1822);
     return message;
   },
 };
@@ -69279,7 +69348,7 @@ export const SyncActionValue_LabelAssociationAction: MessageFns<SyncActionValue_
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelAssociationAction>): SyncActionValue_LabelAssociationAction {
     const message = createBaseSyncActionValue_LabelAssociationAction();
-    copyPartialScalars(message, object, 1914, 1916);
+    copyPartialScalars(message, object, 1822, 1824);
     return message;
   },
 };
@@ -69410,7 +69479,7 @@ export const SyncActionValue_LabelEditAction: MessageFns<SyncActionValue_LabelEd
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelEditAction>): SyncActionValue_LabelEditAction {
     const message = createBaseSyncActionValue_LabelEditAction();
-    copyPartialScalars(message, object, 1916, 1925);
+    copyPartialScalars(message, object, 1824, 1833);
     return message;
   },
 };
@@ -69579,7 +69648,7 @@ export const SyncActionValue_LidContactAction: MessageFns<SyncActionValue_LidCon
   },
   fromPartial(object: DeepPartial<SyncActionValue_LidContactAction>): SyncActionValue_LidContactAction {
     const message = createBaseSyncActionValue_LidContactAction();
-    copyPartialScalars(message, object, 1925, 1928);
+    copyPartialScalars(message, object, 1833, 1836);
     return message;
   },
 };
@@ -69726,7 +69795,7 @@ export const SyncActionValue_MaibaAIFeaturesControlAction: MessageFns<SyncAction
     object: DeepPartial<SyncActionValue_MaibaAIFeaturesControlAction>,
   ): SyncActionValue_MaibaAIFeaturesControlAction {
     const message = createBaseSyncActionValue_MaibaAIFeaturesControlAction();
-    copyPartialScalars(message, object, 1928, 1930);
+    copyPartialScalars(message, object, 1836, 1838);
     return message;
   },
 };
@@ -69892,7 +69961,7 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
   },
   fromPartial(object: DeepPartial<SyncActionValue_MarketingMessageAction>): SyncActionValue_MarketingMessageAction {
     const message = createBaseSyncActionValue_MarketingMessageAction();
-    copyPartialScalars(message, object, 1930, 1937);
+    copyPartialScalars(message, object, 1838, 1845);
     return message;
   },
 };
@@ -70027,7 +70096,7 @@ export const SyncActionValue_MerchantPaymentPartnerAction: MessageFns<SyncAction
     object: DeepPartial<SyncActionValue_MerchantPaymentPartnerAction>,
   ): SyncActionValue_MerchantPaymentPartnerAction {
     const message = createBaseSyncActionValue_MerchantPaymentPartnerAction();
-    copyPartialScalars(message, object, 1937, 1941);
+    copyPartialScalars(message, object, 1845, 1849);
     return message;
   },
 };
@@ -70162,7 +70231,7 @@ export const SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry: MessageFns<
     object: DeepPartial<SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry>,
   ): SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
     const message = createBaseSyncActionValue_MusicUserIdAction_MusicUserIdMapEntry();
-    copyPartialScalars(message, object, 1941, 1943);
+    copyPartialScalars(message, object, 1849, 1851);
     return message;
   },
 };
@@ -70238,7 +70307,7 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
   },
   fromPartial(object: DeepPartial<SyncActionValue_MuteAction>): SyncActionValue_MuteAction {
     const message = createBaseSyncActionValue_MuteAction();
-    copyPartialScalars(message, object, 1943, 1947);
+    copyPartialScalars(message, object, 1851, 1855);
     return message;
   },
 };
@@ -70420,7 +70489,7 @@ export const SyncActionValue_NoteEditAction: MessageFns<SyncActionValue_NoteEdit
   },
   fromPartial(object: DeepPartial<SyncActionValue_NoteEditAction>): SyncActionValue_NoteEditAction {
     const message = createBaseSyncActionValue_NoteEditAction();
-    copyPartialScalars(message, object, 1947, 1952);
+    copyPartialScalars(message, object, 1855, 1860);
     return message;
   },
 };
@@ -70569,7 +70638,7 @@ export const SyncActionValue_OutContactAction: MessageFns<SyncActionValue_OutCon
   },
   fromPartial(object: DeepPartial<SyncActionValue_OutContactAction>): SyncActionValue_OutContactAction {
     const message = createBaseSyncActionValue_OutContactAction();
-    copyPartialScalars(message, object, 1952, 1954);
+    copyPartialScalars(message, object, 1860, 1862);
     return message;
   },
 };
@@ -70666,7 +70735,7 @@ export const SyncActionValue_PaymentTosAction: MessageFns<SyncActionValue_Paymen
   },
   fromPartial(object: DeepPartial<SyncActionValue_PaymentTosAction>): SyncActionValue_PaymentTosAction {
     const message = createBaseSyncActionValue_PaymentTosAction();
-    copyPartialScalars(message, object, 1954, 1956);
+    copyPartialScalars(message, object, 1862, 1864);
     return message;
   },
 };
@@ -71207,9 +71276,9 @@ export const SyncActionValue_QuickReplyAction: MessageFns<SyncActionValue_QuickR
   },
   fromPartial(object: DeepPartial<SyncActionValue_QuickReplyAction>): SyncActionValue_QuickReplyAction {
     const message = createBaseSyncActionValue_QuickReplyAction();
-    copyPartialScalars(message, object, 1956, 1958);
+    copyPartialScalars(message, object, 1864, 1866);
     message.keywords = object.keywords?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1958, 1960);
+    copyPartialScalars(message, object, 1866, 1868);
     message.associatedLabelIds = object.associatedLabelIds?.map((e) => e) || undefined;
     return message;
   },
@@ -71712,7 +71781,7 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
   },
   fromPartial(object: DeepPartial<SyncActionValue_SettingsSyncAction>): SyncActionValue_SettingsSyncAction {
     const message = createBaseSyncActionValue_SettingsSyncAction();
-    copyPartialScalars(message, object, 1960, 1994);
+    copyPartialScalars(message, object, 1868, 1902);
     return message;
   },
 };
@@ -71941,7 +72010,7 @@ export const SyncActionValue_StatusPrivacyAction: MessageFns<SyncActionValue_Sta
     const message = createBaseSyncActionValue_StatusPrivacyAction();
     message.mode = object.mode ?? undefined;
     message.userJid = object.userJid?.map((e) => e) || undefined;
-    copyPartialScalars(message, object, 1994, 1996);
+    copyPartialScalars(message, object, 1902, 1904);
     message.customLists =
       object.customLists?.map((e) => SyncActionValue_StatusPrivacyAction_CustomList.fromPartial(e)) || undefined;
     message.modes = object.modes?.map((e) => e) || undefined;
@@ -72048,7 +72117,7 @@ export const SyncActionValue_StatusPrivacyAction_CustomList: MessageFns<
     object: DeepPartial<SyncActionValue_StatusPrivacyAction_CustomList>,
   ): SyncActionValue_StatusPrivacyAction_CustomList {
     const message = createBaseSyncActionValue_StatusPrivacyAction_CustomList();
-    copyPartialScalars(message, object, 1996, 2000);
+    copyPartialScalars(message, object, 1904, 1908);
     message.userJid = object.userJid?.map((e) => e) || undefined;
     return message;
   },
@@ -72224,7 +72293,7 @@ export const SyncActionValue_StickerAction: MessageFns<SyncActionValue_StickerAc
   },
   fromPartial(object: DeepPartial<SyncActionValue_StickerAction>): SyncActionValue_StickerAction {
     const message = createBaseSyncActionValue_StickerAction();
-    copyPartialScalars(message, object, 2000, 2013);
+    copyPartialScalars(message, object, 1908, 1921);
     return message;
   },
 };
@@ -72289,7 +72358,7 @@ export const SyncActionValue_SubscriptionAction: MessageFns<SyncActionValue_Subs
   },
   fromPartial(object: DeepPartial<SyncActionValue_SubscriptionAction>): SyncActionValue_SubscriptionAction {
     const message = createBaseSyncActionValue_SubscriptionAction();
-    copyPartialScalars(message, object, 2013, 2016);
+    copyPartialScalars(message, object, 1921, 1924);
     return message;
   },
 };
@@ -72450,7 +72519,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
     object: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_PaidFeature>,
   ): SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
     const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_PaidFeature();
-    copyPartialScalars(message, object, 2016, 2020);
+    copyPartialScalars(message, object, 1924, 1928);
     return message;
   },
 };
@@ -72579,7 +72648,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
     object: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo>,
   ): SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
     const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo();
-    copyPartialScalars(message, object, 2020, 2028);
+    copyPartialScalars(message, object, 1928, 1936);
     return message;
   },
 };
@@ -72707,7 +72776,7 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
   },
   fromPartial(object: DeepPartial<SyncActionValue_SyncActionMessageRange>): SyncActionValue_SyncActionMessageRange {
     const message = createBaseSyncActionValue_SyncActionMessageRange();
-    copyPartialScalars(message, object, 2028, 2030);
+    copyPartialScalars(message, object, 1936, 1938);
     message.messages = object.messages?.map((e) => SyncActionValue_SyncActionMessage.fromPartial(e)) || undefined;
     return message;
   },
@@ -73108,7 +73177,7 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
     object: DeepPartial<SyncActionValue_WASARootSecretAction_RootSecretEntry>,
   ): SyncActionValue_WASARootSecretAction_RootSecretEntry {
     const message = createBaseSyncActionValue_WASARootSecretAction_RootSecretEntry();
-    copyPartialScalars(message, object, 2030, 2034);
+    copyPartialScalars(message, object, 1938, 1942);
     return message;
   },
 };
@@ -73498,12 +73567,12 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
     message.externalMutations = (object.externalMutations !== undefined && object.externalMutations !== null)
       ? ExternalBlobReference.fromPartial(object.externalMutations)
       : undefined;
-    copyPartialScalars(message, object, 2034, 2036);
+    copyPartialScalars(message, object, 1942, 1944);
     message.keyId = (object.keyId !== undefined && object.keyId !== null) ? KeyId.fromPartial(object.keyId) : undefined;
     message.exitCode = (object.exitCode !== undefined && object.exitCode !== null)
       ? ExitCode.fromPartial(object.exitCode)
       : undefined;
-    copyPartialScalars(message, object, 2036, 2038);
+    copyPartialScalars(message, object, 1944, 1946);
     return message;
   },
 };
@@ -73571,7 +73640,7 @@ export const SyncdPlainTextRecord: MessageFns<SyncdPlainTextRecord> = {
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncActionData.fromPartial(object.value)
       : undefined;
-    copyPartialScalars(message, object, 2038, 2040);
+    copyPartialScalars(message, object, 1946, 1948);
     return message;
   },
 };
@@ -73960,7 +74029,7 @@ export const TapLinkAction: MessageFns<TapLinkAction> = {
   },
   fromPartial(object: DeepPartial<TapLinkAction>): TapLinkAction {
     const message = createBaseTapLinkAction();
-    copyPartialScalars(message, object, 2040, 2042);
+    copyPartialScalars(message, object, 1948, 1950);
     return message;
   },
 };
@@ -74556,7 +74625,7 @@ export const UrlTrackingMap_UrlTrackingMapElement: MessageFns<UrlTrackingMap_Url
   },
   fromPartial(object: DeepPartial<UrlTrackingMap_UrlTrackingMapElement>): UrlTrackingMap_UrlTrackingMapElement {
     const message = createBaseUrlTrackingMap_UrlTrackingMapElement();
-    copyPartialScalars(message, object, 2042, 2046);
+    copyPartialScalars(message, object, 1950, 1954);
     return message;
   },
 };
@@ -74640,7 +74709,7 @@ export const UserPassword: MessageFns<UserPassword> = {
   },
   fromPartial(object: DeepPartial<UserPassword>): UserPassword {
     const message = createBaseUserPassword();
-    copyPartialScalars(message, object, 2046, 2048);
+    copyPartialScalars(message, object, 1954, 1956);
     message.transformerArg = object.transformerArg?.map((e) => UserPassword_TransformerArg.fromPartial(e)) || undefined;
     message.transformedData = object.transformedData ?? undefined;
     return message;
@@ -74753,7 +74822,7 @@ export const UserPassword_TransformerArg_Value: MessageFns<UserPassword_Transfor
   },
   fromPartial(object: DeepPartial<UserPassword_TransformerArg_Value>): UserPassword_TransformerArg_Value {
     const message = createBaseUserPassword_TransformerArg_Value();
-    copyPartialScalars(message, object, 2048, 2050);
+    copyPartialScalars(message, object, 1956, 1958);
     return message;
   },
 };
@@ -74867,7 +74936,7 @@ export const UserReceipt: MessageFns<UserReceipt> = {
   },
   fromPartial(object: DeepPartial<UserReceipt>): UserReceipt {
     const message = createBaseUserReceipt();
-    copyPartialScalars(message, object, 2050, 2054);
+    copyPartialScalars(message, object, 1958, 1962);
     message.pendingDeviceJid = object.pendingDeviceJid?.map((e) => e) || undefined;
     message.deliveredDeviceJid = object.deliveredDeviceJid?.map((e) => e) || undefined;
     return message;
@@ -74934,7 +75003,7 @@ export const VerifiedNameCertificate: MessageFns<VerifiedNameCertificate> = {
   },
   fromPartial(object: DeepPartial<VerifiedNameCertificate>): VerifiedNameCertificate {
     const message = createBaseVerifiedNameCertificate();
-    copyPartialScalars(message, object, 2054, 2057);
+    copyPartialScalars(message, object, 1962, 1965);
     return message;
   },
 };
@@ -75029,7 +75098,7 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
   },
   fromPartial(object: DeepPartial<VerifiedNameCertificate_Details>): VerifiedNameCertificate_Details {
     const message = createBaseVerifiedNameCertificate_Details();
-    copyPartialScalars(message, object, 2057, 2060);
+    copyPartialScalars(message, object, 1965, 1968);
     message.localizedNames = object.localizedNames?.map((e) => LocalizedName.fromPartial(e)) || undefined;
     message.issueTime = object.issueTime ?? undefined;
     return message;
@@ -75140,7 +75209,7 @@ export const VirtualDeviceOutput: MessageFns<VirtualDeviceOutput> = {
   },
   fromPartial(object: DeepPartial<VirtualDeviceOutput>): VirtualDeviceOutput {
     const message = createBaseVirtualDeviceOutput();
-    copyPartialScalars(message, object, 2060, 2066);
+    copyPartialScalars(message, object, 1968, 1974);
     message.encryptedSecretValues =
       (object.encryptedSecretValues !== undefined && object.encryptedSecretValues !== null)
         ? EncryptedSecretValuesOutput.fromPartial(object.encryptedSecretValues)
@@ -75209,7 +75278,7 @@ export const WallpaperSettings: MessageFns<WallpaperSettings> = {
   },
   fromPartial(object: DeepPartial<WallpaperSettings>): WallpaperSettings {
     const message = createBaseWallpaperSettings();
-    copyPartialScalars(message, object, 2066, 2069);
+    copyPartialScalars(message, object, 1974, 1977);
     return message;
   },
 };
@@ -75736,7 +75805,7 @@ export const WebFeatures: MessageFns<WebFeatures> = {
   },
   fromPartial(object: DeepPartial<WebFeatures>): WebFeatures {
     const message = createBaseWebFeatures();
-    copyPartialScalars(message, object, 2069, 2114);
+    copyPartialScalars(message, object, 1977, 2022);
     return message;
   },
 };
@@ -76656,7 +76725,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.message = (object.message !== undefined && object.message !== null)
       ? Message.fromPartial(object.message)
       : undefined;
-    copyPartialScalars(message, object, 2114, 2128);
+    copyPartialScalars(message, object, 2022, 2036);
     message.messageStubParameters = object.messageStubParameters?.map((e) => e) || undefined;
     message.duration = object.duration ?? undefined;
     message.labels = object.labels?.map((e) => e) || undefined;
@@ -76669,7 +76738,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.quotedPaymentInfo = (object.quotedPaymentInfo !== undefined && object.quotedPaymentInfo !== null)
       ? PaymentInfo.fromPartial(object.quotedPaymentInfo)
       : undefined;
-    copyPartialScalars(message, object, 2128, 2134);
+    copyPartialScalars(message, object, 2036, 2042);
     message.mediaData = (object.mediaData !== undefined && object.mediaData !== null)
       ? MediaData.fromPartial(object.mediaData)
       : undefined;
@@ -76690,18 +76759,18 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
       (object.pollAdditionalMetadata !== undefined && object.pollAdditionalMetadata !== null)
         ? PollAdditionalMetadata.fromPartial(object.pollAdditionalMetadata)
         : undefined;
-    copyPartialScalars(message, object, 2134, 2137);
+    copyPartialScalars(message, object, 2042, 2045);
     message.keepInChat = (object.keepInChat !== undefined && object.keepInChat !== null)
       ? KeepInChat.fromPartial(object.keepInChat)
       : undefined;
-    copyPartialScalars(message, object, 2137, 2139);
+    copyPartialScalars(message, object, 2045, 2047);
     message.pinInChat = (object.pinInChat !== undefined && object.pinInChat !== null)
       ? PinInChat.fromPartial(object.pinInChat)
       : undefined;
     message.premiumMessageInfo = (object.premiumMessageInfo !== undefined && object.premiumMessageInfo !== null)
       ? PremiumMessageInfo.fromPartial(object.premiumMessageInfo)
       : undefined;
-    copyPartialScalars(message, object, 2139, 2142);
+    copyPartialScalars(message, object, 2047, 2050);
     message.commentMetadata = (object.commentMetadata !== undefined && object.commentMetadata !== null)
       ? CommentMetadata.fromPartial(object.commentMetadata)
       : undefined;
@@ -76744,7 +76813,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.quarantinedMessage = (object.quarantinedMessage !== undefined && object.quarantinedMessage !== null)
       ? QuarantinedMessage.fromPartial(object.quarantinedMessage)
       : undefined;
-    copyPartialScalars(message, object, 2142, 2145);
+    copyPartialScalars(message, object, 2050, 2053);
     message.scheduledMessageMetadata =
       (object.scheduledMessageMetadata !== undefined && object.scheduledMessageMetadata !== null)
         ? ScheduledMessageMetadata.fromPartial(object.scheduledMessageMetadata)
@@ -76889,7 +76958,7 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
   },
   fromPartial(object: DeepPartial<WebNotificationsInfo>): WebNotificationsInfo {
     const message = createBaseWebNotificationsInfo();
-    copyPartialScalars(message, object, 2145, 2148);
+    copyPartialScalars(message, object, 2053, 2056);
     message.notifyMessages = object.notifyMessages?.map((e) => WebMessageInfo.fromPartial(e)) || undefined;
     return message;
   },
@@ -77096,7 +77165,7 @@ function copyPartialScalars(message: any, object: any, start: number, end: numbe
   }
 }
 
-const partialScalarKeys: readonly string[] = ["rawId","timestamp","keyIndex","accountType","deviceType","rawId","timestamp","currentIndex","details","accountSignatureKey","accountSignature","deviceSignature","details","hmac","accountType","details","accountSignature","accountSignatureKey","type","title","promptText","sessionId","imageWdsIdentifier","imageTintColor","imageBackgroundColor","cardTypeId","collectionId","expectedMediaCount","hasGlobalCaption","collectionId","uploadOrderIndex","createdWithGenAi","editedWithGenAi","highlightType","codeContent","title","profileIconUrl","thumbnailUrl","videoUrl","type","version","url","loopCount","imagePreviewUrl","imageHighResUrl","sourceUrl","imageText","alignment","tapLinkUrl","latexExpression","url","width","height","fontHeight","imageTopPadding","imageLeadingPadding","imageBottomPadding","imageTrailingPadding","centerLatitude","centerLongitude","latitudeDelta","longitudeDelta","annotationNumber","latitude","longitude","title","body","type","sourceChatJid","lid","username","countryCode","isUsernameDeleted","accesstoken","fbid","nonce","encryptedPassword","url","buttonTitle","downloadImages","downloadAudio","downloadVideo","downloadDocuments","fbid","password","encryptedPrevEpochAnonId","encryptedPrevEpochRootKey","prevEpochRootKeyFingerprint","whatsappBizAcctFbid","whatsappAcctNumber","issueTime","hostStorage","accountType","signed","revoked","hostStorage","actualActors","privacyModeTs","featureControls","ageCollectionEligible","shouldTriggerAgeCollectionOnClient","ageCollectionType","token","clientPublicKey","commandName","commandDescription","commandPrompt","kind","text","kindNegative","kindPositive","kindReport","selectedRequestId","surveyId","simonSessionFbid","responseOtid","responseTimestampMsString","isSelectedResponsePrimary","messageIdToEdit","tessaEvent","tessaSessionFbid","simonSessionFbid","surveyId","primaryResponseId","testArmName","timestampMsString","isSurveyExpired","clickDwellTimeMsString","responseDwellTimeMsString","selectedResponseId","imagineType","shortPrompt","acAuthTokens","acErrorCode","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","mimetype","orientationType","fact","factId","botEntryPointOrigin","forwardScore","conversationStarterPromptId","botResponseId","destinationId","destinationEntryPoint","threadOrigin","modelType","premiumModelStatus","modelNameOverride","provider","pluginType","thumbnailCdnUrl","profilePhotoCdnUrl","searchProviderUrl","referenceIndex","expectedLinksCount","searchQuery","deprecatedField","parentPluginType","faviconCdnUrl","statusTitle","statusBody","status","isReasoning","isEnhancedSearch","title","provider","sourceUrl","favIconUrl","sourceTitle","provider","sourceUrl","sectionTitle","sectionBody","promotionType","buttonTitle","prompt","promptId","featureType","remainingQuota","expirationTimestamp","action","name","nextTriggerTimestamp","frequency","bloksVersioningId","pixelDensity","toolCallId","resolutionDataSerialized","sessionId","sessionSource","version","useCase","signature","useCase","ski","provider","thumbnailCdnUrl","sourceProviderUrl","sourceQuery","faviconCdnUrl","citationNumber","sourceTitle","primaryResponseId","surveyCtaHasRendered","callResult","isDndMode","silenceReason","duration","startTime","isIncoming","isVideo","isCallLink","callLinkToken","scheduledCallId","callId","callCreatorJid","groupJid","userJid","callResult","details","signature","serial","issuerSerial","key","notBefore","notAfter","text","omittedUrl","conversionSource","conversionData","sourceUrl","sourceId","sourceType","title","description","thumbnail","thumbnailUrl","mediaType","mediaUrl","isSuspiciousLink","context","sourceUrl","icebreaker","phone","title","subtitle","cmsId","imageUrl","isChatDbLidMigrated","isSyncdPureLidSession","isSyncdSnapshotRecoveryEnabled","isHsThumbnailSyncEnabled","subscriptionSyncPayload","username","passive","pushName","sessionId","shortConnect","connectType","connectReason","connectAttemptCount","device","product","fbCat","fbUserAgent","oc","lc","iosAppExtension","fbAppId","fbDeviceId","pull","paddingBytes","yearClass","memClass","trafficAnonymization","lidDbMigrated","accountType","connectionSequenceInfo","paaLink","preacksCount","processingQueueSize","dnsMethod","appCached","eRegid","eKeytype","eIdent","eSkeyId","eSkeyVal","eSkeySig","buildHash","deviceProps","accountId","token","enableReadReceipts","mcc","mnc","osVersion","manufacturer","device","osBuildNumber","phoneId","releaseChannel","localeLanguageIso6391","localeCountryIso31661Alpha2","deviceBoard","deviceExpId","deviceType","deviceModelType","distributionChannel","primary","secondary","tertiary","quaternary","quinary","refToken","version","webSubPlatform","browser","browserVersion","usesParticipantInKey","supportsStarredMessages","supportsDocumentMessages","supportsUrlMessages","supportsMediaRetry","supportsE2EImage","supportsE2EVideo","supportsE2EAudio","supportsE2EDocument","documentTypes","features","dirtyVersion","operation","commandType","offset","length","validationToken","publicKey","deviceType","ref","matchedText","canonicalUrl","description","title","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","sequenceNumber","timeOffset","degreesLatitude","degreesLongitude","name","x","y","encKey","name","encPayload","encIv","text","groupingKey","senderTimestampMs","reactionMetadataDataclassData","style","textArgb","backgroundArgb","font","stanzaId","participant","conversionSource","conversionData","conversionDelaySeconds","forwardingScore","isForwarded","expiration","ephemeralSettingTimestamp","ephemeralSharedSecret","entryPointConversionSource","entryPointConversionApp","entryPointConversionDelaySeconds","groupSubject","parentGroupJid","trustBannerType","trustBannerAction","isSampled","smbClientCampaignId","smbServerCampaignId","entryPointConversionExternalSource","entryPointConversionExternalMedium","ctwaSignals","ctwaPayload","pairedMediaType","rankingVersion","isQuestion","statusSourceType","isGroupStatus","forwardOrigin","nonJidMentions","quotedType","afterReadDuration","crossAppSource","advertiserName","mediaType","jpegThumbnail","caption","entryPoint","signedPayload","pillType","actionUrl","businessName","businessCategory","businessIsOpen","businessIsOpenSnapshotMs","showMmDisclosure","encryptedSignalTokenConsented","key","stringData","intData","floatData","title","body","mediaType","thumbnailUrl","mediaUrl","thumbnail","sourceType","sourceId","sourceUrl","containsAutoReply","renderLargerThumbnail","showAdAttribution","ctwaClid","ref","clickToWhatsappCall","adContextPreviewDismissed","sourceApp","automatedGreetingMessageShown","greetingMessageBody","ctaPayload","disableNudge","originalImageUrl","automatedGreetingMessageCtaType","wtwaAdFormat","adType","wtwaWebsiteUrl","adPreviewUrl","containsCtwaFlowsAutoReply","agmThumbnailStrategy","agmTitleStrategy","agmSubtitleStrategy","agmHeaderInteractionStrategy","cannotBeReactedTo","cannotBeRanked","canRequestFeedback","canBeReshared","canReceiveMultiReact","newsletterJid","serverMessageId","newsletterName","contentType","accessibilityText","profileName","audienceType","listName","listEmoji","utmSource","utmCampaign","newJid","oldJid","lastMsgTimestamp","unreadCount","readOnly","endOfHistoryTransfer","ephemeralExpiration","ephemeralSettingTimestamp","endOfHistoryTransferType","conversationTimestamp","name","pHash","notSpam","archived","unreadMentionCount","markedAsUnread","tcToken","tcTokenTimestamp","contactPrimaryIdentityKey","pinned","muteEndTime","mediaVisibility","tcTokenSenderTimestamp","suspended","terminated","createdAt","createdBy","description","support","isParentGroup","parentGroupId","isDefaultSubgroup","displayName","pnJid","shareOwnPn","pnhDuplicateLidThread","lidJid","username","lidOriginType","commentsCount","locked","systemMessageToInsert","capiCreatedGroup","accountLid","limitSharing","limitSharingSettingTimestamp","limitSharingTrigger","limitSharingInitiatedByMe","maibaAiThreadEnabled","isMarketingMessageThread","isSenderNewAccount","afterReadDuration","isSenderSuspicious","appealStatus","appealUpdateTime","authAgentParentCompanyName","authAgentObaPhoneNumber","recoveryCode","userId","mailboxRootKey","error","mekId","rosterHash","recipientEncSk","version","encryptedMek","ephemeralEncryptionPk","signingPk","signature","recipientEpochHead","toMailboxSk","fromPk","mekId","senderEpochHead","rosterHash","ciphertext","toEpochHead","mekEncryptionVersion","epochRootKey","epochAnonId","threadId","encryptionVersion","ciphertext","plaintextPayload","error","encryptedMmk","exportRootKey","mailboxHeadHash","exportRootKey","epochNumber","mailboxAuthPublicKey","mailboxAuthPrivateKey","exportRootKey","epochNumber","mailboxEncryptionPublicKey","mailboxEncryptionPrivateKey","exportRootKey","epochNumber","mailboxSigningPublicKey","mailboxSigningPrivateKey","epochRootKey","epochAnonId","threadId","messageKey","error","encSk","encPk","authSk","authPk","deviceId","name","sigPk","authPk","encPk","signature","importListEnabled","companionSupportEnabled","campaignSyncEnabled","insightsSyncEnabled","recipientLimit","generation","signature","senderKeyHash","senderTimestamp","senderAccountType","receiverAccountType","recipientKeyHash","recipientTimestamp","publicKey","epochAuthPublicKey","epochAuthPublicKeySig","epochStoragePublicKey","epochStoragePublicKeySig","encryptionVersionSignature","clientVersion","ocmfClientState","epochStoragePrivateKey","platformType","requireFullSync","primary","secondary","tertiary","quaternary","quinary","fullSyncDaysLimit","fullSyncSizeMbLimit","storageQuotaMb","inlineInitialPayloadInE2EeMsg","recentSyncDaysLimit","supportCallLogHistory","supportBotUserAgentChatHistory","supportCagReactionsAndPolls","supportBizHostedMsg","supportRecentSyncChunkMessageCountTuning","supportHostedGroupMsg","supportFbidBotChatHistory","supportAddOnHistorySyncMigration","supportMessageAssociation","supportGroupHistory","onDemandReady","supportGuestChat","completeOnDemandReady","thumbnailSyncDaysLimit","initialSyncMaxMessagesPerChat","supportManusHistory","supportHatchHistory","supportInlineContacts","supportNewsletter","initiator","trigger","initiatorDeviceJid","initiatedByMe","musicContentMediaId","songId","author","title","artworkDirectPath","artworkSha256","artworkEncSha256","artistAttribution","countryBlocklist","isExplicit","artworkMediaKey","musicSongStartTimeInMs","derivedContentStartTimeInMs","overlapDurationInMs","senderEpochHead","toMailboxPk","sk","pk","ciphertext","version","sk","pk","ephemeralEncryptionPk","signingPk","signature","version","epochRootKey","mailboxRootKey","orfClientState","epochAnonId","epochId","threadId","waCanonicalUserFbid","timestampMs","backupId","plaintextPayload","stanzaId","encryptedProtobuf","orfThreadId","valueSecretRef","offlineThreadingId","timestampMs","error","encryptedPayload","iv","encryptedDevicePrivateKey","encryptedObliviousValidationTokenBlob","encryptedEpochStoragePrivateKey","encryptedOcmfClientState","encryptedOrfClientStateV2","encryptedMailboxRootKeyBlob","encryptedEpochAnonId","encryptedEpochRootKey","duration","timestamp","epochFbid","epochAnonId","epochData","wrappedRootKeyForSelf","epochSignature","epochRootKeyFingerprint","epochRootKey","epochNumber","userFbid","mailboxSigningPk","mailboxEncryptionPk","mailboxAuthPk","previousEpochHead","selfSignature","prevSignature","code","text","targetType","targetUsername","targetId","targetExpiringAtSec","xmaLayoutType","titleText","subtitleText","maxTitleNumOfLines","maxSubtitleNumOfLines","headerTitle","overlayIconGlyph","overlayTitle","overlayDescription","sentWithMessageId","messageText","headerSubtitle","xmaDataclass","contentRef","xmaDataclassType","signedXmaDataclassValidation","featureSharedSessionId","buttonType","title","actionUrl","nativeUrl","ctaType","actionContentBlob","mediaKey","directPath","handle","fileSizeBytes","fileSha256","fileEncSha256","minVersion","maxVersion","notReportableMinVersion","isMessage","publicKey","pnIdentifier","lidIdentifier","usernameIdentifier","hostedState","hashedPublicKey","botName","botJid","creatorName","showIndividualNotificationsPreview","showGroupNotificationsPreview","disappearingModeDuration","disappearingModeTimestamp","fontSize","securityNotifications","autoUnarchiveChats","videoQualityMode","photoQualityMode","groupJid","groupSubject","userJid","rank","groupRootKey","keyId","expiryTimestampMs","createdTimestampMs","static","payload","extendedCiphertext","paddedBytes","simulateXxkemFs","ephemeral","static","payload","useExtended","extendedCiphertext","paddedBytes","sendServerHelloPaddedBytes","simulateXxkemFs","pqMode","extendedEphemeral","ephemeral","static","payload","extendedStatic","paddingBytes","extendedCiphertext","data","timestampMs","requestId","chunkOrder","progress","threadIdUserSecret","threadDsTimeframeOffset","companionMetaNonce","shareableChatIdentifierEncryptionKey","displayText","phoneNumber","displayText","id","displayText","url","consentedUsersUrl","webviewPresentation","publicKey","privateKey","verified","actionSeq","tessaSessionId","simonSessionId","simonSurveyId","tessaRootId","requestId","tessaEvent","invitationHeaderText","invitationBodyText","invitationCtaText","invitationCtaUrl","surveyTitle","surveyContinueButtonText","surveySubmitButtonText","privacyStatementFull","feedbackToastText","startQuestionIndex","stringValue","numericValue","textTranslated","text","url","questionText","questionId","pnJid","lidJid","fullName","firstName","username","keepType","serverTimestamp","deviceJid","clientTimestampMs","serverTimestampMs","id","baseKey","ratchetKey","identityKey","baseKeySignature","pn","assignedLid","latestLid","sharingLimited","trigger","limitSharingSettingTimestamp","initiatedByMe","lg","lc","verifiedName","degreesLatitude","degreesLongitude","name","encryptedMek","recipientsHash","recipientEncSk","mekEncryptionVersion","authPk","epochHead","authSk","authPk","authSk","authPk","authSk","authPk","recipientsHash","version","key","mekId","mailboxHeadHash","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","valid","errorMessage","mediaKeyDomain","e2EeMediaKey","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","serverMediaType","uploadToken","validatedTimestamp","sidecar","objectId","fbid","handle","filename","size","lastDownloadAttemptTimestamp","fileSha256","fileEncSha256","directPath","mediaKey","mediaKeyTimestamp","objectId","expressPathUrl","fileEncSha256","fileLength","stanzaId","directPath","result","messageSecret","key","mekId","rosterHash","label","labelTimestamp","mentionType","mentionedJid","offset","length","proof","root","leafIndex","totalLeaves","expectedImageCount","expectedVideoCount","rawId","currentIndex","url","mimetype","fileSha256","fileLength","seconds","ptt","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","streamingSidecar","waveform","backgroundArgb","viewOnce","accessibilityLabel","sessionId","mediaType","masterKey","caption","botJid","historyShareCutoffTimestamp","contentText","footerText","headerType","text","name","paramsJson","type","selectedDisplayText","callKey","conversionSource","conversionData","conversionDelaySeconds","ctwaSignals","ctwaPayload","nativeFlowCallButtonPayload","deeplinkPayload","callEntryPoint","callReason","isVideo","callOutcome","durationSecs","callType","jid","callOutcome","displayName","id","directPath","mediaKey","fileEncSha256","fileSha256","dimLevel","colorLight","colorDark","isDoodleEnabled","stockImageId","dimLevel","settingTimestampMs","clearTheme","colorSchemeId","status","senderNotificationTimestampMs","consumerLid","consumerPhoneNumber","handoffNotificationText","extraJson","encPayload","encIv","conditionalRevealMessageType","revealKeyId","displayName","vcard","url","mimetype","title","fileSha256","fileLength","pageCount","mediaKey","fileName","fileEncSha256","directPath","mediaKeyTimestamp","contactVcard","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","jpegThumbnail","thumbnailHeight","thumbnailWidth","caption","accessibilityLabel","encPayload","encIv","encPayload","encIv","encPayload","encIv","eventId","eventTitle","jpegThumbnail","startTime","caption","isCanceled","endTime","callLink","isCanceled","name","description","joinLink","startTime","endTime","extraGuestsAllowed","isScheduleCall","hasReminder","reminderOffsetSec","response","timestampMs","extraGuestCount","text","matchedText","description","title","textArgb","backgroundArgb","font","previewType","jpegThumbnail","doNotPlayInline","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","inviteLinkGroupType","inviteLinkParentGroupSubjectV2","inviteLinkParentGroupThumbnailV2","inviteLinkGroupTypeV2","viewOnce","videoHeight","videoWidth","historyFromTimestamp","historyDurationDays","requestId","businessProduct","opaqueClientData","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","caption","namespace","elementName","fallbackLg","fallbackLc","deterministicLg","deterministicLc","currencyCode","amount1000","dayOfWeek","year","month","dayOfMonth","hour","minute","calendar","stanzaId","messageSecretProof","fileSha256","fileLength","mediaKey","fileEncSha256","directPath","syncType","chunkOrder","originalMessageId","progress","oldestMsgInChunkTimestampSec","initialHistBootstrapInlinePayload","peerDataRequestSessionId","url","mimetype","caption","fileSha256","fileLength","height","width","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","jpegThumbnail","firstScanSidecar","firstScanLength","experimentGroupId","scansSidecar","midQualityFileSha256","midQualityFileEncSha256","viewOnce","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","staticUrl","imageSourceType","accessibilityLabel","qrUrl","uuid","data","type","fallback","messageVersion","carouselCardType","bizJid","id","messageVersion","text","hasMediaAttachment","title","subtitle","hasMediaAttachment","messageParamsJson","messageVersion","name","buttonParamsJson","id","surface","messageVersion","text","format","name","paramsJson","version","note","token","attachmentType","attachmentMimetype","attachmentMediaKey","attachmentMediaKeyTimestamp","attachmentFileSha256","attachmentFileEncSha256","attachmentDirectPath","attachmentJpegThumbnail","keepType","timestampMs","fbExperimentId","linkMediaDuration","socialMediaPostType","linkInlineVideoMuted","videoContentUrl","title","description","buttonText","listType","productId","jpegThumbnail","title","description","rowId","title","listType","degreesLatitude","degreesLongitude","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","caption","sequenceNumber","timeOffset","jpegThumbnail","degreesLatitude","degreesLongitude","name","address","url","isLive","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","comment","jpegThumbnail","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","userJidString","verified","verifiedIdentityKey","actionSeq","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","oldestMessageTimestampInWindow","messageCount","songUri","artworkUri","style","newsletterJid","newsletterName","jpegThumbnail","caption","inviteExpiration","newsletterJid","newsletterName","jpegThumbnail","caption","orderId","thumbnail","itemCount","status","surface","message","orderTitle","sellerJid","token","totalAmount1000","totalCurrencyCode","type","platform","messageParamsJson","serviceType","expiryTimestamp","incentiveEligible","referralId","inviteType","reminderId","instanceId","description","frequency","status","payeeVpa","payeeJid","payerJid","type","flowId","stanzaId","galaxyFlowDownloadRequestId","agmId","syncType","chunkOrder","chunkNotificationId","regenerateChunk","chatJid","oldestMsgId","oldestMsgFromMe","onDemandMsgCount","oldestMsgTimestampMs","accountLid","supportInlineResponse","url","includeHqThumbnail","collectionName","timestamp","peerDataOperationRequestType","stanzaId","campaignId","timestampMs","contactJid","state","nonce","waFbid","forceRefresh","collectionVersion","primaryDurationMs","uniqueContactCount","flowId","galaxyFlowDownloadRequestId","fileName","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","fileLength","syncType","chunkOrder","requestId","responseCode","canRecover","url","title","description","thumbData","matchText","previewType","directPath","thumbHash","encThumbHash","mediaKey","mediaKeyTimestampMs","thumbWidth","thumbHeight","isBusinessVerified","providerName","amount","offset","currency","collectionSnapshot","isCompressed","nonce","waEntFbid","type","senderTimestampMs","encKey","name","pollContentType","pollType","endTime","hideParticipantName","allowAddOption","optionName","optionHash","encPayload","encIv","optionName","optionVoteCount","pollNameHash","lastEditStanzaId","body","footer","title","description","productId","title","description","currencyCode","priceAmount1000","retailerId","url","productImageCount","firstImageId","salePriceAmount1000","signedUrl","type","ephemeralExpiration","ephemeralSettingTimestamp","text","groupingKey","senderTimestampMs","currencyCodeIso4217","amount1000","requestFrom","expiryTimestamp","localChatState","welcomeTrigger","scheduledTimestampMs","callType","title","encPayload","encIv","secretEncType","remoteKeyId","groupId","axolotlSenderKeyDistributionMessage","description","requesterJid","splitId","participantJid","type","text","thumbnail","stickerKey","type","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","mediaKeyTimestamp","firstFrameLength","firstFrameSidecar","isAnimated","pngThumbnail","stickerSentTs","isAvatar","isAiSticker","isLottie","accessibilityLabel","premium","emojis","stickerPackId","name","publisher","fileLength","fileSha256","fileEncSha256","mediaKey","directPath","caption","packDescription","mediaKeyTimestamp","trayIconFileName","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","thumbnailHeight","thumbnailWidth","imageDataHash","stickerPackSize","stickerPackOrigin","fileName","isAnimated","accessibilityLabel","isLottie","mimetype","premium","rmrSource","requestTimestamp","selectedId","selectedDisplayText","selectedIndex","selectedCarouselCardIndex","hydratedContentText","hydratedFooterText","templateId","maskLinkedDevices","username","caption","thumbnailImageUrl","profilePictureUrl","url","mimetype","fileSha256","fileLength","seconds","mediaKey","caption","gifPlayback","height","width","fileEncSha256","directPath","mediaKeyTimestamp","jpegThumbnail","streamingSidecar","gifAttribution","viewOnce","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","staticUrl","externalShareFullVideoDurationInSeconds","motionPhotoPresentationOffsetMs","metadataUrl","videoSourceType","senderTimestampMs","serverTimestampMs","status","messageAddOnDurationInSecs","messageAddOnExpiryType","deviceListMetadataVersion","messageSecret","paddingBytes","messageAddOnDurationInSecs","botMessageSecret","reportingTokenVersion","messageAddOnExpiryType","capiCreatedGroup","supportPayload","weblinkRenderConfig","teeBotMetadata","remoteJid","fromMe","id","participant","version","encIv","encPayload","epochHead","deviceRosterHash","sequenceNumber","sigPk","encPk","authPk","preferredMessageEncryptionVersion","preferredMekEncryptionVersion","transportSigningPk","mek","encryptedMessageCiphertext","encryptedMessageSignature","transportSigningSk","mek","plaintext","ciphertext","signature","version","mekId","timestamp","messageId","threadId","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","actThreadId","selfFbid","valid","errorMessage","encryptedMmk","recipDeviceHash","encryptedMmk","recipMailboxHeadHash","value","offset","currencyCode","body","caption","lng","isLive","lat","paymentAmount1000","paymentNoteMsgBody","matchedText","title","description","futureproofBuffer","clientUrl","loc","pollName","pollSelectableOptionsCount","messageSecret","originalSelfAuthor","senderTimestampMs","pollUpdateParentKey","isSentCagPollCreation","pollContentType","pollType","correctOptionIndex","encReactionTargetMessageKey","encReactionEncPayload","encReactionEncIv","botMessageSecret","targetMessageKey","encPayload","encIv","eventName","isEventCanceled","eventDescription","eventJoinLink","eventStartTime","eventEndTime","eventIsScheduledCall","eventExtraGuestsAllowed","plainProtobufBytes","quarantineExtractedText","pollEndTime","pollHideVoterNames","pollAllowAddOption","sharableEventInviteId","sharableEventInviteTitle","sharableEventInviteStartTime","sharableEventInviteEndTime","sharableEventInviteCaption","sharableEventInviteIsCanceled","sharableEventInviteJpegThumbnail","sharableEventInviteCallLink","degreesLatitude","degreesLongitude","name","address","url","jpegThumbnail","name","hash","details","signature","serial","issuer","expires","subject","key","messageTimestamp","participant","messageVibrate","messagePopup","messageLight","lowPriorityNotifications","reactionsMuted","callVibrate","orfClientState","threadId","orfThreadId","error","companionPublicKey","companionIdentityKey","advSecret","userJid","leaveReason","leaveTs","currentLthash","newLthash","patchVersion","collectionName","firstFourBytesFromAHashOfSnapshotMacKey","newLthashSubtract","numberAdd","numberRemove","numberOverride","senderPlatform","isSenderPrimary","id","fileLength","width","height","mimetype","placeholderArgb","textArgb","subtextArgb","mediaKey","mediaKeyTimestamp","fileSha256","fileEncSha256","directPath","currencyDeprecated","amount1000","receiverJid","status","transactionTimestamp","expiryTimestamp","futureproofed","currency","txnStatus","useNoviFiatFormat","pnJid","lidJid","oldPhoto","newPhoto","newPhotoId","senderTimestampMs","serverTimestampMs","xDeprecated","yDeprecated","x","y","editStanzaId","pollNameHash","encPayload","encIv","senderTimestampMs","serverTimestampMs","unread","id","publicKey","privateKey","registrationId","preKeyId","signedPreKeyId","baseKey","identityKey","message","kyberPreKeyId","kyberCiphertext","publicKey","nonce","directPath","fileSha256","height","width","fileLength","bitrate","quality","id","pushname","filterResult","clientNotSupportedConfig","key","value","originalData","extractedText","text","groupingKey","senderTimestampMs","unread","emoji","weight","minVersion","maxVersion","notReportableMinVersion","never","reportingTag","reportingTagTimestamp","currentEpochRootKey","currentEpochAnonId","currentEpochFbid","epochStoragePrivateKey","deviceId","encryptedEpochKey","deviceEpochHmac","deviceId","epochStoragePublicKey","devicePublicKey","newEpochRootKey","newEpochAnonId","newEpochFbid","epochAnonId","epochRootKeyFingerprint","error","taskId","debug","tcpBbr","tcpKeepalive","revealKeyId","revealKey","scheduledTime","id","iteration","chainKey","signingKey","id","iteration","ciphertext","iteration","seed","iteration","seed","public","private","sessionVersion","localIdentityPublic","remoteIdentityPublic","rootKey","previousCounter","remoteRegistrationId","localRegistrationId","needsRefresh","aliceBaseKey","senderRatchetKey","senderRatchetKeyPrivate","index","key","index","cipherKey","macKey","iv","sequence","localBaseKey","localBaseKeyPrivate","localRatchetKey","localRatchetKeyPrivate","localIdentityKey","localIdentityKeyPrivate","preKeyId","signedPreKeyId","baseKey","kyberPreKeyId","kyberCiphertext","disclaimerText","hcaId","sessionTransparencyType","ratchetKey","counter","previousCounter","ciphertext","id","publicKey","privateKey","signature","timestamp","type","actionUrl","actionUrl","source","duration","actionFallbackUrl","authorName","songId","title","author","artistAttribution","isExplicit","duration","channelJid","channelMessageId","hasMultipleReshares","campaignId","campaignExpirationTimestamp","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","weight","lastStickerSentTs","isLottie","imageHash","isAvatarSticker","payload","version","padding","version","name","deviceId","isDeleted","category","version","updatedAtMs","lidJid","pnJid","deviceId","adId","name","msgId","broadcastJid","reservedQuota","scheduledTimestamp","createTimestamp","status","recipientCount","deliveredCount","readCount","repliedCount","quickReplyCount","audienceExpression","customAudienceFbid","fullName","firstName","lidJid","saveOnPrimaryAddressbook","pnJid","username","credentialId","country","type","key","value","chatJid","contactType","email","altPhoneNumbers","birthday","address","acquisitionSource","leadStage","lastOrder","createdAt","modifiedAt","peerJid","isIncoming","deleteMedia","messageTimestamp","type","agmId","labeled","modelMetaData","name","color","predefinedId","deleted","orderIndex","isActive","type","isImmutable","muteEndTimeMs","fullName","firstName","username","aiFeatureStatus","aiReplyMode","name","message","type","createdAt","lastSentAt","isDeleted","mediaId","status","country","gatewayName","credentialId","key","value","muted","muteEndTimestamp","autoMuted","muteEveryoneMentionEndTimestamp","type","chatJid","createdAt","deleted","unstructuredContent","fullName","firstName","paymentNotice","accepted","shortcut","message","count","deleted","startAtLogin","minimizeToTray","language","replaceTextWithEmoji","bannerNotificationDisplayMode","unreadCounterBadgeDisplayMode","isMessagesNotificationEnabled","isCallsNotificationEnabled","isReactionsNotificationEnabled","isStatusReactionsNotificationEnabled","isTextPreviewForNotificationEnabled","defaultNotificationToneId","groupDefaultNotificationToneId","appTheme","wallpaperId","isDoodleWallpaperEnabled","fontSize","isPhotosAutodownloadEnabled","isAudiosAutodownloadEnabled","isVideosAutodownloadEnabled","isDocumentsAutodownloadEnabled","disableLinkPreviews","notificationToneId","mediaUploadQuality","isSpellCheckEnabled","isEnterToSendEnabled","isGroupMessageNotificationEnabled","isGroupReactionsNotificationEnabled","isStatusNotificationEnabled","statusNotificationToneId","shouldPlaySoundForCallNotification","chatThemeId","colorSchemeId","stockWallpaperImageId","shareToFb","shareToIg","listId","name","emoji","isSelected","url","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","isFavorite","deviceIdHint","isLottie","imageHash","isAvatarSticker","isDeactivated","isAutoRenewing","expirationDate","name","enabled","limit","expirationTime","id","tier","status","startTime","endTime","isPlatformChanged","source","creationTime","lastMessageTimestamp","lastSystemMessageTimestamp","id","rootSecret","epoch","status","snapshotMac","patchMac","deviceIndex","clientDebugData","keyId","mac","title","tapUrl","originalUrl","unconsentedUsersUrl","consentedUsersUrl","cardIndex","encoding","transformer","asBlob","asUnsignedInteger","userJid","receiptTimestamp","readTimestamp","playedTimestamp","details","signature","serverSignature","serial","issuer","verifiedName","vdId","vdPublicKey","vdEpochStoragePublicKey","vdEpochStoragePublicKeySig","ocmfRotationToken","deviceEpochHmac","filename","opacity","isGenAi","labelsDisplay","voipIndividualOutgoing","groupsV3","groupsV3Create","changeNumberV2","queryStatusV3Thumbnail","liveLocations","queryVname","voipIndividualIncoming","quickRepliesQuery","payments","stickerPackQuery","liveLocationsFinal","labelsEdit","mediaUpload","mediaUploadRichQuickReplies","vnameV2","videoPlaybackUrl","statusRanking","voipIndividualVideo","thirdPartyStickers","frequentlyForwardedSetting","groupsV4JoinPermission","recentStickers","catalog","starredStickers","voipGroupCall","templateMessage","templateMessageInteractivity","ephemeralMessages","e2ENotificationSync","recentStickersV2","recentStickersV3","userNotice","support","groupUiiCleanup","groupDogfoodingInternalOnly","settingsSync","archiveV2","ephemeralAllowGroupMembers","ephemeral24HDuration","mdForceUpgrade","disappearingMode","externalMdOptInAvailable","noDeleteMessageTimeLimit","messageTimestamp","status","participant","messageC2STimestamp","ignore","starred","broadcast","pushName","mediaCiphertextSha256","multicast","urlText","urlNumber","messageStubType","clearMedia","ephemeralStartTimestamp","ephemeralDuration","ephemeralOffToOn","ephemeralOutOfSync","bizPrivacyStatus","verifiedBizName","agentId","statusAlreadyViewed","messageSecret","originalSelfAuthorUserJidString","revokeMessageTimestamp","is1PBizBotMessage","isGroupHistoryMessage","botMessageInvokerJid","nonJidMentions","hsmTag","ephemeralExpirationTimestamp","timestamp","unreadChats","notifyMessageCount"];
+const partialScalarKeys: readonly string[] = ["rawId","timestamp","keyIndex","accountType","deviceType","rawId","timestamp","currentIndex","details","accountSignatureKey","accountSignature","deviceSignature","details","hmac","accountType","details","accountSignature","accountSignatureKey","type","title","promptText","sessionId","imageWdsIdentifier","imageTintColor","imageBackgroundColor","cardTypeId","collectionId","expectedMediaCount","hasGlobalCaption","collectionId","uploadOrderIndex","createdWithGenAi","editedWithGenAi","highlightType","codeContent","title","profileIconUrl","thumbnailUrl","videoUrl","type","version","url","loopCount","imagePreviewUrl","imageHighResUrl","sourceUrl","imageText","alignment","tapLinkUrl","latexExpression","url","width","height","fontHeight","imageTopPadding","imageLeadingPadding","imageBottomPadding","imageTrailingPadding","centerLatitude","centerLongitude","latitudeDelta","longitudeDelta","annotationNumber","latitude","longitude","title","body","type","sourceChatJid","lid","username","countryCode","isUsernameDeleted","accesstoken","fbid","nonce","encryptedPassword","url","buttonTitle","downloadImages","downloadAudio","downloadVideo","downloadDocuments","fbid","password","encryptedPrevEpochAnonId","encryptedPrevEpochRootKey","prevEpochRootKeyFingerprint","whatsappBizAcctFbid","whatsappAcctNumber","issueTime","hostStorage","accountType","signed","revoked","hostStorage","actualActors","privacyModeTs","featureControls","ageCollectionEligible","shouldTriggerAgeCollectionOnClient","ageCollectionType","token","clientPublicKey","commandName","commandDescription","commandPrompt","kind","text","kindNegative","kindPositive","kindReport","selectedRequestId","surveyId","simonSessionFbid","responseOtid","responseTimestampMsString","isSelectedResponsePrimary","messageIdToEdit","tessaEvent","tessaSessionFbid","simonSessionFbid","surveyId","primaryResponseId","testArmName","timestampMsString","isSurveyExpired","clickDwellTimeMsString","responseDwellTimeMsString","selectedResponseId","imagineType","shortPrompt","acAuthTokens","acErrorCode","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","mimetype","orientationType","fact","factId","botEntryPointOrigin","forwardScore","conversationStarterPromptId","botResponseId","destinationId","destinationEntryPoint","threadOrigin","modelType","premiumModelStatus","modelNameOverride","provider","pluginType","thumbnailCdnUrl","profilePhotoCdnUrl","searchProviderUrl","referenceIndex","expectedLinksCount","searchQuery","deprecatedField","parentPluginType","faviconCdnUrl","statusTitle","statusBody","status","isReasoning","isEnhancedSearch","title","provider","sourceUrl","favIconUrl","sourceTitle","provider","sourceUrl","sectionTitle","sectionBody","promotionType","buttonTitle","prompt","promptId","featureType","remainingQuota","expirationTimestamp","action","name","nextTriggerTimestamp","frequency","bloksVersioningId","pixelDensity","toolCallId","resolutionDataSerialized","sessionId","sessionSource","version","useCase","signature","useCase","ski","provider","thumbnailCdnUrl","sourceProviderUrl","sourceQuery","faviconCdnUrl","citationNumber","sourceTitle","primaryResponseId","surveyCtaHasRendered","callResult","isDndMode","silenceReason","duration","startTime","isIncoming","isVideo","isCallLink","callLinkToken","scheduledCallId","callId","callCreatorJid","groupJid","userJid","callResult","details","signature","serial","issuerSerial","key","notBefore","notAfter","text","omittedUrl","conversionSource","conversionData","sourceUrl","sourceId","sourceType","title","description","thumbnail","thumbnailUrl","mediaType","mediaUrl","isSuspiciousLink","context","sourceUrl","icebreaker","phone","title","subtitle","cmsId","imageUrl","isChatDbLidMigrated","isSyncdPureLidSession","isSyncdSnapshotRecoveryEnabled","isHsThumbnailSyncEnabled","subscriptionSyncPayload","dnsMethod","appCached","eRegid","eKeytype","eIdent","eSkeyId","eSkeyVal","eSkeySig","buildHash","deviceProps","accountId","token","enableReadReceipts","mcc","mnc","osVersion","manufacturer","device","osBuildNumber","phoneId","releaseChannel","localeLanguageIso6391","localeCountryIso31661Alpha2","deviceBoard","deviceExpId","deviceType","deviceModelType","distributionChannel","primary","secondary","tertiary","quaternary","quinary","refToken","version","webSubPlatform","browser","browserVersion","usesParticipantInKey","supportsStarredMessages","supportsDocumentMessages","supportsUrlMessages","supportsMediaRetry","supportsE2EImage","supportsE2EVideo","supportsE2EAudio","supportsE2EDocument","documentTypes","features","dirtyVersion","operation","commandType","offset","length","validationToken","publicKey","deviceType","ref","matchedText","canonicalUrl","description","title","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","sequenceNumber","timeOffset","degreesLatitude","degreesLongitude","name","x","y","encKey","name","encPayload","encIv","text","groupingKey","senderTimestampMs","reactionMetadataDataclassData","style","textArgb","backgroundArgb","font","advertiserName","mediaType","jpegThumbnail","caption","entryPoint","signedPayload","pillType","actionUrl","businessName","businessCategory","businessIsOpen","businessIsOpenSnapshotMs","showMmDisclosure","encryptedSignalTokenConsented","key","stringData","intData","floatData","title","body","mediaType","thumbnailUrl","mediaUrl","thumbnail","sourceType","sourceId","sourceUrl","containsAutoReply","renderLargerThumbnail","showAdAttribution","ctwaClid","ref","clickToWhatsappCall","adContextPreviewDismissed","sourceApp","automatedGreetingMessageShown","greetingMessageBody","ctaPayload","disableNudge","originalImageUrl","automatedGreetingMessageCtaType","wtwaAdFormat","adType","wtwaWebsiteUrl","adPreviewUrl","containsCtwaFlowsAutoReply","agmThumbnailStrategy","agmTitleStrategy","agmSubtitleStrategy","agmHeaderInteractionStrategy","cannotBeReactedTo","cannotBeRanked","canRequestFeedback","canBeReshared","canReceiveMultiReact","newsletterJid","serverMessageId","newsletterName","contentType","accessibilityText","profileName","audienceType","listName","listEmoji","utmSource","utmCampaign","newJid","oldJid","lastMsgTimestamp","unreadCount","readOnly","endOfHistoryTransfer","ephemeralExpiration","ephemeralSettingTimestamp","endOfHistoryTransferType","conversationTimestamp","name","pHash","notSpam","archived","unreadMentionCount","markedAsUnread","tcToken","tcTokenTimestamp","contactPrimaryIdentityKey","pinned","muteEndTime","mediaVisibility","tcTokenSenderTimestamp","suspended","terminated","createdAt","createdBy","description","support","isParentGroup","parentGroupId","isDefaultSubgroup","displayName","pnJid","shareOwnPn","pnhDuplicateLidThread","lidJid","username","lidOriginType","commentsCount","locked","systemMessageToInsert","capiCreatedGroup","accountLid","limitSharing","limitSharingSettingTimestamp","limitSharingTrigger","limitSharingInitiatedByMe","maibaAiThreadEnabled","isMarketingMessageThread","isSenderNewAccount","afterReadDuration","isSenderSuspicious","appealStatus","appealUpdateTime","authAgentParentCompanyName","authAgentObaPhoneNumber","recoveryCode","userId","mailboxRootKey","error","mekId","rosterHash","recipientEncSk","version","encryptedMek","ephemeralEncryptionPk","signingPk","signature","recipientEpochHead","toMailboxSk","fromPk","mekId","senderEpochHead","rosterHash","ciphertext","toEpochHead","mekEncryptionVersion","epochRootKey","epochAnonId","threadId","encryptionVersion","ciphertext","plaintextPayload","error","encryptedMmk","exportRootKey","mailboxHeadHash","exportRootKey","epochNumber","mailboxAuthPublicKey","mailboxAuthPrivateKey","exportRootKey","epochNumber","mailboxEncryptionPublicKey","mailboxEncryptionPrivateKey","exportRootKey","epochNumber","mailboxSigningPublicKey","mailboxSigningPrivateKey","epochRootKey","epochAnonId","threadId","messageKey","error","encSk","encPk","authSk","authPk","deviceId","name","sigPk","authPk","encPk","signature","importListEnabled","companionSupportEnabled","campaignSyncEnabled","insightsSyncEnabled","recipientLimit","generation","signature","senderKeyHash","senderTimestamp","senderAccountType","receiverAccountType","recipientKeyHash","recipientTimestamp","publicKey","epochAuthPublicKey","epochAuthPublicKeySig","epochStoragePublicKey","epochStoragePublicKeySig","encryptionVersionSignature","clientVersion","ocmfClientState","epochStoragePrivateKey","platformType","requireFullSync","primary","secondary","tertiary","quaternary","quinary","fullSyncDaysLimit","fullSyncSizeMbLimit","storageQuotaMb","inlineInitialPayloadInE2EeMsg","recentSyncDaysLimit","supportCallLogHistory","supportBotUserAgentChatHistory","supportCagReactionsAndPolls","supportBizHostedMsg","supportRecentSyncChunkMessageCountTuning","supportHostedGroupMsg","supportFbidBotChatHistory","supportAddOnHistorySyncMigration","supportMessageAssociation","supportGroupHistory","onDemandReady","supportGuestChat","completeOnDemandReady","thumbnailSyncDaysLimit","initialSyncMaxMessagesPerChat","supportManusHistory","supportHatchHistory","supportInlineContacts","supportNewsletter","musicContentMediaId","songId","author","title","artworkDirectPath","artworkSha256","artworkEncSha256","artistAttribution","countryBlocklist","isExplicit","artworkMediaKey","musicSongStartTimeInMs","derivedContentStartTimeInMs","overlapDurationInMs","senderEpochHead","toMailboxPk","sk","pk","ciphertext","version","sk","pk","ephemeralEncryptionPk","signingPk","signature","version","epochRootKey","mailboxRootKey","orfClientState","epochAnonId","epochId","threadId","waCanonicalUserFbid","timestampMs","backupId","plaintextPayload","stanzaId","encryptedProtobuf","orfThreadId","valueSecretRef","offlineThreadingId","timestampMs","error","encryptedPayload","iv","encryptedDevicePrivateKey","encryptedObliviousValidationTokenBlob","encryptedEpochStoragePrivateKey","encryptedOcmfClientState","encryptedOrfClientStateV2","encryptedMailboxRootKeyBlob","encryptedEpochAnonId","encryptedEpochRootKey","duration","timestamp","epochFbid","epochAnonId","epochData","wrappedRootKeyForSelf","epochSignature","epochRootKeyFingerprint","epochRootKey","epochNumber","userFbid","mailboxSigningPk","mailboxEncryptionPk","mailboxAuthPk","previousEpochHead","selfSignature","prevSignature","code","text","targetType","targetUsername","targetId","targetExpiringAtSec","xmaLayoutType","titleText","subtitleText","maxTitleNumOfLines","maxSubtitleNumOfLines","headerTitle","overlayIconGlyph","overlayTitle","overlayDescription","sentWithMessageId","messageText","headerSubtitle","xmaDataclass","contentRef","xmaDataclassType","signedXmaDataclassValidation","featureSharedSessionId","buttonType","title","actionUrl","nativeUrl","ctaType","actionContentBlob","mediaKey","directPath","handle","fileSizeBytes","fileSha256","fileEncSha256","minVersion","maxVersion","notReportableMinVersion","isMessage","publicKey","pnIdentifier","lidIdentifier","usernameIdentifier","hostedState","hashedPublicKey","botName","botJid","creatorName","showIndividualNotificationsPreview","showGroupNotificationsPreview","disappearingModeDuration","disappearingModeTimestamp","fontSize","securityNotifications","autoUnarchiveChats","videoQualityMode","photoQualityMode","groupJid","groupSubject","userJid","rank","groupRootKey","keyId","expiryTimestampMs","createdTimestampMs","static","payload","extendedCiphertext","paddedBytes","simulateXxkemFs","ephemeral","static","payload","useExtended","extendedCiphertext","paddedBytes","sendServerHelloPaddedBytes","simulateXxkemFs","pqMode","extendedEphemeral","ephemeral","static","payload","extendedStatic","paddingBytes","extendedCiphertext","data","timestampMs","requestId","chunkOrder","progress","threadIdUserSecret","threadDsTimeframeOffset","companionMetaNonce","shareableChatIdentifierEncryptionKey","displayText","phoneNumber","displayText","id","displayText","url","consentedUsersUrl","webviewPresentation","publicKey","privateKey","verified","actionSeq","tessaSessionId","simonSessionId","simonSurveyId","tessaRootId","requestId","tessaEvent","invitationHeaderText","invitationBodyText","invitationCtaText","invitationCtaUrl","surveyTitle","surveyContinueButtonText","surveySubmitButtonText","privacyStatementFull","feedbackToastText","startQuestionIndex","stringValue","numericValue","textTranslated","text","url","questionText","questionId","pnJid","lidJid","fullName","firstName","username","keepType","serverTimestamp","deviceJid","clientTimestampMs","serverTimestampMs","id","baseKey","ratchetKey","identityKey","baseKeySignature","pn","assignedLid","latestLid","sharingLimited","trigger","limitSharingSettingTimestamp","initiatedByMe","lg","lc","verifiedName","degreesLatitude","degreesLongitude","name","encryptedMek","recipientsHash","recipientEncSk","mekEncryptionVersion","authPk","epochHead","authSk","authPk","authSk","authPk","authSk","authPk","recipientsHash","version","key","mekId","mailboxHeadHash","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","valid","errorMessage","mediaKeyDomain","e2EeMediaKey","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","serverMediaType","uploadToken","validatedTimestamp","sidecar","objectId","fbid","handle","filename","size","lastDownloadAttemptTimestamp","fileSha256","fileEncSha256","directPath","mediaKey","mediaKeyTimestamp","objectId","expressPathUrl","fileEncSha256","fileLength","stanzaId","directPath","result","messageSecret","key","mekId","rosterHash","label","labelTimestamp","mentionType","mentionedJid","offset","length","proof","root","leafIndex","totalLeaves","expectedImageCount","expectedVideoCount","rawId","currentIndex","url","mimetype","fileSha256","fileLength","seconds","ptt","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","streamingSidecar","waveform","backgroundArgb","viewOnce","accessibilityLabel","sessionId","mediaType","masterKey","caption","botJid","historyShareCutoffTimestamp","contentText","footerText","headerType","text","name","paramsJson","type","selectedDisplayText","callKey","conversionSource","conversionData","conversionDelaySeconds","ctwaSignals","ctwaPayload","nativeFlowCallButtonPayload","deeplinkPayload","callEntryPoint","callReason","isVideo","callOutcome","durationSecs","callType","jid","callOutcome","displayName","id","directPath","mediaKey","fileEncSha256","fileSha256","dimLevel","colorLight","colorDark","isDoodleEnabled","stockImageId","dimLevel","settingTimestampMs","clearTheme","colorSchemeId","status","senderNotificationTimestampMs","consumerLid","consumerPhoneNumber","handoffNotificationText","extraJson","encPayload","encIv","conditionalRevealMessageType","revealKeyId","displayName","vcard","url","mimetype","title","fileSha256","fileLength","pageCount","mediaKey","fileName","fileEncSha256","directPath","mediaKeyTimestamp","contactVcard","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","jpegThumbnail","thumbnailHeight","thumbnailWidth","caption","accessibilityLabel","encPayload","encIv","encPayload","encIv","encPayload","encIv","eventId","eventTitle","jpegThumbnail","startTime","caption","isCanceled","endTime","callLink","isCanceled","name","description","joinLink","startTime","endTime","extraGuestsAllowed","isScheduleCall","hasReminder","reminderOffsetSec","response","timestampMs","extraGuestCount","text","matchedText","description","title","textArgb","backgroundArgb","font","previewType","jpegThumbnail","doNotPlayInline","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","inviteLinkGroupType","inviteLinkParentGroupSubjectV2","inviteLinkParentGroupThumbnailV2","inviteLinkGroupTypeV2","viewOnce","videoHeight","videoWidth","historyFromTimestamp","historyDurationDays","requestId","businessProduct","opaqueClientData","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","caption","namespace","elementName","fallbackLg","fallbackLc","deterministicLg","deterministicLc","currencyCode","amount1000","dayOfWeek","year","month","dayOfMonth","hour","minute","calendar","stanzaId","messageSecretProof","fileSha256","fileLength","mediaKey","fileEncSha256","directPath","syncType","chunkOrder","originalMessageId","progress","oldestMsgInChunkTimestampSec","initialHistBootstrapInlinePayload","peerDataRequestSessionId","uuid","data","type","fallback","messageVersion","carouselCardType","bizJid","id","messageVersion","text","hasMediaAttachment","title","subtitle","hasMediaAttachment","messageParamsJson","messageVersion","name","buttonParamsJson","id","surface","messageVersion","text","format","name","paramsJson","version","note","token","attachmentType","attachmentMimetype","attachmentMediaKey","attachmentMediaKeyTimestamp","attachmentFileSha256","attachmentFileEncSha256","attachmentDirectPath","attachmentJpegThumbnail","keepType","timestampMs","fbExperimentId","linkMediaDuration","socialMediaPostType","linkInlineVideoMuted","videoContentUrl","title","description","buttonText","listType","productId","jpegThumbnail","title","description","rowId","title","listType","degreesLatitude","degreesLongitude","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","caption","sequenceNumber","timeOffset","jpegThumbnail","degreesLatitude","degreesLongitude","name","address","url","isLive","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","comment","jpegThumbnail","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","userJidString","verified","verifiedIdentityKey","actionSeq","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","oldestMessageTimestampInWindow","messageCount","songUri","artworkUri","style","newsletterJid","newsletterName","jpegThumbnail","caption","inviteExpiration","newsletterJid","newsletterName","jpegThumbnail","caption","orderId","thumbnail","itemCount","status","surface","message","orderTitle","sellerJid","token","totalAmount1000","totalCurrencyCode","type","platform","messageParamsJson","serviceType","expiryTimestamp","incentiveEligible","referralId","inviteType","reminderId","instanceId","description","frequency","status","payeeVpa","payeeJid","payerJid","type","flowId","stanzaId","galaxyFlowDownloadRequestId","agmId","syncType","chunkOrder","chunkNotificationId","regenerateChunk","chatJid","oldestMsgId","oldestMsgFromMe","onDemandMsgCount","oldestMsgTimestampMs","accountLid","supportInlineResponse","url","includeHqThumbnail","collectionName","timestamp","peerDataOperationRequestType","stanzaId","campaignId","timestampMs","contactJid","state","nonce","waFbid","forceRefresh","collectionVersion","primaryDurationMs","uniqueContactCount","flowId","galaxyFlowDownloadRequestId","fileName","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","fileLength","syncType","chunkOrder","requestId","responseCode","canRecover","url","title","description","thumbData","matchText","previewType","directPath","thumbHash","encThumbHash","mediaKey","mediaKeyTimestampMs","thumbWidth","thumbHeight","isBusinessVerified","providerName","amount","offset","currency","collectionSnapshot","isCompressed","nonce","waEntFbid","type","senderTimestampMs","encKey","name","pollContentType","pollType","endTime","hideParticipantName","allowAddOption","optionName","optionHash","encPayload","encIv","optionName","optionVoteCount","pollNameHash","lastEditStanzaId","body","footer","title","description","productId","title","description","currencyCode","priceAmount1000","retailerId","url","productImageCount","firstImageId","salePriceAmount1000","signedUrl","type","ephemeralExpiration","ephemeralSettingTimestamp","text","groupingKey","senderTimestampMs","currencyCodeIso4217","amount1000","requestFrom","expiryTimestamp","localChatState","welcomeTrigger","scheduledTimestampMs","callType","title","encPayload","encIv","secretEncType","remoteKeyId","groupId","axolotlSenderKeyDistributionMessage","description","requesterJid","splitId","participantJid","type","text","thumbnail","stickerKey","type","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","mediaKeyTimestamp","firstFrameLength","firstFrameSidecar","isAnimated","pngThumbnail","stickerSentTs","isAvatar","isAiSticker","isLottie","accessibilityLabel","premium","emojis","stickerPackId","name","publisher","fileLength","fileSha256","fileEncSha256","mediaKey","directPath","caption","packDescription","mediaKeyTimestamp","trayIconFileName","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","thumbnailHeight","thumbnailWidth","imageDataHash","stickerPackSize","stickerPackOrigin","fileName","isAnimated","accessibilityLabel","isLottie","mimetype","premium","rmrSource","requestTimestamp","selectedId","selectedDisplayText","selectedIndex","selectedCarouselCardIndex","hydratedContentText","hydratedFooterText","templateId","maskLinkedDevices","username","caption","thumbnailImageUrl","profilePictureUrl","url","mimetype","fileSha256","fileLength","seconds","mediaKey","caption","gifPlayback","height","width","fileEncSha256","directPath","mediaKeyTimestamp","jpegThumbnail","streamingSidecar","gifAttribution","viewOnce","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","staticUrl","externalShareFullVideoDurationInSeconds","motionPhotoPresentationOffsetMs","metadataUrl","videoSourceType","senderTimestampMs","serverTimestampMs","status","messageAddOnDurationInSecs","messageAddOnExpiryType","deviceListMetadataVersion","messageSecret","paddingBytes","messageAddOnDurationInSecs","botMessageSecret","reportingTokenVersion","messageAddOnExpiryType","capiCreatedGroup","supportPayload","weblinkRenderConfig","teeBotMetadata","remoteJid","fromMe","id","participant","version","encIv","encPayload","epochHead","deviceRosterHash","sequenceNumber","sigPk","encPk","authPk","preferredMessageEncryptionVersion","preferredMekEncryptionVersion","transportSigningPk","mek","encryptedMessageCiphertext","encryptedMessageSignature","transportSigningSk","mek","plaintext","ciphertext","signature","version","mekId","timestamp","messageId","threadId","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","actThreadId","selfFbid","valid","errorMessage","encryptedMmk","recipDeviceHash","encryptedMmk","recipMailboxHeadHash","value","offset","currencyCode","body","caption","lng","isLive","lat","paymentAmount1000","paymentNoteMsgBody","matchedText","title","description","futureproofBuffer","clientUrl","loc","pollName","pollSelectableOptionsCount","messageSecret","originalSelfAuthor","senderTimestampMs","pollUpdateParentKey","isSentCagPollCreation","pollContentType","pollType","correctOptionIndex","encReactionTargetMessageKey","encReactionEncPayload","encReactionEncIv","botMessageSecret","targetMessageKey","encPayload","encIv","eventName","isEventCanceled","eventDescription","eventJoinLink","eventStartTime","eventEndTime","eventIsScheduledCall","eventExtraGuestsAllowed","plainProtobufBytes","quarantineExtractedText","pollEndTime","pollHideVoterNames","pollAllowAddOption","sharableEventInviteId","sharableEventInviteTitle","sharableEventInviteStartTime","sharableEventInviteEndTime","sharableEventInviteCaption","sharableEventInviteIsCanceled","sharableEventInviteJpegThumbnail","sharableEventInviteCallLink","degreesLatitude","degreesLongitude","name","address","url","jpegThumbnail","name","hash","details","signature","serial","issuer","expires","subject","key","messageTimestamp","participant","messageVibrate","messagePopup","messageLight","lowPriorityNotifications","reactionsMuted","callVibrate","orfClientState","threadId","orfThreadId","error","companionPublicKey","companionIdentityKey","advSecret","userJid","leaveReason","leaveTs","currentLthash","newLthash","patchVersion","collectionName","firstFourBytesFromAHashOfSnapshotMacKey","newLthashSubtract","numberAdd","numberRemove","numberOverride","senderPlatform","isSenderPrimary","id","fileLength","width","height","mimetype","placeholderArgb","textArgb","subtextArgb","mediaKey","mediaKeyTimestamp","fileSha256","fileEncSha256","directPath","currencyDeprecated","amount1000","receiverJid","status","transactionTimestamp","expiryTimestamp","futureproofed","currency","txnStatus","useNoviFiatFormat","pnJid","lidJid","oldPhoto","newPhoto","newPhotoId","senderTimestampMs","serverTimestampMs","xDeprecated","yDeprecated","x","y","editStanzaId","pollNameHash","encPayload","encIv","senderTimestampMs","serverTimestampMs","unread","id","publicKey","privateKey","registrationId","preKeyId","signedPreKeyId","baseKey","identityKey","message","kyberPreKeyId","kyberCiphertext","publicKey","nonce","directPath","fileSha256","height","width","fileLength","bitrate","quality","id","pushname","filterResult","clientNotSupportedConfig","key","value","originalData","extractedText","text","groupingKey","senderTimestampMs","unread","emoji","weight","minVersion","maxVersion","notReportableMinVersion","never","reportingTag","reportingTagTimestamp","currentEpochRootKey","currentEpochAnonId","currentEpochFbid","epochStoragePrivateKey","deviceId","encryptedEpochKey","deviceEpochHmac","deviceId","epochStoragePublicKey","devicePublicKey","newEpochRootKey","newEpochAnonId","newEpochFbid","epochAnonId","epochRootKeyFingerprint","error","taskId","debug","tcpBbr","tcpKeepalive","revealKeyId","revealKey","scheduledTime","id","iteration","chainKey","signingKey","id","iteration","ciphertext","iteration","seed","iteration","seed","public","private","sessionVersion","localIdentityPublic","remoteIdentityPublic","rootKey","previousCounter","remoteRegistrationId","localRegistrationId","needsRefresh","aliceBaseKey","senderRatchetKey","senderRatchetKeyPrivate","index","key","index","cipherKey","macKey","iv","sequence","localBaseKey","localBaseKeyPrivate","localRatchetKey","localRatchetKeyPrivate","localIdentityKey","localIdentityKeyPrivate","preKeyId","signedPreKeyId","baseKey","kyberPreKeyId","kyberCiphertext","disclaimerText","hcaId","sessionTransparencyType","ratchetKey","counter","previousCounter","ciphertext","id","publicKey","privateKey","signature","timestamp","type","actionUrl","actionUrl","source","duration","actionFallbackUrl","authorName","songId","title","author","artistAttribution","isExplicit","duration","channelJid","channelMessageId","hasMultipleReshares","campaignId","campaignExpirationTimestamp","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","weight","lastStickerSentTs","isLottie","imageHash","isAvatarSticker","payload","version","padding","version","name","deviceId","isDeleted","category","version","updatedAtMs","lidJid","pnJid","deviceId","adId","name","msgId","broadcastJid","reservedQuota","scheduledTimestamp","createTimestamp","status","recipientCount","deliveredCount","readCount","repliedCount","quickReplyCount","audienceExpression","customAudienceFbid","fullName","firstName","lidJid","saveOnPrimaryAddressbook","pnJid","username","credentialId","country","type","key","value","chatJid","contactType","email","altPhoneNumbers","birthday","address","acquisitionSource","leadStage","lastOrder","createdAt","modifiedAt","peerJid","isIncoming","deleteMedia","messageTimestamp","type","agmId","labeled","modelMetaData","name","color","predefinedId","deleted","orderIndex","isActive","type","isImmutable","muteEndTimeMs","fullName","firstName","username","aiFeatureStatus","aiReplyMode","name","message","type","createdAt","lastSentAt","isDeleted","mediaId","status","country","gatewayName","credentialId","key","value","muted","muteEndTimestamp","autoMuted","muteEveryoneMentionEndTimestamp","type","chatJid","createdAt","deleted","unstructuredContent","fullName","firstName","paymentNotice","accepted","shortcut","message","count","deleted","startAtLogin","minimizeToTray","language","replaceTextWithEmoji","bannerNotificationDisplayMode","unreadCounterBadgeDisplayMode","isMessagesNotificationEnabled","isCallsNotificationEnabled","isReactionsNotificationEnabled","isStatusReactionsNotificationEnabled","isTextPreviewForNotificationEnabled","defaultNotificationToneId","groupDefaultNotificationToneId","appTheme","wallpaperId","isDoodleWallpaperEnabled","fontSize","isPhotosAutodownloadEnabled","isAudiosAutodownloadEnabled","isVideosAutodownloadEnabled","isDocumentsAutodownloadEnabled","disableLinkPreviews","notificationToneId","mediaUploadQuality","isSpellCheckEnabled","isEnterToSendEnabled","isGroupMessageNotificationEnabled","isGroupReactionsNotificationEnabled","isStatusNotificationEnabled","statusNotificationToneId","shouldPlaySoundForCallNotification","chatThemeId","colorSchemeId","stockWallpaperImageId","shareToFb","shareToIg","listId","name","emoji","isSelected","url","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","isFavorite","deviceIdHint","isLottie","imageHash","isAvatarSticker","isDeactivated","isAutoRenewing","expirationDate","name","enabled","limit","expirationTime","id","tier","status","startTime","endTime","isPlatformChanged","source","creationTime","lastMessageTimestamp","lastSystemMessageTimestamp","id","rootSecret","epoch","status","snapshotMac","patchMac","deviceIndex","clientDebugData","keyId","mac","title","tapUrl","originalUrl","unconsentedUsersUrl","consentedUsersUrl","cardIndex","encoding","transformer","asBlob","asUnsignedInteger","userJid","receiptTimestamp","readTimestamp","playedTimestamp","details","signature","serverSignature","serial","issuer","verifiedName","vdId","vdPublicKey","vdEpochStoragePublicKey","vdEpochStoragePublicKeySig","ocmfRotationToken","deviceEpochHmac","filename","opacity","isGenAi","labelsDisplay","voipIndividualOutgoing","groupsV3","groupsV3Create","changeNumberV2","queryStatusV3Thumbnail","liveLocations","queryVname","voipIndividualIncoming","quickRepliesQuery","payments","stickerPackQuery","liveLocationsFinal","labelsEdit","mediaUpload","mediaUploadRichQuickReplies","vnameV2","videoPlaybackUrl","statusRanking","voipIndividualVideo","thirdPartyStickers","frequentlyForwardedSetting","groupsV4JoinPermission","recentStickers","catalog","starredStickers","voipGroupCall","templateMessage","templateMessageInteractivity","ephemeralMessages","e2ENotificationSync","recentStickersV2","recentStickersV3","userNotice","support","groupUiiCleanup","groupDogfoodingInternalOnly","settingsSync","archiveV2","ephemeralAllowGroupMembers","ephemeral24HDuration","mdForceUpgrade","disappearingMode","externalMdOptInAvailable","noDeleteMessageTimeLimit","messageTimestamp","status","participant","messageC2STimestamp","ignore","starred","broadcast","pushName","mediaCiphertextSha256","multicast","urlText","urlNumber","messageStubType","clearMedia","ephemeralStartTimestamp","ephemeralDuration","ephemeralOffToOn","ephemeralOutOfSync","bizPrivacyStatus","verifiedBizName","agentId","statusAlreadyViewed","messageSecret","originalSelfAuthorUserJidString","revokeMessageTimestamp","is1PBizBotMessage","isGroupHistoryMessage","botMessageInvokerJid","nonJidMentions","hsmTag","ephemeralExpirationTimestamp","timestamp","unreadChats","notifyMessageCount"];
 
 function createPartialMessage(codec: { fromPartial(object: any): any }, base: any): any {
   return codec.fromPartial(base ?? {});

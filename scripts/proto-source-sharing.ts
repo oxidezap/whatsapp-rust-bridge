@@ -9,6 +9,11 @@ const UNKNOWN_BODY = [
 const UNKNOWN_HELPER = `function skipUnknownProtoField(reader: BinaryReader, tag: number): void {\n${UNKNOWN_BODY.map(line => `  ${line}`).join("\n")}\n}\n`;
 const UNKNOWN_CALL = "skipUnknownProtoField(reader, tag);";
 
+// The retained public fromPartial workload showed these scalar loops were costly.
+const DIRECT_SCALAR_CODECS = new Set([
+  "ClientPayload", "Message", "Message_ImageMessage", "ContextInfo", "DisappearingMode",
+]);
+
 /** The wire guard must still inspect the exact shared framing operation, not trust its name. */
 export function expandSharedUnknownFields(source: string): string {
   const calls = source.includes(UNKNOWN_CALL);
@@ -59,10 +64,15 @@ export function shareProtoPrivateWork(source: string): SharingReport {
         statements[statements.length - 1]?.getText(file) !== "return message;") {
         throw new Error("fromPartial base construction changed");
       }
+      const codec = node.parent.parent;
+      if (!ts.isVariableDeclaration(codec) || !ts.isIdentifier(codec.name)) {
+        throw new Error("fromPartial codec identity changed");
+      }
+      const directScalars = DIRECT_SCALAR_CODECS.has(codec.name.text);
       let run: { node: ts.Statement; key: string }[] = [];
       function finish() {
         // One field cannot amortize a call and private metadata; leave it alone.
-        if (run.length >= 2) {
+        if (!directScalars && run.length >= 2) {
           const start = keys.length;
           keys.push(...run.map(field => field.key));
           edits.push({ start: run[0].node.getStart(file), end: run[run.length - 1].node.end,
