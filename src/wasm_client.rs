@@ -193,14 +193,75 @@ macro_rules! bridge_events {
                     let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(
                         &data.$pfield,
                     )?;
-                    js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
-                    ($pname, value)
+                    ($pname, set_event_proto_field(value, stringify!($pfield), proto)?)
                 } )*
                 other => return event_to_js_special(other),
             };
             make_js_event(event_type, &data)
         }
     };
+}
+
+// Share the interning/set/error tail without duplicating it in each proto arm.
+#[inline(never)]
+fn set_event_proto_field(
+    value: JsValue,
+    field: &'static str,
+    proto: JsValue,
+) -> Result<JsValue, JsValue> {
+    js_sys::Reflect::set(&value, &interned(field), &proto)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod proto_event_tail_controls {
+    use super::{interned, make_js_event, set_event_proto_field};
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn shared_tail_keeps_object_identity_omission_and_event_envelope() {
+        let value: JsValue = js_sys::Object::new().into();
+        js_sys::Reflect::set(&value, &"snake_case_name".into(), &"kept".into()).unwrap();
+        let result = set_event_proto_field(value.clone(), "message", JsValue::UNDEFINED)
+            .expect("same payload object");
+        assert_eq!(result, value);
+        assert!(!js_sys::Reflect::has(&result, &"absent_name".into()).unwrap());
+        assert!(js_sys::Reflect::has(&result, &"message".into()).unwrap());
+        assert!(
+            js_sys::Reflect::get(&result, &"message".into())
+                .unwrap()
+                .is_undefined()
+        );
+        let envelope = make_js_event("control", &result).unwrap();
+        assert_eq!(
+            js_sys::Reflect::get(&envelope, &"type".into()).unwrap(),
+            JsValue::from_str("control")
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&envelope, &"data".into()).unwrap(),
+            value
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&result, &"snake_case_name".into()).unwrap(),
+            JsValue::from_str("kept")
+        );
+    }
+
+    #[test]
+    fn shared_tail_keeps_the_native_reflect_exception() {
+        let expected =
+            js_sys::Reflect::set(&JsValue::NULL, &interned("message"), &JsValue::UNDEFINED)
+                .expect_err("the original inline set rejects null");
+        let actual = set_event_proto_field(JsValue::NULL, "message", JsValue::UNDEFINED)
+            .expect_err("the shared set rejects null too");
+        for field in ["name", "message"] {
+            assert_eq!(
+                js_sys::Reflect::get(&actual, &field.into()).unwrap(),
+                js_sys::Reflect::get(&expected, &field.into()).unwrap()
+            );
+        }
+    }
 }
 
 bridge_events! {
