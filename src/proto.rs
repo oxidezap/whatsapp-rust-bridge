@@ -49,11 +49,16 @@ pub fn to_js_value<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
         // strings (protobufjs already treats huge ids as strings/Longs);
         // every other field keeps its exact prior shape, incl. plain `number`s
         // for the in-range 64-bit fields that `asNumber`-style consumers read.
-        Err(_) => {
-            let json = serde_json::to_value(val).map_err(|e| JsValue::from_str(&e.to_string()))?;
-            json_to_js(&json)
-        }
+        Err(_) => to_js_value_fallback(val),
     }
+}
+
+// Keep the uncommon JSON retry out of each type's normal serializer path.
+#[cold]
+#[inline(never)]
+fn to_js_value_fallback<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
+    let json = serde_json::to_value(val).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    json_to_js(&json)
 }
 
 /// JS `Number.MAX_SAFE_INTEGER`. Integers with magnitude beyond this lose
@@ -141,6 +146,71 @@ mod tests {
         // Other fields unchanged.
         let pn = js_sys::Reflect::get(&js, &JsValue::from_str("push_name")).unwrap();
         assert_eq!(pn.as_string().as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn serializer_controls_normal_and_genuine_fallback_preserve_absence() {
+        #[derive(serde::Serialize)]
+        struct Control {
+            wide_number: u64,
+            small_number: i64,
+            snake_case_name: &'static str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            absent_name: Option<String>,
+        }
+        for wide_number in [42, u64::MAX] {
+            let value = Control {
+                wide_number,
+                small_number: -7,
+                snake_case_name: "unchanged",
+                absent_name: None,
+            };
+            let serializer = serde_wasm_bindgen::Serializer::new()
+                .serialize_large_number_types_as_bigints(false)
+                .serialize_maps_as_objects(true);
+            let primary = serde::Serialize::serialize(&value, &serializer);
+            assert_eq!(primary.is_err(), wide_number == u64::MAX);
+            let js = to_js_value(&value).expect("both serializer paths settle");
+            let wide = js_sys::Reflect::get(&js, &"wide_number".into()).unwrap();
+            if wide_number == u64::MAX {
+                assert_eq!(wide.as_string().as_deref(), Some("18446744073709551615"));
+            } else {
+                assert_eq!(wide.as_f64(), Some(42.0));
+            }
+            assert_eq!(
+                js_sys::Reflect::get(&js, &"small_number".into())
+                    .unwrap()
+                    .as_f64(),
+                Some(-7.0)
+            );
+            assert_eq!(
+                js_sys::Reflect::get(&js, &"snake_case_name".into())
+                    .unwrap()
+                    .as_string()
+                    .as_deref(),
+                Some("unchanged")
+            );
+            assert!(!js_sys::Reflect::has(&js, &"absent_name".into()).unwrap());
+            assert!(!js.is_instance_of::<js_sys::Map>());
+        }
+    }
+
+    #[test]
+    fn serializer_error_control_retries_and_preserves_json_error() {
+        struct Fails(std::cell::Cell<usize>);
+        impl serde::Serialize for Fails {
+            fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+                self.0.set(self.0.get() + 1);
+                Err(serde::ser::Error::custom("control serialize failure"))
+            }
+        }
+        let value = Fails(std::cell::Cell::new(0));
+        let error = to_js_value(&value).expect_err("both serializer attempts fail");
+        assert_eq!(value.0.get(), 2);
+        assert_eq!(
+            error.as_string().as_deref(),
+            Some("control serialize failure")
+        );
     }
 
     fn set(target: &JsValue, key: &str, value: &JsValue) {
