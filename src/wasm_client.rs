@@ -234,6 +234,7 @@ bridge_events! {
         MissedCall               => "missed_call"                   => "MissedCall",
         CallEndedElsewhere       => "call_ended_elsewhere"          => "CallEndedElsewhere",
         MexNotification          => "mex_notification"               => "MexNotification",
+        ReachoutTimelockUpdate    => "reachout_timelock_update"        => "ReachoutTimelockUpdate",
         PairingCodeRefresh       => "pairing_code_refresh"          => "PairingCodeRefresh",
         PairPasskeyRequest       => "pair_passkey_request"          => "PairPasskeyRequest",
         PairPasskeyConfirmation  => "pair_passkey_confirmation"     => "PairPasskeyConfirmation",
@@ -265,6 +266,11 @@ bridge_events! {
         QuickReplyUpdate               => "quick_reply_update"              => "QuickReplyUpdate" => action,
         DisableLinkPreviewsUpdate      => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate" => action,
         CallLogSync                    => "call_log_sync"                   => "CallLogSync" => record,
+        CallLogHistory                 => "call_log_history"                => "CallLogHistory" => record,
+        FavoriteStickerUpdate          => "favorite_sticker_update"         => "FavoriteStickerUpdate" => action,
+        RemoveRecentStickerUpdate      => "remove_recent_sticker_update"    => "RemoveRecentStickerUpdate" => action,
+        FavoritesUpdate                => "favorites_update"                => "FavoritesUpdate" => action,
+        StatusPrivacyUpdate            => "status_privacy_update"           => "StatusPrivacyUpdate" => action,
     }
     special {
         // Variant                     => "js_name"                         => "TsDataType"
@@ -662,9 +668,9 @@ export interface CacheConfig {
 // must also be exported for TypeScript to merge it with the generated class.
 export interface WasmWhatsAppClient {
   /** Fetch all groups the user is participating in. */
-  groupFetchAllParticipating(): Promise<Record<string, GroupMetadataResult>>;
+  groupFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
   /** Fetch all parent groups the user is participating in. */
-  communityFetchAllParticipating(): Promise<Record<string, GroupMetadataResult>>;
+  communityFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
   /** Fetch user info for one or more JIDs. */
   fetchUserInfo(jids: string[]): Promise<Record<string, UserInfoResult>>;
 }
@@ -3271,6 +3277,34 @@ fn community_link_result(
     }
 }
 
+fn group_overview_to_result(
+    group: &whatsapp_rust::features::GroupOverview,
+) -> crate::result_types::GroupOverviewResult {
+    use crate::result_types::{GroupHierarchyResult as R, GroupOverviewResult};
+    use whatsapp_rust::features::{GroupHierarchy as H, SubgroupKind};
+    GroupOverviewResult {
+        id: group.id.to_string(),
+        subject: group.subject.clone(),
+        participant_count: group.participant_count.map(|v| v as f64),
+        hierarchy: match &group.hierarchy {
+            H::Standalone => R::Standalone,
+            H::Community => R::Community,
+            H::Subgroup { parent, kind } => R::Subgroup {
+                parent: parent.to_string(),
+                kind: match kind {
+                    SubgroupKind::Regular => "regular".into(),
+                    SubgroupKind::Announcement => "announcement".into(),
+                    SubgroupKind::General => "general".into(),
+                    other => format!("{other:?}"),
+                },
+            },
+            other => R::Unknown {
+                detail: format!("{other:?}"),
+            },
+        },
+    }
+}
+
 /// Convert GroupMetadata to a typed result struct.
 fn group_metadata_to_result(
     metadata: &whatsapp_rust::features::GroupMetadata,
@@ -3281,7 +3315,7 @@ fn group_metadata_to_result(
     };
     GroupMetadataResult {
         id: metadata.id.to_string(),
-        subject: metadata.subject.to_string(),
+        subject: metadata.subject.clone(),
         notify: metadata.notify.clone(),
         participants: metadata
             .participants
@@ -3332,7 +3366,7 @@ fn group_metadata_to_result(
             .member_link_mode
             .as_ref()
             .map(|m| m.as_str().to_string()),
-        size: metadata.size.map(|v| v as f64),
+        participant_count: metadata.participant_count.map(|v| v as f64),
         is_parent_group: metadata.is_parent_group,
         parent_group_jid: metadata.parent_group_jid.as_ref().map(|j| j.to_string()),
         is_default_sub_group: metadata.is_default_sub_group,
@@ -3966,6 +4000,8 @@ fn newsletter_metadata_to_result(
         invite_code: meta.invite_code.clone(),
         role: meta.role.as_ref().map(newsletter_role_str),
         creation_time: meta.creation_time.map(|v| v as f64),
+        muted: meta.muted,
+        follower_activity_muted: meta.follower_activity_muted,
     }
 }
 
@@ -4548,6 +4584,107 @@ mod event_delivery_tests {
     use whatsapp_rust::wacore::types::message::MessageInfo;
     use whatsapp_rust::wacore::types::presence::ReceiptType;
     use whatsapp_rust::waproto::whatsapp::Message;
+
+    #[test]
+    async fn reachout_typed_and_raw_events_each_cross_once_without_normalization() {
+        use whatsapp_rust::wacore::types::events::{
+            ChannelEventHandler, CoreEventBus, EventInterest, EventKind, MexNotification,
+            ReachoutTimelock, ReachoutTimelockUpdate,
+        };
+        let bus = CoreEventBus::new();
+        let (handler, rx) = ChannelEventHandler::new();
+        let subscription = bus.subscribe_handler(handler.clone());
+        assert!(subscription.update_interest(EventInterest::of(&[
+            EventKind::ReachoutTimelockUpdate,
+            EventKind::MexNotification,
+        ])));
+        let state: ReachoutTimelock = serde_json::from_value(serde_json::json!({
+            "enforcement_type": "future-policy", "is_active": false,
+            "time_enforcement_ends": "18446744073709551615",
+        }))
+        .unwrap();
+        let payload = serde_json::json!({"notify": {"opaque": [false, null, "future"]}});
+        bus.dispatch(Event::ReachoutTimelockUpdate(
+            ReachoutTimelockUpdate::builder()
+                .state(state)
+                .stanza_id("synthetic".into())
+                .offline("future-marker".into())
+                .build(),
+        ));
+        bus.dispatch(Event::MexNotification(
+            MexNotification::builder()
+                .op_name("NotificationUserReachoutTimelockUpdate".into())
+                .payload(payload.clone())
+                .build(),
+        ));
+        assert_eq!(handler.stats().enqueued, 2);
+        rx.close();
+
+        let seen = Rc::new(RefCell::new(Vec::<JsValue>::new()));
+        let sink = seen.clone();
+        let callback = Closure::wrap(Box::new(move |event: JsValue| {
+            sink.borrow_mut().push(event);
+        }) as Box<dyn FnMut(JsValue)>);
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(&object, &EVENT_CALLBACK_METHOD.into(), callback.as_ref()).unwrap();
+        let callbacks = JsEventCallbacks::from_js(object.into()).unwrap();
+        run_event_consumer(&callbacks, rx).await;
+        let seen = seen.borrow();
+        assert_eq!(seen.len(), 2);
+        let get = |value: &JsValue, key: &str| js_sys::Reflect::get(value, &key.into()).unwrap();
+        assert_eq!(
+            get(&seen[0], "type").as_string().as_deref(),
+            Some("reachout_timelock_update")
+        );
+        let data = get(&seen[0], "data");
+        let state = get(&data, "state");
+        assert_eq!(
+            get(&state, "enforcement_type").as_string().as_deref(),
+            Some("future-policy")
+        );
+        assert_eq!(get(&state, "is_active").as_bool(), Some(false));
+        assert_eq!(
+            get(&state, "time_enforcement_ends").as_string().as_deref(),
+            Some("18446744073709551615")
+        );
+        assert!(get(&data, "from").is_undefined());
+        assert_eq!(
+            get(&data, "offline").as_string().as_deref(),
+            Some("future-marker")
+        );
+        assert_eq!(
+            get(&seen[1], "type").as_string().as_deref(),
+            Some("mex_notification")
+        );
+        let raw = get(&get(&seen[1], "data"), "payload");
+        assert_eq!(
+            serde_wasm_bindgen::from_value::<serde_json::Value>(raw).unwrap(),
+            payload
+        );
+        let absent = event_to_js(&Event::ReachoutTimelockUpdate(
+            ReachoutTimelockUpdate::builder()
+                .state(ReachoutTimelock::default())
+                .build(),
+        ))
+        .unwrap();
+        let state = get(&get(&absent, "data"), "state");
+        for key in ["enforcement_type", "is_active", "time_enforcement_ends"] {
+            assert!(get(&state, key).is_undefined(), "invented {key}");
+        }
+    }
+
+    #[test]
+    fn missing_group_subject_stays_absent_and_count_is_not_roster_length() {
+        let metadata = whatsapp_rust::features::GroupMetadata {
+            participant_count: Some(300),
+            ..Default::default()
+        };
+        let value = serde_json::to_value(group_metadata_to_result(&metadata)).unwrap();
+        assert!(value.get("subject").is_none());
+        assert_eq!(value["participantCount"], 300.0);
+        assert_eq!(value["participants"], serde_json::json!([]));
+        assert!(value.get("size").is_none());
+    }
 
     /// One observed host callback: the method name and the bytes it received.
     type Calls = Rc<RefCell<Vec<(String, Vec<u8>)>>>;

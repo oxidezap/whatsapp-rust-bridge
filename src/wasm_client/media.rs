@@ -60,7 +60,7 @@ impl WasmWhatsAppClient {
         let data = self
             .client
             .unwaited(Unwaited::Cached)
-            .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
+            .download(&whatsapp_rust::download::DownloadParams::encrypted(
                 direct_path,
                 media_key,
                 file_sha256,
@@ -76,7 +76,7 @@ impl WasmWhatsAppClient {
     ///
     /// Same as `downloadMedia`, delivered in 64 KB chunks. Neither side is
     /// bounded by that: the core has no streaming download, so
-    /// `download_from_params` still resolves the whole plaintext into one
+    /// `download` still resolves the whole plaintext into one
     /// `Vec<u8>` before chunking starts, and on the JS side only the queued
     /// chunks are bounded — a consumer that keeps them, to rebuild the file,
     /// ends up holding all of it. In Node.js, consume with
@@ -107,7 +107,7 @@ impl WasmWhatsAppClient {
             use futures::SinkExt;
 
             match client
-                .download_from_params(&whatsapp_rust::download::DownloadParams::encrypted(
+                .download(&whatsapp_rust::download::DownloadParams::encrypted(
                     direct_path.as_str(),
                     &media_key,
                     &file_sha256,

@@ -1024,7 +1024,14 @@ fn protocol_terminal_to_result(
         P::ConnectFailure(reason) => R::ConnectFailure {
             reason: super::connect_failure_reason_str(reason),
         },
-        P::Conflict => R::Conflict,
+        P::Conflict(cause) => R::Conflict {
+            cause: match cause {
+                whatsapp_rust::ConflictKind::Replaced => "replaced".into(),
+                whatsapp_rust::ConflictKind::DeviceRemoved => "device_removed".into(),
+                whatsapp_rust::ConflictKind::Unknown => "unknown".into(),
+                other => format!("{other:?}"),
+            },
+        },
         other => R::Unknown {
             detail: format!("{other:?}"),
         },
@@ -1308,9 +1315,16 @@ mod run_completion_tests {
         assert_eq!(payload["kind"], "connect-failure");
         assert_eq!(payload["reason"], "LoggedOut");
 
-        let conflict = protocol_terminal_to_result(&P::Conflict);
-        let payload = serde_json::to_value(&conflict).expect("serializes");
-        assert_eq!(payload["kind"], "conflict");
+        for (cause, expected) in [
+            (whatsapp_rust::ConflictKind::Replaced, "replaced"),
+            (whatsapp_rust::ConflictKind::DeviceRemoved, "device_removed"),
+            (whatsapp_rust::ConflictKind::Unknown, "unknown"),
+        ] {
+            let conflict = protocol_terminal_to_result(&P::Conflict(cause));
+            let payload = serde_json::to_value(&conflict).expect("serializes");
+            assert_eq!(payload["kind"], "conflict");
+            assert_eq!(payload["cause"], expected);
+        }
     }
 
     /// The payload the host actually reads: the branch the reconnect-disabled

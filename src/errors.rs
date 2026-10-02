@@ -203,6 +203,10 @@ impl BridgeError {
                 return BridgeError::Storage {
                     operation: dc.to_string(),
                 };
+            } else if let Some(media) = c.downcast_ref::<wacore::download::MediaDecryptionError>() {
+                return BridgeError::Crypto {
+                    operation: media.to_string(),
+                };
             } else if let Some(sock) = c.downcast_ref::<SocketError>() {
                 if let Some(b) = socket_to_bridge(sock) {
                     return b;
@@ -586,6 +590,9 @@ classify! {
     // Every variant carries a source; the walk and the core's answers cover it.
     ChatStateError {}
 
+    // Download failures retain the IQ/storage source rather than flattening it.
+    whatsapp_rust::download::ClientDownloadError {}
+
     // `Timeout` needs no arm: the core reports it, including the handshake
     // timeout nested under `Handshake` that this list could not reach. The two
     // below are the caller reaching for a client that cannot connect — already
@@ -683,6 +690,7 @@ classify! {
 
     NewsletterError {
         NewsletterError::InvalidRequest(detail) => invalid_request(detail),
+        NewsletterError::EmptyPicture => invalid_arg("jpeg", "picture data cannot be empty; use newsletterRemovePicture"),
     }
 
     PollError {
@@ -872,6 +880,50 @@ mod tests {
             }
             other => panic!("expected Server, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn download_cleanup_preserves_the_original_server_rejection() {
+        use whatsapp_rust::download::ClientDownloadError as D;
+        let original = D::MediaSession {
+            force_refresh: true,
+            source: IqError::ServerError {
+                code: 429,
+                text: "slow-down".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(7),
+                response: rejection_stanza(),
+            },
+        };
+        let error = D::WriterCleanup {
+            failure: Box::new(original),
+            cleanup: std::io::Error::other("cleanup failed"),
+        };
+        match BridgeError::from(error) {
+            BridgeError::Server {
+                server_code,
+                server_text,
+                error_type,
+                backoff_seconds,
+            } => {
+                assert_eq!(server_code, 429);
+                assert_eq!(server_text, "slow-down");
+                assert_eq!(error_type.as_deref(), Some("wait"));
+                assert_eq!(backoff_seconds, Some(7));
+            }
+            other => panic!("lost download source: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn download_integrity_failure_keeps_crypto_kind_through_host_failover() {
+        let error = whatsapp_rust::download::ClientDownloadError::HostsUnreachable(
+            wacore::download::MediaDecryptionError::EncryptedSha256Mismatch.into(),
+        );
+        assert!(matches!(
+            BridgeError::from(error),
+            BridgeError::Crypto { .. }
+        ));
     }
 
     #[test]

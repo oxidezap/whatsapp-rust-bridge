@@ -240,6 +240,12 @@ fn main() {
         }
     }
 
+    // ReachoutTimelock is a pub-use rename of a nested generated MEX state.
+    // Read its real serde declaration rather than duplicating the three fields.
+    let mex_source = std::fs::read_to_string(sources.wacore_src.join("iq/mex_operations.rs"))
+        .expect("MEX operation sources");
+    parse_reachout_timelock(&mex_source, &mut all_types);
+
     // Also parse send.rs for SendOptions/RevokeType
     parse_file(&src_dir.join("send.rs"), &mut all_types);
 
@@ -632,6 +638,30 @@ fn render_enum_variant(variant: &TsEnumVariant, representation: &EnumRepresentat
             TsEnumVariant::Fallback => unreachable!(),
         },
     }
+}
+
+fn parse_reachout_timelock(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
+    let file = syn::parse_file(content).expect("MEX operation syntax");
+    let module = file
+        .items
+        .iter()
+        .find_map(|item| match item {
+            Item::Mod(module) if module.ident == "fetch_reachout_timelock" => Some(module),
+            _ => None,
+        })
+        .expect("fetch_reachout_timelock module");
+    let (_, items) = module.content.as_ref().expect("inline MEX state");
+    let mut state = items
+        .iter()
+        .find_map(|item| match item {
+            Item::Struct(state) if state.ident == "Xwa2FetchAccountReachoutTimelock" => {
+                Some(state.clone())
+            }
+            _ => None,
+        })
+        .expect("ReachoutTimelock serde state");
+    state.ident = syn::Ident::new("ReachoutTimelock", state.ident.span());
+    parse_source(&state.to_token_stream().to_string(), types);
 }
 
 fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
@@ -1992,6 +2022,32 @@ mod tests {
             .get(name)
             .unwrap_or_else(|| panic!("missing generated type {name}"))
             .to_typescript(name)
+    }
+
+    #[test]
+    fn reachout_alias_reads_the_nested_serde_state_including_future_fields() {
+        let source = r#"
+            pub mod fetch_reachout_timelock {
+                #[derive(Serialize)]
+                pub struct Xwa2FetchAccountReachoutTimelock {
+                    pub enforcement_type: Option<String>,
+                    pub is_active: Option<bool>,
+                    pub time_enforcement_ends: Option<String>,
+                    pub future_tokens: Option<Vec<String>>,
+                }
+            }
+        "#;
+        let mut types = BTreeMap::new();
+        parse_reachout_timelock(source, &mut types);
+        let declaration = types["ReachoutTimelock"].to_typescript("ReachoutTimelock");
+        for field in [
+            "enforcement_type?: string",
+            "is_active?: boolean",
+            "time_enforcement_ends?: string",
+            "future_tokens?: string[]",
+        ] {
+            assert!(declaration.contains(field), "{declaration}");
+        }
     }
 
     fn ts_of(source: &str) -> String {
