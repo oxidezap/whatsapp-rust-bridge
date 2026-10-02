@@ -10,9 +10,19 @@ public exports, or new field/default policies.
 The normal default producer, with unchanged optimizer flags and ceilings, gives
 an 84,288-byte largest WASM body versus 111,694 at `12ece04`. The supported
 selected package after preserving bindgen declaration formatting and the bounded
-performance selection is 8,298,701 bytes against 8,300,000 (1,299 bytes of room).
-This is tight headroom, not a changed budget. Unsafe declaration
-aliases and ineffective event-splitting/Map-tail experiments are not adopted.
+performance selection is 8,298,722 bytes against 8,300,000 (1,278 bytes of room).
+This is tight headroom, not a changed budget. These are the normal default
+artifacts measured on 2026-10-02 after the review fixes, not the failed `12ece04`
+artifact. All 15 runtime/declaration outputs are byte-identical to published
+`f5d1e739e1f2dfa031d89f69da609a79821888f7`; only the README grew 21 bytes to
+identify the bridge repository. That preceding head's canonical package was
+8,298,701 bytes and its exact-head CI passed.
+Selected WASM SHA-256:
+`34e6d630f038d44f23f43ae1cf076845d98d725bdd0695fe805e874c596cc9bb`.
+The canonical 17-file size includes the actual manifest/README and all 15 fresh
+default outputs. Provenance edits in this non-published document do not alter those bytes.
+Unsafe declaration aliases and ineffective event-splitting/Map-tail experiments
+are not adopted.
 
 The generated JS codec separately shares unknown-field framing, ordered scalar
 projection and create completion. Original fresh base construction and public

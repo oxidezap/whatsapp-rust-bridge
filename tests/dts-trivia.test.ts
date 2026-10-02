@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
 import { compactDeclarationTrivia } from "../scripts/dts-trivia";
@@ -58,7 +58,8 @@ function fingerprint(text: string, aliases: ReadonlyMap<string, string>) {
       children.push(visit(child));
     });
     const docs = (node as ts.Node & { jsDoc?: readonly ts.JSDoc[] }).jsDoc?.map(doc => doc.getText());
-    return [node.kind, ts.isIdentifier(node) || ts.isLiteralExpression(node) ? node.text : undefined, docs, children];
+    return [node.kind, ts.isIdentifier(node) || ts.isLiteralExpression(node) || ts.isTemplateLiteralToken(node)
+      ? node.text : undefined, docs, children];
   }
   return visit(file);
 }
@@ -111,6 +112,14 @@ function diagnostics(declaration: string, consumer: string, exact: boolean) {
   }));
 }
 
+test("interpolated template text survives trivia compaction, including nested tails", () => {
+  const original = 'export type T = `a${string} b`;\n' +
+    'export type Nested = ` a${`inside ${string} x`} \\t${number}\\n tail `;\n';
+  const compact = compactDeclarationTrivia(original);
+  expect(fingerprint(compact, new Map())).toEqual(fingerprint(original, new Map()));
+  expect(compactDeclarationTrivia(compact)).toBe(compact);
+});
+
 test("trivia retains comment bytes, literals and newline-sensitive signatures", () => {
   const original = `// leading directive\n/** doc */\nexport interface X {\n  value: "a b";\n  f(): void\n  g(): void\n}\n`;
   const compact = compactDeclarationTrivia(original);
@@ -121,7 +130,9 @@ test("trivia retains comment bytes, literals and newline-sensitive signatures", 
 
 test("actual published declarations retain own AST/docs, specifiers and idempotence", () => {
   for (const name of ["proto-types.d.ts", "whatsapp_rust_bridge.d.ts"]) {
-    const original = readFileSync(`dist/${name}`, "utf8");
+    const path = `dist/${name}`;
+    expect(existsSync(path), `${path} is absent — run \`bun run build\` first`).toBe(true);
+    const original = readFileSync(path, "utf8");
     const candidate = compactDeclarationTrivia(original);
     expect(commentTokens(candidate)).toEqual(commentTokens(original));
     expect(fingerprint(candidate, new Map())).toEqual(fingerprint(original, new Map()));
@@ -169,7 +180,6 @@ const value: string | null | undefined = instance.lid;
     original: diagnostics(FIXTURE, consumer, exact),
     candidate: diagnostics(candidate.text, consumer, exact),
   }));
-  console.info("alias-shadow equivalence", JSON.stringify(outcomes));
   for (const outcome of outcomes) {
     expect(outcome.original).toEqual([]);
     expect(outcome.candidate).toEqual(outcome.original);

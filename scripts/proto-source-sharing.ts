@@ -38,8 +38,27 @@ export interface SharingReport {
 
 /** Share only post-value operations; all fresh base construction and field reads stay ordered. */
 export function shareProtoPrivateWork(source: string): SharingReport {
+  const original = ts.createSourceFile("whatsapp.ts", source, ts.ScriptTarget.Latest, true);
+  const declarations = new Set<string>();
+  const addBinding = (name: ts.BindingName): void => {
+    if (ts.isIdentifier(name)) declarations.add(name.text);
+    else for (const element of name.elements) if (ts.isBindingElement(element)) addBinding(element.name);
+  };
+  for (const statement of original.statements) {
+    if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) addBinding(declaration.name);
+    } else if (ts.isImportDeclaration(statement) && statement.importClause) {
+      if (statement.importClause.name) addBinding(statement.importClause.name);
+      const bindings = statement.importClause.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings)) addBinding(bindings.name);
+      else if (bindings) for (const element of bindings.elements) addBinding(element.name);
+    } else {
+      const name = (statement as ts.Statement & ts.NamedDeclaration).name;
+      if (name && ts.isIdentifier(name)) declarations.add(name.text);
+    }
+  }
   for (const name of ["skipUnknownProtoField", "copyPartialScalars", "createPartialMessage", "partialScalarKeys"]) {
-    if (source.includes(name)) throw new Error(`generated sharing helper collision: ${name}`);
+    if (declarations.has(name)) throw new Error(`generated sharing helper collision: ${name}`);
   }
   const epilogue = /^([ \t]+)if \(tag >>> 3 === 0 \|\| \(tag & 7\) === 4\) \{\n[ \t]+throw new RangeError\(`illegal protobuf tag \$\{tag\} at offset \$\{reader.pos\}`\);\n\1\}\n\1reader\.skip\(tag & 7\);/gm;
   let unknownEpilogues = 0;

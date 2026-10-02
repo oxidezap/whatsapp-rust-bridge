@@ -50,7 +50,7 @@ They are for trying a change, not for running one.
 
 ## Core-upgrade migration
 
-The core update in PR #139 changes group results:
+The core update in whatsapp-rust-bridge PR #139 changes group results:
 
 - Group/community listings return slim `GroupOverviewResult` entries, not full
   metadata. Fetch individual metadata when the operation needs it.

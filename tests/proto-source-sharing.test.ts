@@ -210,7 +210,10 @@ test("shared framing keeps wire skips, next field, reader receiver and invalid-t
     for (const tag of [0, 7, 12]) {
       const bad = new BinaryReader(new Uint8Array([tag]));
       try { module.Leaf.decode(bad); throw new Error("accepted invalid framing"); }
-      catch (error: any) { errors.push([error.name, error.message, bad.pos]); }
+      catch (error: any) {
+        expect(error).toBeInstanceOf(RangeError);
+        errors.push([error.name, error.message, bad.pos]);
+      }
     }
     outcomes.push({ value, trace, pos: reader.pos, errors });
   }
@@ -221,6 +224,16 @@ test("shared framing keeps wire skips, next field, reader receiver and invalid-t
   expect(expandSharedUnknownFields(shared.text)).not.toContain("skipUnknownProtoField(reader, tag);");
   expect(() => expandSharedUnknownFields(shared.text.replace("reader.skip(tag & 7);", "reader.skip(0);"))).toThrow("framing contract");
   expect(() => expandSharedUnknownFields(shared.text.replace("skipUnknownProtoField(reader, tag);", "return message;"))).toThrow("framing contract");
+});
+
+test("helper reservations apply to module declarations, not schema fields or comments", async () => {
+  for (const name of ["partialScalarKeys", "copyPartialScalars", "createPartialMessage", "skipUnknownProtoField"]) {
+    const source = SOURCE.replaceAll("message.a", `message.${name}`).replaceAll("object.a", `object.${name}`) +
+      `\n// ${name} is a permitted field, not a module declaration\n`;
+    const { original, candidate } = await modules(source);
+    expect(candidate.Leaf.fromPartial({ [name]: 9 })).toEqual(original.Leaf.fromPartial({ [name]: 9 }));
+    expect(() => shareProtoPrivateWork(SOURCE + `\nconst ${name} = 1;`)).toThrow("helper collision");
+  }
 });
 
 test("sharing refuses changed generator shapes instead of silently omitting work", () => {

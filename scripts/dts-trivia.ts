@@ -21,6 +21,9 @@ function tokens(text: string): Token[] {
 /** Keep comments and newline-sensitive grammar; only explicit terminators lose line breaks. */
 export function compactDeclarationTrivia(text: string): string {
   const parts = tokens(text);
+  // A context-free scanner cannot distinguish template tails from ordinary trivia.
+  // Keep the whole declaration unchanged rather than guess at interpolation boundaries.
+  if (parts.some(part => part.kind === ts.SyntaxKind.TemplateHead)) return text;
   return parts.map((part, index) => {
     if (!whitespace(part.kind)) return part.text;
     const previous = parts[index - 1];

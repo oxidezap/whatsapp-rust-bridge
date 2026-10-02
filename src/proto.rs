@@ -35,6 +35,8 @@ where
 ///   native JS `Map`. Plain objects round-trip through `JSON.stringify`,
 ///   support `obj.key` property access, and match what every downstream
 ///   adapter expects.
+// Keep the byte-identical 009 boundary experiment fixed while reducing other work;
+// no size or runtime improvement is attributed to this annotation.
 #[inline(never)]
 pub fn to_js_value<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
     let serializer = serde_wasm_bindgen::Serializer::new()
