@@ -153,6 +153,27 @@ where
     values.into_iter().map(to_ts).collect()
 }
 
+// Borrowed projections keep existing serializer policies out of the event match.
+trait EventPayloadProjection {
+    fn project_payload(&self) -> Result<JsValue, JsValue>;
+}
+
+impl<T: serde::Serialize> EventPayloadProjection for T {
+    fn project_payload(&self) -> Result<JsValue, JsValue> {
+        crate::proto::to_js_value(self)
+    }
+}
+
+trait EventProtoProjection {
+    fn project_proto(&self) -> Result<JsValue, JsValue>;
+}
+
+impl<T: serde::Serialize> EventProtoProjection for T {
+    fn project_proto(&self) -> Result<JsValue, JsValue> {
+        crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(self)
+    }
+}
+
 macro_rules! bridge_events {
     (
         serialize {
@@ -184,19 +205,26 @@ macro_rules! bridge_events {
             $( stringify!($xvariant), )*
         ];
 
-        // Generate event_to_js dispatch (JS-specific, existing path)
+        // Select borrowed operations before calling either existing projection.
         fn event_to_js(event: &Event) -> Result<JsValue, JsValue> {
-            let (event_type, data) = match event {
-                $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
-                $( Event::$pvariant(data) => {
-                    let value = crate::proto::to_js_value(data)?;
-                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(
-                        &data.$pfield,
-                    )?;
-                    ($pname, set_event_proto_field(value, stringify!($pfield), proto)?)
-                } )*
+            let (event_type, payload, proto): (
+                &'static str,
+                &dyn EventPayloadProjection,
+                Option<(&'static str, &dyn EventProtoProjection)>,
+            ) = match event {
+                $( Event::$variant(data) => ($name, data, None), )*
+                $( Event::$pvariant(data) => (
+                    $pname,
+                    data,
+                    Some((stringify!($pfield), &data.$pfield)),
+                ), )*
                 other => return event_to_js_special(other),
             };
+            let mut data = payload.project_payload()?;
+            if let Some((field, projection)) = proto {
+                let value = projection.project_proto()?;
+                data = set_event_proto_field(data, field, value)?;
+            }
             make_js_event(event_type, &data)
         }
     };

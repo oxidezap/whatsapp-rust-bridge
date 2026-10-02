@@ -151,6 +151,7 @@ mod tests {
             wide_number: u64,
             small_number: i64,
             snake_case_name: &'static str,
+            map: std::collections::BTreeMap<&'static str, u8>,
             #[serde(skip_serializing_if = "Option::is_none")]
             absent_name: Option<String>,
         }
@@ -159,6 +160,7 @@ mod tests {
                 wide_number,
                 small_number: -7,
                 snake_case_name: "unchanged",
+                map: [("snake_key", 9)].into(),
                 absent_name: None,
             };
             let serializer = serde_wasm_bindgen::Serializer::new()
@@ -187,6 +189,15 @@ mod tests {
                 Some("unchanged")
             );
             assert!(!js_sys::Reflect::has(&js, &"absent_name".into()).unwrap());
+            let map = js_sys::Reflect::get(&js, &"map".into()).unwrap();
+            assert!(!map.is_instance_of::<js_sys::Map>());
+            assert_eq!(
+                js_sys::Reflect::get(&map, &"snake_key".into())
+                    .unwrap()
+                    .as_f64(),
+                Some(9.0)
+            );
+            assert!(!js_sys::Reflect::has(&map, &"snakeKey".into()).unwrap());
             assert!(!js.is_instance_of::<js_sys::Map>());
         }
     }
