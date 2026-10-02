@@ -552,16 +552,8 @@ pub struct StructSerializer {
     defaults: Defaults,
 }
 
-impl ser::SerializeStruct for StructSerializer {
-    type Ok = JsValue;
-    type Error = Error;
-
-    fn serialize_field<T: Serialize + ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<(), Error> {
-        let js_val = value.serialize(self.defaults.nested())?;
+impl StructSerializer {
+    fn finish_field(&mut self, key: &'static str, js_val: JsValue) -> Result<(), Error> {
         let skip = match self.defaults {
             Defaults::Skip => should_skip(&js_val),
             Defaults::Keep => js_val.is_null() || js_val.is_undefined(),
@@ -573,6 +565,20 @@ impl ser::SerializeStruct for StructSerializer {
         with_camel_key(key, |k| js_sys::Reflect::set(&self.obj, k, &js_val))
             .map_err(|e| Error(format!("{e:?}")))?;
         Ok(())
+    }
+}
+
+impl ser::SerializeStruct for StructSerializer {
+    type Ok = JsValue;
+    type Error = Error;
+
+    fn serialize_field<T: Serialize + ?Sized>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Error> {
+        let js_val = value.serialize(self.defaults.nested())?;
+        self.finish_field(key, js_val)
     }
 
     fn end(self) -> Result<JsValue, Error> {
@@ -791,6 +797,238 @@ mod js_serializer_tests {
         assert_eq!(field(&preserved, "isFinal").as_bool(), Some(false));
         assert_eq!(field(&preserved, "progress").as_f64(), Some(0.0));
         assert!(field(&preserved, "absent").is_undefined());
+    }
+
+    #[test]
+    fn terminal_modes_keep_presence_and_the_supplied_object_identity() {
+        use super::{Defaults, StructSerializer, u64_to_long};
+        let future = js_sys::Object::new();
+        js_sys::Reflect::set(&future, &"unknown_name".into(), &JsValue::NULL).unwrap();
+        let cases = [
+            (JsValue::NULL, [false, false, false]),
+            (JsValue::UNDEFINED, [false, false, false]),
+            (JsValue::FALSE, [false, true, true]),
+            (JsValue::from_f64(0.0), [false, true, true]),
+            (JsValue::from_str(""), [false, true, true]),
+            (js_sys::Array::new().into(), [false, true, false]),
+            (
+                js_sys::Uint8Array::new_with_length(0).into(),
+                [false, true, false],
+            ),
+            (js_sys::Object::new().into(), [false, true, true]),
+            (u64_to_long(0), [false, true, true]),
+            (u64_to_long(u64::MAX), [true, true, true]),
+            (future.into(), [true, true, true]),
+        ];
+        for (value, present) in cases {
+            for (index, defaults) in [Defaults::Skip, Defaults::Keep, Defaults::KeepPresent]
+                .into_iter()
+                .enumerate()
+            {
+                let object = js_sys::Object::new();
+                let mut writer = StructSerializer {
+                    obj: object.clone(),
+                    defaults,
+                };
+                writer.finish_field("some_field", value.clone()).unwrap();
+                assert_eq!(writer.obj, object);
+                assert_eq!(
+                    js_sys::Reflect::has(&object, &"someField".into()).unwrap(),
+                    present[index]
+                );
+                if present[index] {
+                    assert_eq!(field(&object, "someField"), value);
+                }
+            }
+        }
+    }
+
+    struct CountedBool<'a> {
+        calls: &'a std::cell::Cell<u32>,
+        fail: bool,
+    }
+
+    impl Serialize for CountedBool<'_> {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            use serde::ser::Error as _;
+            self.calls.set(self.calls.get() + 1);
+            if self.fail {
+                return Err(S::Error::custom("value control failure"));
+            }
+            serializer.serialize_bool(false)
+        }
+    }
+
+    #[test]
+    fn value_runs_once_before_skip_and_value_failure_never_sets() {
+        use super::{Defaults, StructSerializer};
+        use serde::ser::SerializeStruct as _;
+        let calls = std::cell::Cell::new(0);
+        let object = js_sys::Object::new();
+        let mut writer = StructSerializer {
+            obj: object.clone(),
+            defaults: Defaults::Skip,
+        };
+        writer
+            .serialize_field(
+                "counted_field",
+                &CountedBool {
+                    calls: &calls,
+                    fail: false,
+                },
+            )
+            .unwrap();
+        assert_eq!(calls.get(), 1);
+        assert!(!js_sys::Reflect::has(&object, &"countedField".into()).unwrap());
+        let error = writer
+            .serialize_field(
+                "counted_field",
+                &CountedBool {
+                    calls: &calls,
+                    fail: true,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(calls.get(), 2);
+        assert_eq!(error.to_string(), "value control failure");
+        assert!(!js_sys::Reflect::has(&object, &"countedField".into()).unwrap());
+    }
+
+    #[test]
+    fn cached_key_borrow_stays_held_through_the_setter_and_then_releases() {
+        use super::{CAMEL_KEY_CACHE, Defaults, StructSerializer};
+        use serde::ser::SerializeStruct as _;
+        use std::{cell::Cell, rc::Rc};
+        use wasm_bindgen::closure::Closure;
+        let calls = Rc::new(Cell::new(0));
+        let observed = Rc::new(Cell::new(0));
+        let callback_calls = calls.clone();
+        let callback_observed = observed.clone();
+        let setter = Closure::<dyn FnMut(JsValue)>::new(move |value: JsValue| {
+            assert_eq!(value.as_bool(), Some(false));
+            assert_eq!(callback_calls.get(), callback_observed.get() + 1);
+            assert!(CAMEL_KEY_CACHE.with(|cache| cache.try_borrow_mut().is_err()));
+            callback_observed.set(callback_observed.get() + 1);
+        });
+        let descriptor = js_sys::Object::new();
+        js_sys::Reflect::set(&descriptor, &"set".into(), setter.as_ref()).unwrap();
+        let object = js_sys::Object::new();
+        js_sys::Object::define_property(&object, &"controlledField".into(), &descriptor);
+        let mut writer = StructSerializer {
+            obj: object.clone(),
+            defaults: Defaults::KeepPresent,
+        };
+        for _ in 0..2 {
+            writer
+                .serialize_field(
+                    "controlled_field",
+                    &CountedBool {
+                        calls: &calls,
+                        fail: false,
+                    },
+                )
+                .unwrap();
+            assert!(CAMEL_KEY_CACHE.with(|cache| cache.try_borrow_mut().is_ok()));
+        }
+        assert_eq!(calls.get(), 2);
+        assert_eq!(observed.get(), 2);
+        assert_eq!(writer.obj, object);
+    }
+
+    #[test]
+    fn setter_exception_format_and_false_result_match_the_existing_reflect_contract() {
+        use super::{CAMEL_KEY_CACHE, Defaults, StructSerializer};
+        use serde::ser::SerializeStruct as _;
+        let descriptor = js_sys::Object::new();
+        let setter = js_sys::Function::new_no_args("throw 'terminal setter control'");
+        js_sys::Reflect::set(&descriptor, &"set".into(), &setter).unwrap();
+        let object = js_sys::Object::new();
+        js_sys::Object::define_property(&object, &"controlledField".into(), &descriptor);
+        let expected =
+            js_sys::Reflect::set(&object, &"controlledField".into(), &JsValue::TRUE).unwrap_err();
+        let mut writer = StructSerializer {
+            obj: object,
+            defaults: Defaults::KeepPresent,
+        };
+        let error = writer
+            .serialize_field("controlled_field", &true)
+            .unwrap_err();
+        assert_eq!(error.to_string(), format!("{expected:?}"));
+        assert!(CAMEL_KEY_CACHE.with(|cache| cache.try_borrow_mut().is_ok()));
+        let object = js_sys::Object::new();
+        js_sys::Object::prevent_extensions(&object);
+        let mut writer = StructSerializer {
+            obj: object.clone(),
+            defaults: Defaults::KeepPresent,
+        };
+        assert!(!js_sys::Reflect::set(&object, &"controlledField".into(), &JsValue::TRUE).unwrap());
+        writer.serialize_field("controlled_field", &true).unwrap();
+        assert!(!js_sys::Reflect::has(&object, &"controlledField".into()).unwrap());
+    }
+
+    #[test]
+    fn nested_presence_large_integer_map_and_bytes_keep_their_representations() {
+        use super::{i64_to_long_parts, to_js_value_camel_preserve_top_level_presence};
+        #[derive(Serialize)]
+        struct Nested {
+            supplied_zero: Option<u32>,
+            supplied_false: Option<bool>,
+            supplied_empty: Option<String>,
+            absent: Option<u32>,
+            large: i64,
+            bytes: Vec<u8>,
+            empty_bytes: Vec<u8>,
+            future_map: std::collections::BTreeMap<String, Option<bool>>,
+        }
+        #[derive(Serialize)]
+        struct Outer {
+            nested: Nested,
+        }
+        let value = Outer {
+            nested: Nested {
+                supplied_zero: Some(0),
+                supplied_false: Some(false),
+                supplied_empty: Some(String::new()),
+                absent: None,
+                large: i64::MAX,
+                bytes: vec![1, 255],
+                empty_bytes: Vec::new(),
+                future_map: [("unknown_name".to_owned(), None)].into_iter().collect(),
+            },
+        };
+        let skipped = field(&to_js_value_camel(&value).unwrap(), "nested");
+        let kept = field(
+            &to_js_value_camel_preserve_top_level_defaults(&value).unwrap(),
+            "nested",
+        );
+        let present = field(
+            &to_js_value_camel_preserve_top_level_presence(&value).unwrap(),
+            "nested",
+        );
+        for object in [&skipped, &kept] {
+            assert!(field(object, "suppliedZero").is_undefined());
+            assert!(field(object, "suppliedFalse").is_undefined());
+            assert!(field(object, "suppliedEmpty").is_undefined());
+        }
+        assert_eq!(field(&present, "suppliedZero").as_f64(), Some(0.0));
+        assert_eq!(field(&present, "suppliedFalse").as_bool(), Some(false));
+        assert_eq!(
+            field(&present, "suppliedEmpty").as_string().as_deref(),
+            Some("")
+        );
+        for object in [&skipped, &kept, &present] {
+            assert!(!js_sys::Reflect::has(object, &"absent".into()).unwrap());
+            assert!(!js_sys::Reflect::has(object, &"emptyBytes".into()).unwrap());
+            let (low, high) = i64_to_long_parts(i64::MAX);
+            let large = field(object, "large");
+            assert_eq!(field(&large, "low").as_f64(), Some(low as f64));
+            assert_eq!(field(&large, "high").as_f64(), Some(high as f64));
+            assert_eq!(field(&large, "unsigned").as_bool(), Some(false));
+            let bytes = field(object, "bytes");
+            assert!(bytes.is_instance_of::<js_sys::Uint8Array>());
+            assert_eq!(js_sys::Uint8Array::from(bytes).to_vec(), vec![1, 255]);
+            assert!(field(&field(object, "futureMap"), "unknown_name").is_null());
+        }
     }
 
     #[test]
