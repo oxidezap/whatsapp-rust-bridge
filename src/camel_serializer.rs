@@ -459,13 +459,8 @@ fn js_u8(value: &JsValue) -> Option<u8> {
     ((byte as f64 - number).abs() < f64::EPSILON && (0.0..=255.0).contains(&number)).then_some(byte)
 }
 
-impl ser::SerializeSeq for SeqSerializer {
-    type Ok = JsValue;
-    type Error = Error;
-
-    fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
-        let js = value.serialize(self.defaults.nested())?;
-        let byte = js_u8(&js);
+impl SeqSerializer {
+    fn finish_element(&mut self, js: JsValue, byte: Option<u8>) -> Result<(), Error> {
         match &mut self.items {
             SeqItems::Unknown { capacity } => {
                 if let Some(byte) = byte {
@@ -494,6 +489,17 @@ impl ser::SerializeSeq for SeqSerializer {
             SeqItems::Values(values) => values.push(js),
         }
         Ok(())
+    }
+}
+
+impl ser::SerializeSeq for SeqSerializer {
+    type Ok = JsValue;
+    type Error = Error;
+
+    fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Error> {
+        let js = value.serialize(self.defaults.nested())?;
+        let byte = js_u8(&js);
+        self.finish_element(js, byte)
     }
 
     fn end(self) -> Result<JsValue, Error> {
@@ -1029,6 +1035,146 @@ mod js_serializer_tests {
             assert_eq!(js_sys::Uint8Array::from(bytes).to_vec(), vec![1, 255]);
             assert!(field(&field(object, "futureMap"), "unknown_name").is_null());
         }
+    }
+
+    #[test]
+    fn empty_nonbyte_first_and_byte_promotion_keep_order_and_representation() {
+        let empty = to_js_value_camel(&Vec::<u8>::new()).unwrap();
+        assert!(empty.is_instance_of::<js_sys::Array>());
+        assert_eq!(js_sys::Array::from(&empty).length(), 0);
+        for (values, bytes) in [
+            (vec![0i32, 255], true),
+            (vec![-1i32, 0, 1], false),
+            (vec![1i32, 2, 256, 3], false),
+        ] {
+            let encoded = to_js_value_camel(&values).unwrap();
+            assert_eq!(encoded.is_instance_of::<js_sys::Uint8Array>(), bytes);
+            if bytes {
+                assert_eq!(js_sys::Uint8Array::from(encoded).to_vec(), vec![0, 255]);
+            } else {
+                assert!(encoded.is_instance_of::<js_sys::Array>());
+                let array = js_sys::Array::from(&encoded);
+                assert_eq!(array.length(), values.len() as u32);
+                for (index, value) in values.into_iter().enumerate() {
+                    assert_eq!(array.get(index as u32).as_f64(), Some(value as f64));
+                }
+            }
+        }
+        let fractional = js_sys::Array::from(&to_js_value_camel(&vec![1.0, 1.5, 2.0]).unwrap());
+        assert_eq!(fractional.length(), 3);
+        assert_eq!(fractional.get(0).as_f64(), Some(1.0));
+        assert_eq!(fractional.get(1).as_f64(), Some(1.5));
+        assert_eq!(fractional.get(2).as_f64(), Some(2.0));
+    }
+
+    #[test]
+    fn sequence_hint_growth_and_promotion_match_the_existing_vec_policy() {
+        use super::{Defaults, SeqItems, SeqSerializer};
+        use serde::ser::SerializeSeq as _;
+        let mut writer = SeqSerializer {
+            items: SeqItems::Unknown { capacity: 7 },
+            defaults: Defaults::KeepPresent,
+        };
+        let mut bytes = Vec::with_capacity(7);
+        for byte in 0u8..10 {
+            bytes.push(byte);
+            writer.serialize_element(&byte).unwrap();
+            match &writer.items {
+                SeqItems::Bytes(actual) => {
+                    assert_eq!(actual, &bytes);
+                    assert_eq!(actual.capacity(), bytes.capacity());
+                }
+                _ => panic!("all byte values remain bytes"),
+            }
+        }
+        let mut values = Vec::with_capacity(bytes.capacity().max(bytes.len() + 1));
+        values.extend(bytes.into_iter().map(|byte| JsValue::from_f64(byte as f64)));
+        values.push(JsValue::from_f64(256.0));
+        writer.serialize_element(&256u16).unwrap();
+        for number in 257u16..270 {
+            match &writer.items {
+                SeqItems::Values(actual) => {
+                    assert_eq!(actual, &values);
+                    assert_eq!(actual.capacity(), values.capacity());
+                }
+                _ => panic!("the first non-byte promotes prior byte values"),
+            }
+            values.push(JsValue::from_f64(number as f64));
+            writer.serialize_element(&number).unwrap();
+        }
+        let array = js_sys::Array::from(&writer.end().unwrap());
+        assert_eq!(array.length(), values.len() as u32);
+        for (index, value) in values.into_iter().enumerate() {
+            assert_eq!(array.get(index as u32), value);
+        }
+    }
+
+    #[test]
+    fn sequence_value_failure_evaluates_once_and_does_not_advance_state() {
+        use super::{Defaults, SeqItems, SeqSerializer};
+        use serde::ser::SerializeSeq as _;
+        let calls = std::cell::Cell::new(0);
+        let mut writer = SeqSerializer {
+            items: SeqItems::Unknown { capacity: 7 },
+            defaults: Defaults::KeepPresent,
+        };
+        let error = writer
+            .serialize_element(&CountedBool {
+                calls: &calls,
+                fail: true,
+            })
+            .unwrap_err();
+        assert_eq!(calls.get(), 1);
+        assert_eq!(error.to_string(), "value control failure");
+        assert!(matches!(writer.items, SeqItems::Unknown { capacity: 7 }));
+        writer
+            .serialize_element(&CountedBool {
+                calls: &calls,
+                fail: false,
+            })
+            .unwrap();
+        assert_eq!(calls.get(), 2);
+        let error = writer
+            .serialize_element(&CountedBool {
+                calls: &calls,
+                fail: true,
+            })
+            .unwrap_err();
+        assert_eq!(calls.get(), 3);
+        assert_eq!(error.to_string(), "value control failure");
+        match &writer.items {
+            SeqItems::Values(values) => {
+                assert_eq!(values.len(), 1);
+                assert_eq!(values.capacity(), 7);
+                assert_eq!(values[0].as_bool(), Some(false));
+            }
+            _ => panic!("failure leaves the existing value buffer intact"),
+        }
+    }
+
+    #[test]
+    fn tuple_mixed_and_nested_sequences_keep_their_distinct_representations() {
+        let bytes = to_js_value_camel(&(1u8, 2u8)).unwrap();
+        assert!(bytes.is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(js_sys::Uint8Array::from(bytes).to_vec(), vec![1, 2]);
+        let mixed = to_js_value_camel(&(1u8, "tail", false)).unwrap();
+        assert!(mixed.is_instance_of::<js_sys::Array>());
+        let array = js_sys::Array::from(&mixed);
+        assert_eq!(array.length(), 3);
+        assert_eq!(array.get(0).as_f64(), Some(1.0));
+        assert_eq!(array.get(1).as_string().as_deref(), Some("tail"));
+        assert_eq!(array.get(2).as_bool(), Some(false));
+        let nested = to_js_value_camel(&vec![Vec::<u8>::new(), vec![1, 255]]).unwrap();
+        assert!(nested.is_instance_of::<js_sys::Array>());
+        let array = js_sys::Array::from(&nested);
+        assert_eq!(array.length(), 2);
+        assert!(array.get(0).is_instance_of::<js_sys::Array>());
+        assert_eq!(js_sys::Array::from(&array.get(0)).length(), 0);
+        assert!(array.get(1).is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(
+            js_sys::Uint8Array::from(array.get(1)).to_vec(),
+            vec![1, 255]
+        );
     }
 
     #[test]
