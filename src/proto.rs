@@ -35,6 +35,7 @@ where
 ///   native JS `Map`. Plain objects round-trip through `JSON.stringify`,
 ///   support `obj.key` property access, and match what every downstream
 ///   adapter expects.
+#[inline(never)]
 pub fn to_js_value<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
     let serializer = serde_wasm_bindgen::Serializer::new()
         .serialize_large_number_types_as_bigints(false)
@@ -49,16 +50,11 @@ pub fn to_js_value<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
         // strings (protobufjs already treats huge ids as strings/Longs);
         // every other field keeps its exact prior shape, incl. plain `number`s
         // for the in-range 64-bit fields that `asNumber`-style consumers read.
-        Err(_) => to_js_value_fallback(val),
+        Err(_) => {
+            let json = serde_json::to_value(val).map_err(|e| JsValue::from_str(&e.to_string()))?;
+            json_to_js(&json)
+        }
     }
-}
-
-// Keep the uncommon JSON retry out of each type's normal serializer path.
-#[cold]
-#[inline(never)]
-fn to_js_value_fallback<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
-    let json = serde_json::to_value(val).map_err(|e| JsValue::from_str(&e.to_string()))?;
-    json_to_js(&json)
 }
 
 /// JS `Number.MAX_SAFE_INTEGER`. Integers with magnitude beyond this lose
