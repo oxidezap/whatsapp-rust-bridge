@@ -88,9 +88,23 @@ const consumer = (name: string): string => `import {
   encodeProto,
   proto,
   type WasmWhatsAppClient,
+  type WasmCallHandle,
   UnpairedSurrogateError,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
+import { loadVoip, packetizeOpusForMlow } from "${name}/voip";
+import { initVoipSync } from "${name}/voip/host";
+import type { VoipRelayTransport } from "${name}";
+
+export function voipContracts(transport: VoipRelayTransport, client: WasmWhatsAppClient) {
+  const plugin = loadVoip(transport).voipBackend;
+  const fromHost = initVoipSync(new Uint8Array(), transport).voipBackend;
+  const packet: Uint8Array = packetizeOpusForMlow(new Uint8Array([0xbb, 3]));
+  const accepted: Promise<WasmCallHandle> = client.acceptCallPcm("ringing", true);
+  const dialed: Promise<WasmCallHandle> = client.dialCallPcm("peer@s.whatsapp.net", true);
+  const pushed: boolean = client.callPushPcm16("ringing", new Int16Array(960));
+  return { plugin, fromHost, packet, accepted, dialed, pushed };
+}
 
 // The run-observation contract, derived from the export itself: a
 // declaration change that moves a field breaks this fixture at the access
@@ -134,6 +148,7 @@ export function roundtrip(): boolean {
 const smoke = (name: string): string => `import * as root from "${name}";
 import { proto } from "${name}/proto-types";
 import { proto as rootProto } from "${name}";
+import { loadVoip, packetizeOpusForMlow, MlowAudioDecoder } from "${name}/voip";
 
 const assert = (cond, label) => {
   if (!cond) {
@@ -155,6 +170,12 @@ assert(
 );
 const reader = new root.BinaryReader(bytes);
 assert(reader.len === bytes.length, "BinaryReader over the wire bytes");
+const voip = loadVoip({ connect: async () => { throw Error("offline"); } });
+assert(typeof voip.voipBackend.sendFrame === "function", "voip plugin exports");
+assert(packetizeOpusForMlow(new Uint8Array([0xbb, 3, 1, 2]))[0] === 0xdd, "voip codec");
+const decoder = new MlowAudioDecoder();
+assert(decoder.decode(new Uint8Array(), undefined).length === 960, "voip decoder");
+decoder.free();
 console.log("smoke: ok");
 `;
 

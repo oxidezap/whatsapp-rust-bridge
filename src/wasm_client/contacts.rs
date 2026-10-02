@@ -368,28 +368,35 @@ impl WasmWhatsAppClient {
     }
 
     /// Fetch the full blocklist.
-    #[wasm_bindgen(js_name = fetchBlocklist)]
-    pub async fn fetch_blocklist(
-        &self,
-    ) -> Result<Vec<Ts<crate::result_types::BlocklistEntryResult>>, crate::errors::BridgeError>
-    {
-        let entries = self
-            .client
-            .online()
-            .await?
-            .blocking()
-            .get_blocklist()
-            .await?;
-
-        to_ts_vec(
-            entries
+    ///
+    /// A synchronous prefix clones the core client while the wrapper is
+    /// alive; the remainder runs on owned state through a hand-driven
+    /// promise, so a future that first-polls after `free()` never touches
+    /// freed wrapper memory. `Drop` teardown still runs at free, and the
+    /// shutdown it signals is what settles the orphaned call.
+    #[wasm_bindgen(js_name = fetchBlocklist, unchecked_return_type = "Promise<BlocklistEntryResult[]>")]
+    pub fn fetch_blocklist(&self) -> js_sys::Promise {
+        let core = self.client.clone();
+        wasm_bindgen_futures::future_to_promise(async move {
+            let entries = core
+                .online()
+                .await
+                .map_err(|e| bridge_error_to_js_value(&e))?
+                .blocking()
+                .get_blocklist()
+                .await
+                .map_err(crate::errors::BridgeError::from)
+                .map_err(|e| bridge_error_to_js_value(&e))?;
+            let entries = entries
                 .iter()
                 .map(|e| crate::result_types::BlocklistEntryResult {
                     jid: e.jid.to_string(),
                     timestamp: e.timestamp.map(|v| v as f64),
                 })
-                .collect(),
-        )
+                .collect::<Vec<_>>();
+            serde_wasm_bindgen::to_value(&entries)
+                .map_err(|e| bridge_error_to_js_value(&crate::errors::internal(e.to_string())))
+        })
     }
 
     // ── Privacy settings ──────────────────────────────────────────────

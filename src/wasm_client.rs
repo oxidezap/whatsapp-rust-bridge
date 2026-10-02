@@ -11,12 +11,15 @@
 #![cfg_attr(
     not(all(
         feature = "client-business",
+        feature = "client-calls",
+        feature = "client-calls-media",
         feature = "client-chat-actions",
         feature = "client-contacts",
         feature = "client-groups",
         feature = "client-media",
         feature = "client-newsletter",
         feature = "client-signal",
+        feature = "client-voip-control",
     )),
     allow(dead_code)
 )]
@@ -670,6 +673,203 @@ export interface WasmWhatsAppClient {
 }
 "#;
 
+// The relay provider callback interfaces, emitted in every feature set:
+// a host implements them against any build, so gating these declarations
+// with the domain would break the TypeScript bundle of a reduced build
+// whose installer method is absent but whose helper still typechecks.
+// (The `result_types` doc comments survive gating for the same reason.)
+#[wasm_bindgen(typescript_custom_section)]
+const TS_RELAY: &str = r#"
+/**
+ * Host-owned relay media channel for one call, behind
+ * `setRelayTransportProvider`. The bridge implements the core's
+ * `RelayTransportProvider` over these three functions and never touches
+ * WebRTC itself.
+ *
+ * `createRelayConnection(params, events)` builds the channel and resolves
+ * with its handle once the channel is open and carrying datagrams. The
+ * default implementation is `createRtcRelayTransportProvider`, which answers
+ * an `RTCPeerConnection` with a synthetic SDP description of the relay and
+ * opens the pre-negotiated id=0 DataChannel the relay expects
+ * (`ordered: false, maxRetransmits: 0`); a host may supply its own
+ * constructor instead, as long as it keeps this contract:
+ *
+ * - `params` carries the relay address plus the ICE credentials the call
+ *   named. `icePwd` is live credential material; it goes into the
+ *   connectivity checks and nowhere else.
+ * - `events.onPacket(data)` gets every datagram that arrives, exactly once.
+ *   VoIP is loss tolerant, so under backpressure the host drops rather than
+ *   queues without bound.
+ * - `events.onOpen()` fires once the channel carries datagrams. The bridge
+ *   reports the relay connected on it.
+ * - `events.onClose(reason?)` fires when the channel is gone, including
+ *   after `close()` resolves. A string reason reports a transport-level
+ *   read error; absent means a clean close.
+ * - `handle.send(data)` ships one datagram. It may resolve synchronously.
+ * - `handle.close()` tears the channel down and is followed by `onClose`.
+ *
+ * Every Promise handed back must settle, including on failure: reject rather
+ * than leaving it pending. The bridge awaits through `JsFuture`, whose
+ * resolve/reject pair is only released when the promise settles.
+ *
+ * The handle is pipe-agnostic: `send` ships one bounded byte message and
+ * `onPacket` delivers one, whether the host put a UDP socket or a
+ * DataChannel behind it. Production relays only take the tunneled form —
+ * a DTLS client handshake over UDP, an SCTP association on port 5000, and
+ * the pre-negotiated id=0 channel (`ordered: false, maxRetransmits: 0`,
+ * label `pre-negotiated`) carrying STUN/RTP/RTCP as binary messages — and
+ * drop a cleartext allocate silently. Cleartext UDP stays only as the mock
+ * fallback. A verifying stack (browsers, userspace SCTP/DTLS on Node) also
+ * needs the relay's DTLS fingerprint, which the call never names: observe
+ * it once against a live relay and pass it to the provider that builds the
+ * tunnel. The native stack skips verification instead, which is why only
+ * the verifying paths need it.
+ */
+export interface JsRelayConnectionParams {
+    address: string;
+    port: number;
+    iceUfrag: string;
+    icePwd: string;
+}
+
+export interface JsRelayConnectionEvents {
+    onPacket(data: Uint8Array): void;
+    onOpen(): void;
+    onClose(reason?: string): void;
+}
+
+export interface JsRelayConnectionHandle {
+    send(data: Uint8Array): void | Promise<void>;
+    close(): void | Promise<void>;
+}
+
+export interface JsRelayProviderCallbacks {
+    createRelayConnection(
+        params: JsRelayConnectionParams,
+        events: JsRelayConnectionEvents,
+    ): Promise<JsRelayConnectionHandle>;
+}
+"#;
+
+// Merged into `WhatsAppEventCallbacks` above by TypeScript declaration
+// merging, so the media sinks stay optional members of the same callbacks
+// object. Gated with the feature: without `client-calls-media` there is no
+// call to sink them into.
+#[cfg(feature = "client-calls-media")]
+#[wasm_bindgen(typescript_custom_section)]
+const _TS_CALL_MEDIA_CALLBACKS: &str = r#"
+/**
+ * One encoded audio packet for a live call. `data` is exactly one codec
+ * payload as the engine received it; `codec` names the grammar inside the
+ * negotiated timing, `format` is the core's format for this frame, and the
+ * remaining fields are its RTP metadata.
+ *
+ * When an `opus` frame was negotiated under the MLOW profile (`format: "opus-mlow"`),
+ * it carries the MLOW escape: restore the RFC TOC with `depacketizeOpusFromMlow`
+ * before handing it to a stock Opus decoder. Native Opus (`format: "opus"`)
+ * already carries the standard RFC Opus TOC.
+ */
+export interface CallAudioFrame {
+  callId: string;
+  data: Uint8Array;
+  codec: "mlow" | "opus";
+  format: "mlow" | "opus" | "opus-mlow";
+  payloadType: number;
+  sequenceNumber: number;
+  timestamp: number;
+  marker: boolean;
+}
+
+/**
+ * Lifecycle and media diagnostics for one live call. The encoded-audio
+ * 1:1 subset crosses, plus the 1:1 video upgrade and state events;
+ * group, reaction and RTCP events belong to later slices.
+ */
+export type CallMediaEventKind =
+  | "relay-allocated"
+  | "relay-allocate-failed"
+  | "relay-allocate-timed-out"
+  | "media-setup-failed"
+  | "audio-codec-switched"
+  | "audio-codec-source-fixed"
+  | "video-upgrade-requested"
+  | "video-state-changed"
+  | "ended";
+
+export interface CallMediaEvent {
+  callId: string;
+  kind: CallMediaEventKind;
+  /** `relay-allocate-failed`: the STUN error code. */
+  code?: number;
+  /** `media-setup-failed`: why the media plane never built. */
+  detail?: string;
+  /** `audio-codec-switched`: the grammar in use before the switch. */
+  from?: string;
+  /** `audio-codec-switched`: the grammar now in use. */
+  to?: string;
+  /** `audio-codec-source-fixed`: what the application keeps sending. */
+  sending?: string;
+  /** `audio-codec-source-fixed`: what the peer says it speaks. */
+  peerExpects?: string;
+  /** `ended`: the call's final media counters, so forensics needs no follow-up read. */
+  stats?: CallMediaStatsResult;
+  /** `video-state-changed`, `video-upgrade-requested`: the wire number. */
+  state?: number;
+}
+
+/**
+ * One encoded video access unit for a live call: an Annex-B H.264
+ * payload with its keyframe flag, rotation, and 90 kHz timestamp.
+ * Sender identity fields stay out — they are group metadata, and this
+ * slice carries no group media.
+ */
+export interface CallVideoFrame {
+  callId: string;
+  data: Uint8Array;
+  keyframe: boolean;
+  orientation: number;
+  timestamp: number;
+}
+
+export interface WhatsAppEventCallbacks {
+  /**
+   * Encoded-packet sink for live calls. Called synchronously per packet, at
+   * voice cadence; decode or copy the frame before returning and never hand
+   * back a Promise. A throw stops the pump for that call. Without it,
+   * packets never leave the engine and the shed shows up under
+   * `audio_sink_dropped` in the call stats.
+   */
+  onCallAudio?(frame: CallAudioFrame): void;
+  /**
+   * Lifecycle sink for live calls. `ended` fires exactly once per call the
+   * bridge held a handle for, whoever ended it; the per-call methods stay
+   * usable until then and report `already-ended` after.
+   */
+  onCallEvent?(event: CallMediaEvent): void;
+  /**
+   * Peer-video sink for live calls, under the same synchronous contract
+   * as `onCallAudio`. Without it, peer access units shed into
+   * `video_sink_dropped`, readable in the call stats like their audio
+   * twin.
+   */
+  onCallVideo?(frame: CallVideoFrame): void;
+}
+"#;
+
+#[cfg(feature = "client-calls-media")]
+#[wasm_bindgen(typescript_custom_section)]
+const _TS_CALL_PCM_CALLBACK: &str = r#"
+export interface WhatsAppEventCallbacks {
+  /** Decoded mono 16 kHz signed 16-bit PCM from the core's playout path. */
+  onCallPcm?(frame: CallPcmFrame): void;
+}
+
+export interface CallPcmFrame {
+  callId: string;
+  data: Int16Array;
+}
+"#;
+
 // ---------------------------------------------------------------------------
 // JS event handler bridge
 // ---------------------------------------------------------------------------
@@ -687,6 +887,10 @@ export interface WasmWhatsAppClient {
 /// (committed pages V8 never returns to the OS).
 struct JsEventHandler {
     event_tx: async_channel::Sender<Arc<Event>>,
+    /// Offers retained for `acceptCall`. Shared with the client wrapper,
+    /// which consumes them; the handler only inserts and evicts.
+    #[cfg(feature = "client-calls-media")]
+    call_offers: Arc<Mutex<calls_audio::OfferCache>>,
 }
 
 crate::wasm_send_sync!(JsEventHandler);
@@ -1292,6 +1496,7 @@ impl BatchDelivery {
 async fn run_event_consumer(
     callbacks: &JsEventCallbacks,
     event_rx: async_channel::Receiver<Arc<Event>>,
+    #[cfg(feature = "client-calls-media")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     let mut budget = EventDispatchBudget::default();
     let mut pending_event = None;
@@ -1322,20 +1527,37 @@ async fn run_event_consumer(
             &mut pending_event,
             &mut budget,
             &mut delivery,
+            #[cfg(feature = "client-calls-media")]
+            &call_offers,
         )
         .await;
     }
 }
 
 impl JsEventHandler {
-    fn new(callbacks: JsEventCallbacks) -> Self {
+    fn new(
+        callbacks: JsEventCallbacks,
+        #[cfg(feature = "client-calls-media")] call_offers: Arc<Mutex<calls_audio::OfferCache>>,
+    ) -> Self {
         let (event_tx, event_rx) = async_channel::bounded::<Arc<Event>>(EVENT_CHANNEL_CAPACITY);
 
+        #[cfg(feature = "client-calls-media")]
+        let call_offers_for_consumer = call_offers.clone();
         wasm_bindgen_futures::spawn_local(async move {
-            run_event_consumer(&callbacks, event_rx).await;
+            run_event_consumer(
+                &callbacks,
+                event_rx,
+                #[cfg(feature = "client-calls-media")]
+                call_offers_for_consumer,
+            )
+            .await;
         });
 
-        Self { event_tx }
+        Self {
+            event_tx,
+            #[cfg(feature = "client-calls-media")]
+            call_offers,
+        }
     }
 
     fn enqueue(&self, event: Arc<Event>) {
@@ -1360,6 +1582,7 @@ async fn dispatch_event_to_js(
     pending_event: &mut Option<Arc<Event>>,
     budget: &mut EventDispatchBudget,
     delivery: &mut BatchDelivery,
+    #[cfg(feature = "client-calls-media")] call_offers: &Arc<Mutex<calls_audio::OfferCache>>,
 ) {
     // Anything that is not buffered into the open run has to see it delivered
     // first: the host observes batches in the order the events arrived, and a
@@ -1442,7 +1665,39 @@ async fn dispatch_event_to_js(
     }
 
     match event_to_js(&event) {
-        Ok(js_event) => dispatch_js_value(callbacks, js_event, budget, !event_rx.is_empty()).await,
+        Ok(js_event) => {
+            // For offer-action IncomingCall events, inject the opaque `offerHandle`
+            // number so JS can pass it back to `acceptCall(offerHandle, ...)` to
+            // recover the Rust IncomingCall without round-tripping through serialization.
+            // The offer was already cached (with its generation) by `note_call_event`
+            // before this event was enqueued, so the lookup is always consistent.
+            #[cfg(feature = "client-calls-media")]
+            if let Event::IncomingCall(call) = event.as_ref()
+                && call.action.wire_tag() == "offer"
+            {
+                let call_id = call.action.call_id();
+                if let Some(handle) = call_offers
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .offer_handle_for_call_id(call_id)
+                {
+                    // event_to_js wraps as { type, data }. Inject `offerHandle`
+                    // into the data sub-object so the JS event carries it alongside
+                    // the existing IncomingCall fields. The object is mutable; no
+                    // re-set of `data` is needed — the Reflect::set on the inner
+                    // object is sufficient.
+                    if let Ok(data) = js_sys::Reflect::get(&js_event, &"data".into()) {
+                        let _ = js_sys::Reflect::set(
+                            &data,
+                            &"offerHandle".into(),
+                            &JsValue::from_f64(handle as f64),
+                        );
+                    }
+                }
+            }
+
+            dispatch_js_value(callbacks, js_event, budget, !event_rx.is_empty()).await
+        }
         Err(e) => log::warn!("Event serialization failed: {e:?}"),
     }
 }
@@ -1867,6 +2122,10 @@ mod event_dispatch_budget_tests {
 
 impl EventHandler for JsEventHandler {
     fn handle_event(&self, event: Arc<Event>) {
+        // Retain ringing offers before the queue: `acceptCall` consumes the
+        // cache, and serialization must not decide what survives it.
+        #[cfg(feature = "client-calls-media")]
+        calls_audio::note_call_event(&self.call_offers, &event);
         self.enqueue(event);
     }
 }
@@ -2507,8 +2766,10 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// `waitForConnected()`, or events for those states. This preserves the
 /// existing factory shape while making its completion contract explicit.
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
-// Nine positional arguments is the reviewed JS contract: wasm-bindgen
-// exports cannot take a builder, so the arity grows with the surface.
+// Ten positional arguments is the reviewed JS contract: wasm-bindgen
+// exports cannot take a builder, so the arity grows with the surface. The
+// tenth is the trailing `extensions` object, optional and inert when absent:
+// it carries whole plugin families (`voipBackend`), never one loose knob.
 #[allow(clippy::too_many_arguments)]
 pub async fn create_whatsapp_client(
     transport_config: JsValue,
@@ -2520,12 +2781,17 @@ pub async fn create_whatsapp_client(
     wanted_pre_key_count_js: Option<JsValue>,
     noise_cert_policy_js: Option<JsValue>,
     policies_js: Option<JsValue>,
+    extensions_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
     // Validate the construction inputs before touching persistence or the
     // client so a bad argument settles without storage callbacks firing.
     let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
     let history_sync_admission =
         crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
+    #[cfg(feature = "client-voip-control")]
+    let extensions = crate::voip::ClientExtensions::from_js(extensions_js.as_ref())?;
+    #[cfg(not(feature = "client-voip-control"))]
+    reject_voip_extensions(extensions_js.as_ref())?;
 
     let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
@@ -2633,6 +2899,18 @@ pub async fn create_whatsapp_client(
     let http_client =
         Arc::new(JsHttpClientAdapter::from_js(http_config)?) as Arc<dyn wacore::net::HttpClient>;
 
+    #[cfg(feature = "client-calls-media")]
+    let call_media_callbacks = if let Some(callback) = on_event.as_ref() {
+        (
+            calls_audio::media_callback(callback, "onCallAudio")?.map(std::rc::Rc::new),
+            calls_audio::media_callback(callback, "onCallPcm")?.map(std::rc::Rc::new),
+            calls_audio::media_callback(callback, "onCallEvent")?.map(std::rc::Rc::new),
+            calls_audio::media_callback(callback, "onCallVideo")?.map(std::rc::Rc::new),
+        )
+    } else {
+        (None, None, None, None)
+    };
+
     let persistence_manager: Arc<whatsapp_rust::store::persistence_manager::PersistenceManager> =
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
@@ -2663,6 +2941,17 @@ pub async fn create_whatsapp_client(
         Some(version) => builder.with_version_override(version),
         None => builder,
     };
+    // The media plugin installs here, on the builder, never after: the
+    // handshake versions the plugin before the client exists, and the
+    // registry the facade reads is fixed at build.
+    #[cfg(feature = "client-voip-control")]
+    let builder = match extensions.voip_backend {
+        Some(callbacks) => {
+            let agreed = crate::voip::handshake(&callbacks).await?;
+            crate::voip::install(builder, callbacks, agreed, runtime.clone())?
+        }
+        None => builder,
+    };
     let (client, sync_rx) = builder
         .build()
         .await
@@ -2685,8 +2974,19 @@ pub async fn create_whatsapp_client(
         client.shutdown_signal(),
     );
 
+    // Media state is shared between the event handler (which feeds the
+    // offer cache) and the client wrapper (which consumes it). Without an
+    // event sink both stay empty but present, so the audio methods keep one
+    // shape regardless.
+    #[cfg(feature = "client-calls-media")]
+    let call_offers = Arc::new(Mutex::new(calls_audio::OfferCache::default()));
+
     let event_subscription = if let Some(callback) = on_event {
         let callbacks = JsEventCallbacks::from_js(callback)?;
+        #[cfg(feature = "client-calls-media")]
+        let handler =
+            Arc::new(JsEventHandler::new(callbacks, call_offers.clone())) as Arc<dyn EventHandler>;
+        #[cfg(not(feature = "client-calls-media"))]
         let handler = Arc::new(JsEventHandler::new(callbacks)) as Arc<dyn EventHandler>;
         Some(client.subscribe_handler(handler))
     } else {
@@ -2709,6 +3009,28 @@ pub async fn create_whatsapp_client(
         teardown_gate: Arc::new(TeardownGate::new()),
         teardown_kind: Arc::new(std::sync::atomic::AtomicU8::new(0)),
         alloc_meter,
+        #[cfg(feature = "client-calls-media")]
+        call_offers,
+        #[cfg(feature = "client-calls-media")]
+        call_records: std::rc::Rc::new(std::cell::RefCell::new(HashMap::new())),
+        #[cfg(feature = "client-calls-media")]
+        past_call_stats: Arc::new(Mutex::new(std::collections::VecDeque::new())),
+        #[cfg(feature = "client-calls-media")]
+        call_audio_callback: call_media_callbacks.0,
+        #[cfg(feature = "client-calls-media")]
+        call_pcm_callback: call_media_callbacks.1,
+        #[cfg(feature = "client-calls-media")]
+        call_event_callback: call_media_callbacks.2,
+        #[cfg(feature = "client-calls-media")]
+        call_video_callback: call_media_callbacks.3,
+        #[cfg(feature = "client-calls-media")]
+        call_generation: std::rc::Rc::new(std::cell::Cell::new(0)),
+        #[cfg(feature = "client-calls-media")]
+        call_reserved: std::rc::Rc::new(std::cell::Cell::new(0)),
+        #[cfg(feature = "client-calls-media")]
+        call_admission: Arc::new(async_lock::Mutex::new(())),
+        #[cfg(feature = "client-calls-media")]
+        calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
 }
 
@@ -2767,9 +3089,16 @@ mod core_client {
     /// [`online`](Self::online) holds the call while a reconnect is in flight;
     /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
     /// in and no plain field, so a method added later has to pick one.
+    /// Cloned into method futures at call time (synchronously, while the
+    /// wrapper is alive) so a future that first-polls after `free()` never
+    /// touches freed wrapper memory — the use-after-free that kills the
+    /// process when free lands between the call and its first poll. The
+    /// parked gate state rides along, so withdrawing still releases parked
+    /// calls exactly as before.
+    #[derive(Clone)]
     pub(crate) struct CoreClient {
         client: Arc<whatsapp_rust::Client>,
-        parked: Parked,
+        parked: Arc<Parked>,
     }
 
     /// The calls waiting at the gate, and the only way to let them go.
@@ -2843,7 +3172,7 @@ mod core_client {
         pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
             Self {
                 client,
-                parked: Parked::default(),
+                parked: Arc::new(Parked::default()),
             }
         }
     }
@@ -3079,6 +3408,62 @@ pub struct WasmWhatsAppClient {
     raw_node_lease: Mutex<Option<whatsapp_rust::RawNodeLease>>,
     /// Core task allocation attribution; present only in diagnostics builds.
     alloc_meter: Option<Arc<wacore::stats::AllocMeter>>,
+    /// Ringing offers retained for `acceptCall`, by call id. The media
+    /// module owns the cache; the event handler feeds it.
+    #[cfg(feature = "client-calls-media")]
+    call_offers: Arc<Mutex<calls_audio::OfferCache>>,
+    // Live calls by call id, with their mic queues and pump tasks.
+    //
+    // `Rc<RefCell>` rather than the `Arc<Mutex>` everything else here uses:
+    // a record holds the call handle, and the handle is `!Send` on wasm32,
+    // so a `Send`-claiming wrapper would be a lie clippy names. Single
+    // thread is all this heap ever sees, and no borrow is held across a
+    // JS call or an await anywhere below — the pumps only ever clone out
+    // of it — so the `RefCell` cannot observe reentrancy.
+    #[cfg(feature = "client-calls-media")]
+    call_records: std::rc::Rc<std::cell::RefCell<HashMap<String, calls_audio::CallRecord>>>,
+    /// Final counters of ended calls, so stats stay readable after `ended`.
+    #[cfg(feature = "client-calls-media")]
+    past_call_stats:
+        Arc<Mutex<std::collections::VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
+    /// Host sink for encoded packets, when the callbacks object carried one.
+    #[cfg(feature = "client-calls-media")]
+    call_audio_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
+    #[cfg(feature = "client-calls-media")]
+    call_pcm_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
+    /// Host sink for call lifecycle events, when one was registered.
+    #[cfg(feature = "client-calls-media")]
+    call_event_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
+    /// Host sink for peer video access units, when one was registered.
+    #[cfg(feature = "client-calls-media")]
+    call_video_callback: Option<std::rc::Rc<calls_audio::MediaCallback>>,
+    /// Call registration counter. Hands each record a generation so a
+    /// finish path removes only its own registration, never a same-id
+    /// replacement that superseded it mid-await. Shared, not plain:
+    /// method futures outlive the wrapper, so counters they touch must
+    /// live in shared ownership like every other record below.
+    #[cfg(feature = "client-calls-media")]
+    call_generation: std::rc::Rc<std::cell::Cell<u64>>,
+    /// Reservation count for calls past validation but not yet recorded.
+    /// Admission checks it alongside the map so concurrent starts cannot
+    /// each pass the count and then all insert past capacity. Shared for
+    /// the reason above.
+    #[cfg(feature = "client-calls-media")]
+    call_reserved: std::rc::Rc<std::cell::Cell<u32>>,
+    /// Serializes the displace-plus-register tail of call starts. Two
+    /// same-id starters could otherwise interleave termination and
+    /// insertion so the second insert silently drops the first
+    /// replacement's record; under the lock each start displaces what is
+    /// actually there. Held only across the tail — never across core
+    /// startup — so unrelated calls never wait on each other.
+    #[cfg(feature = "client-calls-media")]
+    call_admission: Arc<async_lock::Mutex<()>>,
+    /// Still-true until `free()`. Call tasks check it before invoking
+    /// host callbacks: aborting is signaled, not synchronous, so a task
+    /// that outlives teardown must not call into a freed heap on its way
+    /// out — it breaks instead.
+    #[cfg(feature = "client-calls-media")]
+    calls_live: std::rc::Rc<std::cell::Cell<bool>>,
 }
 
 // The exported surface is split across per-domain child modules, each with
@@ -3089,6 +3474,12 @@ pub struct WasmWhatsAppClient {
 // messaging are not optional. See `[features]` in Cargo.toml.
 #[cfg(feature = "client-business")]
 mod business;
+#[cfg(any(feature = "client-calls", feature = "client-calls-media"))]
+mod call_handle;
+#[cfg(feature = "client-calls")]
+mod calls;
+#[cfg(feature = "client-calls-media")]
+mod calls_audio;
 #[cfg(feature = "client-chat-actions")]
 mod chat_actions;
 mod connection;
@@ -3135,6 +3526,23 @@ impl Drop for WasmWhatsAppClient {
             ] {
                 if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
                     handle.abort();
+                }
+            }
+        }
+        // Call pumps first, then the liveness flag: aborting is signaled,
+        // not synchronous, so a task that outlives teardown must observe
+        // the flag and break instead of invoking a host callback on its
+        // way out. The flag flips before the aborts so even a task that
+        // never polls again cannot call past it.
+        #[cfg(feature = "client-calls-media")]
+        {
+            self.calls_live.set(false);
+            for record in self.call_records.borrow().values() {
+                for task in &record.tasks {
+                    task.abort();
+                }
+                if let Some(forwarder) = &record.forwarder {
+                    forwarder.abort();
                 }
             }
         }
@@ -3417,6 +3825,76 @@ fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
     jid.parse().map_err(crate::errors::BridgeError::from)
 }
 
+/// Build the rejection for a hand-driven promise future. Used by methods
+/// that cannot borrow the wrapper across an await (see `CoreClient`): they
+/// run a synchronous prefix at call time and drive the rest through
+/// `future_to_promise` on owned state, so this is the single shape their
+/// failures cross in.
+#[cfg(target_arch = "wasm32")]
+fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
+    crate::errors::to_js_error(e)
+}
+
+/// Host-target builds never drive the promise future; the rejection shape
+/// only has to be a `JsValue` so the export keeps one surface per target.
+#[cfg(not(target_arch = "wasm32"))]
+fn bridge_error_to_js_value(e: &crate::errors::BridgeError) -> JsValue {
+    JsValue::from_str(&e.to_string())
+}
+
+/// Drive a fallible async operation returning `()` into a JS Promise resolving `undefined`.
+fn promise_void<Fut>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<(), crate::errors::BridgeError>> + 'static,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await.map_err(|e| bridge_error_to_js_value(&e))?;
+        Ok(JsValue::UNDEFINED)
+    })
+}
+
+/// Drive a fallible async operation returning a value into a JS Promise.
+fn promise_value<Fut, T>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
+    T: Into<JsValue>,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await
+            .map(Into::into)
+            .map_err(|e| bridge_error_to_js_value(&e))
+    })
+}
+
+#[cfg(not(feature = "client-calls-media"))]
+fn promise_serialized<Fut, T>(fut: Fut) -> js_sys::Promise
+where
+    Fut: std::future::Future<Output = Result<T, crate::errors::BridgeError>> + 'static,
+    T: serde::Serialize + 'static,
+{
+    wasm_bindgen_futures::future_to_promise(async move {
+        fut.await
+            .map_err(|e| bridge_error_to_js_value(&e))
+            .and_then(|value| {
+                crate::proto::to_js_value(&value).map_err(|_| {
+                    bridge_error_to_js_value(&crate::errors::internal(
+                        "call result refused to serialize",
+                    ))
+                })
+            })
+    })
+}
+
+/// Parse one call-control JID, naming the argument it came from.
+///
+/// The shared helper above reports every JID failure as `field: "jid"`,
+/// which is the wrong name when a method takes two of them.
+fn parse_named_jid(field: &'static str, value: &str) -> Result<Jid, crate::errors::BridgeError> {
+    value
+        .parse()
+        .map_err(|e| crate::errors::invalid_arg(field, format!("invalid JID: {e}")))
+}
+
 /// Deserialize a typed parameter, naming the field when the shape is wrong.
 ///
 /// Taking these as `JsValue` rather than through `#[tsify(from_wasm_abi)]` is
@@ -3424,6 +3902,36 @@ fn parse_jid(jid: &str) -> Result<Jid, crate::errors::BridgeError> {
 /// throws from inside the async shim, where the throw escapes as an uncaught
 /// exception and leaves the promise pending for good. The declared TypeScript
 /// type is preserved by `unchecked_param_type` on the parameter.
+/// Rejects a media plugin the build cannot honor. Without the control
+/// seam there is no backend to install it on, so carrying on silently
+/// would drop the caller's media path without a word.
+#[cfg(not(feature = "client-voip-control"))]
+fn reject_voip_extensions(
+    extensions_js: Option<&JsValue>,
+) -> Result<(), crate::errors::BridgeError> {
+    let Some(obj) = extensions_js else {
+        return Ok(());
+    };
+    if obj.is_null() || obj.is_undefined() {
+        return Ok(());
+    };
+    if !obj.is_object() {
+        return Err(crate::errors::invalid_arg(
+            "extensions",
+            "extensions must be an object",
+        ));
+    }
+    let backend = js_sys::Reflect::get(obj, &"voipBackend".into())
+        .map_err(|_| crate::errors::invalid_arg("extensions", "extensions is unreadable"))?;
+    if backend.is_null() || backend.is_undefined() {
+        return Ok(());
+    }
+    Err(crate::errors::invalid_arg(
+        "extensions",
+        "voipBackend requires the client-voip-control feature",
+    ))
+}
+
 fn from_js_input<T: serde::de::DeserializeOwned>(
     field: &'static str,
     value: JsValue,
@@ -4590,7 +5098,16 @@ mod event_delivery_tests {
             tx.try_send(Arc::new(event)).expect("the channel accepts");
         }
         tx.close();
-        run_event_consumer(&callbacks, rx).await;
+        #[cfg(feature = "client-calls-media")]
+        let call_offers =
+            std::sync::Arc::new(std::sync::Mutex::new(calls_audio::OfferCache::default()));
+        run_event_consumer(
+            &callbacks,
+            rx,
+            #[cfg(feature = "client-calls-media")]
+            call_offers,
+        )
+        .await;
     }
 
     const LEGACY_HOST: &[&str] = &[
