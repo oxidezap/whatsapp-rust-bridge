@@ -23,6 +23,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { rewriteDtsSpecifiers } from "./dts-specifiers";
+import { compactDeclarationTrivia } from "./dts-trivia";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -57,7 +58,10 @@ const isDistFile = (relPath: string): boolean => {
 for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const before = readFileSync(path, "utf8");
-  const { text: after } = rewriteDtsSpecifiers(before, file, isDistFile);
+  const { text: rewritten } = rewriteDtsSpecifiers(before, file, isDistFile);
+  const after = file === "proto-types.d.ts"
+    ? compactDeclarationTrivia(rewritten)
+    : rewritten;
   if (after !== before) writeFileSync(path, after);
 }
 
@@ -72,5 +76,8 @@ for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
     throw new Error(
       `dist/${file} still has an unrewritten relative import — update finalize-dist.ts`,
     );
+  }
+  if (file === "proto-types.d.ts" && compactDeclarationTrivia(text) !== text) {
+    throw new Error(`dist/${file} declaration compaction is not idempotent`);
   }
 }

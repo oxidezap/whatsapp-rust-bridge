@@ -23,7 +23,7 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .groups()
-            .get_metadata(&group_jid)
+            .fetch_metadata(&group_jid)
             .await?;
 
         to_ts(group_metadata_to_result(&metadata))
@@ -176,15 +176,14 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .groups()
-            .get_participating()
+            .list_participating()
             .await?;
 
         let obj = js_sys::Object::new();
-        for (key, metadata) in &groups {
-            let result = group_metadata_to_result(metadata);
+        for group in &groups {
+            let result = group_overview_to_result(group);
             let js_metadata = serde_wasm_bindgen::to_value(&result)?;
-            // #767: get_participating now keys by Jid (was String) — stringify for the JS object key.
-            js_sys::Reflect::set(&obj, &JsValue::from_str(&key.to_string()), &js_metadata)?;
+            js_sys::Reflect::set(&obj, &JsValue::from_str(&result.id), &js_metadata)?;
         }
         Ok(obj.into())
     }
@@ -438,12 +437,12 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .community()
-            .get_participating()
+            .list_participating()
             .await?;
         let result = js_sys::Object::new();
-        for (jid, metadata) in &communities {
-            let value = serde_wasm_bindgen::to_value(&group_metadata_to_result(metadata))?;
-            js_sys::Reflect::set(&result, &jid.to_string().into(), &value)?;
+        for group in &communities {
+            let value = serde_wasm_bindgen::to_value(&group_overview_to_result(group))?;
+            js_sys::Reflect::set(&result, &group.id.to_string().into(), &value)?;
         }
         Ok(result.into())
     }

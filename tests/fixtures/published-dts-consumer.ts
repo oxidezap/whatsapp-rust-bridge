@@ -25,6 +25,10 @@ import type {
   Receipt,
   ReceiptType,
   WasmWhatsAppClient,
+  WhatsAppEvent,
+  GroupMetadataResult,
+  GroupOverviewResult,
+  ProtocolTerminalReasonResult,
 } from "../../dist/index.js";
 import type { proto } from "../../dist/proto-types.js";
 
@@ -44,6 +48,17 @@ type Resolves<Actual, Expected> =
     : false
   : false;
 type Assert<T extends true> = T;
+
+// These are declaration contracts, not successful server-response tests.
+type ReachoutEvent = Extract<WhatsAppEvent, { type: "reachout_timelock_update" }>;
+type _ReachoutEnforcement = Assert<Resolves<ReachoutEvent["data"]["state"]["enforcement_type"], string | null | undefined>>;
+type _ReachoutActive = Assert<Resolves<ReachoutEvent["data"]["state"]["is_active"], boolean | null | undefined>>;
+type _ReachoutDeadline = Assert<Resolves<ReachoutEvent["data"]["state"]["time_enforcement_ends"], string | null | undefined>>;
+type _SubjectAbsence = Assert<Resolves<GroupMetadataResult["subject"], string | undefined>>;
+type _OverviewCount = Assert<Resolves<GroupOverviewResult["participantCount"], number | undefined>>;
+type _GroupListing = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["groupFetchAllParticipating"]>>, Record<string, GroupOverviewResult>>>;
+type _ReactionStanzaId = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["newsletterReactMessage"]>>, string>>;
+type _ConflictCause = Assert<Resolves<Extract<ProtocolTerminalReasonResult, { kind: "conflict" }>["cause"], string>>;
 
 // Box<wa::sync_action_value::ArchiveChatAction>
 type _Boxed = Assert<

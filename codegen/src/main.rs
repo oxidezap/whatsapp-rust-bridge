@@ -240,6 +240,13 @@ fn main() {
         }
     }
 
+    // ReachoutTimelock is a pub-use rename of a nested generated MEX state.
+    // Read its real serde declaration rather than duplicating the three fields.
+    let mex_path = sources.wacore_src.join("iq/mex_operations.rs");
+    let mex_source = std::fs::read_to_string(&mex_path)
+        .unwrap_or_else(|e| panic!("cannot read {}: {e}", mex_path.display()));
+    parse_reachout_timelock(&mex_source, &mex_path, &mut all_types);
+
     // Also parse send.rs for SendOptions/RevokeType
     parse_file(&src_dir.join("send.rs"), &mut all_types);
 
@@ -632,6 +639,36 @@ fn render_enum_variant(variant: &TsEnumVariant, representation: &EnumRepresentat
             TsEnumVariant::Fallback => unreachable!(),
         },
     }
+}
+
+fn parse_reachout_timelock(content: &str, path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
+    let file =
+        syn::parse_file(content).unwrap_or_else(|e| panic!("cannot parse {}: {e}", path.display()));
+    let module = file
+        .items
+        .iter()
+        .find_map(|item| match item {
+            Item::Mod(module) if module.ident == "fetch_reachout_timelock" => Some(module),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("{}: missing fetch_reachout_timelock module", path.display()));
+    let (_, items) = module.content.as_ref().unwrap_or_else(|| {
+        panic!(
+            "{}: fetch_reachout_timelock needs inline MEX state",
+            path.display()
+        )
+    });
+    let mut state = items
+        .iter()
+        .find_map(|item| match item {
+            Item::Struct(state) if state.ident == "Xwa2FetchAccountReachoutTimelock" => {
+                Some(state.clone())
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("{}: missing ReachoutTimelock serde state", path.display()));
+    state.ident = syn::Ident::new("ReachoutTimelock", state.ident.span());
+    parse_source(&state.to_token_stream().to_string(), types);
 }
 
 fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
@@ -1992,6 +2029,58 @@ mod tests {
             .get(name)
             .unwrap_or_else(|| panic!("missing generated type {name}"))
             .to_typescript(name)
+    }
+
+    #[test]
+    fn reachout_alias_reads_the_nested_serde_state_including_future_fields() {
+        let source = r#"
+            pub mod fetch_reachout_timelock {
+                #[derive(Serialize)]
+                pub struct Xwa2FetchAccountReachoutTimelock {
+                    pub enforcement_type: Option<String>,
+                    pub is_active: Option<bool>,
+                    pub time_enforcement_ends: Option<String>,
+                    pub future_tokens: Option<Vec<String>>,
+                }
+            }
+        "#;
+        let mut types = BTreeMap::new();
+        parse_reachout_timelock(source, Path::new("fixture.rs"), &mut types);
+        let declaration = types["ReachoutTimelock"].to_typescript("ReachoutTimelock");
+        for field in [
+            "enforcement_type?: string",
+            "is_active?: boolean",
+            "time_enforcement_ends?: string",
+            "future_tokens?: string[]",
+        ] {
+            assert!(declaration.contains(field), "{declaration}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: missing fetch_reachout_timelock module")]
+    fn reachout_drift_names_the_source_when_the_module_moves() {
+        parse_reachout_timelock("", Path::new("fixture.rs"), &mut BTreeMap::new());
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: fetch_reachout_timelock needs inline MEX state")]
+    fn reachout_drift_names_the_source_when_the_state_is_not_inline() {
+        parse_reachout_timelock(
+            "mod fetch_reachout_timelock;",
+            Path::new("fixture.rs"),
+            &mut BTreeMap::new(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: missing ReachoutTimelock serde state")]
+    fn reachout_drift_names_the_source_when_the_serde_state_moves() {
+        parse_reachout_timelock(
+            "mod fetch_reachout_timelock {}",
+            Path::new("fixture.rs"),
+            &mut BTreeMap::new(),
+        );
     }
 
     fn ts_of(source: &str) -> String {
