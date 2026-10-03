@@ -38,7 +38,7 @@ export interface SharingReport {
 
 /** Share only post-value operations; all fresh base construction and field reads stay ordered. */
 export function shareProtoPrivateWork(source: string): SharingReport {
-  const original = ts.createSourceFile("whatsapp.ts", source, ts.ScriptTarget.Latest, true);
+  const original = ts.createSourceFile("whatsapp.ts", source, ts.ScriptTarget.Latest, false);
   const declarations = new Set<string>();
   const addBinding = (name: ts.BindingName): void => {
     if (ts.isIdentifier(name)) declarations.add(name.text);
