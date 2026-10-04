@@ -149,6 +149,82 @@ test("accepted publish with a lost response recovers by exact registry integrity
   });
   assert.equal(publishes, 1);
 });
+test("accepted uploads may need minutes before npm exposes their integrity", async () => {
+  let reads = 0, publishes = 0, waited = 0;
+  await publishPackage(metadata, {
+    getVersion: async () => ++reads >= 15 ? published : null,
+    getLatest: async () => ({ version: "0.24.1" }),
+    publish: async () => { publishes++; }, sleep: async (ms) => { waited += ms; },
+  });
+  assert.equal(publishes, 1);
+  assert.equal(waited, 130_000);
+});
+test("post-upload rate limits, server errors and network failures retry visibility only", async () => {
+  const errors = [Object.assign(new Error("rate limit"), { status: 429 }),
+    Object.assign(new Error("unavailable"), { status: 503 }), new TypeError("fetch failed"), new DOMException("read timed out", "TimeoutError")];
+  let reads = 0, publishes = 0;
+  await publishPackage(metadata, {
+    getVersion: async () => {
+      if (reads++ === 0) return null;
+      if (errors.length) throw errors.shift();
+      return published;
+    },
+    getLatest: async () => ({ version: "0.24.1" }),
+    publish: async () => { publishes++; }, sleep: async () => {},
+  });
+  assert.equal(publishes, 1);
+});
+test("post-upload authorization errors are terminal", async () => {
+  let reads = 0;
+  await assert.rejects(publishPackage(metadata, {
+    getVersion: async () => {
+      if (reads++ === 0) return null;
+      throw Object.assign(new Error("forbidden"), { status: 403 });
+    },
+    getLatest: async () => ({ version: "0.24.1" }), publish: async () => {},
+    sleep: async () => { assert.fail("must not retry authorization failures"); },
+  }), /forbidden/);
+});
+test("an inconclusive initial registry read never permits publishing", async () => {
+  await assert.rejects(publishPackage(metadata, {
+    getVersion: async () => { throw Object.assign(new Error("unavailable"), { status: 503 }); },
+    publish: async () => { assert.fail("must not publish"); },
+  }), /unavailable/);
+});
+test("HTTP time counts toward the ten-minute visibility deadline", async () => {
+  let time = 0, reads = 0, publishes = 0;
+  await assert.rejects(publishPackage(metadata, {
+    getVersion: async (signal) => {
+      if (reads++ === 0) return null;
+      assert.ok(signal instanceof AbortSignal);
+      time += 15_000;
+      throw new DOMException("read timed out", "TimeoutError");
+    },
+    getLatest: async () => ({ version: "0.24.1" }),
+    publish: async () => { publishes++; }, now: () => time,
+    sleep: async (ms) => { time += ms; },
+  }), /did not expose/);
+  assert.equal(time, 600_000);
+  assert.equal(reads, 25);
+  assert.equal(publishes, 1);
+});
+test("HTTP requests have a timeout and preserve an explicit remaining-budget signal", async () => {
+  let seen;
+  const fetcher = async (_url, options) => {
+    seen = options.signal;
+    return { status: 200, ok: true, json: async () => ({ version: "0.25.0" }) };
+  };
+  await request("https://example.test", {}, fetcher);
+  assert.ok(seen instanceof AbortSignal);
+  const signal = AbortSignal.timeout(1_000);
+  await request("https://example.test", { signal }, fetcher);
+  assert.equal(seen, signal);
+});
+test("a JSON null response is not mistaken for a definite 404", async () => {
+  await assert.rejects(request("https://example.test", {}, async () => ({
+    status: 200, ok: true, json: async () => null,
+  })), /Invalid null/);
+});
 test("an absent version never becomes a successful publish", async () => {
   await assert.rejects(publishPackage(metadata, {
     getVersion: async () => null, getLatest: async () => ({ version: "0.24.1" }),

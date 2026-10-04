@@ -7,10 +7,18 @@ const registry = "https://registry.npmjs.org";
 export const integrity = (bytes) => `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
 
 export async function request(url, options = {}, fetcher = fetch) {
-  const response = await fetcher(url, options);
+  const response = await fetcher(url, {
+    ...options, signal: options.signal || AbortSignal.timeout(15_000),
+  });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`${options.method || "GET"} ${url}: HTTP ${response.status}`);
-  return response.json();
+  if (!response.ok) {
+    const error = new Error(`${options.method || "GET"} ${url}: HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  const data = await response.json();
+  if (data === null) throw new Error(`Invalid null response from ${url}`);
+  return data;
 }
 
 export function githubClient(repository, token, fetcher = fetch) {
@@ -131,17 +139,36 @@ export function assertNotOlder(version, latest) {
   }
 }
 
-export async function publishPackage(metadata, { getVersion, getLatest, publish, sleep }) {
+export async function publishPackage(metadata, {
+  getVersion, getLatest, publish, sleep, report = () => {}, now = Date.now,
+}) {
   if (alreadyPublished(await getVersion(), metadata)) return;
   assertNotOlder(metadata.version, (await getLatest())?.version);
   let publishError;
   try { await publish(); } catch (error) { publishError = error; }
   // A failed response can still mean npm accepted the immutable version.
-  for (let attempt = 0; attempt < 6; attempt++) {
-    if (alreadyPublished(await getVersion(), metadata)) return;
-    if (attempt < 5) await sleep(5000);
+  // npm can accept the upload before registry processing exposes the version.
+  // Keep the same archive and wait up to ten minutes within the job's budget.
+  const deadline = now() + 600_000;
+  for (let attempt = 0; attempt <= 60; attempt++) {
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    let published;
+    try {
+      published = await getVersion(AbortSignal.timeout(Math.min(15_000, remaining)));
+    } catch (error) {
+      const networkFailure = error instanceof TypeError ||
+        ["TimeoutError", "AbortError"].includes(error.name);
+      if (!networkFailure && error.status !== 429 &&
+          !(error.status >= 500 && error.status < 600)) throw error;
+      report(`npm visibility check will retry: ${error.message}`);
+    }
+    if (published !== undefined && alreadyPublished(published, metadata)) return;
+    if (attempt === 0) report("Waiting up to ten minutes for npm to expose the exact tarball integrity");
+    const wait = Math.min(10_000, deadline - now());
+    if (attempt < 60 && wait > 0) await sleep(wait);
   }
-  throw publishError || new Error("npm did not expose the published tarball integrity");
+  throw publishError || new Error("npm did not expose the published tarball integrity; retry failed jobs to retain the verified archive");
 }
 
 export async function finalizeRelease(github, candidate, metadata, getVersion, getLatest) {
@@ -191,13 +218,14 @@ async function main(command) {
   const metadata = JSON.parse(readFileSync("release-package.json", "utf8"));
   validatePackage(metadata, readFileSync("release-package.tgz"), manifest, sha);
   const url = `${registry}/${encodeURIComponent(metadata.name)}`;
-  const getVersion = () => request(`${url}/${metadata.version}`);
+  const getVersion = (signal) => request(`${url}/${metadata.version}`, { signal });
   const getLatest = () => request(`${url}/latest`);
   if (command === "publish") {
     await publishPackage(metadata, {
       getVersion, getLatest,
       publish: () => execFileSync("npm", ["publish", "./release-package.tgz", "--ignore-scripts", "--access", "public"], { stdio: "inherit" }),
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      report: console.log,
     });
   } else if (command === "finalize") {
     await finalizeRelease(github, { id: process.env.RELEASE_ID, tag: process.env.RELEASE_TAG, sha, tagSha: process.env.RELEASE_TAG_SHA }, metadata, getVersion, getLatest);
