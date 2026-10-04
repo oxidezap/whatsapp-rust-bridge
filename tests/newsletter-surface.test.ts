@@ -236,13 +236,13 @@ describe("emitted types", () => {
     expect(info).toContain("adminCount?");
   });
 
-  test("a message keeps both of its ids, as strings", () => {
+  test("a message keeps string ids and allows an absent content id", () => {
     const message = declarations.match(
       /export interface NewsletterMessageResult \{[\s\S]*?\n\}/
     )?.[0];
     expect(message).toBeTruthy();
     // serverId is a u64 — a number would lose it.
     expect(message).toContain("serverId: string");
-    expect(message).toContain("messageId: string");
+    expect(message).toContain("messageId?: string");
   });
 });

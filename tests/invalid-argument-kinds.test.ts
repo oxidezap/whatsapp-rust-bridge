@@ -120,12 +120,12 @@ describe("the bridge's own checks name the argument", () => {
     const client = await offlineClient();
     const bytes = encodeProto("Message", { conversation: "text" });
     try {
-      for (const promise of [
-        client.relayMessageBytes(USER, bytes, ""),
-        client.relayMessageBytesWithOptions(USER, bytes, "", [], false, false),
-        client.sendStatusBytesWithOptions(bytes, [USER], "", [], false),
+      for (const call of [
+        () => client.relayMessageBytes(USER, bytes, ""),
+        () => client.relayMessageBytesWithOptions(USER, bytes, "", [], false, false),
+        () => client.sendStatusMessageBytesWithOptions(bytes, [USER], "", [], false),
       ]) {
-        const error = await rejection(promise);
+        const error = await rejection(call());
         expect(error.kind).toBe("invalid-argument");
         expect(error.field).toBe("messageId");
       }
@@ -138,7 +138,7 @@ describe("the bridge's own checks name the argument", () => {
       for (const [name, description, field] of [
         ["x".repeat(101), undefined, "name"], ["community", "x".repeat(2049), "description"],
       ] as const) {
-        const error = await rejection(client.communityCreate(name, description));
+        const error = await rejection(client.createCommunity(name, description));
         expect(error.kind).toBe("invalid-argument");
         expect(error.field).toBe(field);
       }
