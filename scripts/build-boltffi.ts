@@ -18,7 +18,7 @@
  * Skipped when `boltffi` is absent, so the default build still works for a
  * contributor who does not have it installed.
  */
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -177,6 +177,19 @@ if (packed.exitCode !== 0) {
 // would put two copies of the surface in the tarball.
 for (const file of readdirSync(PKG)) {
   if (file.endsWith(".ts") && !file.endsWith(".d.ts")) rmSync(join(PKG, file));
+}
+
+// The Node-only pack also emits an unused browser loader and its source map.
+// Keep declarations (the generated package references them), but do not ship
+// a second loader that none of this target's entrypoints imports.
+const config = Bun.TOML.parse(readFileSync(join(CRATE, "boltffi.toml"), "utf8")) as any;
+if (JSON.stringify(config.targets.wasm.npm.targets) === '["nodejs"]') {
+  const unused = new Set([`${MODULE}.js`, `${MODULE}.js.map`]);
+  for (const file of unused) rmSync(join(PKG, file), { force: true });
+  const packagePath = join(PKG, "package.json");
+  const metadata = JSON.parse(readFileSync(packagePath, "utf8"));
+  metadata.files = metadata.files.filter((file: string) => !unused.has(file));
+  writeFileSync(packagePath, JSON.stringify(metadata, null, 2) + "\n");
 }
 
 const required = [`${MODULE}_bg.wasm`, `${MODULE}_node.js`, `${MODULE}_node.d.ts`, "node.js"];
