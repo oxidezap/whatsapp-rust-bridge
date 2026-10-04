@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.25.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.1...v0.25.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139))
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139)) ([ec4a0eb](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ec4a0eb499d8accf3f1a64e0cc4757ab8c0a97e3))
+
 ## [0.24.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.0...v0.24.1) (2026-09-23)
 
 
