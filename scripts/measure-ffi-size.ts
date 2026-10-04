@@ -20,14 +20,22 @@ const api = ["md5", "hkdf", "getPublicFromPrivateKey", "calculateAgreement", "ve
 // Fail if the fixture's copied wrappers no longer match the production boundary.
 const production = readFileSync(join(root, "src/crypto.rs"), "utf8");
 const fixture = readFileSync(join(root, "benches/ffi-size-bindgen/src/lib.rs"), "utf8");
-for (const name of ["md5_digest", "hkdf_sha256", "public_from_private_key", "calculate_agreement", "verify_signature"]) {
-  const start = production.lastIndexOf("#[wasm_bindgen", production.indexOf(`pub fn ${name}(`));
-  const end = production.indexOf("\n}", production.indexOf(`pub fn ${name}(`)) + 2;
-  if (!fixture.includes(production.slice(start, end))) throw new Error(`stale size fixture: ${name}`);
+function productionDeclaration(marker: string, attribute: string): string {
+  const declaration = production.indexOf(marker);
+  if (declaration < 0) throw new Error(`missing production declaration: ${marker}`);
+  const start = production.lastIndexOf(attribute, declaration);
+  const end = production.indexOf("\n}", declaration);
+  if (start < 0 || end < 0) throw new Error(`incomplete production declaration: ${marker}`);
+  return production.slice(start, end + 2);
 }
-const recordStart = production.lastIndexOf("#[derive", production.indexOf("pub struct HkdfInfo"));
-const recordEnd = production.indexOf("\n}", production.indexOf("pub struct HkdfInfo")) + 2;
-if (!fixture.includes(production.slice(recordStart, recordEnd))) throw new Error("stale size fixture: HkdfInfo");
+for (const name of ["md5_digest", "hkdf_sha256", "public_from_private_key", "calculate_agreement", "verify_signature"]) {
+  if (!fixture.includes(productionDeclaration(`pub fn ${name}(`, "#[wasm_bindgen"))) {
+    throw new Error(`stale size fixture: ${name}`);
+  }
+}
+if (!fixture.includes(productionDeclaration("pub struct HkdfInfo", "#[derive"))) {
+  throw new Error("stale size fixture: HkdfInfo");
+}
 const manifest = Bun.TOML.parse(readFileSync(join(root, "Cargo.toml"), "utf8")) as any;
 const flags: string[] = manifest.package.metadata["wasm-pack"].profile.release["wasm-opt"];
 const versions = Object.fromEntries(["rustc", "wasm-bindgen", "wasm-opt", "boltffi", "bun", "node"].map(
