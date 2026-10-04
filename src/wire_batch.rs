@@ -1401,7 +1401,7 @@ mod tests {
                 .expect("valid sender jid");
             info.id = "CEILING".into();
             // A distinct push name each round is what fills the table.
-            info.push_name = format!("Peer {round}");
+            info.push_name = format!("Peer {round}").into();
             batch
                 .push(
                     &InboundMessage::builder()
@@ -1440,7 +1440,7 @@ mod tests {
             .parse()
             .expect("valid sender jid");
         info.id = id.into();
-        info.push_name = push_name;
+        info.push_name = push_name.into();
         InboundMessage::builder()
             .message(Arc::new(Message::default()))
             .info(Arc::new(info))
@@ -1750,7 +1750,7 @@ mod tests {
                     sender: "5511999@s.whatsapp.net".parse().expect("valid sender jid"),
                     ..Default::default()
                 })
-                .message_ids(vec![id.to_string()])
+                .message_ids(vec![id.to_string().into()])
                 .timestamp(Default::default())
                 .r#type(wacore::types::presence::ReceiptType::Other(
                     kind.to_string(),

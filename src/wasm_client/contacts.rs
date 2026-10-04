@@ -5,6 +5,15 @@
 //! conversion helpers.
 
 use super::*;
+use whatsapp_rust::wacore_binary::JidExt;
+
+fn profile_picture_target(jid: &Jid) -> whatsapp_rust::ProfilePictureTarget<'_> {
+    if jid.is_group() {
+        whatsapp_rust::ProfilePictureTarget::Group(jid)
+    } else {
+        whatsapp_rust::ProfilePictureTarget::Contact(jid)
+    }
+}
 
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
@@ -24,7 +33,7 @@ impl WasmWhatsAppClient {
     pub async fn is_on_whatsapp(
         &self,
         phones: Vec<String>,
-    ) -> Result<Vec<crate::result_types::IsOnWhatsAppResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::IsOnWhatsAppResult>>, crate::errors::BridgeError> {
         let jids: Vec<Jid> = phones
             .iter()
             .map(|p| {
@@ -56,17 +65,70 @@ impl WasmWhatsAppClient {
             buf
         }
 
-        Ok(results
-            .iter()
-            .map(|r| crate::result_types::IsOnWhatsAppResult {
-                jid: jid_to_owned(&r.jid),
-                is_registered: r.is_registered,
-                lid: r.lid.as_ref().map(jid_to_owned),
-                pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
-                is_business: r.is_business,
-                verified_name: r.verified_name.as_ref().and_then(|v| v.name.clone()),
-            })
-            .collect())
+        to_ts_vec(
+            results
+                .iter()
+                .map(|r| crate::result_types::IsOnWhatsAppResult {
+                    jid: jid_to_owned(&r.jid),
+                    is_registered: r.is_registered,
+                    lid: r.lid.as_ref().map(jid_to_owned),
+                    pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
+                    is_business: r.is_business,
+                    verified_name: r.verified_name.as_ref().and_then(|v| v.name.clone()),
+                    username: r.username.as_ref().map(|u| u.to_string()),
+                })
+                .collect(),
+        )
+    }
+
+    /// Resolve a Meta username to the account behind it.
+    ///
+    /// **Experimental.** The core builds the request exactly as WhatsApp Web
+    /// does, but no capture of a server answering it backs the implementation,
+    /// so a rejection here is not necessarily a bug.
+    ///
+    /// `username` is the bare handle; a leading `@` is display-only and the
+    /// core strips it. `usernameKey` is the account's numeric username key,
+    /// which some accounts require before the server discloses an identity at
+    /// all — without it the answer is `{ status: "keyRequired" }`.
+    #[wasm_bindgen(js_name = findByUsername)]
+    pub async fn find_by_username(
+        &self,
+        username: &str,
+        username_key: Option<String>,
+    ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError> {
+        use whatsapp_rust::features::UsernameLookup;
+
+        let lookup = self
+            .client
+            .online()
+            .await?
+            .contacts()
+            .find_by_username(username, username_key.as_deref())
+            .await?;
+
+        to_ts(match lookup {
+            UsernameLookup::NotFound => crate::result_types::UsernameLookupResult::NotFound,
+            UsernameLookup::KeyRequired { username } => {
+                crate::result_types::UsernameLookupResult::KeyRequired {
+                    username: username.map(|u| u.to_string()),
+                }
+            }
+            UsernameLookup::Found(user) => crate::result_types::UsernameLookupResult::Found {
+                jid: user.jid.to_string(),
+                pn_jid: user.pn_jid.as_ref().map(|j| j.to_string()),
+                username: user.username.map(|u| u.to_string()),
+                is_business: user.is_business,
+                verified_name: user.verified_name.and_then(|v| v.name),
+            },
+            // The core marks the answer non-exhaustive. One it learns to name
+            // and this bridge does not is not a "not found" to flatten.
+            other => {
+                return Err(crate::errors::internal(format!(
+                    "unhandled username lookup answer: {other:?}"
+                )));
+            }
+        })
     }
 
     /// Get the profile picture URL for a user or group.
@@ -78,14 +140,15 @@ impl WasmWhatsAppClient {
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "PictureType")] picture_type: JsValue,
         timeout_ms: Option<f64>,
-    ) -> Result<Option<crate::result_types::ProfilePictureInfo>, crate::errors::BridgeError> {
+    ) -> Result<Option<Ts<crate::result_types::ProfilePictureInfo>>, crate::errors::BridgeError>
+    {
         let picture_type =
             from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
         use crate::result_types::PictureType;
         let target = parse_jid(jid)?;
-        let preview = match picture_type {
-            PictureType::Preview => true,
-            PictureType::Image => false,
+        let size = match picture_type {
+            PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
+            PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
         };
 
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
@@ -94,11 +157,15 @@ impl WasmWhatsAppClient {
             .client
             .online()
             .await?
-            .contacts()
-            .get_profile_picture_with_timeout(&target, preview, timeout)
-            .await?;
+            .pictures()
+            .lookup(
+                whatsapp_rust::ProfilePictureRequest::new(profile_picture_target(&target), size)
+                    .timeout(timeout),
+            )
+            .await?
+            .into_found();
 
-        Ok(result.map(|pic| crate::result_types::ProfilePictureInfo {
+        to_ts_opt(result.map(|pic| crate::result_types::ProfilePictureInfo {
             id: pic.id,
             url: pic.url,
             direct_path: pic.direct_path,
@@ -135,6 +202,7 @@ impl WasmWhatsAppClient {
                 is_business: info.is_business,
                 verified_name: info.verified_name.as_ref().and_then(|v| v.name.clone()),
                 devices: info.devices.clone(),
+                username: info.username.as_ref().map(|u| u.to_string()),
             };
             let js_entry = serde_wasm_bindgen::to_value(&entry)?;
             js_sys::Reflect::set(&obj, &JsValue::from_str(&jid.to_string()), &js_entry)?;
@@ -156,12 +224,31 @@ impl WasmWhatsAppClient {
             .map_err(crate::errors::BridgeError::from)
     }
 
+    /// Read this account's own Meta username, its state and its username key.
+    ///
+    /// `null` means no username is set: the server answers 404 and the core
+    /// reads it that way. Only the read is exposed — setting a username or its
+    /// key changes the account's identity in a way the server does not undo,
+    /// so the core leaves those two MEX operations unwrapped.
+    #[wasm_bindgen(js_name = getUsername)]
+    pub async fn get_username(
+        &self,
+    ) -> Result<Option<Ts<crate::result_types::OwnUsernameResult>>, crate::errors::BridgeError>
+    {
+        let own = self.client.online().await?.mex().get_username().await?;
+        to_ts_opt(own.map(|own| crate::result_types::OwnUsernameResult {
+            username: own.username,
+            state: own.state,
+            key: own.key,
+        }))
+    }
+
     /// Set the profile picture for the logged-in user.
     #[wasm_bindgen(js_name = updateProfilePicture)]
     pub async fn update_profile_picture(
         &self,
         img_data: Vec<u8>,
-    ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         let result = self
             .client
             .online()
@@ -170,14 +257,14 @@ impl WasmWhatsAppClient {
             .set_profile_picture(img_data)
             .await?;
 
-        Ok(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
     }
 
     /// Remove the profile picture for the logged-in user.
     #[wasm_bindgen(js_name = removeProfilePicture)]
     pub async fn remove_profile_picture(
         &self,
-    ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         let result = self
             .client
             .online()
@@ -186,7 +273,7 @@ impl WasmWhatsAppClient {
             .remove_profile_picture()
             .await?;
 
-        Ok(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
     }
 
     /// Set the profile picture for a group the user administers.
@@ -199,7 +286,7 @@ impl WasmWhatsAppClient {
         &self,
         group_jid: &str,
         img_data: Vec<u8>,
-    ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         use wacore_binary::JidExt;
         let target = parse_jid(group_jid)?;
         if !target.is_group() {
@@ -216,7 +303,7 @@ impl WasmWhatsAppClient {
                 &target, img_data,
             ))
             .await?;
-        Ok(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
     }
 
     /// Remove a group's profile picture.
@@ -224,7 +311,7 @@ impl WasmWhatsAppClient {
     pub async fn remove_group_profile_picture(
         &self,
         group_jid: &str,
-    ) -> Result<crate::result_types::ProfilePictureResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         use wacore_binary::JidExt;
         let target = parse_jid(group_jid)?;
         if !target.is_group() {
@@ -241,7 +328,7 @@ impl WasmWhatsAppClient {
                 &target,
             ))
             .await?;
-        Ok(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
     }
 
     /// Update the user's status text (about).
@@ -297,7 +384,8 @@ impl WasmWhatsAppClient {
     #[wasm_bindgen(js_name = fetchBlocklist)]
     pub async fn fetch_blocklist(
         &self,
-    ) -> Result<Vec<crate::result_types::BlocklistEntryResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::BlocklistEntryResult>>, crate::errors::BridgeError>
+    {
         let entries = self
             .client
             .online()
@@ -306,13 +394,15 @@ impl WasmWhatsAppClient {
             .get_blocklist()
             .await?;
 
-        Ok(entries
-            .iter()
-            .map(|e| crate::result_types::BlocklistEntryResult {
-                jid: e.jid.to_string(),
-                timestamp: e.timestamp.map(|v| v as f64),
-            })
-            .collect())
+        to_ts_vec(
+            entries
+                .iter()
+                .map(|e| crate::result_types::BlocklistEntryResult {
+                    jid: e.jid.to_string(),
+                    timestamp: e.timestamp.map(|v| v as f64),
+                })
+                .collect(),
+        )
     }
 
     // ── Privacy settings ──────────────────────────────────────────────
@@ -399,7 +489,7 @@ impl WasmWhatsAppClient {
     pub async fn fetch_status(
         &self,
         jids: Vec<String>,
-    ) -> Result<Vec<crate::result_types::FetchStatusResult>, crate::errors::BridgeError> {
+    ) -> Result<Vec<Ts<crate::result_types::FetchStatusResult>>, crate::errors::BridgeError> {
         let parsed_jids: Vec<Jid> = jids
             .iter()
             .map(|s| parse_jid(s))
@@ -411,12 +501,32 @@ impl WasmWhatsAppClient {
             .contacts()
             .get_user_info(&parsed_jids)
             .await?;
-        Ok(infos
-            .values()
-            .map(|info| crate::result_types::FetchStatusResult {
-                jid: info.jid.to_string(),
-                status: info.status.clone(),
-            })
-            .collect())
+        to_ts_vec(
+            infos
+                .values()
+                .map(|info| crate::result_types::FetchStatusResult {
+                    jid: info.jid.to_string(),
+                    status: info.status.clone(),
+                })
+                .collect(),
+        )
+    }
+}
+
+#[cfg(test)]
+mod picture_target_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn picture_requests_use_the_core_jid_class_without_community_fallback() {
+        let group = "120363000000000000@g.us".parse().unwrap();
+        let contact = "5511999999999@s.whatsapp.net".parse().unwrap();
+        assert!(
+            matches!(profile_picture_target(&group), whatsapp_rust::ProfilePictureTarget::Group(jid) if jid == &group)
+        );
+        assert!(
+            matches!(profile_picture_target(&contact), whatsapp_rust::ProfilePictureTarget::Contact(jid) if jid == &contact)
+        );
     }
 }

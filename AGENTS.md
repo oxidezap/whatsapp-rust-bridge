@@ -26,6 +26,8 @@ src/
   proto.rs, wire_batch.rs
 ts/
   index.ts              entry point; initialises the wasm and re-exports it
+  host.ts               same bridge with host-supplied wasm bytes (`initSync`)
+  surface.ts            the one JS API both entrypoints re-export
   proto*.ts, wire-info.ts
 tests/                  the client surface (Bun)
 test/                   the feature-gated codecs: audio, image, sticker (Bun)
@@ -120,7 +122,7 @@ numeric write method needs an entry in both.
 
 Widening rather than throwing is the point: one out-of-range field used to fail the whole `decodeProto` call, and the consumer lost every other field with it. `BigInt` is not an option on this path — `JSON.stringify` refuses it.
 
-**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written.
+**Packed repeated fields are the schema's call, not a setting.** `whatsapp.proto` is `syntax = "proto2"`, where a repeated numeric or enum field is unpacked unless it declares `[packed = true]`. Four declare it — `ADVKeyIndexList.validIndexes`, `DeviceListMetadata.senderKeyIndexes` and `recipientKeyIndexes`, `Message.AppStateSyncKeyFingerprint.deviceIndexes` — eleven leave it unset, and none declares `[packed = false]`. ts-proto reads the option off each field's descriptor and offers no switch that overrides it, so unpacked output from a field without the option is what the schema asked for. Proto3's packed-by-default does not apply here, and packing those eleven would put the bridge's bytes at odds with the `.proto` every other implementation compiles from. `tests/proto-packed-repeated.test.ts` pins both forms, hand-written. Repeated fields do not track presence. A zero-length packed occurrence contributes zero elements and therefore canonicalizes to the same API state as no occurrences. Do not materialize an empty array merely because the packed tag appeared on the wire.
 
 **A message field read twice merges.** Well-formed protobuf has one reading, and
 for an embedded message field the wire format says what it is: repeated instances
@@ -216,6 +218,14 @@ That distribution is a consumer's memory, and it hangs off one wasm-opt flag: `-
 
 `gen` runs in that dependency order — codec, then `proto-types.d.ts`, then the bridge types — because a generated declaration naming a waproto type resolves it against that manifest and emits `import('./proto-types').proto.…`, the same reference the `history_sync` event entry uses. A named type the generator cannot place (not waproto, not a `pub type` alias, not something it or the bridge declares) fails the generation rather than emitting a name nothing declares. That check sees one `typescript_custom_section`; `tests/published-dts.test.ts` checks the concatenated `.d.ts` with `skipLibCheck: false`, which is the whole of it — every consumer tsconfig leaves that flag on, so a dangling name reaches them as a silent `any`.
 
+## Bumping the whatsapp-rust pin
+
+The pin is one `rev` in `Cargo.toml` on the `whatsapp-rust` git dependency. Point it at the newest upstream main head, run `cargo update -p whatsapp-rust`, and keep the `Cargo.lock` diff to the whatsapp source lines. Revert unrelated hunks if they flip.
+
+The PR title is semantic because the release workflow reads it. Previous bumps look like `fix(deps): bump whatsapp-rust pin for <what>`. The body lists what entered between the pins from the upstream log, split into what bridge callers can feel and what they cannot, and says whether `bun run gen:bridge-types` drifted.
+
+Verify light locally (`cargo check`, the `gen:bridge-types` run). CI parallelizes the heavy checks.
+
 ## Tests
 
 There is **no mock server in CI**, so no test here proves an end-to-end response body. What tests can prove:
@@ -235,3 +245,10 @@ Say which of these a test does, and do not let a test's name claim more than it 
 Explain the failure the change prevents, not the lines it touches. Show the evidence — the failing output before, the passing output after. Name what you did *not* verify.
 
 Do not merge, and do not add labels.
+
+## Maintaining this file
+
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

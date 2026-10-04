@@ -155,9 +155,9 @@ describe("empty and single-element lists", () => {
     );
   });
 
-  // Absent is absent: a zero-length packed payload is a field the peer sent,
-  // and must not read back the same as a field it never sent.
-  test("an empty packed field decodes to an empty list, not to absent", () => {
+  // Repeated fields do not track presence: a zero-length packed occurrence
+  // contributes zero elements, so it reads the same as no occurrence at all.
+  test("a zero-length packed occurrence has no repeated-field presence", () => {
     const present = decodeProto("ADVKeyIndexList", bytes(0x22, 0x00)) as {
       validIndexes?: number[];
     };
@@ -165,8 +165,59 @@ describe("empty and single-element lists", () => {
       validIndexes?: number[];
     };
 
-    expect(present.validIndexes).toEqual([]);
+    expect(present.validIndexes).toBeUndefined();
     expect(absent.validIndexes).toBeUndefined();
+  });
+
+  // overrideMode = 2 encodes unpacked, but a peer may still send the packed
+  // tag 0x12 with a zero length. Canonicalization is about the wire form,
+  // not the schema declaration, so this reads absent too.
+  test("zero-length packed form also canonicalizes for a field encoded unpacked by schema", () => {
+    const decoded = decodeProto(
+      "BotModeSelectionMetadata",
+      bytes(0x12, 0x00),
+    ) as { overrideMode?: number[] };
+
+    expect(decoded.overrideMode).toBeUndefined();
+  });
+
+  // An empty packed occurrence adds nothing, so it must not erase values
+  // already read: packed[7] and empty in either order both leave [7].
+  test("an empty packed occurrence does not erase repeated values", () => {
+    const emptyThenValue = decodeProto(
+      "ADVKeyIndexList",
+      bytes(0x22, 0x00, 0x22, 0x01, 0x07),
+    ) as { validIndexes?: number[] };
+    const valueThenEmpty = decodeProto(
+      "ADVKeyIndexList",
+      bytes(0x22, 0x01, 0x07, 0x22, 0x00),
+    ) as { validIndexes?: number[] };
+    const unpackedThenEmpty = decodeProto(
+      "ADVKeyIndexList",
+      bytes(0x20, 0x07, 0x22, 0x00),
+    ) as { validIndexes?: number[] };
+
+    expect(emptyThenValue.validIndexes).toEqual([7]);
+    expect(valueThenEmpty.validIndexes).toEqual([7]);
+    expect(unpackedThenEmpty.validIndexes).toEqual([7]);
+  });
+
+  // senderKeyIndexes = 3 -> packed tag 0x1a. A zero-length occurrence used to
+  // decode to { senderKeyIndexes: [] }; the encoder skips empty lists, so
+  // decode->encode->decode gave {} and never settled. Now it is {} throughout.
+  test("zero-length packed repeated reaches a decode-encode-decode fixed point", () => {
+    const first = decodeProto("DeviceListMetadata", bytes(0x1a, 0x00)) as {
+      senderKeyIndexes?: number[];
+    };
+    expect(first).toEqual({});
+
+    const encoded = encodeProto("DeviceListMetadata", first);
+    expect(encoded.length).toBe(0);
+
+    const second = decodeProto("DeviceListMetadata", encoded) as {
+      senderKeyIndexes?: number[];
+    };
+    expect(second).toEqual(first);
   });
 });
 

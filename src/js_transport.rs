@@ -6,11 +6,13 @@
 //! (e.g. disconnect → ws.close → ws.onclose → reconnect → connect).
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use async_channel::Receiver;
 use async_trait::async_trait;
 use bytes::Bytes;
+use futures::FutureExt;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
@@ -49,10 +51,9 @@ export interface JsTransportHandle {
 
 /**
  * Every Promise handed back to the bridge must settle, including on failure:
- * reject rather than leaving it pending. The bridge awaits it through a
- * wasm-bindgen `JsFuture`, whose resolve/reject pair is only released when the
- * promise settles, so a promise that never settles retains two JS handles for
- * the life of the process.
+ * reject rather than leaving it pending. The bridge awaits them through a
+ * wasm-bindgen `JsFuture`; an overlapping teardown cancels only the wait that
+ * would otherwise form a callback/teardown cycle.
  */
 export interface JsTransportCallbacks {
     connect(handle: JsTransportHandle): void | Promise<void>;
@@ -66,6 +67,72 @@ const CONNECT_METHOD: &str = "connect";
 const SEND_METHOD: &str = "send";
 const SEND_BORROWED_METHOD: &str = "sendBorrowed";
 const DISCONNECT_METHOD: &str = "disconnect";
+
+/// Coordinates a host disconnect callback with an overlapping teardown.
+/// Cancelling the wait breaks the only possible callback/teardown cycle; an
+/// ordinary callback is still awaited to completion.
+pub(crate) struct HostCallbackState {
+    next_id: AtomicUsize,
+    cancel: Mutex<Option<(usize, futures::channel::oneshot::Sender<()>)>>,
+}
+
+impl HostCallbackState {
+    fn new() -> Self {
+        Self {
+            next_id: AtomicUsize::new(0),
+            cancel: Mutex::new(None),
+        }
+    }
+
+    fn begin_disconnect(
+        &self,
+    ) -> (
+        DisconnectCallbackGuard<'_>,
+        futures::channel::oneshot::Receiver<()>,
+    ) {
+        let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+        let (sender, receiver) = futures::channel::oneshot::channel();
+        let previous = self
+            .cancel
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .replace((id, sender));
+        if let Some((_, sender)) = previous {
+            let _ = sender.send(());
+        }
+        (DisconnectCallbackGuard { state: self, id }, receiver)
+    }
+
+    pub(crate) fn cancel_disconnect_wait(&self) {
+        let sender = self
+            .cancel
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take()
+            .map(|(_, sender)| sender);
+        if let Some(sender) = sender {
+            let _ = sender.send(());
+        }
+    }
+}
+
+struct DisconnectCallbackGuard<'a> {
+    state: &'a HostCallbackState,
+    id: usize,
+}
+
+impl Drop for DisconnectCallbackGuard<'_> {
+    fn drop(&mut self) {
+        let mut cancel = self
+            .state
+            .cancel
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if cancel.as_ref().is_some_and(|(id, _)| *id == self.id) {
+            cancel.take();
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Transport handle — JS pushes WebSocket events through this
@@ -157,6 +224,7 @@ struct RawTransportCallbacks {
     /// frame sent.
     send_borrowed_checked: std::cell::Cell<bool>,
     disconnect_fn: js_sys::Function,
+    callback_state: Arc<HostCallbackState>,
     /// The original JS object — kept alive to prevent GC
     _js_obj: JsValue,
 }
@@ -185,6 +253,7 @@ impl RawTransportCallbacks {
             send_borrowed_fn,
             send_borrowed_checked: std::cell::Cell::new(false),
             disconnect_fn,
+            callback_state: Arc::new(HostCallbackState::new()),
             _js_obj: obj,
         })
     }
@@ -227,11 +296,21 @@ impl RawTransportCallbacks {
     }
 
     async fn call_disconnect(&self) -> Result<(), anyhow::Error> {
+        let (guard, cancel) = self.callback_state.begin_disconnect();
         let result = self
             .disconnect_fn
             .call0(&JsValue::NULL)
             .map_err(|e| anyhow::anyhow!("disconnect: {e:?}"))?;
-        resolve_maybe(result).await
+        if result.is_instance_of::<js_sys::Promise>() {
+            let callback = resolve_maybe(result);
+            futures::pin_mut!(callback);
+            futures::select! {
+                _ = callback.fuse() => {}
+                _ = cancel.fuse() => {}
+            }
+        }
+        drop(guard);
+        Ok(())
     }
 }
 
@@ -296,6 +375,10 @@ impl JsTransportFactory {
         Ok(Self {
             callbacks: Arc::new(RawTransportCallbacks::from_js(obj)?),
         })
+    }
+
+    pub(crate) fn callback_state(&self) -> Arc<HostCallbackState> {
+        self.callbacks.callback_state.clone()
     }
 }
 

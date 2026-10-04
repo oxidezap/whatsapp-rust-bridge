@@ -19,6 +19,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assertWireTypeGuards } from './proto-wire-type-guards'
+import { shareProtoPrivateWork } from './proto-source-sharing'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT_DIR = join(ROOT, 'ts', 'generated')
@@ -128,6 +129,90 @@ const GENERATED_DECODE_DECLARATION = '  decode(input: BinaryReader | Uint8Array,
 const MERGING_DECODE_DECLARATION =
 	'  decode(input: BinaryReader | Uint8Array, length?: number, into?: T): T;'
 
+const RECURSION_GUARD_HEAD = [
+	'const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;',
+	'if (previousRecursionDepth >= 100) {',
+	'throw new globalThis.Error("protobuf decode recursion limit exceeded");',
+	'(reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;',
+	'try {'
+] as const
+const RECURSION_GUARD_RESET = '(reader as any).__tsProtoDecodeDepth = previousRecursionDepth;'
+
+/**
+ * ts-proto 2.12 wraps every decode in a 100-deep recursion guard. This codec
+ * deliberately carries no depth cap — a message nests until the host stack
+ * gives out, and a decode never comes back short — so the wrapper is removed
+ * and the body dedented back to the shape the transforms below expect. The
+ * counts fail the generation if the template changes shape instead of
+ * silently keeping a cap or dropping a body.
+ */
+const stripRecursionGuard = (source: string): string => {
+	const lines = source.split('\n')
+	const out: string[] = []
+	let stripped = 0
+	let index = 0
+	while (index < lines.length) {
+		const line = lines[index]!
+		const indent = line.slice(0, line.length - line.trimStart().length)
+		const content = line.trimStart()
+		// Long type names push the whole codec object a level deeper, so the
+		// guard is matched relative to its own indent rather than column 4.
+		if (content !== RECURSION_GUARD_HEAD[0]) {
+			out.push(line)
+			index++
+			continue
+		}
+		const expected = [
+			`${indent}${RECURSION_GUARD_HEAD[1]}`,
+			`${indent}  ${RECURSION_GUARD_HEAD[2]}`,
+			`${indent}}`,
+			`${indent}${RECURSION_GUARD_HEAD[3]}`,
+			`${indent}${RECURSION_GUARD_HEAD[4]}`
+		]
+		for (let head = 0; head < expected.length; head++) {
+			if (lines[index + 1 + head] !== expected[head]) {
+				throw new Error('ts-proto emitted a recursion guard in an unhandled shape')
+			}
+		}
+		const tail = [`${indent}} finally {`, `${indent}  ${RECURSION_GUARD_RESET}`, `${indent}}`]
+		index += 1 + expected.length
+		stripped++
+		for (;;) {
+			const body = lines[index]
+			if (body === undefined) {
+				throw new Error('ts-proto emitted a recursion guard with no closing finally')
+			}
+			if (
+				body === tail[0] &&
+				lines[index + 1] === tail[1] &&
+				lines[index + 2] === tail[2]
+			) {
+				index += 3
+				break
+			}
+			if (body === '') {
+				out.push(body)
+				index++
+				continue
+			}
+			if (!body.startsWith('  ')) {
+				throw new Error('ts-proto emitted a guarded decode body that is not indented')
+			}
+			out.push(body.slice(2))
+			index++
+		}
+	}
+	const decodes = source.split(RECURSION_GUARD_HEAD[0]).length - 1
+	if (stripped === 0 || stripped !== decodes) {
+		throw new Error(`ts-proto emitted a recursion guard in an unhandled shape (${stripped}/${decodes})`)
+	}
+	const unguarded = out.join('\n')
+	if (unguarded.includes('__tsProtoDecodeDepth') || unguarded.includes('recursion limit')) {
+		throw new Error('ts-proto emitted a recursion guard in an unhandled shape (remnant)')
+	}
+	return unguarded
+}
+
 // ts-proto wraps a long signature or a long `createBase…` call over several
 // lines, so both shapes are matched across newlines rather than per line.
 const DECODE_SIGNATURE = /decode\(\s*input: BinaryReader \| Uint8Array,\s*length\?: number,?\s*\): ([A-Za-z0-9_]+) \{/g
@@ -171,6 +256,97 @@ const mergeRepeatedMessageFields = (source: string): string => {
 		throw new Error(`ts-proto emitted a singular message read in an unhandled shape (${reads}/${singularReads})`)
 	}
 	return replaceGeneratedContract(merged, GENERATED_DECODE_DECLARATION, MERGING_DECODE_DECLARATION)
+}
+
+const PACKED_REPEATED_GUARD = /^(\s*)if \(message\.([A-Za-z0-9_]+) === undefined\) \{$/;
+const PACKED_REPEATED_ALLOC = /^(\s*)message\.([A-Za-z0-9_]+) = \[\];$/;
+const PACKED_REPEATED_PUSH = /^(\s*)message\.([A-Za-z0-9_]+)!\.push\(/;
+const PACKED_BRANCH_END = 'const end2 = reader.uint32() + reader.pos;';
+const PACKED_BRANCH_LOOP = 'while (reader.pos < end2) {';
+
+// Every packable protobuf scalar: ts-proto accepts the packed form for any of
+// these on a repeated field, so the schema — not the generated source — says
+// how many packed decode branches to expect.
+const PACKABLE_TYPES = new Set([
+	Type.DOUBLE,
+	Type.FLOAT,
+	Type.INT64,
+	Type.UINT64,
+	Type.INT32,
+	Type.FIXED64,
+	Type.FIXED32,
+	Type.BOOL,
+	Type.UINT32,
+	Type.ENUM,
+	Type.SFIXED32,
+	Type.SFIXED64,
+	Type.SINT32,
+	Type.SINT64
+])
+
+const countPackableRepeatedFields = (descriptor: Uint8Array): number => {
+	const set = fromBinary(FileDescriptorSetSchema, descriptor)
+	const countMessage = (message: DescriptorProto): number => {
+		// Map entries included: ts-proto emits a codec for each one, but a map's
+		// key/value pair never takes the packed branch.
+		let count = message.options?.mapEntry
+			? 0
+			: message.field.filter(
+				field => field.label === Label.REPEATED && PACKABLE_TYPES.has(field.type)
+			).length
+		for (const nested of message.nestedType) count += countMessage(nested)
+		return count
+	}
+	let count = 0
+	for (const file of set.file) {
+		for (const message of file.messageType) count += countMessage(message)
+	}
+	return count
+}
+
+/**
+ * Repeated fields carry no presence: a zero-length packed occurrence adds no
+ * elements, so allocating `[]` for it reads differently from no occurrence.
+ * Guarding the allocation on a nonempty payload keeps empty occurrences absent.
+ */
+const canonicalizeEmptyPackedRepeatedFields = (source: string, expectedPackedBranches: number): string => {
+	const lines = source.split('\n')
+	const out: string[] = []
+	let transformed = 0
+	let index = 0
+	while (index < lines.length) {
+		const guard = PACKED_REPEATED_GUARD.exec(lines[index]!)
+		const alloc = index + 5 < lines.length ? PACKED_REPEATED_ALLOC.exec(lines[index + 1]!) : null
+		const push = index + 5 < lines.length ? PACKED_REPEATED_PUSH.exec(lines[index + 5]!) : null
+		if (
+			guard &&
+			alloc &&
+			push &&
+			alloc[1] === `${guard[1]}  ` &&
+			alloc[2] === guard[2] &&
+			lines[index + 2] === `${guard[1]}}` &&
+			lines[index + 3] === `${guard[1]}${PACKED_BRANCH_END}` &&
+			lines[index + 4] === `${guard[1]}${PACKED_BRANCH_LOOP}` &&
+			push[1] === `${guard[1]}  ` &&
+			push[2] === guard[2]
+		) {
+			out.push(
+				`${guard[1]}${PACKED_BRANCH_END}`,
+				`${guard[1]}if (reader.pos < end2 && message.${guard[2]} === undefined) {`,
+				`${guard[1]}  message.${guard[2]} = [];`,
+				`${guard[1]}}`
+			)
+			transformed++
+			index += 4
+			continue
+		}
+		out.push(lines[index]!)
+		index++
+	}
+	if (transformed !== expectedPackedBranches) {
+		throw new Error(`ts-proto emitted packed repeated decodes in an unhandled shape (${transformed}/${expectedPackedBranches})`)
+	}
+	return out.join('\n')
 }
 
 const DECODE_LOOP_EPILOGUE =
@@ -415,10 +591,18 @@ try {
 		throw new Error('ts-proto added an int64 conversion without a 64-bit specialization')
 	}
 	generatedSource = retypeInt64Fields(generatedSource)
+	generatedSource = stripRecursionGuard(generatedSource)
 	generatedSource = mergeRepeatedMessageFields(generatedSource)
-	generatedSource = rejectIllegalTags(generatedSource)
 	const descriptor = readFileSync(descriptorFile)
+	generatedSource = canonicalizeEmptyPackedRepeatedFields(
+		generatedSource,
+		countPackableRepeatedFields(descriptor)
+	)
+	generatedSource = rejectIllegalTags(generatedSource)
+	const shared = shareProtoPrivateWork(generatedSource)
+	generatedSource = shared.text
 	assertWireTypeGuards(generatedSource, descriptor)
+	console.log(`Shared ${shared.unknownEpilogues} framing tails, ${shared.scalarRuns} scalar runs (${shared.scalarFields} fields), ${shared.createMethods} create tails`)
 	writeFileSync(generatedFile, generatedSource)
 	writeFileSync(SURFACE_FILE, buildSurface(descriptor))
 	renameSync(generatedFile, OUTPUT_FILE)

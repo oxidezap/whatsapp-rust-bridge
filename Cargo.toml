@@ -11,9 +11,7 @@ default-members = [".", "crates/bridge-core"]
 exclude = ["codegen"]
 
 [workspace.dependencies]
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", branch = "main", default-features = false, features = [
-    "danger-skip-cert-chain-verify",
-] }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "6f7a62296242f5dab8967431bd1c6528c1339efe", default-features = false }
 whatsapp-rust-bridge-core = { path = "crates/bridge-core" }
 
 [package.metadata.wasm-pack.profile.release]
@@ -113,7 +111,7 @@ anyhow = { version = "1.0", default-features = false }
 async-channel = { version = "2.5.0", default-features = false, features = ["std"] }
 async-lock = { version = "3", default-features = false }
 async-trait = "0.1.89"
-base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
+base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
 bytes = { version = "1.11", default-features = false }
 console_error_panic_hook = "0.1"
 console_log = { version = "1", features = ["color"] }
@@ -146,9 +144,9 @@ tracing-core = { version = "0.1.36", default-features = false, features = ["std"
 tsify = { version = "0.5.6", default-features = false, features = ["js"] }
 uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
 
-wasm-bindgen = "0.2.121"
+wasm-bindgen = "0.2.128"
 wasm-bindgen-futures = "0.4.71"
-wasm-streams = "0.6"
+wasm-streams = "0.7"
 web-sys = { version = "0.3", features = [
     "ReadableStream",
     "ReadableStreamDefaultReader",

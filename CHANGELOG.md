@@ -1,5 +1,126 @@
 # Changelog
 
+## [0.25.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.1...v0.25.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139))
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139)) ([ec4a0eb](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ec4a0eb499d8accf3f1a64e0cc4757ab8c0a97e3))
+
+## [0.24.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.0...v0.24.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* declare protobuf wire type dependency ([#135](https://github.com/oxidezap/whatsapp-rust-bridge/issues/135)) ([2a20541](https://github.com/oxidezap/whatsapp-rust-bridge/commit/2a205410259e4a55ca78e0a135e9df73e185914c))
+
+## [0.24.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.1...v0.24.0) (2026-09-21)
+
+
+### Features
+
+* **crypto:** expose provider-routed sync primitives ([#130](https://github.com/oxidezap/whatsapp-rust-bridge/issues/130)) ([6fbed58](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6fbed58b31ef1b08d9f07c6edbf3497aace6eabe))
+
+## [0.23.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.23.0...v0.23.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* serialize client teardown and make free passive ([#128](https://github.com/oxidezap/whatsapp-rust-bridge/issues/128)) ([cf378e4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/cf378e4a051e68573e4cf37db66e834d8297ef8c))
+
+## [0.23.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.22.1...v0.23.0) (2026-09-19)
+
+
+### Features
+
+* add host-loaded entrypoint sharing one bridge implementation ([#127](https://github.com/oxidezap/whatsapp-rust-bridge/issues/127)) ([7c67e80](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7c67e808b4ea155063023a2a27db20469c38edb1))
+
+
+### Bug Fixes
+
+* canonicalize zero-length packed repeated fields to absent ([#124](https://github.com/oxidezap/whatsapp-rust-bridge/issues/124)) ([82bb5e4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/82bb5e426f8348bb00e920e0d1a655833b0a5216))
+* **deps:** bump whatsapp-rust pin for voip control-plane split and cache-memory fixes ([#126](https://github.com/oxidezap/whatsapp-rust-bridge/issues/126)) ([49419a7](https://github.com/oxidezap/whatsapp-rust-bridge/commit/49419a7164adde5c7cb748dcde5df9abf63e63c9))
+
+## [0.22.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.22.0...v0.22.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin onto core main for chat lock and profile-picture changes ([#122](https://github.com/oxidezap/whatsapp-rust-bridge/issues/122)) ([4b55ad4](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4b55ad47da76c5216bd7f7c1b9c6d54b5a650026))
+
+## [0.22.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.4...v0.22.0) (2026-09-13)
+
+
+### Features
+
+* **history:** add history sync admission policy ([#118](https://github.com/oxidezap/whatsapp-rust-bridge/issues/118)) ([7b79255](https://github.com/oxidezap/whatsapp-rust-bridge/commit/7b792559767d00c2fed1ce6de872a85d8554b639))
+
+## [0.21.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.3...v0.21.4) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** move @bufbuild/protobuf to devDependencies ([#113](https://github.com/oxidezap/whatsapp-rust-bridge/issues/113)) ([f29da28](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f29da287c88aa62a67ff99d8e53211ab1009bf27))
+
+## [0.21.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.2...v0.21.3) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for message retry dedup and memory perf ([#110](https://github.com/oxidezap/whatsapp-rust-bridge/issues/110)) ([037cedf](https://github.com/oxidezap/whatsapp-rust-bridge/commit/037cedf71e1cf0d0aaf9df8291529b62ea0c1513))
+
+## [0.21.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.1...v0.21.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for group send resync and TLS reuse ([#108](https://github.com/oxidezap/whatsapp-rust-bridge/issues/108)) ([000c889](https://github.com/oxidezap/whatsapp-rust-bridge/commit/000c889daa4112f6d9a859d5e6aad41cc1b57b3a))
+
+## [0.21.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.21.0...v0.21.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for bare join success ([#105](https://github.com/oxidezap/whatsapp-rust-bridge/issues/105)) ([bcbf885](https://github.com/oxidezap/whatsapp-rust-bridge/commit/bcbf885f707a2c275228f3ec7bfefa18f87f297b))
+
+## [0.21.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.20.0...v0.21.0) (2026-09-05)
+
+
+### Features
+
+* configure Noise certificate verification per client ([#97](https://github.com/oxidezap/whatsapp-rust-bridge/issues/97)) ([110d966](https://github.com/oxidezap/whatsapp-rust-bridge/commit/110d966fc96afcef39d72e1292078c89eb45d62d))
+
+
+### Bug Fixes
+
+* **bridge:** device record authority over legacy account sidecar ([#99](https://github.com/oxidezap/whatsapp-rust-bridge/issues/99)) ([77a3400](https://github.com/oxidezap/whatsapp-rust-bridge/commit/77a3400a8508ce7dedfeac925c14a7074e93b543))
+* **types:** restore the installed package type contract ([#98](https://github.com/oxidezap/whatsapp-rust-bridge/issues/98)) ([f45f565](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f45f565af7888a1c017b8d647df19cd110bc2cb5))
+
+## [0.20.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.19.0...v0.20.0) (2026-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update whatsapp-rust 9be10573 to 0aa87c64 ([#96](https://github.com/oxidezap/whatsapp-rust-bridge/issues/96))
+
+### Features
+
+* carry the core's username surface across the boundary ([#89](https://github.com/oxidezap/whatsapp-rust-bridge/issues/89)) ([dfb4fff](https://github.com/oxidezap/whatsapp-rust-bridge/commit/dfb4fffd5713c2362fd260ab25a14ecc275069bd))
+
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust 9be10573 to 0aa87c64 ([#96](https://github.com/oxidezap/whatsapp-rust-bridge/issues/96)) ([3d27f19](https://github.com/oxidezap/whatsapp-rust-bridge/commit/3d27f19fc3aa184bfc5926d41c7327ca56a379a0))
+
+
+### Refactors
+
+* **tsify:** migrate wasm boundary types off deprecated into/from_wasm_abi to new pattern ([#95](https://github.com/oxidezap/whatsapp-rust-bridge/issues/95)) ([b9680bf](https://github.com/oxidezap/whatsapp-rust-bridge/commit/b9680bfeeaa5db5109188d2e68e7ca9c8423eac2))
+
 ## [0.19.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.18.0...v0.19.0) (2026-08-27)
 
 

@@ -28,16 +28,23 @@
 import { codeShape } from "./wasm-code-shape.mjs";
 
 /**
- * 14% over the 87,456 bytes the capped build produces — room for a core update
- * that grows the decoder, and under the 101,933 that merely doubling the cap to
- * 4000 would produce, so a loosened flag fails here rather than passing as a
- * rounding difference. An uncapped build is 177,110.
+ * ~9% over the 100,514 the capped build produces, and under the 115,109 that
+ * doubling the cap to 4000 produces, so a loosened flag fails here rather than
+ * passing as a rounding difference. An uncapped build is 177,110.
+ *
+ * The capped body was 98,670, to the byte, on both the previous pin and this
+ * core main head: the eight-commit bump moved it not at all. All +1,844 is the
+ * bridge's new `lock_chat_update` arm, a variant the event-coverage gate makes
+ * it dispatch or exclude and a monomorphisation that folds into the
+ * `JsEventHandler` future rather than splitting out. The zone peak and private
+ * memory do not move (15 reps, 3.589 MiB serial either way), so its
+ * connect-window cost is zero, measured rather than assumed.
  *
  * Going over is a prompt to run `bun run measure:fn-sizes`, look at what grew,
  * and decide — then either fix it or raise this in the same commit, with the
  * connect-window cost of the growth measured rather than assumed.
  */
-const MAX_LARGEST_BODY_BYTES = 100_000;
+const MAX_LARGEST_BODY_BYTES = 110_000;
 
 const path = process.argv[2] ?? "pkg/whatsapp_rust_bridge_bg.wasm";
 

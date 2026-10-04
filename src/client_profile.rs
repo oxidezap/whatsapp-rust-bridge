@@ -13,7 +13,6 @@ use whatsapp_rust::wacore::client_profile::ClientProfile;
 /// Leaving any field `None` preserves wacore's default, which matches
 /// WA Web (notably `phoneId` stays unset on the wire).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ClientProfileOverrides {
     pub phone_id: Option<String>,
@@ -51,7 +50,6 @@ impl ClientProfileOverrides {
 /// Every variant flattens the [`ClientProfileOverrides`] fields, so the
 /// JS literal is flat (e.g. `{ preset: 'web', phoneId: 'fixed-id' }`).
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(
     tag = "preset",
     rename_all = "camelCase",

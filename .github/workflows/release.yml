@@ -1,38 +1,22 @@
 name: Release
 
-# release-please keeps a release PR up to date with every conventional commit
-# landing on main. Merging that PR tags the release, which is the only thing
-# that triggers a publish — so the version bump stays reviewable instead of
-# firing on each merge.
-#
-# Commit types matter now: only feat/fix/perf produce a release. A `chore(deps):
-# …` bump of the whatsapp-rust pin releases nothing and would sit on main until
-# an unrelated commit dragged it out — commit those as `fix(deps): …` instead.
+# Release PRs remain reviewable. Their merge creates a tag and a private draft;
+# only verified npm publication makes the GitHub release public.
+# Only feat/fix/perf trigger releases. Dependency fixes use fix(deps), not chore.
 on:
   push:
     branches: [main]
-  # Recovery path. A release tag is created by the job below and only that run
-  # carries `release_created`, so a publish that fails for a reason outside the
-  # tag — a missing tool on the runner, a registry outage — cannot be retried by
-  # re-running it: the re-run replays the workflow file of that commit, which is
-  # the one that failed.
-  #
-  # Dispatch this **with the release tag selected as the ref**, not from a
-  # branch with the tag as a parameter. Taking it as a free-form input would let
-  # a dispatch publish any branch or commit through a job holding npm OIDC
-  # rights, and npm's provenance records the event's ref and sha rather than
-  # whatever the workspace was checked out to — so a tarball built from a tag
-  # while the event pointed at a branch would be attested to the wrong commit.
-  # The ref picker only offers refs that exist, and `ref_type` below rejects
-  # everything that is not a tag.
-  #
-  # The consequence, which is the price of the above: a dispatch runs the
-  # workflow file stored in the selected tag, so this only rescues tags created
-  # from this commit onwards. A tag older than this file has no dispatch trigger
-  # to select and cannot be recovered here — delete it along with its GitHub
-  # release and let the next release supersede it, since a tag that never
-  # reached npm has nothing depending on it.
+  # Normally select the tag to retry its workflow. For a broken test/workflow
+  # stored in an older tag, select main and explicitly supply recovery_tag.
+  # Recovery checks that every package/build input is unchanged since the tag;
+  # provenance names this event's real main SHA and the tag is never moved.
   workflow_dispatch:
+    inputs:
+      recovery_tag:
+        description: "Existing release tag to recover from main without changing package/build inputs"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -62,14 +46,6 @@ jobs:
       # issues API. Only matters on the GITHUB_TOKEN fallback path — the App
       # token below carries its own permissions.
       issues: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      # The commit the release was tagged at. Not necessarily the commit that
-      # triggered this run: if the run for a release PR merge fails or is
-      # superseded, a later push is what creates the release, and the tag then
-      # names the earlier merge.
-      sha: ${{ steps.release.outputs.sha }}
     steps:
       # A pull request opened with GITHUB_TOKEN gets its checks queued in an
       # approval-required state, so the release PR sits there until a maintainer
@@ -102,110 +78,61 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  release-metadata:
+    name: Resolve the release draft
+    needs: release-please
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Listing drafts requires push access. No build code or OIDC runs here.
+    permissions:
+      contents: write
+    outputs:
+      ready: ${{ steps.resolve.outputs.ready }}
+      id: ${{ steps.resolve.outputs.id }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      sha: ${{ steps.resolve.outputs.sha }}
+      tag-sha: ${{ steps.resolve.outputs.tagSha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # Release Please does not repeat creation outputs on a retry. Resolve the
+      # existing draft by version and immutable event SHA instead.
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_TAG: ${{ inputs.recovery_tag }}
+        run: node .github/scripts/release.mjs resolve
+
   # Split from publish on purpose: this is where the test suites and the wasm
   # toolchain run, and none of it should be able to reach an OIDC token. It is
   # also where the published tree is built — `publish` downloads it rather than
   # rebuilding, so the job holding the token runs no compiler and no build
   # script at all.
   verify:
-    name: Verify the tag
-    needs: release-please
-    # `!cancelled()` rather than `always()`: the dispatch path needs this to run
-    # past a skipped release-please, but a cancelled run must not go on to
-    # publish.
-    if: >-
-      !cancelled() &&
-      (needs.release-please.outputs.release_created == 'true' ||
-       (github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'))
+    name: Verify the release tag
+    needs: release-metadata
+    if: ${{ !cancelled() && needs.release-metadata.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    outputs:
+      artifact: ${{ steps.artifact-name.outputs.name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # A sha, never a ref: a ref can move between this checkout and
-          # publish's, leaving the two jobs on different trees. On the push path
-          # that is the commit the release was tagged at, which is not always
-          # the one that triggered the run; on dispatch the event's sha is the
-          # tag's own commit.
-          ref: ${{ needs.release-please.outputs.sha || github.sha }}
+          # Always the event SHA: npm provenance attests this exact commit.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
-      # `ref_type == 'tag'` only proves the ref is a tag, not that it is a
-      # release. Without this, anyone able to push a tag could point the job
-      # holding npm OIDC rights at arbitrary code, bypassing main entirely.
-      # A GitHub release is what release-please creates and what a hand-pushed
-      # tag does not have; the version match then ties the tag to the tree.
-      - name: Confirm the dispatch targets a release tag
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          # A GitHub release proves nothing on its own: anyone with write access
-          # can tag arbitrary code and attach a release record to it by hand.
-          # Reachability from main is what ties this commit to the protected
-          # branch it had to pass through, so check that first.
-          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$GITHUB_SHA" --jq .status)
-          case "$status" in
-            identical | behind) ;;
-            *)
-              echo "::error::$TAG is at a commit that is not on main ($status)"
-              exit 1
-              ;;
-          esac
-
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "::error::$TAG has no GitHub release; only release tags can be published"
-            exit 1
-          fi
-
-          version=$(jq -r .version package.json)
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::$TAG does not match package.json version $version"
-            exit 1
-          fi
-
-          # npm refuses to apply `latest` implicitly once the registry holds a
-          # higher version, so a recovery attempted after a newer release would
-          # fail at the publish step — after the whole build. Say so here.
-          name=$(jq -r .name package.json)
-          latest=$(npm view "$name" version 2>/dev/null || true)
-          if [ -n "$latest" ] && [ "$latest" != "$version" ] &&
-             [ "$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -1)" = "$latest" ]; then
-            echo "::error::$name@$latest is already published; $version cannot take latest implicitly"
-            exit 1
-          fi
-
-      # Guards the assumption on the push path: release-please tags the commit
-      # it just merged, so a tag pointing elsewhere means this run would verify
-      # and publish something the release does not name.
-      - name: Confirm the release tag points at this commit
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
-          RELEASE_SHA: ${{ needs.release-please.outputs.sha }}
-        run: |
-          if [ "$RELEASE_SHA" != "$GITHUB_SHA" ]; then
-            echo "::error::$TAG was tagged at $RELEASE_SHA but this event is $GITHUB_SHA;"
-            echo "::error::provenance would name the wrong commit. Dispatch this workflow on $TAG instead."
-            exit 1
-          fi
-
-          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
-          target=$(jq -r '.object.sha' <<<"$ref")
-          if [ "$(jq -r '.object.type' <<<"$ref")" = tag ]; then
-            target=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$target" --jq '.object.sha')
-          fi
-          if [ "$target" != "$RELEASE_SHA" ]; then
-            echo "::error::$TAG points at $target, not $RELEASE_SHA"
-            exit 1
-          fi
-
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt, clippy
@@ -214,7 +141,7 @@ jobs:
       - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
         with:
           # protoc is needed because `bun run build` regenerates the proto
           # codec. Pinned to the same versions ci.yml uses, so a break shows up
@@ -287,6 +214,11 @@ jobs:
           git add --intent-to-add -- src/generated_types.rs ts/generated
           git diff --exit-code -- src/generated_types.rs ts/generated
 
+      # Same production-profile gate as ci.yml: this tree is what publish
+      # ships, so the bypass must not be in the graph it was built from.
+      - name: Fail if the Noise cert bypass reached the build
+        run: sh scripts/check-noise-cert-profile.sh
+
       - run: bun test
 
       - name: Rust unit tests (wasm32 in Node)
@@ -305,23 +237,29 @@ jobs:
       - name: Check the wasm's largest function
         run: bun run check:wasm-shape
 
-      # What `publish` has to receive intact. `dist/` is the whole package
-      # (`files` is `dist/**/*`), so this digest set is the tarball, and
-      # comparing it after the download is what makes "publish ships what
-      # verify vouched for" a checked claim rather than a description of the
-      # plumbing.
+      # Check the downloaded build tree before running its package guards.
+      # The packed archive below also covers package.json, README and LICENSE;
+      # its SHA512 is checked before publishing and before finalizing GitHub.
       - name: Record the tree publish must ship
         run: |
           (cd dist && find . -type f -print0 | sort -z | xargs -0r sha256sum) > dist.sha256
           cat dist.sha256
 
+      - name: Pack the exact archive npm must receive
+        run: node .github/scripts/release.mjs pack
+
+      - id: artifact-name
+        run: echo "name=npm-tarball-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
       - name: Hand the verified build to publish
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: npm-tarball
+          name: ${{ steps.artifact-name.outputs.name }}
           path: |
             dist
             dist.sha256
+            release-package.tgz
+            release-package.json
           if-no-files-found: error
           # Long enough to survive a `npm-publish` approval that waits
           # overnight, short enough that a build nobody published expires.
@@ -329,7 +267,7 @@ jobs:
 
   publish:
     name: Publish to npm
-    needs: [release-please, verify]
+    needs: [release-metadata, verify]
     if: ${{ !cancelled() && needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -347,7 +285,7 @@ jobs:
           # Same immutable commit verify checked out and vouched for. Pinned by
           # sha so retargeting the tag while this job waits on the environment
           # approval cannot change what gets published.
-          ref: ${{ needs.release-please.outputs.sha || github.sha }}
+          ref: ${{ github.sha }}
           # Nothing here talks to the remote after checkout, and the steps below
           # run bun and npm in a job holding OIDC publish rights. Don't leave the
           # token in .git/config for them.
@@ -365,9 +303,9 @@ jobs:
       # this commit. If anything, it is now more accurate: it used to attest a
       # build nothing had tested.
       - name: Take the build verify vouched for
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: npm-tarball
+          name: ${{ needs.verify.outputs.artifact }}
           path: .
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -403,7 +341,7 @@ jobs:
       - name: Check the tarball contents
         run: bun run scripts/check-pack.ts
 
-      # And its size, measured on the tree about to be packed.
+      # Recheck the downloaded build tree before publishing its packed archive.
       - name: Check the tarball size
         run: bun run check:size
 
@@ -416,4 +354,36 @@ jobs:
 
       # No NODE_AUTH_TOKEN and no --provenance: trusted publishing authenticates
       # over OIDC and attaches provenance on its own.
-      - run: npm publish --ignore-scripts
+      - name: Publish the verified archive, or confirm the identical version
+        run: node .github/scripts/release.mjs publish
+
+  finalize:
+    name: Publish the GitHub release
+    needs: [release-metadata, verify, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.verify.outputs.artifact }}
+          path: .
+      # Retry failed jobs if npm succeeded but this step failed. Rebuilding can
+      # change wasm bytes, and an existing version with different bytes fails
+      # closed. This job has no npm OIDC rights and never republishes npm.
+      - name: Confirm npm integrity before making the draft public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.release-metadata.outputs.id }}
+          RELEASE_TAG: ${{ needs.release-metadata.outputs.tag }}
+          RELEASE_TAG_SHA: ${{ needs.release-metadata.outputs.tag-sha }}
+        run: node .github/scripts/release.mjs finalize

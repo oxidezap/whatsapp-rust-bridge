@@ -14,6 +14,16 @@ beforeAll(() => {
 });
 
 describe("encodeProto / decodeProto roundtrip", () => {
+  test("a value opening with U+FEFF keeps it", () => {
+    // `TextDecoder` eats a leading U+FEFF as a byte-order mark unless told
+    // not to (`ignoreBOM: true`, like `ts/wire-info.ts`); the wire carries
+    // text, not files, so a peer-sent BOM is data, and dropping it would also
+    // lose the three bytes every length behind it is counted in.
+    const bytes = new Uint8Array([0x0a, 0x03, 0xef, 0xbb, 0xbf]);
+    expect(decodeProto("Message", bytes).conversation).toBe("\uFEFF");
+    expect(encodeProto("Message", { conversation: "\uFEFF" })).toEqual(bytes);
+  });
+
   test("simple conversation message", () => {
     const msg = { conversation: "Hello world" };
     const bytes = encodeProto("Message", msg);

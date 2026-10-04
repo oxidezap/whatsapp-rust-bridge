@@ -501,19 +501,20 @@ impl WasmWhatsAppClient {
     pub async fn signal_get_session_info(
         &self,
         jid: &str,
-    ) -> Result<Option<crate::result_types::SignalSessionInfoResult>, crate::errors::BridgeError>
+    ) -> Result<Option<Ts<crate::result_types::SignalSessionInfoResult>>, crate::errors::BridgeError>
     {
         let parsed = parse_jid(jid)?;
-        Ok(self
-            .client
-            .unwaited(Unwaited::Local)
-            .signal()
-            .session_info(&parsed)
-            .await?
-            .map(|info| crate::result_types::SignalSessionInfoResult {
-                base_key: info.base_key,
-                registration_id: info.registration_id,
-            }))
+        to_ts_opt(
+            self.client
+                .unwaited(Unwaited::Local)
+                .signal()
+                .session_info(&parsed)
+                .await?
+                .map(|info| crate::result_types::SignalSessionInfoResult {
+                    base_key: info.base_key,
+                    registration_id: info.registration_id,
+                }),
+        )
     }
 
     /// Add linked-identifier mappings through one durable core batch.
@@ -558,7 +559,8 @@ impl WasmWhatsAppClient {
         &self,
         from_jid: &str,
         to_jid: &str,
-    ) -> Result<crate::result_types::SignalSessionMigrationResult, crate::errors::BridgeError> {
+    ) -> Result<Ts<crate::result_types::SignalSessionMigrationResult>, crate::errors::BridgeError>
+    {
         let from = parse_jid(from_jid)?;
         let to = parse_jid(to_jid)?;
         let result = self
@@ -567,7 +569,7 @@ impl WasmWhatsAppClient {
             .signal()
             .migrate_sessions(&from, &to)
             .await?;
-        Ok(crate::result_types::SignalSessionMigrationResult {
+        to_ts(crate::result_types::SignalSessionMigrationResult {
             migrated: result.migrated as u32,
             skipped: result.skipped as u32,
             total: result.total as u32,

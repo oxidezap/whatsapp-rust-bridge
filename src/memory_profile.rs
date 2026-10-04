@@ -11,7 +11,6 @@ use serde::Serialize;
 use tsify::Tsify;
 
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct AllocationBucketSnapshot {
     pub allocated_bytes: f64,
@@ -23,7 +22,6 @@ pub struct AllocationBucketSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct HistorySyncAllocationSnapshot {
     pub events: f64,
@@ -55,7 +53,6 @@ pub struct HistorySyncAllocationSnapshot {
 /// Allocation scope active when an allocator call committed more WASM pages.
 /// These are bridge boundaries, not WhatsApp protocol operation names.
 #[derive(Debug, Clone, Copy, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 #[repr(usize)]
 pub enum AllocationScope {
@@ -72,7 +69,6 @@ pub enum AllocationScope {
 /// Names and source locations come from `tracing::Metadata`; the bridge does
 /// not maintain a parallel list of core operations.
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct CoreSpanAllocationSnapshot {
     pub name: String,
@@ -90,7 +86,6 @@ pub struct CoreSpanAllocationSnapshot {
 /// History counters provide a deterministic progress marker without sampling
 /// wall-clock time or reconstructing any core behavior in the bridge.
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct AllocationEventSnapshot {
     pub sequence: f64,
@@ -106,7 +101,6 @@ pub struct AllocationEventSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct WasmAllocationSnapshot {
     /// Whether allocator-level diagnostics were compiled in.

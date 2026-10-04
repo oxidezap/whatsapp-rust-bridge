@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -20,6 +20,9 @@ import ts from "typescript";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRY = join(ROOT, "dist", "index.d.ts");
 const CONSUMER = join(ROOT, "tests", "fixtures", "published-dts-consumer.ts");
+// The consumer imports the package by its own name (`@oxidezap/.../wasm`)
+// for the `./wasm` subpath assertion, which only resolves through the
+// `exports` map — no nested package.json may shadow the root one.
 
 /**
  * The lib set a consumer would have: `dom` for the stream/fetch globals the
@@ -72,3 +75,59 @@ test("the published declarations typecheck without skipLibCheck", () => {
 
   expect(messages).toEqual([]);
 }, TIMEOUT_MS);
+
+/**
+ * The same declarations under NodeNext, where a relative specifier without an
+ * extension is a hard error (TS2834/TS2835) rather than something the bundler
+ * resolution this file's first test uses would accept. Kept as its own test
+ * so each program stays inside the per-test clock budget.
+ */
+const NODENEXT_OPTIONS: ts.CompilerOptions = {
+  strict: true,
+  skipLibCheck: false,
+  noEmit: true,
+  target: ts.ScriptTarget.ES2022,
+  module: ts.ModuleKind.NodeNext,
+  moduleResolution: ts.ModuleResolutionKind.NodeNext,
+  types: ["node"],
+  typeRoots: [join(ROOT, "node_modules", "@types")],
+};
+
+test("the published declarations typecheck under NodeNext without skipLibCheck", () => {
+  expect(
+    existsSync(ENTRY),
+    "dist/index.d.ts is absent — run `bun run build` first",
+  ).toBe(true);
+
+  const program = ts.createProgram([ENTRY, CONSUMER], NODENEXT_OPTIONS);
+  const messages = ts
+    .getPreEmitDiagnostics(program)
+    .map((diagnostic) => {
+      const text = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");
+      if (!diagnostic.file || diagnostic.start === undefined) {
+        return `TS${diagnostic.code}: ${text}`;
+      }
+      const { line } = diagnostic.file.getLineAndCharacterOfPosition(
+        diagnostic.start,
+      );
+      const path = diagnostic.file.fileName.replace(`${ROOT}/`, "");
+      return `${path}:${line + 1} TS${diagnostic.code}: ${text}`;
+    })
+    .sort();
+
+  expect(messages).toEqual([]);
+}, TIMEOUT_MS);
+
+/**
+ * `dist/index.js` is bundled, but `proto-reader.d.ts` exposes the base
+ * `BinaryReader`/`BinaryWriter` types from `@bufbuild/protobuf/wire`. A clean
+ * strict consumer therefore needs the package declared by the published
+ * manifest, not merely available from this checkout's devDependencies.
+ */
+test("package.json declares the wire-type dependency used by published declarations", () => {
+  const manifest = JSON.parse(
+    readFileSync(join(ROOT, "package.json"), "utf8"),
+  ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+  expect(manifest.dependencies?.["@bufbuild/protobuf"]).toBe("^2.14.1");
+  expect(manifest.devDependencies?.["@bufbuild/protobuf"]).toBeUndefined();
+});

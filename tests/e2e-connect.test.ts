@@ -77,10 +77,19 @@ describe("WASM Client E2E", () => {
   test.skipIf(!hasMockServer)("connect() reads the connection it opened", async () => {
     const events: WhatsAppEvent[] = [];
 
+    // The mock server cannot sign a chain rooted in WhatsApp's issuer, so
+    // mock handshakes opt into the testing bypass explicitly. Production
+    // code keeps the default.
+    const BYPASS_FOR_MOCK = true;
     const client = await createWhatsAppClient(
       createTransport(),
       createHttp(),
-      (event) => events.push(event)
+      (event) => events.push(event),
+      null,
+      null,
+      null,
+      null,
+      BYPASS_FOR_MOCK
     );
 
     try {
@@ -94,8 +103,9 @@ describe("WASM Client E2E", () => {
       await client.disconnect();
       expect(client.isConnected()).toBe(false);
     } finally {
-      // `free()` signals shutdown and disconnects on its own, so it covers the
-      // paths that never reached the disconnect above.
+      // `free()` is intentionally passive, so close the mock WebSocket even
+      // when the assertions above throw before the explicit teardown.
+      await client.disconnect();
       client.free();
     }
   }, 25000);
@@ -103,13 +113,20 @@ describe("WASM Client E2E", () => {
   test.skipIf(!hasMockServer)("connects and pairs with mock server", async () => {
     const events: WhatsAppEvent[] = [];
 
+    // Same mock opt-in as above: the bypass is per client, named at
+    // construction, and never a build flag.
     const client = await createWhatsAppClient(
       createTransport(),
       createHttp(),
       (event) => {
         console.log(`  [event] ${event.type}`);
         events.push(event);
-      }
+      },
+      null,
+      null,
+      null,
+      null,
+      true
     );
 
     client.run();

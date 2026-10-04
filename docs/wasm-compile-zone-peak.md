@@ -337,7 +337,7 @@ reproduce it, because there is no mock server in CI.
 ## What holds it
 
 `check:wasm-shape` fails the build when the largest function body goes over
-100,000 bytes, and CI runs it beside `check:size`.
+110,000 bytes, and CI runs it beside `check:size`.
 
 The two gates do not overlap. `check:size` watches the package's total bytes,
 and the total is blind to this: the artifact that costs a consumer 18 MiB more

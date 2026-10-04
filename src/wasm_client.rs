@@ -21,12 +21,12 @@
     allow(dead_code)
 )]
 
+use futures::channel::oneshot;
+use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
-use futures::channel::oneshot;
-use log::info;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::types::events::{Event, EventHandler, LazyHistorySync};
 use whatsapp_rust::wacore_binary::jid::Jid;
@@ -43,33 +43,6 @@ use crate::wire_batch::{
     EVENT_SEGMENT_KIND_SERVER_ACK, EventWireEnvelope, MessageWireBatch, PackedEventBatch,
     ReceiptWireBatch, ServerAckWireBatch,
 };
-
-thread_local! {
-    /// Receivers signaled when a `Drop`-spawned cleanup task completes.
-    /// `create_whatsapp_client` drains this before starting so a new client
-    /// is never constructed while a previous client's async teardown still
-    /// has tasks parked on JsFutures on the shared WASM heap. Event-driven —
-    /// no timers.
-    static PENDING_DROP_CLEANUPS: RefCell<Vec<oneshot::Receiver<()>>> =
-        const { RefCell::new(Vec::new()) };
-}
-
-fn register_drop_cleanup() -> oneshot::Sender<()> {
-    let (tx, rx) = oneshot::channel();
-    PENDING_DROP_CLEANUPS.with(|p| p.borrow_mut().push(rx));
-    tx
-}
-
-async fn drain_drop_cleanups() {
-    loop {
-        let drained: Vec<oneshot::Receiver<()>> =
-            PENDING_DROP_CLEANUPS.with(|p| std::mem::take(&mut *p.borrow_mut()));
-        if drained.is_empty() {
-            break;
-        }
-        let _ = futures::future::join_all(drained).await;
-    }
-}
 
 // ---------------------------------------------------------------------------
 // TypeScript type declarations
@@ -146,6 +119,61 @@ fn make_js_event(event_type: &'static str, data: &JsValue) -> Result<JsValue, Js
     Ok(event.into())
 }
 
+/// Serializes a result type across the `Ts<T>` boundary for a
+/// `BridgeError`-returning method. Failure here means our own already-typed
+/// result struct refused to serialize, which is not a caller mistake — so
+/// unlike a deserialization failure (mapped per call site to
+/// `InvalidArgument` with the argument's name) this always becomes
+/// `Internal`.
+fn to_ts<T>(value: T) -> Result<Ts<T>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    value
+        .into_ts()
+        .map_err(|e| crate::errors::internal(e.to_string()))
+}
+
+/// [`to_ts`] over an `Option` — absence stays absent, `Some` goes through the
+/// same boundary conversion.
+fn to_ts_opt<T>(value: Option<T>) -> Result<Option<Ts<T>>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    value.map(to_ts).transpose()
+}
+
+/// [`to_ts`] over a `Vec` — `Ts<Vec<T>>` isn't a thing tsify supports (only
+/// `Vec<Ts<T>>` implements the wasm-bindgen vector ABI), so each element
+/// converts on its own.
+fn to_ts_vec<T>(values: Vec<T>) -> Result<Vec<Ts<T>>, crate::errors::BridgeError>
+where
+    T: Tsify + serde::Serialize,
+{
+    values.into_iter().map(to_ts).collect()
+}
+
+// Borrowed projections keep existing serializer policies out of the event match.
+trait EventPayloadProjection {
+    fn project_payload(&self) -> Result<JsValue, JsValue>;
+}
+
+impl<T: serde::Serialize> EventPayloadProjection for T {
+    fn project_payload(&self) -> Result<JsValue, JsValue> {
+        crate::proto::to_js_value(self)
+    }
+}
+
+trait EventProtoProjection {
+    fn project_proto(&self) -> Result<JsValue, JsValue>;
+}
+
+impl<T: serde::Serialize> EventProtoProjection for T {
+    fn project_proto(&self) -> Result<JsValue, JsValue> {
+        crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(self)
+    }
+}
+
 macro_rules! bridge_events {
     (
         serialize {
@@ -177,23 +205,91 @@ macro_rules! bridge_events {
             $( stringify!($xvariant), )*
         ];
 
-        // Generate event_to_js dispatch (JS-specific, existing path)
+        // Select borrowed operations before calling either existing projection.
         fn event_to_js(event: &Event) -> Result<JsValue, JsValue> {
-            let (event_type, data) = match event {
-                $( Event::$variant(data) => ($name, crate::proto::to_js_value(data)?), )*
-                $( Event::$pvariant(data) => {
-                    let value = crate::proto::to_js_value(data)?;
-                    let proto = crate::camel_serializer::to_js_value_camel_preserve_top_level_presence(
-                        &data.$pfield,
-                    )?;
-                    js_sys::Reflect::set(&value, &interned(stringify!($pfield)), &proto)?;
-                    ($pname, value)
-                } )*
+            let (event_type, payload, proto): (
+                &'static str,
+                &dyn EventPayloadProjection,
+                Option<(&'static str, &dyn EventProtoProjection)>,
+            ) = match event {
+                $( Event::$variant(data) => ($name, data, None), )*
+                $( Event::$pvariant(data) => (
+                    $pname,
+                    data,
+                    Some((stringify!($pfield), &data.$pfield)),
+                ), )*
                 other => return event_to_js_special(other),
             };
+            let mut data = payload.project_payload()?;
+            if let Some((field, projection)) = proto {
+                let value = projection.project_proto()?;
+                data = set_event_proto_field(data, field, value)?;
+            }
             make_js_event(event_type, &data)
         }
     };
+}
+
+// Share the interning/set/error tail without duplicating it in each proto arm.
+#[inline(never)]
+fn set_event_proto_field(
+    value: JsValue,
+    field: &'static str,
+    proto: JsValue,
+) -> Result<JsValue, JsValue> {
+    js_sys::Reflect::set(&value, &interned(field), &proto)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod proto_event_tail_controls {
+    use super::{interned, make_js_event, set_event_proto_field};
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn shared_tail_keeps_object_identity_omission_and_event_envelope() {
+        let value: JsValue = js_sys::Object::new().into();
+        js_sys::Reflect::set(&value, &"snake_case_name".into(), &"kept".into()).unwrap();
+        let result = set_event_proto_field(value.clone(), "message", JsValue::UNDEFINED)
+            .expect("same payload object");
+        assert_eq!(result, value);
+        assert!(!js_sys::Reflect::has(&result, &"absent_name".into()).unwrap());
+        assert!(js_sys::Reflect::has(&result, &"message".into()).unwrap());
+        assert!(
+            js_sys::Reflect::get(&result, &"message".into())
+                .unwrap()
+                .is_undefined()
+        );
+        let envelope = make_js_event("control", &result).unwrap();
+        assert_eq!(
+            js_sys::Reflect::get(&envelope, &"type".into()).unwrap(),
+            JsValue::from_str("control")
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&envelope, &"data".into()).unwrap(),
+            value
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&result, &"snake_case_name".into()).unwrap(),
+            JsValue::from_str("kept")
+        );
+    }
+
+    #[test]
+    fn shared_tail_keeps_the_native_reflect_exception() {
+        let expected =
+            js_sys::Reflect::set(&JsValue::NULL, &interned("message"), &JsValue::UNDEFINED)
+                .expect_err("the original inline set rejects null");
+        let actual = set_event_proto_field(JsValue::NULL, "message", JsValue::UNDEFINED)
+            .expect_err("the shared set rejects null too");
+        for field in ["name", "message"] {
+            assert_eq!(
+                js_sys::Reflect::get(&actual, &field.into()).unwrap(),
+                js_sys::Reflect::get(&expected, &field.into()).unwrap()
+            );
+        }
+    }
 }
 
 bridge_events! {
@@ -213,6 +309,7 @@ bridge_events! {
         SelfPushNameUpdated      => "self_push_name_updated"        => "SelfPushNameUpdated",
         OfflineSyncPreview       => "offline_sync_preview"          => "OfflineSyncPreview",
         OfflineSyncCompleted     => "offline_sync_completed"        => "OfflineSyncCompleted",
+        OfflineSyncInterrupted   => "offline_sync_interrupted"      => "OfflineSyncInterrupted",
         DirtyState               => "dirty_state"                    => "{ dirty_type: DirtyType; timestamp?: number | null }",
         DeviceListUpdate         => "device_list_update"            => "DeviceListUpdate",
         IdentityChange           => "identity_change"               => "IdentityChange",
@@ -226,6 +323,7 @@ bridge_events! {
         MissedCall               => "missed_call"                   => "MissedCall",
         CallEndedElsewhere       => "call_ended_elsewhere"          => "CallEndedElsewhere",
         MexNotification          => "mex_notification"               => "MexNotification",
+        ReachoutTimelockUpdate    => "reachout_timelock_update"        => "ReachoutTimelockUpdate",
         PairingCodeRefresh       => "pairing_code_refresh"          => "PairingCodeRefresh",
         PairPasskeyRequest       => "pair_passkey_request"          => "PairPasskeyRequest",
         PairPasskeyConfirmation  => "pair_passkey_confirmation"     => "PairPasskeyConfirmation",
@@ -244,6 +342,7 @@ bridge_events! {
         PinUpdate                      => "pin_update"                      => "PinUpdate" => action,
         MuteUpdate                     => "mute_update"                     => "MuteUpdate" => action,
         ArchiveUpdate                  => "archive_update"                  => "ArchiveUpdate" => action,
+        LockChatUpdate                 => "lock_chat_update"                => "LockChatUpdate" => action,
         StarUpdate                     => "star_update"                     => "StarUpdate" => action,
         MarkChatAsReadUpdate           => "mark_chat_as_read_update"        => "MarkChatAsReadUpdate" => action,
         DeleteChatUpdate               => "delete_chat_update"              => "DeleteChatUpdate" => action,
@@ -256,6 +355,12 @@ bridge_events! {
         QuickReplyUpdate               => "quick_reply_update"              => "QuickReplyUpdate" => action,
         DisableLinkPreviewsUpdate      => "disable_link_previews_update"    => "DisableLinkPreviewsUpdate" => action,
         CallLogSync                    => "call_log_sync"                   => "CallLogSync" => record,
+        CallLogHistory                 => "call_log_history"                => "CallLogHistory" => record,
+        FavoriteStickerUpdate          => "favorite_sticker_update"         => "FavoriteStickerUpdate" => action,
+        RemoveRecentStickerUpdate      => "remove_recent_sticker_update"    => "RemoveRecentStickerUpdate" => action,
+        FavoritesUpdate                => "favorites_update"                => "FavoritesUpdate" => action,
+        StatusPrivacyUpdate            => "status_privacy_update"           => "StatusPrivacyUpdate" => action,
+        UnarchiveChatsSettingUpdate    => "unarchive_chats_setting_update"  => "UnarchiveChatsSettingUpdate" => action,
     }
     special {
         // Variant                     => "js_name"                         => "TsDataType"
@@ -557,6 +662,40 @@ export interface JsStoreCallbacks {
 export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
 
 /**
+ * The intentionally small metadata view exposed to admission policies.
+ * Fields absent in the core are omitted. It does not include the notification's
+ * keys or media paths.
+ */
+export interface HistorySyncAdmissionMetadata {
+  syncType?: number;
+  chunkOrder?: number;
+  progress?: number;
+  /**
+   * Sender-declared file length. The core does not validate this value.
+   * A decimal string preserves the full uint64 range. Use BigInt(fileLength)
+   * for numeric comparisons.
+   */
+  fileLength?: string;
+  /** Number of bytes present in the inline payload. */
+  inlinePayloadLen?: number;
+  peerDataRequestSessionId?: string;
+}
+
+export interface ClientPolicies {
+  /**
+   * Synchronously decide whether to accept a history-sync chunk.
+    * Only the boolean true accepts. False permanently acknowledges the chunk
+    * and prevents retry. Thrown errors and non-boolean results do the same,
+    * including Promise results. Do not use this for transient load shedding.
+    * The callback runs with this policies object as its receiver.
+    * The function is captured at client construction. Mutable state it reads
+    * may still change, but replacing the property does not replace the policy.
+    * Omitting the callback leaves the core's default admission policy in place.
+   */
+  historySyncAdmission?(metadata: HistorySyncAdmissionMetadata): boolean;
+}
+
+/**
  * Create a full WhatsApp client running in WASM.
  *
  * @param transport_config WebSocket transport callbacks (connect/send/disconnect)
@@ -568,6 +707,12 @@ export function initWasmEngine(logger?: any, crypto?: JsCryptoCallbacks): void;
  * @param wanted_pre_key_count Optional pre-key upload batch size (default 812);
  *   clamped to the protocol-safe range at upload time. Smaller batches reduce
  *   memory pressure on embedded/WASM hosts.
+ * @param danger_skip_cert_chain_verify Optional testing-only bypass for the
+ *   Noise server-cert XEdDSA check, for mock servers that cannot sign a chain
+ *   rooted in WhatsApp's issuer. Absent, null or false keeps strict
+ *   verification; only an explicit `true` opts in. Anything else rejects the
+ *   construction as invalid-argument.
+ * @param policies Optional ninth argument. See ClientPolicies; existing calls may omit it.
  */
 export function createWhatsAppClient(
   transport_config: JsTransportCallbacks,
@@ -577,6 +722,8 @@ export function createWhatsAppClient(
   cache_config?: CacheConfig | null,
   version?: readonly [number, number, number] | null,
   wanted_pre_key_count?: number | null,
+  danger_skip_cert_chain_verify?: boolean | null,
+  policies?: ClientPolicies | null,
 ): Promise<WasmWhatsAppClient>;
 
 /** Cache entry configuration. */
@@ -606,13 +753,14 @@ export interface CacheConfig {
   messageRetry?: CacheEntryConfig;
 }
 
-// Augment WasmWhatsAppClient with methods that need skip_typescript
-// (Record returns can't be expressed by wasm-bindgen)
-interface WasmWhatsAppClient {
+// Augment the exported class with methods that need skip_typescript
+// (Record returns can't be expressed by wasm-bindgen). The declaration
+// must also be exported for TypeScript to merge it with the generated class.
+export interface WasmWhatsAppClient {
   /** Fetch all groups the user is participating in. */
-  groupFetchAllParticipating(): Promise<Record<string, GroupMetadataResult>>;
+  groupFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
   /** Fetch all parent groups the user is participating in. */
-  communityFetchAllParticipating(): Promise<Record<string, GroupMetadataResult>>;
+  communityFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
   /** Fetch user info for one or more JIDs. */
   fetchUserInfo(jids: string[]): Promise<Record<string, UserInfoResult>>;
 }
@@ -718,7 +866,7 @@ fn history_sync_wire_batch_next_capacity(current: usize, required: usize) -> usi
 /// being checked for. Functions count, being objects that can carry a `then`.
 /// Reached only when the callback returned one of those, which a conforming
 /// `void` callback never does.
-fn is_thenable(value: &JsValue) -> bool {
+pub(crate) fn is_thenable(value: &JsValue) -> bool {
     (value.is_object() || value.is_function())
         && js_sys::Reflect::get(value, &"then".into()).is_ok_and(|then| then.is_function())
 }
@@ -2174,6 +2322,78 @@ fn event_to_js_special(event: &Event) -> Result<JsValue, JsValue> {
     make_js_event(event_type, &data)
 }
 
+/// The `pair_success` / `pair_error` payloads cross hand-built, with
+/// `Jid::to_string` — the standalone `PairSuccess` / `PairError` declarations
+/// and the event union both say `id: string`, and this runs the real
+/// conversion over fictitious events so a regression in the producer fails
+/// here rather than in a consumer's inbox.
+#[cfg(test)]
+mod pair_result_boundary_tests {
+    use super::{Event, event_to_js};
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::types::events::{PairError, PairSuccess};
+    use whatsapp_rust::wacore_binary::jid::Jid;
+
+    fn envelope_field(event: &JsValue, key: &'static str) -> JsValue {
+        js_sys::Reflect::get(event, &JsValue::from_str(key))
+            .unwrap_or_else(|_| panic!("pair result envelope has no {key}"))
+    }
+
+    fn data_string(data: &JsValue, field: &'static str) -> String {
+        let value = js_sys::Reflect::get(data, &JsValue::from_str(field))
+            .unwrap_or_else(|_| panic!("pair result data has no {field}"));
+        if !value.is_string() {
+            panic!("pair result {field} is not a string");
+        }
+        value
+            .as_string()
+            .unwrap_or_else(|| panic!("pair result {field} is not a string"))
+    }
+
+    fn converted(event: &Event) -> JsValue {
+        match event_to_js(event) {
+            Ok(js) => js,
+            Err(_) => panic!("event_to_js refused a fictitious pair result"),
+        }
+    }
+
+    #[test]
+    fn pair_success_crosses_jids_as_strings() {
+        let id = Jid::pn("15551234567");
+        let lid = Jid::lid("987654321");
+        let js = converted(&Event::PairSuccess(
+            PairSuccess::builder()
+                .id(id.clone())
+                .lid(lid.clone())
+                .business_name("Fictitious Store".to_string())
+                .platform("test".to_string())
+                .build(),
+        ));
+        let data = envelope_field(&js, "data");
+        assert_eq!(data_string(&data, "id"), id.to_string());
+        assert_eq!(data_string(&data, "lid"), lid.to_string());
+    }
+
+    #[test]
+    fn pair_error_crosses_jids_as_strings() {
+        let id = Jid::pn("15557654321");
+        let lid = Jid::lid("123456789");
+        let js = converted(&Event::PairError(
+            PairError::builder()
+                .id(id.clone())
+                .lid(lid.clone())
+                .business_name("Fictitious Store".to_string())
+                .platform("test".to_string())
+                .error("fictitious refusal".to_string())
+                .build(),
+        ));
+        let data = envelope_field(&js, "data");
+        assert_eq!(data_string(&data, "id"), id.to_string());
+        assert_eq!(data_string(&data, "lid"), lid.to_string());
+    }
+}
+
 /// Parse `[major, minor, patch]` from a JS value into `(u32, u32, u32)`.
 /// Returns `Ok(None)` if the value is null/undefined/missing.
 fn parse_optional_version(
@@ -2207,6 +2427,33 @@ fn parse_optional_version(
         Ok(n as u32)
     };
     Ok(Some((parse(0)?, parse(1)?, parse(2)?)))
+}
+
+/// Parse the optional Noise cert-chain bypass flag. Absent, null, undefined
+/// or false keeps strict verification; only an explicit `true` opts the
+/// built client into accepting a chain not rooted in WhatsApp's issuer.
+/// Missing and null map to `Strict` directly rather than through the core
+/// default, which a legacy Cargo feature is allowed to change. Anything
+/// else is the caller's own `dangerSkipCertChainVerify` argument, not a
+/// default to guess.
+fn parse_noise_cert_policy(
+    value: Option<&JsValue>,
+) -> Result<whatsapp_rust::handshake::NoiseCertPolicy, crate::errors::BridgeError> {
+    use whatsapp_rust::handshake::NoiseCertPolicy;
+    let Some(v) = value else {
+        return Ok(NoiseCertPolicy::Strict);
+    };
+    if v.is_null() || v.is_undefined() {
+        return Ok(NoiseCertPolicy::Strict);
+    }
+    match v.as_bool() {
+        Some(true) => Ok(NoiseCertPolicy::DangerSkipCertChainVerify),
+        Some(false) => Ok(NoiseCertPolicy::Strict),
+        None => Err(crate::errors::invalid_arg(
+            "dangerSkipCertChainVerify",
+            "dangerSkipCertChainVerify must be a boolean",
+        )),
+    }
 }
 
 /// Parse the optional pre-key upload batch size. The core clamps to the
@@ -2301,7 +2548,8 @@ fn parse_timestamp_ms(field: &'static str, value: f64) -> Result<i64, crate::err
 // Initialization
 // ---------------------------------------------------------------------------
 
-/// Initialize the WASM environment. Must be called once before creating clients.
+/// Initialize the WASM environment. Must be called once before creating clients
+/// or using provider-routed AES-GCM exports.
 ///
 /// Accepts an optional JS logger (pino-compatible) to route all Rust logs through.
 /// If no logger is provided, falls back to console.log with "warn" level.
@@ -2330,6 +2578,8 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
     if let Err(e) = crate::js_crypto::try_install_from_js(&crypto) {
         log::warn!("skipping native crypto provider: {e:?}");
     }
+
+    crate::crypto::mark_engine_initialized();
 }
 
 // ---------------------------------------------------------------------------
@@ -2342,9 +2592,20 @@ pub fn init_wasm_engine(logger: JsValue, crypto: JsValue) {
 /// ```js
 /// initWasmEngine();
 /// const client = await createWhatsAppClient(transportConfig, httpConfig, onEvent);
+/// // Resolution is the initialization barrier: persistence, adapters and the
+/// // core client are ready. It does not mean connected, authenticated, or run.
 /// await client.run();
 /// ```
+///
+/// The returned promise resolves only after constructor-originated asynchronous
+/// initialization completes. It rejects with the original structured error and
+/// is not a connection or history-sync readiness signal; use `connect()`,
+/// `waitForConnected()`, or events for those states. This preserves the
+/// existing factory shape while making its completion contract explicit.
 #[wasm_bindgen(js_name = createWhatsAppClient, skip_typescript)]
+// Nine positional arguments is the reviewed JS contract: wasm-bindgen
+// exports cannot take a builder, so the arity grows with the surface.
+#[allow(clippy::too_many_arguments)]
 pub async fn create_whatsapp_client(
     transport_config: JsValue,
     http_config: JsValue,
@@ -2353,12 +2614,14 @@ pub async fn create_whatsapp_client(
     cache_config_js: Option<JsValue>,
     version_js: Option<JsValue>,
     wanted_pre_key_count_js: Option<JsValue>,
+    noise_cert_policy_js: Option<JsValue>,
+    policies_js: Option<JsValue>,
 ) -> Result<WasmWhatsAppClient, crate::errors::BridgeError> {
-    // Block on every in-flight `Drop` cleanup before allocating new state.
-    // Each `Drop` registers a oneshot; we await all of them. Closes the race
-    // where a freshly constructed client shares the WASM heap with a previous
-    // client's still-draining disconnect future.
-    drain_drop_cleanups().await;
+    // Validate the construction inputs before touching persistence or the
+    // client so a bad argument settles without storage callbacks firing.
+    let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
+    let history_sync_admission =
+        crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
 
     let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
@@ -2388,18 +2651,22 @@ pub async fn create_whatsapp_client(
     ) = (base_runtime, None);
     let backend: Arc<dyn wacore::store::traits::Backend> = match store {
         Some(ref store_val) if !store_val.is_null() && !store_val.is_undefined() => {
+            // A missing or non-function required callback is the caller's own
+            // `store` argument, so it is `invalid-argument`, not `internal`.
             let get_fn = js_sys::Reflect::get(store_val, &"get".into())
-                .map_err(|_| crate::errors::internal("store.get is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.get must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.get must be a function"))?;
             let set_fn = js_sys::Reflect::get(store_val, &"set".into())
-                .map_err(|_| crate::errors::internal("store.set is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.set must be a function"))?;
+                .map_err(|_| crate::errors::invalid_arg("store", "store.set must be a function"))?;
             let delete_fn = js_sys::Reflect::get(store_val, &"delete".into())
-                .map_err(|_| crate::errors::internal("store.delete is required"))?
+                .map_err(|_| crate::errors::invalid_arg("store", "store.delete is required"))?
                 .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::internal("store.delete must be a function"))?;
+                .map_err(|_| {
+                    crate::errors::invalid_arg("store", "store.delete must be a function")
+                })?;
             // Optional batch primitives — feature-detected by handle presence.
             // A host that omits them keeps the per-key set/delete fallback.
             let opt_fn = |name: &str| {
@@ -2456,8 +2723,9 @@ pub async fn create_whatsapp_client(
             js_backend::new_in_memory_backend()
         }
     };
-    let transport_factory = Arc::new(JsTransportFactory::from_js(transport_config)?)
-        as Arc<dyn wacore::net::TransportFactory>;
+    let transport_factory = JsTransportFactory::from_js(transport_config)?;
+    let transport_callback_state = transport_factory.callback_state();
+    let transport_factory = Arc::new(transport_factory) as Arc<dyn wacore::net::TransportFactory>;
     let http_client =
         Arc::new(JsHttpClientAdapter::from_js(http_config)?) as Arc<dyn wacore::net::HttpClient>;
 
@@ -2465,22 +2733,37 @@ pub async fn create_whatsapp_client(
         Arc::new(
             whatsapp_rust::store::persistence_manager::PersistenceManager::new(backend.clone())
                 .await
-                .map_err(|e| crate::errors::internal(format!("create persistence manager: {e}")))?,
+                // A corrupt record or a failing host callback is a storage
+                // failure, not a bridge bug: walk the typed chain so it keeps
+                // its kind instead of collapsing into `internal`.
+                .map_err(|e| crate::errors::BridgeError::from_error_chain(&e))?,
         );
 
     let cache_config = build_cache_config(cache_config_js.as_ref())?;
     let override_version = parse_optional_version(version_js.as_ref())?;
     let wanted_pre_key_count = parse_optional_count(wanted_pre_key_count_js.as_ref())?;
 
-    let (client, sync_rx) = whatsapp_rust::Client::new_with_cache_config(
-        runtime.clone(),
-        persistence_manager.clone(),
-        transport_factory,
-        http_client,
-        override_version,
-        cache_config,
-    )
-    .await;
+    let builder = whatsapp_rust::client::ClientBuilder::new()
+        .with_runtime_arc(runtime.clone())
+        .with_persistence_manager(persistence_manager.clone())
+        .with_transport_factory_arc(transport_factory)
+        .with_http_client_arc(http_client)
+        .with_cache_config(cache_config)
+        .with_noise_cert_policy(noise_cert_policy);
+    let builder = if let Some(admission) = history_sync_admission {
+        builder.with_history_sync_admission(admission)
+    } else {
+        builder
+    };
+    let builder = match override_version {
+        Some(version) => builder.with_version_override(version),
+        None => builder,
+    };
+    let (client, sync_rx) = builder
+        .build()
+        .await
+        .map(|build| build.into_parts())
+        .map_err(|e| crate::errors::internal(e.to_string()))?;
 
     // Apply before connecting so it takes effect on the first pre-key upload;
     // smaller batches matter for the WASM/embedded heap (default is 812).
@@ -2508,14 +2791,19 @@ pub async fn create_whatsapp_client(
 
     Ok(WasmWhatsAppClient {
         client: CoreClient::new(client),
+        transport_callback_state,
         runtime,
+        run_observation: Arc::new(Mutex::new(RunObservation::default())),
         sync_rx: Some(sync_rx),
-        saver_handle: Mutex::new(Some(saver_handle)),
-        run_handle: Mutex::new(None),
-        connection_handle: Mutex::new(None),
-        sync_worker_handle: Mutex::new(None),
+        saver_handle: Arc::new(Mutex::new(Some(saver_handle))),
+        run_handle: Arc::new(Mutex::new(None)),
+        connection_handle: Arc::new(Mutex::new(None)),
+        connection_established: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        sync_worker_handle: Arc::new(Mutex::new(None)),
         _event_subscription: event_subscription,
         raw_node_lease: Mutex::new(None),
+        teardown_gate: Arc::new(TeardownGate::new()),
+        teardown_kind: Arc::new(std::sync::atomic::AtomicU8::new(0)),
         alloc_meter,
     })
 }
@@ -2770,28 +3058,119 @@ mod core_client {
 
 pub(crate) use core_client::{CoreClient, Unwaited};
 
+/// Observation of the supervised run loop started by `run()`.
+///
+/// Owned by the client wrapper, written once by the run task at the point of
+/// termination, read by any number of `waitForRunCompletion()` observers. A
+/// result that arrives before any observer registered stays stored, so a late
+/// waiter reads the same completion. `live_generation` keys the stored result
+/// to the `run()` call that produced it: a stale task finishing after a newer
+/// run started cannot rewrite the newer observation, and later client
+/// activity (`disconnect()`, `reconnect()`) never touches it.
+#[derive(Default)]
+pub(crate) struct RunObservation {
+    started_runs: u64,
+    live_generation: Option<u64>,
+    completed: Option<crate::result_types::RunCompletionResult>,
+    waiters: Vec<futures::channel::oneshot::Sender<crate::result_types::RunCompletionResult>>,
+    host_torn_down: bool,
+}
+
+const TEARDOWN_DISCONNECT: u8 = 1;
+const TEARDOWN_LOGOUT: u8 = 2;
+
+struct TeardownGate {
+    state: Mutex<TeardownState>,
+}
+
+struct TeardownState {
+    running: bool,
+    complete: bool,
+    waiters: Vec<oneshot::Sender<()>>,
+}
+
+enum TeardownAdmission {
+    Owner,
+    Waiting(oneshot::Receiver<()>),
+    Complete,
+}
+
+impl TeardownGate {
+    fn new() -> Self {
+        Self {
+            state: Mutex::new(TeardownState {
+                running: false,
+                complete: false,
+                waiters: Vec::new(),
+            }),
+        }
+    }
+
+    fn admit(&self) -> TeardownAdmission {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if state.complete {
+            return TeardownAdmission::Complete;
+        }
+        if state.running {
+            let (sender, receiver) = oneshot::channel();
+            state.waiters.push(sender);
+            return TeardownAdmission::Waiting(receiver);
+        }
+        state.running = true;
+        TeardownAdmission::Owner
+    }
+
+    fn complete(&self) {
+        let waiters = {
+            let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+            state.running = false;
+            state.complete = true;
+            core::mem::take(&mut state.waiters)
+        };
+        for waiter in waiters {
+            let _ = waiter.send(());
+        }
+    }
+
+    fn is_running(&self) -> bool {
+        self.state.lock().unwrap_or_else(|e| e.into_inner()).running
+    }
+}
+
 /// Opaque handle to the WhatsApp client.
 #[wasm_bindgen]
 pub struct WasmWhatsAppClient {
     client: CoreClient,
+    /// Coordinates an asynchronous host disconnect callback with teardown.
+    transport_callback_state: Arc<crate::js_transport::HostCallbackState>,
     #[allow(dead_code)]
     runtime: Arc<dyn wacore::runtime::Runtime>,
+    run_observation: Arc<Mutex<RunObservation>>,
     sync_rx: Option<async_channel::Receiver<whatsapp_rust::sync_task::MajorSyncTask>>,
     /// Handle to the bridge-owned background saver task. Aborted on
     /// `disconnect()` so the in-flight 5s `sleep` doesn't keep the Node.js
     /// event loop alive.
-    saver_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
+    saver_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
     /// Spawned by `run()`; aborted on `Drop` so a `free()` without prior
     /// `disconnect()` doesn't leave the loop polling against the dropped
     /// wrapper.
-    run_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
+    run_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
     /// Spawned by `connect()` to read the single connection it established.
     /// Aborted on `Drop` for the same reason as `run_handle`.
-    connection_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
-    sync_worker_handle: Mutex<Option<wacore::runtime::AbortHandle>>,
+    connection_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
+    /// Whether the manual `connect()` task completed its handshake. A pending
+    /// handshake is aborted by the explicit disconnect barrier; an established
+    /// reader is allowed to observe the core's normal shutdown.
+    connection_established: Arc<std::sync::atomic::AtomicBool>,
+    sync_worker_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
     /// Ownership token for the JS event sink. Dropping the wrapper removes the
     /// handler from the core event bus.
     _event_subscription: Option<wacore::types::events::Subscription>,
+    /// Admits exactly one terminal teardown and lets concurrent callers wait
+    /// without holding a bridge lock across host callbacks.
+    teardown_gate: Arc<TeardownGate>,
+    /// The stronger logout request wins when it is admitted before disconnect.
+    teardown_kind: Arc<std::sync::atomic::AtomicU8>,
     /// At most one raw-node forwarding lease backs the boolean host API.
     raw_node_lease: Mutex<Option<whatsapp_rust::RawNodeLease>>,
     /// Core task allocation attribution; present only in diagnostics builds.
@@ -2822,48 +3201,49 @@ mod newsletter;
 mod signal;
 
 impl Drop for WasmWhatsAppClient {
-    /// Teardown for the `free()` path (explicit or via wasm-bindgen's
-    /// `FinalizationRegistry`). When the caller skipped `disconnect()`, this
-    /// guarantees the detached background tasks observe shutdown and the
-    /// transport gets closed — without it the orphaned tasks keep awaiting
-    /// JsFutures whose `Closure` state has been freed, which surfaces later
-    /// as `RuntimeError: Out of bounds memory access` on the shared WASM
-    /// heap. Callers should still prefer `await disconnect()` first; this
-    /// is the safety net for the GC path.
+    /// `free()` is synchronous and cannot await the core's asynchronous
+    /// teardown. It therefore only aborts bridge-owned tasks; it must not call
+    /// `disconnect()` after the wrapper has been disposed. Hosts should await
+    /// `disconnect()` or `logout()` before `free()` when they need the
+    /// persistence and transport barrier.
     fn drop(&mut self) {
-        // Signal shutdown to `Arc<Client>` synchronously. Detached children
-        // (every `.detach()` in `whatsapp_rust/src/client.rs` — keepalive
-        // loop, message processors, retry loops, …) observe `is_running` /
-        // `shutdown_notifier` and exit on their next poll.
-        self.client
-            .unwaited(Unwaited::ThisSocket)
-            .signal_shutdown_sync();
+        // A logout admitted before free owns the core connection until its
+        // deregistration IQ and disconnect finish. Its future keeps the task
+        // slots alive; aborting them here would turn logout into a local-only
+        // shutdown.
+        let logout_in_flight = self
+            .teardown_kind
+            .load(std::sync::atomic::Ordering::Acquire)
+            == TEARDOWN_LOGOUT
+            && self.teardown_gate.is_running();
+        if !logout_in_flight {
+            // Publish shutdown synchronously so detached core workers stop
+            // without entering the asynchronous disconnect path.
+            self.client
+                .unwaited(Unwaited::ThisSocket)
+                .signal_shutdown_sync();
 
-        // Abort the bridge-owned wrappers (run loop + sync worker + saver).
-        // The async cleanup task spawned below holds `Arc<Client>` so the
-        // aborted futures have valid state to unwind through.
-        for slot in [
-            &self.saver_handle,
-            &self.run_handle,
-            &self.connection_handle,
-            &self.sync_worker_handle,
-        ] {
-            if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
-                handle.abort();
+            for slot in [
+                &self.saver_handle,
+                &self.run_handle,
+                &self.connection_handle,
+                &self.sync_worker_handle,
+            ] {
+                if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+                    handle.abort();
+                }
             }
         }
 
-        // Drive teardown event-driven: `disconnect()` cancels the transport
-        // (closing the channels detached children are parked on) and runs
-        // `outbound_flush` to drain pending writes. `done` is awaited by the
-        // next `create_whatsapp_client` so a new client can't start sharing
-        // the heap until this completes.
-        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
-        let done = register_drop_cleanup();
-        wasm_bindgen_futures::spawn_local(async move {
-            client.disconnect().await;
-            let _ = done.send(());
-        });
+        // A pending `waitForRunCompletion()` must not outlive the client it
+        // observes. Dropping the senders cancels the receivers, which the
+        // waiters report as `not-connected`.
+        let mut observation = self
+            .run_observation
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        observation.host_torn_down = true;
+        observation.waiters.clear();
     }
 }
 
@@ -2899,7 +3279,7 @@ async fn participants_update(
     participant_jids: Vec<wacore_binary::jid::Jid>,
     action: crate::result_types::GroupParticipantAction,
     include_linked_groups_on_remove: bool,
-) -> Result<Vec<crate::result_types::ParticipantChangeResult>, crate::errors::BridgeError> {
+) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError> {
     use crate::result_types::GroupParticipantAction;
 
     let responses = match action {
@@ -2948,7 +3328,7 @@ async fn participants_update(
         }
     };
 
-    Ok(responses.iter().map(participant_change_to_result).collect())
+    to_ts_vec(responses.iter().map(participant_change_to_result).collect())
 }
 
 fn participant_change_to_result(
@@ -2971,19 +3351,45 @@ fn participant_change_to_result(
 
 fn community_link_result(
     succeeded: Vec<Jid>,
-    failed: Vec<(Jid, u32)>,
+    failed: Vec<whatsapp_rust::features::SubgroupFailure>,
 ) -> crate::result_types::CommunityLinkResult {
     crate::result_types::CommunityLinkResult {
         succeeded: succeeded.into_iter().map(|jid| jid.to_string()).collect(),
         failed: failed
             .into_iter()
-            .map(
-                |(jid, error)| crate::result_types::CommunityLinkFailureResult {
-                    jid: jid.to_string(),
-                    error: error as f64,
-                },
-            )
+            .map(|failure| crate::result_types::CommunityLinkFailureResult {
+                jid: failure.jid.to_string(),
+                error: failure.code as f64,
+            })
             .collect(),
+    }
+}
+
+fn group_overview_to_result(
+    group: &whatsapp_rust::features::GroupOverview,
+) -> crate::result_types::GroupOverviewResult {
+    use crate::result_types::{GroupHierarchyResult as R, GroupOverviewResult};
+    use whatsapp_rust::features::{GroupHierarchy as H, SubgroupKind};
+    GroupOverviewResult {
+        id: group.id.to_string(),
+        subject: group.subject.clone(),
+        participant_count: group.participant_count.map(|v| v as f64),
+        hierarchy: match &group.hierarchy {
+            H::Standalone => R::Standalone,
+            H::Community => R::Community,
+            H::Subgroup { parent, kind } => R::Subgroup {
+                parent: parent.to_string(),
+                kind: match kind {
+                    SubgroupKind::Regular => "regular".into(),
+                    SubgroupKind::Announcement => "announcement".into(),
+                    SubgroupKind::General => "general".into(),
+                    other => format!("{other:?}"),
+                },
+            },
+            other => R::Unknown {
+                detail: format!("{other:?}"),
+            },
+        },
     }
 }
 
@@ -2997,7 +3403,7 @@ fn group_metadata_to_result(
     };
     GroupMetadataResult {
         id: metadata.id.to_string(),
-        subject: metadata.subject.to_string(),
+        subject: metadata.subject.clone(),
         notify: metadata.notify.clone(),
         participants: metadata
             .participants
@@ -3048,7 +3454,7 @@ fn group_metadata_to_result(
             .member_link_mode
             .as_ref()
             .map(|m| m.as_str().to_string()),
-        size: metadata.size.map(|v| v as f64),
+        participant_count: metadata.participant_count.map(|v| v as f64),
         is_parent_group: metadata.is_parent_group,
         parent_group_jid: metadata.parent_group_jid.as_ref().map(|j| j.to_string()),
         is_default_sub_group: metadata.is_default_sub_group,
@@ -3510,7 +3916,7 @@ async fn stream_upload_via_js(
         .with_body(body_bytes);
 
     client
-        .http_client
+        .http_client()
         .execute(request)
         .await
         .map_err(Into::into)
@@ -3557,8 +3963,9 @@ async fn send_message_with_options(
     msg: waproto::whatsapp::Message,
     options: whatsapp_rust::SendOptions,
 ) -> Result<String, crate::errors::BridgeError> {
-    let result = client.send_message_with_options(to, msg, options).await?;
-    Ok(result.message_id)
+    let request = whatsapp_rust::SendRequest::new(&to, msg).with_options(options);
+    let result = client.send(request).await?;
+    Ok(result.message_id.into_string())
 }
 
 /// Decode and parse what a status send needs, so its caller can reject bad
@@ -3584,7 +3991,7 @@ async fn send_status_message_with_options(
     options: whatsapp_rust::StatusSendOptions,
 ) -> Result<String, crate::errors::BridgeError> {
     let result = client.status().send_raw(msg, &recipients, options).await?;
-    Ok(result.message_id)
+    Ok(result.message_id.into_string())
 }
 
 fn admin_profile_to_result(
@@ -3682,6 +4089,8 @@ fn newsletter_metadata_to_result(
         invite_code: meta.invite_code.clone(),
         role: meta.role.as_ref().map(newsletter_role_str),
         creation_time: meta.creation_time.map(|v| v as f64),
+        muted: meta.muted,
+        follower_activity_muted: meta.follower_activity_muted,
     }
 }
 
@@ -4265,6 +4674,106 @@ mod event_delivery_tests {
     use whatsapp_rust::wacore::types::presence::ReceiptType;
     use whatsapp_rust::waproto::whatsapp::Message;
 
+    #[test]
+    async fn reachout_typed_and_raw_events_each_cross_once_without_normalization() {
+        use whatsapp_rust::wacore::types::events::{
+            ChannelEventHandler, CoreEventBus, EventInterest, EventKind, MexNotification,
+            ReachoutTimelock, ReachoutTimelockUpdate,
+        };
+        let bus = CoreEventBus::new();
+        let (handler, rx) = ChannelEventHandler::new();
+        let subscription = bus.subscribe_handler(handler.clone());
+        assert!(subscription.update_interest(EventInterest::of(&[
+            EventKind::ReachoutTimelockUpdate,
+            EventKind::MexNotification,
+        ])));
+        let state: ReachoutTimelock = serde_json::from_value(serde_json::json!({
+            "enforcement_type": "future-policy", "is_active": false,
+            "time_enforcement_ends": "18446744073709551615",
+        }))
+        .unwrap();
+        let payload = serde_json::json!({"notify": {"opaque": [false, null, "future"]}});
+        bus.dispatch(Event::ReachoutTimelockUpdate(
+            ReachoutTimelockUpdate::builder()
+                .state(state)
+                .stanza_id("synthetic".into())
+                .offline("future-marker".into())
+                .build(),
+        ));
+        bus.dispatch(Event::MexNotification(
+            MexNotification::builder()
+                .op_name("NotificationUserReachoutTimelockUpdate".into())
+                .payload(payload.clone())
+                .build(),
+        ));
+        assert_eq!(handler.stats().enqueued, 2);
+        rx.close();
+
+        let seen = Rc::new(RefCell::new(Vec::<JsValue>::new()));
+        let sink = seen.clone();
+        let callback = Closure::wrap(Box::new(move |event: JsValue| {
+            sink.borrow_mut().push(event);
+        }) as Box<dyn FnMut(JsValue)>);
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(&object, &EVENT_CALLBACK_METHOD.into(), callback.as_ref()).unwrap();
+        let callbacks = JsEventCallbacks::from_js(object.into()).unwrap();
+        run_event_consumer(&callbacks, rx).await;
+        let seen = seen.borrow();
+        assert_eq!(seen.len(), 2);
+        let get = |value: &JsValue, key: &str| js_sys::Reflect::get(value, &key.into()).unwrap();
+        assert_eq!(
+            get(&seen[0], "type").as_string().as_deref(),
+            Some("reachout_timelock_update")
+        );
+        let data = get(&seen[0], "data");
+        let state = get(&data, "state");
+        assert_eq!(
+            get(&state, "enforcement_type").as_string().as_deref(),
+            Some("future-policy")
+        );
+        assert_eq!(get(&state, "is_active").as_bool(), Some(false));
+        assert_eq!(
+            get(&state, "time_enforcement_ends").as_string().as_deref(),
+            Some("18446744073709551615")
+        );
+        assert!(get(&data, "from").is_undefined());
+        assert_eq!(
+            get(&data, "offline").as_string().as_deref(),
+            Some("future-marker")
+        );
+        assert_eq!(
+            get(&seen[1], "type").as_string().as_deref(),
+            Some("mex_notification")
+        );
+        let raw = get(&get(&seen[1], "data"), "payload");
+        assert_eq!(
+            serde_wasm_bindgen::from_value::<serde_json::Value>(raw).unwrap(),
+            payload
+        );
+        let absent = event_to_js(&Event::ReachoutTimelockUpdate(
+            ReachoutTimelockUpdate::builder()
+                .state(ReachoutTimelock::default())
+                .build(),
+        ))
+        .unwrap();
+        let state = get(&get(&absent, "data"), "state");
+        for key in ["enforcement_type", "is_active", "time_enforcement_ends"] {
+            assert!(get(&state, key).is_undefined(), "invented {key}");
+        }
+    }
+
+    #[test]
+    fn missing_group_subject_stays_absent_and_count_is_not_roster_length() {
+        let mut metadata =
+            whatsapp_rust::features::GroupMetadata::new("120363000000000000@g.us".parse().unwrap());
+        metadata.participant_count = Some(300);
+        let value = serde_json::to_value(group_metadata_to_result(&metadata)).unwrap();
+        assert!(value.get("subject").is_none());
+        assert_eq!(value["participantCount"], 300.0);
+        assert_eq!(value["participants"], serde_json::json!([]));
+        assert!(value.get("size").is_none());
+    }
+
     /// One observed host callback: the method name and the bytes it received.
     type Calls = Rc<RefCell<Vec<(String, Vec<u8>)>>>;
 
@@ -4635,16 +5144,16 @@ mod dispatched_event_tests {
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
         AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
-        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, MessageLabelAssociationUpdate,
-        MuteUpdate, PairingCodeError, PairingQrCodesExhausted, PinUpdate, QuickReplyUpdate,
-        UnavailableType, UndecryptableMessage,
+        ContactUpdate, DecryptFailMode, DisableLinkPreviewsUpdate, LockChatUpdate,
+        MessageLabelAssociationUpdate, MuteUpdate, PairingCodeError, PairingQrCodesExhausted,
+        PinUpdate, QuickReplyUpdate, UnavailableType, UndecryptableMessage,
     };
     use whatsapp_rust::wacore::types::message::{
         EncMediaType, MessageInfo, PollType, StanzaMessageType,
     };
     use whatsapp_rust::waproto::whatsapp::sync_action_value::{
-        ArchiveChatAction, ContactAction, LabelAssociationAction, MuteAction, PinAction,
-        PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
+        ArchiveChatAction, ContactAction, LabelAssociationAction, LockChatAction, MuteAction,
+        PinAction, PrivacySettingDisableLinkPreviewsAction, QuickReplyAction, SyncActionMessage,
         SyncActionMessageRange,
     };
     use whatsapp_rust::waproto::whatsapp::{CallLogRecord, MessageKey};
@@ -4742,6 +5251,30 @@ mod dispatched_event_tests {
             field(&data, "timestamp").as_string().as_deref(),
             Some("2023-11-14T22:13:20Z")
         );
+    }
+
+    #[test]
+    async fn unarchive_setting_event_carries_the_core_flag_and_action() {
+        use whatsapp_rust::wacore::types::events::UnarchiveChatsSettingUpdate;
+        use whatsapp_rust::waproto::whatsapp::sync_action_value::UnarchiveChatsSetting;
+        let (name, data) = deliver(Event::UnarchiveChatsSettingUpdate(
+            UnarchiveChatsSettingUpdate::builder()
+                .unarchive_chats(true)
+                .timestamp(timestamp())
+                .action(Box::new(UnarchiveChatsSetting {
+                    unarchive_chats: Some(true),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+        assert_eq!(name, "unarchive_chats_setting_update");
+        assert_eq!(field(&data, "unarchive_chats").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "action"), "unarchiveChats").as_bool(),
+            Some(true)
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
     }
 
     #[test]
@@ -4922,6 +5455,34 @@ mod dispatched_event_tests {
         assert!(field(&action, "mute_end_timestamp").is_undefined());
     }
 
+    /// Chat lock's "off" state is a Set carrying `locked: false`, so both
+    /// directions arrive as the same event and the value is the transition.
+    #[test]
+    async fn a_lock_chat_update_carries_the_chat_and_its_locked_state() {
+        let (name, data) = deliver(Event::LockChatUpdate(
+            LockChatUpdate::builder()
+                .jid(jid("5511999@s.whatsapp.net"))
+                .timestamp(timestamp())
+                .action(Box::new(LockChatAction {
+                    locked: Some(false),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+
+        assert_eq!(name, "lock_chat_update");
+        assert_eq!(
+            field(&field(&data, "jid"), "user").as_string().as_deref(),
+            Some("5511999")
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
+        assert_eq!(
+            field(&field(&data, "action"), "locked").as_bool(),
+            Some(false)
+        );
+    }
+
     #[test]
     async fn a_message_label_association_update_names_the_message_it_labelled() {
         let (name, data) = deliver(Event::MessageLabelAssociationUpdate(
@@ -5090,7 +5651,7 @@ mod dispatched_event_tests {
         info.timestamp = timestamp();
         info.r#type = Some(StanzaMessageType::Poll);
         info.media_type = Some(EncMediaType::Ptt);
-        info.meta_info.poll_type = Some(PollType::Vote);
+        info.meta_info.get_or_insert_default().poll_type = Some(PollType::Vote);
 
         let (name, data) = deliver(Event::UndecryptableMessage(
             UndecryptableMessage::builder()
@@ -5141,7 +5702,10 @@ mod dispatched_event_tests {
         let info = field(&data, "info");
         assert!(field(&info, "type").is_undefined());
         assert!(field(&info, "media_type").is_undefined());
-        assert!(field(&field(&info, "meta_info"), "poll_type").is_undefined());
+        // `meta_info` itself is absent now: the core boxes the `<meta>` and
+        // `<reporting>` children and a stanza carrying neither crosses as no
+        // value, not as an empty object to read `poll_type` off.
+        assert!(field(&info, "meta_info").is_null_or_undefined());
         // The two enums the core rebuilt from the catalog keep their wire
         // spellings, which is the whole of what crosses here.
         assert_eq!(

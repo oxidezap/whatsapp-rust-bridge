@@ -2,7 +2,7 @@ use img_parts::webp::WebP;
 use img_parts::{Bytes, ImageEXIF};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use tsify::Tsify;
+use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
 /// EXIF header for WhatsApp sticker metadata.
@@ -32,7 +32,6 @@ const EXIF_HEADER: [u8; 22] = [
 /// This struct is used for both input (when adding metadata) and output (when extracting).
 /// TypeScript types are automatically generated from this Rust struct.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct StickerMetadata {
     /// Unique pack identifier (auto-generated UUID if not provided)
@@ -221,14 +220,16 @@ pub fn get_metadata(webp_data: &[u8]) -> Result<Option<StickerMetadata>, String>
 #[wasm_bindgen(js_name = addStickerMetadata)]
 pub fn add_sticker_metadata(
     webp_data: &[u8],
-    metadata: StickerMetadata,
+    metadata: Ts<StickerMetadata>,
 ) -> Result<Uint8Array, JsError> {
+    let metadata = metadata.to_rust()?;
     let output = add_metadata(webp_data, metadata).map_err(|e| JsError::new(&e))?;
     Ok(Uint8Array::from(output.as_slice()))
 }
 
 /// Extract sticker metadata from a WebP image.
 #[wasm_bindgen(js_name = getStickerMetadata)]
-pub fn get_sticker_metadata(webp_data: &[u8]) -> Result<Option<StickerMetadata>, JsError> {
-    get_metadata(webp_data).map_err(|e| JsError::new(&e))
+pub fn get_sticker_metadata(webp_data: &[u8]) -> Result<Option<Ts<StickerMetadata>>, JsError> {
+    let metadata = get_metadata(webp_data).map_err(|e| JsError::new(&e))?;
+    Ok(metadata.map(|m| m.into_ts()).transpose()?)
 }

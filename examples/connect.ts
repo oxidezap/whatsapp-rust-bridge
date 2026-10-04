@@ -18,6 +18,9 @@ async function main() {
 
   console.log("Creating WhatsApp client...");
 
+  // Mock-only opt-in: the mock server cannot sign a chain rooted in
+  // WhatsApp's issuer, so this example names the testing bypass
+  // explicitly. Production callers keep the default.
   const client = await createWhatsAppClient(
     createTransport("client"),
     createHttp(),
@@ -44,6 +47,11 @@ async function main() {
         console.log(`Message: ${JSON.stringify(event.data.message)}`);
       }
     },
+    null,
+    null,
+    null,
+    null,
+    true,
   );
 
   console.log("Starting client...");

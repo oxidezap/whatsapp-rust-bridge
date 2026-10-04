@@ -12,15 +12,25 @@
 
 import type {
   ArchiveUpdate,
+  ClientPolicies,
+  createWhatsAppClient,
   BridgeError,
+  CommunityConfigurationError,
+  NewsletterMessageResult,
   InboundMessage,
   JsonValue,
   MessageInfo,
   MexResponse,
   MsgSecretEntry,
+  PairError,
+  PairSuccess,
   Receipt,
   ReceiptType,
   WasmWhatsAppClient,
+  WhatsAppEvent,
+  GroupMetadataResult,
+  GroupOverviewResult,
+  ProtocolTerminalReasonResult,
 } from "../../dist/index.js";
 import type { proto } from "../../dist/proto-types.js";
 
@@ -41,6 +51,23 @@ type Resolves<Actual, Expected> =
   : false;
 type Assert<T extends true> = T;
 
+// These are declaration contracts, not successful server-response tests.
+type ReachoutEvent = Extract<WhatsAppEvent, { type: "reachout_timelock_update" }>;
+type _ReachoutEnforcement = Assert<Resolves<ReachoutEvent["data"]["state"]["enforcement_type"], string | null | undefined>>;
+type _ReachoutActive = Assert<Resolves<ReachoutEvent["data"]["state"]["is_active"], boolean | null | undefined>>;
+type _ReachoutDeadline = Assert<Resolves<ReachoutEvent["data"]["state"]["time_enforcement_ends"], string | null | undefined>>;
+type _SubjectAbsence = Assert<Resolves<GroupMetadataResult["subject"], string | undefined>>;
+type _OverviewCount = Assert<Resolves<GroupOverviewResult["participantCount"], number | undefined>>;
+type _GroupListing = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["groupFetchAllParticipating"]>>, Record<string, GroupOverviewResult>>>;
+type _ReactionStanzaId = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["newsletterReactMessage"]>>, string>>;
+type _ConflictCause = Assert<Resolves<Extract<ProtocolTerminalReasonResult, { kind: "conflict" }>["cause"], string>>;
+type _NewsletterIdAbsence = Assert<Resolves<NewsletterMessageResult["messageId"], string | undefined>>;
+type _CommunityCreatedJid = Assert<Resolves<CommunityConfigurationError["createdJid"], string>>;
+type _CommunityCause = Assert<Resolves<CommunityConfigurationError["cause"], BridgeError>>;
+type _NewsletterEnvelopeServerId = Assert<Resolves<MessageInfo["newsletter_server_id"], number | string | null | undefined>>;
+type UnarchiveEvent = Extract<WhatsAppEvent, { type: "unarchive_chats_setting_update" }>;
+type _UnarchiveFlag = Assert<Resolves<UnarchiveEvent["data"]["unarchive_chats"], boolean>>;
+
 // Box<wa::sync_action_value::ArchiveChatAction>
 type _Boxed = Assert<
   Resolves<ArchiveUpdate["action"], proto.SyncActionValue.IArchiveChatAction>
@@ -49,12 +76,17 @@ type _Boxed = Assert<
 // Arc<wa::Message>
 type _Shared = Assert<Resolves<InboundMessage["message"], proto.IMessage>>;
 
-// Option<wa::MessageKey>
+// Option<wa::MessageKey>, carried beside the message rather than on its info:
+// the inner proto has no slot for the threading link, and `info` is shared
+// with every `<enc>` of the stanza by the time decryption knows it.
 type _Optional = Assert<
-  Resolves<NonNullable<MessageInfo["comment_target"]>, proto.IMessageKey>
+  Resolves<
+    InboundMessage["comment_target"],
+    proto.IMessageKey | null | undefined
+  >
 >;
 
-// `pub type MessageSecret = [u8; 32]`
+// The store entry's `MessageSecretBytes = [u8; 32]` remains a byte array.
 type _Aliased = Assert<Resolves<MsgSecretEntry["secret"], Uint8Array>>;
 
 // serde_json::Value. Not `NonNullable`: `JsonValue` carries `null` itself, so
@@ -98,6 +130,15 @@ type _RejectsUnknown = Assert<
   Resolves<unknown, Uint8Array> extends false ? true : false
 >;
 
+// `pair_success` / `pair_error` cross hand-built, with `Jid::to_string` —
+// the event union already says `id: string`, and the standalone interfaces
+// must say the same. A `Jid` here would name an object no payload ever
+// carries, and this assertion (not a text search) is what rejects it.
+type _PairSuccessId = Assert<Resolves<PairSuccess["id"], string>>;
+type _PairSuccessLid = Assert<Resolves<PairSuccess["lid"], string>>;
+type _PairErrorId = Assert<Resolves<PairError["id"], string>>;
+type _PairErrorLid = Assert<Resolves<PairError["lid"], string>>;
+
 // The edit's optional caller-supplied stanza id: a fourth parameter a caller
 // may omit, so the three-argument form keeps compiling. Indexing at 3 fails
 // outright while the declaration has only three parameters.
@@ -118,8 +159,34 @@ export type Checked = [
   _Aliased,
   _Json,
   _Receipt,
+  _PairSuccessId,
+  _PairSuccessLid,
+  _PairErrorId,
+  _PairErrorLid,
   _RejectsAny,
   _RejectsObject,
   _RejectsUnknown,
   _EditPinsAStanzaId,
 ];
+
+type _ClientPoliciesArgument = Assert<
+  Resolves<Parameters<typeof createWhatsAppClient>[8], ClientPolicies | null | undefined>
+>;
+
+// The host entrypoint re-exports wasm-bindgen's initializer, which takes
+// bytes or a compiled Module (SyncInitInput) — the union the host idioms
+// produce — and the client factory keeps the default entrypoint's signature.
+import { initSync } from "../../dist/host.js";
+import type { SyncInitInput } from "../../dist/whatsapp_rust_bridge.js";
+
+type _HostInit = Assert<
+  Resolves<Parameters<typeof initSync>[0], SyncInitInput>
+>;
+
+// The real published shape: the `./wasm` asset feeds `initSync` with no
+// conversion. Imported through the package's own exports map, so this is
+// the subpath contract typechecking — not the type agreeing with itself.
+import wasm from "@oxidezap/whatsapp-rust-bridge/wasm";
+
+type _WasmFeedsInitSync = Assert<Resolves<typeof wasm, SyncInitInput>>;
+initSync({ module: wasm });

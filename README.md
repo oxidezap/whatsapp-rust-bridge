@@ -47,3 +47,30 @@ What it is not is a release. Preview builds carry the version
 `0.0.0-preview-<sha>`, which no range written for a real release can match — an
 install is a deliberate pin, and it stays on that commit until you change it.
 They are for trying a change, not for running one.
+
+## Host-loaded runtimes
+
+On Node and Bun the default entrypoint finds and loads the wasm itself:
+
+```ts
+import { createWhatsAppClient } from "@oxidezap/whatsapp-rust-bridge";
+```
+
+Hosts without filesystem access (Cloudflare Workers, workerd, Deno,
+browsers) supply the wasm instead. Import the asset through the `./wasm`
+subpath — a static import, which workerd/wrangler compile to a
+`WebAssembly.Module` — and pass it to `initSync` from `./host`:
+
+```ts
+import wasm from "@oxidezap/whatsapp-rust-bridge/wasm";
+import {
+  initSync,
+  createWhatsAppClient,
+} from "@oxidezap/whatsapp-rust-bridge/host";
+
+initSync({ module: wasm });
+```
+
+Call `initSync` once per isolate, and on workerd create clients inside a
+request handler rather than at global scope (`crypto.getRandomValues` is
+unavailable during global-scope evaluation).

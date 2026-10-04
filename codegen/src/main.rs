@@ -240,6 +240,13 @@ fn main() {
         }
     }
 
+    // ReachoutTimelock is a pub-use rename of a nested generated MEX state.
+    // Read its real serde declaration rather than duplicating the three fields.
+    let mex_path = sources.wacore_src.join("iq/mex_operations.rs");
+    let mex_source = std::fs::read_to_string(&mex_path)
+        .unwrap_or_else(|e| panic!("cannot read {}: {e}", mex_path.display()));
+    parse_reachout_timelock(&mex_source, &mex_path, &mut all_types);
+
     // Also parse send.rs for SendOptions/RevokeType
     parse_file(&src_dir.join("send.rs"), &mut all_types);
 
@@ -634,6 +641,36 @@ fn render_enum_variant(variant: &TsEnumVariant, representation: &EnumRepresentat
     }
 }
 
+fn parse_reachout_timelock(content: &str, path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
+    let file =
+        syn::parse_file(content).unwrap_or_else(|e| panic!("cannot parse {}: {e}", path.display()));
+    let module = file
+        .items
+        .iter()
+        .find_map(|item| match item {
+            Item::Mod(module) if module.ident == "fetch_reachout_timelock" => Some(module),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("{}: missing fetch_reachout_timelock module", path.display()));
+    let (_, items) = module.content.as_ref().unwrap_or_else(|| {
+        panic!(
+            "{}: fetch_reachout_timelock needs inline MEX state",
+            path.display()
+        )
+    });
+    let mut state = items
+        .iter()
+        .find_map(|item| match item {
+            Item::Struct(state) if state.ident == "Xwa2FetchAccountReachoutTimelock" => {
+                Some(state.clone())
+            }
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("{}: missing ReachoutTimelock serde state", path.display()));
+    state.ident = syn::Ident::new("ReachoutTimelock", state.ident.span());
+    parse_source(&state.to_token_stream().to_string(), types);
+}
+
 fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
     let Ok(content) = std::fs::read_to_string(path) else {
         return;
@@ -645,6 +682,19 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
     let Ok(file) = syn::parse_file(content) else {
         return;
     };
+
+    // Every struct in the file, private ones included, so a container that
+    // serializes `into` a shadow can be described by the shadow it actually
+    // writes. Shadows are private by convention, so the `is_pub` filter below
+    // would never reach them.
+    let shadows: std::collections::HashMap<String, &syn::ItemStruct> = file
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Struct(s) => Some((s.ident.to_string(), s)),
+            _ => None,
+        })
+        .collect();
 
     for item in &file.items {
         match item {
@@ -666,9 +716,38 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                 }
 
                 let doc = extract_doc(&s.attrs);
-                let serde = parse_serde_container(&s.attrs);
-                let generics = type_parameters(&s.generics);
-                let fields = match &s.fields {
+                // A `serde(into)` / `serde(from)` container never writes its own
+                // fields: the shadow it converts through is the shape that
+                // crosses the boundary, and the two disagree on purpose (a
+                // packed layout, a field split into flags). Describe the shadow.
+                let shape = match serde_container_shadow(&s.attrs).filter(|shadow| *shadow != name)
+                {
+                    Some(shadow) => shadows.get(&shadow).copied().unwrap_or_else(|| {
+                        panic!(
+                            "`{name}` serializes through `{shadow}`, which is not declared in the \
+                             same file. This generator resolves a shadow only among its own \
+                             file's items."
+                        )
+                    }),
+                    None => s,
+                };
+                let serde = parse_serde_container(&shape.attrs);
+                let generics = type_parameters(&shape.generics);
+                // A shadow is a codec detail and is rarely documented, while
+                // the container it stands in for is. Where the two agree on a
+                // field name, the container's doc is about that same value, so
+                // it carries over rather than being dropped.
+                let outer_docs: std::collections::HashMap<String, String> = match &s.fields {
+                    Fields::Named(named) => named
+                        .named
+                        .iter()
+                        .filter_map(|f| {
+                            Some((f.ident.as_ref()?.to_string(), extract_doc(&f.attrs)?))
+                        })
+                        .collect(),
+                    _ => std::collections::HashMap::new(),
+                };
+                let fields = match &shape.fields {
                     Fields::Named(named) => named
                         .named
                         .iter()
@@ -679,8 +758,10 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                         .map(|f| {
                             let field_name =
                                 f.ident.as_ref().unwrap().to_string().replace("r#", "");
-                            let (ts_type, optional) =
-                                timestamp_module_type(f).unwrap_or_else(|| rust_type_to_ts(&f.ty));
+                            let (ts_type, optional) = timestamp_module_type(f)
+                                .or_else(|| serialize_with_type(f))
+                                .or_else(|| boundary_stringified_jid(&name, f))
+                                .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
                                 name: serde_name.unwrap_or_else(|| {
@@ -688,7 +769,8 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                                 }),
                                 ts_type,
                                 optional,
-                                doc: extract_doc(&f.attrs),
+                                doc: extract_doc(&f.attrs)
+                                    .or_else(|| outer_docs.get(&field_name).cloned()),
                             }
                         })
                         .collect(),
@@ -1306,6 +1388,98 @@ fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
     }
 }
 
+/// The shadow struct a container serializes through, from `serde(into)`.
+///
+/// Only `into`. A declaration describes what crosses the boundary, and
+/// `from` / `try_from` name the deserialize direction, which can differ or
+/// even point back at the container itself for validate-on-load. A container
+/// carrying only those still writes its own fields.
+fn serde_container_shadow(attrs: &[Attribute]) -> Option<String> {
+    let path = serde_attribute_tokens(attrs)
+        .into_iter()
+        .find_map(|tokens| keyed_string(&tokens, "into").map(ToOwned::to_owned))?;
+    // Generic arguments are the container's own, so the shadow resolves by
+    // name: `into = "Packed<T>"` is the `Packed` declared alongside it.
+    let name = path.split('<').next().unwrap_or_default();
+    Some(
+        name.rsplit("::")
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_owned(),
+    )
+}
+
+/// A field written through one of the core's own `serialize_with` functions,
+/// which can replace the field's Rust shape with one the type does not
+/// describe.
+///
+/// Named one by one for the reason chrono's modules are: a function this
+/// generator has not read is a representation it cannot name, and guessing one
+/// publishes a declaration nobody honours. `None` means the field's own type
+/// already names what the function writes; an unknown function stops
+/// generation, the way an unplaceable type already does.
+fn serialize_with_type(field: &syn::Field) -> Option<(String, bool)> {
+    // A `DateTime` reaches its module through `timestamp_module_type`, which
+    // reads `with` as well and runs first.
+    if is_datetime(&field.ty) {
+        return None;
+    }
+    let path = serde_serialize_with(&field.attrs)?;
+    match path.rsplit("::").next().unwrap_or_default() {
+        // Writes the bytes the field's own `Option<Vec<u8>>` already names.
+        "serialize_optional_bytes" => None,
+        // `GroupInfo::lid_pn` is a slice of pairs sorted for binary search that
+        // writes the `lid_to_pn_map` object the persisted blob has always
+        // carried, so the type and the wire shape disagree by design.
+        "serialize_lid_pn" => Some(("Record<string, Jid>".to_string(), false)),
+        other => panic!(
+            "field `{}` is serialized through `{other}`, whose shape this generator cannot \
+             name. Add it beside the ones already listed in `serialize_with_type`.",
+            field
+                .ident
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default()
+        ),
+    }
+}
+
+/// `Event::PairSuccess` / `Event::PairError` never cross through serde: the
+/// bridge hand-builds them in `event_to_js_special` with `Jid::to_string`,
+/// and the `bridge_events!` union entry already declares `id: string`. Name
+/// strings here too, or the standalone interface disagrees with the only
+/// payload a consumer can ever receive. Keyed on struct and field, and only
+/// when the field really is a `Jid`, so a core change to another type does
+/// not silently keep the override.
+fn boundary_stringified_jid(struct_name: &str, field: &syn::Field) -> Option<(String, bool)> {
+    let field_name = field.ident.as_ref()?.to_string();
+    if !matches!(
+        (struct_name, field_name.as_str()),
+        ("PairSuccess" | "PairError", "id" | "lid")
+    ) {
+        return None;
+    }
+    match &field.ty {
+        Type::Path(TypePath { path, .. })
+            if path.segments.last().is_some_and(|s| s.ident == "Jid") =>
+        {
+            Some(("string".to_string(), false))
+        }
+        _ => None,
+    }
+}
+
+/// The function a field's `serialize_with` names, ignoring `with` — unlike
+/// [`serde_timestamp_module`], which reads both. `with = "serde_bytes"` names a
+/// module whose shape the field's type already carries, so reading it here
+/// would put every byte field through the table for nothing.
+fn serde_serialize_with(attrs: &[Attribute]) -> Option<String> {
+    serde_attribute_tokens(attrs)
+        .into_iter()
+        .find_map(|tokens| keyed_string(&tokens, "serialize_with").map(ToOwned::to_owned))
+}
+
 /// The module a field's `with`, or the function its `serialize_with`, names.
 ///
 /// `serialize_with` first, and matched at a word boundary, because `with = "`
@@ -1857,6 +2031,58 @@ mod tests {
             .to_typescript(name)
     }
 
+    #[test]
+    fn reachout_alias_reads_the_nested_serde_state_including_future_fields() {
+        let source = r#"
+            pub mod fetch_reachout_timelock {
+                #[derive(Serialize)]
+                pub struct Xwa2FetchAccountReachoutTimelock {
+                    pub enforcement_type: Option<String>,
+                    pub is_active: Option<bool>,
+                    pub time_enforcement_ends: Option<String>,
+                    pub future_tokens: Option<Vec<String>>,
+                }
+            }
+        "#;
+        let mut types = BTreeMap::new();
+        parse_reachout_timelock(source, Path::new("fixture.rs"), &mut types);
+        let declaration = types["ReachoutTimelock"].to_typescript("ReachoutTimelock");
+        for field in [
+            "enforcement_type?: string",
+            "is_active?: boolean",
+            "time_enforcement_ends?: string",
+            "future_tokens?: string[]",
+        ] {
+            assert!(declaration.contains(field), "{declaration}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: missing fetch_reachout_timelock module")]
+    fn reachout_drift_names_the_source_when_the_module_moves() {
+        parse_reachout_timelock("", Path::new("fixture.rs"), &mut BTreeMap::new());
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: fetch_reachout_timelock needs inline MEX state")]
+    fn reachout_drift_names_the_source_when_the_state_is_not_inline() {
+        parse_reachout_timelock(
+            "mod fetch_reachout_timelock;",
+            Path::new("fixture.rs"),
+            &mut BTreeMap::new(),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "fixture.rs: missing ReachoutTimelock serde state")]
+    fn reachout_drift_names_the_source_when_the_serde_state_moves() {
+        parse_reachout_timelock(
+            "mod fetch_reachout_timelock {}",
+            Path::new("fixture.rs"),
+            &mut BTreeMap::new(),
+        );
+    }
+
     fn ts_of(source: &str) -> String {
         rust_type_to_ts(&syn::parse_str::<Type>(source).unwrap()).0
     }
@@ -1919,6 +2145,46 @@ mod tests {
         assert!(generated.contains("blob: Uint8Array;"), "{generated}");
     }
 
+    /// `PairSuccess` / `PairError` cross the boundary hand-built, with
+    /// `Jid::to_string` — the `bridge_events!` union already says `id: string`.
+    /// The standalone interfaces must say the same; a `Jid` there names an
+    /// object no `pair_success` payload ever carries. A `Jid` anywhere else
+    /// still names the structured object serde writes.
+    #[test]
+    fn pair_result_jids_cross_as_strings() {
+        let source = r#"
+            #[derive(Serialize)]
+            pub struct PairSuccess {
+                pub id: Jid,
+                pub lid: Jid,
+                pub business_name: String,
+                pub platform: String,
+            }
+
+            #[derive(Serialize)]
+            pub struct PairError {
+                pub id: Jid,
+                pub lid: Jid,
+                pub business_name: String,
+                pub platform: String,
+                pub error: String,
+            }
+
+            #[derive(Serialize)]
+            pub struct DeviceListUpdate {
+                pub jid: Jid,
+            }
+        "#;
+        let success = generated_type(source, "PairSuccess");
+        assert!(success.contains("id: string;"), "{success}");
+        assert!(success.contains("lid: string;"), "{success}");
+        let error = generated_type(source, "PairError");
+        assert!(error.contains("id: string;"), "{error}");
+        assert!(error.contains("lid: string;"), "{error}");
+        let control = generated_type(source, "DeviceListUpdate");
+        assert!(control.contains("jid: Jid;"), "{control}");
+    }
+
     /// An empty list would pass every check it feeds, so sources that declare no
     /// `Event` are reported rather than defaulted.
     #[test]
@@ -1955,6 +2221,69 @@ mod tests {
             generated.contains("written_by_function: number;"),
             "{generated}"
         );
+    }
+
+    /// A container that converts through a shadow writes the shadow's fields,
+    /// not its own. Reading the packed layout instead publishes a declaration
+    /// no JSON on the boundary matches.
+    #[test]
+    fn a_serde_shadow_names_the_shape_that_crosses_the_boundary() {
+        let source = r#"
+            #[derive(Serialize, Deserialize)]
+            #[serde(from = "PackedDe", into = "PackedDe")]
+            pub struct Packed {
+                /// The device this entry is about.
+                device_id: u16,
+                flags: u8,
+                key_index: u32,
+            }
+
+            #[derive(Serialize, Deserialize)]
+            struct PackedDe {
+                device_id: u16,
+                key_index: Option<u32>,
+                #[serde(default)]
+                is_hosted: bool,
+            }
+        "#;
+        let generated = generated_type(source, "Packed");
+        assert!(generated.contains("device_id: number;"), "{generated}");
+        assert!(
+            generated.contains("key_index?: number | null;"),
+            "{generated}"
+        );
+        assert!(generated.contains("is_hosted: boolean;"), "{generated}");
+        assert!(!generated.contains("flags"), "{generated}");
+        assert!(
+            generated.contains("/** The device this entry is about. */"),
+            "{generated}"
+        );
+    }
+
+    /// A field whose `serialize_with` rewrites its shape is named from the
+    /// table, and one whose function only writes what the type already says
+    /// falls through to the type.
+    #[test]
+    fn a_serialize_with_field_is_named_by_what_the_function_writes() {
+        let source = r#"
+            #[derive(Serialize)]
+            pub struct Mapped {
+                #[serde(rename = "lid_to_pn_map", serialize_with = "serialize_lid_pn")]
+                lid_pn: Box<[LidPnPair]>,
+                #[serde(serialize_with = "crate::serde_helpers::serialize_optional_bytes")]
+                pub token: Option<Vec<u8>>,
+            }
+        "#;
+        let generated = generated_type(source, "Mapped");
+        assert!(
+            generated.contains("lid_to_pn_map: Record<string, Jid>;"),
+            "{generated}"
+        );
+        assert!(
+            generated.contains("token?: Uint8Array | null;"),
+            "{generated}"
+        );
+        assert!(!generated.contains("LidPnPair"), "{generated}");
     }
 
     /// Every wrapper a waproto type is written behind in the core reaches the

@@ -24,6 +24,19 @@ env:
   NODE_VERSION: 24
 
 jobs:
+  release-contract:
+    name: Release ordering and retry contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node --test .github/scripts/release.test.mjs
+
   # release-please keeps its release pull request rebased on main, so every
   # feature that lands re-triggers a full run on a diff that is a version
   # string and a changelog entry — 7 of the 30 runs in the last five days, at
@@ -128,7 +141,7 @@ jobs:
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -190,7 +203,7 @@ jobs:
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -202,7 +215,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
         with:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
@@ -221,7 +234,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -246,6 +259,13 @@ jobs:
         run: |
           git add --intent-to-add -- src/generated_types.rs ts/generated
           git diff --exit-code -- src/generated_types.rs ts/generated
+
+      # The Noise cert-chain bypass must not reach the shipped graph. The
+      # script reads the resolved wasm32 feature set, so only the production
+      # profile can fail it; `bun run build` above resolved the same manifest
+      # the release publishes from.
+      - name: Fail if the Noise cert bypass reached the build
+        run: sh scripts/check-noise-cert-profile.sh
 
       # Nothing measured the artifact, so it grew a little per release with
       # nobody positioned to notice. Runs here rather than at `prepack`
@@ -313,13 +333,26 @@ jobs:
         continue-on-error: true
         run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
 
-  rust-tests:
-    name: Rust Unit Tests (wasm32 / Node)
+  # The installed-tarball contract lives here rather than in the unit tests:
+  # what `dist/` typechecks as inside this checkout is not what a consumer
+  # installs. This packs the declarations and verifies the package manifest
+  # supplies their `@bufbuild/protobuf` wire types in strict consumer mode.
+  # Packing, installing twice and typechecking twice is far past the per-test
+  # clock budget, so it is a job of its own.
+  #
+  # This builds the development package, not the release one: wasm-opt never
+  # touches a `.d.ts`, so the declarations are identical either way, and the
+  # release cost — size, shape, drift — stays in `build-and-test`, which owns
+  # those gates. A packaging check that rebuilt the release wasm would pay
+  # most of that job's ~9 minutes a second time for the same bytes.
+  published-tarball:
+    name: Published tarball contract
     needs: changes
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -331,7 +364,57 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@91ddec75689c4c78665b598d188dc821c5a43e5c # v2.85.9
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
+        with:
+          # Same pin as build-and-test: `gen` must see the same protoc, or a
+          # comment-only version line drifts the generated codec here and not
+          # there.
+          tool: wasm-pack,protoc@3.35.1
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install JavaScript dependencies
+        run: bun install
+
+      - name: Build the development package
+        run: bun run build:dev
+
+      # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
+      # publish goes through), installs it in a directory outside the
+      # repository with only explicit TypeScript/Node tooling beside it and
+      # typechecks a real consumer with `skipLibCheck: false` in Bundler and
+      # NodeNext modes
+      # before running the root and `proto-types` exports.
+      - name: Install the tarball in isolation and check both module modes
+        run: bun run check:published-tarball
+
+  rust-tests:
+    name: Rust Unit Tests (wasm32 / Node)
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-04-05
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
         with:
           tool: wasm-pack
 
@@ -341,7 +424,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -360,7 +443,7 @@ jobs:
   success:
     name: All checks passed
     if: always()
-    needs: [changes, fmt-clippy, build-and-test, rust-tests]
+    needs: [changes, fmt-clippy, build-and-test, published-tarball, rust-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job passed or was deliberately skipped
