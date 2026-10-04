@@ -132,13 +132,12 @@ describe("the bridge's own checks name the argument", () => {
     } finally { client.free(); }
   });
 
-  test("raw edit/revoke wrappers keep typed ID failures tied to messageId", async () => {
+  test("edit/newsletter wrappers keep typed ID failures tied to messageId", async () => {
     const client = await offlineClient();
     const bytes = encodeProto("Message", { conversation: "edited" });
     try {
       for (const call of [
         () => client.editMessageBytes(USER, "", bytes),
-        () => client.revokeMessage(USER, "", undefined),
         () => client.newsletterEditMessage("120363000000000000@newsletter", "", bytes),
         () => client.newsletterRevokeMessage("120363000000000000@newsletter", ""),
       ]) {

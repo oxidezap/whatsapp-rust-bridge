@@ -105,8 +105,19 @@ function exported(declaration: string) {
 }
 
 function diagnostics(declaration: string, consumer: string, exact: boolean) {
-  const { result } = program(declaration, consumer, exact);
-  return ts.getPreEmitDiagnostics(result).map(diagnostic => ({
+  const { result, declarationPath, consumerPath } = program(declaration, consumer, exact);
+  // Check both authored roots, plus global/options errors, with skipLibCheck false.
+  // Rechecking TypeScript's immutable stdlib per variant adds no compactor coverage.
+  const roots = [declarationPath, consumerPath].map(path => result.getSourceFile(path)!);
+  const errors = [
+    ...result.getOptionsDiagnostics(),
+    ...result.getGlobalDiagnostics(),
+    ...roots.flatMap(source => [
+      ...result.getSyntacticDiagnostics(source),
+      ...result.getSemanticDiagnostics(source),
+    ]),
+  ];
+  return errors.map(diagnostic => ({
     code: diagnostic.code,
     message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
   }));
@@ -144,6 +155,16 @@ test("ambient Long/protobuf/proto exports retain kinds without adding bindings",
   const candidate = { text: compactDeclarationTrivia(FIXTURE) };
   expect(exported(candidate.text)).toEqual(exported(FIXTURE));
   expect(exported(candidate.text).map(([name]) => name)).toEqual(["$protobuf", "Long", "proto"]);
+});
+
+test("strict comparisons diagnose both broken declarations and invalid consumer assignments", () => {
+  for (const exact of [false, true]) {
+    expect(diagnostics(FIXTURE + "\nexport type Broken = MissingType;\n", "", exact)
+      .some(error => error.code === 2304)).toBe(true);
+    expect(diagnostics(FIXTURE,
+      'import { proto } from "./proto-types.js"; new proto.Account().lid = 7;', exact)
+      .some(error => error.code === 2322)).toBe(true);
+  }
 });
 
 test("ordinary own-property and augmentation consumers remain strict in both exactOptional modes", () => {
