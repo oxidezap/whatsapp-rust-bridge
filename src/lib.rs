@@ -23,12 +23,16 @@ pub mod js_cache_store;
 pub mod js_crypto;
 pub mod js_http;
 mod js_keys;
+#[cfg(feature = "client-calls-audio")]
+pub mod js_relay;
 pub mod js_time;
 pub mod js_transport;
 #[cfg(feature = "legacy-session")]
 pub mod legacy_session;
 pub mod logger;
 pub mod memory_profile;
+#[cfg(feature = "client-calls-mlow")]
+pub mod mlow;
 #[cfg(test)]
 mod noise_cert_profile;
 pub mod proto;
@@ -36,6 +40,8 @@ pub mod result_types;
 pub mod runtime;
 #[cfg(feature = "client-signal")]
 pub mod signal_records;
+#[cfg(feature = "client-voip-control")]
+pub mod voip;
 pub mod wasm_client;
 mod wasm_utils;
 mod wire_batch;
