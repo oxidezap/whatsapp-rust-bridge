@@ -5,6 +5,7 @@
 //! conversion helpers.
 
 use super::*;
+use whatsapp_rust::wacore_binary::JidExt;
 
 fn profile_picture_target(jid: &Jid) -> whatsapp_rust::ProfilePictureTarget<'_> {
     if jid.is_group() {
