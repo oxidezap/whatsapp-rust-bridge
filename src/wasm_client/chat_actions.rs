@@ -180,7 +180,7 @@ impl WasmWhatsAppClient {
             .await?
             .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
             .await
-            .map_err(crate::errors::BridgeError::from)?;
+            .map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
         Ok(result.message_id.into_string())
     }
 
@@ -224,7 +224,7 @@ impl WasmWhatsAppClient {
             .comments()
             .send_message_raw(chat, key, body)
             .await
-            .map_err(crate::errors::BridgeError::from)?;
+            .map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
         Ok(result.message_id.into_string())
     }
 

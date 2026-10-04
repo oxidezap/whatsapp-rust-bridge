@@ -132,6 +132,23 @@ describe("the bridge's own checks name the argument", () => {
     } finally { client.free(); }
   });
 
+  test("raw edit/revoke wrappers keep typed ID failures tied to messageId", async () => {
+    const client = await offlineClient();
+    const bytes = encodeProto("Message", { conversation: "edited" });
+    try {
+      for (const call of [
+        () => client.editMessageBytes(USER, "", bytes),
+        () => client.revokeMessage(USER, "", undefined),
+        () => client.newsletterEditMessage("120363000000000000@newsletter", "", bytes),
+        () => client.newsletterRevokeMessage("120363000000000000@newsletter", ""),
+      ]) {
+        const error = await rejection(call());
+        expect(error.kind).toBe("invalid-argument");
+        expect(error.field).toBe("messageId");
+      }
+    } finally { client.free(); }
+  });
+
   test("typed community options name the invalid input before network work", async () => {
     const client = await offlineClient();
     try {
