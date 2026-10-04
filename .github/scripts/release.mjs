@@ -9,7 +9,11 @@ export const integrity = (bytes) => `sha512-${createHash("sha512").update(bytes)
 export async function request(url, options = {}, fetcher = fetch) {
   const response = await fetcher(url, options);
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`${options.method || "GET"} ${url}: HTTP ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`${options.method || "GET"} ${url}: HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
   return response.json();
 }
 
@@ -142,7 +146,15 @@ export async function publishPackage(metadata, {
   // npm can accept the upload before registry processing exposes the version.
   // Keep the same archive and wait up to ten minutes within the job's budget.
   for (let attempt = 0; attempt <= 60; attempt++) {
-    if (alreadyPublished(await getVersion(), metadata)) return;
+    let published;
+    try {
+      published = await getVersion();
+    } catch (error) {
+      if (!(error instanceof TypeError) && error.status !== 429 &&
+          !(error.status >= 500 && error.status < 600)) throw error;
+      report(`npm visibility check will retry: ${error.message}`);
+    }
+    if (published !== undefined && alreadyPublished(published, metadata)) return;
     if (attempt === 0) report("Waiting up to ten minutes for npm to expose the exact tarball integrity");
     if (attempt < 60) await sleep(10_000);
   }

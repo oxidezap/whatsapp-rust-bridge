@@ -159,6 +159,38 @@ test("accepted uploads may need minutes before npm exposes their integrity", asy
   assert.equal(publishes, 1);
   assert.equal(waited, 130_000);
 });
+test("post-upload rate limits, server errors and network failures retry visibility only", async () => {
+  const errors = [Object.assign(new Error("rate limit"), { status: 429 }),
+    Object.assign(new Error("unavailable"), { status: 503 }), new TypeError("fetch failed")];
+  let reads = 0, publishes = 0;
+  await publishPackage(metadata, {
+    getVersion: async () => {
+      if (reads++ === 0) return null;
+      if (errors.length) throw errors.shift();
+      return published;
+    },
+    getLatest: async () => ({ version: "0.24.1" }),
+    publish: async () => { publishes++; }, sleep: async () => {},
+  });
+  assert.equal(publishes, 1);
+});
+test("post-upload authorization errors are terminal", async () => {
+  let reads = 0;
+  await assert.rejects(publishPackage(metadata, {
+    getVersion: async () => {
+      if (reads++ === 0) return null;
+      throw Object.assign(new Error("forbidden"), { status: 403 });
+    },
+    getLatest: async () => ({ version: "0.24.1" }), publish: async () => {},
+    sleep: async () => { assert.fail("must not retry authorization failures"); },
+  }), /forbidden/);
+});
+test("an inconclusive initial registry read never permits publishing", async () => {
+  await assert.rejects(publishPackage(metadata, {
+    getVersion: async () => { throw Object.assign(new Error("unavailable"), { status: 503 }); },
+    publish: async () => { assert.fail("must not publish"); },
+  }), /unavailable/);
+});
 test("an absent version never becomes a successful publish", async () => {
   await assert.rejects(publishPackage(metadata, {
     getVersion: async () => null, getLatest: async () => ({ version: "0.24.1" }),
