@@ -6,10 +6,17 @@ name: Release
 on:
   push:
     branches: [main]
-  # Recovery uses the tag's workflow and event SHA, preserving npm provenance.
-  # Older tags, including v0.25.0, retain their old workflow. This change does
-  # not repair or move them; a new release must carry the corrected tests.
+  # Normally select the tag to retry its workflow. For a broken test/workflow
+  # stored in an older tag, select main and explicitly supply recovery_tag.
+  # Recovery checks that every package/build input is unchanged since the tag;
+  # provenance names this event's real main SHA and the tag is never moved.
   workflow_dispatch:
+    inputs:
+      recovery_tag:
+        description: "Existing release tag to recover from main without changing package/build inputs"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -85,6 +92,7 @@ jobs:
       id: ${{ steps.resolve.outputs.id }}
       tag: ${{ steps.resolve.outputs.tag }}
       sha: ${{ steps.resolve.outputs.sha }}
+      tag-sha: ${{ steps.resolve.outputs.tagSha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -98,6 +106,7 @@ jobs:
       - id: resolve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_TAG: ${{ inputs.recovery_tag }}
         run: node .github/scripts/release.mjs resolve
 
   # Split from publish on purpose: this is where the test suites and the wasm
@@ -369,4 +378,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ needs.release-metadata.outputs.id }}
           RELEASE_TAG: ${{ needs.release-metadata.outputs.tag }}
+          RELEASE_TAG_SHA: ${{ needs.release-metadata.outputs.tag-sha }}
         run: node .github/scripts/release.mjs finalize

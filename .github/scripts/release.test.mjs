@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { integrity, request, resolveRelease, validatePackage, alreadyPublished,
-  assertNotOlder, publishPackage, finalizeRelease } from "./release.mjs";
+  assertNotOlder, publishPackage, finalizeRelease, assertRecoveryInputs } from "./release.mjs";
 
 const sha = "a".repeat(40);
 const release = { id: 123, tag_name: "v0.25.0", target_commitish: sha, draft: true, prerelease: false };
@@ -11,7 +11,7 @@ const bytes = Buffer.from("the verified tarball");
 const metadata = { name: "@oxidezap/whatsapp-rust-bridge", version: "0.25.0", sha,
   filename: "release-package.tgz", integrity: integrity(bytes) };
 const published = { name: metadata.name, version: metadata.version, dist: { integrity: metadata.integrity } };
-const candidate = { id: release.id, tag: release.tag_name, sha };
+const candidate = { id: release.id, tag: release.tag_name, sha, tagSha: sha };
 
 function api(overrides = {}, calls = []) {
   const responses = {
@@ -63,6 +63,47 @@ test("annotated tags are peeled to the event commit", async () => {
     "git/ref/tags/v0.25.0": { object: { type: "tag", sha: "tag-object" } },
     "git/tags/tag-object": { object: { type: "commit", sha } },
   }), event), candidate);
+});
+test("main recovery keeps the old tag and attests the real event commit", async () => {
+  const oldSha = "b".repeat(40);
+  const recovered = await resolveRelease(api({
+    "releases?per_page=100&page=1": [{ ...release, target_commitish: oldSha, draft: false }],
+    "git/ref/tags/v0.25.0": { object: { type: "commit", sha: oldSha } },
+    [`compare/${oldSha}...${sha}`]: {
+      status: "ahead", merge_base_commit: { sha: oldSha },
+      files: [{ filename: "tests/newsletter-surface.test.ts", status: "modified" }],
+    },
+  }), { ...event, event: "workflow_dispatch", recoveryTag: "v0.25.0" });
+  assert.deepEqual(recovered, { ...candidate, tagSha: oldSha });
+});
+test("recovery rejects branches, versions and events outside its explicit scope", async () => {
+  for (const bad of [
+    { event: "push" }, { refName: "feature" }, { refType: "tag" }, { recoveryTag: "v0.24.1" },
+  ]) {
+    await assert.rejects(resolveRelease(api(), {
+      ...event, event: "workflow_dispatch", recoveryTag: "v0.25.0", ...bad,
+    }), /Recovery must run/);
+  }
+});
+test("recovery proves package and build input equivalence with a complete diff", async () => {
+  const original = "b".repeat(40);
+  const comparison = { status: "ahead", merge_base_commit: { sha: original }, files: [] };
+  for (const change of [
+    { files: [{ filename: "Cargo.lock", status: "modified" }] },
+    { files: [{ filename: "tests/newsletter-surface.test.ts", status: "removed" }] },
+    { files: [{ filename: "package.json", status: "modified" }] },
+    { files: [{ filename: "README.md", status: "modified" }] },
+    { files: [{ filename: "src/lib.rs", status: "modified" }] },
+    { files: [{ filename: "scripts/build-shared-entrypoints.ts", status: "modified" }] },
+    { files: [{ filename: "tests/newsletter-surface.test.ts", status: "renamed", previous_filename: "src/lib.rs" }] },
+    { files: Array(300).fill({ filename: "tests/newsletter-surface.test.ts", status: "modified" }) },
+    { files: undefined }, { status: "diverged" }, { merge_base_commit: { sha: "other" } },
+  ]) {
+    await assert.rejects(assertRecoveryInputs(async () => ({ ...comparison, ...change }), original, sha));
+  }
+  await assertRecoveryInputs(async () => ({ ...comparison,
+    files: [{ filename: ".github/scripts/release.mjs", status: "added" }],
+  }), original, sha);
 });
 test("archive identity includes name, version, source SHA and bytes", () => {
   validatePackage(metadata, bytes, metadata, sha);

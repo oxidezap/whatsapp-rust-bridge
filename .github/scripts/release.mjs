@@ -35,10 +35,42 @@ export async function assertTag(github, tag, sha) {
   }
 }
 
-export async function resolveRelease(github, { version, sha, event, refType, refName }) {
+const recoveryPaths = new Set([
+  ".github/workflows/ci.yml",
+  ".github/workflows/release.yml",
+  ".github/scripts/release.mjs",
+  ".github/scripts/release.test.mjs",
+  "release-please-config.json",
+  "tests/newsletter-surface.test.ts",
+]);
+
+export async function assertRecoveryInputs(github, tagSha, sha) {
+  const comparison = await github(`compare/${tagSha}...${sha}`);
+  if (!["identical", "ahead"].includes(comparison?.status) || comparison.merge_base_commit?.sha !== tagSha) {
+    throw new Error("Recovery must descend from the original release commit");
+  }
+  // GitHub returns at most 300 changed files. At the cap, completeness cannot
+  // be proved. A rename also names an old path that must not escape the gate.
+  if (!Array.isArray(comparison.files) || comparison.files.length >= 300) {
+    throw new Error("Recovery diff is missing or may be truncated");
+  }
+  for (const file of comparison.files) {
+    if (!recoveryPaths.has(file.filename) || file.previous_filename ||
+        !["added", "modified"].includes(file.status)) {
+      throw new Error(`Recovery changes a package or build input: ${file.filename}`);
+    }
+  }
+}
+
+export async function resolveRelease(github, { version, sha, event, refType, refName, recoveryTag = "" }) {
   const tag = `v${version}`;
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`Invalid stable release version: ${version}`);
-  if (event === "workflow_dispatch" && (refType !== "tag" || refName !== tag)) {
+  const recovery = Boolean(recoveryTag);
+  if (recovery) {
+    if (event !== "workflow_dispatch" || refType !== "branch" || refName !== "main" || recoveryTag !== tag) {
+      throw new Error("Recovery must run on main and name the tag matching package.json");
+    }
+  } else if (event === "workflow_dispatch" && (refType !== "tag" || refName !== tag)) {
     throw new Error("Dispatch must select the release tag matching package.json");
   }
   const matches = [];
@@ -56,15 +88,18 @@ export async function resolveRelease(github, { version, sha, event, refType, ref
     if (release.draft) console.warn(`::warning::${tag} targets an earlier commit; dispatch this workflow on ${tag} to preserve provenance`);
     return null;
   }
-  if (release.target_commitish !== sha) throw new Error(`${tag} release does not target ${sha}`);
+  if (!recovery && release.target_commitish !== sha) throw new Error(`${tag} release does not target ${sha}`);
+  const tagSha = release.target_commitish;
+  if (!/^[a-f0-9]{40}$/.test(tagSha)) throw new Error("Release target must be an immutable commit SHA");
   if (!release.draft && event === "push") return null;
   if (release.prerelease) throw new Error("This workflow only publishes stable releases");
   const comparison = await github(`compare/main...${sha}`);
   if (!["identical", "behind"].includes(comparison?.status)) {
     throw new Error(`${sha} is not reachable from main`);
   }
-  await assertTag(github, tag, sha);
-  return { id: release.id, tag, sha };
+  await assertTag(github, tag, tagSha);
+  if (recovery) await assertRecoveryInputs(github, tagSha, sha);
+  return { id: release.id, tag, sha, tagSha };
 }
 
 export function validatePackage(metadata, bytes, manifest, sha) {
@@ -111,9 +146,9 @@ export async function publishPackage(metadata, { getVersion, getLatest, publish,
 
 export async function finalizeRelease(github, candidate, metadata, getVersion, getLatest) {
   if (!alreadyPublished(await getVersion(), metadata)) throw new Error("Package is absent from npm");
-  await assertTag(github, candidate.tag, candidate.sha);
+  await assertTag(github, candidate.tag, candidate.tagSha);
   const release = await github(`releases/${candidate.id}`);
-  if (release?.tag_name !== candidate.tag || release.target_commitish !== candidate.sha || release.prerelease) {
+  if (release?.tag_name !== candidate.tag || release.target_commitish !== candidate.tagSha || release.prerelease) {
     throw new Error("Release metadata changed after verification");
   }
   if (!release.draft) return;
@@ -136,6 +171,7 @@ async function main(command) {
     const candidate = await resolveRelease(github, {
       version: manifest.version, sha, event: process.env.GITHUB_EVENT_NAME,
       refType: process.env.GITHUB_REF_TYPE, refName: process.env.GITHUB_REF_NAME,
+      recoveryTag: process.env.RECOVERY_TAG,
     });
     output("ready", Boolean(candidate));
     if (candidate) for (const [key, value] of Object.entries(candidate)) output(key, value);
@@ -164,7 +200,7 @@ async function main(command) {
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     });
   } else if (command === "finalize") {
-    await finalizeRelease(github, { id: process.env.RELEASE_ID, tag: process.env.RELEASE_TAG, sha }, metadata, getVersion, getLatest);
+    await finalizeRelease(github, { id: process.env.RELEASE_ID, tag: process.env.RELEASE_TAG, sha, tagSha: process.env.RELEASE_TAG_SHA }, metadata, getVersion, getLatest);
   } else throw new Error(`Unknown release command: ${command}`);
 }
 
