@@ -3,6 +3,17 @@ name = "whatsapp-rust-bridge"
 version = "0.1.0"
 edition = "2024"
 
+# The BoltFFI exposure crate is a member but not a default member: a plain
+# `cargo build` here must not need the `boltffi` toolchain installed.
+[workspace]
+members = [".", "crates/bridge-core", "crates/bridge-boltffi", "benches/ffi-size-bindgen"]
+default-members = [".", "crates/bridge-core"]
+exclude = ["codegen"]
+
+[workspace.dependencies]
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "6f7a62296242f5dab8967431bd1c6528c1339efe", default-features = false }
+whatsapp-rust-bridge-core = { path = "crates/bridge-core" }
+
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = [
     "-O4",
@@ -142,7 +153,8 @@ web-sys = { version = "0.3", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "6f7a62296242f5dab8967431bd1c6528c1339efe", default-features = false }
+whatsapp-rust = { workspace = true }
+whatsapp-rust-bridge-core = { workspace = true }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only

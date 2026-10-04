@@ -1,8 +1,8 @@
-//! Raw authenticated payload operations for message addons.
+//! wasm-bindgen exposure for the neutral addon payload operations.
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
-use whatsapp_rust::wacore::{event, poll};
+use whatsapp_rust_bridge_core::addon_crypto as bridge_core;
 
 use crate::wasm_utils::{byte_array, error_value};
 
@@ -15,11 +15,9 @@ pub fn decrypt_poll_vote_payload(
     poll_creator_jid: &str,
     voter_jid: &str,
 ) -> Result<Uint8Array, JsValue> {
-    let plaintext = poll::decrypt_poll_vote_payload_with_secret(
-        poll::PollVoteCiphertext {
-            enc_payload,
-            enc_iv,
-        },
+    let plaintext = bridge_core::decrypt_poll_vote_payload(
+        enc_payload,
+        enc_iv,
         message_secret,
         stanza_id,
         poll_creator_jid,
@@ -38,7 +36,7 @@ pub fn decrypt_event_response_payload(
     event_creator_jid: &str,
     responder_jid: &str,
 ) -> Result<Uint8Array, JsValue> {
-    let plaintext = event::decrypt_event_response_payload_with_secret(
+    let plaintext = bridge_core::decrypt_event_response_payload(
         enc_payload,
         enc_iv,
         message_secret,

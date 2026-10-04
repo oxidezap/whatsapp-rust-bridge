@@ -1,0 +1,45 @@
+[package]
+name = "whatsapp_rust_bridge"
+crate = "whatsapp-rust-bridge-boltffi"
+
+[targets.apple]
+enabled = false
+
+[targets.android]
+enabled = false
+
+[targets.java]
+enabled = false
+
+[targets.python]
+enabled = false
+
+[targets.csharp]
+enabled = false
+
+[targets.dart]
+enabled = false
+
+[targets.wasm]
+enabled = true
+profile = "release"
+output = "../../dist/boltffi"
+# The workspace shares one target dir, so name the release artifact outright
+# rather than letting the default profile placeholder pick the debug build.
+artifact_path = "../../target/wasm32-unknown-unknown/release/whatsapp_rust_bridge_boltffi.wasm"
+
+# The workspace release profile already applies `opt-level = "z"` and fat LTO
+# to this crate. `wasm-opt` stays off because BoltFFI derives its flag set from
+# the module's wasm features, and a bulk-memory module needs binaryen >= 119 —
+# older toolchains reject `--enable-bulk-memory-opt` and fail the pack outright.
+[targets.wasm.optimize]
+enabled = false
+
+[targets.wasm.typescript]
+output = "../../dist/boltffi/pkg"
+module_name = "whatsapp_rust_bridge_boltffi"
+
+[targets.wasm.npm]
+package_name = "@oxidezap/whatsapp-rust-bridge-boltffi"
+output = "../../dist/boltffi/pkg"
+targets = ["nodejs"]

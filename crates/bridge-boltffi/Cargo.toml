@@ -1,0 +1,14 @@
+[package]
+name = "whatsapp-rust-bridge-boltffi"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Keep the crate, CLI and npm runtime on the same release.
+# uuid/url support is unused by this utility API.
+boltffi = { version = "=0.31.0", default-features = false }
+whatsapp-rust-bridge-core = { workspace = true }

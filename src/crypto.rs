@@ -1,14 +1,15 @@
-//! Cryptographic operations exposed by the bridge without protocol-specific
-//! naming or state.
+//! wasm-bindgen exposure for the neutral crypto operations.
+//!
+//! The logic lives in `whatsapp_rust_bridge_core::crypto`; this file only
+//! declares the JS surface and converts at the boundary.
 
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
-use whatsapp_rust::wacore::crypto as core_crypto;
 use whatsapp_rust::wacore::libsignal::crypto as signal_crypto;
-use whatsapp_rust::wacore::libsignal::protocol::{PrivateKey, PublicKey};
+use whatsapp_rust_bridge_core::crypto as bridge_core;
 
 use crate::errors::BridgeError;
 
@@ -36,7 +37,7 @@ pub struct HkdfInfo {
 
 #[wasm_bindgen(js_name = md5)]
 pub fn md5_digest(input: &[u8]) -> Uint8Array {
-    byte_array(&core_crypto::md5_digest(input))
+    byte_array(&bridge_core::md5_digest(input))
 }
 
 static ENGINE_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -137,7 +138,7 @@ pub fn hkdf_sha256(
     options: Ts<HkdfInfo>,
 ) -> Result<Uint8Array, JsValue> {
     let options = options.to_rust().map_err(error_value)?;
-    let output = core_crypto::hkdf_sha256(
+    let output = bridge_core::hkdf_sha256(
         input_key_material,
         expanded_length,
         options.salt.as_deref(),
@@ -149,10 +150,10 @@ pub fn hkdf_sha256(
 
 #[wasm_bindgen(js_name = generateKeyPair)]
 pub fn generate_key_pair() -> Result<Ts<KeyPair>, JsValue> {
-    let pair = core_crypto::generate_curve_key_pair();
+    let pair = bridge_core::generate_key_pair();
     KeyPair {
-        pub_key: pair.public_key.serialize().to_vec(),
-        priv_key: pair.private_key.serialize().to_vec(),
+        pub_key: pair.pub_key,
+        priv_key: pair.priv_key,
     }
     .into_ts()
     .map_err(error_value)
@@ -160,25 +161,22 @@ pub fn generate_key_pair() -> Result<Ts<KeyPair>, JsValue> {
 
 #[wasm_bindgen(js_name = getPublicFromPrivateKey)]
 pub fn public_from_private_key(private_key: &[u8]) -> Result<Uint8Array, JsValue> {
-    let private = PrivateKey::deserialize(private_key).map_err(error_value)?;
-    let public = private.public_key().map_err(error_value)?;
-    Ok(byte_array(&public.serialize()))
+    Ok(byte_array(
+        &bridge_core::public_from_private_key(private_key).map_err(error_value)?,
+    ))
 }
 
 #[wasm_bindgen(js_name = calculateAgreement)]
 pub fn calculate_agreement(public_key: &[u8], private_key: &[u8]) -> Result<Uint8Array, JsValue> {
-    let public = PublicKey::deserialize(public_key).map_err(error_value)?;
-    let private = PrivateKey::deserialize(private_key).map_err(error_value)?;
     Ok(byte_array(
-        &private.calculate_agreement(&public).map_err(error_value)?,
+        &bridge_core::calculate_agreement(public_key, private_key).map_err(error_value)?,
     ))
 }
 
 #[wasm_bindgen(js_name = calculateSignature)]
 pub fn calculate_signature(private_key: &[u8], message: &[u8]) -> Result<Uint8Array, JsValue> {
-    let private = PrivateKey::deserialize(private_key).map_err(error_value)?;
     Ok(byte_array(
-        &core_crypto::calculate_curve_signature(&private, message).map_err(error_value)?,
+        &bridge_core::calculate_signature(private_key, message).map_err(error_value)?,
     ))
 }
 
@@ -188,6 +186,5 @@ pub fn verify_signature(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, JsValue> {
-    let public = PublicKey::deserialize(public_key).map_err(error_value)?;
-    Ok(public.verify_signature(message, signature))
+    bridge_core::verify_signature(public_key, message, signature).map_err(error_value)
 }
