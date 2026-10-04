@@ -116,6 +116,35 @@ describe("the bridge's own checks name the argument", () => {
     }
   }, 20000);
 
+  test("typed send overrides refuse an empty id on the original JS methods", async () => {
+    const client = await offlineClient();
+    const bytes = encodeProto("Message", { conversation: "text" });
+    try {
+      for (const promise of [
+        client.relayMessageBytes(USER, bytes, ""),
+        client.relayMessageBytesWithOptions(USER, bytes, "", [], false, false),
+        client.sendStatusBytesWithOptions(bytes, [USER], "", [], false),
+      ]) {
+        const error = await rejection(promise);
+        expect(error.kind).toBe("invalid-argument");
+        expect(error.field).toBe("messageId");
+      }
+    } finally { client.free(); }
+  });
+
+  test("typed community options name the invalid input before network work", async () => {
+    const client = await offlineClient();
+    try {
+      for (const [name, description, field] of [
+        ["x".repeat(101), undefined, "name"], ["community", "x".repeat(2049), "description"],
+      ] as const) {
+        const error = await rejection(client.communityCreate(name, description));
+        expect(error.kind).toBe("invalid-argument");
+        expect(error.field).toBe(field);
+      }
+    } finally { client.free(); }
+  });
+
   test("a comment with no way to identify the post's author", async () => {
     const client = await offlineClient();
     try {

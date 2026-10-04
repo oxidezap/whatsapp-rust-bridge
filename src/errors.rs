@@ -130,7 +130,29 @@ pub enum BridgeError {
     /// `message` so JS-side debugging is still possible.
     #[error("internal: {message}")]
     Internal { message: String },
+
+    // Private carrier: JS retains the cause's existing kind plus recovery context.
+    // It is handled before serialization, not a twelfth public discriminant.
+    #[serde(skip)]
+    #[error("community {created_jid} created, but {step} failed: {cause}")]
+    CommunityConfigurationFailed {
+        created_jid: String,
+        step: String,
+        #[source]
+        cause: Box<BridgeError>,
+    },
 }
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen::prelude::wasm_bindgen(typescript_custom_section)]
+const COMMUNITY_CONFIGURATION_ERROR_TS: &str = r#"
+/** Creation succeeded; resume configuration on createdJid instead of creating again. */
+export type CommunityConfigurationError = BridgeError & {
+    createdJid: string;
+    step: string;
+    cause: BridgeError;
+};
+"#;
 
 impl BridgeError {
     /// Walk a borrowed `&dyn Error` chain looking for known leaf types whose
@@ -657,6 +679,8 @@ classify! {
     }
 
     SendError {
+        SendError::MessageRef(detail) => invalid_request(detail),
+        SendError::InvalidSecret(detail) => invalid_arg("messageSecret", detail.to_string()),
         SendError::NotLoggedIn => BridgeError::NotConnected,
         SendError::InvalidRequest(detail) => invalid_request(detail),
         SendError::NoRecipientDevice(cause) => no_recipient_device(cause),
@@ -664,10 +688,6 @@ classify! {
 
     BlockingError {
         BlockingError::InvalidJid(detail) => invalid_arg("jid", detail),
-    }
-
-    CommunityError {
-        CommunityError::InvalidRequest(detail) => invalid_request(detail),
     }
 
     // `Username` only ever wraps a rejection of what the caller passed — a
@@ -689,11 +709,14 @@ classify! {
     }
 
     NewsletterError {
+        NewsletterError::MessageRef(detail) => invalid_request(detail),
         NewsletterError::InvalidRequest(detail) => invalid_request(detail),
         NewsletterError::EmptyPicture => invalid_arg("jpeg", "picture data cannot be empty; use newsletterRemovePicture"),
     }
 
     PollError {
+        PollError::Reference(detail) => invalid_request(detail),
+        PollError::InvalidSecret(detail) => invalid_arg("messageSecret", detail.to_string()),
         PollError::NotLoggedIn => BridgeError::NotConnected,
         // The core rejects `options`, `selectableCount` or `correctIndex`
         // through this one variant and names which only in its text, so it
@@ -813,12 +836,50 @@ pub fn protocol_violation<R: Into<String>>(reason: R) -> BridgeError {
     }
 }
 
+impl From<CommunityError> for BridgeError {
+    fn from(error: CommunityError) -> Self {
+        match error {
+            CommunityError::InvalidRequest(detail) => invalid_request(detail),
+            CommunityError::ConfigurationFailed {
+                created_jid,
+                step,
+                source,
+            } => {
+                use whatsapp_rust::features::CommunityConfigurationStep;
+                Self::CommunityConfigurationFailed {
+                    created_jid: created_jid.to_string(),
+                    step: match step {
+                        CommunityConfigurationStep::SetDescription => "set-description".into(),
+                        other => format!("{other:?}"),
+                    },
+                    cause: Box::new(Self::from(*source)),
+                }
+            }
+            other => Self::from_error_chain(&other),
+        }
+    }
+}
+
 /// Construct a JS `Error` carrying the `BridgeError` payload. Takes `&` so
 /// `Display` (via `e.to_string()`) and `serde::Serialize` (via
 /// `serde_wasm_bindgen::to_value`) can both run without consuming.
 #[cfg(target_arch = "wasm32")]
 pub fn to_js_error(e: &BridgeError) -> JsValue {
     use js_sys::{Error as JsError, Object, Reflect};
+
+    if let BridgeError::CommunityConfigurationFailed {
+        created_jid,
+        step,
+        cause,
+    } = e
+    {
+        let err = to_js_error(cause);
+        let _ = Reflect::set(&err, &"message".into(), &e.to_string().into());
+        let _ = Reflect::set(&err, &"createdJid".into(), &created_jid.as_str().into());
+        let _ = Reflect::set(&err, &"step".into(), &step.as_str().into());
+        let _ = Reflect::set(&err, &"cause".into(), &to_js_error(cause));
+        return err;
+    }
 
     let err = JsError::new(&e.to_string());
     err.set_name("WhatsAppError");
@@ -857,6 +918,49 @@ mod tests {
             .expect("marshal output unpacks")
             .into_owned();
         std::sync::Arc::new(OwnedNodeRef::new(node_bytes).expect("the node bytes decode")).into()
+    }
+
+    #[test]
+    fn community_partial_failure_preserves_created_jid_step_and_server_cause() {
+        use wasm_bindgen::JsCast;
+        use whatsapp_rust::features::CommunityConfigurationStep;
+        let payload = to_js_error(&BridgeError::from(CommunityError::ConfigurationFailed {
+            created_jid: "120363000000000000@g.us".parse().unwrap(),
+            step: CommunityConfigurationStep::SetDescription,
+            source: Box::new(GroupError::Iq(IqError::ServerError {
+                code: 500,
+                text: "configuration refused".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(5),
+                response: rejection_stanza(),
+            })),
+        }));
+        let prop = |value: &JsValue, key: &str| js_sys::Reflect::get(value, &key.into()).unwrap();
+        assert!(payload.is_instance_of::<js_sys::Error>());
+        assert_eq!(
+            prop(&payload, "kind").as_string().as_deref(),
+            Some("server")
+        );
+        assert_eq!(prop(&payload, "serverCode").as_f64(), Some(500.0));
+        assert_eq!(prop(&payload, "backoffSeconds").as_f64(), Some(5.0));
+        assert_eq!(
+            prop(&payload, "createdJid").as_string().as_deref(),
+            Some("120363000000000000@g.us")
+        );
+        assert_eq!(
+            prop(&payload, "step").as_string().as_deref(),
+            Some("set-description")
+        );
+        let cause = prop(&payload, "cause");
+        assert!(cause.is_instance_of::<js_sys::Error>());
+        assert_eq!(prop(&cause, "kind").as_string().as_deref(), Some("server"));
+        assert_eq!(prop(&cause, "serverCode").as_f64(), Some(500.0));
+        assert!(
+            prop(&payload, "message")
+                .as_string()
+                .unwrap()
+                .contains("created")
+        );
     }
 
     #[test]
@@ -1555,10 +1659,18 @@ mod tests {
             // so does `server` here — and no kind stands for it. Left where it
             // is until the surface grows one.
             (
-                "MexError::ExtensionError",
-                MexError::ExtensionError {
+                "MexError::GraphQl",
+                MexError::GraphQl {
                     code: 1675247,
                     message: "not authorized".into(),
+                    source: Box::new(IqError::ParseError(
+                        wacore::iq::mex::MexFatalError {
+                            query: "test",
+                            code: 1675247,
+                            message: "not authorized".into(),
+                        }
+                        .into(),
+                    )),
                 }
                 .into(),
                 "internal",

@@ -360,6 +360,7 @@ bridge_events! {
         RemoveRecentStickerUpdate      => "remove_recent_sticker_update"    => "RemoveRecentStickerUpdate" => action,
         FavoritesUpdate                => "favorites_update"                => "FavoritesUpdate" => action,
         StatusPrivacyUpdate            => "status_privacy_update"           => "StatusPrivacyUpdate" => action,
+        UnarchiveChatsSettingUpdate    => "unarchive_chats_setting_update"  => "UnarchiveChatsSettingUpdate" => action,
     }
     special {
         // Variant                     => "js_name"                         => "TsDataType"
@@ -3350,18 +3351,16 @@ fn participant_change_to_result(
 
 fn community_link_result(
     succeeded: Vec<Jid>,
-    failed: Vec<(Jid, u32)>,
+    failed: Vec<whatsapp_rust::features::SubgroupFailure>,
 ) -> crate::result_types::CommunityLinkResult {
     crate::result_types::CommunityLinkResult {
         succeeded: succeeded.into_iter().map(|jid| jid.to_string()).collect(),
         failed: failed
             .into_iter()
-            .map(
-                |(jid, error)| crate::result_types::CommunityLinkFailureResult {
-                    jid: jid.to_string(),
-                    error: error as f64,
-                },
-            )
+            .map(|failure| crate::result_types::CommunityLinkFailureResult {
+                jid: failure.jid.to_string(),
+                error: failure.code as f64,
+            })
             .collect(),
     }
 }
@@ -3917,7 +3916,7 @@ async fn stream_upload_via_js(
         .with_body(body_bytes);
 
     client
-        .http_client
+        .http_client()
         .execute(request)
         .await
         .map_err(Into::into)
@@ -3964,8 +3963,9 @@ async fn send_message_with_options(
     msg: waproto::whatsapp::Message,
     options: whatsapp_rust::SendOptions,
 ) -> Result<String, crate::errors::BridgeError> {
-    let result = client.send_message_with_options(to, msg, options).await?;
-    Ok(result.message_id)
+    let request = whatsapp_rust::SendRequest::new(&to, msg).with_options(options);
+    let result = client.send(request).await?;
+    Ok(result.message_id.into_string())
 }
 
 /// Decode and parse what a status send needs, so its caller can reject bad
@@ -3991,7 +3991,7 @@ async fn send_status_message_with_options(
     options: whatsapp_rust::StatusSendOptions,
 ) -> Result<String, crate::errors::BridgeError> {
     let result = client.status().send_raw(msg, &recipients, options).await?;
-    Ok(result.message_id)
+    Ok(result.message_id.into_string())
 }
 
 fn admin_profile_to_result(
@@ -4764,10 +4764,9 @@ mod event_delivery_tests {
 
     #[test]
     fn missing_group_subject_stays_absent_and_count_is_not_roster_length() {
-        let metadata = whatsapp_rust::features::GroupMetadata {
-            participant_count: Some(300),
-            ..Default::default()
-        };
+        let mut metadata =
+            whatsapp_rust::features::GroupMetadata::new("120363000000000000@g.us".parse().unwrap());
+        metadata.participant_count = Some(300);
         let value = serde_json::to_value(group_metadata_to_result(&metadata)).unwrap();
         assert!(value.get("subject").is_none());
         assert_eq!(value["participantCount"], 300.0);
@@ -5252,6 +5251,30 @@ mod dispatched_event_tests {
             field(&data, "timestamp").as_string().as_deref(),
             Some("2023-11-14T22:13:20Z")
         );
+    }
+
+    #[test]
+    async fn unarchive_setting_event_carries_the_core_flag_and_action() {
+        use whatsapp_rust::wacore::types::events::UnarchiveChatsSettingUpdate;
+        use whatsapp_rust::waproto::whatsapp::sync_action_value::UnarchiveChatsSetting;
+        let (name, data) = deliver(Event::UnarchiveChatsSettingUpdate(
+            UnarchiveChatsSettingUpdate::builder()
+                .unarchive_chats(true)
+                .timestamp(timestamp())
+                .action(Box::new(UnarchiveChatsSetting {
+                    unarchive_chats: Some(true),
+                }))
+                .from_full_sync(false)
+                .build(),
+        ))
+        .await;
+        assert_eq!(name, "unarchive_chats_setting_update");
+        assert_eq!(field(&data, "unarchive_chats").as_bool(), Some(true));
+        assert_eq!(
+            field(&field(&data, "action"), "unarchiveChats").as_bool(),
+            Some(true)
+        );
+        assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
     }
 
     #[test]

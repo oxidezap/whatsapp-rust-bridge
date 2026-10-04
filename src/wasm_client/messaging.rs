@@ -61,7 +61,10 @@ fn edit_options(
             "stanzaId",
             "must not be empty or whitespace; omit it to have a fresh id minted",
         )),
-        Some(id) => Ok(whatsapp_rust::EditOptions::default().with_stanza_id(id)),
+        Some(id) => Ok(whatsapp_rust::EditOptions::default().with_stanza_id(
+            whatsapp_rust::StanzaId::new(id)
+                .map_err(|e| crate::errors::invalid_arg("stanzaId", e.to_string()))?,
+        )),
     }
 }
 
@@ -79,7 +82,7 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let result = self.client.online().await?.send_message(to, msg).await?;
-        Ok(result.message_id)
+        Ok(result.message_id.into_string())
     }
 
     /// Low-level message relay from protobuf binary bytes.
@@ -93,7 +96,10 @@ impl WasmWhatsAppClient {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let mut options = whatsapp_rust::SendOptions::default();
         if let Some(message_id) = message_id {
-            options = options.with_message_id(message_id);
+            options = options.with_message_id(
+                whatsapp_rust::MessageId::new(message_id)
+                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+            );
         }
         send_message_with_options(self.client.online().await?, to, msg, options).await
     }
@@ -118,7 +124,10 @@ impl WasmWhatsAppClient {
             .with_group_metadata_freshness(freshness(refresh_group_metadata))
             .with_device_freshness(freshness(refresh_devices));
         if let Some(message_id) = message_id {
-            options = options.with_message_id(message_id);
+            options = options.with_message_id(
+                whatsapp_rust::MessageId::new(message_id)
+                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+            );
         }
         send_message_with_options(self.client.online().await?, to, msg, options).await
     }
@@ -177,9 +186,9 @@ impl WasmWhatsAppClient {
             .client
             .online()
             .await?
-            .edit_message_with_options(to, message_id, msg, options)
+            .edit_message_raw(to, message_id, msg, options)
             .await?;
-        Ok(result.message_id)
+        Ok(result.message_id.into_string())
     }
 
     /// Revoke (delete) a sent message.
@@ -204,7 +213,7 @@ impl WasmWhatsAppClient {
         self.client
             .online()
             .await?
-            .revoke_message(to, message_id, revoke_type)
+            .revoke_message_raw(to, message_id, revoke_type)
             .await?;
         Ok(())
     }
@@ -342,7 +351,7 @@ impl WasmWhatsAppClient {
         selectable_count: u32,
     ) -> Result<Ts<crate::result_types::CreatePollResult>, crate::errors::BridgeError> {
         let to = parse_jid(jid)?;
-        let (result, message_secret) = self
+        let created = self
             .client
             .online()
             .await?
@@ -350,8 +359,8 @@ impl WasmWhatsAppClient {
             .create(&to, name, &options, selectable_count)
             .await?;
         to_ts(crate::result_types::CreatePollResult {
-            message_id: result.message_id,
-            message_secret: message_secret.to_vec(),
+            message_id: created.send_result().message_id.to_string(),
+            message_secret: created.secret().as_bytes().to_vec(),
         })
     }
 
@@ -372,9 +381,9 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .polls()
-            .vote(&chat, poll_msg_id, &creator, message_secret, &option_names)
+            .vote_raw(&chat, poll_msg_id, &creator, message_secret, &option_names)
             .await?;
-        Ok(result.message_id)
+        Ok(result.message_id.into_string())
     }
 
     /// Send a status/story message to specified recipients.
@@ -406,12 +415,15 @@ impl WasmWhatsAppClient {
         extra_nodes: JsBinaryNodeArray,
         refresh_devices: bool,
     ) -> Result<String, crate::errors::BridgeError> {
-        let options = whatsapp_rust::StatusSendOptions {
-            message_id,
-            extra_stanza_nodes: js_node_array_to_vec(extra_nodes)?,
-            device_freshness: freshness(refresh_devices),
-            ..Default::default()
-        };
+        let mut options = whatsapp_rust::StatusSendOptions::default()
+            .with_extra_stanza_nodes(js_node_array_to_vec(extra_nodes)?)
+            .with_device_freshness(freshness(refresh_devices));
+        if let Some(message_id) = message_id {
+            options = options.with_message_id(
+                whatsapp_rust::MessageId::new(message_id)
+                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+            );
+        }
         let (msg, recipients) = status_message_input(bytes, &recipients)?;
         send_status_message_with_options(self.client.online().await?, msg, recipients, options)
             .await
@@ -431,7 +443,13 @@ mod edit_options_tests {
     #[test]
     fn a_supplied_id_crosses_unchanged() {
         let options = edit_options(Some("3EB0CALLERSUPPLIED00".into())).unwrap();
-        assert_eq!(options.stanza_id.as_deref(), Some("3EB0CALLERSUPPLIED00"));
+        assert_eq!(
+            options
+                .stanza_id
+                .as_ref()
+                .map(whatsapp_rust::StanzaId::as_str),
+            Some("3EB0CALLERSUPPLIED00")
+        );
     }
 
     #[test]

@@ -102,8 +102,9 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .newsletter()
-            .send_reaction(&target, sid, reaction.as_deref().unwrap_or(""))
+            .send_reaction_raw(&target, sid, reaction.as_deref().unwrap_or(""))
             .await
+            .map(whatsapp_rust::StanzaId::into_string)
             .map_err(crate::errors::BridgeError::from)
     }
 
@@ -391,7 +392,7 @@ impl WasmWhatsAppClient {
             messages
                 .iter()
                 .map(|message| crate::result_types::NewsletterMessageResult {
-                    message_id: message.message_id.clone(),
+                    message_id: message.message_id.as_ref().map(ToString::to_string),
                     server_id: message.server_id.to_string(),
                     timestamp: message.timestamp as f64,
                     message_type: message.message_type.as_str().to_owned(),
@@ -475,7 +476,7 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .newsletter()
-            .edit_message(&target, message_id, new_content)
+            .edit_message_raw(&target, message_id, new_content)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -493,7 +494,7 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .newsletter()
-            .revoke_message(&target, message_id)
+            .revoke_message_raw(&target, message_id)
             .await
             .map_err(crate::errors::BridgeError::from)
     }

@@ -1390,7 +1390,8 @@ pub struct NewsletterReactionCountResult {
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterMessageResult {
-    pub message_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
     pub server_id: String,
     pub timestamp: f64,
     pub message_type: String,

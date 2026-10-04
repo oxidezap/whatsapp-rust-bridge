@@ -137,9 +137,9 @@ impl WasmWhatsAppClient {
             from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
         use crate::result_types::PictureType;
         let target = parse_jid(jid)?;
-        let preview = match picture_type {
-            PictureType::Preview => true,
-            PictureType::Image => false,
+        let size = match picture_type {
+            PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
+            PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
         };
 
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
@@ -148,9 +148,16 @@ impl WasmWhatsAppClient {
             .client
             .online()
             .await?
-            .contacts()
-            .get_profile_picture_with_timeout(&target, preview, timeout)
-            .await?;
+            .pictures()
+            .lookup(
+                whatsapp_rust::ProfilePictureRequest::new(
+                    whatsapp_rust::ProfilePictureTarget::Contact(&target),
+                    size,
+                )
+                .timeout(timeout),
+            )
+            .await?
+            .into_found();
 
         to_ts_opt(result.map(|pic| crate::result_types::ProfilePictureInfo {
             id: pic.id,

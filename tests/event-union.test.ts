@@ -75,6 +75,7 @@ const PUBLISHED: Record<string, string> = {
   remove_recent_sticker_update: "RemoveRecentStickerUpdate",
   favorites_update: "FavoritesUpdate",
   status_privacy_update: "StatusPrivacyUpdate",
+  unarchive_chats_setting_update: "UnarchiveChatsSettingUpdate",
   connected: "Record<string, never>",
   disconnected: "Record<string, never>",
   qr: "{ code: string; timeout: number }",

@@ -48,23 +48,6 @@ What it is not is a release. Preview builds carry the version
 install is a deliberate pin, and it stays on that commit until you change it.
 They are for trying a change, not for running one.
 
-## Core-upgrade migration
-
-The core update in whatsapp-rust-bridge PR #139 changes group results:
-
-- Group/community listings return slim `GroupOverviewResult` entries, not full
-  metadata. Fetch individual metadata when the operation needs it.
-- Individual `getGroupMetadata` still returns `GroupMetadataResult`, but its
-  former `size` field is now optional `participantCount`; `subject` is optional
-  too. Missing server values remain absent, not zero or an empty string. The
-  advertised count is not inferred from the returned participant roster.
-- `newsletterReactMessage` returns the core's stanza-id string.
-
-These are breaking changes; callers must update their property access and
-handle absence. Post-return `downloadMediaStream` failures retain the existing
-bare-string rejection channel; only the method's immediate failures and
-`downloadMedia` use typed `WhatsAppError` values.
-
 ## Host-loaded runtimes
 
 On Node and Bun the default entrypoint finds and loads the wasm itself:

@@ -1514,19 +1514,24 @@ impl MsgSecretStore for JsBackend {
         Ok(stored)
     }
 
-    async fn get_msg_secret(
+    async fn get_stored_msg_secret(
         &self,
         chat: &str,
         sender: &str,
         msg_id: &str,
-    ) -> Result<Option<Vec<u8>>> {
+    ) -> Result<Option<StoredMessageSecret>> {
         let key = compound_store_key([chat, sender, msg_id]);
-        // Strip the timestamp prefix written by put_msg_secret.
-        Ok(self
-            .js_get(STORE_MSG_SECRET, &key)
+        // The prefix is local retention time, not the parent's event time.
+        // This format never persisted the latter, so report it as unknown.
+        self.js_get(STORE_MSG_SECRET, &key)
             .await?
-            .filter(|d| d.len() >= TIMESTAMP_PREFIX_LEN)
-            .map(|d| d[TIMESTAMP_PREFIX_LEN..].to_vec()))
+            .map(|data| {
+                StoredMessageSecret::from_stored_bytes(
+                    data.get(TIMESTAMP_PREFIX_LEN..).unwrap_or_default(),
+                    0,
+                )
+            })
+            .transpose()
     }
 
     async fn delete_expired_msg_secrets(&self, cutoff_timestamp: i64) -> Result<u32> {
@@ -2092,6 +2097,52 @@ mod device_account_authority_tests {
 
         let loaded = backend.load().await.expect("load").expect("device present");
         assert!(loaded.account.is_none());
+    }
+
+    #[test]
+    async fn stored_message_secret_validates_bytes_without_inventing_parent_time() {
+        let backend = mem_backend("msg-secret-projection");
+        assert!(
+            backend
+                .get_stored_msg_secret("chat", "sender", "id")
+                .await
+                .unwrap()
+                .is_none()
+        );
+        backend
+            .put_msg_secret("chat", "sender", "id", &[9; 32])
+            .await
+            .unwrap();
+        let stored = backend
+            .get_stored_msg_secret("chat", "sender", "id")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(stored.secret.as_bytes(), &[9; 32]);
+        assert_eq!(stored.message_ts, None);
+        assert_eq!(
+            backend
+                .get_msg_secret("chat", "sender", "id")
+                .await
+                .unwrap(),
+            Some(vec![9; 32])
+        );
+
+        let key = compound_store_key(["chat", "sender", "id"]);
+        for length in [0, 7, 8, 39, 41] {
+            backend
+                .js_set(STORE_MSG_SECRET, &key, &vec![0; length])
+                .await
+                .unwrap();
+            assert!(matches!(
+                backend.get_stored_msg_secret("chat", "sender", "id").await,
+                Err(StoreError::InvalidMessageSecret(_))
+            ));
+            assert!(matches!(
+                backend.get_msg_secret("chat", "sender", "id").await,
+                Err(StoreError::InvalidMessageSecret(_))
+            ));
+        }
     }
 
     #[test]

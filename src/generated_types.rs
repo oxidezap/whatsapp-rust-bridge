@@ -143,7 +143,7 @@ export interface CachedServerCertChain {
   signature_verified: boolean;
 }
 
-/** Fields kept per-variant (not a shared `BasicCallMeta`) so the `serde` shape mirrors the stanza 1:1 for downstream JS consumers. */
+/** Fields kept per-variant (not a shared `BasicCallMeta`) so the `serde` shape mirrors the stanza 1:1 for downstream JS consumers.  Use [`Self::wire_tag`] for the action's exact wire string (for example, `"offer_notice"` or `"relaylatency"`), replacing the removed `action_kind` alias. The serialized `type` discriminator uses that same string. */
 export type CallAction =
   | { type: "offer"; call_id: string; call_creator: Jid; caller_pn?: Jid | null; caller_country_code?: string | null; device_class?: string | null; joinable: boolean; is_video: boolean; audio: CallAudioCodec[]; group_jid?: Jid | null }
   | { type: "offer_notice"; call_id: string; call_creator: Jid; is_video: boolean; is_group: boolean }
@@ -969,7 +969,10 @@ export type MessageCategory = "" | "peer" | string;
 export interface MessageInfo {
   source: MessageSource;
   id: string;
+  /** Legacy range-filtered server id; zero also represents absence. Prefer `newsletter_server_id` for lossless newsletter addressing. */
   server_id: number;
+  /** Newsletter envelope `server_id`, retaining every representable number. Absence remains absent and zero is a number, not a sentinel. */
+  newsletter_server_id?: number | string | null;
   /** The envelope's `type` attribute. `None` when the stanza carried none. */
   type?: StanzaMessageType | null;
   /** The sender's `notify` display name. Inline up to 24 bytes, which covers most names, so a message does not allocate for it. */
@@ -1498,6 +1501,15 @@ export interface TemporaryBan {
   raw?: any | null;
 }
 
+/** The account-wide "Keep chats archived" setting changed on a linked device (`setting_unarchiveChats`).  The wire flag is the inverse of the phone's switch: `unarchive_chats` is `true` when "Keep chats archived" is off, so a new message moves its chat out of the archive. */
+export interface UnarchiveChatsSettingUpdate {
+  /** `true` when a new message should unarchive its chat. Only emitted when the wire carried the flag. */
+  unarchive_chats: boolean;
+  timestamp: string;
+  action: import('./proto-types').proto.SyncActionValue.IUnarchiveChatsSetting;
+  from_full_sync: boolean;
+}
+
 export type UnavailableType = "unknown" | "view_once" | "hosted" | "bot";
 
 export interface UndecryptableMessage {
@@ -1832,4 +1844,5 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "StatusPrivacyUpdate",
     "ReachoutTimelockUpdate",
     "CallLogHistory",
+    "UnarchiveChatsSettingUpdate",
 ];

@@ -294,8 +294,12 @@ impl WasmWhatsAppClient {
         allow_non_admin_sub_group_creation: bool,
         create_general_chat: bool,
     ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let mut options = whatsapp_rust::features::CreateCommunityOptions::new(name);
-        options.description = description;
+        let mut options = whatsapp_rust::features::CreateCommunityOptions::new(name)
+            .map_err(|e| crate::errors::invalid_arg("name", e.to_string()))?;
+        options.description = description
+            .map(whatsapp_rust::features::GroupDescription::new)
+            .transpose()
+            .map_err(|e| crate::errors::invalid_arg("description", e.to_string()))?;
         options.closed = closed;
         options.allow_non_admin_sub_group_creation = allow_non_admin_sub_group_creation;
         options.create_general_chat = create_general_chat;

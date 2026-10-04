@@ -303,7 +303,7 @@ impl WasmWhatsAppClient {
                     );
                     let check_req = wacore::net::HttpRequest::post(check_url)
                         .with_header("Origin", "https://web.whatsapp.com");
-                    if let Ok(resp) = client.http_client.execute(check_req).await
+                    if let Ok(resp) = client.http_client().execute(check_req).await
                         && resp.status_code < 400
                         && let Ok(parsed) = serde_json::from_slice::<serde_json::Value>(&resp.body)
                         && parsed.get("resume").and_then(|v| v.as_str()) == Some("complete")
