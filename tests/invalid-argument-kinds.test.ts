@@ -138,7 +138,7 @@ describe("the bridge's own checks name the argument", () => {
       for (const [name, description, field] of [
         ["x".repeat(101), undefined, "name"], ["community", "x".repeat(2049), "description"],
       ] as const) {
-        const error = await rejection(client.createCommunity(name, description));
+        const error = await rejection(client.createCommunity(name, description, false, false, false));
         expect(error.kind).toBe("invalid-argument");
         expect(error.field).toBe(field);
       }
