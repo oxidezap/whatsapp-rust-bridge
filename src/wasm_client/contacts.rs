@@ -5,6 +5,15 @@
 //! conversion helpers.
 
 use super::*;
+use whatsapp_rust::wacore_binary::JidExt;
+
+fn profile_picture_target(jid: &Jid) -> whatsapp_rust::ProfilePictureTarget<'_> {
+    if jid.is_group() {
+        whatsapp_rust::ProfilePictureTarget::Group(jid)
+    } else {
+        whatsapp_rust::ProfilePictureTarget::Contact(jid)
+    }
+}
 
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
@@ -137,9 +146,9 @@ impl WasmWhatsAppClient {
             from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
         use crate::result_types::PictureType;
         let target = parse_jid(jid)?;
-        let preview = match picture_type {
-            PictureType::Preview => true,
-            PictureType::Image => false,
+        let size = match picture_type {
+            PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
+            PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
         };
 
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
@@ -148,9 +157,13 @@ impl WasmWhatsAppClient {
             .client
             .online()
             .await?
-            .contacts()
-            .get_profile_picture_with_timeout(&target, preview, timeout)
-            .await?;
+            .pictures()
+            .lookup(
+                whatsapp_rust::ProfilePictureRequest::new(profile_picture_target(&target), size)
+                    .timeout(timeout),
+            )
+            .await?
+            .into_found();
 
         to_ts_opt(result.map(|pic| crate::result_types::ProfilePictureInfo {
             id: pic.id,
@@ -497,5 +510,23 @@ impl WasmWhatsAppClient {
                 })
                 .collect(),
         )
+    }
+}
+
+#[cfg(test)]
+mod picture_target_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn picture_requests_use_the_core_jid_class_without_community_fallback() {
+        let group = "120363000000000000@g.us".parse().unwrap();
+        let contact = "5511999999999@s.whatsapp.net".parse().unwrap();
+        assert!(
+            matches!(profile_picture_target(&group), whatsapp_rust::ProfilePictureTarget::Group(jid) if jid == &group)
+        );
+        assert!(
+            matches!(profile_picture_target(&contact), whatsapp_rust::ProfilePictureTarget::Contact(jid) if jid == &contact)
+        );
     }
 }

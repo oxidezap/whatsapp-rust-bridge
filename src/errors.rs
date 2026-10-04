@@ -32,7 +32,8 @@ use whatsapp_rust::socket::error::SocketError;
 use whatsapp_rust::wacore::handshake::HandshakeError as CoreHandshakeError;
 use whatsapp_rust::wacore::send::NoRecipientDeviceError;
 use whatsapp_rust::{
-    CallError, ConnectError, MexError, SendError, SignalMaintenanceError, wacore, wacore_binary,
+    CallError, ConnectError, MessageRefError, MexError, SendError, SignalMaintenanceError, wacore,
+    wacore_binary,
 };
 
 /// Public error shape that crosses the WASM→JS boundary.
@@ -130,7 +131,29 @@ pub enum BridgeError {
     /// `message` so JS-side debugging is still possible.
     #[error("internal: {message}")]
     Internal { message: String },
+
+    // Private carrier: JS retains the cause's existing kind plus recovery context.
+    // It is handled before serialization, not a twelfth public discriminant.
+    #[serde(skip)]
+    #[error("community {created_jid} created, but {step} failed: {cause}")]
+    CommunityConfigurationFailed {
+        created_jid: String,
+        step: String,
+        #[source]
+        cause: Box<BridgeError>,
+    },
 }
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen::prelude::wasm_bindgen(typescript_custom_section)]
+const COMMUNITY_CONFIGURATION_ERROR_TS: &str = r#"
+/** Creation succeeded; resume configuration on createdJid instead of creating again. */
+export type CommunityConfigurationError = BridgeError & {
+    createdJid: string;
+    step: string;
+    cause: BridgeError;
+};
+"#;
 
 impl BridgeError {
     /// Walk a borrowed `&dyn Error` chain looking for known leaf types whose
@@ -203,6 +226,10 @@ impl BridgeError {
                 return BridgeError::Storage {
                     operation: dc.to_string(),
                 };
+            } else if let Some(media) = c.downcast_ref::<wacore::download::MediaDecryptionError>() {
+                return BridgeError::Crypto {
+                    operation: media.to_string(),
+                };
             } else if let Some(sock) = c.downcast_ref::<SocketError>() {
                 if let Some(b) = socket_to_bridge(sock) {
                     return b;
@@ -253,6 +280,34 @@ impl BridgeError {
 /// is the reason and `field` stays the request.
 fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
     invalid_arg("request", detail.to_string())
+}
+
+fn message_reference_error(
+    error: &MessageRefError,
+    id_field: &'static str,
+    jid_field: &'static str,
+    sender_field: &'static str,
+) -> BridgeError {
+    use MessageRefError::*;
+    let field = match error {
+        EmptyMessageId | MissingMessageId | NotFromMe | ExpectedIncoming => id_field,
+        ExpectedNewsletter | ExpectedChat | UnsupportedOrigin => jid_field,
+        MissingSender => sender_field,
+        EmptyStanzaId => "stanzaId",
+        MissingServerMessageId => "serverId",
+        _ => "request",
+    };
+    invalid_arg(field, error.to_string())
+}
+
+/// A structured key is one argument; its ID and sender errors name that key.
+pub fn send_error_for_key(error: SendError, key_field: &'static str) -> BridgeError {
+    match error {
+        SendError::MessageRef(reference) => {
+            message_reference_error(&reference, key_field, "jid", key_field)
+        }
+        other => other.into(),
+    }
 }
 
 /// The core's enum is `#[non_exhaustive]`; a variant added later reports zero
@@ -586,6 +641,9 @@ classify! {
     // Every variant carries a source; the walk and the core's answers cover it.
     ChatStateError {}
 
+    // Download failures retain the IQ/storage source rather than flattening it.
+    whatsapp_rust::download::ClientDownloadError {}
+
     // `Timeout` needs no arm: the core reports it, including the handshake
     // timeout nested under `Handshake` that this list could not reach. The two
     // below are the caller reaching for a client that cannot connect — already
@@ -650,6 +708,8 @@ classify! {
     }
 
     SendError {
+        SendError::MessageRef(detail) => message_reference_error(detail, "messageId", "jid", "participant"),
+        SendError::InvalidSecret(detail) => invalid_arg("messageSecret", detail.to_string()),
         SendError::NotLoggedIn => BridgeError::NotConnected,
         SendError::InvalidRequest(detail) => invalid_request(detail),
         SendError::NoRecipientDevice(cause) => no_recipient_device(cause),
@@ -657,10 +717,6 @@ classify! {
 
     BlockingError {
         BlockingError::InvalidJid(detail) => invalid_arg("jid", detail),
-    }
-
-    CommunityError {
-        CommunityError::InvalidRequest(detail) => invalid_request(detail),
     }
 
     // `Username` only ever wraps a rejection of what the caller passed — a
@@ -682,10 +738,14 @@ classify! {
     }
 
     NewsletterError {
+        NewsletterError::MessageRef(detail) => message_reference_error(detail, "messageId", "jid", "jid"),
         NewsletterError::InvalidRequest(detail) => invalid_request(detail),
+        NewsletterError::EmptyPicture => invalid_arg("jpeg", "picture data cannot be empty; use newsletterRemovePicture"),
     }
 
     PollError {
+        PollError::Reference(detail) => message_reference_error(detail, "pollMsgId", "chatJid", "pollCreatorJid"),
+        PollError::InvalidSecret(detail) => invalid_arg("messageSecret", detail.to_string()),
         PollError::NotLoggedIn => BridgeError::NotConnected,
         // The core rejects `options`, `selectableCount` or `correctIndex`
         // through this one variant and names which only in its text, so it
@@ -805,12 +865,50 @@ pub fn protocol_violation<R: Into<String>>(reason: R) -> BridgeError {
     }
 }
 
+impl From<CommunityError> for BridgeError {
+    fn from(error: CommunityError) -> Self {
+        match error {
+            CommunityError::InvalidRequest(detail) => invalid_request(detail),
+            CommunityError::ConfigurationFailed {
+                created_jid,
+                step,
+                source,
+            } => {
+                use whatsapp_rust::features::CommunityConfigurationStep;
+                Self::CommunityConfigurationFailed {
+                    created_jid: created_jid.to_string(),
+                    step: match step {
+                        CommunityConfigurationStep::SetDescription => "set-description".into(),
+                        other => format!("{other:?}"),
+                    },
+                    cause: Box::new(Self::from(*source)),
+                }
+            }
+            other => Self::from_error_chain(&other),
+        }
+    }
+}
+
 /// Construct a JS `Error` carrying the `BridgeError` payload. Takes `&` so
 /// `Display` (via `e.to_string()`) and `serde::Serialize` (via
 /// `serde_wasm_bindgen::to_value`) can both run without consuming.
 #[cfg(target_arch = "wasm32")]
 pub fn to_js_error(e: &BridgeError) -> JsValue {
     use js_sys::{Error as JsError, Object, Reflect};
+
+    if let BridgeError::CommunityConfigurationFailed {
+        created_jid,
+        step,
+        cause,
+    } = e
+    {
+        let err = to_js_error(cause);
+        let _ = Reflect::set(&err, &"message".into(), &e.to_string().into());
+        let _ = Reflect::set(&err, &"createdJid".into(), &created_jid.as_str().into());
+        let _ = Reflect::set(&err, &"step".into(), &step.as_str().into());
+        let _ = Reflect::set(&err, &"cause".into(), &to_js_error(cause));
+        return err;
+    }
 
     let err = JsError::new(&e.to_string());
     err.set_name("WhatsAppError");
@@ -852,6 +950,95 @@ mod tests {
     }
 
     #[test]
+    fn community_partial_failure_preserves_created_jid_step_and_server_cause() {
+        use wasm_bindgen::JsCast;
+        use whatsapp_rust::features::CommunityConfigurationStep;
+        let payload = to_js_error(&BridgeError::from(CommunityError::ConfigurationFailed {
+            created_jid: "120363000000000000@g.us".parse().unwrap(),
+            step: CommunityConfigurationStep::SetDescription,
+            source: Box::new(GroupError::Iq(IqError::ServerError {
+                code: 500,
+                text: "configuration refused".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(5),
+                response: rejection_stanza(),
+            })),
+        }));
+        let prop = |value: &JsValue, key: &str| js_sys::Reflect::get(value, &key.into()).unwrap();
+        assert!(payload.is_instance_of::<js_sys::Error>());
+        assert_eq!(
+            prop(&payload, "kind").as_string().as_deref(),
+            Some("server")
+        );
+        assert_eq!(prop(&payload, "serverCode").as_f64(), Some(500.0));
+        assert_eq!(prop(&payload, "backoffSeconds").as_f64(), Some(5.0));
+        assert_eq!(
+            prop(&payload, "createdJid").as_string().as_deref(),
+            Some("120363000000000000@g.us")
+        );
+        assert_eq!(
+            prop(&payload, "step").as_string().as_deref(),
+            Some("set-description")
+        );
+        let cause = prop(&payload, "cause");
+        assert!(cause.is_instance_of::<js_sys::Error>());
+        assert_eq!(prop(&cause, "kind").as_string().as_deref(), Some("server"));
+        assert_eq!(prop(&cause, "serverCode").as_f64(), Some(500.0));
+        assert!(
+            prop(&payload, "message")
+                .as_string()
+                .unwrap()
+                .contains("created")
+        );
+    }
+
+    #[test]
+    fn typed_reference_errors_keep_the_originating_argument() {
+        for (error, field) in [
+            (
+                BridgeError::from(SendError::MessageRef(MessageRefError::EmptyMessageId)),
+                "messageId",
+            ),
+            (
+                BridgeError::from(NewsletterError::MessageRef(MessageRefError::EmptyMessageId)),
+                "messageId",
+            ),
+            (
+                BridgeError::from(PollError::Reference(MessageRefError::EmptyMessageId)),
+                "pollMsgId",
+            ),
+            (
+                BridgeError::from(PollError::Reference(MessageRefError::MissingSender)),
+                "pollCreatorJid",
+            ),
+            (
+                BridgeError::from(NewsletterError::MessageRef(
+                    MessageRefError::ExpectedNewsletter,
+                )),
+                "jid",
+            ),
+            (
+                send_error_for_key(
+                    SendError::MessageRef(MessageRefError::EmptyMessageId),
+                    "target_key",
+                ),
+                "target_key",
+            ),
+            (
+                send_error_for_key(
+                    SendError::MessageRef(MessageRefError::MissingSender),
+                    "parent_key",
+                ),
+                "parent_key",
+            ),
+        ] {
+            let payload = payload_of(&error);
+            assert_eq!(payload["kind"], "invalid-argument");
+            assert_eq!(payload["field"], field);
+        }
+    }
+
+    #[test]
     fn iq_server_error_extracts_code_and_text() {
         let iq = IqError::ServerError {
             code: 400,
@@ -872,6 +1059,50 @@ mod tests {
             }
             other => panic!("expected Server, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn download_cleanup_preserves_the_original_server_rejection() {
+        use whatsapp_rust::download::ClientDownloadError as D;
+        let original = D::MediaSession {
+            force_refresh: true,
+            source: IqError::ServerError {
+                code: 429,
+                text: "slow-down".into(),
+                error_type: Some("wait".into()),
+                backoff: Some(7),
+                response: rejection_stanza(),
+            },
+        };
+        let error = D::WriterCleanup {
+            failure: Box::new(original),
+            cleanup: std::io::Error::other("cleanup failed"),
+        };
+        match BridgeError::from(error) {
+            BridgeError::Server {
+                server_code,
+                server_text,
+                error_type,
+                backoff_seconds,
+            } => {
+                assert_eq!(server_code, 429);
+                assert_eq!(server_text, "slow-down");
+                assert_eq!(error_type.as_deref(), Some("wait"));
+                assert_eq!(backoff_seconds, Some(7));
+            }
+            other => panic!("lost download source: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn download_integrity_failure_keeps_crypto_kind_through_host_failover() {
+        let error = whatsapp_rust::download::ClientDownloadError::HostsUnreachable(
+            wacore::download::MediaDecryptionError::EncryptedSha256Mismatch.into(),
+        );
+        assert!(matches!(
+            BridgeError::from(error),
+            BridgeError::Crypto { .. }
+        ));
     }
 
     #[test]
@@ -1503,10 +1734,18 @@ mod tests {
             // so does `server` here — and no kind stands for it. Left where it
             // is until the surface grows one.
             (
-                "MexError::ExtensionError",
-                MexError::ExtensionError {
+                "MexError::GraphQl",
+                MexError::GraphQl {
                     code: 1675247,
                     message: "not authorized".into(),
+                    source: Box::new(IqError::ParseError(
+                        wacore::iq::mex::MexFatalError {
+                            query: "test",
+                            code: 1675247,
+                            message: "not authorized".into(),
+                        }
+                        .into(),
+                    )),
                 }
                 .into(),
                 "internal",

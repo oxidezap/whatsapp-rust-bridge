@@ -15,6 +15,8 @@ import type {
   ClientPolicies,
   createWhatsAppClient,
   BridgeError,
+  CommunityConfigurationError,
+  NewsletterMessageResult,
   InboundMessage,
   JsonValue,
   MessageInfo,
@@ -25,6 +27,10 @@ import type {
   Receipt,
   ReceiptType,
   WasmWhatsAppClient,
+  WhatsAppEvent,
+  GroupMetadataResult,
+  GroupOverviewResult,
+  ProtocolTerminalReasonResult,
 } from "../../dist/index.js";
 import type { proto } from "../../dist/proto-types.js";
 
@@ -45,6 +51,23 @@ type Resolves<Actual, Expected> =
   : false;
 type Assert<T extends true> = T;
 
+// These are declaration contracts, not successful server-response tests.
+type ReachoutEvent = Extract<WhatsAppEvent, { type: "reachout_timelock_update" }>;
+type _ReachoutEnforcement = Assert<Resolves<ReachoutEvent["data"]["state"]["enforcement_type"], string | null | undefined>>;
+type _ReachoutActive = Assert<Resolves<ReachoutEvent["data"]["state"]["is_active"], boolean | null | undefined>>;
+type _ReachoutDeadline = Assert<Resolves<ReachoutEvent["data"]["state"]["time_enforcement_ends"], string | null | undefined>>;
+type _SubjectAbsence = Assert<Resolves<GroupMetadataResult["subject"], string | undefined>>;
+type _OverviewCount = Assert<Resolves<GroupOverviewResult["participantCount"], number | undefined>>;
+type _GroupListing = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["groupFetchAllParticipating"]>>, Record<string, GroupOverviewResult>>>;
+type _ReactionStanzaId = Assert<Resolves<Awaited<ReturnType<WasmWhatsAppClient["newsletterReactMessage"]>>, string>>;
+type _ConflictCause = Assert<Resolves<Extract<ProtocolTerminalReasonResult, { kind: "conflict" }>["cause"], string>>;
+type _NewsletterIdAbsence = Assert<Resolves<NewsletterMessageResult["messageId"], string | undefined>>;
+type _CommunityCreatedJid = Assert<Resolves<CommunityConfigurationError["createdJid"], string>>;
+type _CommunityCause = Assert<Resolves<CommunityConfigurationError["cause"], BridgeError>>;
+type _NewsletterEnvelopeServerId = Assert<Resolves<MessageInfo["newsletter_server_id"], number | string | null | undefined>>;
+type UnarchiveEvent = Extract<WhatsAppEvent, { type: "unarchive_chats_setting_update" }>;
+type _UnarchiveFlag = Assert<Resolves<UnarchiveEvent["data"]["unarchive_chats"], boolean>>;
+
 // Box<wa::sync_action_value::ArchiveChatAction>
 type _Boxed = Assert<
   Resolves<ArchiveUpdate["action"], proto.SyncActionValue.IArchiveChatAction>
@@ -63,7 +86,7 @@ type _Optional = Assert<
   >
 >;
 
-// `pub type MessageSecret = [u8; 32]`
+// The store entry's `MessageSecretBytes = [u8; 32]` remains a byte array.
 type _Aliased = Assert<Resolves<MsgSecretEntry["secret"], Uint8Array>>;
 
 // serde_json::Value. Not `NonNullable`: `JsonValue` carries `null` itself, so

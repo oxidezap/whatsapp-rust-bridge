@@ -178,10 +178,10 @@ impl WasmWhatsAppClient {
             .client
             .online()
             .await?
-            .send_reaction(chat, target_key, emoji.as_deref().unwrap_or(""))
+            .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
             .await
-            .map_err(crate::errors::BridgeError::from)?;
-        Ok(result.message_id)
+            .map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
+        Ok(result.message_id.into_string())
     }
 
     /// Comment on a channel (CAG) post. `bytes` is the encoded body `Message`
@@ -222,10 +222,10 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .comments()
-            .send_message(chat, key, body)
+            .send_message_raw(chat, key, body)
             .await
-            .map_err(crate::errors::BridgeError::from)?;
-        Ok(result.message_id)
+            .map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
+        Ok(result.message_id.into_string())
     }
 
     /// Mark a chat as read or unread via app state mutation.

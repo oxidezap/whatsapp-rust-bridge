@@ -1468,7 +1468,7 @@ dependencies = [
 [[package]]
 name = "wacore"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "aes",
  "anyhow",
@@ -1516,7 +1516,7 @@ dependencies = [
 [[package]]
 name = "wacore-appstate"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1537,7 +1537,7 @@ dependencies = [
 [[package]]
 name = "wacore-binary"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "bytes",
  "compact_str",
@@ -1554,7 +1554,7 @@ dependencies = [
 [[package]]
 name = "wacore-derive"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1564,7 +1564,7 @@ dependencies = [
 [[package]]
 name = "wacore-libsignal"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "aes",
  "async-lock",
@@ -1595,7 +1595,7 @@ dependencies = [
 [[package]]
 name = "wacore-noise"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1623,7 +1623,7 @@ dependencies = [
 [[package]]
 name = "waproto"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "buffa",
  "buffa-build",
@@ -1754,21 +1754,24 @@ dependencies = [
 [[package]]
 name = "whatsapp-rust"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=c4dc16d223917d1aab759e9828f6ea82904f0c99#c4dc16d223917d1aab759e9828f6ea82904f0c99"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=6f7a62296242f5dab8967431bd1c6528c1339efe#6f7a62296242f5dab8967431bd1c6528c1339efe"
 dependencies = [
  "anyhow",
  "async-channel",
  "async-lock",
  "async-trait",
  "base64 0.23.1",
+ "bon",
  "buffa",
  "bytes",
  "chrono",
  "event-listener",
+ "flate2",
  "futures",
  "getrandom",
  "hashbrown 0.17.1",
  "hex",
+ "hmac",
  "itoa",
  "log",
  "portable-atomic",

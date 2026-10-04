@@ -6,6 +6,21 @@
 
 use super::*;
 
+fn newsletter_content_reference<'a>(
+    jid: &'a Jid,
+    message_id: &str,
+) -> Result<whatsapp_rust::NewsletterMessageRef<'a>, crate::errors::BridgeError> {
+    let error = |error| {
+        crate::errors::BridgeError::from(whatsapp_rust::features::NewsletterError::MessageRef(
+            error,
+        ))
+    };
+    // Keep the core's target-before-ID validation order, without parsing error text.
+    let target = whatsapp_rust::NewsletterMessageRef::new(jid, None, None).map_err(error)?;
+    let id = whatsapp_rust::MessageId::new(message_id).map_err(error)?;
+    whatsapp_rust::NewsletterMessageRef::new(target.chat(), Some(id), None).map_err(error)
+}
+
 #[wasm_bindgen]
 impl WasmWhatsAppClient {
     // ── Newsletter ────────────────────────────────────────────────────────
@@ -93,7 +108,7 @@ impl WasmWhatsAppClient {
         jid: &str,
         server_id: &str,
         reaction: Option<String>,
-    ) -> Result<(), crate::errors::BridgeError> {
+    ) -> Result<String, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let sid: u64 = server_id.parse().map_err(|e: std::num::ParseIntError| {
             crate::errors::invalid_arg("serverId", e.to_string())
@@ -102,8 +117,9 @@ impl WasmWhatsAppClient {
             .online()
             .await?
             .newsletter()
-            .send_reaction(&target, sid, reaction.as_deref().unwrap_or(""))
+            .send_reaction_raw(&target, sid, reaction.as_deref().unwrap_or(""))
             .await
+            .map(whatsapp_rust::StanzaId::into_string)
             .map_err(crate::errors::BridgeError::from)
     }
 
@@ -391,11 +407,41 @@ impl WasmWhatsAppClient {
             messages
                 .iter()
                 .map(|message| crate::result_types::NewsletterMessageResult {
-                    message_id: message.message_id.clone(),
+                    message_id: message.message_id.as_ref().map(ToString::to_string),
                     server_id: message.server_id.to_string(),
                     timestamp: message.timestamp as f64,
                     message_type: message.message_type.as_str().to_owned(),
+                    message_type_raw: message.message_type_raw.clone(),
+                    edit: message.edit.as_str().to_owned(),
                     is_sender: message.is_sender,
+                    media_type: message.media_type.as_ref().map(|v| v.as_str().to_owned()),
+                    votes: message
+                        .votes
+                        .iter()
+                        .map(|vote| crate::result_types::NewsletterPollVoteResult {
+                            option_hash: serde_bytes::ByteBuf::from(vote.option_hash.to_vec()),
+                            count: vote.count.to_string(),
+                        })
+                        .collect(),
+                    forwards_count: message.forwards_count.map(|v| v.to_string()),
+                    views_count: message.views_count.map(|v| v.to_string()),
+                    responses_count: message.responses_count.map(|v| v.to_string()),
+                    original_timestamp: message.original_timestamp.map(|v| v.to_string()),
+                    last_edit_timestamp_ms: message.last_edit_timestamp_ms.map(|v| v.to_string()),
+                    poll_type: message.poll_type.as_ref().map(|v| v.as_str().to_owned()),
+                    poll_type_raw: message.poll_type_raw.clone(),
+                    content_type: message.content_type.clone(),
+                    question_type: message
+                        .question_type
+                        .as_ref()
+                        .map(|v| v.as_str().to_owned()),
+                    message_association_type: message
+                        .message_association_type
+                        .as_ref()
+                        .map(|v| v.as_str().to_owned()),
+                    is_wamo_sub: message.is_wamo_sub,
+                    admin_profile: message.admin_profile.as_ref().map(admin_profile_to_result),
+                    rcat: message.rcat.clone().map(serde_bytes::ByteBuf::from),
                     message: message
                         .message
                         .as_ref()
@@ -441,11 +487,12 @@ impl WasmWhatsAppClient {
         message: &[u8],
     ) -> Result<(), crate::errors::BridgeError> {
         let (target, new_content) = parse_jid_and_msg_bytes(jid, message)?;
+        let reference = newsletter_content_reference(&target, message_id)?;
         self.client
             .online()
             .await?
             .newsletter()
-            .edit_message(&target, message_id, new_content)
+            .edit_message(&reference, new_content)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -459,12 +506,45 @@ impl WasmWhatsAppClient {
         message_id: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
+        let reference = newsletter_content_reference(&target, message_id)?;
         self.client
             .online()
             .await?
             .newsletter()
-            .revoke_message(&target, message_id)
+            .revoke_message(&reference)
             .await
             .map_err(crate::errors::BridgeError::from)
+    }
+}
+
+#[cfg(test)]
+mod reference_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn newsletter_reference_keeps_target_before_id_error_order() {
+        for (jid, field) in [
+            ("120363000000000000@newsletter", "messageId"),
+            ("5511999999999@s.whatsapp.net", "jid"),
+        ] {
+            let jid = jid.parse().unwrap();
+            let error = newsletter_content_reference(&jid, "").unwrap_err();
+            assert!(
+                matches!(error, crate::errors::BridgeError::InvalidArgument { field: actual, .. } if actual == field)
+            );
+        }
+    }
+
+    #[test]
+    fn newsletter_content_id_keeps_its_wire_spelling_and_is_not_a_server_id() {
+        let jid = "120363000000000000@newsletter".parse().unwrap();
+        let reference = newsletter_content_reference(&jid, " POST-ID ").unwrap();
+        assert_eq!(
+            reference.require_message_id().unwrap().as_str(),
+            " POST-ID "
+        );
+        assert_eq!(reference.chat(), &jid);
+        assert_eq!(reference.server_id(), None);
     }
 }

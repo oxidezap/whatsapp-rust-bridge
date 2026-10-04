@@ -365,9 +365,9 @@ pub enum ProtocolTerminalReasonResult {
     /// `connect_failure` event carries.
     #[serde(rename = "connect-failure", rename_all = "camelCase")]
     ConnectFailure { reason: String },
-    /// The peer replaced this session (`<conflict>` with no numeric code).
+    /// Terminal stream conflict, without conflating removal with replacement.
     #[serde(rename = "conflict")]
-    Conflict,
+    Conflict { cause: String },
     /// A cause this version of the bridge has no shape for. `detail` carries
     /// the core's own rendering rather than a guessed kind.
     #[serde(rename = "unknown", rename_all = "camelCase")]
@@ -732,12 +732,34 @@ pub struct GroupGrowthLockInfoResult {
     pub expiration: f64,
 }
 
+/// Slim group listing; the core no longer returns participants or settings here.
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupOverviewResult {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    pub hierarchy: GroupHierarchyResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<f64>,
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum GroupHierarchyResult {
+    Standalone,
+    Community,
+    Subgroup { parent: String, kind: String },
+    Unknown { detail: String },
+}
+
 /// Result from `getGroupMetadata`.
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupMetadataResult {
     pub id: String,
-    pub subject: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notify: Option<String>,
     pub participants: Vec<GroupMetadataParticipant>,
@@ -782,7 +804,7 @@ pub struct GroupMetadataResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub member_link_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub size: Option<f64>,
+    pub participant_count: Option<f64>,
     pub is_parent_group: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_group_jid: Option<String>,
@@ -823,6 +845,10 @@ pub struct NewsletterMetadataResult {
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub creation_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub muted: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follower_activity_muted: Option<bool>,
 }
 
 /// Result from `getMemoryDiagnostics`.
@@ -1364,15 +1390,55 @@ pub struct NewsletterReactionCountResult {
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct NewsletterMessageResult {
-    pub message_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
     pub server_id: String,
     pub timestamp: f64,
     pub message_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_type_raw: Option<String>,
+    pub edit: String,
     pub is_sender: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
+    pub votes: Vec<NewsletterPollVoteResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub forwards_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub views_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub responses_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_edit_timestamp_ms: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_type_raw: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub question_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_association_type: Option<String>,
+    pub is_wamo_sub: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_profile: Option<NewsletterAdminProfileResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rcat: Option<serde_bytes::ByteBuf>,
     /// The decoded protobuf, re-encoded. Absent when the stanza carried none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<serde_bytes::ByteBuf>,
     pub reactions: Vec<NewsletterReactionCountResult>,
+}
+
+/// The core's u64 tally crosses exactly, just like the server-id cursor.
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterPollVoteResult {
+    pub option_hash: serde_bytes::ByteBuf,
+    pub count: String,
 }
 
 // ---------------------------------------------------------------------------

@@ -19,6 +19,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assertWireTypeGuards } from './proto-wire-type-guards'
+import { shareProtoPrivateWork } from './proto-source-sharing'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT_DIR = join(ROOT, 'ts', 'generated')
@@ -598,7 +599,10 @@ try {
 		countPackableRepeatedFields(descriptor)
 	)
 	generatedSource = rejectIllegalTags(generatedSource)
+	const shared = shareProtoPrivateWork(generatedSource)
+	generatedSource = shared.text
 	assertWireTypeGuards(generatedSource, descriptor)
+	console.log(`Shared ${shared.unknownEpilogues} framing tails, ${shared.scalarRuns} scalar runs (${shared.scalarFields} fields), ${shared.createMethods} create tails`)
 	writeFileSync(generatedFile, generatedSource)
 	writeFileSync(SURFACE_FILE, buildSurface(descriptor))
 	renameSync(generatedFile, OUTPUT_FILE)

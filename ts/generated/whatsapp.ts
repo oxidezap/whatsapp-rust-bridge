@@ -8324,24 +8324,17 @@ export const ADVDeviceIdentity: MessageFns<ADVDeviceIdentity> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ADVDeviceIdentity>): ADVDeviceIdentity {
-    return ADVDeviceIdentity.fromPartial(base ?? {});
+    return createPartialMessage(ADVDeviceIdentity, base);
   },
   fromPartial(object: DeepPartial<ADVDeviceIdentity>): ADVDeviceIdentity {
     const message = createBaseADVDeviceIdentity();
-    message.rawId = object.rawId ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
-    message.keyIndex = object.keyIndex ?? undefined;
-    message.accountType = object.accountType ?? undefined;
-    message.deviceType = object.deviceType ?? undefined;
+    copyPartialScalars(message, object, 0, 5);
     return message;
   },
 };
@@ -8438,22 +8431,17 @@ export const ADVKeyIndexList: MessageFns<ADVKeyIndexList> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ADVKeyIndexList>): ADVKeyIndexList {
-    return ADVKeyIndexList.fromPartial(base ?? {});
+    return createPartialMessage(ADVKeyIndexList, base);
   },
   fromPartial(object: DeepPartial<ADVKeyIndexList>): ADVKeyIndexList {
     const message = createBaseADVKeyIndexList();
-    message.rawId = object.rawId ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
-    message.currentIndex = object.currentIndex ?? undefined;
+    copyPartialScalars(message, object, 5, 8);
     message.validIndexes = object.validIndexes?.map((e) => e) || undefined;
     message.accountType = object.accountType ?? undefined;
     return message;
@@ -8521,23 +8509,17 @@ export const ADVSignedDeviceIdentity: MessageFns<ADVSignedDeviceIdentity> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ADVSignedDeviceIdentity>): ADVSignedDeviceIdentity {
-    return ADVSignedDeviceIdentity.fromPartial(base ?? {});
+    return createPartialMessage(ADVSignedDeviceIdentity, base);
   },
   fromPartial(object: DeepPartial<ADVSignedDeviceIdentity>): ADVSignedDeviceIdentity {
     const message = createBaseADVSignedDeviceIdentity();
-    message.details = object.details ?? undefined;
-    message.accountSignatureKey = object.accountSignatureKey ?? undefined;
-    message.accountSignature = object.accountSignature ?? undefined;
-    message.deviceSignature = object.deviceSignature ?? undefined;
+    copyPartialScalars(message, object, 8, 12);
     return message;
   },
 };
@@ -8592,22 +8574,17 @@ export const ADVSignedDeviceIdentityHMAC: MessageFns<ADVSignedDeviceIdentityHMAC
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ADVSignedDeviceIdentityHMAC>): ADVSignedDeviceIdentityHMAC {
-    return ADVSignedDeviceIdentityHMAC.fromPartial(base ?? {});
+    return createPartialMessage(ADVSignedDeviceIdentityHMAC, base);
   },
   fromPartial(object: DeepPartial<ADVSignedDeviceIdentityHMAC>): ADVSignedDeviceIdentityHMAC {
     const message = createBaseADVSignedDeviceIdentityHMAC();
-    message.details = object.details ?? undefined;
-    message.hmac = object.hmac ?? undefined;
-    message.accountType = object.accountType ?? undefined;
+    copyPartialScalars(message, object, 12, 15);
     return message;
   },
 };
@@ -8662,22 +8639,17 @@ export const ADVSignedKeyIndexList: MessageFns<ADVSignedKeyIndexList> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ADVSignedKeyIndexList>): ADVSignedKeyIndexList {
-    return ADVSignedKeyIndexList.fromPartial(base ?? {});
+    return createPartialMessage(ADVSignedKeyIndexList, base);
   },
   fromPartial(object: DeepPartial<ADVSignedKeyIndexList>): ADVSignedKeyIndexList {
     const message = createBaseADVSignedKeyIndexList();
-    message.details = object.details ?? undefined;
-    message.accountSignature = object.accountSignature ?? undefined;
-    message.accountSignatureKey = object.accountSignatureKey ?? undefined;
+    copyPartialScalars(message, object, 15, 18);
     return message;
   },
 };
@@ -8748,16 +8720,13 @@ export const AIHomeState: MessageFns<AIHomeState> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIHomeState>): AIHomeState {
-    return AIHomeState.fromPartial(base ?? {});
+    return createPartialMessage(AIHomeState, base);
   },
   fromPartial(object: DeepPartial<AIHomeState>): AIHomeState {
     const message = createBaseAIHomeState();
@@ -8875,27 +8844,17 @@ export const AIHomeState_AIHomeOption: MessageFns<AIHomeState_AIHomeOption> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIHomeState_AIHomeOption>): AIHomeState_AIHomeOption {
-    return AIHomeState_AIHomeOption.fromPartial(base ?? {});
+    return createPartialMessage(AIHomeState_AIHomeOption, base);
   },
   fromPartial(object: DeepPartial<AIHomeState_AIHomeOption>): AIHomeState_AIHomeOption {
     const message = createBaseAIHomeState_AIHomeOption();
-    message.type = object.type ?? undefined;
-    message.title = object.title ?? undefined;
-    message.promptText = object.promptText ?? undefined;
-    message.sessionId = object.sessionId ?? undefined;
-    message.imageWdsIdentifier = object.imageWdsIdentifier ?? undefined;
-    message.imageTintColor = object.imageTintColor ?? undefined;
-    message.imageBackgroundColor = object.imageBackgroundColor ?? undefined;
-    message.cardTypeId = object.cardTypeId ?? undefined;
+    copyPartialScalars(message, object, 18, 26);
     return message;
   },
 };
@@ -8950,22 +8909,17 @@ export const AIMediaCollectionMessage: MessageFns<AIMediaCollectionMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIMediaCollectionMessage>): AIMediaCollectionMessage {
-    return AIMediaCollectionMessage.fromPartial(base ?? {});
+    return createPartialMessage(AIMediaCollectionMessage, base);
   },
   fromPartial(object: DeepPartial<AIMediaCollectionMessage>): AIMediaCollectionMessage {
     const message = createBaseAIMediaCollectionMessage();
-    message.collectionId = object.collectionId ?? undefined;
-    message.expectedMediaCount = object.expectedMediaCount ?? undefined;
-    message.hasGlobalCaption = object.hasGlobalCaption ?? undefined;
+    copyPartialScalars(message, object, 26, 29);
     return message;
   },
 };
@@ -9009,21 +8963,17 @@ export const AIMediaCollectionMetadata: MessageFns<AIMediaCollectionMetadata> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIMediaCollectionMetadata>): AIMediaCollectionMetadata {
-    return AIMediaCollectionMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIMediaCollectionMetadata, base);
   },
   fromPartial(object: DeepPartial<AIMediaCollectionMetadata>): AIMediaCollectionMetadata {
     const message = createBaseAIMediaCollectionMetadata();
-    message.collectionId = object.collectionId ?? undefined;
-    message.uploadOrderIndex = object.uploadOrderIndex ?? undefined;
+    copyPartialScalars(message, object, 29, 31);
     return message;
   },
 };
@@ -9056,16 +9006,13 @@ export const AIMetadataOperation: MessageFns<AIMetadataOperation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIMetadataOperation>): AIMetadataOperation {
-    return AIMetadataOperation.fromPartial(base ?? {});
+    return createPartialMessage(AIMetadataOperation, base);
   },
   fromPartial(object: DeepPartial<AIMetadataOperation>): AIMetadataOperation {
     const message = createBaseAIMetadataOperation();
@@ -9115,16 +9062,13 @@ export const AIProvenance: MessageFns<AIProvenance> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIProvenance>): AIProvenance {
-    return AIProvenance.fromPartial(base ?? {});
+    return createPartialMessage(AIProvenance, base);
   },
   fromPartial(object: DeepPartial<AIProvenance>): AIProvenance {
     const message = createBaseAIProvenance();
@@ -9177,21 +9121,17 @@ export const AIProvenance_Metadata: MessageFns<AIProvenance_Metadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIProvenance_Metadata>): AIProvenance_Metadata {
-    return AIProvenance_Metadata.fromPartial(base ?? {});
+    return createPartialMessage(AIProvenance_Metadata, base);
   },
   fromPartial(object: DeepPartial<AIProvenance_Metadata>): AIProvenance_Metadata {
     const message = createBaseAIProvenance_Metadata();
-    message.createdWithGenAi = object.createdWithGenAi ?? undefined;
-    message.editedWithGenAi = object.editedWithGenAi ?? undefined;
+    copyPartialScalars(message, object, 31, 33);
     return message;
   },
 };
@@ -9246,16 +9186,13 @@ export const AIQueryFanout: MessageFns<AIQueryFanout> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIQueryFanout>): AIQueryFanout {
-    return AIQueryFanout.fromPartial(base ?? {});
+    return createPartialMessage(AIQueryFanout, base);
   },
   fromPartial(object: DeepPartial<AIQueryFanout>): AIQueryFanout {
     const message = createBaseAIQueryFanout();
@@ -9309,16 +9246,13 @@ export const AIRegenerateMetadata: MessageFns<AIRegenerateMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRegenerateMetadata>): AIRegenerateMetadata {
-    return AIRegenerateMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRegenerateMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRegenerateMetadata>): AIRegenerateMetadata {
     const message = createBaseAIRegenerateMetadata();
@@ -9377,16 +9311,13 @@ export const AIRichResponseCodeMetadata: MessageFns<AIRichResponseCodeMetadata> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseCodeMetadata>): AIRichResponseCodeMetadata {
-    return AIRichResponseCodeMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseCodeMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseCodeMetadata>): AIRichResponseCodeMetadata {
     const message = createBaseAIRichResponseCodeMetadata();
@@ -9441,10 +9372,7 @@ export const AIRichResponseCodeMetadata_AIRichResponseCodeBlock: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -9452,14 +9380,13 @@ export const AIRichResponseCodeMetadata_AIRichResponseCodeBlock: MessageFns<
   create(
     base?: DeepPartial<AIRichResponseCodeMetadata_AIRichResponseCodeBlock>,
   ): AIRichResponseCodeMetadata_AIRichResponseCodeBlock {
-    return AIRichResponseCodeMetadata_AIRichResponseCodeBlock.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseCodeMetadata_AIRichResponseCodeBlock, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseCodeMetadata_AIRichResponseCodeBlock>,
   ): AIRichResponseCodeMetadata_AIRichResponseCodeBlock {
     const message = createBaseAIRichResponseCodeMetadata_AIRichResponseCodeBlock();
-    message.highlightType = object.highlightType ?? undefined;
-    message.codeContent = object.codeContent ?? undefined;
+    copyPartialScalars(message, object, 33, 35);
     return message;
   },
 };
@@ -9515,16 +9442,13 @@ export const AIRichResponseContentItemsMetadata: MessageFns<AIRichResponseConten
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseContentItemsMetadata>): AIRichResponseContentItemsMetadata {
-    return AIRichResponseContentItemsMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseContentItemsMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseContentItemsMetadata>): AIRichResponseContentItemsMetadata {
     const message = createBaseAIRichResponseContentItemsMetadata();
@@ -9571,10 +9495,7 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -9582,7 +9503,7 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadat
   create(
     base?: DeepPartial<AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata>,
   ): AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata {
-    return AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseContentItemsMetadata_AIRichResponseContentItemMetadata>,
@@ -9661,10 +9582,7 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseReelItem: MessageF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -9672,16 +9590,13 @@ export const AIRichResponseContentItemsMetadata_AIRichResponseReelItem: MessageF
   create(
     base?: DeepPartial<AIRichResponseContentItemsMetadata_AIRichResponseReelItem>,
   ): AIRichResponseContentItemsMetadata_AIRichResponseReelItem {
-    return AIRichResponseContentItemsMetadata_AIRichResponseReelItem.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseContentItemsMetadata_AIRichResponseReelItem, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseContentItemsMetadata_AIRichResponseReelItem>,
   ): AIRichResponseContentItemsMetadata_AIRichResponseReelItem {
     const message = createBaseAIRichResponseContentItemsMetadata_AIRichResponseReelItem();
-    message.title = object.title ?? undefined;
-    message.profileIconUrl = object.profileIconUrl ?? undefined;
-    message.thumbnailUrl = object.thumbnailUrl ?? undefined;
-    message.videoUrl = object.videoUrl ?? undefined;
+    copyPartialScalars(message, object, 35, 39);
     return message;
   },
 };
@@ -9747,23 +9662,17 @@ export const AIRichResponseDynamicMetadata: MessageFns<AIRichResponseDynamicMeta
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseDynamicMetadata>): AIRichResponseDynamicMetadata {
-    return AIRichResponseDynamicMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseDynamicMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseDynamicMetadata>): AIRichResponseDynamicMetadata {
     const message = createBaseAIRichResponseDynamicMetadata();
-    message.type = object.type ?? undefined;
-    message.version = object.version ?? undefined;
-    message.url = object.url ?? undefined;
-    message.loopCount = object.loopCount ?? undefined;
+    copyPartialScalars(message, object, 39, 43);
     return message;
   },
 };
@@ -9815,16 +9724,13 @@ export const AIRichResponseGridImageMetadata: MessageFns<AIRichResponseGridImage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseGridImageMetadata>): AIRichResponseGridImageMetadata {
-    return AIRichResponseGridImageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseGridImageMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseGridImageMetadata>): AIRichResponseGridImageMetadata {
     const message = createBaseAIRichResponseGridImageMetadata();
@@ -9886,22 +9792,17 @@ export const AIRichResponseImageURL: MessageFns<AIRichResponseImageURL> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseImageURL>): AIRichResponseImageURL {
-    return AIRichResponseImageURL.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseImageURL, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseImageURL>): AIRichResponseImageURL {
     const message = createBaseAIRichResponseImageURL();
-    message.imagePreviewUrl = object.imagePreviewUrl ?? undefined;
-    message.imageHighResUrl = object.imageHighResUrl ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
+    copyPartialScalars(message, object, 43, 46);
     return message;
   },
 };
@@ -9967,25 +9868,20 @@ export const AIRichResponseInlineImageMetadata: MessageFns<AIRichResponseInlineI
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseInlineImageMetadata>): AIRichResponseInlineImageMetadata {
-    return AIRichResponseInlineImageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseInlineImageMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseInlineImageMetadata>): AIRichResponseInlineImageMetadata {
     const message = createBaseAIRichResponseInlineImageMetadata();
     message.imageUrl = (object.imageUrl !== undefined && object.imageUrl !== null)
       ? AIRichResponseImageURL.fromPartial(object.imageUrl)
       : undefined;
-    message.imageText = object.imageText ?? undefined;
-    message.alignment = object.alignment ?? undefined;
-    message.tapLinkUrl = object.tapLinkUrl ?? undefined;
+    copyPartialScalars(message, object, 46, 49);
     return message;
   },
 };
@@ -10037,16 +9933,13 @@ export const AIRichResponseLatexMetadata: MessageFns<AIRichResponseLatexMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseLatexMetadata>): AIRichResponseLatexMetadata {
-    return AIRichResponseLatexMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseLatexMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseLatexMetadata>): AIRichResponseLatexMetadata {
     const message = createBaseAIRichResponseLatexMetadata();
@@ -10179,10 +10072,7 @@ export const AIRichResponseLatexMetadata_AIRichResponseLatexExpression: MessageF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -10190,21 +10080,13 @@ export const AIRichResponseLatexMetadata_AIRichResponseLatexExpression: MessageF
   create(
     base?: DeepPartial<AIRichResponseLatexMetadata_AIRichResponseLatexExpression>,
   ): AIRichResponseLatexMetadata_AIRichResponseLatexExpression {
-    return AIRichResponseLatexMetadata_AIRichResponseLatexExpression.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseLatexMetadata_AIRichResponseLatexExpression, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseLatexMetadata_AIRichResponseLatexExpression>,
   ): AIRichResponseLatexMetadata_AIRichResponseLatexExpression {
     const message = createBaseAIRichResponseLatexMetadata_AIRichResponseLatexExpression();
-    message.latexExpression = object.latexExpression ?? undefined;
-    message.url = object.url ?? undefined;
-    message.width = object.width ?? undefined;
-    message.height = object.height ?? undefined;
-    message.fontHeight = object.fontHeight ?? undefined;
-    message.imageTopPadding = object.imageTopPadding ?? undefined;
-    message.imageLeadingPadding = object.imageLeadingPadding ?? undefined;
-    message.imageBottomPadding = object.imageBottomPadding ?? undefined;
-    message.imageTrailingPadding = object.imageTrailingPadding ?? undefined;
+    copyPartialScalars(message, object, 49, 58);
     return message;
   },
 };
@@ -10300,23 +10182,17 @@ export const AIRichResponseMapMetadata: MessageFns<AIRichResponseMapMetadata> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseMapMetadata>): AIRichResponseMapMetadata {
-    return AIRichResponseMapMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseMapMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseMapMetadata>): AIRichResponseMapMetadata {
     const message = createBaseAIRichResponseMapMetadata();
-    message.centerLatitude = object.centerLatitude ?? undefined;
-    message.centerLongitude = object.centerLongitude ?? undefined;
-    message.latitudeDelta = object.latitudeDelta ?? undefined;
-    message.longitudeDelta = object.longitudeDelta ?? undefined;
+    copyPartialScalars(message, object, 58, 62);
     message.annotations =
       object.annotations?.map((e) => AIRichResponseMapMetadata_AIRichResponseMapAnnotation.fromPartial(e)) || undefined;
     message.showInfoList = object.showInfoList ?? undefined;
@@ -10401,10 +10277,7 @@ export const AIRichResponseMapMetadata_AIRichResponseMapAnnotation: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -10412,17 +10285,13 @@ export const AIRichResponseMapMetadata_AIRichResponseMapAnnotation: MessageFns<
   create(
     base?: DeepPartial<AIRichResponseMapMetadata_AIRichResponseMapAnnotation>,
   ): AIRichResponseMapMetadata_AIRichResponseMapAnnotation {
-    return AIRichResponseMapMetadata_AIRichResponseMapAnnotation.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseMapMetadata_AIRichResponseMapAnnotation, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseMapMetadata_AIRichResponseMapAnnotation>,
   ): AIRichResponseMapMetadata_AIRichResponseMapAnnotation {
     const message = createBaseAIRichResponseMapMetadata_AIRichResponseMapAnnotation();
-    message.annotationNumber = object.annotationNumber ?? undefined;
-    message.latitude = object.latitude ?? undefined;
-    message.longitude = object.longitude ?? undefined;
-    message.title = object.title ?? undefined;
-    message.body = object.body ?? undefined;
+    copyPartialScalars(message, object, 62, 67);
     return message;
   },
 };
@@ -10496,16 +10365,13 @@ export const AIRichResponseMessage: MessageFns<AIRichResponseMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseMessage>): AIRichResponseMessage {
-    return AIRichResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseMessage, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseMessage>): AIRichResponseMessage {
     const message = createBaseAIRichResponseMessage();
@@ -10648,16 +10514,13 @@ export const AIRichResponseSubMessage: MessageFns<AIRichResponseSubMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseSubMessage>): AIRichResponseSubMessage {
-    return AIRichResponseSubMessage.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseSubMessage, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseSubMessage>): AIRichResponseSubMessage {
     const message = createBaseAIRichResponseSubMessage();
@@ -10738,16 +10601,13 @@ export const AIRichResponseTableMetadata: MessageFns<AIRichResponseTableMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseTableMetadata>): AIRichResponseTableMetadata {
-    return AIRichResponseTableMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseTableMetadata, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseTableMetadata>): AIRichResponseTableMetadata {
     const message = createBaseAIRichResponseTableMetadata();
@@ -10810,10 +10670,7 @@ export const AIRichResponseTableMetadata_AIRichResponseTableRow: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -10821,7 +10678,7 @@ export const AIRichResponseTableMetadata_AIRichResponseTableRow: MessageFns<
   create(
     base?: DeepPartial<AIRichResponseTableMetadata_AIRichResponseTableRow>,
   ): AIRichResponseTableMetadata_AIRichResponseTableRow {
-    return AIRichResponseTableMetadata_AIRichResponseTableRow.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseTableMetadata_AIRichResponseTableRow, base);
   },
   fromPartial(
     object: DeepPartial<AIRichResponseTableMetadata_AIRichResponseTableRow>,
@@ -10861,16 +10718,13 @@ export const AIRichResponseUnifiedResponse: MessageFns<AIRichResponseUnifiedResp
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIRichResponseUnifiedResponse>): AIRichResponseUnifiedResponse {
-    return AIRichResponseUnifiedResponse.fromPartial(base ?? {});
+    return createPartialMessage(AIRichResponseUnifiedResponse, base);
   },
   fromPartial(object: DeepPartial<AIRichResponseUnifiedResponse>): AIRichResponseUnifiedResponse {
     const message = createBaseAIRichResponseUnifiedResponse();
@@ -10907,16 +10761,13 @@ export const AISubscriptionUpsellMetadata: MessageFns<AISubscriptionUpsellMetada
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AISubscriptionUpsellMetadata>): AISubscriptionUpsellMetadata {
-    return AISubscriptionUpsellMetadata.fromPartial(base ?? {});
+    return createPartialMessage(AISubscriptionUpsellMetadata, base);
   },
   fromPartial(object: DeepPartial<AISubscriptionUpsellMetadata>): AISubscriptionUpsellMetadata {
     const message = createBaseAISubscriptionUpsellMetadata();
@@ -10964,16 +10815,13 @@ export const AIThreadInfo: MessageFns<AIThreadInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIThreadInfo>): AIThreadInfo {
-    return AIThreadInfo.fromPartial(base ?? {});
+    return createPartialMessage(AIThreadInfo, base);
   },
   fromPartial(object: DeepPartial<AIThreadInfo>): AIThreadInfo {
     const message = createBaseAIThreadInfo();
@@ -11026,21 +10874,17 @@ export const AIThreadInfo_AIThreadClientInfo: MessageFns<AIThreadInfo_AIThreadCl
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIThreadInfo_AIThreadClientInfo>): AIThreadInfo_AIThreadClientInfo {
-    return AIThreadInfo_AIThreadClientInfo.fromPartial(base ?? {});
+    return createPartialMessage(AIThreadInfo_AIThreadClientInfo, base);
   },
   fromPartial(object: DeepPartial<AIThreadInfo_AIThreadClientInfo>): AIThreadInfo_AIThreadClientInfo {
     const message = createBaseAIThreadInfo_AIThreadClientInfo();
-    message.type = object.type ?? undefined;
-    message.sourceChatJid = object.sourceChatJid ?? undefined;
+    copyPartialScalars(message, object, 67, 69);
     return message;
   },
 };
@@ -11073,16 +10917,13 @@ export const AIThreadInfo_AIThreadServerInfo: MessageFns<AIThreadInfo_AIThreadSe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AIThreadInfo_AIThreadServerInfo>): AIThreadInfo_AIThreadServerInfo {
-    return AIThreadInfo_AIThreadServerInfo.fromPartial(base ?? {});
+    return createPartialMessage(AIThreadInfo_AIThreadServerInfo, base);
   },
   fromPartial(object: DeepPartial<AIThreadInfo_AIThreadServerInfo>): AIThreadInfo_AIThreadServerInfo {
     const message = createBaseAIThreadInfo_AIThreadServerInfo();
@@ -11152,23 +10993,17 @@ export const Account: MessageFns<Account> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Account>): Account {
-    return Account.fromPartial(base ?? {});
+    return createPartialMessage(Account, base);
   },
   fromPartial(object: DeepPartial<Account>): Account {
     const message = createBaseAccount();
-    message.lid = object.lid ?? undefined;
-    message.username = object.username ?? undefined;
-    message.countryCode = object.countryCode ?? undefined;
-    message.isUsernameDeleted = object.isUsernameDeleted ?? undefined;
+    copyPartialScalars(message, object, 69, 73);
     return message;
   },
 };
@@ -11234,23 +11069,17 @@ export const AccountLinkingOpaqueData: MessageFns<AccountLinkingOpaqueData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AccountLinkingOpaqueData>): AccountLinkingOpaqueData {
-    return AccountLinkingOpaqueData.fromPartial(base ?? {});
+    return createPartialMessage(AccountLinkingOpaqueData, base);
   },
   fromPartial(object: DeepPartial<AccountLinkingOpaqueData>): AccountLinkingOpaqueData {
     const message = createBaseAccountLinkingOpaqueData();
-    message.accesstoken = object.accesstoken ?? undefined;
-    message.fbid = object.fbid ?? undefined;
-    message.nonce = object.nonce ?? undefined;
-    message.encryptedPassword = object.encryptedPassword ?? undefined;
+    copyPartialScalars(message, object, 73, 77);
     return message;
   },
 };
@@ -11294,21 +11123,17 @@ export const ActionLink: MessageFns<ActionLink> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ActionLink>): ActionLink {
-    return ActionLink.fromPartial(base ?? {});
+    return createPartialMessage(ActionLink, base);
   },
   fromPartial(object: DeepPartial<ActionLink>): ActionLink {
     const message = createBaseActionLink();
-    message.url = object.url ?? undefined;
-    message.buttonTitle = object.buttonTitle ?? undefined;
+    copyPartialScalars(message, object, 77, 79);
     return message;
   },
 };
@@ -11374,23 +11199,17 @@ export const AutoDownloadSettings: MessageFns<AutoDownloadSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AutoDownloadSettings>): AutoDownloadSettings {
-    return AutoDownloadSettings.fromPartial(base ?? {});
+    return createPartialMessage(AutoDownloadSettings, base);
   },
   fromPartial(object: DeepPartial<AutoDownloadSettings>): AutoDownloadSettings {
     const message = createBaseAutoDownloadSettings();
-    message.downloadImages = object.downloadImages ?? undefined;
-    message.downloadAudio = object.downloadAudio ?? undefined;
-    message.downloadVideo = object.downloadVideo ?? undefined;
-    message.downloadDocuments = object.downloadDocuments ?? undefined;
+    copyPartialScalars(message, object, 79, 83);
     return message;
   },
 };
@@ -11434,21 +11253,17 @@ export const AvatarUserSettings: MessageFns<AvatarUserSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<AvatarUserSettings>): AvatarUserSettings {
-    return AvatarUserSettings.fromPartial(base ?? {});
+    return createPartialMessage(AvatarUserSettings, base);
   },
   fromPartial(object: DeepPartial<AvatarUserSettings>): AvatarUserSettings {
     const message = createBaseAvatarUserSettings();
-    message.fbid = object.fbid ?? undefined;
-    message.password = object.password ?? undefined;
+    copyPartialScalars(message, object, 83, 85);
     return message;
   },
 };
@@ -11503,22 +11318,17 @@ export const BackwardEdge: MessageFns<BackwardEdge> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BackwardEdge>): BackwardEdge {
-    return BackwardEdge.fromPartial(base ?? {});
+    return createPartialMessage(BackwardEdge, base);
   },
   fromPartial(object: DeepPartial<BackwardEdge>): BackwardEdge {
     const message = createBaseBackwardEdge();
-    message.encryptedPrevEpochAnonId = object.encryptedPrevEpochAnonId ?? undefined;
-    message.encryptedPrevEpochRootKey = object.encryptedPrevEpochRootKey ?? undefined;
-    message.prevEpochRootKeyFingerprint = object.prevEpochRootKeyFingerprint ?? undefined;
+    copyPartialScalars(message, object, 85, 88);
     return message;
   },
 };
@@ -11595,24 +11405,17 @@ export const BizAccountLinkInfo: MessageFns<BizAccountLinkInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BizAccountLinkInfo>): BizAccountLinkInfo {
-    return BizAccountLinkInfo.fromPartial(base ?? {});
+    return createPartialMessage(BizAccountLinkInfo, base);
   },
   fromPartial(object: DeepPartial<BizAccountLinkInfo>): BizAccountLinkInfo {
     const message = createBaseBizAccountLinkInfo();
-    message.whatsappBizAcctFbid = object.whatsappBizAcctFbid ?? undefined;
-    message.whatsappAcctNumber = object.whatsappAcctNumber ?? undefined;
-    message.issueTime = object.issueTime ?? undefined;
-    message.hostStorage = object.hostStorage ?? undefined;
-    message.accountType = object.accountType ?? undefined;
+    copyPartialScalars(message, object, 88, 93);
     return message;
   },
 };
@@ -11656,16 +11459,13 @@ export const BizAccountPayload: MessageFns<BizAccountPayload> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BizAccountPayload>): BizAccountPayload {
-    return BizAccountPayload.fromPartial(base ?? {});
+    return createPartialMessage(BizAccountPayload, base);
   },
   fromPartial(object: DeepPartial<BizAccountPayload>): BizAccountPayload {
     const message = createBaseBizAccountPayload();
@@ -11782,16 +11582,13 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BizIdentityInfo>): BizIdentityInfo {
-    return BizIdentityInfo.fromPartial(base ?? {});
+    return createPartialMessage(BizIdentityInfo, base);
   },
   fromPartial(object: DeepPartial<BizIdentityInfo>): BizIdentityInfo {
     const message = createBaseBizIdentityInfo();
@@ -11799,12 +11596,7 @@ export const BizIdentityInfo: MessageFns<BizIdentityInfo> = {
     message.vnameCert = (object.vnameCert !== undefined && object.vnameCert !== null)
       ? VerifiedNameCertificate.fromPartial(object.vnameCert)
       : undefined;
-    message.signed = object.signed ?? undefined;
-    message.revoked = object.revoked ?? undefined;
-    message.hostStorage = object.hostStorage ?? undefined;
-    message.actualActors = object.actualActors ?? undefined;
-    message.privacyModeTs = object.privacyModeTs ?? undefined;
-    message.featureControls = object.featureControls ?? undefined;
+    copyPartialScalars(message, object, 93, 99);
     return message;
   },
 };
@@ -11859,22 +11651,17 @@ export const BotAgeCollectionMetadata: MessageFns<BotAgeCollectionMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotAgeCollectionMetadata>): BotAgeCollectionMetadata {
-    return BotAgeCollectionMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotAgeCollectionMetadata, base);
   },
   fromPartial(object: DeepPartial<BotAgeCollectionMetadata>): BotAgeCollectionMetadata {
     const message = createBaseBotAgeCollectionMetadata();
-    message.ageCollectionEligible = object.ageCollectionEligible ?? undefined;
-    message.shouldTriggerAgeCollectionOnClient = object.shouldTriggerAgeCollectionOnClient ?? undefined;
-    message.ageCollectionType = object.ageCollectionType ?? undefined;
+    copyPartialScalars(message, object, 99, 102);
     return message;
   },
 };
@@ -11918,21 +11705,17 @@ export const BotAgentDeepLinkMetadata: MessageFns<BotAgentDeepLinkMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotAgentDeepLinkMetadata>): BotAgentDeepLinkMetadata {
-    return BotAgentDeepLinkMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotAgentDeepLinkMetadata, base);
   },
   fromPartial(object: DeepPartial<BotAgentDeepLinkMetadata>): BotAgentDeepLinkMetadata {
     const message = createBaseBotAgentDeepLinkMetadata();
-    message.token = object.token ?? undefined;
-    message.clientPublicKey = object.clientPublicKey ?? undefined;
+    copyPartialScalars(message, object, 102, 104);
     return message;
   },
 };
@@ -11965,16 +11748,13 @@ export const BotAgentMetadata: MessageFns<BotAgentMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotAgentMetadata>): BotAgentMetadata {
-    return BotAgentMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotAgentMetadata, base);
   },
   fromPartial(object: DeepPartial<BotAgentMetadata>): BotAgentMetadata {
     const message = createBaseBotAgentMetadata();
@@ -12031,16 +11811,13 @@ export const BotCapabilityMetadata: MessageFns<BotCapabilityMetadata> = {
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotCapabilityMetadata>): BotCapabilityMetadata {
-    return BotCapabilityMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotCapabilityMetadata, base);
   },
   fromPartial(object: DeepPartial<BotCapabilityMetadata>): BotCapabilityMetadata {
     const message = createBaseBotCapabilityMetadata();
@@ -12099,22 +11876,17 @@ export const BotCommandMetadata: MessageFns<BotCommandMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotCommandMetadata>): BotCommandMetadata {
-    return BotCommandMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotCommandMetadata, base);
   },
   fromPartial(object: DeepPartial<BotCommandMetadata>): BotCommandMetadata {
     const message = createBaseBotCommandMetadata();
-    message.commandName = object.commandName ?? undefined;
-    message.commandDescription = object.commandDescription ?? undefined;
-    message.commandPrompt = object.commandPrompt ?? undefined;
+    copyPartialScalars(message, object, 104, 107);
     return message;
   },
 };
@@ -12147,16 +11919,13 @@ export const BotDocumentMessageMetadata: MessageFns<BotDocumentMessageMetadata> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotDocumentMessageMetadata>): BotDocumentMessageMetadata {
-    return BotDocumentMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotDocumentMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<BotDocumentMessageMetadata>): BotDocumentMessageMetadata {
     const message = createBaseBotDocumentMessageMetadata();
@@ -12260,27 +12029,20 @@ export const BotFeedbackMessage: MessageFns<BotFeedbackMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotFeedbackMessage>): BotFeedbackMessage {
-    return BotFeedbackMessage.fromPartial(base ?? {});
+    return createPartialMessage(BotFeedbackMessage, base);
   },
   fromPartial(object: DeepPartial<BotFeedbackMessage>): BotFeedbackMessage {
     const message = createBaseBotFeedbackMessage();
     message.messageKey = (object.messageKey !== undefined && object.messageKey !== null)
       ? MessageKey.fromPartial(object.messageKey)
       : undefined;
-    message.kind = object.kind ?? undefined;
-    message.text = object.text ?? undefined;
-    message.kindNegative = object.kindNegative ?? undefined;
-    message.kindPositive = object.kindPositive ?? undefined;
-    message.kindReport = object.kindReport ?? undefined;
+    copyPartialScalars(message, object, 107, 112);
     message.sideBySideSurveyMetadata =
       (object.sideBySideSurveyMetadata !== undefined && object.sideBySideSurveyMetadata !== null)
         ? BotFeedbackMessage_SideBySideSurveyMetadata.fromPartial(object.sideBySideSurveyMetadata)
@@ -12415,28 +12177,19 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata: MessageFns<BotFeedback
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata>): BotFeedbackMessage_SideBySideSurveyMetadata {
-    return BotFeedbackMessage_SideBySideSurveyMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata>,
   ): BotFeedbackMessage_SideBySideSurveyMetadata {
     const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata();
-    message.selectedRequestId = object.selectedRequestId ?? undefined;
-    message.surveyId = object.surveyId ?? undefined;
-    message.simonSessionFbid = object.simonSessionFbid ?? undefined;
-    message.responseOtid = object.responseOtid ?? undefined;
-    message.responseTimestampMsString = object.responseTimestampMsString ?? undefined;
-    message.isSelectedResponsePrimary = object.isSelectedResponsePrimary ?? undefined;
-    message.messageIdToEdit = object.messageIdToEdit ?? undefined;
+    copyPartialScalars(message, object, 112, 119);
     message.analyticsData = (object.analyticsData !== undefined && object.analyticsData !== null)
       ? BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData.fromPartial(object.analyticsData)
       : undefined;
@@ -12504,10 +12257,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -12515,15 +12265,13 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyti
   create(
     base?: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData>,
   ): BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData {
-    return BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData.fromPartial(base ?? {});
+    return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData, base);
   },
   fromPartial(
     object: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData>,
   ): BotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData {
     const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SideBySideSurveyAnalyticsData();
-    message.tessaEvent = object.tessaEvent ?? undefined;
-    message.tessaSessionFbid = object.tessaSessionFbid ?? undefined;
-    message.simonSessionFbid = object.simonSessionFbid ?? undefined;
+    copyPartialScalars(message, object, 119, 122);
     return message;
   },
 };
@@ -12664,10 +12412,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -12675,16 +12420,13 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
   create(
     base?: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData>,
   ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData {
-    return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData.fromPartial(base ?? {});
+    return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData, base);
   },
   fromPartial(
     object: DeepPartial<BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData>,
   ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData {
     const message = createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData();
-    message.surveyId = object.surveyId ?? undefined;
-    message.primaryResponseId = object.primaryResponseId ?? undefined;
-    message.testArmName = object.testArmName ?? undefined;
-    message.timestampMsString = object.timestampMsString ?? undefined;
+    copyPartialScalars(message, object, 122, 126);
     message.ctaImpressionEvent = (object.ctaImpressionEvent !== undefined && object.ctaImpressionEvent !== null)
       ? BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData
         .fromPartial(object.ctaImpressionEvent)
@@ -12745,10 +12487,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -12758,8 +12497,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData
       >,
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData {
-      return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData
-        .fromPartial(base ?? {});
+      return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyAbandonEventData, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -12820,10 +12558,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -12833,8 +12568,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData
       >,
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData {
-      return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData
-        .fromPartial(base ?? {});
+      return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -12843,8 +12577,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData {
       const message =
         createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAClickEventData();
-      message.isSurveyExpired = object.isSurveyExpired ?? undefined;
-      message.clickDwellTimeMsString = object.clickDwellTimeMsString ?? undefined;
+      copyPartialScalars(message, object, 126, 128);
       return message;
     },
   };
@@ -12885,10 +12618,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -12898,8 +12628,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData
       >,
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData {
-      return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData
-        .fromPartial(base ?? {});
+      return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCTAImpressionEventData, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -12937,10 +12666,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         const tag = reader.uint32();
         switch (tag >>> 3) {
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -12950,8 +12676,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData
       >,
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData {
-      return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData
-        .fromPartial(base ?? {});
+      return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyCardImpressionEventData, base);
     },
     fromPartial(
       _: DeepPartial<
@@ -13011,10 +12736,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -13024,8 +12746,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
         BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData
       >,
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData {
-      return BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData
-        .fromPartial(base ?? {});
+      return createPartialMessage(BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -13034,8 +12755,7 @@ export const BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiA
     ): BotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData {
       const message =
         createBaseBotFeedbackMessage_SideBySideSurveyMetadata_SidebySideSurveyMetaAiAnalyticsData_SideBySideSurveyResponseEventData();
-      message.responseDwellTimeMsString = object.responseDwellTimeMsString ?? undefined;
-      message.selectedResponseId = object.selectedResponseId ?? undefined;
+      copyPartialScalars(message, object, 128, 130);
       return message;
     },
   };
@@ -13076,16 +12796,13 @@ export const BotGroupMetadata: MessageFns<BotGroupMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotGroupMetadata>): BotGroupMetadata {
-    return BotGroupMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotGroupMetadata, base);
   },
   fromPartial(object: DeepPartial<BotGroupMetadata>): BotGroupMetadata {
     const message = createBaseBotGroupMetadata();
@@ -13123,16 +12840,13 @@ export const BotGroupParticipantMetadata: MessageFns<BotGroupParticipantMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotGroupParticipantMetadata>): BotGroupParticipantMetadata {
-    return BotGroupParticipantMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotGroupParticipantMetadata, base);
   },
   fromPartial(object: DeepPartial<BotGroupParticipantMetadata>): BotGroupParticipantMetadata {
     const message = createBaseBotGroupParticipantMetadata();
@@ -13177,16 +12891,13 @@ export const BotHistoryShareMetadata: MessageFns<BotHistoryShareMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotHistoryShareMetadata>): BotHistoryShareMetadata {
-    return BotHistoryShareMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotHistoryShareMetadata, base);
   },
   fromPartial(object: DeepPartial<BotHistoryShareMetadata>): BotHistoryShareMetadata {
     const message = createBaseBotHistoryShareMetadata();
@@ -13235,21 +12946,17 @@ export const BotImagineMetadata: MessageFns<BotImagineMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotImagineMetadata>): BotImagineMetadata {
-    return BotImagineMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotImagineMetadata, base);
   },
   fromPartial(object: DeepPartial<BotImagineMetadata>): BotImagineMetadata {
     const message = createBaseBotImagineMetadata();
-    message.imagineType = object.imagineType ?? undefined;
-    message.shortPrompt = object.shortPrompt ?? undefined;
+    copyPartialScalars(message, object, 130, 132);
     return message;
   },
 };
@@ -13312,16 +13019,13 @@ export const BotInfrastructureDiagnostics: MessageFns<BotInfrastructureDiagnosti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotInfrastructureDiagnostics>): BotInfrastructureDiagnostics {
-    return BotInfrastructureDiagnostics.fromPartial(base ?? {});
+    return createPartialMessage(BotInfrastructureDiagnostics, base);
   },
   fromPartial(object: DeepPartial<BotInfrastructureDiagnostics>): BotInfrastructureDiagnostics {
     const message = createBaseBotInfrastructureDiagnostics();
@@ -13360,16 +13064,13 @@ export const BotLinkedAccount: MessageFns<BotLinkedAccount> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotLinkedAccount>): BotLinkedAccount {
-    return BotLinkedAccount.fromPartial(base ?? {});
+    return createPartialMessage(BotLinkedAccount, base);
   },
   fromPartial(object: DeepPartial<BotLinkedAccount>): BotLinkedAccount {
     const message = createBaseBotLinkedAccount();
@@ -13436,22 +13137,18 @@ export const BotLinkedAccountsMetadata: MessageFns<BotLinkedAccountsMetadata> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotLinkedAccountsMetadata>): BotLinkedAccountsMetadata {
-    return BotLinkedAccountsMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotLinkedAccountsMetadata, base);
   },
   fromPartial(object: DeepPartial<BotLinkedAccountsMetadata>): BotLinkedAccountsMetadata {
     const message = createBaseBotLinkedAccountsMetadata();
     message.accounts = object.accounts?.map((e) => BotLinkedAccount.fromPartial(e)) || undefined;
-    message.acAuthTokens = object.acAuthTokens ?? undefined;
-    message.acErrorCode = object.acErrorCode ?? undefined;
+    copyPartialScalars(message, object, 132, 134);
     return message;
   },
 };
@@ -13550,26 +13247,17 @@ export const BotMediaMetadata: MessageFns<BotMediaMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMediaMetadata>): BotMediaMetadata {
-    return BotMediaMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMediaMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMediaMetadata>): BotMediaMetadata {
     const message = createBaseBotMediaMetadata();
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.orientationType = object.orientationType ?? undefined;
+    copyPartialScalars(message, object, 134, 141);
     return message;
   },
 };
@@ -13613,21 +13301,17 @@ export const BotMemoryFact: MessageFns<BotMemoryFact> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMemoryFact>): BotMemoryFact {
-    return BotMemoryFact.fromPartial(base ?? {});
+    return createPartialMessage(BotMemoryFact, base);
   },
   fromPartial(object: DeepPartial<BotMemoryFact>): BotMemoryFact {
     const message = createBaseBotMemoryFact();
-    message.fact = object.fact ?? undefined;
-    message.factId = object.factId ?? undefined;
+    copyPartialScalars(message, object, 141, 143);
     return message;
   },
 };
@@ -13698,16 +13382,13 @@ export const BotMemoryMetadata: MessageFns<BotMemoryMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMemoryMetadata>): BotMemoryMetadata {
-    return BotMemoryMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMemoryMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMemoryMetadata>): BotMemoryMetadata {
     const message = createBaseBotMemoryMetadata();
@@ -13754,16 +13435,13 @@ export const BotMemuMetadata: MessageFns<BotMemuMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMemuMetadata>): BotMemuMetadata {
-    return BotMemuMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMemuMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMemuMetadata>): BotMemuMetadata {
     const message = createBaseBotMemuMetadata();
@@ -13800,16 +13478,13 @@ export const BotMessageOrigin: MessageFns<BotMessageOrigin> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMessageOrigin>): BotMessageOrigin {
-    return BotMessageOrigin.fromPartial(base ?? {});
+    return createPartialMessage(BotMessageOrigin, base);
   },
   fromPartial(object: DeepPartial<BotMessageOrigin>): BotMessageOrigin {
     const message = createBaseBotMessageOrigin();
@@ -13854,16 +13529,13 @@ export const BotMessageOriginMetadata: MessageFns<BotMessageOriginMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMessageOriginMetadata>): BotMessageOriginMetadata {
-    return BotMessageOriginMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMessageOriginMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMessageOriginMetadata>): BotMessageOriginMetadata {
     const message = createBaseBotMessageOriginMetadata();
@@ -13911,21 +13583,17 @@ export const BotMessageSharingInfo: MessageFns<BotMessageSharingInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMessageSharingInfo>): BotMessageSharingInfo {
-    return BotMessageSharingInfo.fromPartial(base ?? {});
+    return createPartialMessage(BotMessageSharingInfo, base);
   },
   fromPartial(object: DeepPartial<BotMessageSharingInfo>): BotMessageSharingInfo {
     const message = createBaseBotMessageSharingInfo();
-    message.botEntryPointOrigin = object.botEntryPointOrigin ?? undefined;
-    message.forwardScore = object.forwardScore ?? undefined;
+    copyPartialScalars(message, object, 143, 145);
     return message;
   },
 };
@@ -14420,16 +14088,13 @@ export const BotMetadata: MessageFns<BotMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMetadata>): BotMetadata {
-    return BotMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMetadata>): BotMetadata {
     const message = createBaseBotMetadata();
@@ -14499,8 +14164,7 @@ export const BotMetadata: MessageFns<BotMetadata> = {
       (object.botAgeCollectionMetadata !== undefined && object.botAgeCollectionMetadata !== null)
         ? BotAgeCollectionMetadata.fromPartial(object.botAgeCollectionMetadata)
         : undefined;
-    message.conversationStarterPromptId = object.conversationStarterPromptId ?? undefined;
-    message.botResponseId = object.botResponseId ?? undefined;
+    copyPartialScalars(message, object, 145, 147);
     message.verificationMetadata = (object.verificationMetadata !== undefined && object.verificationMetadata !== null)
       ? BotSignatureVerificationMetadata.fromPartial(object.verificationMetadata)
       : undefined;
@@ -14618,22 +14282,17 @@ export const BotMetricsMetadata: MessageFns<BotMetricsMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotMetricsMetadata>): BotMetricsMetadata {
-    return BotMetricsMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotMetricsMetadata, base);
   },
   fromPartial(object: DeepPartial<BotMetricsMetadata>): BotMetricsMetadata {
     const message = createBaseBotMetricsMetadata();
-    message.destinationId = object.destinationId ?? undefined;
-    message.destinationEntryPoint = object.destinationEntryPoint ?? undefined;
-    message.threadOrigin = object.threadOrigin ?? undefined;
+    copyPartialScalars(message, object, 147, 150);
     return message;
   },
 };
@@ -14713,16 +14372,13 @@ export const BotModeSelectionMetadata: MessageFns<BotModeSelectionMetadata> = {
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotModeSelectionMetadata>): BotModeSelectionMetadata {
-    return BotModeSelectionMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotModeSelectionMetadata, base);
   },
   fromPartial(object: DeepPartial<BotModeSelectionMetadata>): BotModeSelectionMetadata {
     const message = createBaseBotModeSelectionMetadata();
@@ -14782,22 +14438,17 @@ export const BotModelMetadata: MessageFns<BotModelMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotModelMetadata>): BotModelMetadata {
-    return BotModelMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotModelMetadata, base);
   },
   fromPartial(object: DeepPartial<BotModelMetadata>): BotModelMetadata {
     const message = createBaseBotModelMetadata();
-    message.modelType = object.modelType ?? undefined;
-    message.premiumModelStatus = object.premiumModelStatus ?? undefined;
-    message.modelNameOverride = object.modelNameOverride ?? undefined;
+    copyPartialScalars(message, object, 150, 153);
     return message;
   },
 };
@@ -14951,34 +14602,22 @@ export const BotPluginMetadata: MessageFns<BotPluginMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotPluginMetadata>): BotPluginMetadata {
-    return BotPluginMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotPluginMetadata, base);
   },
   fromPartial(object: DeepPartial<BotPluginMetadata>): BotPluginMetadata {
     const message = createBaseBotPluginMetadata();
-    message.provider = object.provider ?? undefined;
-    message.pluginType = object.pluginType ?? undefined;
-    message.thumbnailCdnUrl = object.thumbnailCdnUrl ?? undefined;
-    message.profilePhotoCdnUrl = object.profilePhotoCdnUrl ?? undefined;
-    message.searchProviderUrl = object.searchProviderUrl ?? undefined;
-    message.referenceIndex = object.referenceIndex ?? undefined;
-    message.expectedLinksCount = object.expectedLinksCount ?? undefined;
-    message.searchQuery = object.searchQuery ?? undefined;
+    copyPartialScalars(message, object, 153, 161);
     message.parentPluginMessageKey =
       (object.parentPluginMessageKey !== undefined && object.parentPluginMessageKey !== null)
         ? MessageKey.fromPartial(object.parentPluginMessageKey)
         : undefined;
-    message.deprecatedField = object.deprecatedField ?? undefined;
-    message.parentPluginType = object.parentPluginType ?? undefined;
-    message.faviconCdnUrl = object.faviconCdnUrl ?? undefined;
+    copyPartialScalars(message, object, 161, 164);
     return message;
   },
 };
@@ -15041,16 +14680,13 @@ export const BotProgressIndicatorMetadata: MessageFns<BotProgressIndicatorMetada
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotProgressIndicatorMetadata>): BotProgressIndicatorMetadata {
-    return BotProgressIndicatorMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotProgressIndicatorMetadata, base);
   },
   fromPartial(object: DeepPartial<BotProgressIndicatorMetadata>): BotProgressIndicatorMetadata {
     const message = createBaseBotProgressIndicatorMetadata();
@@ -15190,10 +14826,7 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -15201,21 +14834,18 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata: MessageFns<
   create(
     base?: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata {
-    return BotProgressIndicatorMetadata_BotPlanningStepMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotProgressIndicatorMetadata_BotPlanningStepMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata {
     const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata();
-    message.statusTitle = object.statusTitle ?? undefined;
-    message.statusBody = object.statusBody ?? undefined;
+    copyPartialScalars(message, object, 164, 166);
     message.sourcesMetadata =
       object.sourcesMetadata?.map((e) =>
         BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata.fromPartial(e)
       ) || undefined;
-    message.status = object.status ?? undefined;
-    message.isReasoning = object.isReasoning ?? undefined;
-    message.isEnhancedSearch = object.isEnhancedSearch ?? undefined;
+    copyPartialScalars(message, object, 166, 169);
     message.sections =
       object.sections?.map((e) =>
         BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata.fromPartial(e)
@@ -15290,10 +14920,7 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -15301,16 +14928,13 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
   create(
     base?: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata {
-    return BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata {
     const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata();
-    message.title = object.title ?? undefined;
-    message.provider = object.provider ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
-    message.favIconUrl = object.favIconUrl ?? undefined;
+    copyPartialScalars(message, object, 169, 173);
     return message;
   },
 };
@@ -15370,10 +14994,7 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -15381,17 +15002,13 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSea
   create(
     base?: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata {
-    return BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata {
     const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourcesMetadata();
-    message.sourceTitle = object.sourceTitle ?? undefined;
-    message.provider = object.provider ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
+    copyPartialScalars(message, object, 173, 176);
     return message;
   },
 };
@@ -15465,10 +15082,7 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSte
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -15476,14 +15090,13 @@ export const BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSte
   create(
     base?: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata {
-    return BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata>,
   ): BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata {
     const message = createBaseBotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningStepSectionMetadata();
-    message.sectionTitle = object.sectionTitle ?? undefined;
-    message.sectionBody = object.sectionBody ?? undefined;
+    copyPartialScalars(message, object, 176, 178);
     message.sourcesMetadata =
       object.sourcesMetadata?.map((e) =>
         BotProgressIndicatorMetadata_BotPlanningStepMetadata_BotPlanningSearchSourceMetadata.fromPartial(e)
@@ -15531,21 +15144,17 @@ export const BotPromotionMessageMetadata: MessageFns<BotPromotionMessageMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotPromotionMessageMetadata>): BotPromotionMessageMetadata {
-    return BotPromotionMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotPromotionMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<BotPromotionMessageMetadata>): BotPromotionMessageMetadata {
     const message = createBaseBotPromotionMessageMetadata();
-    message.promotionType = object.promotionType ?? undefined;
-    message.buttonTitle = object.buttonTitle ?? undefined;
+    copyPartialScalars(message, object, 178, 180);
     return message;
   },
 };
@@ -15589,21 +15198,17 @@ export const BotPromptSuggestion: MessageFns<BotPromptSuggestion> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotPromptSuggestion>): BotPromptSuggestion {
-    return BotPromptSuggestion.fromPartial(base ?? {});
+    return createPartialMessage(BotPromptSuggestion, base);
   },
   fromPartial(object: DeepPartial<BotPromptSuggestion>): BotPromptSuggestion {
     const message = createBaseBotPromptSuggestion();
-    message.prompt = object.prompt ?? undefined;
-    message.promptId = object.promptId ?? undefined;
+    copyPartialScalars(message, object, 180, 182);
     return message;
   },
 };
@@ -15644,16 +15249,13 @@ export const BotPromptSuggestions: MessageFns<BotPromptSuggestions> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotPromptSuggestions>): BotPromptSuggestions {
-    return BotPromptSuggestions.fromPartial(base ?? {});
+    return createPartialMessage(BotPromptSuggestions, base);
   },
   fromPartial(object: DeepPartial<BotPromptSuggestions>): BotPromptSuggestions {
     const message = createBaseBotPromptSuggestions();
@@ -15690,16 +15292,13 @@ export const BotPttPromptMetadata: MessageFns<BotPttPromptMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotPttPromptMetadata>): BotPttPromptMetadata {
-    return BotPttPromptMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotPttPromptMetadata, base);
   },
   fromPartial(object: DeepPartial<BotPttPromptMetadata>): BotPttPromptMetadata {
     const message = createBaseBotPttPromptMetadata();
@@ -15744,16 +15343,13 @@ export const BotQuotaMetadata: MessageFns<BotQuotaMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotQuotaMetadata>): BotQuotaMetadata {
-    return BotQuotaMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotQuotaMetadata, base);
   },
   fromPartial(object: DeepPartial<BotQuotaMetadata>): BotQuotaMetadata {
     const message = createBaseBotQuotaMetadata();
@@ -15813,22 +15409,17 @@ export const BotQuotaMetadata_BotFeatureQuotaMetadata: MessageFns<BotQuotaMetada
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotQuotaMetadata_BotFeatureQuotaMetadata>): BotQuotaMetadata_BotFeatureQuotaMetadata {
-    return BotQuotaMetadata_BotFeatureQuotaMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotQuotaMetadata_BotFeatureQuotaMetadata, base);
   },
   fromPartial(object: DeepPartial<BotQuotaMetadata_BotFeatureQuotaMetadata>): BotQuotaMetadata_BotFeatureQuotaMetadata {
     const message = createBaseBotQuotaMetadata_BotFeatureQuotaMetadata();
-    message.featureType = object.featureType ?? undefined;
-    message.remainingQuota = object.remainingQuota ?? undefined;
-    message.expirationTimestamp = object.expirationTimestamp ?? undefined;
+    copyPartialScalars(message, object, 182, 185);
     return message;
   },
 };
@@ -15905,26 +15496,20 @@ export const BotReminderMetadata: MessageFns<BotReminderMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotReminderMetadata>): BotReminderMetadata {
-    return BotReminderMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotReminderMetadata, base);
   },
   fromPartial(object: DeepPartial<BotReminderMetadata>): BotReminderMetadata {
     const message = createBaseBotReminderMetadata();
     message.requestMessageKey = (object.requestMessageKey !== undefined && object.requestMessageKey !== null)
       ? MessageKey.fromPartial(object.requestMessageKey)
       : undefined;
-    message.action = object.action ?? undefined;
-    message.name = object.name ?? undefined;
-    message.nextTriggerTimestamp = object.nextTriggerTimestamp ?? undefined;
-    message.frequency = object.frequency ?? undefined;
+    copyPartialScalars(message, object, 185, 189);
     return message;
   },
 };
@@ -15968,21 +15553,17 @@ export const BotRenderingConfigMetadata: MessageFns<BotRenderingConfigMetadata> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotRenderingConfigMetadata>): BotRenderingConfigMetadata {
-    return BotRenderingConfigMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotRenderingConfigMetadata, base);
   },
   fromPartial(object: DeepPartial<BotRenderingConfigMetadata>): BotRenderingConfigMetadata {
     const message = createBaseBotRenderingConfigMetadata();
-    message.bloksVersioningId = object.bloksVersioningId ?? undefined;
-    message.pixelDensity = object.pixelDensity ?? undefined;
+    copyPartialScalars(message, object, 189, 191);
     return message;
   },
 };
@@ -16023,16 +15604,13 @@ export const BotRenderingMetadata: MessageFns<BotRenderingMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotRenderingMetadata>): BotRenderingMetadata {
-    return BotRenderingMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotRenderingMetadata, base);
   },
   fromPartial(object: DeepPartial<BotRenderingMetadata>): BotRenderingMetadata {
     const message = createBaseBotRenderingMetadata();
@@ -16088,16 +15666,13 @@ export const BotRenderingMetadata_Keyword: MessageFns<BotRenderingMetadata_Keywo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotRenderingMetadata_Keyword>): BotRenderingMetadata_Keyword {
-    return BotRenderingMetadata_Keyword.fromPartial(base ?? {});
+    return createPartialMessage(BotRenderingMetadata_Keyword, base);
   },
   fromPartial(object: DeepPartial<BotRenderingMetadata_Keyword>): BotRenderingMetadata_Keyword {
     const message = createBaseBotRenderingMetadata_Keyword();
@@ -16146,21 +15721,17 @@ export const BotResolvedToolCallMetadata: MessageFns<BotResolvedToolCallMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotResolvedToolCallMetadata>): BotResolvedToolCallMetadata {
-    return BotResolvedToolCallMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotResolvedToolCallMetadata, base);
   },
   fromPartial(object: DeepPartial<BotResolvedToolCallMetadata>): BotResolvedToolCallMetadata {
     const message = createBaseBotResolvedToolCallMetadata();
-    message.toolCallId = object.toolCallId ?? undefined;
-    message.resolutionDataSerialized = object.resolutionDataSerialized ?? undefined;
+    copyPartialScalars(message, object, 191, 193);
     return message;
   },
 };
@@ -16204,21 +15775,17 @@ export const BotSessionMetadata: MessageFns<BotSessionMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSessionMetadata>): BotSessionMetadata {
-    return BotSessionMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotSessionMetadata, base);
   },
   fromPartial(object: DeepPartial<BotSessionMetadata>): BotSessionMetadata {
     const message = createBaseBotSessionMetadata();
-    message.sessionId = object.sessionId ?? undefined;
-    message.sessionSource = object.sessionSource ?? undefined;
+    copyPartialScalars(message, object, 193, 195);
     return message;
   },
 };
@@ -16259,16 +15826,13 @@ export const BotSignatureVerificationMetadata: MessageFns<BotSignatureVerificati
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSignatureVerificationMetadata>): BotSignatureVerificationMetadata {
-    return BotSignatureVerificationMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotSignatureVerificationMetadata, base);
   },
   fromPartial(object: DeepPartial<BotSignatureVerificationMetadata>): BotSignatureVerificationMetadata {
     const message = createBaseBotSignatureVerificationMetadata();
@@ -16365,22 +15929,17 @@ export const BotSignatureVerificationUseCaseProof: MessageFns<BotSignatureVerifi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSignatureVerificationUseCaseProof>): BotSignatureVerificationUseCaseProof {
-    return BotSignatureVerificationUseCaseProof.fromPartial(base ?? {});
+    return createPartialMessage(BotSignatureVerificationUseCaseProof, base);
   },
   fromPartial(object: DeepPartial<BotSignatureVerificationUseCaseProof>): BotSignatureVerificationUseCaseProof {
     const message = createBaseBotSignatureVerificationUseCaseProof();
-    message.version = object.version ?? undefined;
-    message.useCase = object.useCase ?? undefined;
-    message.signature = object.signature ?? undefined;
+    copyPartialScalars(message, object, 195, 198);
     message.certificateChain = object.certificateChain?.map((e) => e) || undefined;
     message.certificateChainSki =
       object.certificateChainSki?.map((e) => BotSignatureVerificationUseCaseProof_CertificateSKI.fromPartial(e)) ||
@@ -16433,10 +15992,7 @@ export const BotSignatureVerificationUseCaseProof_CertificateSKI: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -16444,14 +16000,13 @@ export const BotSignatureVerificationUseCaseProof_CertificateSKI: MessageFns<
   create(
     base?: DeepPartial<BotSignatureVerificationUseCaseProof_CertificateSKI>,
   ): BotSignatureVerificationUseCaseProof_CertificateSKI {
-    return BotSignatureVerificationUseCaseProof_CertificateSKI.fromPartial(base ?? {});
+    return createPartialMessage(BotSignatureVerificationUseCaseProof_CertificateSKI, base);
   },
   fromPartial(
     object: DeepPartial<BotSignatureVerificationUseCaseProof_CertificateSKI>,
   ): BotSignatureVerificationUseCaseProof_CertificateSKI {
     const message = createBaseBotSignatureVerificationUseCaseProof_CertificateSKI();
-    message.useCase = object.useCase ?? undefined;
-    message.ski = object.ski ?? undefined;
+    copyPartialScalars(message, object, 198, 200);
     return message;
   },
 };
@@ -16492,16 +16047,13 @@ export const BotSourcesMetadata: MessageFns<BotSourcesMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSourcesMetadata>): BotSourcesMetadata {
-    return BotSourcesMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotSourcesMetadata, base);
   },
   fromPartial(object: DeepPartial<BotSourcesMetadata>): BotSourcesMetadata {
     const message = createBaseBotSourcesMetadata();
@@ -16604,26 +16156,17 @@ export const BotSourcesMetadata_BotSourceItem: MessageFns<BotSourcesMetadata_Bot
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSourcesMetadata_BotSourceItem>): BotSourcesMetadata_BotSourceItem {
-    return BotSourcesMetadata_BotSourceItem.fromPartial(base ?? {});
+    return createPartialMessage(BotSourcesMetadata_BotSourceItem, base);
   },
   fromPartial(object: DeepPartial<BotSourcesMetadata_BotSourceItem>): BotSourcesMetadata_BotSourceItem {
     const message = createBaseBotSourcesMetadata_BotSourceItem();
-    message.provider = object.provider ?? undefined;
-    message.thumbnailCdnUrl = object.thumbnailCdnUrl ?? undefined;
-    message.sourceProviderUrl = object.sourceProviderUrl ?? undefined;
-    message.sourceQuery = object.sourceQuery ?? undefined;
-    message.faviconCdnUrl = object.faviconCdnUrl ?? undefined;
-    message.citationNumber = object.citationNumber ?? undefined;
-    message.sourceTitle = object.sourceTitle ?? undefined;
+    copyPartialScalars(message, object, 200, 207);
     return message;
   },
 };
@@ -16697,16 +16240,13 @@ export const BotSuggestedPromptMetadata: MessageFns<BotSuggestedPromptMetadata> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotSuggestedPromptMetadata>): BotSuggestedPromptMetadata {
-    return BotSuggestedPromptMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotSuggestedPromptMetadata, base);
   },
   fromPartial(object: DeepPartial<BotSuggestedPromptMetadata>): BotSuggestedPromptMetadata {
     const message = createBaseBotSuggestedPromptMetadata();
@@ -16767,16 +16307,13 @@ export const BotUnifiedResponseMutation: MessageFns<BotUnifiedResponseMutation> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<BotUnifiedResponseMutation>): BotUnifiedResponseMutation {
-    return BotUnifiedResponseMutation.fromPartial(base ?? {});
+    return createPartialMessage(BotUnifiedResponseMutation, base);
   },
   fromPartial(object: DeepPartial<BotUnifiedResponseMutation>): BotUnifiedResponseMutation {
     const message = createBaseBotUnifiedResponseMutation();
@@ -16845,10 +16382,7 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -16856,7 +16390,7 @@ export const BotUnifiedResponseMutation_MediaDetailsMetadata: MessageFns<
   create(
     base?: DeepPartial<BotUnifiedResponseMutation_MediaDetailsMetadata>,
   ): BotUnifiedResponseMutation_MediaDetailsMetadata {
-    return BotUnifiedResponseMutation_MediaDetailsMetadata.fromPartial(base ?? {});
+    return createPartialMessage(BotUnifiedResponseMutation_MediaDetailsMetadata, base);
   },
   fromPartial(
     object: DeepPartial<BotUnifiedResponseMutation_MediaDetailsMetadata>,
@@ -16916,10 +16450,7 @@ export const BotUnifiedResponseMutation_SideBySideMetadata: MessageFns<BotUnifie
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -16927,14 +16458,13 @@ export const BotUnifiedResponseMutation_SideBySideMetadata: MessageFns<BotUnifie
     create(
       base?: DeepPartial<BotUnifiedResponseMutation_SideBySideMetadata>,
     ): BotUnifiedResponseMutation_SideBySideMetadata {
-      return BotUnifiedResponseMutation_SideBySideMetadata.fromPartial(base ?? {});
+      return createPartialMessage(BotUnifiedResponseMutation_SideBySideMetadata, base);
     },
     fromPartial(
       object: DeepPartial<BotUnifiedResponseMutation_SideBySideMetadata>,
     ): BotUnifiedResponseMutation_SideBySideMetadata {
       const message = createBaseBotUnifiedResponseMutation_SideBySideMetadata();
-      message.primaryResponseId = object.primaryResponseId ?? undefined;
-      message.surveyCtaHasRendered = object.surveyCtaHasRendered ?? undefined;
+      copyPartialScalars(message, object, 207, 209);
       return message;
     },
   };
@@ -17129,32 +16659,17 @@ export const CallLogRecord: MessageFns<CallLogRecord> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CallLogRecord>): CallLogRecord {
-    return CallLogRecord.fromPartial(base ?? {});
+    return createPartialMessage(CallLogRecord, base);
   },
   fromPartial(object: DeepPartial<CallLogRecord>): CallLogRecord {
     const message = createBaseCallLogRecord();
-    message.callResult = object.callResult ?? undefined;
-    message.isDndMode = object.isDndMode ?? undefined;
-    message.silenceReason = object.silenceReason ?? undefined;
-    message.duration = object.duration ?? undefined;
-    message.startTime = object.startTime ?? undefined;
-    message.isIncoming = object.isIncoming ?? undefined;
-    message.isVideo = object.isVideo ?? undefined;
-    message.isCallLink = object.isCallLink ?? undefined;
-    message.callLinkToken = object.callLinkToken ?? undefined;
-    message.scheduledCallId = object.scheduledCallId ?? undefined;
-    message.callId = object.callId ?? undefined;
-    message.callCreatorJid = object.callCreatorJid ?? undefined;
-    message.groupJid = object.groupJid ?? undefined;
+    copyPartialScalars(message, object, 209, 222);
     message.participants = object.participants?.map((e) => CallLogRecord_ParticipantInfo.fromPartial(e)) || undefined;
     message.callType = object.callType ?? undefined;
     return message;
@@ -17200,21 +16715,17 @@ export const CallLogRecord_ParticipantInfo: MessageFns<CallLogRecord_Participant
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CallLogRecord_ParticipantInfo>): CallLogRecord_ParticipantInfo {
-    return CallLogRecord_ParticipantInfo.fromPartial(base ?? {});
+    return createPartialMessage(CallLogRecord_ParticipantInfo, base);
   },
   fromPartial(object: DeepPartial<CallLogRecord_ParticipantInfo>): CallLogRecord_ParticipantInfo {
     const message = createBaseCallLogRecord_ParticipantInfo();
-    message.userJid = object.userJid ?? undefined;
-    message.callResult = object.callResult ?? undefined;
+    copyPartialScalars(message, object, 222, 224);
     return message;
   },
 };
@@ -17258,16 +16769,13 @@ export const CertChain: MessageFns<CertChain> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CertChain>): CertChain {
-    return CertChain.fromPartial(base ?? {});
+    return createPartialMessage(CertChain, base);
   },
   fromPartial(object: DeepPartial<CertChain>): CertChain {
     const message = createBaseCertChain();
@@ -17320,21 +16828,17 @@ export const CertChain_NoiseCertificate: MessageFns<CertChain_NoiseCertificate> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CertChain_NoiseCertificate>): CertChain_NoiseCertificate {
-    return CertChain_NoiseCertificate.fromPartial(base ?? {});
+    return createPartialMessage(CertChain_NoiseCertificate, base);
   },
   fromPartial(object: DeepPartial<CertChain_NoiseCertificate>): CertChain_NoiseCertificate {
     const message = createBaseCertChain_NoiseCertificate();
-    message.details = object.details ?? undefined;
-    message.signature = object.signature ?? undefined;
+    copyPartialScalars(message, object, 224, 226);
     return message;
   },
 };
@@ -17411,24 +16915,17 @@ export const CertChain_NoiseCertificate_Details: MessageFns<CertChain_NoiseCerti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CertChain_NoiseCertificate_Details>): CertChain_NoiseCertificate_Details {
-    return CertChain_NoiseCertificate_Details.fromPartial(base ?? {});
+    return createPartialMessage(CertChain_NoiseCertificate_Details, base);
   },
   fromPartial(object: DeepPartial<CertChain_NoiseCertificate_Details>): CertChain_NoiseCertificate_Details {
     const message = createBaseCertChain_NoiseCertificate_Details();
-    message.serial = object.serial ?? undefined;
-    message.issuerSerial = object.issuerSerial ?? undefined;
-    message.key = object.key ?? undefined;
-    message.notBefore = object.notBefore ?? undefined;
-    message.notAfter = object.notAfter ?? undefined;
+    copyPartialScalars(message, object, 226, 231);
     return message;
   },
 };
@@ -17472,16 +16969,13 @@ export const ChatLockSettings: MessageFns<ChatLockSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ChatLockSettings>): ChatLockSettings {
-    return ChatLockSettings.fromPartial(base ?? {});
+    return createPartialMessage(ChatLockSettings, base);
   },
   fromPartial(object: DeepPartial<ChatLockSettings>): ChatLockSettings {
     const message = createBaseChatLockSettings();
@@ -17521,16 +17015,13 @@ export const ChatRowOpaqueData: MessageFns<ChatRowOpaqueData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ChatRowOpaqueData>): ChatRowOpaqueData {
-    return ChatRowOpaqueData.fromPartial(base ?? {});
+    return createPartialMessage(ChatRowOpaqueData, base);
   },
   fromPartial(object: DeepPartial<ChatRowOpaqueData>): ChatRowOpaqueData {
     const message = createBaseChatRowOpaqueData();
@@ -17614,21 +17105,17 @@ export const ChatRowOpaqueData_DraftMessage: MessageFns<ChatRowOpaqueData_DraftM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ChatRowOpaqueData_DraftMessage>): ChatRowOpaqueData_DraftMessage {
-    return ChatRowOpaqueData_DraftMessage.fromPartial(base ?? {});
+    return createPartialMessage(ChatRowOpaqueData_DraftMessage, base);
   },
   fromPartial(object: DeepPartial<ChatRowOpaqueData_DraftMessage>): ChatRowOpaqueData_DraftMessage {
     const message = createBaseChatRowOpaqueData_DraftMessage();
-    message.text = object.text ?? undefined;
-    message.omittedUrl = object.omittedUrl ?? undefined;
+    copyPartialScalars(message, object, 231, 233);
     message.ctwaContextLinkData = (object.ctwaContextLinkData !== undefined && object.ctwaContextLinkData !== null)
       ? ChatRowOpaqueData_DraftMessage_CtwaContextLinkData.fromPartial(object.ctwaContextLinkData)
       : undefined;
@@ -17794,10 +17281,7 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextData: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -17805,24 +17289,13 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextData: MessageFns<
   create(
     base?: DeepPartial<ChatRowOpaqueData_DraftMessage_CtwaContextData>,
   ): ChatRowOpaqueData_DraftMessage_CtwaContextData {
-    return ChatRowOpaqueData_DraftMessage_CtwaContextData.fromPartial(base ?? {});
+    return createPartialMessage(ChatRowOpaqueData_DraftMessage_CtwaContextData, base);
   },
   fromPartial(
     object: DeepPartial<ChatRowOpaqueData_DraftMessage_CtwaContextData>,
   ): ChatRowOpaqueData_DraftMessage_CtwaContextData {
     const message = createBaseChatRowOpaqueData_DraftMessage_CtwaContextData();
-    message.conversionSource = object.conversionSource ?? undefined;
-    message.conversionData = object.conversionData ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
-    message.sourceId = object.sourceId ?? undefined;
-    message.sourceType = object.sourceType ?? undefined;
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.thumbnail = object.thumbnail ?? undefined;
-    message.thumbnailUrl = object.thumbnailUrl ?? undefined;
-    message.mediaType = object.mediaType ?? undefined;
-    message.mediaUrl = object.mediaUrl ?? undefined;
-    message.isSuspiciousLink = object.isSuspiciousLink ?? undefined;
+    copyPartialScalars(message, object, 233, 245);
     return message;
   },
 };
@@ -17893,10 +17366,7 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextLinkData: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -17904,16 +17374,13 @@ export const ChatRowOpaqueData_DraftMessage_CtwaContextLinkData: MessageFns<
   create(
     base?: DeepPartial<ChatRowOpaqueData_DraftMessage_CtwaContextLinkData>,
   ): ChatRowOpaqueData_DraftMessage_CtwaContextLinkData {
-    return ChatRowOpaqueData_DraftMessage_CtwaContextLinkData.fromPartial(base ?? {});
+    return createPartialMessage(ChatRowOpaqueData_DraftMessage_CtwaContextLinkData, base);
   },
   fromPartial(
     object: DeepPartial<ChatRowOpaqueData_DraftMessage_CtwaContextLinkData>,
   ): ChatRowOpaqueData_DraftMessage_CtwaContextLinkData {
     const message = createBaseChatRowOpaqueData_DraftMessage_CtwaContextLinkData();
-    message.context = object.context ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
-    message.icebreaker = object.icebreaker ?? undefined;
-    message.phone = object.phone ?? undefined;
+    copyPartialScalars(message, object, 245, 249);
     return message;
   },
 };
@@ -17979,23 +17446,17 @@ export const Citation: MessageFns<Citation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Citation>): Citation {
-    return Citation.fromPartial(base ?? {});
+    return createPartialMessage(Citation, base);
   },
   fromPartial(object: DeepPartial<Citation>): Citation {
     const message = createBaseCitation();
-    message.title = object.title ?? undefined;
-    message.subtitle = object.subtitle ?? undefined;
-    message.cmsId = object.cmsId ?? undefined;
-    message.imageUrl = object.imageUrl ?? undefined;
+    copyPartialScalars(message, object, 249, 253);
     return message;
   },
 };
@@ -18072,24 +17533,17 @@ export const ClientPairingProps: MessageFns<ClientPairingProps> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPairingProps>): ClientPairingProps {
-    return ClientPairingProps.fromPartial(base ?? {});
+    return createPartialMessage(ClientPairingProps, base);
   },
   fromPartial(object: DeepPartial<ClientPairingProps>): ClientPairingProps {
     const message = createBaseClientPairingProps();
-    message.isChatDbLidMigrated = object.isChatDbLidMigrated ?? undefined;
-    message.isSyncdPureLidSession = object.isSyncdPureLidSession ?? undefined;
-    message.isSyncdSnapshotRecoveryEnabled = object.isSyncdSnapshotRecoveryEnabled ?? undefined;
-    message.isHsThumbnailSyncEnabled = object.isHsThumbnailSyncEnabled ?? undefined;
-    message.subscriptionSyncPayload = object.subscriptionSyncPayload ?? undefined;
+    copyPartialScalars(message, object, 253, 258);
     return message;
   },
 };
@@ -18533,16 +17987,13 @@ export const ClientPayload: MessageFns<ClientPayload> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload>): ClientPayload {
-    return ClientPayload.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload, base);
   },
   fromPartial(object: DeepPartial<ClientPayload>): ClientPayload {
     const message = createBaseClientPayload();
@@ -18635,21 +18086,17 @@ export const ClientPayload_DNSSource: MessageFns<ClientPayload_DNSSource> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_DNSSource>): ClientPayload_DNSSource {
-    return ClientPayload_DNSSource.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_DNSSource, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_DNSSource>): ClientPayload_DNSSource {
     const message = createBaseClientPayload_DNSSource();
-    message.dnsMethod = object.dnsMethod ?? undefined;
-    message.appCached = object.appCached ?? undefined;
+    copyPartialScalars(message, object, 258, 260);
     return message;
   },
 };
@@ -18762,29 +18209,19 @@ export const ClientPayload_DevicePairingRegistrationData: MessageFns<ClientPaylo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_DevicePairingRegistrationData>): ClientPayload_DevicePairingRegistrationData {
-    return ClientPayload_DevicePairingRegistrationData.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_DevicePairingRegistrationData, base);
   },
   fromPartial(
     object: DeepPartial<ClientPayload_DevicePairingRegistrationData>,
   ): ClientPayload_DevicePairingRegistrationData {
     const message = createBaseClientPayload_DevicePairingRegistrationData();
-    message.eRegid = object.eRegid ?? undefined;
-    message.eKeytype = object.eKeytype ?? undefined;
-    message.eIdent = object.eIdent ?? undefined;
-    message.eSkeyId = object.eSkeyId ?? undefined;
-    message.eSkeyVal = object.eSkeyVal ?? undefined;
-    message.eSkeySig = object.eSkeySig ?? undefined;
-    message.buildHash = object.buildHash ?? undefined;
-    message.deviceProps = object.deviceProps ?? undefined;
+    copyPartialScalars(message, object, 260, 268);
     return message;
   },
 };
@@ -18839,22 +18276,17 @@ export const ClientPayload_InteropData: MessageFns<ClientPayload_InteropData> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_InteropData>): ClientPayload_InteropData {
-    return ClientPayload_InteropData.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_InteropData, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_InteropData>): ClientPayload_InteropData {
     const message = createBaseClientPayload_InteropData();
-    message.accountId = object.accountId ?? undefined;
-    message.token = object.token ?? undefined;
-    message.enableReadReceipts = object.enableReadReceipts ?? undefined;
+    copyPartialScalars(message, object, 268, 271);
     return message;
   },
 };
@@ -19063,16 +18495,13 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_UserAgent>): ClientPayload_UserAgent {
-    return ClientPayload_UserAgent.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_UserAgent, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_UserAgent>): ClientPayload_UserAgent {
     const message = createBaseClientPayload_UserAgent();
@@ -19080,21 +18509,7 @@ export const ClientPayload_UserAgent: MessageFns<ClientPayload_UserAgent> = {
     message.appVersion = (object.appVersion !== undefined && object.appVersion !== null)
       ? ClientPayload_UserAgent_AppVersion.fromPartial(object.appVersion)
       : undefined;
-    message.mcc = object.mcc ?? undefined;
-    message.mnc = object.mnc ?? undefined;
-    message.osVersion = object.osVersion ?? undefined;
-    message.manufacturer = object.manufacturer ?? undefined;
-    message.device = object.device ?? undefined;
-    message.osBuildNumber = object.osBuildNumber ?? undefined;
-    message.phoneId = object.phoneId ?? undefined;
-    message.releaseChannel = object.releaseChannel ?? undefined;
-    message.localeLanguageIso6391 = object.localeLanguageIso6391 ?? undefined;
-    message.localeCountryIso31661Alpha2 = object.localeCountryIso31661Alpha2 ?? undefined;
-    message.deviceBoard = object.deviceBoard ?? undefined;
-    message.deviceExpId = object.deviceExpId ?? undefined;
-    message.deviceType = object.deviceType ?? undefined;
-    message.deviceModelType = object.deviceModelType ?? undefined;
-    message.distributionChannel = object.distributionChannel ?? undefined;
+    copyPartialScalars(message, object, 271, 286);
     return message;
   },
 };
@@ -19171,24 +18586,17 @@ export const ClientPayload_UserAgent_AppVersion: MessageFns<ClientPayload_UserAg
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_UserAgent_AppVersion>): ClientPayload_UserAgent_AppVersion {
-    return ClientPayload_UserAgent_AppVersion.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_UserAgent_AppVersion, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_UserAgent_AppVersion>): ClientPayload_UserAgent_AppVersion {
     const message = createBaseClientPayload_UserAgent_AppVersion();
-    message.primary = object.primary ?? undefined;
-    message.secondary = object.secondary ?? undefined;
-    message.tertiary = object.tertiary ?? undefined;
-    message.quaternary = object.quaternary ?? undefined;
-    message.quinary = object.quinary ?? undefined;
+    copyPartialScalars(message, object, 286, 291);
     return message;
   },
 };
@@ -19276,27 +18684,21 @@ export const ClientPayload_WebInfo: MessageFns<ClientPayload_WebInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_WebInfo>): ClientPayload_WebInfo {
-    return ClientPayload_WebInfo.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_WebInfo, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_WebInfo>): ClientPayload_WebInfo {
     const message = createBaseClientPayload_WebInfo();
-    message.refToken = object.refToken ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 291, 293);
     message.webdPayload = (object.webdPayload !== undefined && object.webdPayload !== null)
       ? ClientPayload_WebInfo_WebdPayload.fromPartial(object.webdPayload)
       : undefined;
-    message.webSubPlatform = object.webSubPlatform ?? undefined;
-    message.browser = object.browser ?? undefined;
-    message.browserVersion = object.browserVersion ?? undefined;
+    copyPartialScalars(message, object, 293, 296);
     return message;
   },
 };
@@ -19439,30 +18841,17 @@ export const ClientPayload_WebInfo_WebdPayload: MessageFns<ClientPayload_WebInfo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ClientPayload_WebInfo_WebdPayload>): ClientPayload_WebInfo_WebdPayload {
-    return ClientPayload_WebInfo_WebdPayload.fromPartial(base ?? {});
+    return createPartialMessage(ClientPayload_WebInfo_WebdPayload, base);
   },
   fromPartial(object: DeepPartial<ClientPayload_WebInfo_WebdPayload>): ClientPayload_WebInfo_WebdPayload {
     const message = createBaseClientPayload_WebInfo_WebdPayload();
-    message.usesParticipantInKey = object.usesParticipantInKey ?? undefined;
-    message.supportsStarredMessages = object.supportsStarredMessages ?? undefined;
-    message.supportsDocumentMessages = object.supportsDocumentMessages ?? undefined;
-    message.supportsUrlMessages = object.supportsUrlMessages ?? undefined;
-    message.supportsMediaRetry = object.supportsMediaRetry ?? undefined;
-    message.supportsE2EImage = object.supportsE2EImage ?? undefined;
-    message.supportsE2EVideo = object.supportsE2EVideo ?? undefined;
-    message.supportsE2EAudio = object.supportsE2EAudio ?? undefined;
-    message.supportsE2EDocument = object.supportsE2EDocument ?? undefined;
-    message.documentTypes = object.documentTypes ?? undefined;
-    message.features = object.features ?? undefined;
+    copyPartialScalars(message, object, 296, 307);
     return message;
   },
 };
@@ -19503,16 +18892,13 @@ export const CoexStateSync: MessageFns<CoexStateSync> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CoexStateSync>): CoexStateSync {
-    return CoexStateSync.fromPartial(base ?? {});
+    return createPartialMessage(CoexStateSync, base);
   },
   fromPartial(object: DeepPartial<CoexStateSync>): CoexStateSync {
     const message = createBaseCoexStateSync();
@@ -19569,16 +18955,13 @@ export const CoexStateSync_CollectionMutations: MessageFns<CoexStateSync_Collect
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CoexStateSync_CollectionMutations>): CoexStateSync_CollectionMutations {
-    return CoexStateSync_CollectionMutations.fromPartial(base ?? {});
+    return createPartialMessage(CoexStateSync_CollectionMutations, base);
   },
   fromPartial(object: DeepPartial<CoexStateSync_CollectionMutations>): CoexStateSync_CollectionMutations {
     const message = createBaseCoexStateSync_CollectionMutations();
@@ -19649,16 +19032,13 @@ export const CoexStateSync_Mutation: MessageFns<CoexStateSync_Mutation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CoexStateSync_Mutation>): CoexStateSync_Mutation {
-    return CoexStateSync_Mutation.fromPartial(base ?? {});
+    return createPartialMessage(CoexStateSync_Mutation, base);
   },
   fromPartial(object: DeepPartial<CoexStateSync_Mutation>): CoexStateSync_Mutation {
     const message = createBaseCoexStateSync_Mutation();
@@ -19668,8 +19048,7 @@ export const CoexStateSync_Mutation: MessageFns<CoexStateSync_Mutation> = {
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncdValue.fromPartial(object.value)
       : undefined;
-    message.dirtyVersion = object.dirtyVersion ?? undefined;
-    message.operation = object.operation ?? undefined;
+    copyPartialScalars(message, object, 307, 309);
     return message;
   },
 };
@@ -19724,16 +19103,13 @@ export const CombinedFingerprint: MessageFns<CombinedFingerprint> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CombinedFingerprint>): CombinedFingerprint {
-    return CombinedFingerprint.fromPartial(base ?? {});
+    return createPartialMessage(CombinedFingerprint, base);
   },
   fromPartial(object: DeepPartial<CombinedFingerprint>): CombinedFingerprint {
     const message = createBaseCombinedFingerprint();
@@ -19809,23 +19185,17 @@ export const Command: MessageFns<Command> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Command>): Command {
-    return Command.fromPartial(base ?? {});
+    return createPartialMessage(Command, base);
   },
   fromPartial(object: DeepPartial<Command>): Command {
     const message = createBaseCommand();
-    message.commandType = object.commandType ?? undefined;
-    message.offset = object.offset ?? undefined;
-    message.length = object.length ?? undefined;
-    message.validationToken = object.validationToken ?? undefined;
+    copyPartialScalars(message, object, 309, 313);
     return message;
   },
 };
@@ -19869,16 +19239,13 @@ export const CommentMetadata: MessageFns<CommentMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CommentMetadata>): CommentMetadata {
-    return CommentMetadata.fromPartial(base ?? {});
+    return createPartialMessage(CommentMetadata, base);
   },
   fromPartial(object: DeepPartial<CommentMetadata>): CommentMetadata {
     const message = createBaseCommentMetadata();
@@ -19918,16 +19285,13 @@ export const CompanionCommitment: MessageFns<CompanionCommitment> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CompanionCommitment>): CompanionCommitment {
-    return CompanionCommitment.fromPartial(base ?? {});
+    return createPartialMessage(CompanionCommitment, base);
   },
   fromPartial(object: DeepPartial<CompanionCommitment>): CompanionCommitment {
     const message = createBaseCompanionCommitment();
@@ -19986,22 +19350,17 @@ export const CompanionEphemeralIdentity: MessageFns<CompanionEphemeralIdentity> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CompanionEphemeralIdentity>): CompanionEphemeralIdentity {
-    return CompanionEphemeralIdentity.fromPartial(base ?? {});
+    return createPartialMessage(CompanionEphemeralIdentity, base);
   },
   fromPartial(object: DeepPartial<CompanionEphemeralIdentity>): CompanionEphemeralIdentity {
     const message = createBaseCompanionEphemeralIdentity();
-    message.publicKey = object.publicKey ?? undefined;
-    message.deviceType = object.deviceType ?? undefined;
-    message.ref = object.ref ?? undefined;
+    copyPartialScalars(message, object, 313, 316);
     return message;
   },
 };
@@ -20051,16 +19410,13 @@ export const Config: MessageFns<Config> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Config>): Config {
-    return Config.fromPartial(base ?? {});
+    return createPartialMessage(Config, base);
   },
   fromPartial(object: DeepPartial<Config>): Config {
     const message = createBaseConfig();
@@ -20119,16 +19475,13 @@ export const Config_FieldEntry: MessageFns<Config_FieldEntry> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Config_FieldEntry>): Config_FieldEntry {
-    return Config_FieldEntry.fromPartial(base ?? {});
+    return createPartialMessage(Config_FieldEntry, base);
   },
   fromPartial(object: DeepPartial<Config_FieldEntry>): Config_FieldEntry {
     const message = createBaseConfig_FieldEntry();
@@ -20177,16 +19530,13 @@ export const ConsumerApplication: MessageFns<ConsumerApplication> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication>): ConsumerApplication {
-    return ConsumerApplication.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication>): ConsumerApplication {
     const message = createBaseConsumerApplication();
@@ -20228,16 +19578,13 @@ export const ConsumerApplication_ApplicationData: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ApplicationData>): ConsumerApplication_ApplicationData {
-    return ConsumerApplication_ApplicationData.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ApplicationData, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ApplicationData>): ConsumerApplication_ApplicationData {
     const message = createBaseConsumerApplication_ApplicationData();
@@ -20287,16 +19634,13 @@ export const ConsumerApplication_AudioMessage: MessageFns<ConsumerApplication_Au
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_AudioMessage>): ConsumerApplication_AudioMessage {
-    return ConsumerApplication_AudioMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_AudioMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_AudioMessage>): ConsumerApplication_AudioMessage {
     const message = createBaseConsumerApplication_AudioMessage();
@@ -20336,16 +19680,13 @@ export const ConsumerApplication_ContactMessage: MessageFns<ConsumerApplication_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ContactMessage>): ConsumerApplication_ContactMessage {
-    return ConsumerApplication_ContactMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ContactMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ContactMessage>): ConsumerApplication_ContactMessage {
     const message = createBaseConsumerApplication_ContactMessage();
@@ -20403,16 +19744,13 @@ export const ConsumerApplication_ContactsArrayMessage: MessageFns<ConsumerApplic
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ContactsArrayMessage>): ConsumerApplication_ContactsArrayMessage {
-    return ConsumerApplication_ContactsArrayMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ContactsArrayMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ContactsArrayMessage>): ConsumerApplication_ContactsArrayMessage {
     const message = createBaseConsumerApplication_ContactsArrayMessage();
@@ -20637,16 +19975,13 @@ export const ConsumerApplication_Content: MessageFns<ConsumerApplication_Content
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Content>): ConsumerApplication_Content {
-    return ConsumerApplication_Content.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Content, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Content>): ConsumerApplication_Content {
     const message = createBaseConsumerApplication_Content();
@@ -20747,16 +20082,13 @@ export const ConsumerApplication_DocumentMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_DocumentMessage>): ConsumerApplication_DocumentMessage {
-    return ConsumerApplication_DocumentMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_DocumentMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_DocumentMessage>): ConsumerApplication_DocumentMessage {
     const message = createBaseConsumerApplication_DocumentMessage();
@@ -20818,16 +20150,13 @@ export const ConsumerApplication_EditMessage: MessageFns<ConsumerApplication_Edi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_EditMessage>): ConsumerApplication_EditMessage {
-    return ConsumerApplication_EditMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_EditMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_EditMessage>): ConsumerApplication_EditMessage {
     const message = createBaseConsumerApplication_EditMessage();
@@ -20934,26 +20263,20 @@ export const ConsumerApplication_ExtendedTextMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ExtendedTextMessage>): ConsumerApplication_ExtendedTextMessage {
-    return ConsumerApplication_ExtendedTextMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ExtendedTextMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ExtendedTextMessage>): ConsumerApplication_ExtendedTextMessage {
     const message = createBaseConsumerApplication_ExtendedTextMessage();
     message.text = (object.text !== undefined && object.text !== null)
       ? MessageText.fromPartial(object.text)
       : undefined;
-    message.matchedText = object.matchedText ?? undefined;
-    message.canonicalUrl = object.canonicalUrl ?? undefined;
-    message.description = object.description ?? undefined;
-    message.title = object.title ?? undefined;
+    copyPartialScalars(message, object, 316, 320);
     message.thumbnail = (object.thumbnail !== undefined && object.thumbnail !== null)
       ? SubProtocol.fromPartial(object.thumbnail)
       : undefined;
@@ -21045,24 +20368,17 @@ export const ConsumerApplication_GroupInviteMessage: MessageFns<ConsumerApplicat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_GroupInviteMessage>): ConsumerApplication_GroupInviteMessage {
-    return ConsumerApplication_GroupInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_GroupInviteMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_GroupInviteMessage>): ConsumerApplication_GroupInviteMessage {
     const message = createBaseConsumerApplication_GroupInviteMessage();
-    message.groupJid = object.groupJid ?? undefined;
-    message.inviteCode = object.inviteCode ?? undefined;
-    message.inviteExpiration = object.inviteExpiration ?? undefined;
-    message.groupName = object.groupName ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 320, 325);
     message.caption = (object.caption !== undefined && object.caption !== null)
       ? MessageText.fromPartial(object.caption)
       : undefined;
@@ -21109,16 +20425,13 @@ export const ConsumerApplication_ImageMessage: MessageFns<ConsumerApplication_Im
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ImageMessage>): ConsumerApplication_ImageMessage {
-    return ConsumerApplication_ImageMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ImageMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ImageMessage>): ConsumerApplication_ImageMessage {
     const message = createBaseConsumerApplication_ImageMessage();
@@ -21179,16 +20492,13 @@ export const ConsumerApplication_InteractiveAnnotation: MessageFns<ConsumerAppli
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_InteractiveAnnotation>): ConsumerApplication_InteractiveAnnotation {
-    return ConsumerApplication_InteractiveAnnotation.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_InteractiveAnnotation, base);
   },
   fromPartial(
     object: DeepPartial<ConsumerApplication_InteractiveAnnotation>,
@@ -21296,30 +20606,24 @@ export const ConsumerApplication_LiveLocationMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_LiveLocationMessage>): ConsumerApplication_LiveLocationMessage {
-    return ConsumerApplication_LiveLocationMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_LiveLocationMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_LiveLocationMessage>): ConsumerApplication_LiveLocationMessage {
     const message = createBaseConsumerApplication_LiveLocationMessage();
     message.location = (object.location !== undefined && object.location !== null)
       ? ConsumerApplication_Location.fromPartial(object.location)
       : undefined;
-    message.accuracyInMeters = object.accuracyInMeters ?? undefined;
-    message.speedInMps = object.speedInMps ?? undefined;
-    message.degreesClockwiseFromMagneticNorth = object.degreesClockwiseFromMagneticNorth ?? undefined;
+    copyPartialScalars(message, object, 325, 328);
     message.caption = (object.caption !== undefined && object.caption !== null)
       ? MessageText.fromPartial(object.caption)
       : undefined;
-    message.sequenceNumber = object.sequenceNumber ?? undefined;
-    message.timeOffset = object.timeOffset ?? undefined;
+    copyPartialScalars(message, object, 328, 330);
     return message;
   },
 };
@@ -21374,22 +20678,17 @@ export const ConsumerApplication_Location: MessageFns<ConsumerApplication_Locati
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Location>): ConsumerApplication_Location {
-    return ConsumerApplication_Location.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Location, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Location>): ConsumerApplication_Location {
     const message = createBaseConsumerApplication_Location();
-    message.degreesLatitude = object.degreesLatitude ?? undefined;
-    message.degreesLongitude = object.degreesLongitude ?? undefined;
-    message.name = object.name ?? undefined;
+    copyPartialScalars(message, object, 330, 333);
     return message;
   },
 };
@@ -21433,16 +20732,13 @@ export const ConsumerApplication_LocationMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_LocationMessage>): ConsumerApplication_LocationMessage {
-    return ConsumerApplication_LocationMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_LocationMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_LocationMessage>): ConsumerApplication_LocationMessage {
     const message = createBaseConsumerApplication_LocationMessage();
@@ -21482,16 +20778,13 @@ export const ConsumerApplication_MediaPayload: MessageFns<ConsumerApplication_Me
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_MediaPayload>): ConsumerApplication_MediaPayload {
-    return ConsumerApplication_MediaPayload.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_MediaPayload, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_MediaPayload>): ConsumerApplication_MediaPayload {
     const message = createBaseConsumerApplication_MediaPayload();
@@ -21530,16 +20823,13 @@ export const ConsumerApplication_Metadata: MessageFns<ConsumerApplication_Metada
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Metadata>): ConsumerApplication_Metadata {
-    return ConsumerApplication_Metadata.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Metadata, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Metadata>): ConsumerApplication_Metadata {
     const message = createBaseConsumerApplication_Metadata();
@@ -21576,16 +20866,13 @@ export const ConsumerApplication_Option: MessageFns<ConsumerApplication_Option> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Option>): ConsumerApplication_Option {
-    return ConsumerApplication_Option.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Option, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Option>): ConsumerApplication_Option {
     const message = createBaseConsumerApplication_Option();
@@ -21655,16 +20942,13 @@ export const ConsumerApplication_Payload: MessageFns<ConsumerApplication_Payload
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Payload>): ConsumerApplication_Payload {
-    return ConsumerApplication_Payload.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Payload, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Payload>): ConsumerApplication_Payload {
     const message = createBaseConsumerApplication_Payload();
@@ -21723,21 +21007,17 @@ export const ConsumerApplication_Point: MessageFns<ConsumerApplication_Point> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Point>): ConsumerApplication_Point {
-    return ConsumerApplication_Point.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Point, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_Point>): ConsumerApplication_Point {
     const message = createBaseConsumerApplication_Point();
-    message.x = object.x ?? undefined;
-    message.y = object.y ?? undefined;
+    copyPartialScalars(message, object, 333, 335);
     return message;
   },
 };
@@ -21778,16 +21058,13 @@ export const ConsumerApplication_PollAddOptionMessage: MessageFns<ConsumerApplic
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_PollAddOptionMessage>): ConsumerApplication_PollAddOptionMessage {
-    return ConsumerApplication_PollAddOptionMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_PollAddOptionMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollAddOptionMessage>): ConsumerApplication_PollAddOptionMessage {
     const message = createBaseConsumerApplication_PollAddOptionMessage();
@@ -21865,21 +21142,17 @@ export const ConsumerApplication_PollCreationMessage: MessageFns<ConsumerApplica
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_PollCreationMessage>): ConsumerApplication_PollCreationMessage {
-    return ConsumerApplication_PollCreationMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_PollCreationMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollCreationMessage>): ConsumerApplication_PollCreationMessage {
     const message = createBaseConsumerApplication_PollCreationMessage();
-    message.encKey = object.encKey ?? undefined;
-    message.name = object.name ?? undefined;
+    copyPartialScalars(message, object, 335, 337);
     message.options = object.options?.map((e) => ConsumerApplication_Option.fromPartial(e)) || undefined;
     message.selectableOptionsCount = object.selectableOptionsCount ?? undefined;
     return message;
@@ -21925,21 +21198,17 @@ export const ConsumerApplication_PollEncValue: MessageFns<ConsumerApplication_Po
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_PollEncValue>): ConsumerApplication_PollEncValue {
-    return ConsumerApplication_PollEncValue.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_PollEncValue, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollEncValue>): ConsumerApplication_PollEncValue {
     const message = createBaseConsumerApplication_PollEncValue();
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 337, 339);
     return message;
   },
 };
@@ -21994,16 +21263,13 @@ export const ConsumerApplication_PollUpdateMessage: MessageFns<ConsumerApplicati
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_PollUpdateMessage>): ConsumerApplication_PollUpdateMessage {
-    return ConsumerApplication_PollUpdateMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_PollUpdateMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollUpdateMessage>): ConsumerApplication_PollUpdateMessage {
     const message = createBaseConsumerApplication_PollUpdateMessage();
@@ -22068,16 +21334,13 @@ export const ConsumerApplication_PollVoteMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_PollVoteMessage>): ConsumerApplication_PollVoteMessage {
-    return ConsumerApplication_PollVoteMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_PollVoteMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_PollVoteMessage>): ConsumerApplication_PollVoteMessage {
     const message = createBaseConsumerApplication_PollVoteMessage();
@@ -22170,25 +21433,18 @@ export const ConsumerApplication_ReactionMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ReactionMessage>): ConsumerApplication_ReactionMessage {
-    return ConsumerApplication_ReactionMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ReactionMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ReactionMessage>): ConsumerApplication_ReactionMessage {
     const message = createBaseConsumerApplication_ReactionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.text = object.text ?? undefined;
-    message.groupingKey = object.groupingKey ?? undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.reactionMetadataDataclassData = object.reactionMetadataDataclassData ?? undefined;
-    message.style = object.style ?? undefined;
+    copyPartialScalars(message, object, 339, 344);
     return message;
   },
 };
@@ -22221,16 +21477,13 @@ export const ConsumerApplication_RevokeMessage: MessageFns<ConsumerApplication_R
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_RevokeMessage>): ConsumerApplication_RevokeMessage {
-    return ConsumerApplication_RevokeMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_RevokeMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_RevokeMessage>): ConsumerApplication_RevokeMessage {
     const message = createBaseConsumerApplication_RevokeMessage();
@@ -22256,16 +21509,13 @@ export const ConsumerApplication_Signal: MessageFns<ConsumerApplication_Signal> 
       const tag = reader.uint32();
       switch (tag >>> 3) {
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_Signal>): ConsumerApplication_Signal {
-    return ConsumerApplication_Signal.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_Signal, base);
   },
   fromPartial(_: DeepPartial<ConsumerApplication_Signal>): ConsumerApplication_Signal {
     const message = createBaseConsumerApplication_Signal();
@@ -22334,25 +21584,20 @@ export const ConsumerApplication_StatusTextMesage: MessageFns<ConsumerApplicatio
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_StatusTextMesage>): ConsumerApplication_StatusTextMesage {
-    return ConsumerApplication_StatusTextMesage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_StatusTextMesage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_StatusTextMesage>): ConsumerApplication_StatusTextMesage {
     const message = createBaseConsumerApplication_StatusTextMesage();
     message.text = (object.text !== undefined && object.text !== null)
       ? ConsumerApplication_ExtendedTextMessage.fromPartial(object.text)
       : undefined;
-    message.textArgb = object.textArgb ?? undefined;
-    message.backgroundArgb = object.backgroundArgb ?? undefined;
-    message.font = object.font ?? undefined;
+    copyPartialScalars(message, object, 344, 347);
     return message;
   },
 };
@@ -22385,16 +21630,13 @@ export const ConsumerApplication_StickerMessage: MessageFns<ConsumerApplication_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_StickerMessage>): ConsumerApplication_StickerMessage {
-    return ConsumerApplication_StickerMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_StickerMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_StickerMessage>): ConsumerApplication_StickerMessage {
     const message = createBaseConsumerApplication_StickerMessage();
@@ -22433,16 +21675,13 @@ export const ConsumerApplication_SubProtocolPayload: MessageFns<ConsumerApplicat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_SubProtocolPayload>): ConsumerApplication_SubProtocolPayload {
-    return ConsumerApplication_SubProtocolPayload.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_SubProtocolPayload, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_SubProtocolPayload>): ConsumerApplication_SubProtocolPayload {
     const message = createBaseConsumerApplication_SubProtocolPayload();
@@ -22490,16 +21729,13 @@ export const ConsumerApplication_VideoMessage: MessageFns<ConsumerApplication_Vi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_VideoMessage>): ConsumerApplication_VideoMessage {
-    return ConsumerApplication_VideoMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_VideoMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_VideoMessage>): ConsumerApplication_VideoMessage {
     const message = createBaseConsumerApplication_VideoMessage();
@@ -22552,16 +21788,13 @@ export const ConsumerApplication_ViewOnceMessage: MessageFns<ConsumerApplication
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ConsumerApplication_ViewOnceMessage>): ConsumerApplication_ViewOnceMessage {
-    return ConsumerApplication_ViewOnceMessage.fromPartial(base ?? {});
+    return createPartialMessage(ConsumerApplication_ViewOnceMessage, base);
   },
   fromPartial(object: DeepPartial<ConsumerApplication_ViewOnceMessage>): ConsumerApplication_ViewOnceMessage {
     const message = createBaseConsumerApplication_ViewOnceMessage();
@@ -23325,16 +22558,13 @@ export const ContextInfo: MessageFns<ContextInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo>): ContextInfo {
-    return ContextInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo, base);
   },
   fromPartial(object: DeepPartial<ContextInfo>): ContextInfo {
     const message = createBaseContextInfo();
@@ -23519,23 +22749,17 @@ export const ContextInfo_AdReplyInfo: MessageFns<ContextInfo_AdReplyInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_AdReplyInfo>): ContextInfo_AdReplyInfo {
-    return ContextInfo_AdReplyInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_AdReplyInfo, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_AdReplyInfo>): ContextInfo_AdReplyInfo {
     const message = createBaseContextInfo_AdReplyInfo();
-    message.advertiserName = object.advertiserName ?? undefined;
-    message.mediaType = object.mediaType ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
-    message.caption = object.caption ?? undefined;
+    copyPartialScalars(message, object, 347, 351);
     return message;
   },
 };
@@ -23635,23 +22859,19 @@ export const ContextInfo_BusinessInteractionPills: MessageFns<ContextInfo_Busine
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_BusinessInteractionPills>): ContextInfo_BusinessInteractionPills {
-    return ContextInfo_BusinessInteractionPills.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_BusinessInteractionPills, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_BusinessInteractionPills>): ContextInfo_BusinessInteractionPills {
     const message = createBaseContextInfo_BusinessInteractionPills();
     message.businessJid = object.businessJid ?? undefined;
     message.pills = object.pills?.map((e) => ContextInfo_BusinessInteractionPills_Pill.fromPartial(e)) || undefined;
-    message.entryPoint = object.entryPoint ?? undefined;
-    message.signedPayload = object.signedPayload ?? undefined;
+    copyPartialScalars(message, object, 351, 353);
     message.signatureEnvelope = (object.signatureEnvelope !== undefined && object.signatureEnvelope !== null)
       ? BotSignatureVerificationMetadata.fromPartial(object.signatureEnvelope)
       : undefined;
@@ -23704,23 +22924,19 @@ export const ContextInfo_BusinessInteractionPills_Pill: MessageFns<ContextInfo_B
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_BusinessInteractionPills_Pill>): ContextInfo_BusinessInteractionPills_Pill {
-    return ContextInfo_BusinessInteractionPills_Pill.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_BusinessInteractionPills_Pill, base);
   },
   fromPartial(
     object: DeepPartial<ContextInfo_BusinessInteractionPills_Pill>,
   ): ContextInfo_BusinessInteractionPills_Pill {
     const message = createBaseContextInfo_BusinessInteractionPills_Pill();
-    message.pillType = object.pillType ?? undefined;
-    message.actionUrl = object.actionUrl ?? undefined;
+    copyPartialScalars(message, object, 353, 355);
     return message;
   },
 };
@@ -23777,10 +22993,7 @@ export const ContextInfo_BusinessInteractionPills_SignedPayload: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -23788,7 +23001,7 @@ export const ContextInfo_BusinessInteractionPills_SignedPayload: MessageFns<
   create(
     base?: DeepPartial<ContextInfo_BusinessInteractionPills_SignedPayload>,
   ): ContextInfo_BusinessInteractionPills_SignedPayload {
-    return ContextInfo_BusinessInteractionPills_SignedPayload.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_BusinessInteractionPills_SignedPayload, base);
   },
   fromPartial(
     object: DeepPartial<ContextInfo_BusinessInteractionPills_SignedPayload>,
@@ -23866,10 +23079,7 @@ export const ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -23877,16 +23087,13 @@ export const ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadat
   create(
     base?: DeepPartial<ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata>,
   ): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
-    return ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata, base);
   },
   fromPartial(
     object: DeepPartial<ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata>,
   ): ContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata {
     const message = createBaseContextInfo_BusinessInteractionPills_UnauthenticatedBusinessMetadata();
-    message.businessName = object.businessName ?? undefined;
-    message.businessCategory = object.businessCategory ?? undefined;
-    message.businessIsOpen = object.businessIsOpen ?? undefined;
-    message.businessIsOpenSnapshotMs = object.businessIsOpenSnapshotMs ?? undefined;
+    copyPartialScalars(message, object, 355, 359);
     return message;
   },
 };
@@ -23919,16 +23126,13 @@ export const ContextInfo_BusinessMessageForwardInfo: MessageFns<ContextInfo_Busi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_BusinessMessageForwardInfo>): ContextInfo_BusinessMessageForwardInfo {
-    return ContextInfo_BusinessMessageForwardInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_BusinessMessageForwardInfo, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_BusinessMessageForwardInfo>): ContextInfo_BusinessMessageForwardInfo {
     const message = createBaseContextInfo_BusinessMessageForwardInfo();
@@ -24006,21 +23210,17 @@ export const ContextInfo_DataSharingContext: MessageFns<ContextInfo_DataSharingC
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_DataSharingContext>): ContextInfo_DataSharingContext {
-    return ContextInfo_DataSharingContext.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_DataSharingContext, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_DataSharingContext>): ContextInfo_DataSharingContext {
     const message = createBaseContextInfo_DataSharingContext();
-    message.showMmDisclosure = object.showMmDisclosure ?? undefined;
-    message.encryptedSignalTokenConsented = object.encryptedSignalTokenConsented ?? undefined;
+    copyPartialScalars(message, object, 359, 361);
     message.parameters = object.parameters?.map((e) => ContextInfo_DataSharingContext_Parameters.fromPartial(e)) ||
       undefined;
     message.dataSharingFlags = object.dataSharingFlags ?? undefined;
@@ -24100,25 +23300,19 @@ export const ContextInfo_DataSharingContext_Parameters: MessageFns<ContextInfo_D
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_DataSharingContext_Parameters>): ContextInfo_DataSharingContext_Parameters {
-    return ContextInfo_DataSharingContext_Parameters.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_DataSharingContext_Parameters, base);
   },
   fromPartial(
     object: DeepPartial<ContextInfo_DataSharingContext_Parameters>,
   ): ContextInfo_DataSharingContext_Parameters {
     const message = createBaseContextInfo_DataSharingContext_Parameters();
-    message.key = object.key ?? undefined;
-    message.stringData = object.stringData ?? undefined;
-    message.intData = object.intData ?? undefined;
-    message.floatData = object.floatData ?? undefined;
+    copyPartialScalars(message, object, 361, 365);
     message.contents = (object.contents !== undefined && object.contents !== null)
       ? ContextInfo_DataSharingContext_Parameters.fromPartial(object.contents)
       : undefined;
@@ -24495,51 +23689,17 @@ export const ContextInfo_ExternalAdReplyInfo: MessageFns<ContextInfo_ExternalAdR
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_ExternalAdReplyInfo>): ContextInfo_ExternalAdReplyInfo {
-    return ContextInfo_ExternalAdReplyInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_ExternalAdReplyInfo, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_ExternalAdReplyInfo>): ContextInfo_ExternalAdReplyInfo {
     const message = createBaseContextInfo_ExternalAdReplyInfo();
-    message.title = object.title ?? undefined;
-    message.body = object.body ?? undefined;
-    message.mediaType = object.mediaType ?? undefined;
-    message.thumbnailUrl = object.thumbnailUrl ?? undefined;
-    message.mediaUrl = object.mediaUrl ?? undefined;
-    message.thumbnail = object.thumbnail ?? undefined;
-    message.sourceType = object.sourceType ?? undefined;
-    message.sourceId = object.sourceId ?? undefined;
-    message.sourceUrl = object.sourceUrl ?? undefined;
-    message.containsAutoReply = object.containsAutoReply ?? undefined;
-    message.renderLargerThumbnail = object.renderLargerThumbnail ?? undefined;
-    message.showAdAttribution = object.showAdAttribution ?? undefined;
-    message.ctwaClid = object.ctwaClid ?? undefined;
-    message.ref = object.ref ?? undefined;
-    message.clickToWhatsappCall = object.clickToWhatsappCall ?? undefined;
-    message.adContextPreviewDismissed = object.adContextPreviewDismissed ?? undefined;
-    message.sourceApp = object.sourceApp ?? undefined;
-    message.automatedGreetingMessageShown = object.automatedGreetingMessageShown ?? undefined;
-    message.greetingMessageBody = object.greetingMessageBody ?? undefined;
-    message.ctaPayload = object.ctaPayload ?? undefined;
-    message.disableNudge = object.disableNudge ?? undefined;
-    message.originalImageUrl = object.originalImageUrl ?? undefined;
-    message.automatedGreetingMessageCtaType = object.automatedGreetingMessageCtaType ?? undefined;
-    message.wtwaAdFormat = object.wtwaAdFormat ?? undefined;
-    message.adType = object.adType ?? undefined;
-    message.wtwaWebsiteUrl = object.wtwaWebsiteUrl ?? undefined;
-    message.adPreviewUrl = object.adPreviewUrl ?? undefined;
-    message.containsCtwaFlowsAutoReply = object.containsCtwaFlowsAutoReply ?? undefined;
-    message.agmThumbnailStrategy = object.agmThumbnailStrategy ?? undefined;
-    message.agmTitleStrategy = object.agmTitleStrategy ?? undefined;
-    message.agmSubtitleStrategy = object.agmSubtitleStrategy ?? undefined;
-    message.agmHeaderInteractionStrategy = object.agmHeaderInteractionStrategy ?? undefined;
+    copyPartialScalars(message, object, 365, 397);
     return message;
   },
 };
@@ -24616,24 +23776,17 @@ export const ContextInfo_FeatureEligibilities: MessageFns<ContextInfo_FeatureEli
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_FeatureEligibilities>): ContextInfo_FeatureEligibilities {
-    return ContextInfo_FeatureEligibilities.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_FeatureEligibilities, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_FeatureEligibilities>): ContextInfo_FeatureEligibilities {
     const message = createBaseContextInfo_FeatureEligibilities();
-    message.cannotBeReactedTo = object.cannotBeReactedTo ?? undefined;
-    message.cannotBeRanked = object.cannotBeRanked ?? undefined;
-    message.canRequestFeedback = object.canRequestFeedback ?? undefined;
-    message.canBeReshared = object.canBeReshared ?? undefined;
-    message.canReceiveMultiReact = object.canReceiveMultiReact ?? undefined;
+    copyPartialScalars(message, object, 397, 402);
     return message;
   },
 };
@@ -24721,27 +23874,19 @@ export const ContextInfo_ForwardedNewsletterMessageInfo: MessageFns<ContextInfo_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_ForwardedNewsletterMessageInfo>): ContextInfo_ForwardedNewsletterMessageInfo {
-    return ContextInfo_ForwardedNewsletterMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_ForwardedNewsletterMessageInfo, base);
   },
   fromPartial(
     object: DeepPartial<ContextInfo_ForwardedNewsletterMessageInfo>,
   ): ContextInfo_ForwardedNewsletterMessageInfo {
     const message = createBaseContextInfo_ForwardedNewsletterMessageInfo();
-    message.newsletterJid = object.newsletterJid ?? undefined;
-    message.serverMessageId = object.serverMessageId ?? undefined;
-    message.newsletterName = object.newsletterName ?? undefined;
-    message.contentType = object.contentType ?? undefined;
-    message.accessibilityText = object.accessibilityText ?? undefined;
-    message.profileName = object.profileName ?? undefined;
+    copyPartialScalars(message, object, 402, 408);
     return message;
   },
 };
@@ -24774,16 +23919,13 @@ export const ContextInfo_InstagramThreadLink: MessageFns<ContextInfo_InstagramTh
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_InstagramThreadLink>): ContextInfo_InstagramThreadLink {
-    return ContextInfo_InstagramThreadLink.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_InstagramThreadLink, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_InstagramThreadLink>): ContextInfo_InstagramThreadLink {
     const message = createBaseContextInfo_InstagramThreadLink();
@@ -24820,16 +23962,13 @@ export const ContextInfo_PartiallySelectedContent: MessageFns<ContextInfo_Partia
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_PartiallySelectedContent>): ContextInfo_PartiallySelectedContent {
-    return ContextInfo_PartiallySelectedContent.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_PartiallySelectedContent, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_PartiallySelectedContent>): ContextInfo_PartiallySelectedContent {
     const message = createBaseContextInfo_PartiallySelectedContent();
@@ -24888,16 +24027,13 @@ export const ContextInfo_QuestionReplyQuotedMessage: MessageFns<ContextInfo_Ques
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_QuestionReplyQuotedMessage>): ContextInfo_QuestionReplyQuotedMessage {
-    return ContextInfo_QuestionReplyQuotedMessage.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_QuestionReplyQuotedMessage, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_QuestionReplyQuotedMessage>): ContextInfo_QuestionReplyQuotedMessage {
     const message = createBaseContextInfo_QuestionReplyQuotedMessage();
@@ -24962,22 +24098,17 @@ export const ContextInfo_StatusAudienceMetadata: MessageFns<ContextInfo_StatusAu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_StatusAudienceMetadata>): ContextInfo_StatusAudienceMetadata {
-    return ContextInfo_StatusAudienceMetadata.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_StatusAudienceMetadata, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_StatusAudienceMetadata>): ContextInfo_StatusAudienceMetadata {
     const message = createBaseContextInfo_StatusAudienceMetadata();
-    message.audienceType = object.audienceType ?? undefined;
-    message.listName = object.listName ?? undefined;
-    message.listEmoji = object.listEmoji ?? undefined;
+    copyPartialScalars(message, object, 408, 411);
     return message;
   },
 };
@@ -25021,21 +24152,17 @@ export const ContextInfo_UTMInfo: MessageFns<ContextInfo_UTMInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ContextInfo_UTMInfo>): ContextInfo_UTMInfo {
-    return ContextInfo_UTMInfo.fromPartial(base ?? {});
+    return createPartialMessage(ContextInfo_UTMInfo, base);
   },
   fromPartial(object: DeepPartial<ContextInfo_UTMInfo>): ContextInfo_UTMInfo {
     const message = createBaseContextInfo_UTMInfo();
-    message.utmSource = object.utmSource ?? undefined;
-    message.utmCampaign = object.utmCampaign ?? undefined;
+    copyPartialScalars(message, object, 411, 413);
     return message;
   },
 };
@@ -25766,85 +24893,29 @@ export const Conversation: MessageFns<Conversation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Conversation>): Conversation {
-    return Conversation.fromPartial(base ?? {});
+    return createPartialMessage(Conversation, base);
   },
   fromPartial(object: DeepPartial<Conversation>): Conversation {
     const message = createBaseConversation();
     message.id = object.id ?? undefined;
     message.messages = object.messages?.map((e) => HistorySyncMsg.fromPartial(e)) || undefined;
-    message.newJid = object.newJid ?? undefined;
-    message.oldJid = object.oldJid ?? undefined;
-    message.lastMsgTimestamp = object.lastMsgTimestamp ?? undefined;
-    message.unreadCount = object.unreadCount ?? undefined;
-    message.readOnly = object.readOnly ?? undefined;
-    message.endOfHistoryTransfer = object.endOfHistoryTransfer ?? undefined;
-    message.ephemeralExpiration = object.ephemeralExpiration ?? undefined;
-    message.ephemeralSettingTimestamp = object.ephemeralSettingTimestamp ?? undefined;
-    message.endOfHistoryTransferType = object.endOfHistoryTransferType ?? undefined;
-    message.conversationTimestamp = object.conversationTimestamp ?? undefined;
-    message.name = object.name ?? undefined;
-    message.pHash = object.pHash ?? undefined;
-    message.notSpam = object.notSpam ?? undefined;
-    message.archived = object.archived ?? undefined;
+    copyPartialScalars(message, object, 413, 427);
     message.disappearingMode = (object.disappearingMode !== undefined && object.disappearingMode !== null)
       ? DisappearingMode.fromPartial(object.disappearingMode)
       : undefined;
-    message.unreadMentionCount = object.unreadMentionCount ?? undefined;
-    message.markedAsUnread = object.markedAsUnread ?? undefined;
+    copyPartialScalars(message, object, 427, 429);
     message.participant = object.participant?.map((e) => GroupParticipant.fromPartial(e)) || undefined;
-    message.tcToken = object.tcToken ?? undefined;
-    message.tcTokenTimestamp = object.tcTokenTimestamp ?? undefined;
-    message.contactPrimaryIdentityKey = object.contactPrimaryIdentityKey ?? undefined;
-    message.pinned = object.pinned ?? undefined;
-    message.muteEndTime = object.muteEndTime ?? undefined;
+    copyPartialScalars(message, object, 429, 434);
     message.wallpaper = (object.wallpaper !== undefined && object.wallpaper !== null)
       ? WallpaperSettings.fromPartial(object.wallpaper)
       : undefined;
-    message.mediaVisibility = object.mediaVisibility ?? undefined;
-    message.tcTokenSenderTimestamp = object.tcTokenSenderTimestamp ?? undefined;
-    message.suspended = object.suspended ?? undefined;
-    message.terminated = object.terminated ?? undefined;
-    message.createdAt = object.createdAt ?? undefined;
-    message.createdBy = object.createdBy ?? undefined;
-    message.description = object.description ?? undefined;
-    message.support = object.support ?? undefined;
-    message.isParentGroup = object.isParentGroup ?? undefined;
-    message.parentGroupId = object.parentGroupId ?? undefined;
-    message.isDefaultSubgroup = object.isDefaultSubgroup ?? undefined;
-    message.displayName = object.displayName ?? undefined;
-    message.pnJid = object.pnJid ?? undefined;
-    message.shareOwnPn = object.shareOwnPn ?? undefined;
-    message.pnhDuplicateLidThread = object.pnhDuplicateLidThread ?? undefined;
-    message.lidJid = object.lidJid ?? undefined;
-    message.username = object.username ?? undefined;
-    message.lidOriginType = object.lidOriginType ?? undefined;
-    message.commentsCount = object.commentsCount ?? undefined;
-    message.locked = object.locked ?? undefined;
-    message.systemMessageToInsert = object.systemMessageToInsert ?? undefined;
-    message.capiCreatedGroup = object.capiCreatedGroup ?? undefined;
-    message.accountLid = object.accountLid ?? undefined;
-    message.limitSharing = object.limitSharing ?? undefined;
-    message.limitSharingSettingTimestamp = object.limitSharingSettingTimestamp ?? undefined;
-    message.limitSharingTrigger = object.limitSharingTrigger ?? undefined;
-    message.limitSharingInitiatedByMe = object.limitSharingInitiatedByMe ?? undefined;
-    message.maibaAiThreadEnabled = object.maibaAiThreadEnabled ?? undefined;
-    message.isMarketingMessageThread = object.isMarketingMessageThread ?? undefined;
-    message.isSenderNewAccount = object.isSenderNewAccount ?? undefined;
-    message.afterReadDuration = object.afterReadDuration ?? undefined;
-    message.isSenderSuspicious = object.isSenderSuspicious ?? undefined;
-    message.appealStatus = object.appealStatus ?? undefined;
-    message.appealUpdateTime = object.appealUpdateTime ?? undefined;
-    message.authAgentParentCompanyName = object.authAgentParentCompanyName ?? undefined;
-    message.authAgentObaPhoneNumber = object.authAgentObaPhoneNumber ?? undefined;
+    copyPartialScalars(message, object, 434, 470);
     message.identityVerification = (object.identityVerification !== undefined && object.identityVerification !== null)
       ? IdentityVerificationState.fromPartial(object.identityVerification)
       : undefined;
@@ -25891,21 +24962,17 @@ export const CreateBackupInput: MessageFns<CreateBackupInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CreateBackupInput>): CreateBackupInput {
-    return CreateBackupInput.fromPartial(base ?? {});
+    return createPartialMessage(CreateBackupInput, base);
   },
   fromPartial(object: DeepPartial<CreateBackupInput>): CreateBackupInput {
     const message = createBaseCreateBackupInput();
-    message.recoveryCode = object.recoveryCode ?? undefined;
-    message.userId = object.userId ?? undefined;
+    copyPartialScalars(message, object, 470, 472);
     return message;
   },
 };
@@ -25982,16 +25049,13 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<CreateBackupOutput>): CreateBackupOutput {
-    return CreateBackupOutput.fromPartial(base ?? {});
+    return createPartialMessage(CreateBackupOutput, base);
   },
   fromPartial(object: DeepPartial<CreateBackupOutput>): CreateBackupOutput {
     const message = createBaseCreateBackupOutput();
@@ -26004,8 +25068,7 @@ export const CreateBackupOutput: MessageFns<CreateBackupOutput> = {
     message.epoch0 = (object.epoch0 !== undefined && object.epoch0 !== null)
       ? Epoch0Output.fromPartial(object.epoch0)
       : undefined;
-    message.mailboxRootKey = object.mailboxRootKey ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 472, 474);
     return message;
   },
 };
@@ -26102,10 +25165,7 @@ export const DecryptMekForDistributionFromTransportSenderInput: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -26113,7 +25173,7 @@ export const DecryptMekForDistributionFromTransportSenderInput: MessageFns<
   create(
     base?: DeepPartial<DecryptMekForDistributionFromTransportSenderInput>,
   ): DecryptMekForDistributionFromTransportSenderInput {
-    return DecryptMekForDistributionFromTransportSenderInput.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionFromTransportSenderInput, base);
   },
   fromPartial(
     object: DeepPartial<DecryptMekForDistributionFromTransportSenderInput>,
@@ -26124,10 +25184,7 @@ export const DecryptMekForDistributionFromTransportSenderInput: MessageFns<
         object.mekDistribution,
       )
       : undefined;
-    message.mekId = object.mekId ?? undefined;
-    message.rosterHash = object.rosterHash ?? undefined;
-    message.recipientEncSk = object.recipientEncSk ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 474, 478);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -26212,10 +25269,7 @@ export const DecryptMekForDistributionFromTransportSenderInput_TransportSenderME
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -26225,8 +25279,7 @@ export const DecryptMekForDistributionFromTransportSenderInput_TransportSenderME
         DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
       >,
     ): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
-      return DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient
-        .fromPartial(base ?? {});
+      return createPartialMessage(DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -26235,11 +25288,7 @@ export const DecryptMekForDistributionFromTransportSenderInput_TransportSenderME
     ): DecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient {
       const message =
         createBaseDecryptMekForDistributionFromTransportSenderInput_TransportSenderMEKDistributionSingleRecipient();
-      message.encryptedMek = object.encryptedMek ?? undefined;
-      message.ephemeralEncryptionPk = object.ephemeralEncryptionPk ?? undefined;
-      message.signingPk = object.signingPk ?? undefined;
-      message.signature = object.signature ?? undefined;
-      message.recipientEpochHead = object.recipientEpochHead ?? undefined;
+      copyPartialScalars(message, object, 478, 483);
       return message;
     },
   };
@@ -26288,10 +25337,7 @@ export const DecryptMekForDistributionFromTransportSenderResult: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -26299,7 +25345,7 @@ export const DecryptMekForDistributionFromTransportSenderResult: MessageFns<
   create(
     base?: DeepPartial<DecryptMekForDistributionFromTransportSenderResult>,
   ): DecryptMekForDistributionFromTransportSenderResult {
-    return DecryptMekForDistributionFromTransportSenderResult.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionFromTransportSenderResult, base);
   },
   fromPartial(
     object: DeepPartial<DecryptMekForDistributionFromTransportSenderResult>,
@@ -26346,10 +25392,7 @@ export const DecryptMekForDistributionFromTransportSenderSuccess: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -26357,7 +25400,7 @@ export const DecryptMekForDistributionFromTransportSenderSuccess: MessageFns<
   create(
     base?: DeepPartial<DecryptMekForDistributionFromTransportSenderSuccess>,
   ): DecryptMekForDistributionFromTransportSenderSuccess {
-    return DecryptMekForDistributionFromTransportSenderSuccess.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionFromTransportSenderSuccess, base);
   },
   fromPartial(
     object: DeepPartial<DecryptMekForDistributionFromTransportSenderSuccess>,
@@ -26484,27 +25527,17 @@ export const DecryptMekForDistributionInput: MessageFns<DecryptMekForDistributio
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptMekForDistributionInput>): DecryptMekForDistributionInput {
-    return DecryptMekForDistributionInput.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionInput, base);
   },
   fromPartial(object: DeepPartial<DecryptMekForDistributionInput>): DecryptMekForDistributionInput {
     const message = createBaseDecryptMekForDistributionInput();
-    message.toMailboxSk = object.toMailboxSk ?? undefined;
-    message.fromPk = object.fromPk ?? undefined;
-    message.mekId = object.mekId ?? undefined;
-    message.senderEpochHead = object.senderEpochHead ?? undefined;
-    message.rosterHash = object.rosterHash ?? undefined;
-    message.ciphertext = object.ciphertext ?? undefined;
-    message.toEpochHead = object.toEpochHead ?? undefined;
-    message.mekEncryptionVersion = object.mekEncryptionVersion ?? undefined;
+    copyPartialScalars(message, object, 483, 491);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -26551,16 +25584,13 @@ export const DecryptMekForDistributionResult: MessageFns<DecryptMekForDistributi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptMekForDistributionResult>): DecryptMekForDistributionResult {
-    return DecryptMekForDistributionResult.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionResult, base);
   },
   fromPartial(object: DeepPartial<DecryptMekForDistributionResult>): DecryptMekForDistributionResult {
     const message = createBaseDecryptMekForDistributionResult();
@@ -26600,16 +25630,13 @@ export const DecryptMekForDistributionSuccess: MessageFns<DecryptMekForDistribut
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptMekForDistributionSuccess>): DecryptMekForDistributionSuccess {
-    return DecryptMekForDistributionSuccess.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMekForDistributionSuccess, base);
   },
   fromPartial(object: DeepPartial<DecryptMekForDistributionSuccess>): DecryptMekForDistributionSuccess {
     const message = createBaseDecryptMekForDistributionSuccess();
@@ -26690,24 +25717,17 @@ export const DecryptMessageInput: MessageFns<DecryptMessageInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptMessageInput>): DecryptMessageInput {
-    return DecryptMessageInput.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMessageInput, base);
   },
   fromPartial(object: DeepPartial<DecryptMessageInput>): DecryptMessageInput {
     const message = createBaseDecryptMessageInput();
-    message.epochRootKey = object.epochRootKey ?? undefined;
-    message.epochAnonId = object.epochAnonId ?? undefined;
-    message.threadId = object.threadId ?? undefined;
-    message.encryptionVersion = object.encryptionVersion ?? undefined;
-    message.ciphertext = object.ciphertext ?? undefined;
+    copyPartialScalars(message, object, 491, 496);
     return message;
   },
 };
@@ -26751,21 +25771,17 @@ export const DecryptMessageOutput: MessageFns<DecryptMessageOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptMessageOutput>): DecryptMessageOutput {
-    return DecryptMessageOutput.fromPartial(base ?? {});
+    return createPartialMessage(DecryptMessageOutput, base);
   },
   fromPartial(object: DeepPartial<DecryptMessageOutput>): DecryptMessageOutput {
     const message = createBaseDecryptMessageOutput();
-    message.plaintextPayload = object.plaintextPayload ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 496, 498);
     return message;
   },
 };
@@ -26820,22 +25836,17 @@ export const DecryptSelfMmkDistributionInput: MessageFns<DecryptSelfMmkDistribut
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptSelfMmkDistributionInput>): DecryptSelfMmkDistributionInput {
-    return DecryptSelfMmkDistributionInput.fromPartial(base ?? {});
+    return createPartialMessage(DecryptSelfMmkDistributionInput, base);
   },
   fromPartial(object: DeepPartial<DecryptSelfMmkDistributionInput>): DecryptSelfMmkDistributionInput {
     const message = createBaseDecryptSelfMmkDistributionInput();
-    message.encryptedMmk = object.encryptedMmk ?? undefined;
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.mailboxHeadHash = object.mailboxHeadHash ?? undefined;
+    copyPartialScalars(message, object, 498, 501);
     return message;
   },
 };
@@ -26879,16 +25890,13 @@ export const DecryptSelfMmkDistributionResult: MessageFns<DecryptSelfMmkDistribu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptSelfMmkDistributionResult>): DecryptSelfMmkDistributionResult {
-    return DecryptSelfMmkDistributionResult.fromPartial(base ?? {});
+    return createPartialMessage(DecryptSelfMmkDistributionResult, base);
   },
   fromPartial(object: DeepPartial<DecryptSelfMmkDistributionResult>): DecryptSelfMmkDistributionResult {
     const message = createBaseDecryptSelfMmkDistributionResult();
@@ -26928,16 +25936,13 @@ export const DecryptSelfMmkDistributionSuccess: MessageFns<DecryptSelfMmkDistrib
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DecryptSelfMmkDistributionSuccess>): DecryptSelfMmkDistributionSuccess {
-    return DecryptSelfMmkDistributionSuccess.fromPartial(base ?? {});
+    return createPartialMessage(DecryptSelfMmkDistributionSuccess, base);
   },
   fromPartial(object: DeepPartial<DecryptSelfMmkDistributionSuccess>): DecryptSelfMmkDistributionSuccess {
     const message = createBaseDecryptSelfMmkDistributionSuccess();
@@ -26974,16 +25979,13 @@ export const DeriveAttachmentAccessTokenSecretInput: MessageFns<DeriveAttachment
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveAttachmentAccessTokenSecretInput>): DeriveAttachmentAccessTokenSecretInput {
-    return DeriveAttachmentAccessTokenSecretInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveAttachmentAccessTokenSecretInput, base);
   },
   fromPartial(object: DeepPartial<DeriveAttachmentAccessTokenSecretInput>): DeriveAttachmentAccessTokenSecretInput {
     const message = createBaseDeriveAttachmentAccessTokenSecretInput();
@@ -27020,16 +26022,13 @@ export const DeriveAttachmentAccessTokenSecretResult: MessageFns<DeriveAttachmen
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveAttachmentAccessTokenSecretResult>): DeriveAttachmentAccessTokenSecretResult {
-    return DeriveAttachmentAccessTokenSecretResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveAttachmentAccessTokenSecretResult, base);
   },
   fromPartial(object: DeepPartial<DeriveAttachmentAccessTokenSecretResult>): DeriveAttachmentAccessTokenSecretResult {
     const message = createBaseDeriveAttachmentAccessTokenSecretResult();
@@ -27066,16 +26065,13 @@ export const DeriveAttachmentPrimaryKeySecretInput: MessageFns<DeriveAttachmentP
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveAttachmentPrimaryKeySecretInput>): DeriveAttachmentPrimaryKeySecretInput {
-    return DeriveAttachmentPrimaryKeySecretInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveAttachmentPrimaryKeySecretInput, base);
   },
   fromPartial(object: DeepPartial<DeriveAttachmentPrimaryKeySecretInput>): DeriveAttachmentPrimaryKeySecretInput {
     const message = createBaseDeriveAttachmentPrimaryKeySecretInput();
@@ -27112,16 +26108,13 @@ export const DeriveAttachmentPrimaryKeySecretResult: MessageFns<DeriveAttachment
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveAttachmentPrimaryKeySecretResult>): DeriveAttachmentPrimaryKeySecretResult {
-    return DeriveAttachmentPrimaryKeySecretResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveAttachmentPrimaryKeySecretResult, base);
   },
   fromPartial(object: DeepPartial<DeriveAttachmentPrimaryKeySecretResult>): DeriveAttachmentPrimaryKeySecretResult {
     const message = createBaseDeriveAttachmentPrimaryKeySecretResult();
@@ -27169,21 +26162,17 @@ export const DeriveMailboxAuthKeypairInput: MessageFns<DeriveMailboxAuthKeypairI
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxAuthKeypairInput>): DeriveMailboxAuthKeypairInput {
-    return DeriveMailboxAuthKeypairInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxAuthKeypairInput, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairInput>): DeriveMailboxAuthKeypairInput {
     const message = createBaseDeriveMailboxAuthKeypairInput();
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
+    copyPartialScalars(message, object, 501, 503);
     return message;
   },
 };
@@ -27227,21 +26216,17 @@ export const DeriveMailboxAuthKeypairResult: MessageFns<DeriveMailboxAuthKeypair
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxAuthKeypairResult>): DeriveMailboxAuthKeypairResult {
-    return DeriveMailboxAuthKeypairResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxAuthKeypairResult, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxAuthKeypairResult>): DeriveMailboxAuthKeypairResult {
     const message = createBaseDeriveMailboxAuthKeypairResult();
-    message.mailboxAuthPublicKey = object.mailboxAuthPublicKey ?? undefined;
-    message.mailboxAuthPrivateKey = object.mailboxAuthPrivateKey ?? undefined;
+    copyPartialScalars(message, object, 503, 505);
     return message;
   },
 };
@@ -27285,21 +26270,17 @@ export const DeriveMailboxEncryptionKeypairInput: MessageFns<DeriveMailboxEncryp
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxEncryptionKeypairInput>): DeriveMailboxEncryptionKeypairInput {
-    return DeriveMailboxEncryptionKeypairInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxEncryptionKeypairInput, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairInput>): DeriveMailboxEncryptionKeypairInput {
     const message = createBaseDeriveMailboxEncryptionKeypairInput();
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
+    copyPartialScalars(message, object, 505, 507);
     return message;
   },
 };
@@ -27343,21 +26324,17 @@ export const DeriveMailboxEncryptionKeypairResult: MessageFns<DeriveMailboxEncry
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxEncryptionKeypairResult>): DeriveMailboxEncryptionKeypairResult {
-    return DeriveMailboxEncryptionKeypairResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxEncryptionKeypairResult, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxEncryptionKeypairResult>): DeriveMailboxEncryptionKeypairResult {
     const message = createBaseDeriveMailboxEncryptionKeypairResult();
-    message.mailboxEncryptionPublicKey = object.mailboxEncryptionPublicKey ?? undefined;
-    message.mailboxEncryptionPrivateKey = object.mailboxEncryptionPrivateKey ?? undefined;
+    copyPartialScalars(message, object, 507, 509);
     return message;
   },
 };
@@ -27401,21 +26378,17 @@ export const DeriveMailboxSigningKeypairInput: MessageFns<DeriveMailboxSigningKe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxSigningKeypairInput>): DeriveMailboxSigningKeypairInput {
-    return DeriveMailboxSigningKeypairInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxSigningKeypairInput, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairInput>): DeriveMailboxSigningKeypairInput {
     const message = createBaseDeriveMailboxSigningKeypairInput();
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
+    copyPartialScalars(message, object, 509, 511);
     return message;
   },
 };
@@ -27459,16 +26432,13 @@ export const DeriveMailboxSigningKeypairResult: MessageFns<DeriveMailboxSigningK
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxSigningKeypairResult>): DeriveMailboxSigningKeypairResult {
-    return DeriveMailboxSigningKeypairResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxSigningKeypairResult, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairResult>): DeriveMailboxSigningKeypairResult {
     const message = createBaseDeriveMailboxSigningKeypairResult();
@@ -27519,21 +26489,17 @@ export const DeriveMailboxSigningKeypairSuccess: MessageFns<DeriveMailboxSigning
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMailboxSigningKeypairSuccess>): DeriveMailboxSigningKeypairSuccess {
-    return DeriveMailboxSigningKeypairSuccess.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMailboxSigningKeypairSuccess, base);
   },
   fromPartial(object: DeepPartial<DeriveMailboxSigningKeypairSuccess>): DeriveMailboxSigningKeypairSuccess {
     const message = createBaseDeriveMailboxSigningKeypairSuccess();
-    message.mailboxSigningPublicKey = object.mailboxSigningPublicKey ?? undefined;
-    message.mailboxSigningPrivateKey = object.mailboxSigningPrivateKey ?? undefined;
+    copyPartialScalars(message, object, 511, 513);
     return message;
   },
 };
@@ -27588,22 +26554,17 @@ export const DeriveMessageKeyInput: MessageFns<DeriveMessageKeyInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMessageKeyInput>): DeriveMessageKeyInput {
-    return DeriveMessageKeyInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMessageKeyInput, base);
   },
   fromPartial(object: DeepPartial<DeriveMessageKeyInput>): DeriveMessageKeyInput {
     const message = createBaseDeriveMessageKeyInput();
-    message.epochRootKey = object.epochRootKey ?? undefined;
-    message.epochAnonId = object.epochAnonId ?? undefined;
-    message.threadId = object.threadId ?? undefined;
+    copyPartialScalars(message, object, 513, 516);
     return message;
   },
 };
@@ -27647,21 +26608,17 @@ export const DeriveMessageKeyOutput: MessageFns<DeriveMessageKeyOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMessageKeyOutput>): DeriveMessageKeyOutput {
-    return DeriveMessageKeyOutput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMessageKeyOutput, base);
   },
   fromPartial(object: DeepPartial<DeriveMessageKeyOutput>): DeriveMessageKeyOutput {
     const message = createBaseDeriveMessageKeyOutput();
-    message.messageKey = object.messageKey ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 516, 518);
     return message;
   },
 };
@@ -27694,16 +26651,13 @@ export const DeriveMessagingMailboxKeypairsInput: MessageFns<DeriveMessagingMail
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMessagingMailboxKeypairsInput>): DeriveMessagingMailboxKeypairsInput {
-    return DeriveMessagingMailboxKeypairsInput.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMessagingMailboxKeypairsInput, base);
   },
   fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsInput>): DeriveMessagingMailboxKeypairsInput {
     const message = createBaseDeriveMessagingMailboxKeypairsInput();
@@ -27751,16 +26705,13 @@ export const DeriveMessagingMailboxKeypairsResult: MessageFns<DeriveMessagingMai
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMessagingMailboxKeypairsResult>): DeriveMessagingMailboxKeypairsResult {
-    return DeriveMessagingMailboxKeypairsResult.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMessagingMailboxKeypairsResult, base);
   },
   fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsResult>): DeriveMessagingMailboxKeypairsResult {
     const message = createBaseDeriveMessagingMailboxKeypairsResult();
@@ -27833,23 +26784,17 @@ export const DeriveMessagingMailboxKeypairsSuccess: MessageFns<DeriveMessagingMa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeriveMessagingMailboxKeypairsSuccess>): DeriveMessagingMailboxKeypairsSuccess {
-    return DeriveMessagingMailboxKeypairsSuccess.fromPartial(base ?? {});
+    return createPartialMessage(DeriveMessagingMailboxKeypairsSuccess, base);
   },
   fromPartial(object: DeepPartial<DeriveMessagingMailboxKeypairsSuccess>): DeriveMessagingMailboxKeypairsSuccess {
     const message = createBaseDeriveMessagingMailboxKeypairsSuccess();
-    message.encSk = object.encSk ?? undefined;
-    message.encPk = object.encPk ?? undefined;
-    message.authSk = object.authSk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
+    copyPartialScalars(message, object, 518, 522);
     return message;
   },
 };
@@ -27937,25 +26882,17 @@ export const DetachedDevicePublicData: MessageFns<DetachedDevicePublicData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DetachedDevicePublicData>): DetachedDevicePublicData {
-    return DetachedDevicePublicData.fromPartial(base ?? {});
+    return createPartialMessage(DetachedDevicePublicData, base);
   },
   fromPartial(object: DeepPartial<DetachedDevicePublicData>): DetachedDevicePublicData {
     const message = createBaseDetachedDevicePublicData();
-    message.deviceId = object.deviceId ?? undefined;
-    message.name = object.name ?? undefined;
-    message.sigPk = object.sigPk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
-    message.encPk = object.encPk ?? undefined;
-    message.signature = object.signature ?? undefined;
+    copyPartialScalars(message, object, 522, 528);
     return message;
   },
 };
@@ -28076,16 +27013,13 @@ export const DeviceCapabilities: MessageFns<DeviceCapabilities> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities>): DeviceCapabilities {
-    return DeviceCapabilities.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities>): DeviceCapabilities {
     const message = createBaseDeviceCapabilities();
@@ -28144,16 +27078,13 @@ export const DeviceCapabilities_AiFbidMigration: MessageFns<DeviceCapabilities_A
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_AiFbidMigration>): DeviceCapabilities_AiFbidMigration {
-    return DeviceCapabilities_AiFbidMigration.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_AiFbidMigration, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_AiFbidMigration>): DeviceCapabilities_AiFbidMigration {
     const message = createBaseDeviceCapabilities_AiFbidMigration();
@@ -28190,16 +27121,13 @@ export const DeviceCapabilities_AiThread: MessageFns<DeviceCapabilities_AiThread
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_AiThread>): DeviceCapabilities_AiThread {
-    return DeviceCapabilities_AiThread.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_AiThread, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_AiThread>): DeviceCapabilities_AiThread {
     const message = createBaseDeviceCapabilities_AiThread();
@@ -28236,16 +27164,13 @@ export const DeviceCapabilities_BizAiSettingsSync: MessageFns<DeviceCapabilities
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_BizAiSettingsSync>): DeviceCapabilities_BizAiSettingsSync {
-    return DeviceCapabilities_BizAiSettingsSync.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_BizAiSettingsSync, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_BizAiSettingsSync>): DeviceCapabilities_BizAiSettingsSync {
     const message = createBaseDeviceCapabilities_BizAiSettingsSync();
@@ -28326,24 +27251,17 @@ export const DeviceCapabilities_BusinessBroadcast: MessageFns<DeviceCapabilities
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_BusinessBroadcast>): DeviceCapabilities_BusinessBroadcast {
-    return DeviceCapabilities_BusinessBroadcast.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_BusinessBroadcast, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_BusinessBroadcast>): DeviceCapabilities_BusinessBroadcast {
     const message = createBaseDeviceCapabilities_BusinessBroadcast();
-    message.importListEnabled = object.importListEnabled ?? undefined;
-    message.companionSupportEnabled = object.companionSupportEnabled ?? undefined;
-    message.campaignSyncEnabled = object.campaignSyncEnabled ?? undefined;
-    message.insightsSyncEnabled = object.insightsSyncEnabled ?? undefined;
-    message.recipientLimit = object.recipientLimit ?? undefined;
+    copyPartialScalars(message, object, 528, 533);
     return message;
   },
 };
@@ -28376,16 +27294,13 @@ export const DeviceCapabilities_ContactRefresh: MessageFns<DeviceCapabilities_Co
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_ContactRefresh>): DeviceCapabilities_ContactRefresh {
-    return DeviceCapabilities_ContactRefresh.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_ContactRefresh, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_ContactRefresh>): DeviceCapabilities_ContactRefresh {
     const message = createBaseDeviceCapabilities_ContactRefresh();
@@ -28422,16 +27337,13 @@ export const DeviceCapabilities_LIDMigration: MessageFns<DeviceCapabilities_LIDM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_LIDMigration>): DeviceCapabilities_LIDMigration {
-    return DeviceCapabilities_LIDMigration.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_LIDMigration, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_LIDMigration>): DeviceCapabilities_LIDMigration {
     const message = createBaseDeviceCapabilities_LIDMigration();
@@ -28468,16 +27380,13 @@ export const DeviceCapabilities_UserHasAvatar: MessageFns<DeviceCapabilities_Use
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceCapabilities_UserHasAvatar>): DeviceCapabilities_UserHasAvatar {
-    return DeviceCapabilities_UserHasAvatar.fromPartial(base ?? {});
+    return createPartialMessage(DeviceCapabilities_UserHasAvatar, base);
   },
   fromPartial(object: DeepPartial<DeviceCapabilities_UserHasAvatar>): DeviceCapabilities_UserHasAvatar {
     const message = createBaseDeviceCapabilities_UserHasAvatar();
@@ -28525,21 +27434,17 @@ export const DeviceConsistencyCodeMessage: MessageFns<DeviceConsistencyCodeMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceConsistencyCodeMessage>): DeviceConsistencyCodeMessage {
-    return DeviceConsistencyCodeMessage.fromPartial(base ?? {});
+    return createPartialMessage(DeviceConsistencyCodeMessage, base);
   },
   fromPartial(object: DeepPartial<DeviceConsistencyCodeMessage>): DeviceConsistencyCodeMessage {
     const message = createBaseDeviceConsistencyCodeMessage();
-    message.generation = object.generation ?? undefined;
-    message.signature = object.signature ?? undefined;
+    copyPartialScalars(message, object, 533, 535);
     return message;
   },
 };
@@ -28689,26 +27594,19 @@ export const DeviceListMetadata: MessageFns<DeviceListMetadata> = {
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceListMetadata>): DeviceListMetadata {
-    return DeviceListMetadata.fromPartial(base ?? {});
+    return createPartialMessage(DeviceListMetadata, base);
   },
   fromPartial(object: DeepPartial<DeviceListMetadata>): DeviceListMetadata {
     const message = createBaseDeviceListMetadata();
-    message.senderKeyHash = object.senderKeyHash ?? undefined;
-    message.senderTimestamp = object.senderTimestamp ?? undefined;
+    copyPartialScalars(message, object, 535, 537);
     message.senderKeyIndexes = object.senderKeyIndexes?.map((e) => e) || undefined;
-    message.senderAccountType = object.senderAccountType ?? undefined;
-    message.receiverAccountType = object.receiverAccountType ?? undefined;
-    message.recipientKeyHash = object.recipientKeyHash ?? undefined;
-    message.recipientTimestamp = object.recipientTimestamp ?? undefined;
+    copyPartialScalars(message, object, 537, 541);
     message.recipientKeyIndexes = object.recipientKeyIndexes?.map((e) => e) || undefined;
     return message;
   },
@@ -28859,29 +27757,19 @@ export const DeviceOutput: MessageFns<DeviceOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceOutput>): DeviceOutput {
-    return DeviceOutput.fromPartial(base ?? {});
+    return createPartialMessage(DeviceOutput, base);
   },
   fromPartial(object: DeepPartial<DeviceOutput>): DeviceOutput {
     const message = createBaseDeviceOutput();
-    message.publicKey = object.publicKey ?? undefined;
-    message.epochAuthPublicKey = object.epochAuthPublicKey ?? undefined;
-    message.epochAuthPublicKeySig = object.epochAuthPublicKeySig ?? undefined;
-    message.epochStoragePublicKey = object.epochStoragePublicKey ?? undefined;
-    message.epochStoragePublicKeySig = object.epochStoragePublicKeySig ?? undefined;
+    copyPartialScalars(message, object, 541, 546);
     message.supportedEncryptionVersions = object.supportedEncryptionVersions?.map((e) => e) || undefined;
-    message.encryptionVersionSignature = object.encryptionVersionSignature ?? undefined;
-    message.clientVersion = object.clientVersion ?? undefined;
-    message.ocmfClientState = object.ocmfClientState ?? undefined;
-    message.epochStoragePrivateKey = object.epochStoragePrivateKey ?? undefined;
+    copyPartialScalars(message, object, 546, 550);
     return message;
   },
 };
@@ -28958,16 +27846,13 @@ export const DeviceProps: MessageFns<DeviceProps> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceProps>): DeviceProps {
-    return DeviceProps.fromPartial(base ?? {});
+    return createPartialMessage(DeviceProps, base);
   },
   fromPartial(object: DeepPartial<DeviceProps>): DeviceProps {
     const message = createBaseDeviceProps();
@@ -28975,8 +27860,7 @@ export const DeviceProps: MessageFns<DeviceProps> = {
     message.version = (object.version !== undefined && object.version !== null)
       ? DeviceProps_AppVersion.fromPartial(object.version)
       : undefined;
-    message.platformType = object.platformType ?? undefined;
-    message.requireFullSync = object.requireFullSync ?? undefined;
+    copyPartialScalars(message, object, 550, 552);
     message.historySyncConfig = (object.historySyncConfig !== undefined && object.historySyncConfig !== null)
       ? DeviceProps_HistorySyncConfig.fromPartial(object.historySyncConfig)
       : undefined;
@@ -29056,24 +27940,17 @@ export const DeviceProps_AppVersion: MessageFns<DeviceProps_AppVersion> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceProps_AppVersion>): DeviceProps_AppVersion {
-    return DeviceProps_AppVersion.fromPartial(base ?? {});
+    return createPartialMessage(DeviceProps_AppVersion, base);
   },
   fromPartial(object: DeepPartial<DeviceProps_AppVersion>): DeviceProps_AppVersion {
     const message = createBaseDeviceProps_AppVersion();
-    message.primary = object.primary ?? undefined;
-    message.secondary = object.secondary ?? undefined;
-    message.tertiary = object.tertiary ?? undefined;
-    message.quaternary = object.quaternary ?? undefined;
-    message.quinary = object.quinary ?? undefined;
+    copyPartialScalars(message, object, 552, 557);
     return message;
   },
 };
@@ -29378,44 +28255,19 @@ export const DeviceProps_HistorySyncConfig: MessageFns<DeviceProps_HistorySyncCo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DeviceProps_HistorySyncConfig>): DeviceProps_HistorySyncConfig {
-    return DeviceProps_HistorySyncConfig.fromPartial(base ?? {});
+    return createPartialMessage(DeviceProps_HistorySyncConfig, base);
   },
   fromPartial(object: DeepPartial<DeviceProps_HistorySyncConfig>): DeviceProps_HistorySyncConfig {
     const message = createBaseDeviceProps_HistorySyncConfig();
-    message.fullSyncDaysLimit = object.fullSyncDaysLimit ?? undefined;
-    message.fullSyncSizeMbLimit = object.fullSyncSizeMbLimit ?? undefined;
-    message.storageQuotaMb = object.storageQuotaMb ?? undefined;
-    message.inlineInitialPayloadInE2EeMsg = object.inlineInitialPayloadInE2EeMsg ?? undefined;
-    message.recentSyncDaysLimit = object.recentSyncDaysLimit ?? undefined;
-    message.supportCallLogHistory = object.supportCallLogHistory ?? undefined;
-    message.supportBotUserAgentChatHistory = object.supportBotUserAgentChatHistory ?? undefined;
-    message.supportCagReactionsAndPolls = object.supportCagReactionsAndPolls ?? undefined;
-    message.supportBizHostedMsg = object.supportBizHostedMsg ?? undefined;
-    message.supportRecentSyncChunkMessageCountTuning = object.supportRecentSyncChunkMessageCountTuning ?? undefined;
-    message.supportHostedGroupMsg = object.supportHostedGroupMsg ?? undefined;
-    message.supportFbidBotChatHistory = object.supportFbidBotChatHistory ?? undefined;
-    message.supportAddOnHistorySyncMigration = object.supportAddOnHistorySyncMigration ?? undefined;
-    message.supportMessageAssociation = object.supportMessageAssociation ?? undefined;
-    message.supportGroupHistory = object.supportGroupHistory ?? undefined;
-    message.onDemandReady = object.onDemandReady ?? undefined;
-    message.supportGuestChat = object.supportGuestChat ?? undefined;
-    message.completeOnDemandReady = object.completeOnDemandReady ?? undefined;
-    message.thumbnailSyncDaysLimit = object.thumbnailSyncDaysLimit ?? undefined;
-    message.initialSyncMaxMessagesPerChat = object.initialSyncMaxMessagesPerChat ?? undefined;
-    message.supportManusHistory = object.supportManusHistory ?? undefined;
-    message.supportHatchHistory = object.supportHatchHistory ?? undefined;
+    copyPartialScalars(message, object, 557, 579);
     message.supportedBotChannelFbids = object.supportedBotChannelFbids?.map((e) => e) || undefined;
-    message.supportInlineContacts = object.supportInlineContacts ?? undefined;
-    message.supportNewsletter = object.supportNewsletter ?? undefined;
+    copyPartialScalars(message, object, 579, 581);
     return message;
   },
 };
@@ -29481,16 +28333,13 @@ export const DisappearingMode: MessageFns<DisappearingMode> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<DisappearingMode>): DisappearingMode {
-    return DisappearingMode.fromPartial(base ?? {});
+    return createPartialMessage(DisappearingMode, base);
   },
   fromPartial(object: DeepPartial<DisappearingMode>): DisappearingMode {
     const message = createBaseDisappearingMode();
@@ -29541,16 +28390,13 @@ export const EmbeddedContent: MessageFns<EmbeddedContent> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EmbeddedContent>): EmbeddedContent {
-    return EmbeddedContent.fromPartial(base ?? {});
+    return createPartialMessage(EmbeddedContent, base);
   },
   fromPartial(object: DeepPartial<EmbeddedContent>): EmbeddedContent {
     const message = createBaseEmbeddedContent();
@@ -29603,16 +28449,13 @@ export const EmbeddedMessage: MessageFns<EmbeddedMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EmbeddedMessage>): EmbeddedMessage {
-    return EmbeddedMessage.fromPartial(base ?? {});
+    return createPartialMessage(EmbeddedMessage, base);
   },
   fromPartial(object: DeepPartial<EmbeddedMessage>): EmbeddedMessage {
     const message = createBaseEmbeddedMessage();
@@ -29795,33 +28638,17 @@ export const EmbeddedMusic: MessageFns<EmbeddedMusic> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EmbeddedMusic>): EmbeddedMusic {
-    return EmbeddedMusic.fromPartial(base ?? {});
+    return createPartialMessage(EmbeddedMusic, base);
   },
   fromPartial(object: DeepPartial<EmbeddedMusic>): EmbeddedMusic {
     const message = createBaseEmbeddedMusic();
-    message.musicContentMediaId = object.musicContentMediaId ?? undefined;
-    message.songId = object.songId ?? undefined;
-    message.author = object.author ?? undefined;
-    message.title = object.title ?? undefined;
-    message.artworkDirectPath = object.artworkDirectPath ?? undefined;
-    message.artworkSha256 = object.artworkSha256 ?? undefined;
-    message.artworkEncSha256 = object.artworkEncSha256 ?? undefined;
-    message.artistAttribution = object.artistAttribution ?? undefined;
-    message.countryBlocklist = object.countryBlocklist ?? undefined;
-    message.isExplicit = object.isExplicit ?? undefined;
-    message.artworkMediaKey = object.artworkMediaKey ?? undefined;
-    message.musicSongStartTimeInMs = object.musicSongStartTimeInMs ?? undefined;
-    message.derivedContentStartTimeInMs = object.derivedContentStartTimeInMs ?? undefined;
-    message.overlapDurationInMs = object.overlapDurationInMs ?? undefined;
+    copyPartialScalars(message, object, 581, 595);
     return message;
   },
 };
@@ -29909,21 +28736,17 @@ export const EncryptMekForDistributionInput: MessageFns<EncryptMekForDistributio
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptMekForDistributionInput>): EncryptMekForDistributionInput {
-    return EncryptMekForDistributionInput.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMekForDistributionInput, base);
   },
   fromPartial(object: DeepPartial<EncryptMekForDistributionInput>): EncryptMekForDistributionInput {
     const message = createBaseEncryptMekForDistributionInput();
-    message.senderEpochHead = object.senderEpochHead ?? undefined;
-    message.toMailboxPk = object.toMailboxPk ?? undefined;
+    copyPartialScalars(message, object, 595, 597);
     message.fromKeypair = (object.fromKeypair !== undefined && object.fromKeypair !== null)
       ? EncryptMekForDistributionInput_MailboxAuthKP.fromPartial(object.fromKeypair)
       : undefined;
@@ -29978,10 +28801,7 @@ export const EncryptMekForDistributionInput_MailboxAuthKP: MessageFns<EncryptMek
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -29989,14 +28809,13 @@ export const EncryptMekForDistributionInput_MailboxAuthKP: MessageFns<EncryptMek
   create(
     base?: DeepPartial<EncryptMekForDistributionInput_MailboxAuthKP>,
   ): EncryptMekForDistributionInput_MailboxAuthKP {
-    return EncryptMekForDistributionInput_MailboxAuthKP.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMekForDistributionInput_MailboxAuthKP, base);
   },
   fromPartial(
     object: DeepPartial<EncryptMekForDistributionInput_MailboxAuthKP>,
   ): EncryptMekForDistributionInput_MailboxAuthKP {
     const message = createBaseEncryptMekForDistributionInput_MailboxAuthKP();
-    message.sk = object.sk ?? undefined;
-    message.pk = object.pk ?? undefined;
+    copyPartialScalars(message, object, 597, 599);
     return message;
   },
 };
@@ -30040,21 +28859,17 @@ export const EncryptMekForDistributionResult: MessageFns<EncryptMekForDistributi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptMekForDistributionResult>): EncryptMekForDistributionResult {
-    return EncryptMekForDistributionResult.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMekForDistributionResult, base);
   },
   fromPartial(object: DeepPartial<EncryptMekForDistributionResult>): EncryptMekForDistributionResult {
     const message = createBaseEncryptMekForDistributionResult();
-    message.ciphertext = object.ciphertext ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 599, 601);
     return message;
   },
 };
@@ -30155,10 +28970,7 @@ export const EncryptMeksForDistributionFromTransportSenderInput: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -30166,7 +28978,7 @@ export const EncryptMeksForDistributionFromTransportSenderInput: MessageFns<
   create(
     base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput>,
   ): EncryptMeksForDistributionFromTransportSenderInput {
-    return EncryptMeksForDistributionFromTransportSenderInput.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMeksForDistributionFromTransportSenderInput, base);
   },
   fromPartial(
     object: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput>,
@@ -30229,10 +29041,7 @@ export const EncryptMeksForDistributionFromTransportSenderInput_TransportSigning
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -30240,14 +29049,13 @@ export const EncryptMeksForDistributionFromTransportSenderInput_TransportSigning
   create(
     base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP>,
   ): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
-    return EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP, base);
   },
   fromPartial(
     object: DeepPartial<EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP>,
   ): EncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP {
     const message = createBaseEncryptMeksForDistributionFromTransportSenderInput_TransportSigningKP();
-    message.sk = object.sk ?? undefined;
-    message.pk = object.pk ?? undefined;
+    copyPartialScalars(message, object, 601, 603);
     return message;
   },
 };
@@ -30337,10 +29145,7 @@ export const EncryptMeksForDistributionFromTransportSenderResult: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -30348,17 +29153,14 @@ export const EncryptMeksForDistributionFromTransportSenderResult: MessageFns<
   create(
     base?: DeepPartial<EncryptMeksForDistributionFromTransportSenderResult>,
   ): EncryptMeksForDistributionFromTransportSenderResult {
-    return EncryptMeksForDistributionFromTransportSenderResult.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMeksForDistributionFromTransportSenderResult, base);
   },
   fromPartial(
     object: DeepPartial<EncryptMeksForDistributionFromTransportSenderResult>,
   ): EncryptMeksForDistributionFromTransportSenderResult {
     const message = createBaseEncryptMeksForDistributionFromTransportSenderResult();
     message.encryptedMeks = object.encryptedMeks?.map((e) => e) || undefined;
-    message.ephemeralEncryptionPk = object.ephemeralEncryptionPk ?? undefined;
-    message.signingPk = object.signingPk ?? undefined;
-    message.signature = object.signature ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 603, 607);
     return message;
   },
 };
@@ -30501,30 +29303,17 @@ export const EncryptMessageInput: MessageFns<EncryptMessageInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptMessageInput>): EncryptMessageInput {
-    return EncryptMessageInput.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMessageInput, base);
   },
   fromPartial(object: DeepPartial<EncryptMessageInput>): EncryptMessageInput {
     const message = createBaseEncryptMessageInput();
-    message.epochRootKey = object.epochRootKey ?? undefined;
-    message.mailboxRootKey = object.mailboxRootKey ?? undefined;
-    message.orfClientState = object.orfClientState ?? undefined;
-    message.epochAnonId = object.epochAnonId ?? undefined;
-    message.epochId = object.epochId ?? undefined;
-    message.threadId = object.threadId ?? undefined;
-    message.waCanonicalUserFbid = object.waCanonicalUserFbid ?? undefined;
-    message.timestampMs = object.timestampMs ?? undefined;
-    message.backupId = object.backupId ?? undefined;
-    message.plaintextPayload = object.plaintextPayload ?? undefined;
-    message.stanzaId = object.stanzaId ?? undefined;
+    copyPartialScalars(message, object, 607, 618);
     return message;
   },
 };
@@ -30612,25 +29401,17 @@ export const EncryptMessageOutput: MessageFns<EncryptMessageOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptMessageOutput>): EncryptMessageOutput {
-    return EncryptMessageOutput.fromPartial(base ?? {});
+    return createPartialMessage(EncryptMessageOutput, base);
   },
   fromPartial(object: DeepPartial<EncryptMessageOutput>): EncryptMessageOutput {
     const message = createBaseEncryptMessageOutput();
-    message.encryptedProtobuf = object.encryptedProtobuf ?? undefined;
-    message.orfThreadId = object.orfThreadId ?? undefined;
-    message.valueSecretRef = object.valueSecretRef ?? undefined;
-    message.offlineThreadingId = object.offlineThreadingId ?? undefined;
-    message.timestampMs = object.timestampMs ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 618, 624);
     return message;
   },
 };
@@ -30674,21 +29455,17 @@ export const EncryptedPairingRequest: MessageFns<EncryptedPairingRequest> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptedPairingRequest>): EncryptedPairingRequest {
-    return EncryptedPairingRequest.fromPartial(base ?? {});
+    return createPartialMessage(EncryptedPairingRequest, base);
   },
   fromPartial(object: DeepPartial<EncryptedPairingRequest>): EncryptedPairingRequest {
     const message = createBaseEncryptedPairingRequest();
-    message.encryptedPayload = object.encryptedPayload ?? undefined;
-    message.iv = object.iv ?? undefined;
+    copyPartialScalars(message, object, 624, 626);
     return message;
   },
 };
@@ -30798,27 +29575,17 @@ export const EncryptedSecretValuesOutput: MessageFns<EncryptedSecretValuesOutput
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EncryptedSecretValuesOutput>): EncryptedSecretValuesOutput {
-    return EncryptedSecretValuesOutput.fromPartial(base ?? {});
+    return createPartialMessage(EncryptedSecretValuesOutput, base);
   },
   fromPartial(object: DeepPartial<EncryptedSecretValuesOutput>): EncryptedSecretValuesOutput {
     const message = createBaseEncryptedSecretValuesOutput();
-    message.encryptedDevicePrivateKey = object.encryptedDevicePrivateKey ?? undefined;
-    message.encryptedObliviousValidationTokenBlob = object.encryptedObliviousValidationTokenBlob ?? undefined;
-    message.encryptedEpochStoragePrivateKey = object.encryptedEpochStoragePrivateKey ?? undefined;
-    message.encryptedOcmfClientState = object.encryptedOcmfClientState ?? undefined;
-    message.encryptedOrfClientStateV2 = object.encryptedOrfClientStateV2 ?? undefined;
-    message.encryptedMailboxRootKeyBlob = object.encryptedMailboxRootKeyBlob ?? undefined;
-    message.encryptedEpochAnonId = object.encryptedEpochAnonId ?? undefined;
-    message.encryptedEpochRootKey = object.encryptedEpochRootKey ?? undefined;
+    copyPartialScalars(message, object, 626, 634);
     return message;
   },
 };
@@ -30862,21 +29629,17 @@ export const EphemeralSetting: MessageFns<EphemeralSetting> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EphemeralSetting>): EphemeralSetting {
-    return EphemeralSetting.fromPartial(base ?? {});
+    return createPartialMessage(EphemeralSetting, base);
   },
   fromPartial(object: DeepPartial<EphemeralSetting>): EphemeralSetting {
     const message = createBaseEphemeralSetting();
-    message.duration = object.duration ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
+    copyPartialScalars(message, object, 634, 636);
     return message;
   },
 };
@@ -30975,26 +29738,17 @@ export const Epoch0Output: MessageFns<Epoch0Output> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Epoch0Output>): Epoch0Output {
-    return Epoch0Output.fromPartial(base ?? {});
+    return createPartialMessage(Epoch0Output, base);
   },
   fromPartial(object: DeepPartial<Epoch0Output>): Epoch0Output {
     const message = createBaseEpoch0Output();
-    message.epochFbid = object.epochFbid ?? undefined;
-    message.epochAnonId = object.epochAnonId ?? undefined;
-    message.epochData = object.epochData ?? undefined;
-    message.wrappedRootKeyForSelf = object.wrappedRootKeyForSelf ?? undefined;
-    message.epochSignature = object.epochSignature ?? undefined;
-    message.epochRootKeyFingerprint = object.epochRootKeyFingerprint ?? undefined;
-    message.epochRootKey = object.epochRootKey ?? undefined;
+    copyPartialScalars(message, object, 636, 643);
     return message;
   },
 };
@@ -31082,25 +29836,17 @@ export const EpochPublicData: MessageFns<EpochPublicData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EpochPublicData>): EpochPublicData {
-    return EpochPublicData.fromPartial(base ?? {});
+    return createPartialMessage(EpochPublicData, base);
   },
   fromPartial(object: DeepPartial<EpochPublicData>): EpochPublicData {
     const message = createBaseEpochPublicData();
-    message.epochNumber = object.epochNumber ?? undefined;
-    message.userFbid = object.userFbid ?? undefined;
-    message.mailboxSigningPk = object.mailboxSigningPk ?? undefined;
-    message.mailboxEncryptionPk = object.mailboxEncryptionPk ?? undefined;
-    message.mailboxAuthPk = object.mailboxAuthPk ?? undefined;
-    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    copyPartialScalars(message, object, 643, 649);
     return message;
   },
 };
@@ -31144,21 +29890,17 @@ export const EpochSignatures: MessageFns<EpochSignatures> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EpochSignatures>): EpochSignatures {
-    return EpochSignatures.fromPartial(base ?? {});
+    return createPartialMessage(EpochSignatures, base);
   },
   fromPartial(object: DeepPartial<EpochSignatures>): EpochSignatures {
     const message = createBaseEpochSignatures();
-    message.selfSignature = object.selfSignature ?? undefined;
-    message.prevSignature = object.prevSignature ?? undefined;
+    copyPartialScalars(message, object, 649, 651);
     return message;
   },
 };
@@ -31191,16 +29933,13 @@ export const EventAdditionalMetadata: MessageFns<EventAdditionalMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EventAdditionalMetadata>): EventAdditionalMetadata {
-    return EventAdditionalMetadata.fromPartial(base ?? {});
+    return createPartialMessage(EventAdditionalMetadata, base);
   },
   fromPartial(object: DeepPartial<EventAdditionalMetadata>): EventAdditionalMetadata {
     const message = createBaseEventAdditionalMetadata();
@@ -31270,16 +30009,13 @@ export const EventResponse: MessageFns<EventResponse> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<EventResponse>): EventResponse {
-    return EventResponse.fromPartial(base ?? {});
+    return createPartialMessage(EventResponse, base);
   },
   fromPartial(object: DeepPartial<EventResponse>): EventResponse {
     const message = createBaseEventResponse();
@@ -31335,21 +30071,17 @@ export const ExitCode: MessageFns<ExitCode> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ExitCode>): ExitCode {
-    return ExitCode.fromPartial(base ?? {});
+    return createPartialMessage(ExitCode, base);
   },
   fromPartial(object: DeepPartial<ExitCode>): ExitCode {
     const message = createBaseExitCode();
-    message.code = object.code ?? undefined;
-    message.text = object.text ?? undefined;
+    copyPartialScalars(message, object, 651, 653);
     return message;
   },
 };
@@ -31730,54 +30462,34 @@ export const ExtendedContentMessage: MessageFns<ExtendedContentMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ExtendedContentMessage>): ExtendedContentMessage {
-    return ExtendedContentMessage.fromPartial(base ?? {});
+    return createPartialMessage(ExtendedContentMessage, base);
   },
   fromPartial(object: DeepPartial<ExtendedContentMessage>): ExtendedContentMessage {
     const message = createBaseExtendedContentMessage();
     message.associatedMessage = (object.associatedMessage !== undefined && object.associatedMessage !== null)
       ? SubProtocol.fromPartial(object.associatedMessage)
       : undefined;
-    message.targetType = object.targetType ?? undefined;
-    message.targetUsername = object.targetUsername ?? undefined;
-    message.targetId = object.targetId ?? undefined;
-    message.targetExpiringAtSec = object.targetExpiringAtSec ?? undefined;
-    message.xmaLayoutType = object.xmaLayoutType ?? undefined;
+    copyPartialScalars(message, object, 653, 658);
     message.ctas = object.ctas?.map((e) => ExtendedContentMessage_CTA.fromPartial(e)) || undefined;
     message.previews = object.previews?.map((e) => SubProtocol.fromPartial(e)) || undefined;
-    message.titleText = object.titleText ?? undefined;
-    message.subtitleText = object.subtitleText ?? undefined;
-    message.maxTitleNumOfLines = object.maxTitleNumOfLines ?? undefined;
-    message.maxSubtitleNumOfLines = object.maxSubtitleNumOfLines ?? undefined;
+    copyPartialScalars(message, object, 658, 662);
     message.favicon = (object.favicon !== undefined && object.favicon !== null)
       ? SubProtocol.fromPartial(object.favicon)
       : undefined;
     message.headerImage = (object.headerImage !== undefined && object.headerImage !== null)
       ? SubProtocol.fromPartial(object.headerImage)
       : undefined;
-    message.headerTitle = object.headerTitle ?? undefined;
-    message.overlayIconGlyph = object.overlayIconGlyph ?? undefined;
-    message.overlayTitle = object.overlayTitle ?? undefined;
-    message.overlayDescription = object.overlayDescription ?? undefined;
-    message.sentWithMessageId = object.sentWithMessageId ?? undefined;
-    message.messageText = object.messageText ?? undefined;
-    message.headerSubtitle = object.headerSubtitle ?? undefined;
-    message.xmaDataclass = object.xmaDataclass ?? undefined;
-    message.contentRef = object.contentRef ?? undefined;
+    copyPartialScalars(message, object, 662, 671);
     message.mentionedJid = object.mentionedJid?.map((e) => e) || undefined;
     message.commands = object.commands?.map((e) => Command.fromPartial(e)) || undefined;
     message.mentions = object.mentions?.map((e) => Mention.fromPartial(e)) || undefined;
-    message.xmaDataclassType = object.xmaDataclassType ?? undefined;
-    message.signedXmaDataclassValidation = object.signedXmaDataclassValidation ?? undefined;
-    message.featureSharedSessionId = object.featureSharedSessionId ?? undefined;
+    copyPartialScalars(message, object, 671, 674);
     return message;
   },
 };
@@ -31865,25 +30577,17 @@ export const ExtendedContentMessage_CTA: MessageFns<ExtendedContentMessage_CTA> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ExtendedContentMessage_CTA>): ExtendedContentMessage_CTA {
-    return ExtendedContentMessage_CTA.fromPartial(base ?? {});
+    return createPartialMessage(ExtendedContentMessage_CTA, base);
   },
   fromPartial(object: DeepPartial<ExtendedContentMessage_CTA>): ExtendedContentMessage_CTA {
     const message = createBaseExtendedContentMessage_CTA();
-    message.buttonType = object.buttonType ?? undefined;
-    message.title = object.title ?? undefined;
-    message.actionUrl = object.actionUrl ?? undefined;
-    message.nativeUrl = object.nativeUrl ?? undefined;
-    message.ctaType = object.ctaType ?? undefined;
-    message.actionContentBlob = object.actionContentBlob ?? undefined;
+    copyPartialScalars(message, object, 674, 680);
     return message;
   },
 };
@@ -31971,25 +30675,17 @@ export const ExternalBlobReference: MessageFns<ExternalBlobReference> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ExternalBlobReference>): ExternalBlobReference {
-    return ExternalBlobReference.fromPartial(base ?? {});
+    return createPartialMessage(ExternalBlobReference, base);
   },
   fromPartial(object: DeepPartial<ExternalBlobReference>): ExternalBlobReference {
     const message = createBaseExternalBlobReference();
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.handle = object.handle ?? undefined;
-    message.fileSizeBytes = object.fileSizeBytes ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
+    copyPartialScalars(message, object, 680, 686);
     return message;
   },
 };
@@ -32072,23 +30768,17 @@ export const Field: MessageFns<Field> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Field>): Field {
-    return Field.fromPartial(base ?? {});
+    return createPartialMessage(Field, base);
   },
   fromPartial(object: DeepPartial<Field>): Field {
     const message = createBaseField();
-    message.minVersion = object.minVersion ?? undefined;
-    message.maxVersion = object.maxVersion ?? undefined;
-    message.notReportableMinVersion = object.notReportableMinVersion ?? undefined;
-    message.isMessage = object.isMessage ?? undefined;
+    copyPartialScalars(message, object, 686, 690);
     message.subfield = (object.subfield === undefined || object.subfield === null)
       ? undefined
       : (globalThis.Object.entries(object.subfield ?? {}) as [string, Field][]).reduce(
@@ -32143,16 +30833,13 @@ export const Field_SubfieldEntry: MessageFns<Field_SubfieldEntry> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Field_SubfieldEntry>): Field_SubfieldEntry {
-    return Field_SubfieldEntry.fromPartial(base ?? {});
+    return createPartialMessage(Field_SubfieldEntry, base);
   },
   fromPartial(object: DeepPartial<Field_SubfieldEntry>): Field_SubfieldEntry {
     const message = createBaseField_SubfieldEntry();
@@ -32245,25 +30932,17 @@ export const FingerprintData: MessageFns<FingerprintData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<FingerprintData>): FingerprintData {
-    return FingerprintData.fromPartial(base ?? {});
+    return createPartialMessage(FingerprintData, base);
   },
   fromPartial(object: DeepPartial<FingerprintData>): FingerprintData {
     const message = createBaseFingerprintData();
-    message.publicKey = object.publicKey ?? undefined;
-    message.pnIdentifier = object.pnIdentifier ?? undefined;
-    message.lidIdentifier = object.lidIdentifier ?? undefined;
-    message.usernameIdentifier = object.usernameIdentifier ?? undefined;
-    message.hostedState = object.hostedState ?? undefined;
-    message.hashedPublicKey = object.hashedPublicKey ?? undefined;
+    copyPartialScalars(message, object, 690, 696);
     return message;
   },
 };
@@ -32318,22 +30997,17 @@ export const ForwardedAIBotMessageInfo: MessageFns<ForwardedAIBotMessageInfo> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ForwardedAIBotMessageInfo>): ForwardedAIBotMessageInfo {
-    return ForwardedAIBotMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(ForwardedAIBotMessageInfo, base);
   },
   fromPartial(object: DeepPartial<ForwardedAIBotMessageInfo>): ForwardedAIBotMessageInfo {
     const message = createBaseForwardedAIBotMessageInfo();
-    message.botName = object.botName ?? undefined;
-    message.botJid = object.botJid ?? undefined;
-    message.creatorName = object.creatorName ?? undefined;
+    copyPartialScalars(message, object, 696, 699);
     return message;
   },
 };
@@ -32374,16 +31048,13 @@ export const GenerateMekInput: MessageFns<GenerateMekInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GenerateMekInput>): GenerateMekInput {
-    return GenerateMekInput.fromPartial(base ?? {});
+    return createPartialMessage(GenerateMekInput, base);
   },
   fromPartial(object: DeepPartial<GenerateMekInput>): GenerateMekInput {
     const message = createBaseGenerateMekInput();
@@ -32420,16 +31091,13 @@ export const GenerateMekResult: MessageFns<GenerateMekResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GenerateMekResult>): GenerateMekResult {
-    return GenerateMekResult.fromPartial(base ?? {});
+    return createPartialMessage(GenerateMekResult, base);
   },
   fromPartial(object: DeepPartial<GenerateMekResult>): GenerateMekResult {
     const message = createBaseGenerateMekResult();
@@ -32474,16 +31142,13 @@ export const GenerateMekRosterHashInput: MessageFns<GenerateMekRosterHashInput> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GenerateMekRosterHashInput>): GenerateMekRosterHashInput {
-    return GenerateMekRosterHashInput.fromPartial(base ?? {});
+    return createPartialMessage(GenerateMekRosterHashInput, base);
   },
   fromPartial(object: DeepPartial<GenerateMekRosterHashInput>): GenerateMekRosterHashInput {
     const message = createBaseGenerateMekRosterHashInput();
@@ -32520,16 +31185,13 @@ export const GenerateMekRosterHashResult: MessageFns<GenerateMekRosterHashResult
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GenerateMekRosterHashResult>): GenerateMekRosterHashResult {
-    return GenerateMekRosterHashResult.fromPartial(base ?? {});
+    return createPartialMessage(GenerateMekRosterHashResult, base);
   },
   fromPartial(object: DeepPartial<GenerateMekRosterHashResult>): GenerateMekRosterHashResult {
     const message = createBaseGenerateMekRosterHashResult();
@@ -32775,16 +31437,13 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GlobalSettings>): GlobalSettings {
-    return GlobalSettings.fromPartial(base ?? {});
+    return createPartialMessage(GlobalSettings, base);
   },
   fromPartial(object: DeepPartial<GlobalSettings>): GlobalSettings {
     const message = createBaseGlobalSettings();
@@ -32804,18 +31463,11 @@ export const GlobalSettings: MessageFns<GlobalSettings> = {
     message.autoDownloadRoaming = (object.autoDownloadRoaming !== undefined && object.autoDownloadRoaming !== null)
       ? AutoDownloadSettings.fromPartial(object.autoDownloadRoaming)
       : undefined;
-    message.showIndividualNotificationsPreview = object.showIndividualNotificationsPreview ?? undefined;
-    message.showGroupNotificationsPreview = object.showGroupNotificationsPreview ?? undefined;
-    message.disappearingModeDuration = object.disappearingModeDuration ?? undefined;
-    message.disappearingModeTimestamp = object.disappearingModeTimestamp ?? undefined;
+    copyPartialScalars(message, object, 699, 703);
     message.avatarUserSettings = (object.avatarUserSettings !== undefined && object.avatarUserSettings !== null)
       ? AvatarUserSettings.fromPartial(object.avatarUserSettings)
       : undefined;
-    message.fontSize = object.fontSize ?? undefined;
-    message.securityNotifications = object.securityNotifications ?? undefined;
-    message.autoUnarchiveChats = object.autoUnarchiveChats ?? undefined;
-    message.videoQualityMode = object.videoQualityMode ?? undefined;
-    message.photoQualityMode = object.photoQualityMode ?? undefined;
+    copyPartialScalars(message, object, 703, 708);
     message.individualNotificationSettings =
       (object.individualNotificationSettings !== undefined && object.individualNotificationSettings !== null)
         ? NotificationSettings.fromPartial(object.individualNotificationSettings)
@@ -32925,16 +31577,13 @@ export const GroupHistory: MessageFns<GroupHistory> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupHistory>): GroupHistory {
-    return GroupHistory.fromPartial(base ?? {});
+    return createPartialMessage(GroupHistory, base);
   },
   fromPartial(object: DeepPartial<GroupHistory>): GroupHistory {
     const message = createBaseGroupHistory();
@@ -32987,16 +31636,13 @@ export const GroupHistoryBundleInfo: MessageFns<GroupHistoryBundleInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupHistoryBundleInfo>): GroupHistoryBundleInfo {
-    return GroupHistoryBundleInfo.fromPartial(base ?? {});
+    return createPartialMessage(GroupHistoryBundleInfo, base);
   },
   fromPartial(object: DeepPartial<GroupHistoryBundleInfo>): GroupHistoryBundleInfo {
     const message = createBaseGroupHistoryBundleInfo();
@@ -33048,16 +31694,13 @@ export const GroupHistoryIndividualMessageInfo: MessageFns<GroupHistoryIndividua
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupHistoryIndividualMessageInfo>): GroupHistoryIndividualMessageInfo {
-    return GroupHistoryIndividualMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(GroupHistoryIndividualMessageInfo, base);
   },
   fromPartial(object: DeepPartial<GroupHistoryIndividualMessageInfo>): GroupHistoryIndividualMessageInfo {
     const message = createBaseGroupHistoryIndividualMessageInfo();
@@ -33162,16 +31805,13 @@ export const GroupHistoryWithMessageBytes: MessageFns<GroupHistoryWithMessageByt
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupHistoryWithMessageBytes>): GroupHistoryWithMessageBytes {
-    return GroupHistoryWithMessageBytes.fromPartial(base ?? {});
+    return createPartialMessage(GroupHistoryWithMessageBytes, base);
   },
   fromPartial(object: DeepPartial<GroupHistoryWithMessageBytes>): GroupHistoryWithMessageBytes {
     const message = createBaseGroupHistoryWithMessageBytes();
@@ -33227,21 +31867,17 @@ export const GroupMention: MessageFns<GroupMention> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupMention>): GroupMention {
-    return GroupMention.fromPartial(base ?? {});
+    return createPartialMessage(GroupMention, base);
   },
   fromPartial(object: DeepPartial<GroupMention>): GroupMention {
     const message = createBaseGroupMention();
-    message.groupJid = object.groupJid ?? undefined;
-    message.groupSubject = object.groupSubject ?? undefined;
+    copyPartialScalars(message, object, 708, 710);
     return message;
   },
 };
@@ -33296,21 +31932,17 @@ export const GroupParticipant: MessageFns<GroupParticipant> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupParticipant>): GroupParticipant {
-    return GroupParticipant.fromPartial(base ?? {});
+    return createPartialMessage(GroupParticipant, base);
   },
   fromPartial(object: DeepPartial<GroupParticipant>): GroupParticipant {
     const message = createBaseGroupParticipant();
-    message.userJid = object.userJid ?? undefined;
-    message.rank = object.rank ?? undefined;
+    copyPartialScalars(message, object, 710, 712);
     message.memberLabel = (object.memberLabel !== undefined && object.memberLabel !== null)
       ? MemberLabel.fromPartial(object.memberLabel)
       : undefined;
@@ -33354,16 +31986,13 @@ export const GroupRootKeyShare: MessageFns<GroupRootKeyShare> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupRootKeyShare>): GroupRootKeyShare {
-    return GroupRootKeyShare.fromPartial(base ?? {});
+    return createPartialMessage(GroupRootKeyShare, base);
   },
   fromPartial(object: DeepPartial<GroupRootKeyShare>): GroupRootKeyShare {
     const message = createBaseGroupRootKeyShare();
@@ -33433,23 +32062,17 @@ export const GroupRootKeyShareEntry: MessageFns<GroupRootKeyShareEntry> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<GroupRootKeyShareEntry>): GroupRootKeyShareEntry {
-    return GroupRootKeyShareEntry.fromPartial(base ?? {});
+    return createPartialMessage(GroupRootKeyShareEntry, base);
   },
   fromPartial(object: DeepPartial<GroupRootKeyShareEntry>): GroupRootKeyShareEntry {
     const message = createBaseGroupRootKeyShareEntry();
-    message.groupRootKey = object.groupRootKey ?? undefined;
-    message.keyId = object.keyId ?? undefined;
-    message.expiryTimestampMs = object.expiryTimestampMs ?? undefined;
-    message.createdTimestampMs = object.createdTimestampMs ?? undefined;
+    copyPartialScalars(message, object, 712, 716);
     return message;
   },
 };
@@ -33504,16 +32127,13 @@ export const HandshakeMessage: MessageFns<HandshakeMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HandshakeMessage>): HandshakeMessage {
-    return HandshakeMessage.fromPartial(base ?? {});
+    return createPartialMessage(HandshakeMessage, base);
   },
   fromPartial(object: DeepPartial<HandshakeMessage>): HandshakeMessage {
     const message = createBaseHandshakeMessage();
@@ -33602,24 +32222,17 @@ export const HandshakeMessage_ClientFinish: MessageFns<HandshakeMessage_ClientFi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HandshakeMessage_ClientFinish>): HandshakeMessage_ClientFinish {
-    return HandshakeMessage_ClientFinish.fromPartial(base ?? {});
+    return createPartialMessage(HandshakeMessage_ClientFinish, base);
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ClientFinish>): HandshakeMessage_ClientFinish {
     const message = createBaseHandshakeMessage_ClientFinish();
-    message.static = object.static ?? undefined;
-    message.payload = object.payload ?? undefined;
-    message.extendedCiphertext = object.extendedCiphertext ?? undefined;
-    message.paddedBytes = object.paddedBytes ?? undefined;
-    message.simulateXxkemFs = object.simulateXxkemFs ?? undefined;
+    copyPartialScalars(message, object, 716, 721);
     return message;
   },
 };
@@ -33751,29 +32364,17 @@ export const HandshakeMessage_ClientHello: MessageFns<HandshakeMessage_ClientHel
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HandshakeMessage_ClientHello>): HandshakeMessage_ClientHello {
-    return HandshakeMessage_ClientHello.fromPartial(base ?? {});
+    return createPartialMessage(HandshakeMessage_ClientHello, base);
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ClientHello>): HandshakeMessage_ClientHello {
     const message = createBaseHandshakeMessage_ClientHello();
-    message.ephemeral = object.ephemeral ?? undefined;
-    message.static = object.static ?? undefined;
-    message.payload = object.payload ?? undefined;
-    message.useExtended = object.useExtended ?? undefined;
-    message.extendedCiphertext = object.extendedCiphertext ?? undefined;
-    message.paddedBytes = object.paddedBytes ?? undefined;
-    message.sendServerHelloPaddedBytes = object.sendServerHelloPaddedBytes ?? undefined;
-    message.simulateXxkemFs = object.simulateXxkemFs ?? undefined;
-    message.pqMode = object.pqMode ?? undefined;
-    message.extendedEphemeral = object.extendedEphemeral ?? undefined;
+    copyPartialScalars(message, object, 721, 731);
     return message;
   },
 };
@@ -33861,25 +32462,17 @@ export const HandshakeMessage_ServerHello: MessageFns<HandshakeMessage_ServerHel
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HandshakeMessage_ServerHello>): HandshakeMessage_ServerHello {
-    return HandshakeMessage_ServerHello.fromPartial(base ?? {});
+    return createPartialMessage(HandshakeMessage_ServerHello, base);
   },
   fromPartial(object: DeepPartial<HandshakeMessage_ServerHello>): HandshakeMessage_ServerHello {
     const message = createBaseHandshakeMessage_ServerHello();
-    message.ephemeral = object.ephemeral ?? undefined;
-    message.static = object.static ?? undefined;
-    message.payload = object.payload ?? undefined;
-    message.extendedStatic = object.extendedStatic ?? undefined;
-    message.paddingBytes = object.paddingBytes ?? undefined;
-    message.extendedCiphertext = object.extendedCiphertext ?? undefined;
+    copyPartialScalars(message, object, 731, 737);
     return message;
   },
 };
@@ -33934,22 +32527,17 @@ export const HatchMetadataSync: MessageFns<HatchMetadataSync> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HatchMetadataSync>): HatchMetadataSync {
-    return HatchMetadataSync.fromPartial(base ?? {});
+    return createPartialMessage(HatchMetadataSync, base);
   },
   fromPartial(object: DeepPartial<HatchMetadataSync>): HatchMetadataSync {
     const message = createBaseHatchMetadataSync();
-    message.data = object.data ?? undefined;
-    message.timestampMs = object.timestampMs ?? undefined;
-    message.requestId = object.requestId ?? undefined;
+    copyPartialScalars(message, object, 737, 740);
     return message;
   },
 };
@@ -34263,38 +32851,32 @@ export const HistorySync: MessageFns<HistorySync> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HistorySync>): HistorySync {
-    return HistorySync.fromPartial(base ?? {});
+    return createPartialMessage(HistorySync, base);
   },
   fromPartial(object: DeepPartial<HistorySync>): HistorySync {
     const message = createBaseHistorySync();
     message.syncType = object.syncType ?? undefined;
     message.conversations = object.conversations?.map((e) => Conversation.fromPartial(e)) || undefined;
     message.statusV3Messages = object.statusV3Messages?.map((e) => WebMessageInfo.fromPartial(e)) || undefined;
-    message.chunkOrder = object.chunkOrder ?? undefined;
-    message.progress = object.progress ?? undefined;
+    copyPartialScalars(message, object, 740, 742);
     message.pushnames = object.pushnames?.map((e) => Pushname.fromPartial(e)) || undefined;
     message.globalSettings = (object.globalSettings !== undefined && object.globalSettings !== null)
       ? GlobalSettings.fromPartial(object.globalSettings)
       : undefined;
-    message.threadIdUserSecret = object.threadIdUserSecret ?? undefined;
-    message.threadDsTimeframeOffset = object.threadDsTimeframeOffset ?? undefined;
+    copyPartialScalars(message, object, 742, 744);
     message.recentStickers = object.recentStickers?.map((e) => StickerMetadata.fromPartial(e)) || undefined;
     message.pastParticipants = object.pastParticipants?.map((e) => PastParticipants.fromPartial(e)) || undefined;
     message.callLogRecords = object.callLogRecords?.map((e) => CallLogRecord.fromPartial(e)) || undefined;
     message.aiWaitListState = object.aiWaitListState ?? undefined;
     message.phoneNumberToLidMappings =
       object.phoneNumberToLidMappings?.map((e) => PhoneNumberToLIDMapping.fromPartial(e)) || undefined;
-    message.companionMetaNonce = object.companionMetaNonce ?? undefined;
-    message.shareableChatIdentifierEncryptionKey = object.shareableChatIdentifierEncryptionKey ?? undefined;
+    copyPartialScalars(message, object, 744, 746);
     message.accounts = object.accounts?.map((e) => Account.fromPartial(e)) || undefined;
     message.nctSalt = object.nctSalt ?? undefined;
     message.inlineContacts = object.inlineContacts?.map((e) => InlineContact.fromPartial(e)) || undefined;
@@ -34342,16 +32924,13 @@ export const HistorySyncMsg: MessageFns<HistorySyncMsg> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HistorySyncMsg>): HistorySyncMsg {
-    return HistorySyncMsg.fromPartial(base ?? {});
+    return createPartialMessage(HistorySyncMsg, base);
   },
   fromPartial(object: DeepPartial<HistorySyncMsg>): HistorySyncMsg {
     const message = createBaseHistorySyncMsg();
@@ -34424,16 +33003,13 @@ export const HydratedTemplateButton: MessageFns<HydratedTemplateButton> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HydratedTemplateButton>): HydratedTemplateButton {
-    return HydratedTemplateButton.fromPartial(base ?? {});
+    return createPartialMessage(HydratedTemplateButton, base);
   },
   fromPartial(object: DeepPartial<HydratedTemplateButton>): HydratedTemplateButton {
     const message = createBaseHydratedTemplateButton();
@@ -34490,23 +33066,19 @@ export const HydratedTemplateButton_HydratedCallButton: MessageFns<HydratedTempl
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HydratedTemplateButton_HydratedCallButton>): HydratedTemplateButton_HydratedCallButton {
-    return HydratedTemplateButton_HydratedCallButton.fromPartial(base ?? {});
+    return createPartialMessage(HydratedTemplateButton_HydratedCallButton, base);
   },
   fromPartial(
     object: DeepPartial<HydratedTemplateButton_HydratedCallButton>,
   ): HydratedTemplateButton_HydratedCallButton {
     const message = createBaseHydratedTemplateButton_HydratedCallButton();
-    message.displayText = object.displayText ?? undefined;
-    message.phoneNumber = object.phoneNumber ?? undefined;
+    copyPartialScalars(message, object, 746, 748);
     return message;
   },
 };
@@ -34555,10 +33127,7 @@ export const HydratedTemplateButton_HydratedQuickReplyButton: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -34566,14 +33135,13 @@ export const HydratedTemplateButton_HydratedQuickReplyButton: MessageFns<
   create(
     base?: DeepPartial<HydratedTemplateButton_HydratedQuickReplyButton>,
   ): HydratedTemplateButton_HydratedQuickReplyButton {
-    return HydratedTemplateButton_HydratedQuickReplyButton.fromPartial(base ?? {});
+    return createPartialMessage(HydratedTemplateButton_HydratedQuickReplyButton, base);
   },
   fromPartial(
     object: DeepPartial<HydratedTemplateButton_HydratedQuickReplyButton>,
   ): HydratedTemplateButton_HydratedQuickReplyButton {
     const message = createBaseHydratedTemplateButton_HydratedQuickReplyButton();
-    message.displayText = object.displayText ?? undefined;
-    message.id = object.id ?? undefined;
+    copyPartialScalars(message, object, 748, 750);
     return message;
   },
 };
@@ -34639,23 +33207,17 @@ export const HydratedTemplateButton_HydratedURLButton: MessageFns<HydratedTempla
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<HydratedTemplateButton_HydratedURLButton>): HydratedTemplateButton_HydratedURLButton {
-    return HydratedTemplateButton_HydratedURLButton.fromPartial(base ?? {});
+    return createPartialMessage(HydratedTemplateButton_HydratedURLButton, base);
   },
   fromPartial(object: DeepPartial<HydratedTemplateButton_HydratedURLButton>): HydratedTemplateButton_HydratedURLButton {
     const message = createBaseHydratedTemplateButton_HydratedURLButton();
-    message.displayText = object.displayText ?? undefined;
-    message.url = object.url ?? undefined;
-    message.consentedUsersUrl = object.consentedUsersUrl ?? undefined;
-    message.webviewPresentation = object.webviewPresentation ?? undefined;
+    copyPartialScalars(message, object, 750, 754);
     return message;
   },
 };
@@ -34699,21 +33261,17 @@ export const IdentityKeyPairStructure: MessageFns<IdentityKeyPairStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<IdentityKeyPairStructure>): IdentityKeyPairStructure {
-    return IdentityKeyPairStructure.fromPartial(base ?? {});
+    return createPartialMessage(IdentityKeyPairStructure, base);
   },
   fromPartial(object: DeepPartial<IdentityKeyPairStructure>): IdentityKeyPairStructure {
     const message = createBaseIdentityKeyPairStructure();
-    message.publicKey = object.publicKey ?? undefined;
-    message.privateKey = object.privateKey ?? undefined;
+    copyPartialScalars(message, object, 754, 756);
     return message;
   },
 };
@@ -34757,21 +33315,17 @@ export const IdentityVerificationState: MessageFns<IdentityVerificationState> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<IdentityVerificationState>): IdentityVerificationState {
-    return IdentityVerificationState.fromPartial(base ?? {});
+    return createPartialMessage(IdentityVerificationState, base);
   },
   fromPartial(object: DeepPartial<IdentityVerificationState>): IdentityVerificationState {
     const message = createBaseIdentityVerificationState();
-    message.verified = object.verified ?? undefined;
-    message.actionSeq = object.actionSeq ?? undefined;
+    copyPartialScalars(message, object, 756, 758);
     return message;
   },
 };
@@ -35007,41 +33561,25 @@ export const InThreadSurveyMetadata: MessageFns<InThreadSurveyMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<InThreadSurveyMetadata>): InThreadSurveyMetadata {
-    return InThreadSurveyMetadata.fromPartial(base ?? {});
+    return createPartialMessage(InThreadSurveyMetadata, base);
   },
   fromPartial(object: DeepPartial<InThreadSurveyMetadata>): InThreadSurveyMetadata {
     const message = createBaseInThreadSurveyMetadata();
-    message.tessaSessionId = object.tessaSessionId ?? undefined;
-    message.simonSessionId = object.simonSessionId ?? undefined;
-    message.simonSurveyId = object.simonSurveyId ?? undefined;
-    message.tessaRootId = object.tessaRootId ?? undefined;
-    message.requestId = object.requestId ?? undefined;
-    message.tessaEvent = object.tessaEvent ?? undefined;
-    message.invitationHeaderText = object.invitationHeaderText ?? undefined;
-    message.invitationBodyText = object.invitationBodyText ?? undefined;
-    message.invitationCtaText = object.invitationCtaText ?? undefined;
-    message.invitationCtaUrl = object.invitationCtaUrl ?? undefined;
-    message.surveyTitle = object.surveyTitle ?? undefined;
+    copyPartialScalars(message, object, 758, 769);
     message.questions = object.questions?.map((e) => InThreadSurveyMetadata_InThreadSurveyQuestion.fromPartial(e)) ||
       undefined;
-    message.surveyContinueButtonText = object.surveyContinueButtonText ?? undefined;
-    message.surveySubmitButtonText = object.surveySubmitButtonText ?? undefined;
-    message.privacyStatementFull = object.privacyStatementFull ?? undefined;
+    copyPartialScalars(message, object, 769, 772);
     message.privacyStatementParts =
       object.privacyStatementParts?.map((e) =>
         InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart.fromPartial(e)
       ) || undefined;
-    message.feedbackToastText = object.feedbackToastText ?? undefined;
-    message.startQuestionIndex = object.startQuestionIndex ?? undefined;
+    copyPartialScalars(message, object, 772, 774);
     return message;
   },
 };
@@ -35099,24 +33637,19 @@ export const InThreadSurveyMetadata_InThreadSurveyOption: MessageFns<InThreadSur
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<InThreadSurveyMetadata_InThreadSurveyOption>): InThreadSurveyMetadata_InThreadSurveyOption {
-    return InThreadSurveyMetadata_InThreadSurveyOption.fromPartial(base ?? {});
+    return createPartialMessage(InThreadSurveyMetadata_InThreadSurveyOption, base);
   },
   fromPartial(
     object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyOption>,
   ): InThreadSurveyMetadata_InThreadSurveyOption {
     const message = createBaseInThreadSurveyMetadata_InThreadSurveyOption();
-    message.stringValue = object.stringValue ?? undefined;
-    message.numericValue = object.numericValue ?? undefined;
-    message.textTranslated = object.textTranslated ?? undefined;
+    copyPartialScalars(message, object, 774, 777);
     return message;
   },
 };
@@ -35165,10 +33698,7 @@ export const InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart: MessageF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -35176,14 +33706,13 @@ export const InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart: MessageF
   create(
     base?: DeepPartial<InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart>,
   ): InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart {
-    return InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart.fromPartial(base ?? {});
+    return createPartialMessage(InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart, base);
   },
   fromPartial(
     object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart>,
   ): InThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart {
     const message = createBaseInThreadSurveyMetadata_InThreadSurveyPrivacyStatementPart();
-    message.text = object.text ?? undefined;
-    message.url = object.url ?? undefined;
+    copyPartialScalars(message, object, 777, 779);
     return message;
   },
 };
@@ -35250,10 +33779,7 @@ export const InThreadSurveyMetadata_InThreadSurveyQuestion: MessageFns<InThreadS
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -35261,14 +33787,13 @@ export const InThreadSurveyMetadata_InThreadSurveyQuestion: MessageFns<InThreadS
     create(
       base?: DeepPartial<InThreadSurveyMetadata_InThreadSurveyQuestion>,
     ): InThreadSurveyMetadata_InThreadSurveyQuestion {
-      return InThreadSurveyMetadata_InThreadSurveyQuestion.fromPartial(base ?? {});
+      return createPartialMessage(InThreadSurveyMetadata_InThreadSurveyQuestion, base);
     },
     fromPartial(
       object: DeepPartial<InThreadSurveyMetadata_InThreadSurveyQuestion>,
     ): InThreadSurveyMetadata_InThreadSurveyQuestion {
       const message = createBaseInThreadSurveyMetadata_InThreadSurveyQuestion();
-      message.questionText = object.questionText ?? undefined;
-      message.questionId = object.questionId ?? undefined;
+      copyPartialScalars(message, object, 779, 781);
       message.questionOptions =
         object.questionOptions?.map((e) => InThreadSurveyMetadata_InThreadSurveyOption.fromPartial(e)) || undefined;
       return message;
@@ -35347,24 +33872,17 @@ export const InlineContact: MessageFns<InlineContact> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<InlineContact>): InlineContact {
-    return InlineContact.fromPartial(base ?? {});
+    return createPartialMessage(InlineContact, base);
   },
   fromPartial(object: DeepPartial<InlineContact>): InlineContact {
     const message = createBaseInlineContact();
-    message.pnJid = object.pnJid ?? undefined;
-    message.lidJid = object.lidJid ?? undefined;
-    message.fullName = object.fullName ?? undefined;
-    message.firstName = object.firstName ?? undefined;
-    message.username = object.username ?? undefined;
+    copyPartialScalars(message, object, 781, 786);
     return message;
   },
 };
@@ -35482,16 +34000,13 @@ export const InteractiveAnnotation: MessageFns<InteractiveAnnotation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<InteractiveAnnotation>): InteractiveAnnotation {
-    return InteractiveAnnotation.fromPartial(base ?? {});
+    return createPartialMessage(InteractiveAnnotation, base);
   },
   fromPartial(object: DeepPartial<InteractiveAnnotation>): InteractiveAnnotation {
     const message = createBaseInteractiveAnnotation();
@@ -35543,16 +34058,13 @@ export const InteractiveMessageAdditionalMetadata: MessageFns<InteractiveMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<InteractiveMessageAdditionalMetadata>): InteractiveMessageAdditionalMetadata {
-    return InteractiveMessageAdditionalMetadata.fromPartial(base ?? {});
+    return createPartialMessage(InteractiveMessageAdditionalMetadata, base);
   },
   fromPartial(object: DeepPartial<InteractiveMessageAdditionalMetadata>): InteractiveMessageAdditionalMetadata {
     const message = createBaseInteractiveMessageAdditionalMetadata();
@@ -35644,25 +34156,19 @@ export const KeepInChat: MessageFns<KeepInChat> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<KeepInChat>): KeepInChat {
-    return KeepInChat.fromPartial(base ?? {});
+    return createPartialMessage(KeepInChat, base);
   },
   fromPartial(object: DeepPartial<KeepInChat>): KeepInChat {
     const message = createBaseKeepInChat();
-    message.keepType = object.keepType ?? undefined;
-    message.serverTimestamp = object.serverTimestamp ?? undefined;
+    copyPartialScalars(message, object, 786, 788);
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.deviceJid = object.deviceJid ?? undefined;
-    message.clientTimestampMs = object.clientTimestampMs ?? undefined;
-    message.serverTimestampMs = object.serverTimestampMs ?? undefined;
+    copyPartialScalars(message, object, 788, 791);
     return message;
   },
 };
@@ -35739,24 +34245,17 @@ export const KeyExchangeMessage: MessageFns<KeyExchangeMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<KeyExchangeMessage>): KeyExchangeMessage {
-    return KeyExchangeMessage.fromPartial(base ?? {});
+    return createPartialMessage(KeyExchangeMessage, base);
   },
   fromPartial(object: DeepPartial<KeyExchangeMessage>): KeyExchangeMessage {
     const message = createBaseKeyExchangeMessage();
-    message.id = object.id ?? undefined;
-    message.baseKey = object.baseKey ?? undefined;
-    message.ratchetKey = object.ratchetKey ?? undefined;
-    message.identityKey = object.identityKey ?? undefined;
-    message.baseKeySignature = object.baseKeySignature ?? undefined;
+    copyPartialScalars(message, object, 791, 796);
     return message;
   },
 };
@@ -35789,16 +34288,13 @@ export const KeyId: MessageFns<KeyId> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<KeyId>): KeyId {
-    return KeyId.fromPartial(base ?? {});
+    return createPartialMessage(KeyId, base);
   },
   fromPartial(object: DeepPartial<KeyId>): KeyId {
     const message = createBaseKeyId();
@@ -35835,16 +34331,13 @@ export const LIDMigrationMappingSyncMessage: MessageFns<LIDMigrationMappingSyncM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LIDMigrationMappingSyncMessage>): LIDMigrationMappingSyncMessage {
-    return LIDMigrationMappingSyncMessage.fromPartial(base ?? {});
+    return createPartialMessage(LIDMigrationMappingSyncMessage, base);
   },
   fromPartial(object: DeepPartial<LIDMigrationMappingSyncMessage>): LIDMigrationMappingSyncMessage {
     const message = createBaseLIDMigrationMappingSyncMessage();
@@ -35903,22 +34396,17 @@ export const LIDMigrationMapping: MessageFns<LIDMigrationMapping> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LIDMigrationMapping>): LIDMigrationMapping {
-    return LIDMigrationMapping.fromPartial(base ?? {});
+    return createPartialMessage(LIDMigrationMapping, base);
   },
   fromPartial(object: DeepPartial<LIDMigrationMapping>): LIDMigrationMapping {
     const message = createBaseLIDMigrationMapping();
-    message.pn = object.pn ?? undefined;
-    message.assignedLid = object.assignedLid ?? undefined;
-    message.latestLid = object.latestLid ?? undefined;
+    copyPartialScalars(message, object, 796, 799);
     return message;
   },
 };
@@ -35970,16 +34458,13 @@ export const LIDMigrationMappingSyncPayload: MessageFns<LIDMigrationMappingSyncP
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LIDMigrationMappingSyncPayload>): LIDMigrationMappingSyncPayload {
-    return LIDMigrationMappingSyncPayload.fromPartial(base ?? {});
+    return createPartialMessage(LIDMigrationMappingSyncPayload, base);
   },
   fromPartial(object: DeepPartial<LIDMigrationMappingSyncPayload>): LIDMigrationMappingSyncPayload {
     const message = createBaseLIDMigrationMappingSyncPayload();
@@ -36072,16 +34557,13 @@ export const LabyrinthWaCommand: MessageFns<LabyrinthWaCommand> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LabyrinthWaCommand>): LabyrinthWaCommand {
-    return LabyrinthWaCommand.fromPartial(base ?? {});
+    return createPartialMessage(LabyrinthWaCommand, base);
   },
   fromPartial(object: DeepPartial<LabyrinthWaCommand>): LabyrinthWaCommand {
     const message = createBaseLabyrinthWaCommand();
@@ -36147,16 +34629,13 @@ export const LegacyMessage: MessageFns<LegacyMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LegacyMessage>): LegacyMessage {
-    return LegacyMessage.fromPartial(base ?? {});
+    return createPartialMessage(LegacyMessage, base);
   },
   fromPartial(object: DeepPartial<LegacyMessage>): LegacyMessage {
     const message = createBaseLegacyMessage();
@@ -36231,23 +34710,17 @@ export const LimitSharing: MessageFns<LimitSharing> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LimitSharing>): LimitSharing {
-    return LimitSharing.fromPartial(base ?? {});
+    return createPartialMessage(LimitSharing, base);
   },
   fromPartial(object: DeepPartial<LimitSharing>): LimitSharing {
     const message = createBaseLimitSharing();
-    message.sharingLimited = object.sharingLimited ?? undefined;
-    message.trigger = object.trigger ?? undefined;
-    message.limitSharingSettingTimestamp = object.limitSharingSettingTimestamp ?? undefined;
-    message.initiatedByMe = object.initiatedByMe ?? undefined;
+    copyPartialScalars(message, object, 799, 803);
     return message;
   },
 };
@@ -36302,22 +34775,17 @@ export const LocalizedName: MessageFns<LocalizedName> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<LocalizedName>): LocalizedName {
-    return LocalizedName.fromPartial(base ?? {});
+    return createPartialMessage(LocalizedName, base);
   },
   fromPartial(object: DeepPartial<LocalizedName>): LocalizedName {
     const message = createBaseLocalizedName();
-    message.lg = object.lg ?? undefined;
-    message.lc = object.lc ?? undefined;
-    message.verifiedName = object.verifiedName ?? undefined;
+    copyPartialScalars(message, object, 803, 806);
     return message;
   },
 };
@@ -36372,22 +34840,17 @@ export const Location: MessageFns<Location> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Location>): Location {
-    return Location.fromPartial(base ?? {});
+    return createPartialMessage(Location, base);
   },
   fromPartial(object: DeepPartial<Location>): Location {
     const message = createBaseLocation();
-    message.degreesLatitude = object.degreesLatitude ?? undefined;
-    message.degreesLongitude = object.degreesLongitude ?? undefined;
-    message.name = object.name ?? undefined;
+    copyPartialScalars(message, object, 806, 809);
     return message;
   },
 };
@@ -36533,23 +34996,17 @@ export const MandrakeDecryptMekInput: MessageFns<MandrakeDecryptMekInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeDecryptMekInput>): MandrakeDecryptMekInput {
-    return MandrakeDecryptMekInput.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeDecryptMekInput, base);
   },
   fromPartial(object: DeepPartial<MandrakeDecryptMekInput>): MandrakeDecryptMekInput {
     const message = createBaseMandrakeDecryptMekInput();
-    message.encryptedMek = object.encryptedMek ?? undefined;
-    message.recipientsHash = object.recipientsHash ?? undefined;
-    message.recipientEncSk = object.recipientEncSk ?? undefined;
-    message.mekEncryptionVersion = object.mekEncryptionVersion ?? undefined;
+    copyPartialScalars(message, object, 809, 813);
     message.conf = (object.conf !== undefined && object.conf !== null)
       ? MinosClientConfig.fromPartial(object.conf)
       : undefined;
@@ -36607,10 +35064,7 @@ export const MandrakeDecryptMekInput_EpochSenderPublicData: MessageFns<MandrakeD
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -36618,7 +35072,7 @@ export const MandrakeDecryptMekInput_EpochSenderPublicData: MessageFns<MandrakeD
     create(
       base?: DeepPartial<MandrakeDecryptMekInput_EpochSenderPublicData>,
     ): MandrakeDecryptMekInput_EpochSenderPublicData {
-      return MandrakeDecryptMekInput_EpochSenderPublicData.fromPartial(base ?? {});
+      return createPartialMessage(MandrakeDecryptMekInput_EpochSenderPublicData, base);
     },
     fromPartial(
       object: DeepPartial<MandrakeDecryptMekInput_EpochSenderPublicData>,
@@ -36662,16 +35116,13 @@ export const MandrakeDecryptMekInput_MmkSenderPublicData: MessageFns<MandrakeDec
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeDecryptMekInput_MmkSenderPublicData>): MandrakeDecryptMekInput_MmkSenderPublicData {
-    return MandrakeDecryptMekInput_MmkSenderPublicData.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeDecryptMekInput_MmkSenderPublicData, base);
   },
   fromPartial(
     object: DeepPartial<MandrakeDecryptMekInput_MmkSenderPublicData>,
@@ -36728,10 +35179,7 @@ export const MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData: MessageFn
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -36739,14 +35187,13 @@ export const MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData: MessageFn
   create(
     base?: DeepPartial<MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData>,
   ): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
-    return MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData, base);
   },
   fromPartial(
     object: DeepPartial<MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData>,
   ): MandrakeDecryptMekInput_PrecomputedEpochSenderPublicData {
     const message = createBaseMandrakeDecryptMekInput_PrecomputedEpochSenderPublicData();
-    message.authPk = object.authPk ?? undefined;
-    message.epochHead = object.epochHead ?? undefined;
+    copyPartialScalars(message, object, 813, 815);
     return message;
   },
 };
@@ -36790,16 +35237,13 @@ export const MandrakeDecryptMekResult: MessageFns<MandrakeDecryptMekResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeDecryptMekResult>): MandrakeDecryptMekResult {
-    return MandrakeDecryptMekResult.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeDecryptMekResult, base);
   },
   fromPartial(object: DeepPartial<MandrakeDecryptMekResult>): MandrakeDecryptMekResult {
     const message = createBaseMandrakeDecryptMekResult();
@@ -36839,16 +35283,13 @@ export const MandrakeDecryptMekSuccess: MessageFns<MandrakeDecryptMekSuccess> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeDecryptMekSuccess>): MandrakeDecryptMekSuccess {
-    return MandrakeDecryptMekSuccess.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeDecryptMekSuccess, base);
   },
   fromPartial(object: DeepPartial<MandrakeDecryptMekSuccess>): MandrakeDecryptMekSuccess {
     const message = createBaseMandrakeDecryptMekSuccess();
@@ -36949,16 +35390,13 @@ export const MandrakeEncryptMekInput: MessageFns<MandrakeEncryptMekInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeEncryptMekInput>): MandrakeEncryptMekInput {
-    return MandrakeEncryptMekInput.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekInput, base);
   },
   fromPartial(object: DeepPartial<MandrakeEncryptMekInput>): MandrakeEncryptMekInput {
     const message = createBaseMandrakeEncryptMekInput();
@@ -37035,10 +35473,7 @@ export const MandrakeEncryptMekInput_DetachedDeviceSender: MessageFns<MandrakeEn
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -37046,7 +35481,7 @@ export const MandrakeEncryptMekInput_DetachedDeviceSender: MessageFns<MandrakeEn
   create(
     base?: DeepPartial<MandrakeEncryptMekInput_DetachedDeviceSender>,
   ): MandrakeEncryptMekInput_DetachedDeviceSender {
-    return MandrakeEncryptMekInput_DetachedDeviceSender.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekInput_DetachedDeviceSender, base);
   },
   fromPartial(
     object: DeepPartial<MandrakeEncryptMekInput_DetachedDeviceSender>,
@@ -37056,8 +35491,7 @@ export const MandrakeEncryptMekInput_DetachedDeviceSender: MessageFns<MandrakeEn
       (object.detachedDevicePublicData !== undefined && object.detachedDevicePublicData !== null)
         ? DetachedDevicePublicData.fromPartial(object.detachedDevicePublicData)
         : undefined;
-    message.authSk = object.authSk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
+    copyPartialScalars(message, object, 815, 817);
     return message;
   },
 };
@@ -37112,24 +35546,20 @@ export const MandrakeEncryptMekInput_EpochSender: MessageFns<MandrakeEncryptMekI
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeEncryptMekInput_EpochSender>): MandrakeEncryptMekInput_EpochSender {
-    return MandrakeEncryptMekInput_EpochSender.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekInput_EpochSender, base);
   },
   fromPartial(object: DeepPartial<MandrakeEncryptMekInput_EpochSender>): MandrakeEncryptMekInput_EpochSender {
     const message = createBaseMandrakeEncryptMekInput_EpochSender();
     message.epochPublicData = (object.epochPublicData !== undefined && object.epochPublicData !== null)
       ? EpochPublicData.fromPartial(object.epochPublicData)
       : undefined;
-    message.authSk = object.authSk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
+    copyPartialScalars(message, object, 817, 819);
     return message;
   },
 };
@@ -37184,24 +35614,20 @@ export const MandrakeEncryptMekInput_MmkSender: MessageFns<MandrakeEncryptMekInp
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeEncryptMekInput_MmkSender>): MandrakeEncryptMekInput_MmkSender {
-    return MandrakeEncryptMekInput_MmkSender.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekInput_MmkSender, base);
   },
   fromPartial(object: DeepPartial<MandrakeEncryptMekInput_MmkSender>): MandrakeEncryptMekInput_MmkSender {
     const message = createBaseMandrakeEncryptMekInput_MmkSender();
     message.mmkPublicData = (object.mmkPublicData !== undefined && object.mmkPublicData !== null)
       ? MessagingMailboxPublicData.fromPartial(object.mmkPublicData)
       : undefined;
-    message.authSk = object.authSk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
+    copyPartialScalars(message, object, 819, 821);
     return message;
   },
 };
@@ -37245,16 +35671,13 @@ export const MandrakeEncryptMekResult: MessageFns<MandrakeEncryptMekResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeEncryptMekResult>): MandrakeEncryptMekResult {
-    return MandrakeEncryptMekResult.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekResult, base);
   },
   fromPartial(object: DeepPartial<MandrakeEncryptMekResult>): MandrakeEncryptMekResult {
     const message = createBaseMandrakeEncryptMekResult();
@@ -37324,24 +35747,20 @@ export const MandrakeEncryptMekSuccess: MessageFns<MandrakeEncryptMekSuccess> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeEncryptMekSuccess>): MandrakeEncryptMekSuccess {
-    return MandrakeEncryptMekSuccess.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekSuccess, base);
   },
   fromPartial(object: DeepPartial<MandrakeEncryptMekSuccess>): MandrakeEncryptMekSuccess {
     const message = createBaseMandrakeEncryptMekSuccess();
     message.distributions =
       object.distributions?.map((e) => MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.fromPartial(e)) ||
       undefined;
-    message.recipientsHash = object.recipientsHash ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 821, 823);
     return message;
   },
 };
@@ -37401,10 +35820,7 @@ export const MandrakeEncryptMekSuccess_MekDistributionSingleRecipient: MessageFn
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -37412,7 +35828,7 @@ export const MandrakeEncryptMekSuccess_MekDistributionSingleRecipient: MessageFn
   create(
     base?: DeepPartial<MandrakeEncryptMekSuccess_MekDistributionSingleRecipient>,
   ): MandrakeEncryptMekSuccess_MekDistributionSingleRecipient {
-    return MandrakeEncryptMekSuccess_MekDistributionSingleRecipient.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeEncryptMekSuccess_MekDistributionSingleRecipient, base);
   },
   fromPartial(
     object: DeepPartial<MandrakeEncryptMekSuccess_MekDistributionSingleRecipient>,
@@ -37480,22 +35896,17 @@ export const MandrakeMekBundle: MessageFns<MandrakeMekBundle> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeMekBundle>): MandrakeMekBundle {
-    return MandrakeMekBundle.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeMekBundle, base);
   },
   fromPartial(object: DeepPartial<MandrakeMekBundle>): MandrakeMekBundle {
     const message = createBaseMandrakeMekBundle();
-    message.key = object.key ?? undefined;
-    message.mekId = object.mekId ?? undefined;
-    message.mailboxHeadHash = object.mailboxHeadHash ?? undefined;
+    copyPartialScalars(message, object, 823, 826);
     return message;
   },
 };
@@ -37613,25 +36024,17 @@ export const MandrakeOpenEpochInput: MessageFns<MandrakeOpenEpochInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeOpenEpochInput>): MandrakeOpenEpochInput {
-    return MandrakeOpenEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeOpenEpochInput, base);
   },
   fromPartial(object: DeepPartial<MandrakeOpenEpochInput>): MandrakeOpenEpochInput {
     const message = createBaseMandrakeOpenEpochInput();
-    message.userFbid = object.userFbid ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.previousExportRootKey = object.previousExportRootKey ?? undefined;
-    message.previousEpochNumber = object.previousEpochNumber ?? undefined;
-    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    copyPartialScalars(message, object, 826, 832);
     message.previousMmk = (object.previousMmk !== undefined && object.previousMmk !== null)
       ? MessagingMailboxPublicData.fromPartial(object.previousMmk)
       : undefined;
@@ -37679,16 +36082,13 @@ export const MandrakeOpenEpochResult: MessageFns<MandrakeOpenEpochResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeOpenEpochResult>): MandrakeOpenEpochResult {
-    return MandrakeOpenEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeOpenEpochResult, base);
   },
   fromPartial(object: DeepPartial<MandrakeOpenEpochResult>): MandrakeOpenEpochResult {
     const message = createBaseMandrakeOpenEpochResult();
@@ -37739,16 +36139,13 @@ export const MandrakeOpenEpochSuccess: MessageFns<MandrakeOpenEpochSuccess> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeOpenEpochSuccess>): MandrakeOpenEpochSuccess {
-    return MandrakeOpenEpochSuccess.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeOpenEpochSuccess, base);
   },
   fromPartial(object: DeepPartial<MandrakeOpenEpochSuccess>): MandrakeOpenEpochSuccess {
     const message = createBaseMandrakeOpenEpochSuccess();
@@ -37832,22 +36229,17 @@ export const MandrakeOpenInitialEpochInput: MessageFns<MandrakeOpenInitialEpochI
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeOpenInitialEpochInput>): MandrakeOpenInitialEpochInput {
-    return MandrakeOpenInitialEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeOpenInitialEpochInput, base);
   },
   fromPartial(object: DeepPartial<MandrakeOpenInitialEpochInput>): MandrakeOpenInitialEpochInput {
     const message = createBaseMandrakeOpenInitialEpochInput();
-    message.userFbid = object.userFbid ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
-    message.exportRootKey = object.exportRootKey ?? undefined;
+    copyPartialScalars(message, object, 832, 835);
     message.detachedDevices = object.detachedDevices?.map((e) => DetachedDevicePublicData.fromPartial(e)) || undefined;
     return message;
   },
@@ -37892,16 +36284,13 @@ export const MandrakeOpenInitialEpochResult: MessageFns<MandrakeOpenInitialEpoch
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeOpenInitialEpochResult>): MandrakeOpenInitialEpochResult {
-    return MandrakeOpenInitialEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeOpenInitialEpochResult, base);
   },
   fromPartial(object: DeepPartial<MandrakeOpenInitialEpochResult>): MandrakeOpenInitialEpochResult {
     const message = createBaseMandrakeOpenInitialEpochResult();
@@ -37967,10 +36356,7 @@ export const MandrakeValidateNewMmkFromDetachedDeviceInput: MessageFns<MandrakeV
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -37978,7 +36364,7 @@ export const MandrakeValidateNewMmkFromDetachedDeviceInput: MessageFns<MandrakeV
     create(
       base?: DeepPartial<MandrakeValidateNewMmkFromDetachedDeviceInput>,
     ): MandrakeValidateNewMmkFromDetachedDeviceInput {
-      return MandrakeValidateNewMmkFromDetachedDeviceInput.fromPartial(base ?? {});
+      return createPartialMessage(MandrakeValidateNewMmkFromDetachedDeviceInput, base);
     },
     fromPartial(
       object: DeepPartial<MandrakeValidateNewMmkFromDetachedDeviceInput>,
@@ -38056,16 +36442,13 @@ export const MandrakeValidateNewMmkFromMailboxInput: MessageFns<MandrakeValidate
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeValidateNewMmkFromMailboxInput>): MandrakeValidateNewMmkFromMailboxInput {
-    return MandrakeValidateNewMmkFromMailboxInput.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeValidateNewMmkFromMailboxInput, base);
   },
   fromPartial(object: DeepPartial<MandrakeValidateNewMmkFromMailboxInput>): MandrakeValidateNewMmkFromMailboxInput {
     const message = createBaseMandrakeValidateNewMmkFromMailboxInput();
@@ -38122,21 +36505,17 @@ export const MandrakeValidateNewMmkResult: MessageFns<MandrakeValidateNewMmkResu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MandrakeValidateNewMmkResult>): MandrakeValidateNewMmkResult {
-    return MandrakeValidateNewMmkResult.fromPartial(base ?? {});
+    return createPartialMessage(MandrakeValidateNewMmkResult, base);
   },
   fromPartial(object: DeepPartial<MandrakeValidateNewMmkResult>): MandrakeValidateNewMmkResult {
     const message = createBaseMandrakeValidateNewMmkResult();
-    message.valid = object.valid ?? undefined;
-    message.errorMessage = object.errorMessage ?? undefined;
+    copyPartialScalars(message, object, 835, 837);
     return message;
   },
 };
@@ -38169,16 +36548,13 @@ export const MediaData: MessageFns<MediaData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaData>): MediaData {
-    return MediaData.fromPartial(base ?? {});
+    return createPartialMessage(MediaData, base);
   },
   fromPartial(object: DeepPartial<MediaData>): MediaData {
     const message = createBaseMediaData();
@@ -38226,21 +36602,17 @@ export const MediaDomainInfo: MessageFns<MediaDomainInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaDomainInfo>): MediaDomainInfo {
-    return MediaDomainInfo.fromPartial(base ?? {});
+    return createPartialMessage(MediaDomainInfo, base);
   },
   fromPartial(object: DeepPartial<MediaDomainInfo>): MediaDomainInfo {
     const message = createBaseMediaDomainInfo();
-    message.mediaKeyDomain = object.mediaKeyDomain ?? undefined;
-    message.e2EeMediaKey = object.e2EeMediaKey ?? undefined;
+    copyPartialScalars(message, object, 837, 839);
     return message;
   },
 };
@@ -38449,42 +36821,27 @@ export const MediaEntry: MessageFns<MediaEntry> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaEntry>): MediaEntry {
-    return MediaEntry.fromPartial(base ?? {});
+    return createPartialMessage(MediaEntry, base);
   },
   fromPartial(object: DeepPartial<MediaEntry>): MediaEntry {
     const message = createBaseMediaEntry();
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.serverMediaType = object.serverMediaType ?? undefined;
-    message.uploadToken = object.uploadToken ?? undefined;
-    message.validatedTimestamp = object.validatedTimestamp ?? undefined;
-    message.sidecar = object.sidecar ?? undefined;
-    message.objectId = object.objectId ?? undefined;
-    message.fbid = object.fbid ?? undefined;
+    copyPartialScalars(message, object, 839, 850);
     message.downloadableThumbnail =
       (object.downloadableThumbnail !== undefined && object.downloadableThumbnail !== null)
         ? MediaEntry_DownloadableThumbnail.fromPartial(object.downloadableThumbnail)
         : undefined;
-    message.handle = object.handle ?? undefined;
-    message.filename = object.filename ?? undefined;
+    copyPartialScalars(message, object, 850, 852);
     message.progressiveJpegDetails =
       (object.progressiveJpegDetails !== undefined && object.progressiveJpegDetails !== null)
         ? MediaEntry_ProgressiveJpegDetails.fromPartial(object.progressiveJpegDetails)
         : undefined;
-    message.size = object.size ?? undefined;
-    message.lastDownloadAttemptTimestamp = object.lastDownloadAttemptTimestamp ?? undefined;
+    copyPartialScalars(message, object, 852, 854);
     return message;
   },
 };
@@ -38572,25 +36929,17 @@ export const MediaEntry_DownloadableThumbnail: MessageFns<MediaEntry_Downloadabl
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaEntry_DownloadableThumbnail>): MediaEntry_DownloadableThumbnail {
-    return MediaEntry_DownloadableThumbnail.fromPartial(base ?? {});
+    return createPartialMessage(MediaEntry_DownloadableThumbnail, base);
   },
   fromPartial(object: DeepPartial<MediaEntry_DownloadableThumbnail>): MediaEntry_DownloadableThumbnail {
     const message = createBaseMediaEntry_DownloadableThumbnail();
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.objectId = object.objectId ?? undefined;
+    copyPartialScalars(message, object, 854, 860);
     return message;
   },
 };
@@ -38652,16 +37001,13 @@ export const MediaEntry_ProgressiveJpegDetails: MessageFns<MediaEntry_Progressiv
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaEntry_ProgressiveJpegDetails>): MediaEntry_ProgressiveJpegDetails {
-    return MediaEntry_ProgressiveJpegDetails.fromPartial(base ?? {});
+    return createPartialMessage(MediaEntry_ProgressiveJpegDetails, base);
   },
   fromPartial(object: DeepPartial<MediaEntry_ProgressiveJpegDetails>): MediaEntry_ProgressiveJpegDetails {
     const message = createBaseMediaEntry_ProgressiveJpegDetails();
@@ -38721,22 +37067,17 @@ export const MediaNotifyMessage: MessageFns<MediaNotifyMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaNotifyMessage>): MediaNotifyMessage {
-    return MediaNotifyMessage.fromPartial(base ?? {});
+    return createPartialMessage(MediaNotifyMessage, base);
   },
   fromPartial(object: DeepPartial<MediaNotifyMessage>): MediaNotifyMessage {
     const message = createBaseMediaNotifyMessage();
-    message.expressPathUrl = object.expressPathUrl ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
+    copyPartialScalars(message, object, 860, 863);
     return message;
   },
 };
@@ -38802,23 +37143,17 @@ export const MediaRetryNotification: MessageFns<MediaRetryNotification> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MediaRetryNotification>): MediaRetryNotification {
-    return MediaRetryNotification.fromPartial(base ?? {});
+    return createPartialMessage(MediaRetryNotification, base);
   },
   fromPartial(object: DeepPartial<MediaRetryNotification>): MediaRetryNotification {
     const message = createBaseMediaRetryNotification();
-    message.stanzaId = object.stanzaId ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.result = object.result ?? undefined;
-    message.messageSecret = object.messageSecret ?? undefined;
+    copyPartialScalars(message, object, 863, 867);
     return message;
   },
 };
@@ -38873,22 +37208,17 @@ export const MekBundle: MessageFns<MekBundle> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MekBundle>): MekBundle {
-    return MekBundle.fromPartial(base ?? {});
+    return createPartialMessage(MekBundle, base);
   },
   fromPartial(object: DeepPartial<MekBundle>): MekBundle {
     const message = createBaseMekBundle();
-    message.key = object.key ?? undefined;
-    message.mekId = object.mekId ?? undefined;
-    message.rosterHash = object.rosterHash ?? undefined;
+    copyPartialScalars(message, object, 867, 870);
     return message;
   },
 };
@@ -38932,21 +37262,17 @@ export const MemberLabel: MessageFns<MemberLabel> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MemberLabel>): MemberLabel {
-    return MemberLabel.fromPartial(base ?? {});
+    return createPartialMessage(MemberLabel, base);
   },
   fromPartial(object: DeepPartial<MemberLabel>): MemberLabel {
     const message = createBaseMemberLabel();
-    message.label = object.label ?? undefined;
-    message.labelTimestamp = object.labelTimestamp ?? undefined;
+    copyPartialScalars(message, object, 870, 872);
     return message;
   },
 };
@@ -39012,23 +37338,17 @@ export const Mention: MessageFns<Mention> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Mention>): Mention {
-    return Mention.fromPartial(base ?? {});
+    return createPartialMessage(Mention, base);
   },
   fromPartial(object: DeepPartial<Mention>): Mention {
     const message = createBaseMention();
-    message.mentionType = object.mentionType ?? undefined;
-    message.mentionedJid = object.mentionedJid ?? undefined;
-    message.offset = object.offset ?? undefined;
-    message.length = object.length ?? undefined;
+    copyPartialScalars(message, object, 872, 876);
     return message;
   },
 };
@@ -39094,23 +37414,17 @@ export const MerkleMembershipProof: MessageFns<MerkleMembershipProof> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MerkleMembershipProof>): MerkleMembershipProof {
-    return MerkleMembershipProof.fromPartial(base ?? {});
+    return createPartialMessage(MerkleMembershipProof, base);
   },
   fromPartial(object: DeepPartial<MerkleMembershipProof>): MerkleMembershipProof {
     const message = createBaseMerkleMembershipProof();
-    message.proof = object.proof ?? undefined;
-    message.root = object.root ?? undefined;
-    message.leafIndex = object.leafIndex ?? undefined;
-    message.totalLeaves = object.totalLeaves ?? undefined;
+    copyPartialScalars(message, object, 876, 880);
     return message;
   },
 };
@@ -40366,16 +38680,13 @@ export const Message: MessageFns<Message> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message>): Message {
-    return Message.fromPartial(base ?? {});
+    return createPartialMessage(Message, base);
   },
   fromPartial(object: DeepPartial<Message>): Message {
     const message = createBaseMessage();
@@ -40809,21 +39120,17 @@ export const Message_AlbumMessage: MessageFns<Message_AlbumMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AlbumMessage>): Message_AlbumMessage {
-    return Message_AlbumMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_AlbumMessage, base);
   },
   fromPartial(object: DeepPartial<Message_AlbumMessage>): Message_AlbumMessage {
     const message = createBaseMessage_AlbumMessage();
-    message.expectedImageCount = object.expectedImageCount ?? undefined;
-    message.expectedVideoCount = object.expectedVideoCount ?? undefined;
+    copyPartialScalars(message, object, 880, 882);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -40878,16 +39185,13 @@ export const Message_AppStateFatalExceptionNotification: MessageFns<Message_AppS
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateFatalExceptionNotification>): Message_AppStateFatalExceptionNotification {
-    return Message_AppStateFatalExceptionNotification.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateFatalExceptionNotification, base);
   },
   fromPartial(
     object: DeepPartial<Message_AppStateFatalExceptionNotification>,
@@ -40938,16 +39242,13 @@ export const Message_AppStateSyncKey: MessageFns<Message_AppStateSyncKey> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKey>): Message_AppStateSyncKey {
-    return Message_AppStateSyncKey.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKey, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKey>): Message_AppStateSyncKey {
     const message = createBaseMessage_AppStateSyncKey();
@@ -41011,16 +39312,13 @@ export const Message_AppStateSyncKeyData: MessageFns<Message_AppStateSyncKeyData
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKeyData>): Message_AppStateSyncKeyData {
-    return Message_AppStateSyncKeyData.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKeyData, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyData>): Message_AppStateSyncKeyData {
     const message = createBaseMessage_AppStateSyncKeyData();
@@ -41103,21 +39401,17 @@ export const Message_AppStateSyncKeyFingerprint: MessageFns<Message_AppStateSync
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKeyFingerprint>): Message_AppStateSyncKeyFingerprint {
-    return Message_AppStateSyncKeyFingerprint.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKeyFingerprint, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyFingerprint>): Message_AppStateSyncKeyFingerprint {
     const message = createBaseMessage_AppStateSyncKeyFingerprint();
-    message.rawId = object.rawId ?? undefined;
-    message.currentIndex = object.currentIndex ?? undefined;
+    copyPartialScalars(message, object, 882, 884);
     message.deviceIndexes = object.deviceIndexes?.map((e) => e) || undefined;
     return message;
   },
@@ -41151,16 +39445,13 @@ export const Message_AppStateSyncKeyId: MessageFns<Message_AppStateSyncKeyId> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKeyId>): Message_AppStateSyncKeyId {
-    return Message_AppStateSyncKeyId.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKeyId, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyId>): Message_AppStateSyncKeyId {
     const message = createBaseMessage_AppStateSyncKeyId();
@@ -41205,16 +39496,13 @@ export const Message_AppStateSyncKeyRequest: MessageFns<Message_AppStateSyncKeyR
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKeyRequest>): Message_AppStateSyncKeyRequest {
-    return Message_AppStateSyncKeyRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKeyRequest, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyRequest>): Message_AppStateSyncKeyRequest {
     const message = createBaseMessage_AppStateSyncKeyRequest();
@@ -41259,16 +39547,13 @@ export const Message_AppStateSyncKeyShare: MessageFns<Message_AppStateSyncKeySha
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AppStateSyncKeyShare>): Message_AppStateSyncKeyShare {
-    return Message_AppStateSyncKeyShare.fromPartial(base ?? {});
+    return createPartialMessage(Message_AppStateSyncKeyShare, base);
   },
   fromPartial(object: DeepPartial<Message_AppStateSyncKeyShare>): Message_AppStateSyncKeyShare {
     const message = createBaseMessage_AppStateSyncKeyShare();
@@ -41470,37 +39755,21 @@ export const Message_AudioMessage: MessageFns<Message_AudioMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_AudioMessage>): Message_AudioMessage {
-    return Message_AudioMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_AudioMessage, base);
   },
   fromPartial(object: DeepPartial<Message_AudioMessage>): Message_AudioMessage {
     const message = createBaseMessage_AudioMessage();
-    message.url = object.url ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.seconds = object.seconds ?? undefined;
-    message.ptt = object.ptt ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
+    copyPartialScalars(message, object, 884, 894);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.streamingSidecar = object.streamingSidecar ?? undefined;
-    message.waveform = object.waveform ?? undefined;
-    message.backgroundArgb = object.backgroundArgb ?? undefined;
-    message.viewOnce = object.viewOnce ?? undefined;
-    message.accessibilityLabel = object.accessibilityLabel ?? undefined;
+    copyPartialScalars(message, object, 894, 899);
     return message;
   },
 };
@@ -41566,23 +39835,17 @@ export const Message_BCallMessage: MessageFns<Message_BCallMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_BCallMessage>): Message_BCallMessage {
-    return Message_BCallMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_BCallMessage, base);
   },
   fromPartial(object: DeepPartial<Message_BCallMessage>): Message_BCallMessage {
     const message = createBaseMessage_BCallMessage();
-    message.sessionId = object.sessionId ?? undefined;
-    message.mediaType = object.mediaType ?? undefined;
-    message.masterKey = object.masterKey ?? undefined;
-    message.caption = object.caption ?? undefined;
+    copyPartialScalars(message, object, 899, 903);
     return message;
   },
 };
@@ -41645,21 +39908,17 @@ export const Message_BotHistoryShareSyncMetadata: MessageFns<Message_BotHistoryS
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_BotHistoryShareSyncMetadata>): Message_BotHistoryShareSyncMetadata {
-    return Message_BotHistoryShareSyncMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_BotHistoryShareSyncMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_BotHistoryShareSyncMetadata>): Message_BotHistoryShareSyncMetadata {
     const message = createBaseMessage_BotHistoryShareSyncMetadata();
-    message.botJid = object.botJid ?? undefined;
-    message.historyShareCutoffTimestamp = object.historyShareCutoffTimestamp ?? undefined;
+    copyPartialScalars(message, object, 903, 905);
     message.historyShareMessages =
       object.historyShareMessages?.map((e) => Message_HistoryShareMessageEntry.fromPartial(e)) || undefined;
     return message;
@@ -41801,27 +40060,22 @@ export const Message_ButtonsMessage: MessageFns<Message_ButtonsMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ButtonsMessage>): Message_ButtonsMessage {
-    return Message_ButtonsMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ButtonsMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ButtonsMessage>): Message_ButtonsMessage {
     const message = createBaseMessage_ButtonsMessage();
-    message.contentText = object.contentText ?? undefined;
-    message.footerText = object.footerText ?? undefined;
+    copyPartialScalars(message, object, 905, 907);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
     message.buttons = object.buttons?.map((e) => Message_ButtonsMessage_Button.fromPartial(e)) || undefined;
-    message.headerType = object.headerType ?? undefined;
-    message.text = object.text ?? undefined;
+    copyPartialScalars(message, object, 907, 909);
     message.documentMessage = (object.documentMessage !== undefined && object.documentMessage !== null)
       ? Message_DocumentMessage.fromPartial(object.documentMessage)
       : undefined;
@@ -41899,16 +40153,13 @@ export const Message_ButtonsMessage_Button: MessageFns<Message_ButtonsMessage_Bu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ButtonsMessage_Button>): Message_ButtonsMessage_Button {
-    return Message_ButtonsMessage_Button.fromPartial(base ?? {});
+    return createPartialMessage(Message_ButtonsMessage_Button, base);
   },
   fromPartial(object: DeepPartial<Message_ButtonsMessage_Button>): Message_ButtonsMessage_Button {
     const message = createBaseMessage_ButtonsMessage_Button();
@@ -41952,16 +40203,13 @@ export const Message_ButtonsMessage_Button_ButtonText: MessageFns<Message_Button
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ButtonsMessage_Button_ButtonText>): Message_ButtonsMessage_Button_ButtonText {
-    return Message_ButtonsMessage_Button_ButtonText.fromPartial(base ?? {});
+    return createPartialMessage(Message_ButtonsMessage_Button_ButtonText, base);
   },
   fromPartial(object: DeepPartial<Message_ButtonsMessage_Button_ButtonText>): Message_ButtonsMessage_Button_ButtonText {
     const message = createBaseMessage_ButtonsMessage_Button_ButtonText();
@@ -42012,10 +40260,7 @@ export const Message_ButtonsMessage_Button_NativeFlowInfo: MessageFns<Message_Bu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -42023,14 +40268,13 @@ export const Message_ButtonsMessage_Button_NativeFlowInfo: MessageFns<Message_Bu
   create(
     base?: DeepPartial<Message_ButtonsMessage_Button_NativeFlowInfo>,
   ): Message_ButtonsMessage_Button_NativeFlowInfo {
-    return Message_ButtonsMessage_Button_NativeFlowInfo.fromPartial(base ?? {});
+    return createPartialMessage(Message_ButtonsMessage_Button_NativeFlowInfo, base);
   },
   fromPartial(
     object: DeepPartial<Message_ButtonsMessage_Button_NativeFlowInfo>,
   ): Message_ButtonsMessage_Button_NativeFlowInfo {
     const message = createBaseMessage_ButtonsMessage_Button_NativeFlowInfo();
-    message.name = object.name ?? undefined;
-    message.paramsJson = object.paramsJson ?? undefined;
+    copyPartialScalars(message, object, 909, 911);
     return message;
   },
 };
@@ -42096,16 +40340,13 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ButtonsResponseMessage>): Message_ButtonsResponseMessage {
-    return Message_ButtonsResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ButtonsResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ButtonsResponseMessage>): Message_ButtonsResponseMessage {
     const message = createBaseMessage_ButtonsResponseMessage();
@@ -42113,8 +40354,7 @@ export const Message_ButtonsResponseMessage: MessageFns<Message_ButtonsResponseM
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.type = object.type ?? undefined;
-    message.selectedDisplayText = object.selectedDisplayText ?? undefined;
+    copyPartialScalars(message, object, 911, 913);
     return message;
   },
 };
@@ -42268,35 +40508,25 @@ export const Message_Call: MessageFns<Message_Call> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_Call>): Message_Call {
-    return Message_Call.fromPartial(base ?? {});
+    return createPartialMessage(Message_Call, base);
   },
   fromPartial(object: DeepPartial<Message_Call>): Message_Call {
     const message = createBaseMessage_Call();
-    message.callKey = object.callKey ?? undefined;
-    message.conversionSource = object.conversionSource ?? undefined;
-    message.conversionData = object.conversionData ?? undefined;
-    message.conversionDelaySeconds = object.conversionDelaySeconds ?? undefined;
-    message.ctwaSignals = object.ctwaSignals ?? undefined;
-    message.ctwaPayload = object.ctwaPayload ?? undefined;
+    copyPartialScalars(message, object, 913, 919);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.nativeFlowCallButtonPayload = object.nativeFlowCallButtonPayload ?? undefined;
-    message.deeplinkPayload = object.deeplinkPayload ?? undefined;
+    copyPartialScalars(message, object, 919, 921);
     message.messageContextInfo = (object.messageContextInfo !== undefined && object.messageContextInfo !== null)
       ? MessageContextInfo.fromPartial(object.messageContextInfo)
       : undefined;
-    message.callEntryPoint = object.callEntryPoint ?? undefined;
-    message.callReason = object.callReason ?? undefined;
+    copyPartialScalars(message, object, 921, 923);
     return message;
   },
 };
@@ -42381,23 +40611,17 @@ export const Message_CallLogMessage: MessageFns<Message_CallLogMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_CallLogMessage>): Message_CallLogMessage {
-    return Message_CallLogMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_CallLogMessage, base);
   },
   fromPartial(object: DeepPartial<Message_CallLogMessage>): Message_CallLogMessage {
     const message = createBaseMessage_CallLogMessage();
-    message.isVideo = object.isVideo ?? undefined;
-    message.callOutcome = object.callOutcome ?? undefined;
-    message.durationSecs = object.durationSecs ?? undefined;
-    message.callType = object.callType ?? undefined;
+    copyPartialScalars(message, object, 923, 927);
     message.participants = object.participants?.map((e) => Message_CallLogMessage_CallParticipant.fromPartial(e)) ||
       undefined;
     return message;
@@ -42443,21 +40667,17 @@ export const Message_CallLogMessage_CallParticipant: MessageFns<Message_CallLogM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_CallLogMessage_CallParticipant>): Message_CallLogMessage_CallParticipant {
-    return Message_CallLogMessage_CallParticipant.fromPartial(base ?? {});
+    return createPartialMessage(Message_CallLogMessage_CallParticipant, base);
   },
   fromPartial(object: DeepPartial<Message_CallLogMessage_CallParticipant>): Message_CallLogMessage_CallParticipant {
     const message = createBaseMessage_CallLogMessage_CallParticipant();
-    message.jid = object.jid ?? undefined;
-    message.callOutcome = object.callOutcome ?? undefined;
+    copyPartialScalars(message, object, 927, 929);
     return message;
   },
 };
@@ -42490,16 +40710,13 @@ export const Message_CancelPaymentRequestMessage: MessageFns<Message_CancelPayme
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_CancelPaymentRequestMessage>): Message_CancelPaymentRequestMessage {
-    return Message_CancelPaymentRequestMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_CancelPaymentRequestMessage, base);
   },
   fromPartial(object: DeepPartial<Message_CancelPaymentRequestMessage>): Message_CancelPaymentRequestMessage {
     const message = createBaseMessage_CancelPaymentRequestMessage();
@@ -42547,21 +40764,17 @@ export const Message_Chat: MessageFns<Message_Chat> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_Chat>): Message_Chat {
-    return Message_Chat.fromPartial(base ?? {});
+    return createPartialMessage(Message_Chat, base);
   },
   fromPartial(object: DeepPartial<Message_Chat>): Message_Chat {
     const message = createBaseMessage_Chat();
-    message.displayName = object.displayName ?? undefined;
-    message.id = object.id ?? undefined;
+    copyPartialScalars(message, object, 929, 931);
     return message;
   },
 };
@@ -42638,24 +40851,17 @@ export const Message_ChatCustomImageWallpaper: MessageFns<Message_ChatCustomImag
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ChatCustomImageWallpaper>): Message_ChatCustomImageWallpaper {
-    return Message_ChatCustomImageWallpaper.fromPartial(base ?? {});
+    return createPartialMessage(Message_ChatCustomImageWallpaper, base);
   },
   fromPartial(object: DeepPartial<Message_ChatCustomImageWallpaper>): Message_ChatCustomImageWallpaper {
     const message = createBaseMessage_ChatCustomImageWallpaper();
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.dimLevel = object.dimLevel ?? undefined;
+    copyPartialScalars(message, object, 931, 936);
     return message;
   },
 };
@@ -42688,16 +40894,13 @@ export const Message_ChatDefaultWallpaper: MessageFns<Message_ChatDefaultWallpap
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ChatDefaultWallpaper>): Message_ChatDefaultWallpaper {
-    return Message_ChatDefaultWallpaper.fromPartial(base ?? {});
+    return createPartialMessage(Message_ChatDefaultWallpaper, base);
   },
   fromPartial(object: DeepPartial<Message_ChatDefaultWallpaper>): Message_ChatDefaultWallpaper {
     const message = createBaseMessage_ChatDefaultWallpaper();
@@ -42756,22 +40959,17 @@ export const Message_ChatSolidColorWallpaper: MessageFns<Message_ChatSolidColorW
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ChatSolidColorWallpaper>): Message_ChatSolidColorWallpaper {
-    return Message_ChatSolidColorWallpaper.fromPartial(base ?? {});
+    return createPartialMessage(Message_ChatSolidColorWallpaper, base);
   },
   fromPartial(object: DeepPartial<Message_ChatSolidColorWallpaper>): Message_ChatSolidColorWallpaper {
     const message = createBaseMessage_ChatSolidColorWallpaper();
-    message.colorLight = object.colorLight ?? undefined;
-    message.colorDark = object.colorDark ?? undefined;
-    message.isDoodleEnabled = object.isDoodleEnabled ?? undefined;
+    copyPartialScalars(message, object, 936, 939);
     return message;
   },
 };
@@ -42815,21 +41013,17 @@ export const Message_ChatStockImageWallpaper: MessageFns<Message_ChatStockImageW
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ChatStockImageWallpaper>): Message_ChatStockImageWallpaper {
-    return Message_ChatStockImageWallpaper.fromPartial(base ?? {});
+    return createPartialMessage(Message_ChatStockImageWallpaper, base);
   },
   fromPartial(object: DeepPartial<Message_ChatStockImageWallpaper>): Message_ChatStockImageWallpaper {
     const message = createBaseMessage_ChatStockImageWallpaper();
-    message.stockImageId = object.stockImageId ?? undefined;
-    message.dimLevel = object.dimLevel ?? undefined;
+    copyPartialScalars(message, object, 939, 941);
     return message;
   },
 };
@@ -42928,22 +41122,17 @@ export const Message_ChatThemeSetting: MessageFns<Message_ChatThemeSetting> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ChatThemeSetting>): Message_ChatThemeSetting {
-    return Message_ChatThemeSetting.fromPartial(base ?? {});
+    return createPartialMessage(Message_ChatThemeSetting, base);
   },
   fromPartial(object: DeepPartial<Message_ChatThemeSetting>): Message_ChatThemeSetting {
     const message = createBaseMessage_ChatThemeSetting();
-    message.settingTimestampMs = object.settingTimestampMs ?? undefined;
-    message.clearTheme = object.clearTheme ?? undefined;
-    message.colorSchemeId = object.colorSchemeId ?? undefined;
+    copyPartialScalars(message, object, 941, 944);
     message.defaultWallpaper = (object.defaultWallpaper !== undefined && object.defaultWallpaper !== null)
       ? Message_ChatDefaultWallpaper.fromPartial(object.defaultWallpaper)
       : undefined;
@@ -43047,25 +41236,19 @@ export const Message_CloudAPIThreadControlNotification: MessageFns<Message_Cloud
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_CloudAPIThreadControlNotification>): Message_CloudAPIThreadControlNotification {
-    return Message_CloudAPIThreadControlNotification.fromPartial(base ?? {});
+    return createPartialMessage(Message_CloudAPIThreadControlNotification, base);
   },
   fromPartial(
     object: DeepPartial<Message_CloudAPIThreadControlNotification>,
   ): Message_CloudAPIThreadControlNotification {
     const message = createBaseMessage_CloudAPIThreadControlNotification();
-    message.status = object.status ?? undefined;
-    message.senderNotificationTimestampMs = object.senderNotificationTimestampMs ?? undefined;
-    message.consumerLid = object.consumerLid ?? undefined;
-    message.consumerPhoneNumber = object.consumerPhoneNumber ?? undefined;
+    copyPartialScalars(message, object, 944, 948);
     message.notificationContent = (object.notificationContent !== undefined && object.notificationContent !== null)
       ? Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent.fromPartial(
         object.notificationContent,
@@ -43120,10 +41303,7 @@ export const Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNoti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -43131,14 +41311,13 @@ export const Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNoti
   create(
     base?: DeepPartial<Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent>,
   ): Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent {
-    return Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent.fromPartial(base ?? {});
+    return createPartialMessage(Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent, base);
   },
   fromPartial(
     object: DeepPartial<Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent>,
   ): Message_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent {
     const message = createBaseMessage_CloudAPIThreadControlNotification_CloudAPIThreadControlNotificationContent();
-    message.handoffNotificationText = object.handoffNotificationText ?? undefined;
-    message.extraJson = object.extraJson ?? undefined;
+    copyPartialScalars(message, object, 948, 950);
     return message;
   },
 };
@@ -43182,16 +41361,13 @@ export const Message_CommentMessage: MessageFns<Message_CommentMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_CommentMessage>): Message_CommentMessage {
-    return Message_CommentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_CommentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_CommentMessage>): Message_CommentMessage {
     const message = createBaseMessage_CommentMessage();
@@ -43266,23 +41442,17 @@ export const Message_ConditionalRevealMessage: MessageFns<Message_ConditionalRev
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ConditionalRevealMessage>): Message_ConditionalRevealMessage {
-    return Message_ConditionalRevealMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ConditionalRevealMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ConditionalRevealMessage>): Message_ConditionalRevealMessage {
     const message = createBaseMessage_ConditionalRevealMessage();
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
-    message.conditionalRevealMessageType = object.conditionalRevealMessageType ?? undefined;
-    message.revealKeyId = object.revealKeyId ?? undefined;
+    copyPartialScalars(message, object, 950, 954);
     return message;
   },
 };
@@ -43348,21 +41518,17 @@ export const Message_ContactMessage: MessageFns<Message_ContactMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ContactMessage>): Message_ContactMessage {
-    return Message_ContactMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ContactMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ContactMessage>): Message_ContactMessage {
     const message = createBaseMessage_ContactMessage();
-    message.displayName = object.displayName ?? undefined;
-    message.vcard = object.vcard ?? undefined;
+    copyPartialScalars(message, object, 954, 956);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -43429,16 +41595,13 @@ export const Message_ContactsArrayMessage: MessageFns<Message_ContactsArrayMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ContactsArrayMessage>): Message_ContactsArrayMessage {
-    return Message_ContactsArrayMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ContactsArrayMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ContactsArrayMessage>): Message_ContactsArrayMessage {
     const message = createBaseMessage_ContactsArrayMessage();
@@ -43479,16 +41642,13 @@ export const Message_DeclinePaymentRequestMessage: MessageFns<Message_DeclinePay
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_DeclinePaymentRequestMessage>): Message_DeclinePaymentRequestMessage {
-    return Message_DeclinePaymentRequestMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_DeclinePaymentRequestMessage, base);
   },
   fromPartial(object: DeepPartial<Message_DeclinePaymentRequestMessage>): Message_DeclinePaymentRequestMessage {
     const message = createBaseMessage_DeclinePaymentRequestMessage();
@@ -43547,16 +41707,13 @@ export const Message_DeviceSentMessage: MessageFns<Message_DeviceSentMessage> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_DeviceSentMessage>): Message_DeviceSentMessage {
-    return Message_DeviceSentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_DeviceSentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_DeviceSentMessage>): Message_DeviceSentMessage {
     const message = createBaseMessage_DeviceSentMessage();
@@ -43817,42 +41974,21 @@ export const Message_DocumentMessage: MessageFns<Message_DocumentMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_DocumentMessage>): Message_DocumentMessage {
-    return Message_DocumentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_DocumentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_DocumentMessage>): Message_DocumentMessage {
     const message = createBaseMessage_DocumentMessage();
-    message.url = object.url ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.title = object.title ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.pageCount = object.pageCount ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileName = object.fileName ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.contactVcard = object.contactVcard ?? undefined;
-    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
-    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
-    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 956, 972);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.thumbnailHeight = object.thumbnailHeight ?? undefined;
-    message.thumbnailWidth = object.thumbnailWidth ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.accessibilityLabel = object.accessibilityLabel ?? undefined;
+    copyPartialScalars(message, object, 972, 976);
     return message;
   },
 };
@@ -43907,24 +42043,20 @@ export const Message_EncCommentMessage: MessageFns<Message_EncCommentMessage> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EncCommentMessage>): Message_EncCommentMessage {
-    return Message_EncCommentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EncCommentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EncCommentMessage>): Message_EncCommentMessage {
     const message = createBaseMessage_EncCommentMessage();
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 976, 978);
     return message;
   },
 };
@@ -43979,16 +42111,13 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EncEventResponseMessage>): Message_EncEventResponseMessage {
-    return Message_EncEventResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EncEventResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EncEventResponseMessage>): Message_EncEventResponseMessage {
     const message = createBaseMessage_EncEventResponseMessage();
@@ -43996,8 +42125,7 @@ export const Message_EncEventResponseMessage: MessageFns<Message_EncEventRespons
       (object.eventCreationMessageKey !== undefined && object.eventCreationMessageKey !== null)
         ? MessageKey.fromPartial(object.eventCreationMessageKey)
         : undefined;
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 978, 980);
     return message;
   },
 };
@@ -44052,24 +42180,20 @@ export const Message_EncReactionMessage: MessageFns<Message_EncReactionMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EncReactionMessage>): Message_EncReactionMessage {
-    return Message_EncReactionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EncReactionMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EncReactionMessage>): Message_EncReactionMessage {
     const message = createBaseMessage_EncReactionMessage();
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 980, 982);
     return message;
   },
 };
@@ -44190,30 +42314,20 @@ export const Message_EventInviteMessage: MessageFns<Message_EventInviteMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EventInviteMessage>): Message_EventInviteMessage {
-    return Message_EventInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EventInviteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EventInviteMessage>): Message_EventInviteMessage {
     const message = createBaseMessage_EventInviteMessage();
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.eventId = object.eventId ?? undefined;
-    message.eventTitle = object.eventTitle ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
-    message.startTime = object.startTime ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.isCanceled = object.isCanceled ?? undefined;
-    message.endTime = object.endTime ?? undefined;
-    message.callLink = object.callLink ?? undefined;
+    copyPartialScalars(message, object, 982, 990);
     return message;
   },
 };
@@ -44367,35 +42481,24 @@ export const Message_EventMessage: MessageFns<Message_EventMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EventMessage>): Message_EventMessage {
-    return Message_EventMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EventMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EventMessage>): Message_EventMessage {
     const message = createBaseMessage_EventMessage();
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.isCanceled = object.isCanceled ?? undefined;
-    message.name = object.name ?? undefined;
-    message.description = object.description ?? undefined;
+    copyPartialScalars(message, object, 990, 993);
     message.location = (object.location !== undefined && object.location !== null)
       ? Message_LocationMessage.fromPartial(object.location)
       : undefined;
-    message.joinLink = object.joinLink ?? undefined;
-    message.startTime = object.startTime ?? undefined;
-    message.endTime = object.endTime ?? undefined;
-    message.extraGuestsAllowed = object.extraGuestsAllowed ?? undefined;
-    message.isScheduleCall = object.isScheduleCall ?? undefined;
-    message.hasReminder = object.hasReminder ?? undefined;
-    message.reminderOffsetSec = object.reminderOffsetSec ?? undefined;
+    copyPartialScalars(message, object, 993, 1000);
     return message;
   },
 };
@@ -44450,22 +42553,17 @@ export const Message_EventResponseMessage: MessageFns<Message_EventResponseMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_EventResponseMessage>): Message_EventResponseMessage {
-    return Message_EventResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_EventResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_EventResponseMessage>): Message_EventResponseMessage {
     const message = createBaseMessage_EventResponseMessage();
-    message.response = object.response ?? undefined;
-    message.timestampMs = object.timestampMs ?? undefined;
-    message.extraGuestCount = object.extraGuestCount ?? undefined;
+    copyPartialScalars(message, object, 1000, 1003);
     return message;
   },
 };
@@ -44847,46 +42945,21 @@ export const Message_ExtendedTextMessage: MessageFns<Message_ExtendedTextMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ExtendedTextMessage>): Message_ExtendedTextMessage {
-    return Message_ExtendedTextMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ExtendedTextMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ExtendedTextMessage>): Message_ExtendedTextMessage {
     const message = createBaseMessage_ExtendedTextMessage();
-    message.text = object.text ?? undefined;
-    message.matchedText = object.matchedText ?? undefined;
-    message.description = object.description ?? undefined;
-    message.title = object.title ?? undefined;
-    message.textArgb = object.textArgb ?? undefined;
-    message.backgroundArgb = object.backgroundArgb ?? undefined;
-    message.font = object.font ?? undefined;
-    message.previewType = object.previewType ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1003, 1012);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.doNotPlayInline = object.doNotPlayInline ?? undefined;
-    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
-    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
-    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.thumbnailHeight = object.thumbnailHeight ?? undefined;
-    message.thumbnailWidth = object.thumbnailWidth ?? undefined;
-    message.inviteLinkGroupType = object.inviteLinkGroupType ?? undefined;
-    message.inviteLinkParentGroupSubjectV2 = object.inviteLinkParentGroupSubjectV2 ?? undefined;
-    message.inviteLinkParentGroupThumbnailV2 = object.inviteLinkParentGroupThumbnailV2 ?? undefined;
-    message.inviteLinkGroupTypeV2 = object.inviteLinkGroupTypeV2 ?? undefined;
-    message.viewOnce = object.viewOnce ?? undefined;
-    message.videoHeight = object.videoHeight ?? undefined;
-    message.videoWidth = object.videoWidth ?? undefined;
+    copyPartialScalars(message, object, 1012, 1027);
     message.faviconMmsMetadata = (object.faviconMmsMetadata !== undefined && object.faviconMmsMetadata !== null)
       ? Message_MMSThumbnailMetadata.fromPartial(object.faviconMmsMetadata)
       : undefined;
@@ -44948,21 +43021,17 @@ export const Message_FullHistorySyncOnDemandConfig: MessageFns<Message_FullHisto
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_FullHistorySyncOnDemandConfig>): Message_FullHistorySyncOnDemandConfig {
-    return Message_FullHistorySyncOnDemandConfig.fromPartial(base ?? {});
+    return createPartialMessage(Message_FullHistorySyncOnDemandConfig, base);
   },
   fromPartial(object: DeepPartial<Message_FullHistorySyncOnDemandConfig>): Message_FullHistorySyncOnDemandConfig {
     const message = createBaseMessage_FullHistorySyncOnDemandConfig();
-    message.historyFromTimestamp = object.historyFromTimestamp ?? undefined;
-    message.historyDurationDays = object.historyDurationDays ?? undefined;
+    copyPartialScalars(message, object, 1027, 1029);
     return message;
   },
 };
@@ -45022,10 +43091,7 @@ export const Message_FullHistorySyncOnDemandRequestMetadata: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45033,15 +43099,13 @@ export const Message_FullHistorySyncOnDemandRequestMetadata: MessageFns<
   create(
     base?: DeepPartial<Message_FullHistorySyncOnDemandRequestMetadata>,
   ): Message_FullHistorySyncOnDemandRequestMetadata {
-    return Message_FullHistorySyncOnDemandRequestMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_FullHistorySyncOnDemandRequestMetadata, base);
   },
   fromPartial(
     object: DeepPartial<Message_FullHistorySyncOnDemandRequestMetadata>,
   ): Message_FullHistorySyncOnDemandRequestMetadata {
     const message = createBaseMessage_FullHistorySyncOnDemandRequestMetadata();
-    message.requestId = object.requestId ?? undefined;
-    message.businessProduct = object.businessProduct ?? undefined;
-    message.opaqueClientData = object.opaqueClientData ?? undefined;
+    copyPartialScalars(message, object, 1029, 1032);
     return message;
   },
 };
@@ -45074,16 +43138,13 @@ export const Message_FutureProofMessage: MessageFns<Message_FutureProofMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_FutureProofMessage>): Message_FutureProofMessage {
-    return Message_FutureProofMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_FutureProofMessage, base);
   },
   fromPartial(object: DeepPartial<Message_FutureProofMessage>): Message_FutureProofMessage {
     const message = createBaseMessage_FutureProofMessage();
@@ -45199,25 +43260,17 @@ export const Message_GroupInviteMessage: MessageFns<Message_GroupInviteMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_GroupInviteMessage>): Message_GroupInviteMessage {
-    return Message_GroupInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_GroupInviteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_GroupInviteMessage>): Message_GroupInviteMessage {
     const message = createBaseMessage_GroupInviteMessage();
-    message.groupJid = object.groupJid ?? undefined;
-    message.inviteCode = object.inviteCode ?? undefined;
-    message.inviteExpiration = object.inviteExpiration ?? undefined;
-    message.groupName = object.groupName ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
-    message.caption = object.caption ?? undefined;
+    copyPartialScalars(message, object, 1032, 1038);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -45358,29 +43411,23 @@ export const Message_HighlyStructuredMessage: MessageFns<Message_HighlyStructure
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_HighlyStructuredMessage>): Message_HighlyStructuredMessage {
-    return Message_HighlyStructuredMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_HighlyStructuredMessage, base);
   },
   fromPartial(object: DeepPartial<Message_HighlyStructuredMessage>): Message_HighlyStructuredMessage {
     const message = createBaseMessage_HighlyStructuredMessage();
-    message.namespace = object.namespace ?? undefined;
-    message.elementName = object.elementName ?? undefined;
+    copyPartialScalars(message, object, 1038, 1040);
     message.params = object.params?.map((e) => e) || undefined;
-    message.fallbackLg = object.fallbackLg ?? undefined;
-    message.fallbackLc = object.fallbackLc ?? undefined;
+    copyPartialScalars(message, object, 1040, 1042);
     message.localizableParams =
       object.localizableParams?.map((e) => Message_HighlyStructuredMessage_HSMLocalizableParameter.fromPartial(e)) ||
       undefined;
-    message.deterministicLg = object.deterministicLg ?? undefined;
-    message.deterministicLc = object.deterministicLc ?? undefined;
+    copyPartialScalars(message, object, 1042, 1044);
     message.hydratedHsm = (object.hydratedHsm !== undefined && object.hydratedHsm !== null)
       ? Message_TemplateMessage.fromPartial(object.hydratedHsm)
       : undefined;
@@ -45449,10 +43496,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45460,7 +43504,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter: MessageFns
   create(
     base?: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter {
-    return Message_HighlyStructuredMessage_HSMLocalizableParameter.fromPartial(base ?? {});
+    return createPartialMessage(Message_HighlyStructuredMessage_HSMLocalizableParameter, base);
   },
   fromPartial(
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter>,
@@ -45521,10 +43565,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45532,14 +43573,13 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency
   create(
     base?: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
-    return Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency.fromPartial(base ?? {});
+    return createPartialMessage(Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency, base);
   },
   fromPartial(
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency {
     const message = createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMCurrency();
-    message.currencyCode = object.currencyCode ?? undefined;
-    message.amount1000 = object.amount1000 ?? undefined;
+    copyPartialScalars(message, object, 1044, 1046);
     return message;
   },
 };
@@ -45596,10 +43636,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45607,7 +43644,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
   create(
     base?: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime {
-    return Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime.fromPartial(base ?? {});
+    return createPartialMessage(Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime, base);
   },
   fromPartial(
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime>,
@@ -45727,10 +43764,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45738,22 +43772,14 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
   create(
     base?: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent {
-    return Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent, base);
   },
   fromPartial(
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent {
     const message =
       createBaseMessage_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeComponent();
-    message.dayOfWeek = object.dayOfWeek ?? undefined;
-    message.year = object.year ?? undefined;
-    message.month = object.month ?? undefined;
-    message.dayOfMonth = object.dayOfMonth ?? undefined;
-    message.hour = object.hour ?? undefined;
-    message.minute = object.minute ?? undefined;
-    message.calendar = object.calendar ?? undefined;
+    copyPartialScalars(message, object, 1046, 1053);
     return message;
   },
 };
@@ -45792,10 +43818,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -45803,9 +43826,7 @@ export const Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime
   create(
     base?: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch>,
   ): Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch {
-    return Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch, base);
   },
   fromPartial(
     object: DeepPartial<Message_HighlyStructuredMessage_HSMLocalizableParameter_HSMDateTime_HSMDateTimeUnixEpoch>,
@@ -45856,21 +43877,17 @@ export const Message_HistoryShareMessageEntry: MessageFns<Message_HistoryShareMe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_HistoryShareMessageEntry>): Message_HistoryShareMessageEntry {
-    return Message_HistoryShareMessageEntry.fromPartial(base ?? {});
+    return createPartialMessage(Message_HistoryShareMessageEntry, base);
   },
   fromPartial(object: DeepPartial<Message_HistoryShareMessageEntry>): Message_HistoryShareMessageEntry {
     const message = createBaseMessage_HistoryShareMessageEntry();
-    message.stanzaId = object.stanzaId ?? undefined;
-    message.messageSecretProof = object.messageSecretProof ?? undefined;
+    copyPartialScalars(message, object, 1053, 1055);
     return message;
   },
 };
@@ -45903,16 +43920,13 @@ export const Message_HistorySyncMessageAccessStatus: MessageFns<Message_HistoryS
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_HistorySyncMessageAccessStatus>): Message_HistorySyncMessageAccessStatus {
-    return Message_HistorySyncMessageAccessStatus.fromPartial(base ?? {});
+    return createPartialMessage(Message_HistorySyncMessageAccessStatus, base);
   },
   fromPartial(object: DeepPartial<Message_HistorySyncMessageAccessStatus>): Message_HistorySyncMessageAccessStatus {
     const message = createBaseMessage_HistorySyncMessageAccessStatus();
@@ -46106,31 +44120,17 @@ export const Message_HistorySyncNotification: MessageFns<Message_HistorySyncNoti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_HistorySyncNotification>): Message_HistorySyncNotification {
-    return Message_HistorySyncNotification.fromPartial(base ?? {});
+    return createPartialMessage(Message_HistorySyncNotification, base);
   },
   fromPartial(object: DeepPartial<Message_HistorySyncNotification>): Message_HistorySyncNotification {
     const message = createBaseMessage_HistorySyncNotification();
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.syncType = object.syncType ?? undefined;
-    message.chunkOrder = object.chunkOrder ?? undefined;
-    message.originalMessageId = object.originalMessageId ?? undefined;
-    message.progress = object.progress ?? undefined;
-    message.oldestMsgInChunkTimestampSec = object.oldestMsgInChunkTimestampSec ?? undefined;
-    message.initialHistBootstrapInlinePayload = object.initialHistBootstrapInlinePayload ?? undefined;
-    message.peerDataRequestSessionId = object.peerDataRequestSessionId ?? undefined;
+    copyPartialScalars(message, object, 1055, 1067);
     message.fullHistorySyncOnDemandRequestMetadata =
       (object.fullHistorySyncOnDemandRequestMetadata !== undefined &&
           object.fullHistorySyncOnDemandRequestMetadata !== null)
@@ -46525,16 +44525,13 @@ export const Message_ImageMessage: MessageFns<Message_ImageMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ImageMessage>): Message_ImageMessage {
-    return Message_ImageMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ImageMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ImageMessage>): Message_ImageMessage {
     const message = createBaseMessage_ImageMessage();
@@ -46608,10 +44605,7 @@ export const Message_InitialSecurityNotificationSettingSync: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -46619,7 +44613,7 @@ export const Message_InitialSecurityNotificationSettingSync: MessageFns<
   create(
     base?: DeepPartial<Message_InitialSecurityNotificationSettingSync>,
   ): Message_InitialSecurityNotificationSettingSync {
-    return Message_InitialSecurityNotificationSettingSync.fromPartial(base ?? {});
+    return createPartialMessage(Message_InitialSecurityNotificationSettingSync, base);
   },
   fromPartial(
     object: DeepPartial<Message_InitialSecurityNotificationSettingSync>,
@@ -46757,16 +44751,13 @@ export const Message_InteractiveMessage: MessageFns<Message_InteractiveMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage>): Message_InteractiveMessage {
-    return Message_InteractiveMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage>): Message_InteractiveMessage {
     const message = createBaseMessage_InteractiveMessage();
@@ -46866,23 +44857,17 @@ export const Message_InteractiveMessage_BloksWidget: MessageFns<Message_Interact
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_BloksWidget>): Message_InteractiveMessage_BloksWidget {
-    return Message_InteractiveMessage_BloksWidget.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_BloksWidget, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_BloksWidget>): Message_InteractiveMessage_BloksWidget {
     const message = createBaseMessage_InteractiveMessage_BloksWidget();
-    message.uuid = object.uuid ?? undefined;
-    message.data = object.data ?? undefined;
-    message.type = object.type ?? undefined;
-    message.fallback = object.fallback ?? undefined;
+    copyPartialScalars(message, object, 1067, 1071);
     return message;
   },
 };
@@ -46915,16 +44900,13 @@ export const Message_InteractiveMessage_Body: MessageFns<Message_InteractiveMess
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_Body>): Message_InteractiveMessage_Body {
-    return Message_InteractiveMessage_Body.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_Body, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_Body>): Message_InteractiveMessage_Body {
     const message = createBaseMessage_InteractiveMessage_Body();
@@ -46991,24 +44973,20 @@ export const Message_InteractiveMessage_CarouselMessage: MessageFns<Message_Inte
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_CarouselMessage>): Message_InteractiveMessage_CarouselMessage {
-    return Message_InteractiveMessage_CarouselMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_CarouselMessage, base);
   },
   fromPartial(
     object: DeepPartial<Message_InteractiveMessage_CarouselMessage>,
   ): Message_InteractiveMessage_CarouselMessage {
     const message = createBaseMessage_InteractiveMessage_CarouselMessage();
     message.cards = object.cards?.map((e) => Message_InteractiveMessage.fromPartial(e)) || undefined;
-    message.messageVersion = object.messageVersion ?? undefined;
-    message.carouselCardType = object.carouselCardType ?? undefined;
+    copyPartialScalars(message, object, 1071, 1073);
     return message;
   },
 };
@@ -47066,10 +45044,7 @@ export const Message_InteractiveMessage_CollectionMessage: MessageFns<Message_In
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -47077,15 +45052,13 @@ export const Message_InteractiveMessage_CollectionMessage: MessageFns<Message_In
   create(
     base?: DeepPartial<Message_InteractiveMessage_CollectionMessage>,
   ): Message_InteractiveMessage_CollectionMessage {
-    return Message_InteractiveMessage_CollectionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_CollectionMessage, base);
   },
   fromPartial(
     object: DeepPartial<Message_InteractiveMessage_CollectionMessage>,
   ): Message_InteractiveMessage_CollectionMessage {
     const message = createBaseMessage_InteractiveMessage_CollectionMessage();
-    message.bizJid = object.bizJid ?? undefined;
-    message.id = object.id ?? undefined;
-    message.messageVersion = object.messageVersion ?? undefined;
+    copyPartialScalars(message, object, 1073, 1076);
     return message;
   },
 };
@@ -47140,21 +45113,17 @@ export const Message_InteractiveMessage_Footer: MessageFns<Message_InteractiveMe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_Footer>): Message_InteractiveMessage_Footer {
-    return Message_InteractiveMessage_Footer.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_Footer, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_Footer>): Message_InteractiveMessage_Footer {
     const message = createBaseMessage_InteractiveMessage_Footer();
-    message.text = object.text ?? undefined;
-    message.hasMediaAttachment = object.hasMediaAttachment ?? undefined;
+    copyPartialScalars(message, object, 1076, 1078);
     message.audioMessage = (object.audioMessage !== undefined && object.audioMessage !== null)
       ? Message_AudioMessage.fromPartial(object.audioMessage)
       : undefined;
@@ -47289,22 +45258,17 @@ export const Message_InteractiveMessage_Header: MessageFns<Message_InteractiveMe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_Header>): Message_InteractiveMessage_Header {
-    return Message_InteractiveMessage_Header.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_Header, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_Header>): Message_InteractiveMessage_Header {
     const message = createBaseMessage_InteractiveMessage_Header();
-    message.title = object.title ?? undefined;
-    message.subtitle = object.subtitle ?? undefined;
-    message.hasMediaAttachment = object.hasMediaAttachment ?? undefined;
+    copyPartialScalars(message, object, 1078, 1081);
     message.bloksWidget = (object.bloksWidget !== undefined && object.bloksWidget !== null)
       ? Message_InteractiveMessage_BloksWidget.fromPartial(object.bloksWidget)
       : undefined;
@@ -47389,10 +45353,7 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -47400,7 +45361,7 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
   create(
     base?: DeepPartial<Message_InteractiveMessage_NativeFlowMessage>,
   ): Message_InteractiveMessage_NativeFlowMessage {
-    return Message_InteractiveMessage_NativeFlowMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_NativeFlowMessage, base);
   },
   fromPartial(
     object: DeepPartial<Message_InteractiveMessage_NativeFlowMessage>,
@@ -47409,8 +45370,7 @@ export const Message_InteractiveMessage_NativeFlowMessage: MessageFns<Message_In
     message.buttons =
       object.buttons?.map((e) => Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton.fromPartial(e)) ||
       undefined;
-    message.messageParamsJson = object.messageParamsJson ?? undefined;
-    message.messageVersion = object.messageVersion ?? undefined;
+    copyPartialScalars(message, object, 1081, 1083);
     return message;
   },
 };
@@ -47459,10 +45419,7 @@ export const Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton: Mess
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -47470,14 +45427,13 @@ export const Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton: Mess
   create(
     base?: DeepPartial<Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton>,
   ): Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton {
-    return Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton, base);
   },
   fromPartial(
     object: DeepPartial<Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton>,
   ): Message_InteractiveMessage_NativeFlowMessage_NativeFlowButton {
     const message = createBaseMessage_InteractiveMessage_NativeFlowMessage_NativeFlowButton();
-    message.name = object.name ?? undefined;
-    message.buttonParamsJson = object.buttonParamsJson ?? undefined;
+    copyPartialScalars(message, object, 1083, 1085);
     return message;
   },
 };
@@ -47532,22 +45488,17 @@ export const Message_InteractiveMessage_ShopMessage: MessageFns<Message_Interact
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveMessage_ShopMessage>): Message_InteractiveMessage_ShopMessage {
-    return Message_InteractiveMessage_ShopMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveMessage_ShopMessage, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveMessage_ShopMessage>): Message_InteractiveMessage_ShopMessage {
     const message = createBaseMessage_InteractiveMessage_ShopMessage();
-    message.id = object.id ?? undefined;
-    message.surface = object.surface ?? undefined;
-    message.messageVersion = object.messageVersion ?? undefined;
+    copyPartialScalars(message, object, 1085, 1088);
     return message;
   },
 };
@@ -47605,16 +45556,13 @@ export const Message_InteractiveResponseMessage: MessageFns<Message_InteractiveR
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveResponseMessage>): Message_InteractiveResponseMessage {
-    return Message_InteractiveResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveResponseMessage>): Message_InteractiveResponseMessage {
     const message = createBaseMessage_InteractiveResponseMessage();
@@ -47671,21 +45619,17 @@ export const Message_InteractiveResponseMessage_Body: MessageFns<Message_Interac
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InteractiveResponseMessage_Body>): Message_InteractiveResponseMessage_Body {
-    return Message_InteractiveResponseMessage_Body.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveResponseMessage_Body, base);
   },
   fromPartial(object: DeepPartial<Message_InteractiveResponseMessage_Body>): Message_InteractiveResponseMessage_Body {
     const message = createBaseMessage_InteractiveResponseMessage_Body();
-    message.text = object.text ?? undefined;
-    message.format = object.format ?? undefined;
+    copyPartialScalars(message, object, 1088, 1090);
     return message;
   },
 };
@@ -47745,10 +45689,7 @@ export const Message_InteractiveResponseMessage_NativeFlowResponseMessage: Messa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -47756,15 +45697,13 @@ export const Message_InteractiveResponseMessage_NativeFlowResponseMessage: Messa
   create(
     base?: DeepPartial<Message_InteractiveResponseMessage_NativeFlowResponseMessage>,
   ): Message_InteractiveResponseMessage_NativeFlowResponseMessage {
-    return Message_InteractiveResponseMessage_NativeFlowResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InteractiveResponseMessage_NativeFlowResponseMessage, base);
   },
   fromPartial(
     object: DeepPartial<Message_InteractiveResponseMessage_NativeFlowResponseMessage>,
   ): Message_InteractiveResponseMessage_NativeFlowResponseMessage {
     const message = createBaseMessage_InteractiveResponseMessage_NativeFlowResponseMessage();
-    message.name = object.name ?? undefined;
-    message.paramsJson = object.paramsJson ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 1090, 1093);
     return message;
   },
 };
@@ -47896,29 +45835,17 @@ export const Message_InvoiceMessage: MessageFns<Message_InvoiceMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_InvoiceMessage>): Message_InvoiceMessage {
-    return Message_InvoiceMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_InvoiceMessage, base);
   },
   fromPartial(object: DeepPartial<Message_InvoiceMessage>): Message_InvoiceMessage {
     const message = createBaseMessage_InvoiceMessage();
-    message.note = object.note ?? undefined;
-    message.token = object.token ?? undefined;
-    message.attachmentType = object.attachmentType ?? undefined;
-    message.attachmentMimetype = object.attachmentMimetype ?? undefined;
-    message.attachmentMediaKey = object.attachmentMediaKey ?? undefined;
-    message.attachmentMediaKeyTimestamp = object.attachmentMediaKeyTimestamp ?? undefined;
-    message.attachmentFileSha256 = object.attachmentFileSha256 ?? undefined;
-    message.attachmentFileEncSha256 = object.attachmentFileEncSha256 ?? undefined;
-    message.attachmentDirectPath = object.attachmentDirectPath ?? undefined;
-    message.attachmentJpegThumbnail = object.attachmentJpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1093, 1103);
     return message;
   },
 };
@@ -47973,22 +45900,18 @@ export const Message_KeepInChatMessage: MessageFns<Message_KeepInChatMessage> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_KeepInChatMessage>): Message_KeepInChatMessage {
-    return Message_KeepInChatMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_KeepInChatMessage, base);
   },
   fromPartial(object: DeepPartial<Message_KeepInChatMessage>): Message_KeepInChatMessage {
     const message = createBaseMessage_KeepInChatMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.keepType = object.keepType ?? undefined;
-    message.timestampMs = object.timestampMs ?? undefined;
+    copyPartialScalars(message, object, 1103, 1105);
     return message;
   },
 };
@@ -48109,16 +46032,13 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_LinkPreviewMetadata>): Message_LinkPreviewMetadata {
-    return Message_LinkPreviewMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_LinkPreviewMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_LinkPreviewMetadata>): Message_LinkPreviewMetadata {
     const message = createBaseMessage_LinkPreviewMetadata();
@@ -48128,11 +46048,7 @@ export const Message_LinkPreviewMetadata: MessageFns<Message_LinkPreviewMetadata
     message.urlMetadata = (object.urlMetadata !== undefined && object.urlMetadata !== null)
       ? Message_URLMetadata.fromPartial(object.urlMetadata)
       : undefined;
-    message.fbExperimentId = object.fbExperimentId ?? undefined;
-    message.linkMediaDuration = object.linkMediaDuration ?? undefined;
-    message.socialMediaPostType = object.socialMediaPostType ?? undefined;
-    message.linkInlineVideoMuted = object.linkInlineVideoMuted ?? undefined;
-    message.videoContentUrl = object.videoContentUrl ?? undefined;
+    copyPartialScalars(message, object, 1105, 1110);
     message.musicMetadata = (object.musicMetadata !== undefined && object.musicMetadata !== null)
       ? EmbeddedMusic.fromPartial(object.musicMetadata)
       : undefined;
@@ -48254,23 +46170,17 @@ export const Message_ListMessage: MessageFns<Message_ListMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage>): Message_ListMessage {
-    return Message_ListMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage>): Message_ListMessage {
     const message = createBaseMessage_ListMessage();
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.buttonText = object.buttonText ?? undefined;
-    message.listType = object.listType ?? undefined;
+    copyPartialScalars(message, object, 1110, 1114);
     message.sections = object.sections?.map((e) => Message_ListMessage_Section.fromPartial(e)) || undefined;
     message.productListInfo = (object.productListInfo !== undefined && object.productListInfo !== null)
       ? Message_ListMessage_ProductListInfo.fromPartial(object.productListInfo)
@@ -48311,16 +46221,13 @@ export const Message_ListMessage_Product: MessageFns<Message_ListMessage_Product
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_Product>): Message_ListMessage_Product {
-    return Message_ListMessage_Product.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_Product, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage_Product>): Message_ListMessage_Product {
     const message = createBaseMessage_ListMessage_Product();
@@ -48368,23 +46275,19 @@ export const Message_ListMessage_ProductListHeaderImage: MessageFns<Message_List
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_ProductListHeaderImage>): Message_ListMessage_ProductListHeaderImage {
-    return Message_ListMessage_ProductListHeaderImage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_ProductListHeaderImage, base);
   },
   fromPartial(
     object: DeepPartial<Message_ListMessage_ProductListHeaderImage>,
   ): Message_ListMessage_ProductListHeaderImage {
     const message = createBaseMessage_ListMessage_ProductListHeaderImage();
-    message.productId = object.productId ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1114, 1116);
     return message;
   },
 };
@@ -48447,16 +46350,13 @@ export const Message_ListMessage_ProductListInfo: MessageFns<Message_ListMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_ProductListInfo>): Message_ListMessage_ProductListInfo {
-    return Message_ListMessage_ProductListInfo.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_ProductListInfo, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage_ProductListInfo>): Message_ListMessage_ProductListInfo {
     const message = createBaseMessage_ListMessage_ProductListInfo();
@@ -48517,16 +46417,13 @@ export const Message_ListMessage_ProductSection: MessageFns<Message_ListMessage_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_ProductSection>): Message_ListMessage_ProductSection {
-    return Message_ListMessage_ProductSection.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_ProductSection, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage_ProductSection>): Message_ListMessage_ProductSection {
     const message = createBaseMessage_ListMessage_ProductSection();
@@ -48586,22 +46483,17 @@ export const Message_ListMessage_Row: MessageFns<Message_ListMessage_Row> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_Row>): Message_ListMessage_Row {
-    return Message_ListMessage_Row.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_Row, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage_Row>): Message_ListMessage_Row {
     const message = createBaseMessage_ListMessage_Row();
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.rowId = object.rowId ?? undefined;
+    copyPartialScalars(message, object, 1116, 1119);
     return message;
   },
 };
@@ -48653,16 +46545,13 @@ export const Message_ListMessage_Section: MessageFns<Message_ListMessage_Section
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListMessage_Section>): Message_ListMessage_Section {
-    return Message_ListMessage_Section.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListMessage_Section, base);
   },
   fromPartial(object: DeepPartial<Message_ListMessage_Section>): Message_ListMessage_Section {
     const message = createBaseMessage_ListMessage_Section();
@@ -48744,21 +46633,17 @@ export const Message_ListResponseMessage: MessageFns<Message_ListResponseMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ListResponseMessage>): Message_ListResponseMessage {
-    return Message_ListResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ListResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ListResponseMessage>): Message_ListResponseMessage {
     const message = createBaseMessage_ListResponseMessage();
-    message.title = object.title ?? undefined;
-    message.listType = object.listType ?? undefined;
+    copyPartialScalars(message, object, 1119, 1121);
     message.singleSelectReply = (object.singleSelectReply !== undefined && object.singleSelectReply !== null)
       ? Message_ListResponseMessage_SingleSelectReply.fromPartial(object.singleSelectReply)
       : undefined;
@@ -48802,10 +46687,7 @@ export const Message_ListResponseMessage_SingleSelectReply: MessageFns<Message_L
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -48813,7 +46695,7 @@ export const Message_ListResponseMessage_SingleSelectReply: MessageFns<Message_L
     create(
       base?: DeepPartial<Message_ListResponseMessage_SingleSelectReply>,
     ): Message_ListResponseMessage_SingleSelectReply {
-      return Message_ListResponseMessage_SingleSelectReply.fromPartial(base ?? {});
+      return createPartialMessage(Message_ListResponseMessage_SingleSelectReply, base);
     },
     fromPartial(
       object: DeepPartial<Message_ListResponseMessage_SingleSelectReply>,
@@ -48951,28 +46833,17 @@ export const Message_LiveLocationMessage: MessageFns<Message_LiveLocationMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_LiveLocationMessage>): Message_LiveLocationMessage {
-    return Message_LiveLocationMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_LiveLocationMessage, base);
   },
   fromPartial(object: DeepPartial<Message_LiveLocationMessage>): Message_LiveLocationMessage {
     const message = createBaseMessage_LiveLocationMessage();
-    message.degreesLatitude = object.degreesLatitude ?? undefined;
-    message.degreesLongitude = object.degreesLongitude ?? undefined;
-    message.accuracyInMeters = object.accuracyInMeters ?? undefined;
-    message.speedInMps = object.speedInMps ?? undefined;
-    message.degreesClockwiseFromMagneticNorth = object.degreesClockwiseFromMagneticNorth ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.sequenceNumber = object.sequenceNumber ?? undefined;
-    message.timeOffset = object.timeOffset ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1121, 1130);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -49129,30 +47000,17 @@ export const Message_LocationMessage: MessageFns<Message_LocationMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_LocationMessage>): Message_LocationMessage {
-    return Message_LocationMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_LocationMessage, base);
   },
   fromPartial(object: DeepPartial<Message_LocationMessage>): Message_LocationMessage {
     const message = createBaseMessage_LocationMessage();
-    message.degreesLatitude = object.degreesLatitude ?? undefined;
-    message.degreesLongitude = object.degreesLongitude ?? undefined;
-    message.name = object.name ?? undefined;
-    message.address = object.address ?? undefined;
-    message.url = object.url ?? undefined;
-    message.isLive = object.isLive ?? undefined;
-    message.accuracyInMeters = object.accuracyInMeters ?? undefined;
-    message.speedInMps = object.speedInMps ?? undefined;
-    message.degreesClockwiseFromMagneticNorth = object.degreesClockwiseFromMagneticNorth ?? undefined;
-    message.comment = object.comment ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1130, 1141);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -49254,26 +47112,17 @@ export const Message_MMSThumbnailMetadata: MessageFns<Message_MMSThumbnailMetada
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MMSThumbnailMetadata>): Message_MMSThumbnailMetadata {
-    return Message_MMSThumbnailMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_MMSThumbnailMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_MMSThumbnailMetadata>): Message_MMSThumbnailMetadata {
     const message = createBaseMessage_MMSThumbnailMetadata();
-    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
-    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
-    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.thumbnailHeight = object.thumbnailHeight ?? undefined;
-    message.thumbnailWidth = object.thumbnailWidth ?? undefined;
+    copyPartialScalars(message, object, 1141, 1148);
     return message;
   },
 };
@@ -49339,23 +47188,17 @@ export const Message_MarkAsVerifiedAction: MessageFns<Message_MarkAsVerifiedActi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MarkAsVerifiedAction>): Message_MarkAsVerifiedAction {
-    return Message_MarkAsVerifiedAction.fromPartial(base ?? {});
+    return createPartialMessage(Message_MarkAsVerifiedAction, base);
   },
   fromPartial(object: DeepPartial<Message_MarkAsVerifiedAction>): Message_MarkAsVerifiedAction {
     const message = createBaseMessage_MarkAsVerifiedAction();
-    message.userJidString = object.userJidString ?? undefined;
-    message.verified = object.verified ?? undefined;
-    message.verifiedIdentityKey = object.verifiedIdentityKey ?? undefined;
-    message.actionSeq = object.actionSeq ?? undefined;
+    copyPartialScalars(message, object, 1148, 1152);
     return message;
   },
 };
@@ -49465,25 +47308,17 @@ export const Message_MessageHistoryBundle: MessageFns<Message_MessageHistoryBund
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MessageHistoryBundle>): Message_MessageHistoryBundle {
-    return Message_MessageHistoryBundle.fromPartial(base ?? {});
+    return createPartialMessage(Message_MessageHistoryBundle, base);
   },
   fromPartial(object: DeepPartial<Message_MessageHistoryBundle>): Message_MessageHistoryBundle {
     const message = createBaseMessage_MessageHistoryBundle();
-    message.mimetype = object.mimetype ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1152, 1158);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -49583,22 +47418,18 @@ export const Message_MessageHistoryMetadata: MessageFns<Message_MessageHistoryMe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MessageHistoryMetadata>): Message_MessageHistoryMetadata {
-    return Message_MessageHistoryMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_MessageHistoryMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_MessageHistoryMetadata>): Message_MessageHistoryMetadata {
     const message = createBaseMessage_MessageHistoryMetadata();
     message.historyReceivers = object.historyReceivers?.map((e) => e) || undefined;
-    message.oldestMessageTimestampInWindow = object.oldestMessageTimestampInWindow ?? undefined;
-    message.messageCount = object.messageCount ?? undefined;
+    copyPartialScalars(message, object, 1158, 1160);
     message.nonHistoryReceivers = object.nonHistoryReceivers?.map((e) => e) || undefined;
     message.oldestMessageTimestampInBundle = object.oldestMessageTimestampInBundle ?? undefined;
     return message;
@@ -49655,16 +47486,13 @@ export const Message_MessageHistoryNotice: MessageFns<Message_MessageHistoryNoti
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MessageHistoryNotice>): Message_MessageHistoryNotice {
-    return Message_MessageHistoryNotice.fromPartial(base ?? {});
+    return createPartialMessage(Message_MessageHistoryNotice, base);
   },
   fromPartial(object: DeepPartial<Message_MessageHistoryNotice>): Message_MessageHistoryNotice {
     const message = createBaseMessage_MessageHistoryNotice();
@@ -49755,25 +47583,20 @@ export const Message_MusicMessage: MessageFns<Message_MusicMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_MusicMessage>): Message_MusicMessage {
-    return Message_MusicMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_MusicMessage, base);
   },
   fromPartial(object: DeepPartial<Message_MusicMessage>): Message_MusicMessage {
     const message = createBaseMessage_MusicMessage();
     message.embeddedMusic = (object.embeddedMusic !== undefined && object.embeddedMusic !== null)
       ? EmbeddedMusic.fromPartial(object.embeddedMusic)
       : undefined;
-    message.songUri = object.songUri ?? undefined;
-    message.artworkUri = object.artworkUri ?? undefined;
-    message.style = object.style ?? undefined;
+    copyPartialScalars(message, object, 1160, 1163);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -49864,24 +47687,17 @@ export const Message_NewsletterAdminInviteMessage: MessageFns<Message_Newsletter
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_NewsletterAdminInviteMessage>): Message_NewsletterAdminInviteMessage {
-    return Message_NewsletterAdminInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_NewsletterAdminInviteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_NewsletterAdminInviteMessage>): Message_NewsletterAdminInviteMessage {
     const message = createBaseMessage_NewsletterAdminInviteMessage();
-    message.newsletterJid = object.newsletterJid ?? undefined;
-    message.newsletterName = object.newsletterName ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.inviteExpiration = object.inviteExpiration ?? undefined;
+    copyPartialScalars(message, object, 1163, 1168);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -49961,23 +47777,17 @@ export const Message_NewsletterFollowerInviteMessage: MessageFns<Message_Newslet
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_NewsletterFollowerInviteMessage>): Message_NewsletterFollowerInviteMessage {
-    return Message_NewsletterFollowerInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_NewsletterFollowerInviteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_NewsletterFollowerInviteMessage>): Message_NewsletterFollowerInviteMessage {
     const message = createBaseMessage_NewsletterFollowerInviteMessage();
-    message.newsletterJid = object.newsletterJid ?? undefined;
-    message.newsletterName = object.newsletterName ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
-    message.caption = object.caption ?? undefined;
+    copyPartialScalars(message, object, 1168, 1172);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -50167,30 +47977,17 @@ export const Message_OrderMessage: MessageFns<Message_OrderMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_OrderMessage>): Message_OrderMessage {
-    return Message_OrderMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_OrderMessage, base);
   },
   fromPartial(object: DeepPartial<Message_OrderMessage>): Message_OrderMessage {
     const message = createBaseMessage_OrderMessage();
-    message.orderId = object.orderId ?? undefined;
-    message.thumbnail = object.thumbnail ?? undefined;
-    message.itemCount = object.itemCount ?? undefined;
-    message.status = object.status ?? undefined;
-    message.surface = object.surface ?? undefined;
-    message.message = object.message ?? undefined;
-    message.orderTitle = object.orderTitle ?? undefined;
-    message.sellerJid = object.sellerJid ?? undefined;
-    message.token = object.token ?? undefined;
-    message.totalAmount1000 = object.totalAmount1000 ?? undefined;
-    message.totalCurrencyCode = object.totalCurrencyCode ?? undefined;
+    copyPartialScalars(message, object, 1172, 1183);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -50254,22 +48051,17 @@ export const Message_PaymentExtendedMetadata: MessageFns<Message_PaymentExtended
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PaymentExtendedMetadata>): Message_PaymentExtendedMetadata {
-    return Message_PaymentExtendedMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_PaymentExtendedMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_PaymentExtendedMetadata>): Message_PaymentExtendedMetadata {
     const message = createBaseMessage_PaymentExtendedMetadata();
-    message.type = object.type ?? undefined;
-    message.platform = object.platform ?? undefined;
-    message.messageParamsJson = object.messageParamsJson ?? undefined;
+    copyPartialScalars(message, object, 1183, 1186);
     return message;
   },
 };
@@ -50346,24 +48138,17 @@ export const Message_PaymentInviteMessage: MessageFns<Message_PaymentInviteMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PaymentInviteMessage>): Message_PaymentInviteMessage {
-    return Message_PaymentInviteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PaymentInviteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PaymentInviteMessage>): Message_PaymentInviteMessage {
     const message = createBaseMessage_PaymentInviteMessage();
-    message.serviceType = object.serviceType ?? undefined;
-    message.expiryTimestamp = object.expiryTimestamp ?? undefined;
-    message.incentiveEligible = object.incentiveEligible ?? undefined;
-    message.referralId = object.referralId ?? undefined;
-    message.inviteType = object.inviteType ?? undefined;
+    copyPartialScalars(message, object, 1186, 1191);
     return message;
   },
 };
@@ -50418,16 +48203,13 @@ export const Message_PaymentLinkMetadata: MessageFns<Message_PaymentLinkMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PaymentLinkMetadata>): Message_PaymentLinkMetadata {
-    return Message_PaymentLinkMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_PaymentLinkMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_PaymentLinkMetadata>): Message_PaymentLinkMetadata {
     const message = createBaseMessage_PaymentLinkMetadata();
@@ -50476,10 +48258,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkButton: MessageFns<Message_P
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -50487,7 +48266,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkButton: MessageFns<Message_P
     create(
       base?: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkButton>,
     ): Message_PaymentLinkMetadata_PaymentLinkButton {
-      return Message_PaymentLinkMetadata_PaymentLinkButton.fromPartial(base ?? {});
+      return createPartialMessage(Message_PaymentLinkMetadata_PaymentLinkButton, base);
     },
     fromPartial(
       object: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkButton>,
@@ -50530,10 +48309,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkHeader: MessageFns<Message_P
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -50541,7 +48317,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkHeader: MessageFns<Message_P
     create(
       base?: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkHeader>,
     ): Message_PaymentLinkMetadata_PaymentLinkHeader {
-      return Message_PaymentLinkMetadata_PaymentLinkHeader.fromPartial(base ?? {});
+      return createPartialMessage(Message_PaymentLinkMetadata_PaymentLinkHeader, base);
     },
     fromPartial(
       object: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkHeader>,
@@ -50585,10 +48361,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkProvider: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -50596,7 +48369,7 @@ export const Message_PaymentLinkMetadata_PaymentLinkProvider: MessageFns<
   create(
     base?: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkProvider>,
   ): Message_PaymentLinkMetadata_PaymentLinkProvider {
-    return Message_PaymentLinkMetadata_PaymentLinkProvider.fromPartial(base ?? {});
+    return createPartialMessage(Message_PaymentLinkMetadata_PaymentLinkProvider, base);
   },
   fromPartial(
     object: DeepPartial<Message_PaymentLinkMetadata_PaymentLinkProvider>,
@@ -50723,27 +48496,17 @@ export const Message_PaymentReminderMessage: MessageFns<Message_PaymentReminderM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PaymentReminderMessage>): Message_PaymentReminderMessage {
-    return Message_PaymentReminderMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PaymentReminderMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PaymentReminderMessage>): Message_PaymentReminderMessage {
     const message = createBaseMessage_PaymentReminderMessage();
-    message.reminderId = object.reminderId ?? undefined;
-    message.instanceId = object.instanceId ?? undefined;
-    message.description = object.description ?? undefined;
-    message.frequency = object.frequency ?? undefined;
-    message.status = object.status ?? undefined;
-    message.payeeVpa = object.payeeVpa ?? undefined;
-    message.payeeJid = object.payeeJid ?? undefined;
-    message.payerJid = object.payerJid ?? undefined;
+    copyPartialScalars(message, object, 1191, 1199);
     message.amount = (object.amount !== undefined && object.amount !== null)
       ? Money.fromPartial(object.amount)
       : undefined;
@@ -50959,16 +48722,13 @@ export const Message_PeerDataOperationRequestMessage: MessageFns<Message_PeerDat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PeerDataOperationRequestMessage>): Message_PeerDataOperationRequestMessage {
-    return Message_PeerDataOperationRequestMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PeerDataOperationRequestMessage>): Message_PeerDataOperationRequestMessage {
     const message = createBaseMessage_PeerDataOperationRequestMessage();
@@ -51068,10 +48828,7 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContact
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51079,7 +48836,7 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContact
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest>,
   ): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest {
-    return Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_BizBroadcastInsightsContactListRequest>,
@@ -51123,10 +48880,7 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefresh
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51134,7 +48888,7 @@ export const Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefresh
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest>,
   ): Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest {
-    return Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_BizBroadcastInsightsRefreshRequest>,
@@ -51178,10 +48932,7 @@ export const Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonce
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51189,7 +48940,7 @@ export const Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonce
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest>,
   ): Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest {
-    return Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_CompanionCanonicalUserNonceFetchRequest>,
@@ -51256,10 +49007,7 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51267,7 +49015,7 @@ export const Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequ
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest>,
   ): Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest {
-    return Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_FullHistorySyncOnDemandRequest>,
@@ -51364,10 +49112,7 @@ export const Message_PeerDataOperationRequestMessage_GalaxyFlowAction: MessageFn
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51375,17 +49120,13 @@ export const Message_PeerDataOperationRequestMessage_GalaxyFlowAction: MessageFn
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_GalaxyFlowAction>,
   ): Message_PeerDataOperationRequestMessage_GalaxyFlowAction {
-    return Message_PeerDataOperationRequestMessage_GalaxyFlowAction.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_GalaxyFlowAction, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_GalaxyFlowAction>,
   ): Message_PeerDataOperationRequestMessage_GalaxyFlowAction {
     const message = createBaseMessage_PeerDataOperationRequestMessage_GalaxyFlowAction();
-    message.type = object.type ?? undefined;
-    message.flowId = object.flowId ?? undefined;
-    message.stanzaId = object.stanzaId ?? undefined;
-    message.galaxyFlowDownloadRequestId = object.galaxyFlowDownloadRequestId ?? undefined;
-    message.agmId = object.agmId ?? undefined;
+    copyPartialScalars(message, object, 1199, 1204);
     return message;
   },
 };
@@ -51456,10 +49197,7 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryReques
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51467,16 +49205,13 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryReques
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest {
-    return Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncChunkRetryRequest();
-    message.syncType = object.syncType ?? undefined;
-    message.chunkOrder = object.chunkOrder ?? undefined;
-    message.chunkNotificationId = object.chunkNotificationId ?? undefined;
-    message.regenerateChunk = object.regenerateChunk ?? undefined;
+    copyPartialScalars(message, object, 1204, 1208);
     return message;
   },
 };
@@ -51580,10 +49315,7 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51591,19 +49323,13 @@ export const Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest:
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest {
-    return Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest>,
   ): Message_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_HistorySyncOnDemandRequest();
-    message.chatJid = object.chatJid ?? undefined;
-    message.oldestMsgId = object.oldestMsgId ?? undefined;
-    message.oldestMsgFromMe = object.oldestMsgFromMe ?? undefined;
-    message.onDemandMsgCount = object.onDemandMsgCount ?? undefined;
-    message.oldestMsgTimestampMs = object.oldestMsgTimestampMs ?? undefined;
-    message.accountLid = object.accountLid ?? undefined;
-    message.supportInlineResponse = object.supportInlineResponse ?? undefined;
+    copyPartialScalars(message, object, 1208, 1215);
     return message;
   },
 };
@@ -51641,10 +49367,7 @@ export const Message_PeerDataOperationRequestMessage_PlaceholderMessageResendReq
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51652,7 +49375,7 @@ export const Message_PeerDataOperationRequestMessage_PlaceholderMessageResendReq
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest>,
   ): Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest {
-    return Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_PlaceholderMessageResendRequest>,
@@ -51698,10 +49421,7 @@ export const Message_PeerDataOperationRequestMessage_RequestStickerReupload: Mes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51709,7 +49429,7 @@ export const Message_PeerDataOperationRequestMessage_RequestStickerReupload: Mes
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_RequestStickerReupload>,
   ): Message_PeerDataOperationRequestMessage_RequestStickerReupload {
-    return Message_PeerDataOperationRequestMessage_RequestStickerReupload.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_RequestStickerReupload, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_RequestStickerReupload>,
@@ -51764,10 +49484,7 @@ export const Message_PeerDataOperationRequestMessage_RequestUrlPreview: MessageF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51775,14 +49492,13 @@ export const Message_PeerDataOperationRequestMessage_RequestUrlPreview: MessageF
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_RequestUrlPreview>,
   ): Message_PeerDataOperationRequestMessage_RequestUrlPreview {
-    return Message_PeerDataOperationRequestMessage_RequestUrlPreview.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_RequestUrlPreview, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_RequestUrlPreview>,
   ): Message_PeerDataOperationRequestMessage_RequestUrlPreview {
     const message = createBaseMessage_PeerDataOperationRequestMessage_RequestUrlPreview();
-    message.url = object.url ?? undefined;
-    message.includeHqThumbnail = object.includeHqThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1215, 1217);
     return message;
   },
 };
@@ -51831,10 +49547,7 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51842,14 +49555,13 @@ export const Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecover
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest>,
   ): Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
-    return Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest>,
   ): Message_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest {
     const message = createBaseMessage_PeerDataOperationRequestMessage_SyncDCollectionFatalRecoveryRequest();
-    message.collectionName = object.collectionName ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
+    copyPartialScalars(message, object, 1217, 1219);
     return message;
   },
 };
@@ -51921,10 +49633,7 @@ export const Message_PeerDataOperationRequestResponseMessage: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -51932,14 +49641,13 @@ export const Message_PeerDataOperationRequestResponseMessage: MessageFns<
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage>,
   ): Message_PeerDataOperationRequestResponseMessage {
-    return Message_PeerDataOperationRequestResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestResponseMessage, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage>,
   ): Message_PeerDataOperationRequestResponseMessage {
     const message = createBaseMessage_PeerDataOperationRequestResponseMessage();
-    message.peerDataOperationRequestType = object.peerDataOperationRequestType ?? undefined;
-    message.stanzaId = object.stanzaId ?? undefined;
+    copyPartialScalars(message, object, 1219, 1221);
     message.peerDataOperationResult =
       object.peerDataOperationResult?.map((e) =>
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult.fromPartial(e)
@@ -52158,10 +49866,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -52169,7 +49874,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult {
-    return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult.fromPartial(base ?? {});
+    return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult>,
@@ -52314,10 +50019,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -52327,8 +50029,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -52337,8 +50038,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactListResponse();
-      message.campaignId = object.campaignId ?? undefined;
-      message.timestampMs = object.timestampMs ?? undefined;
+      copyPartialScalars(message, object, 1221, 1223);
       message.contacts = object.contacts?.map((e) =>
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState
           .fromPartial(e)
@@ -52393,10 +50093,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if (tag >>> 3 === 0 || (tag & 7) === 4) {
-            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-          }
-          reader.skip(tag & 7);
+          skipUnknownProtoField(reader, tag);
         }
         return message;
       },
@@ -52406,8 +50103,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState
         >,
       ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState {
-        return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState
-          .fromPartial(base ?? {});
+        return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState, base);
       },
       fromPartial(
         object: DeepPartial<
@@ -52416,8 +50112,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
       ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState {
         const message =
           createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_BizBroadcastInsightsContactState();
-        message.contactJid = object.contactJid ?? undefined;
-        message.state = object.state ?? undefined;
+        copyPartialScalars(message, object, 1223, 1225);
         return message;
       },
     };
@@ -52480,10 +50175,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -52493,8 +50185,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -52503,9 +50194,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionCanonicalUserNonceFetchResponse();
-      message.nonce = object.nonce ?? undefined;
-      message.waFbid = object.waFbid ?? undefined;
-      message.forceRefresh = object.forceRefresh ?? undefined;
+      copyPartialScalars(message, object, 1225, 1228);
       return message;
     },
   };
@@ -52545,10 +50234,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if (tag >>> 3 === 0 || (tag & 7) === 4) {
-            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-          }
-          reader.skip(tag & 7);
+          skipUnknownProtoField(reader, tag);
         }
         return message;
       },
@@ -52558,8 +50244,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse
         >,
       ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse {
-        return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse
-          .fromPartial(base ?? {});
+        return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_CompanionMetaNonceFetchResponse, base);
       },
       fromPartial(
         object: DeepPartial<
@@ -52648,10 +50333,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -52659,9 +50341,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse {
-    return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse>,
@@ -52669,9 +50349,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_ContactRefreshResponse();
     message.coveredRequestIds = object.coveredRequestIds?.map((e) => e) || undefined;
-    message.collectionVersion = object.collectionVersion ?? undefined;
-    message.primaryDurationMs = object.primaryDurationMs ?? undefined;
-    message.uniqueContactCount = object.uniqueContactCount ?? undefined;
+    copyPartialScalars(message, object, 1228, 1231);
     return message;
   },
 };
@@ -52809,10 +50487,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -52820,25 +50495,14 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
-    return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle {
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FlowResponsesCsvBundle();
-    message.flowId = object.flowId ?? undefined;
-    message.galaxyFlowDownloadRequestId = object.galaxyFlowDownloadRequestId ?? undefined;
-    message.fileName = object.fileName ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
+    copyPartialScalars(message, object, 1231, 1241);
     return message;
   },
 };
@@ -52890,10 +50554,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -52903,8 +50564,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_FullHistorySyncOnDemandRequestResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -52998,10 +50658,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -53011,8 +50668,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -53021,11 +50677,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_HistorySyncChunkRetryResponse();
-      message.syncType = object.syncType ?? undefined;
-      message.chunkOrder = object.chunkOrder ?? undefined;
-      message.requestId = object.requestId ?? undefined;
-      message.responseCode = object.responseCode ?? undefined;
-      message.canRecover = object.canRecover ?? undefined;
+      copyPartialScalars(message, object, 1241, 1246);
       return message;
     },
   };
@@ -53147,10 +50799,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -53158,21 +50807,14 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
   create(
     base?: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse {
-    return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse.fromPartial(
-      base ?? {},
-    );
+    return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse, base);
   },
   fromPartial(
     object: DeepPartial<Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse>,
   ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse {
     const message =
       createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse();
-    message.url = object.url ?? undefined;
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.thumbData = object.thumbData ?? undefined;
-    message.matchText = object.matchText ?? undefined;
-    message.previewType = object.previewType ?? undefined;
+    copyPartialScalars(message, object, 1246, 1252);
     message.hqThumbnail = (object.hqThumbnail !== undefined && object.hqThumbnail !== null)
       ? Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail
         .fromPartial(object.hqThumbnail)
@@ -53287,10 +50929,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -53300,8 +50939,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -53310,13 +50948,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_LinkPreviewHighQualityThumbnail();
-      message.directPath = object.directPath ?? undefined;
-      message.thumbHash = object.thumbHash ?? undefined;
-      message.encThumbHash = object.encThumbHash ?? undefined;
-      message.mediaKey = object.mediaKey ?? undefined;
-      message.mediaKeyTimestampMs = object.mediaKeyTimestampMs ?? undefined;
-      message.thumbWidth = object.thumbWidth ?? undefined;
-      message.thumbHeight = object.thumbHeight ?? undefined;
+      copyPartialScalars(message, object, 1252, 1259);
       return message;
     },
   };
@@ -53401,10 +51033,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -53414,8 +51043,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -53424,11 +51052,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_LinkPreviewResponse_PaymentLinkPreviewMetadata();
-      message.isBusinessVerified = object.isBusinessVerified ?? undefined;
-      message.providerName = object.providerName ?? undefined;
-      message.amount = object.amount ?? undefined;
-      message.offset = object.offset ?? undefined;
-      message.currency = object.currency ?? undefined;
+      copyPartialScalars(message, object, 1259, 1264);
       return message;
     },
   };
@@ -53468,10 +51092,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
               continue;
             }
           }
-          if (tag >>> 3 === 0 || (tag & 7) === 4) {
-            throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-          }
-          reader.skip(tag & 7);
+          skipUnknownProtoField(reader, tag);
         }
         return message;
       },
@@ -53481,8 +51102,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
           Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse
         >,
       ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse {
-        return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse
-          .fromPartial(base ?? {});
+        return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_PlaceholderMessageResendResponse, base);
       },
       fromPartial(
         object: DeepPartial<
@@ -53543,10 +51163,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -53556,8 +51173,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -53566,8 +51182,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_SyncDSnapshotFatalRecoveryResponse();
-      message.collectionSnapshot = object.collectionSnapshot ?? undefined;
-      message.isCompressed = object.isCompressed ?? undefined;
+      copyPartialScalars(message, object, 1264, 1266);
       return message;
     },
   };
@@ -53616,10 +51231,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -53629,8 +51241,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
         Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse
       >,
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse {
-      return Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse
-        .fromPartial(base ?? {});
+      return createPartialMessage(Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse, base);
     },
     fromPartial(
       object: DeepPartial<
@@ -53639,8 +51250,7 @@ export const Message_PeerDataOperationRequestResponseMessage_PeerDataOperationRe
     ): Message_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse {
       const message =
         createBaseMessage_PeerDataOperationRequestResponseMessage_PeerDataOperationResult_WaffleNonceFetchResponse();
-      message.nonce = object.nonce ?? undefined;
-      message.waEntFbid = object.waEntFbid ?? undefined;
+      copyPartialScalars(message, object, 1266, 1268);
       return message;
     },
   };
@@ -53695,22 +51305,18 @@ export const Message_PinInChatMessage: MessageFns<Message_PinInChatMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PinInChatMessage>): Message_PinInChatMessage {
-    return Message_PinInChatMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PinInChatMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PinInChatMessage>): Message_PinInChatMessage {
     const message = createBaseMessage_PinInChatMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.type = object.type ?? undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
+    copyPartialScalars(message, object, 1268, 1270);
     return message;
   },
 };
@@ -53743,16 +51349,13 @@ export const Message_PlaceholderMessage: MessageFns<Message_PlaceholderMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PlaceholderMessage>): Message_PlaceholderMessage {
-    return Message_PlaceholderMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PlaceholderMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PlaceholderMessage>): Message_PlaceholderMessage {
     const message = createBaseMessage_PlaceholderMessage();
@@ -53811,16 +51414,13 @@ export const Message_PollAddOptionMessage: MessageFns<Message_PollAddOptionMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollAddOptionMessage>): Message_PollAddOptionMessage {
-    return Message_PollAddOptionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollAddOptionMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PollAddOptionMessage>): Message_PollAddOptionMessage {
     const message = createBaseMessage_PollAddOptionMessage();
@@ -53984,34 +51584,27 @@ export const Message_PollCreationMessage: MessageFns<Message_PollCreationMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollCreationMessage>): Message_PollCreationMessage {
-    return Message_PollCreationMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollCreationMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PollCreationMessage>): Message_PollCreationMessage {
     const message = createBaseMessage_PollCreationMessage();
-    message.encKey = object.encKey ?? undefined;
-    message.name = object.name ?? undefined;
+    copyPartialScalars(message, object, 1270, 1272);
     message.options = object.options?.map((e) => Message_PollCreationMessage_Option.fromPartial(e)) || undefined;
     message.selectableOptionsCount = object.selectableOptionsCount ?? undefined;
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.pollContentType = object.pollContentType ?? undefined;
-    message.pollType = object.pollType ?? undefined;
+    copyPartialScalars(message, object, 1272, 1274);
     message.correctAnswer = (object.correctAnswer !== undefined && object.correctAnswer !== null)
       ? Message_PollCreationMessage_Option.fromPartial(object.correctAnswer)
       : undefined;
-    message.endTime = object.endTime ?? undefined;
-    message.hideParticipantName = object.hideParticipantName ?? undefined;
-    message.allowAddOption = object.allowAddOption ?? undefined;
+    copyPartialScalars(message, object, 1274, 1277);
     return message;
   },
 };
@@ -54055,21 +51648,17 @@ export const Message_PollCreationMessage_Option: MessageFns<Message_PollCreation
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollCreationMessage_Option>): Message_PollCreationMessage_Option {
-    return Message_PollCreationMessage_Option.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollCreationMessage_Option, base);
   },
   fromPartial(object: DeepPartial<Message_PollCreationMessage_Option>): Message_PollCreationMessage_Option {
     const message = createBaseMessage_PollCreationMessage_Option();
-    message.optionName = object.optionName ?? undefined;
-    message.optionHash = object.optionHash ?? undefined;
+    copyPartialScalars(message, object, 1277, 1279);
     return message;
   },
 };
@@ -54113,21 +51702,17 @@ export const Message_PollEncValue: MessageFns<Message_PollEncValue> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollEncValue>): Message_PollEncValue {
-    return Message_PollEncValue.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollEncValue, base);
   },
   fromPartial(object: DeepPartial<Message_PollEncValue>): Message_PollEncValue {
     const message = createBaseMessage_PollEncValue();
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 1279, 1281);
     return message;
   },
 };
@@ -54201,16 +51786,13 @@ export const Message_PollResultSnapshotMessage: MessageFns<Message_PollResultSna
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollResultSnapshotMessage>): Message_PollResultSnapshotMessage {
-    return Message_PollResultSnapshotMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollResultSnapshotMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PollResultSnapshotMessage>): Message_PollResultSnapshotMessage {
     const message = createBaseMessage_PollResultSnapshotMessage();
@@ -54264,23 +51846,19 @@ export const Message_PollResultSnapshotMessage_PollVote: MessageFns<Message_Poll
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollResultSnapshotMessage_PollVote>): Message_PollResultSnapshotMessage_PollVote {
-    return Message_PollResultSnapshotMessage_PollVote.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollResultSnapshotMessage_PollVote, base);
   },
   fromPartial(
     object: DeepPartial<Message_PollResultSnapshotMessage_PollVote>,
   ): Message_PollResultSnapshotMessage_PollVote {
     const message = createBaseMessage_PollResultSnapshotMessage_PollVote();
-    message.optionName = object.optionName ?? undefined;
-    message.optionVoteCount = object.optionVoteCount ?? undefined;
+    copyPartialScalars(message, object, 1281, 1283);
     return message;
   },
 };
@@ -54346,16 +51924,13 @@ export const Message_PollUpdateMessage: MessageFns<Message_PollUpdateMessage> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollUpdateMessage>): Message_PollUpdateMessage {
-    return Message_PollUpdateMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollUpdateMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PollUpdateMessage>): Message_PollUpdateMessage {
     const message = createBaseMessage_PollUpdateMessage();
@@ -54413,21 +51988,17 @@ export const Message_PollUpdateMessageMetadata: MessageFns<Message_PollUpdateMes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollUpdateMessageMetadata>): Message_PollUpdateMessageMetadata {
-    return Message_PollUpdateMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollUpdateMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_PollUpdateMessageMetadata>): Message_PollUpdateMessageMetadata {
     const message = createBaseMessage_PollUpdateMessageMetadata();
-    message.pollNameHash = object.pollNameHash ?? undefined;
-    message.lastEditStanzaId = object.lastEditStanzaId ?? undefined;
+    copyPartialScalars(message, object, 1283, 1285);
     return message;
   },
 };
@@ -54468,16 +52039,13 @@ export const Message_PollVoteMessage: MessageFns<Message_PollVoteMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_PollVoteMessage>): Message_PollVoteMessage {
-    return Message_PollVoteMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_PollVoteMessage, base);
   },
   fromPartial(object: DeepPartial<Message_PollVoteMessage>): Message_PollVoteMessage {
     const message = createBaseMessage_PollVoteMessage();
@@ -54569,16 +52137,13 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ProductMessage>): Message_ProductMessage {
-    return Message_ProductMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ProductMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ProductMessage>): Message_ProductMessage {
     const message = createBaseMessage_ProductMessage();
@@ -54589,8 +52154,7 @@ export const Message_ProductMessage: MessageFns<Message_ProductMessage> = {
     message.catalog = (object.catalog !== undefined && object.catalog !== null)
       ? Message_ProductMessage_CatalogSnapshot.fromPartial(object.catalog)
       : undefined;
-    message.body = object.body ?? undefined;
-    message.footer = object.footer ?? undefined;
+    copyPartialScalars(message, object, 1285, 1287);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
@@ -54648,24 +52212,20 @@ export const Message_ProductMessage_CatalogSnapshot: MessageFns<Message_ProductM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ProductMessage_CatalogSnapshot>): Message_ProductMessage_CatalogSnapshot {
-    return Message_ProductMessage_CatalogSnapshot.fromPartial(base ?? {});
+    return createPartialMessage(Message_ProductMessage_CatalogSnapshot, base);
   },
   fromPartial(object: DeepPartial<Message_ProductMessage_CatalogSnapshot>): Message_ProductMessage_CatalogSnapshot {
     const message = createBaseMessage_ProductMessage_CatalogSnapshot();
     message.catalogImage = (object.catalogImage !== undefined && object.catalogImage !== null)
       ? Message_ImageMessage.fromPartial(object.catalogImage)
       : undefined;
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
+    copyPartialScalars(message, object, 1287, 1289);
     return message;
   },
 };
@@ -54819,33 +52379,20 @@ export const Message_ProductMessage_ProductSnapshot: MessageFns<Message_ProductM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ProductMessage_ProductSnapshot>): Message_ProductMessage_ProductSnapshot {
-    return Message_ProductMessage_ProductSnapshot.fromPartial(base ?? {});
+    return createPartialMessage(Message_ProductMessage_ProductSnapshot, base);
   },
   fromPartial(object: DeepPartial<Message_ProductMessage_ProductSnapshot>): Message_ProductMessage_ProductSnapshot {
     const message = createBaseMessage_ProductMessage_ProductSnapshot();
     message.productImage = (object.productImage !== undefined && object.productImage !== null)
       ? Message_ImageMessage.fromPartial(object.productImage)
       : undefined;
-    message.productId = object.productId ?? undefined;
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.currencyCode = object.currencyCode ?? undefined;
-    message.priceAmount1000 = object.priceAmount1000 ?? undefined;
-    message.retailerId = object.retailerId ?? undefined;
-    message.url = object.url ?? undefined;
-    message.productImageCount = object.productImageCount ?? undefined;
-    message.firstImageId = object.firstImageId ?? undefined;
-    message.salePriceAmount1000 = object.salePriceAmount1000 ?? undefined;
-    message.signedUrl = object.signedUrl ?? undefined;
+    copyPartialScalars(message, object, 1289, 1300);
     return message;
   },
 };
@@ -55211,23 +52758,18 @@ export const Message_ProtocolMessage: MessageFns<Message_ProtocolMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ProtocolMessage>): Message_ProtocolMessage {
-    return Message_ProtocolMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ProtocolMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ProtocolMessage>): Message_ProtocolMessage {
     const message = createBaseMessage_ProtocolMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.type = object.type ?? undefined;
-    message.ephemeralExpiration = object.ephemeralExpiration ?? undefined;
-    message.ephemeralSettingTimestamp = object.ephemeralSettingTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1300, 1303);
     message.historySyncNotification =
       (object.historySyncNotification !== undefined && object.historySyncNotification !== null)
         ? Message_HistorySyncNotification.fromPartial(object.historySyncNotification)
@@ -55353,16 +52895,13 @@ export const Message_QuestionResponseMessage: MessageFns<Message_QuestionRespons
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_QuestionResponseMessage>): Message_QuestionResponseMessage {
-    return Message_QuestionResponseMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_QuestionResponseMessage, base);
   },
   fromPartial(object: DeepPartial<Message_QuestionResponseMessage>): Message_QuestionResponseMessage {
     const message = createBaseMessage_QuestionResponseMessage();
@@ -55433,23 +52972,18 @@ export const Message_ReactionMessage: MessageFns<Message_ReactionMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ReactionMessage>): Message_ReactionMessage {
-    return Message_ReactionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ReactionMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ReactionMessage>): Message_ReactionMessage {
     const message = createBaseMessage_ReactionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.text = object.text ?? undefined;
-    message.groupingKey = object.groupingKey ?? undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
+    copyPartialScalars(message, object, 1303, 1306);
     return message;
   },
 };
@@ -55548,26 +53082,20 @@ export const Message_RequestPaymentMessage: MessageFns<Message_RequestPaymentMes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_RequestPaymentMessage>): Message_RequestPaymentMessage {
-    return Message_RequestPaymentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_RequestPaymentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_RequestPaymentMessage>): Message_RequestPaymentMessage {
     const message = createBaseMessage_RequestPaymentMessage();
     message.noteMessage = (object.noteMessage !== undefined && object.noteMessage !== null)
       ? Message.fromPartial(object.noteMessage)
       : undefined;
-    message.currencyCodeIso4217 = object.currencyCodeIso4217 ?? undefined;
-    message.amount1000 = object.amount1000 ?? undefined;
-    message.requestFrom = object.requestFrom ?? undefined;
-    message.expiryTimestamp = object.expiryTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1306, 1310);
     message.amount = (object.amount !== undefined && object.amount !== null)
       ? Money.fromPartial(object.amount)
       : undefined;
@@ -55606,16 +53134,13 @@ export const Message_RequestPhoneNumberMessage: MessageFns<Message_RequestPhoneN
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_RequestPhoneNumberMessage>): Message_RequestPhoneNumberMessage {
-    return Message_RequestPhoneNumberMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_RequestPhoneNumberMessage, base);
   },
   fromPartial(object: DeepPartial<Message_RequestPhoneNumberMessage>): Message_RequestPhoneNumberMessage {
     const message = createBaseMessage_RequestPhoneNumberMessage();
@@ -55676,21 +53201,17 @@ export const Message_RequestWelcomeMessageMetadata: MessageFns<Message_RequestWe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_RequestWelcomeMessageMetadata>): Message_RequestWelcomeMessageMetadata {
-    return Message_RequestWelcomeMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_RequestWelcomeMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_RequestWelcomeMessageMetadata>): Message_RequestWelcomeMessageMetadata {
     const message = createBaseMessage_RequestWelcomeMessageMetadata();
-    message.localChatState = object.localChatState ?? undefined;
-    message.welcomeTrigger = object.welcomeTrigger ?? undefined;
+    copyPartialScalars(message, object, 1310, 1312);
     message.botAgentMetadata = (object.botAgentMetadata !== undefined && object.botAgentMetadata !== null)
       ? BotAgentMetadata.fromPartial(object.botAgentMetadata)
       : undefined;
@@ -55726,16 +53247,13 @@ export const Message_RootSecretDistributeMessage: MessageFns<Message_RootSecretD
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_RootSecretDistributeMessage>): Message_RootSecretDistributeMessage {
-    return Message_RootSecretDistributeMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_RootSecretDistributeMessage, base);
   },
   fromPartial(object: DeepPartial<Message_RootSecretDistributeMessage>): Message_RootSecretDistributeMessage {
     const message = createBaseMessage_RootSecretDistributeMessage();
@@ -55794,22 +53312,17 @@ export const Message_ScheduledCallCreationMessage: MessageFns<Message_ScheduledC
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ScheduledCallCreationMessage>): Message_ScheduledCallCreationMessage {
-    return Message_ScheduledCallCreationMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ScheduledCallCreationMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ScheduledCallCreationMessage>): Message_ScheduledCallCreationMessage {
     const message = createBaseMessage_ScheduledCallCreationMessage();
-    message.scheduledTimestampMs = object.scheduledTimestampMs ?? undefined;
-    message.callType = object.callType ?? undefined;
-    message.title = object.title ?? undefined;
+    copyPartialScalars(message, object, 1312, 1315);
     return message;
   },
 };
@@ -55853,16 +53366,13 @@ export const Message_ScheduledCallEditMessage: MessageFns<Message_ScheduledCallE
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_ScheduledCallEditMessage>): Message_ScheduledCallEditMessage {
-    return Message_ScheduledCallEditMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_ScheduledCallEditMessage, base);
   },
   fromPartial(object: DeepPartial<Message_ScheduledCallEditMessage>): Message_ScheduledCallEditMessage {
     const message = createBaseMessage_ScheduledCallEditMessage();
@@ -55944,26 +53454,20 @@ export const Message_SecretEncryptedMessage: MessageFns<Message_SecretEncryptedM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SecretEncryptedMessage>): Message_SecretEncryptedMessage {
-    return Message_SecretEncryptedMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_SecretEncryptedMessage, base);
   },
   fromPartial(object: DeepPartial<Message_SecretEncryptedMessage>): Message_SecretEncryptedMessage {
     const message = createBaseMessage_SecretEncryptedMessage();
     message.targetMessageKey = (object.targetMessageKey !== undefined && object.targetMessageKey !== null)
       ? MessageKey.fromPartial(object.targetMessageKey)
       : undefined;
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
-    message.secretEncType = object.secretEncType ?? undefined;
-    message.remoteKeyId = object.remoteKeyId ?? undefined;
+    copyPartialScalars(message, object, 1315, 1319);
     return message;
   },
 };
@@ -56029,16 +53533,13 @@ export const Message_SendPaymentMessage: MessageFns<Message_SendPaymentMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SendPaymentMessage>): Message_SendPaymentMessage {
-    return Message_SendPaymentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_SendPaymentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_SendPaymentMessage>): Message_SendPaymentMessage {
     const message = createBaseMessage_SendPaymentMessage();
@@ -56095,21 +53596,17 @@ export const Message_SenderKeyDistributionMessage: MessageFns<Message_SenderKeyD
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SenderKeyDistributionMessage>): Message_SenderKeyDistributionMessage {
-    return Message_SenderKeyDistributionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_SenderKeyDistributionMessage, base);
   },
   fromPartial(object: DeepPartial<Message_SenderKeyDistributionMessage>): Message_SenderKeyDistributionMessage {
     const message = createBaseMessage_SenderKeyDistributionMessage();
-    message.groupId = object.groupId ?? undefined;
-    message.axolotlSenderKeyDistributionMessage = object.axolotlSenderKeyDistributionMessage ?? undefined;
+    copyPartialScalars(message, object, 1319, 1321);
     return message;
   },
 };
@@ -56216,16 +53713,13 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SplitPaymentMessage>): Message_SplitPaymentMessage {
-    return Message_SplitPaymentMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_SplitPaymentMessage, base);
   },
   fromPartial(object: DeepPartial<Message_SplitPaymentMessage>): Message_SplitPaymentMessage {
     const message = createBaseMessage_SplitPaymentMessage();
@@ -56233,8 +53727,7 @@ export const Message_SplitPaymentMessage: MessageFns<Message_SplitPaymentMessage
     message.totalAmount = (object.totalAmount !== undefined && object.totalAmount !== null)
       ? Money.fromPartial(object.totalAmount)
       : undefined;
-    message.description = object.description ?? undefined;
-    message.requesterJid = object.requesterJid ?? undefined;
+    copyPartialScalars(message, object, 1321, 1323);
     message.participants = object.participants?.map((e) => Message_SplitPaymentParticipant.fromPartial(e)) || undefined;
     message.createdAtMs = object.createdAtMs ?? undefined;
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
@@ -56294,16 +53787,13 @@ export const Message_SplitPaymentParticipant: MessageFns<Message_SplitPaymentPar
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SplitPaymentParticipant>): Message_SplitPaymentParticipant {
-    return Message_SplitPaymentParticipant.fromPartial(base ?? {});
+    return createPartialMessage(Message_SplitPaymentParticipant, base);
   },
   fromPartial(object: DeepPartial<Message_SplitPaymentParticipant>): Message_SplitPaymentParticipant {
     const message = createBaseMessage_SplitPaymentParticipant();
@@ -56355,21 +53845,17 @@ export const Message_SplitPaymentUpdateMessage: MessageFns<Message_SplitPaymentU
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_SplitPaymentUpdateMessage>): Message_SplitPaymentUpdateMessage {
-    return Message_SplitPaymentUpdateMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_SplitPaymentUpdateMessage, base);
   },
   fromPartial(object: DeepPartial<Message_SplitPaymentUpdateMessage>): Message_SplitPaymentUpdateMessage {
     const message = createBaseMessage_SplitPaymentUpdateMessage();
-    message.splitId = object.splitId ?? undefined;
-    message.participantJid = object.participantJid ?? undefined;
+    copyPartialScalars(message, object, 1323, 1325);
     return message;
   },
 };
@@ -56402,16 +53888,13 @@ export const Message_StatusLinkPreviewMetadata: MessageFns<Message_StatusLinkPre
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StatusLinkPreviewMetadata>): Message_StatusLinkPreviewMetadata {
-    return Message_StatusLinkPreviewMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_StatusLinkPreviewMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_StatusLinkPreviewMetadata>): Message_StatusLinkPreviewMetadata {
     const message = createBaseMessage_StatusLinkPreviewMetadata();
@@ -56470,16 +53953,13 @@ export const Message_StatusNotificationMessage: MessageFns<Message_StatusNotific
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StatusNotificationMessage>): Message_StatusNotificationMessage {
-    return Message_StatusNotificationMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StatusNotificationMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StatusNotificationMessage>): Message_StatusNotificationMessage {
     const message = createBaseMessage_StatusNotificationMessage();
@@ -56533,16 +54013,13 @@ export const Message_StatusQuestionAnswerMessage: MessageFns<Message_StatusQuest
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StatusQuestionAnswerMessage>): Message_StatusQuestionAnswerMessage {
-    return Message_StatusQuestionAnswerMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StatusQuestionAnswerMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StatusQuestionAnswerMessage>): Message_StatusQuestionAnswerMessage {
     const message = createBaseMessage_StatusQuestionAnswerMessage();
@@ -56613,22 +54090,17 @@ export const Message_StatusQuotedMessage: MessageFns<Message_StatusQuotedMessage
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StatusQuotedMessage>): Message_StatusQuotedMessage {
-    return Message_StatusQuotedMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StatusQuotedMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StatusQuotedMessage>): Message_StatusQuotedMessage {
     const message = createBaseMessage_StatusQuotedMessage();
-    message.type = object.type ?? undefined;
-    message.text = object.text ?? undefined;
-    message.thumbnail = object.thumbnail ?? undefined;
+    copyPartialScalars(message, object, 1325, 1328);
     message.originalStatusId = (object.originalStatusId !== undefined && object.originalStatusId !== null)
       ? MessageKey.fromPartial(object.originalStatusId)
       : undefined;
@@ -56686,22 +54158,18 @@ export const Message_StatusStickerInteractionMessage: MessageFns<Message_StatusS
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StatusStickerInteractionMessage>): Message_StatusStickerInteractionMessage {
-    return Message_StatusStickerInteractionMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StatusStickerInteractionMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StatusStickerInteractionMessage>): Message_StatusStickerInteractionMessage {
     const message = createBaseMessage_StatusStickerInteractionMessage();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.stickerKey = object.stickerKey ?? undefined;
-    message.type = object.type ?? undefined;
+    copyPartialScalars(message, object, 1328, 1330);
     return message;
   },
 };
@@ -56965,43 +54433,21 @@ export const Message_StickerMessage: MessageFns<Message_StickerMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StickerMessage>): Message_StickerMessage {
-    return Message_StickerMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StickerMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StickerMessage>): Message_StickerMessage {
     const message = createBaseMessage_StickerMessage();
-    message.url = object.url ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.height = object.height ?? undefined;
-    message.width = object.width ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.firstFrameLength = object.firstFrameLength ?? undefined;
-    message.firstFrameSidecar = object.firstFrameSidecar ?? undefined;
-    message.isAnimated = object.isAnimated ?? undefined;
-    message.pngThumbnail = object.pngThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1330, 1344);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.stickerSentTs = object.stickerSentTs ?? undefined;
-    message.isAvatar = object.isAvatar ?? undefined;
-    message.isAiSticker = object.isAiSticker ?? undefined;
-    message.isLottie = object.isLottie ?? undefined;
-    message.accessibilityLabel = object.accessibilityLabel ?? undefined;
-    message.premium = object.premium ?? undefined;
-    message.emojis = object.emojis ?? undefined;
+    copyPartialScalars(message, object, 1344, 1351);
     return message;
   },
 };
@@ -57273,43 +54719,23 @@ export const Message_StickerPackMessage: MessageFns<Message_StickerPackMessage> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StickerPackMessage>): Message_StickerPackMessage {
-    return Message_StickerPackMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StickerPackMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StickerPackMessage>): Message_StickerPackMessage {
     const message = createBaseMessage_StickerPackMessage();
-    message.stickerPackId = object.stickerPackId ?? undefined;
-    message.name = object.name ?? undefined;
-    message.publisher = object.publisher ?? undefined;
+    copyPartialScalars(message, object, 1351, 1354);
     message.stickers = object.stickers?.map((e) => Message_StickerPackMessage_Sticker.fromPartial(e)) || undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.caption = object.caption ?? undefined;
+    copyPartialScalars(message, object, 1354, 1360);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.packDescription = object.packDescription ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.trayIconFileName = object.trayIconFileName ?? undefined;
-    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
-    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
-    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
-    message.thumbnailHeight = object.thumbnailHeight ?? undefined;
-    message.thumbnailWidth = object.thumbnailWidth ?? undefined;
-    message.imageDataHash = object.imageDataHash ?? undefined;
-    message.stickerPackSize = object.stickerPackSize ?? undefined;
-    message.stickerPackOrigin = object.stickerPackOrigin ?? undefined;
+    copyPartialScalars(message, object, 1360, 1371);
     return message;
   },
 };
@@ -57416,26 +54842,19 @@ export const Message_StickerPackMessage_Sticker: MessageFns<Message_StickerPackM
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StickerPackMessage_Sticker>): Message_StickerPackMessage_Sticker {
-    return Message_StickerPackMessage_Sticker.fromPartial(base ?? {});
+    return createPartialMessage(Message_StickerPackMessage_Sticker, base);
   },
   fromPartial(object: DeepPartial<Message_StickerPackMessage_Sticker>): Message_StickerPackMessage_Sticker {
     const message = createBaseMessage_StickerPackMessage_Sticker();
-    message.fileName = object.fileName ?? undefined;
-    message.isAnimated = object.isAnimated ?? undefined;
+    copyPartialScalars(message, object, 1371, 1373);
     message.emojis = object.emojis?.map((e) => e) || undefined;
-    message.accessibilityLabel = object.accessibilityLabel ?? undefined;
-    message.isLottie = object.isLottie ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.premium = object.premium ?? undefined;
+    copyPartialScalars(message, object, 1373, 1377);
     return message;
   },
 };
@@ -57498,22 +54917,18 @@ export const Message_StickerSyncRMRMessage: MessageFns<Message_StickerSyncRMRMes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_StickerSyncRMRMessage>): Message_StickerSyncRMRMessage {
-    return Message_StickerSyncRMRMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_StickerSyncRMRMessage, base);
   },
   fromPartial(object: DeepPartial<Message_StickerSyncRMRMessage>): Message_StickerSyncRMRMessage {
     const message = createBaseMessage_StickerSyncRMRMessage();
     message.filehash = object.filehash?.map((e) => e) || undefined;
-    message.rmrSource = object.rmrSource ?? undefined;
-    message.requestTimestamp = object.requestTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1377, 1379);
     return message;
   },
 };
@@ -57590,26 +55005,21 @@ export const Message_TemplateButtonReplyMessage: MessageFns<Message_TemplateButt
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_TemplateButtonReplyMessage>): Message_TemplateButtonReplyMessage {
-    return Message_TemplateButtonReplyMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_TemplateButtonReplyMessage, base);
   },
   fromPartial(object: DeepPartial<Message_TemplateButtonReplyMessage>): Message_TemplateButtonReplyMessage {
     const message = createBaseMessage_TemplateButtonReplyMessage();
-    message.selectedId = object.selectedId ?? undefined;
-    message.selectedDisplayText = object.selectedDisplayText ?? undefined;
+    copyPartialScalars(message, object, 1379, 1381);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.selectedIndex = object.selectedIndex ?? undefined;
-    message.selectedCarouselCardIndex = object.selectedCarouselCardIndex ?? undefined;
+    copyPartialScalars(message, object, 1381, 1383);
     return message;
   },
 };
@@ -57698,16 +55108,13 @@ export const Message_TemplateMessage: MessageFns<Message_TemplateMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_TemplateMessage>): Message_TemplateMessage {
-    return Message_TemplateMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_TemplateMessage, base);
   },
   fromPartial(object: DeepPartial<Message_TemplateMessage>): Message_TemplateMessage {
     const message = createBaseMessage_TemplateMessage();
@@ -57846,16 +55253,13 @@ export const Message_TemplateMessage_FourRowTemplate: MessageFns<Message_Templat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_TemplateMessage_FourRowTemplate>): Message_TemplateMessage_FourRowTemplate {
-    return Message_TemplateMessage_FourRowTemplate.fromPartial(base ?? {});
+    return createPartialMessage(Message_TemplateMessage_FourRowTemplate, base);
   },
   fromPartial(object: DeepPartial<Message_TemplateMessage_FourRowTemplate>): Message_TemplateMessage_FourRowTemplate {
     const message = createBaseMessage_TemplateMessage_FourRowTemplate();
@@ -58026,10 +55430,7 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -58037,17 +55438,15 @@ export const Message_TemplateMessage_HydratedFourRowTemplate: MessageFns<
   create(
     base?: DeepPartial<Message_TemplateMessage_HydratedFourRowTemplate>,
   ): Message_TemplateMessage_HydratedFourRowTemplate {
-    return Message_TemplateMessage_HydratedFourRowTemplate.fromPartial(base ?? {});
+    return createPartialMessage(Message_TemplateMessage_HydratedFourRowTemplate, base);
   },
   fromPartial(
     object: DeepPartial<Message_TemplateMessage_HydratedFourRowTemplate>,
   ): Message_TemplateMessage_HydratedFourRowTemplate {
     const message = createBaseMessage_TemplateMessage_HydratedFourRowTemplate();
-    message.hydratedContentText = object.hydratedContentText ?? undefined;
-    message.hydratedFooterText = object.hydratedFooterText ?? undefined;
+    copyPartialScalars(message, object, 1383, 1385);
     message.hydratedButtons = object.hydratedButtons?.map((e) => HydratedTemplateButton.fromPartial(e)) || undefined;
-    message.templateId = object.templateId ?? undefined;
-    message.maskLinkedDevices = object.maskLinkedDevices ?? undefined;
+    copyPartialScalars(message, object, 1385, 1387);
     message.documentMessage = (object.documentMessage !== undefined && object.documentMessage !== null)
       ? Message_DocumentMessage.fromPartial(object.documentMessage)
       : undefined;
@@ -58093,16 +55492,13 @@ export const Message_URLMetadata: MessageFns<Message_URLMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_URLMetadata>): Message_URLMetadata {
-    return Message_URLMetadata.fromPartial(base ?? {});
+    return createPartialMessage(Message_URLMetadata, base);
   },
   fromPartial(object: DeepPartial<Message_URLMetadata>): Message_URLMetadata {
     const message = createBaseMessage_URLMetadata();
@@ -58172,23 +55568,17 @@ export const Message_VideoEndCard: MessageFns<Message_VideoEndCard> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_VideoEndCard>): Message_VideoEndCard {
-    return Message_VideoEndCard.fromPartial(base ?? {});
+    return createPartialMessage(Message_VideoEndCard, base);
   },
   fromPartial(object: DeepPartial<Message_VideoEndCard>): Message_VideoEndCard {
     const message = createBaseMessage_VideoEndCard();
-    message.username = object.username ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.thumbnailImageUrl = object.thumbnailImageUrl ?? undefined;
-    message.profilePictureUrl = object.profilePictureUrl ?? undefined;
+    copyPartialScalars(message, object, 1387, 1391);
     return message;
   },
 };
@@ -58564,52 +55954,28 @@ export const Message_VideoMessage: MessageFns<Message_VideoMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Message_VideoMessage>): Message_VideoMessage {
-    return Message_VideoMessage.fromPartial(base ?? {});
+    return createPartialMessage(Message_VideoMessage, base);
   },
   fromPartial(object: DeepPartial<Message_VideoMessage>): Message_VideoMessage {
     const message = createBaseMessage_VideoMessage();
-    message.url = object.url ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.seconds = object.seconds ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.gifPlayback = object.gifPlayback ?? undefined;
-    message.height = object.height ?? undefined;
-    message.width = object.width ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
+    copyPartialScalars(message, object, 1391, 1402);
     message.interactiveAnnotations = object.interactiveAnnotations?.map((e) => InteractiveAnnotation.fromPartial(e)) ||
       undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1402, 1405);
     message.contextInfo = (object.contextInfo !== undefined && object.contextInfo !== null)
       ? ContextInfo.fromPartial(object.contextInfo)
       : undefined;
-    message.streamingSidecar = object.streamingSidecar ?? undefined;
-    message.gifAttribution = object.gifAttribution ?? undefined;
-    message.viewOnce = object.viewOnce ?? undefined;
-    message.thumbnailDirectPath = object.thumbnailDirectPath ?? undefined;
-    message.thumbnailSha256 = object.thumbnailSha256 ?? undefined;
-    message.thumbnailEncSha256 = object.thumbnailEncSha256 ?? undefined;
-    message.staticUrl = object.staticUrl ?? undefined;
+    copyPartialScalars(message, object, 1405, 1412);
     message.annotations = object.annotations?.map((e) => InteractiveAnnotation.fromPartial(e)) || undefined;
     message.accessibilityLabel = object.accessibilityLabel ?? undefined;
     message.processedVideos = object.processedVideos?.map((e) => ProcessedVideo.fromPartial(e)) || undefined;
-    message.externalShareFullVideoDurationInSeconds = object.externalShareFullVideoDurationInSeconds ?? undefined;
-    message.motionPhotoPresentationOffsetMs = object.motionPhotoPresentationOffsetMs ?? undefined;
-    message.metadataUrl = object.metadataUrl ?? undefined;
-    message.videoSourceType = object.videoSourceType ?? undefined;
+    copyPartialScalars(message, object, 1412, 1416);
     return message;
   },
 };
@@ -58719,16 +56085,13 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageAddOn>): MessageAddOn {
-    return MessageAddOn.fromPartial(base ?? {});
+    return createPartialMessage(MessageAddOn, base);
   },
   fromPartial(object: DeepPartial<MessageAddOn>): MessageAddOn {
     const message = createBaseMessageAddOn();
@@ -58736,9 +56099,7 @@ export const MessageAddOn: MessageFns<MessageAddOn> = {
     message.messageAddOn = (object.messageAddOn !== undefined && object.messageAddOn !== null)
       ? Message.fromPartial(object.messageAddOn)
       : undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.serverTimestampMs = object.serverTimestampMs ?? undefined;
-    message.status = object.status ?? undefined;
+    copyPartialScalars(message, object, 1416, 1419);
     message.addOnContextInfo = (object.addOnContextInfo !== undefined && object.addOnContextInfo !== null)
       ? MessageAddOnContextInfo.fromPartial(object.addOnContextInfo)
       : undefined;
@@ -58791,21 +56152,17 @@ export const MessageAddOnContextInfo: MessageFns<MessageAddOnContextInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageAddOnContextInfo>): MessageAddOnContextInfo {
-    return MessageAddOnContextInfo.fromPartial(base ?? {});
+    return createPartialMessage(MessageAddOnContextInfo, base);
   },
   fromPartial(object: DeepPartial<MessageAddOnContextInfo>): MessageAddOnContextInfo {
     const message = createBaseMessageAddOnContextInfo();
-    message.messageAddOnDurationInSecs = object.messageAddOnDurationInSecs ?? undefined;
-    message.messageAddOnExpiryType = object.messageAddOnExpiryType ?? undefined;
+    copyPartialScalars(message, object, 1419, 1421);
     return message;
   },
 };
@@ -58860,16 +56217,13 @@ export const MessageAssociation: MessageFns<MessageAssociation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageAssociation>): MessageAssociation {
-    return MessageAssociation.fromPartial(base ?? {});
+    return createPartialMessage(MessageAssociation, base);
   },
   fromPartial(object: DeepPartial<MessageAssociation>): MessageAssociation {
     const message = createBaseMessageAssociation();
@@ -59116,37 +56470,28 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageContextInfo>): MessageContextInfo {
-    return MessageContextInfo.fromPartial(base ?? {});
+    return createPartialMessage(MessageContextInfo, base);
   },
   fromPartial(object: DeepPartial<MessageContextInfo>): MessageContextInfo {
     const message = createBaseMessageContextInfo();
     message.deviceListMetadata = (object.deviceListMetadata !== undefined && object.deviceListMetadata !== null)
       ? DeviceListMetadata.fromPartial(object.deviceListMetadata)
       : undefined;
-    message.deviceListMetadataVersion = object.deviceListMetadataVersion ?? undefined;
-    message.messageSecret = object.messageSecret ?? undefined;
-    message.paddingBytes = object.paddingBytes ?? undefined;
-    message.messageAddOnDurationInSecs = object.messageAddOnDurationInSecs ?? undefined;
-    message.botMessageSecret = object.botMessageSecret ?? undefined;
+    copyPartialScalars(message, object, 1421, 1426);
     message.botMetadata = (object.botMetadata !== undefined && object.botMetadata !== null)
       ? BotMetadata.fromPartial(object.botMetadata)
       : undefined;
-    message.reportingTokenVersion = object.reportingTokenVersion ?? undefined;
-    message.messageAddOnExpiryType = object.messageAddOnExpiryType ?? undefined;
+    copyPartialScalars(message, object, 1426, 1428);
     message.messageAssociation = (object.messageAssociation !== undefined && object.messageAssociation !== null)
       ? MessageAssociation.fromPartial(object.messageAssociation)
       : undefined;
-    message.capiCreatedGroup = object.capiCreatedGroup ?? undefined;
-    message.supportPayload = object.supportPayload ?? undefined;
+    copyPartialScalars(message, object, 1428, 1430);
     message.limitSharing = (object.limitSharing !== undefined && object.limitSharing !== null)
       ? LimitSharing.fromPartial(object.limitSharing)
       : undefined;
@@ -59154,8 +56499,7 @@ export const MessageContextInfo: MessageFns<MessageContextInfo> = {
       ? LimitSharing.fromPartial(object.limitSharingV2)
       : undefined;
     message.threadId = object.threadId?.map((e) => ThreadID.fromPartial(e)) || undefined;
-    message.weblinkRenderConfig = object.weblinkRenderConfig ?? undefined;
-    message.teeBotMetadata = object.teeBotMetadata ?? undefined;
+    copyPartialScalars(message, object, 1430, 1432);
     message.accountEncryptionAttestation =
       (object.accountEncryptionAttestation !== undefined && object.accountEncryptionAttestation !== null)
         ? NonE2EEAttestation.fromPartial(object.accountEncryptionAttestation)
@@ -59226,23 +56570,17 @@ export const MessageKey: MessageFns<MessageKey> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageKey>): MessageKey {
-    return MessageKey.fromPartial(base ?? {});
+    return createPartialMessage(MessageKey, base);
   },
   fromPartial(object: DeepPartial<MessageKey>): MessageKey {
     const message = createBaseMessageKey();
-    message.remoteJid = object.remoteJid ?? undefined;
-    message.fromMe = object.fromMe ?? undefined;
-    message.id = object.id ?? undefined;
-    message.participant = object.participant ?? undefined;
+    copyPartialScalars(message, object, 1432, 1436);
     return message;
   },
 };
@@ -59297,22 +56635,17 @@ export const MessageSecretMessage: MessageFns<MessageSecretMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageSecretMessage>): MessageSecretMessage {
-    return MessageSecretMessage.fromPartial(base ?? {});
+    return createPartialMessage(MessageSecretMessage, base);
   },
   fromPartial(object: DeepPartial<MessageSecretMessage>): MessageSecretMessage {
     const message = createBaseMessageSecretMessage();
-    message.version = object.version ?? undefined;
-    message.encIv = object.encIv ?? undefined;
-    message.encPayload = object.encPayload ?? undefined;
+    copyPartialScalars(message, object, 1436, 1439);
     return message;
   },
 };
@@ -59402,16 +56735,13 @@ export const MessageText: MessageFns<MessageText> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessageText>): MessageText {
-    return MessageText.fromPartial(base ?? {});
+    return createPartialMessage(MessageText, base);
   },
   fromPartial(object: DeepPartial<MessageText>): MessageText {
     const message = createBaseMessageText();
@@ -59506,25 +56836,17 @@ export const MessagingMailboxPublicData: MessageFns<MessagingMailboxPublicData> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MessagingMailboxPublicData>): MessagingMailboxPublicData {
-    return MessagingMailboxPublicData.fromPartial(base ?? {});
+    return createPartialMessage(MessagingMailboxPublicData, base);
   },
   fromPartial(object: DeepPartial<MessagingMailboxPublicData>): MessagingMailboxPublicData {
     const message = createBaseMessagingMailboxPublicData();
-    message.epochHead = object.epochHead ?? undefined;
-    message.deviceRosterHash = object.deviceRosterHash ?? undefined;
-    message.sequenceNumber = object.sequenceNumber ?? undefined;
-    message.sigPk = object.sigPk ?? undefined;
-    message.encPk = object.encPk ?? undefined;
-    message.authPk = object.authPk ?? undefined;
+    copyPartialScalars(message, object, 1439, 1445);
     return message;
   },
 };
@@ -59568,21 +56890,17 @@ export const MinosClientConfig: MessageFns<MinosClientConfig> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosClientConfig>): MinosClientConfig {
-    return MinosClientConfig.fromPartial(base ?? {});
+    return createPartialMessage(MinosClientConfig, base);
   },
   fromPartial(object: DeepPartial<MinosClientConfig>): MinosClientConfig {
     const message = createBaseMinosClientConfig();
-    message.preferredMessageEncryptionVersion = object.preferredMessageEncryptionVersion ?? undefined;
-    message.preferredMekEncryptionVersion = object.preferredMekEncryptionVersion ?? undefined;
+    copyPartialScalars(message, object, 1445, 1447);
     return message;
   },
 };
@@ -59944,16 +57262,13 @@ export const MinosCommand: MessageFns<MinosCommand> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosCommand>): MinosCommand {
-    return MinosCommand.fromPartial(base ?? {});
+    return createPartialMessage(MinosCommand, base);
   },
   fromPartial(object: DeepPartial<MinosCommand>): MinosCommand {
     const message = createBaseMinosCommand();
@@ -60172,23 +57487,17 @@ export const MinosDecryptAndVerifyMessageInput: MessageFns<MinosDecryptAndVerify
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosDecryptAndVerifyMessageInput>): MinosDecryptAndVerifyMessageInput {
-    return MinosDecryptAndVerifyMessageInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosDecryptAndVerifyMessageInput, base);
   },
   fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageInput>): MinosDecryptAndVerifyMessageInput {
     const message = createBaseMinosDecryptAndVerifyMessageInput();
-    message.transportSigningPk = object.transportSigningPk ?? undefined;
-    message.mek = object.mek ?? undefined;
-    message.encryptedMessageCiphertext = object.encryptedMessageCiphertext ?? undefined;
-    message.encryptedMessageSignature = object.encryptedMessageSignature ?? undefined;
+    copyPartialScalars(message, object, 1447, 1451);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? MinosMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -60239,16 +57548,13 @@ export const MinosDecryptAndVerifyMessageResult: MessageFns<MinosDecryptAndVerif
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosDecryptAndVerifyMessageResult>): MinosDecryptAndVerifyMessageResult {
-    return MinosDecryptAndVerifyMessageResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosDecryptAndVerifyMessageResult, base);
   },
   fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageResult>): MinosDecryptAndVerifyMessageResult {
     const message = createBaseMinosDecryptAndVerifyMessageResult();
@@ -60288,16 +57594,13 @@ export const MinosDecryptAndVerifyMessageSuccess: MessageFns<MinosDecryptAndVeri
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosDecryptAndVerifyMessageSuccess>): MinosDecryptAndVerifyMessageSuccess {
-    return MinosDecryptAndVerifyMessageSuccess.fromPartial(base ?? {});
+    return createPartialMessage(MinosDecryptAndVerifyMessageSuccess, base);
   },
   fromPartial(object: DeepPartial<MinosDecryptAndVerifyMessageSuccess>): MinosDecryptAndVerifyMessageSuccess {
     const message = createBaseMinosDecryptAndVerifyMessageSuccess();
@@ -60389,22 +57692,17 @@ export const MinosEncryptAndSignMessageInput: MessageFns<MinosEncryptAndSignMess
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosEncryptAndSignMessageInput>): MinosEncryptAndSignMessageInput {
-    return MinosEncryptAndSignMessageInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosEncryptAndSignMessageInput, base);
   },
   fromPartial(object: DeepPartial<MinosEncryptAndSignMessageInput>): MinosEncryptAndSignMessageInput {
     const message = createBaseMinosEncryptAndSignMessageInput();
-    message.transportSigningSk = object.transportSigningSk ?? undefined;
-    message.mek = object.mek ?? undefined;
-    message.plaintext = object.plaintext ?? undefined;
+    copyPartialScalars(message, object, 1451, 1454);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? MinosMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -60466,22 +57764,17 @@ export const MinosEncryptAndSignMessageResult: MessageFns<MinosEncryptAndSignMes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosEncryptAndSignMessageResult>): MinosEncryptAndSignMessageResult {
-    return MinosEncryptAndSignMessageResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosEncryptAndSignMessageResult, base);
   },
   fromPartial(object: DeepPartial<MinosEncryptAndSignMessageResult>): MinosEncryptAndSignMessageResult {
     const message = createBaseMinosEncryptAndSignMessageResult();
-    message.ciphertext = object.ciphertext ?? undefined;
-    message.signature = object.signature ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 1454, 1457);
     return message;
   },
 };
@@ -60547,23 +57840,17 @@ export const MinosMessageMetadata: MessageFns<MinosMessageMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosMessageMetadata>): MinosMessageMetadata {
-    return MinosMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(MinosMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<MinosMessageMetadata>): MinosMessageMetadata {
     const message = createBaseMinosMessageMetadata();
-    message.mekId = object.mekId ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
-    message.messageId = object.messageId ?? undefined;
-    message.threadId = object.threadId ?? undefined;
+    copyPartialScalars(message, object, 1457, 1461);
     return message;
   },
 };
@@ -60651,25 +57938,17 @@ export const MinosOpenEpochInput: MessageFns<MinosOpenEpochInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosOpenEpochInput>): MinosOpenEpochInput {
-    return MinosOpenEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosOpenEpochInput, base);
   },
   fromPartial(object: DeepPartial<MinosOpenEpochInput>): MinosOpenEpochInput {
     const message = createBaseMinosOpenEpochInput();
-    message.userFbid = object.userFbid ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
-    message.exportRootKey = object.exportRootKey ?? undefined;
-    message.previousExportRootKey = object.previousExportRootKey ?? undefined;
-    message.previousEpochNumber = object.previousEpochNumber ?? undefined;
-    message.previousEpochHead = object.previousEpochHead ?? undefined;
+    copyPartialScalars(message, object, 1461, 1467);
     return message;
   },
 };
@@ -60702,16 +57981,13 @@ export const MinosOpenEpochResult: MessageFns<MinosOpenEpochResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosOpenEpochResult>): MinosOpenEpochResult {
-    return MinosOpenEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosOpenEpochResult, base);
   },
   fromPartial(object: DeepPartial<MinosOpenEpochResult>): MinosOpenEpochResult {
     const message = createBaseMinosOpenEpochResult();
@@ -60772,22 +58048,17 @@ export const MinosOpenInitialEpochInput: MessageFns<MinosOpenInitialEpochInput> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosOpenInitialEpochInput>): MinosOpenInitialEpochInput {
-    return MinosOpenInitialEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosOpenInitialEpochInput, base);
   },
   fromPartial(object: DeepPartial<MinosOpenInitialEpochInput>): MinosOpenInitialEpochInput {
     const message = createBaseMinosOpenInitialEpochInput();
-    message.userFbid = object.userFbid ?? undefined;
-    message.epochNumber = object.epochNumber ?? undefined;
-    message.exportRootKey = object.exportRootKey ?? undefined;
+    copyPartialScalars(message, object, 1467, 1470);
     return message;
   },
 };
@@ -60820,16 +58091,13 @@ export const MinosOpenInitialEpochResult: MessageFns<MinosOpenInitialEpochResult
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosOpenInitialEpochResult>): MinosOpenInitialEpochResult {
-    return MinosOpenInitialEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosOpenInitialEpochResult, base);
   },
   fromPartial(object: DeepPartial<MinosOpenInitialEpochResult>): MinosOpenInitialEpochResult {
     const message = createBaseMinosOpenInitialEpochResult();
@@ -60890,16 +58158,13 @@ export const MinosSignedEpoch: MessageFns<MinosSignedEpoch> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosSignedEpoch>): MinosSignedEpoch {
-    return MinosSignedEpoch.fromPartial(base ?? {});
+    return createPartialMessage(MinosSignedEpoch, base);
   },
   fromPartial(object: DeepPartial<MinosSignedEpoch>): MinosSignedEpoch {
     const message = createBaseMinosSignedEpoch();
@@ -60942,16 +58207,13 @@ export const MinosThreadIdFromActThreadIdInput: MessageFns<MinosThreadIdFromActT
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosThreadIdFromActThreadIdInput>): MinosThreadIdFromActThreadIdInput {
-    return MinosThreadIdFromActThreadIdInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosThreadIdFromActThreadIdInput, base);
   },
   fromPartial(object: DeepPartial<MinosThreadIdFromActThreadIdInput>): MinosThreadIdFromActThreadIdInput {
     const message = createBaseMinosThreadIdFromActThreadIdInput();
@@ -60988,16 +58250,13 @@ export const MinosThreadIdFromActThreadIdResult: MessageFns<MinosThreadIdFromAct
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosThreadIdFromActThreadIdResult>): MinosThreadIdFromActThreadIdResult {
-    return MinosThreadIdFromActThreadIdResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosThreadIdFromActThreadIdResult, base);
   },
   fromPartial(object: DeepPartial<MinosThreadIdFromActThreadIdResult>): MinosThreadIdFromActThreadIdResult {
     const message = createBaseMinosThreadIdFromActThreadIdResult();
@@ -61045,21 +58304,17 @@ export const MinosThreadIdFromOneToOneThreadInput: MessageFns<MinosThreadIdFromO
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosThreadIdFromOneToOneThreadInput>): MinosThreadIdFromOneToOneThreadInput {
-    return MinosThreadIdFromOneToOneThreadInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosThreadIdFromOneToOneThreadInput, base);
   },
   fromPartial(object: DeepPartial<MinosThreadIdFromOneToOneThreadInput>): MinosThreadIdFromOneToOneThreadInput {
     const message = createBaseMinosThreadIdFromOneToOneThreadInput();
-    message.actThreadId = object.actThreadId ?? undefined;
-    message.selfFbid = object.selfFbid ?? undefined;
+    copyPartialScalars(message, object, 1470, 1472);
     return message;
   },
 };
@@ -61092,16 +58347,13 @@ export const MinosThreadIdFromOneToOneThreadResult: MessageFns<MinosThreadIdFrom
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosThreadIdFromOneToOneThreadResult>): MinosThreadIdFromOneToOneThreadResult {
-    return MinosThreadIdFromOneToOneThreadResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosThreadIdFromOneToOneThreadResult, base);
   },
   fromPartial(object: DeepPartial<MinosThreadIdFromOneToOneThreadResult>): MinosThreadIdFromOneToOneThreadResult {
     const message = createBaseMinosThreadIdFromOneToOneThreadResult();
@@ -61160,16 +58412,13 @@ export const MinosValidateEpochInput: MessageFns<MinosValidateEpochInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosValidateEpochInput>): MinosValidateEpochInput {
-    return MinosValidateEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosValidateEpochInput, base);
   },
   fromPartial(object: DeepPartial<MinosValidateEpochInput>): MinosValidateEpochInput {
     const message = createBaseMinosValidateEpochInput();
@@ -61226,21 +58475,17 @@ export const MinosValidateEpochResult: MessageFns<MinosValidateEpochResult> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosValidateEpochResult>): MinosValidateEpochResult {
-    return MinosValidateEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosValidateEpochResult, base);
   },
   fromPartial(object: DeepPartial<MinosValidateEpochResult>): MinosValidateEpochResult {
     const message = createBaseMinosValidateEpochResult();
-    message.valid = object.valid ?? undefined;
-    message.errorMessage = object.errorMessage ?? undefined;
+    copyPartialScalars(message, object, 1472, 1474);
     return message;
   },
 };
@@ -61284,16 +58529,13 @@ export const MinosVerifySingleEpochInput: MessageFns<MinosVerifySingleEpochInput
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosVerifySingleEpochInput>): MinosVerifySingleEpochInput {
-    return MinosVerifySingleEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(MinosVerifySingleEpochInput, base);
   },
   fromPartial(object: DeepPartial<MinosVerifySingleEpochInput>): MinosVerifySingleEpochInput {
     const message = createBaseMinosVerifySingleEpochInput();
@@ -61333,16 +58575,13 @@ export const MinosVerifySingleEpochResult: MessageFns<MinosVerifySingleEpochResu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MinosVerifySingleEpochResult>): MinosVerifySingleEpochResult {
-    return MinosVerifySingleEpochResult.fromPartial(base ?? {});
+    return createPartialMessage(MinosVerifySingleEpochResult, base);
   },
   fromPartial(object: DeepPartial<MinosVerifySingleEpochResult>): MinosVerifySingleEpochResult {
     const message = createBaseMinosVerifySingleEpochResult();
@@ -61409,16 +58648,13 @@ export const MmkDistribution: MessageFns<MmkDistribution> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MmkDistribution>): MmkDistribution {
-    return MmkDistribution.fromPartial(base ?? {});
+    return createPartialMessage(MmkDistribution, base);
   },
   fromPartial(object: DeepPartial<MmkDistribution>): MmkDistribution {
     const message = createBaseMmkDistribution();
@@ -61471,21 +58707,17 @@ export const MmkDistributionToDetachedDevice: MessageFns<MmkDistributionToDetach
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MmkDistributionToDetachedDevice>): MmkDistributionToDetachedDevice {
-    return MmkDistributionToDetachedDevice.fromPartial(base ?? {});
+    return createPartialMessage(MmkDistributionToDetachedDevice, base);
   },
   fromPartial(object: DeepPartial<MmkDistributionToDetachedDevice>): MmkDistributionToDetachedDevice {
     const message = createBaseMmkDistributionToDetachedDevice();
-    message.encryptedMmk = object.encryptedMmk ?? undefined;
-    message.recipDeviceHash = object.recipDeviceHash ?? undefined;
+    copyPartialScalars(message, object, 1474, 1476);
     return message;
   },
 };
@@ -61529,21 +58761,17 @@ export const MmkDistributionToMailbox: MessageFns<MmkDistributionToMailbox> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MmkDistributionToMailbox>): MmkDistributionToMailbox {
-    return MmkDistributionToMailbox.fromPartial(base ?? {});
+    return createPartialMessage(MmkDistributionToMailbox, base);
   },
   fromPartial(object: DeepPartial<MmkDistributionToMailbox>): MmkDistributionToMailbox {
     const message = createBaseMmkDistributionToMailbox();
-    message.encryptedMmk = object.encryptedMmk ?? undefined;
-    message.recipMailboxHeadHash = object.recipMailboxHeadHash ?? undefined;
+    copyPartialScalars(message, object, 1476, 1478);
     return message;
   },
 };
@@ -61598,16 +58826,13 @@ export const MmkFromDetachedDevice: MessageFns<MmkFromDetachedDevice> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MmkFromDetachedDevice>): MmkFromDetachedDevice {
-    return MmkFromDetachedDevice.fromPartial(base ?? {});
+    return createPartialMessage(MmkFromDetachedDevice, base);
   },
   fromPartial(object: DeepPartial<MmkFromDetachedDevice>): MmkFromDetachedDevice {
     const message = createBaseMmkFromDetachedDevice();
@@ -61674,22 +58899,17 @@ export const Money: MessageFns<Money> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Money>): Money {
-    return Money.fromPartial(base ?? {});
+    return createPartialMessage(Money, base);
   },
   fromPartial(object: DeepPartial<Money>): Money {
     const message = createBaseMoney();
-    message.value = object.value ?? undefined;
-    message.offset = object.offset ?? undefined;
-    message.currencyCode = object.currencyCode ?? undefined;
+    copyPartialScalars(message, object, 1478, 1481);
     return message;
   },
 };
@@ -62324,80 +59544,31 @@ export const MsgOpaqueData: MessageFns<MsgOpaqueData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgOpaqueData>): MsgOpaqueData {
-    return MsgOpaqueData.fromPartial(base ?? {});
+    return createPartialMessage(MsgOpaqueData, base);
   },
   fromPartial(object: DeepPartial<MsgOpaqueData>): MsgOpaqueData {
     const message = createBaseMsgOpaqueData();
-    message.body = object.body ?? undefined;
-    message.caption = object.caption ?? undefined;
-    message.lng = object.lng ?? undefined;
-    message.isLive = object.isLive ?? undefined;
-    message.lat = object.lat ?? undefined;
-    message.paymentAmount1000 = object.paymentAmount1000 ?? undefined;
-    message.paymentNoteMsgBody = object.paymentNoteMsgBody ?? undefined;
-    message.matchedText = object.matchedText ?? undefined;
-    message.title = object.title ?? undefined;
-    message.description = object.description ?? undefined;
-    message.futureproofBuffer = object.futureproofBuffer ?? undefined;
-    message.clientUrl = object.clientUrl ?? undefined;
-    message.loc = object.loc ?? undefined;
-    message.pollName = object.pollName ?? undefined;
+    copyPartialScalars(message, object, 1481, 1495);
     message.pollOptions = object.pollOptions?.map((e) => MsgOpaqueData_PollOption.fromPartial(e)) || undefined;
-    message.pollSelectableOptionsCount = object.pollSelectableOptionsCount ?? undefined;
-    message.messageSecret = object.messageSecret ?? undefined;
-    message.originalSelfAuthor = object.originalSelfAuthor ?? undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.pollUpdateParentKey = object.pollUpdateParentKey ?? undefined;
+    copyPartialScalars(message, object, 1495, 1500);
     message.encPollVote = (object.encPollVote !== undefined && object.encPollVote !== null)
       ? PollEncValue.fromPartial(object.encPollVote)
       : undefined;
-    message.isSentCagPollCreation = object.isSentCagPollCreation ?? undefined;
-    message.pollContentType = object.pollContentType ?? undefined;
-    message.pollType = object.pollType ?? undefined;
-    message.correctOptionIndex = object.correctOptionIndex ?? undefined;
+    copyPartialScalars(message, object, 1500, 1504);
     message.pollVotesSnapshot = (object.pollVotesSnapshot !== undefined && object.pollVotesSnapshot !== null)
       ? MsgOpaqueData_PollVotesSnapshot.fromPartial(object.pollVotesSnapshot)
       : undefined;
-    message.encReactionTargetMessageKey = object.encReactionTargetMessageKey ?? undefined;
-    message.encReactionEncPayload = object.encReactionEncPayload ?? undefined;
-    message.encReactionEncIv = object.encReactionEncIv ?? undefined;
-    message.botMessageSecret = object.botMessageSecret ?? undefined;
-    message.targetMessageKey = object.targetMessageKey ?? undefined;
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
-    message.eventName = object.eventName ?? undefined;
-    message.isEventCanceled = object.isEventCanceled ?? undefined;
-    message.eventDescription = object.eventDescription ?? undefined;
-    message.eventJoinLink = object.eventJoinLink ?? undefined;
-    message.eventStartTime = object.eventStartTime ?? undefined;
+    copyPartialScalars(message, object, 1504, 1516);
     message.eventLocation = (object.eventLocation !== undefined && object.eventLocation !== null)
       ? MsgOpaqueData_EventLocation.fromPartial(object.eventLocation)
       : undefined;
-    message.eventEndTime = object.eventEndTime ?? undefined;
-    message.eventIsScheduledCall = object.eventIsScheduledCall ?? undefined;
-    message.eventExtraGuestsAllowed = object.eventExtraGuestsAllowed ?? undefined;
-    message.plainProtobufBytes = object.plainProtobufBytes ?? undefined;
-    message.quarantineExtractedText = object.quarantineExtractedText ?? undefined;
-    message.pollEndTime = object.pollEndTime ?? undefined;
-    message.pollHideVoterNames = object.pollHideVoterNames ?? undefined;
-    message.pollAllowAddOption = object.pollAllowAddOption ?? undefined;
-    message.sharableEventInviteId = object.sharableEventInviteId ?? undefined;
-    message.sharableEventInviteTitle = object.sharableEventInviteTitle ?? undefined;
-    message.sharableEventInviteStartTime = object.sharableEventInviteStartTime ?? undefined;
-    message.sharableEventInviteEndTime = object.sharableEventInviteEndTime ?? undefined;
-    message.sharableEventInviteCaption = object.sharableEventInviteCaption ?? undefined;
-    message.sharableEventInviteIsCanceled = object.sharableEventInviteIsCanceled ?? undefined;
-    message.sharableEventInviteJpegThumbnail = object.sharableEventInviteJpegThumbnail ?? undefined;
-    message.sharableEventInviteCallLink = object.sharableEventInviteCallLink ?? undefined;
+    copyPartialScalars(message, object, 1516, 1532);
     return message;
   },
 };
@@ -62485,25 +59656,17 @@ export const MsgOpaqueData_EventLocation: MessageFns<MsgOpaqueData_EventLocation
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgOpaqueData_EventLocation>): MsgOpaqueData_EventLocation {
-    return MsgOpaqueData_EventLocation.fromPartial(base ?? {});
+    return createPartialMessage(MsgOpaqueData_EventLocation, base);
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_EventLocation>): MsgOpaqueData_EventLocation {
     const message = createBaseMsgOpaqueData_EventLocation();
-    message.degreesLatitude = object.degreesLatitude ?? undefined;
-    message.degreesLongitude = object.degreesLongitude ?? undefined;
-    message.name = object.name ?? undefined;
-    message.address = object.address ?? undefined;
-    message.url = object.url ?? undefined;
-    message.jpegThumbnail = object.jpegThumbnail ?? undefined;
+    copyPartialScalars(message, object, 1532, 1538);
     return message;
   },
 };
@@ -62547,21 +59710,17 @@ export const MsgOpaqueData_PollOption: MessageFns<MsgOpaqueData_PollOption> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgOpaqueData_PollOption>): MsgOpaqueData_PollOption {
-    return MsgOpaqueData_PollOption.fromPartial(base ?? {});
+    return createPartialMessage(MsgOpaqueData_PollOption, base);
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_PollOption>): MsgOpaqueData_PollOption {
     const message = createBaseMsgOpaqueData_PollOption();
-    message.name = object.name ?? undefined;
-    message.hash = object.hash ?? undefined;
+    copyPartialScalars(message, object, 1538, 1540);
     return message;
   },
 };
@@ -62605,16 +59764,13 @@ export const MsgOpaqueData_PollVoteSnapshot: MessageFns<MsgOpaqueData_PollVoteSn
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgOpaqueData_PollVoteSnapshot>): MsgOpaqueData_PollVoteSnapshot {
-    return MsgOpaqueData_PollVoteSnapshot.fromPartial(base ?? {});
+    return createPartialMessage(MsgOpaqueData_PollVoteSnapshot, base);
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_PollVoteSnapshot>): MsgOpaqueData_PollVoteSnapshot {
     const message = createBaseMsgOpaqueData_PollVoteSnapshot();
@@ -62662,16 +59818,13 @@ export const MsgOpaqueData_PollVotesSnapshot: MessageFns<MsgOpaqueData_PollVotes
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgOpaqueData_PollVotesSnapshot>): MsgOpaqueData_PollVotesSnapshot {
-    return MsgOpaqueData_PollVotesSnapshot.fromPartial(base ?? {});
+    return createPartialMessage(MsgOpaqueData_PollVotesSnapshot, base);
   },
   fromPartial(object: DeepPartial<MsgOpaqueData_PollVotesSnapshot>): MsgOpaqueData_PollVotesSnapshot {
     const message = createBaseMsgOpaqueData_PollVotesSnapshot();
@@ -62719,16 +59872,13 @@ export const MsgRowOpaqueData: MessageFns<MsgRowOpaqueData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<MsgRowOpaqueData>): MsgRowOpaqueData {
-    return MsgRowOpaqueData.fromPartial(base ?? {});
+    return createPartialMessage(MsgRowOpaqueData, base);
   },
   fromPartial(object: DeepPartial<MsgRowOpaqueData>): MsgRowOpaqueData {
     const message = createBaseMsgRowOpaqueData();
@@ -62781,21 +59931,17 @@ export const NoiseCertificate: MessageFns<NoiseCertificate> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<NoiseCertificate>): NoiseCertificate {
-    return NoiseCertificate.fromPartial(base ?? {});
+    return createPartialMessage(NoiseCertificate, base);
   },
   fromPartial(object: DeepPartial<NoiseCertificate>): NoiseCertificate {
     const message = createBaseNoiseCertificate();
-    message.details = object.details ?? undefined;
-    message.signature = object.signature ?? undefined;
+    copyPartialScalars(message, object, 1540, 1542);
     return message;
   },
 };
@@ -62872,24 +60018,17 @@ export const NoiseCertificate_Details: MessageFns<NoiseCertificate_Details> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<NoiseCertificate_Details>): NoiseCertificate_Details {
-    return NoiseCertificate_Details.fromPartial(base ?? {});
+    return createPartialMessage(NoiseCertificate_Details, base);
   },
   fromPartial(object: DeepPartial<NoiseCertificate_Details>): NoiseCertificate_Details {
     const message = createBaseNoiseCertificate_Details();
-    message.serial = object.serial ?? undefined;
-    message.issuer = object.issuer ?? undefined;
-    message.expires = object.expires ?? undefined;
-    message.subject = object.subject ?? undefined;
-    message.key = object.key ?? undefined;
+    copyPartialScalars(message, object, 1542, 1547);
     return message;
   },
 };
@@ -62922,16 +60061,13 @@ export const NonE2EEAttestation: MessageFns<NonE2EEAttestation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<NonE2EEAttestation>): NonE2EEAttestation {
-    return NonE2EEAttestation.fromPartial(base ?? {});
+    return createPartialMessage(NonE2EEAttestation, base);
   },
   fromPartial(object: DeepPartial<NonE2EEAttestation>): NonE2EEAttestation {
     const message = createBaseNonE2EEAttestation();
@@ -63001,16 +60137,13 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<NotificationMessageInfo>): NotificationMessageInfo {
-    return NotificationMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(NotificationMessageInfo, base);
   },
   fromPartial(object: DeepPartial<NotificationMessageInfo>): NotificationMessageInfo {
     const message = createBaseNotificationMessageInfo();
@@ -63018,8 +60151,7 @@ export const NotificationMessageInfo: MessageFns<NotificationMessageInfo> = {
     message.message = (object.message !== undefined && object.message !== null)
       ? Message.fromPartial(object.message)
       : undefined;
-    message.messageTimestamp = object.messageTimestamp ?? undefined;
-    message.participant = object.participant ?? undefined;
+    copyPartialScalars(message, object, 1547, 1549);
     return message;
   },
 };
@@ -63107,25 +60239,17 @@ export const NotificationSettings: MessageFns<NotificationSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<NotificationSettings>): NotificationSettings {
-    return NotificationSettings.fromPartial(base ?? {});
+    return createPartialMessage(NotificationSettings, base);
   },
   fromPartial(object: DeepPartial<NotificationSettings>): NotificationSettings {
     const message = createBaseNotificationSettings();
-    message.messageVibrate = object.messageVibrate ?? undefined;
-    message.messagePopup = object.messagePopup ?? undefined;
-    message.messageLight = object.messageLight ?? undefined;
-    message.lowPriorityNotifications = object.lowPriorityNotifications ?? undefined;
-    message.reactionsMuted = object.reactionsMuted ?? undefined;
-    message.callVibrate = object.callVibrate ?? undefined;
+    copyPartialScalars(message, object, 1549, 1555);
     return message;
   },
 };
@@ -63169,21 +60293,17 @@ export const OrfThreadIdInput: MessageFns<OrfThreadIdInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<OrfThreadIdInput>): OrfThreadIdInput {
-    return OrfThreadIdInput.fromPartial(base ?? {});
+    return createPartialMessage(OrfThreadIdInput, base);
   },
   fromPartial(object: DeepPartial<OrfThreadIdInput>): OrfThreadIdInput {
     const message = createBaseOrfThreadIdInput();
-    message.orfClientState = object.orfClientState ?? undefined;
-    message.threadId = object.threadId ?? undefined;
+    copyPartialScalars(message, object, 1555, 1557);
     return message;
   },
 };
@@ -63227,21 +60347,17 @@ export const OrfThreadIdOutput: MessageFns<OrfThreadIdOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<OrfThreadIdOutput>): OrfThreadIdOutput {
-    return OrfThreadIdOutput.fromPartial(base ?? {});
+    return createPartialMessage(OrfThreadIdOutput, base);
   },
   fromPartial(object: DeepPartial<OrfThreadIdOutput>): OrfThreadIdOutput {
     const message = createBaseOrfThreadIdOutput();
-    message.orfThreadId = object.orfThreadId ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 1557, 1559);
     return message;
   },
 };
@@ -63296,22 +60412,17 @@ export const PairingRequest: MessageFns<PairingRequest> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PairingRequest>): PairingRequest {
-    return PairingRequest.fromPartial(base ?? {});
+    return createPartialMessage(PairingRequest, base);
   },
   fromPartial(object: DeepPartial<PairingRequest>): PairingRequest {
     const message = createBasePairingRequest();
-    message.companionPublicKey = object.companionPublicKey ?? undefined;
-    message.companionIdentityKey = object.companionIdentityKey ?? undefined;
-    message.advSecret = object.advSecret ?? undefined;
+    copyPartialScalars(message, object, 1559, 1562);
     return message;
   },
 };
@@ -63366,22 +60477,17 @@ export const PastParticipant: MessageFns<PastParticipant> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PastParticipant>): PastParticipant {
-    return PastParticipant.fromPartial(base ?? {});
+    return createPartialMessage(PastParticipant, base);
   },
   fromPartial(object: DeepPartial<PastParticipant>): PastParticipant {
     const message = createBasePastParticipant();
-    message.userJid = object.userJid ?? undefined;
-    message.leaveReason = object.leaveReason ?? undefined;
-    message.leaveTs = object.leaveTs ?? undefined;
+    copyPartialScalars(message, object, 1562, 1565);
     return message;
   },
 };
@@ -63433,16 +60539,13 @@ export const PastParticipants: MessageFns<PastParticipants> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PastParticipants>): PastParticipants {
-    return PastParticipants.fromPartial(base ?? {});
+    return createPartialMessage(PastParticipants, base);
   },
   fromPartial(object: DeepPartial<PastParticipants>): PastParticipants {
     const message = createBasePastParticipants();
@@ -63590,30 +60693,17 @@ export const PatchDebugData: MessageFns<PatchDebugData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PatchDebugData>): PatchDebugData {
-    return PatchDebugData.fromPartial(base ?? {});
+    return createPartialMessage(PatchDebugData, base);
   },
   fromPartial(object: DeepPartial<PatchDebugData>): PatchDebugData {
     const message = createBasePatchDebugData();
-    message.currentLthash = object.currentLthash ?? undefined;
-    message.newLthash = object.newLthash ?? undefined;
-    message.patchVersion = object.patchVersion ?? undefined;
-    message.collectionName = object.collectionName ?? undefined;
-    message.firstFourBytesFromAHashOfSnapshotMacKey = object.firstFourBytesFromAHashOfSnapshotMacKey ?? undefined;
-    message.newLthashSubtract = object.newLthashSubtract ?? undefined;
-    message.numberAdd = object.numberAdd ?? undefined;
-    message.numberRemove = object.numberRemove ?? undefined;
-    message.numberOverride = object.numberOverride ?? undefined;
-    message.senderPlatform = object.senderPlatform ?? undefined;
-    message.isSenderPrimary = object.isSenderPrimary ?? undefined;
+    copyPartialScalars(message, object, 1565, 1576);
     return message;
   },
 };
@@ -63745,27 +60835,17 @@ export const PaymentBackground: MessageFns<PaymentBackground> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PaymentBackground>): PaymentBackground {
-    return PaymentBackground.fromPartial(base ?? {});
+    return createPartialMessage(PaymentBackground, base);
   },
   fromPartial(object: DeepPartial<PaymentBackground>): PaymentBackground {
     const message = createBasePaymentBackground();
-    message.id = object.id ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.width = object.width ?? undefined;
-    message.height = object.height ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.placeholderArgb = object.placeholderArgb ?? undefined;
-    message.textArgb = object.textArgb ?? undefined;
-    message.subtextArgb = object.subtextArgb ?? undefined;
+    copyPartialScalars(message, object, 1576, 1584);
     message.mediaData = (object.mediaData !== undefined && object.mediaData !== null)
       ? PaymentBackground_MediaData.fromPartial(object.mediaData)
       : undefined;
@@ -63846,24 +60926,17 @@ export const PaymentBackground_MediaData: MessageFns<PaymentBackground_MediaData
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PaymentBackground_MediaData>): PaymentBackground_MediaData {
-    return PaymentBackground_MediaData.fromPartial(base ?? {});
+    return createPartialMessage(PaymentBackground_MediaData, base);
   },
   fromPartial(object: DeepPartial<PaymentBackground_MediaData>): PaymentBackground_MediaData {
     const message = createBasePaymentBackground_MediaData();
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mediaKeyTimestamp = object.mediaKeyTimestamp ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.directPath = object.directPath ?? undefined;
+    copyPartialScalars(message, object, 1584, 1589);
     return message;
   },
 };
@@ -64028,32 +61101,21 @@ export const PaymentInfo: MessageFns<PaymentInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PaymentInfo>): PaymentInfo {
-    return PaymentInfo.fromPartial(base ?? {});
+    return createPartialMessage(PaymentInfo, base);
   },
   fromPartial(object: DeepPartial<PaymentInfo>): PaymentInfo {
     const message = createBasePaymentInfo();
-    message.currencyDeprecated = object.currencyDeprecated ?? undefined;
-    message.amount1000 = object.amount1000 ?? undefined;
-    message.receiverJid = object.receiverJid ?? undefined;
-    message.status = object.status ?? undefined;
-    message.transactionTimestamp = object.transactionTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1589, 1594);
     message.requestMessageKey = (object.requestMessageKey !== undefined && object.requestMessageKey !== null)
       ? MessageKey.fromPartial(object.requestMessageKey)
       : undefined;
-    message.expiryTimestamp = object.expiryTimestamp ?? undefined;
-    message.futureproofed = object.futureproofed ?? undefined;
-    message.currency = object.currency ?? undefined;
-    message.txnStatus = object.txnStatus ?? undefined;
-    message.useNoviFiatFormat = object.useNoviFiatFormat ?? undefined;
+    copyPartialScalars(message, object, 1594, 1599);
     message.primaryAmount = (object.primaryAmount !== undefined && object.primaryAmount !== null)
       ? Money.fromPartial(object.primaryAmount)
       : undefined;
@@ -64103,21 +61165,17 @@ export const PhoneNumberToLIDMapping: MessageFns<PhoneNumberToLIDMapping> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PhoneNumberToLIDMapping>): PhoneNumberToLIDMapping {
-    return PhoneNumberToLIDMapping.fromPartial(base ?? {});
+    return createPartialMessage(PhoneNumberToLIDMapping, base);
   },
   fromPartial(object: DeepPartial<PhoneNumberToLIDMapping>): PhoneNumberToLIDMapping {
     const message = createBasePhoneNumberToLIDMapping();
-    message.pnJid = object.pnJid ?? undefined;
-    message.lidJid = object.lidJid ?? undefined;
+    copyPartialScalars(message, object, 1599, 1601);
     return message;
   },
 };
@@ -64172,22 +61230,17 @@ export const PhotoChange: MessageFns<PhotoChange> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PhotoChange>): PhotoChange {
-    return PhotoChange.fromPartial(base ?? {});
+    return createPartialMessage(PhotoChange, base);
   },
   fromPartial(object: DeepPartial<PhotoChange>): PhotoChange {
     const message = createBasePhotoChange();
-    message.oldPhoto = object.oldPhoto ?? undefined;
-    message.newPhoto = object.newPhoto ?? undefined;
-    message.newPhotoId = object.newPhotoId ?? undefined;
+    copyPartialScalars(message, object, 1601, 1604);
     return message;
   },
 };
@@ -64264,23 +61317,19 @@ export const PinInChat: MessageFns<PinInChat> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PinInChat>): PinInChat {
-    return PinInChat.fromPartial(base ?? {});
+    return createPartialMessage(PinInChat, base);
   },
   fromPartial(object: DeepPartial<PinInChat>): PinInChat {
     const message = createBasePinInChat();
     message.type = object.type ?? undefined;
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.serverTimestampMs = object.serverTimestampMs ?? undefined;
+    copyPartialScalars(message, object, 1604, 1606);
     message.messageAddOnContextInfo =
       (object.messageAddOnContextInfo !== undefined && object.messageAddOnContextInfo !== null)
         ? MessageAddOnContextInfo.fromPartial(object.messageAddOnContextInfo)
@@ -64350,23 +61399,17 @@ export const Point: MessageFns<Point> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Point>): Point {
-    return Point.fromPartial(base ?? {});
+    return createPartialMessage(Point, base);
   },
   fromPartial(object: DeepPartial<Point>): Point {
     const message = createBasePoint();
-    message.xDeprecated = object.xDeprecated ?? undefined;
-    message.yDeprecated = object.yDeprecated ?? undefined;
-    message.x = object.x ?? undefined;
-    message.y = object.y ?? undefined;
+    copyPartialScalars(message, object, 1606, 1610);
     return message;
   },
 };
@@ -64418,16 +61461,13 @@ export const PollAdditionalMetadata: MessageFns<PollAdditionalMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PollAdditionalMetadata>): PollAdditionalMetadata {
-    return PollAdditionalMetadata.fromPartial(base ?? {});
+    return createPartialMessage(PollAdditionalMetadata, base);
   },
   fromPartial(object: DeepPartial<PollAdditionalMetadata>): PollAdditionalMetadata {
     const message = createBasePollAdditionalMetadata();
@@ -64483,10 +61523,7 @@ export const PollAdditionalMetadata_PollNameHashHistoryEntry: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -64494,14 +61531,13 @@ export const PollAdditionalMetadata_PollNameHashHistoryEntry: MessageFns<
   create(
     base?: DeepPartial<PollAdditionalMetadata_PollNameHashHistoryEntry>,
   ): PollAdditionalMetadata_PollNameHashHistoryEntry {
-    return PollAdditionalMetadata_PollNameHashHistoryEntry.fromPartial(base ?? {});
+    return createPartialMessage(PollAdditionalMetadata_PollNameHashHistoryEntry, base);
   },
   fromPartial(
     object: DeepPartial<PollAdditionalMetadata_PollNameHashHistoryEntry>,
   ): PollAdditionalMetadata_PollNameHashHistoryEntry {
     const message = createBasePollAdditionalMetadata_PollNameHashHistoryEntry();
-    message.editStanzaId = object.editStanzaId ?? undefined;
-    message.pollNameHash = object.pollNameHash ?? undefined;
+    copyPartialScalars(message, object, 1610, 1612);
     return message;
   },
 };
@@ -64545,21 +61581,17 @@ export const PollEncValue: MessageFns<PollEncValue> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PollEncValue>): PollEncValue {
-    return PollEncValue.fromPartial(base ?? {});
+    return createPartialMessage(PollEncValue, base);
   },
   fromPartial(object: DeepPartial<PollEncValue>): PollEncValue {
     const message = createBasePollEncValue();
-    message.encPayload = object.encPayload ?? undefined;
-    message.encIv = object.encIv ?? undefined;
+    copyPartialScalars(message, object, 1612, 1614);
     return message;
   },
 };
@@ -64647,16 +61679,13 @@ export const PollUpdate: MessageFns<PollUpdate> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PollUpdate>): PollUpdate {
-    return PollUpdate.fromPartial(base ?? {});
+    return createPartialMessage(PollUpdate, base);
   },
   fromPartial(object: DeepPartial<PollUpdate>): PollUpdate {
     const message = createBasePollUpdate();
@@ -64666,9 +61695,7 @@ export const PollUpdate: MessageFns<PollUpdate> = {
     message.vote = (object.vote !== undefined && object.vote !== null)
       ? Message_PollVoteMessage.fromPartial(object.vote)
       : undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.serverTimestampMs = object.serverTimestampMs ?? undefined;
-    message.unread = object.unread ?? undefined;
+    copyPartialScalars(message, object, 1614, 1617);
     message.metadata = (object.metadata !== undefined && object.metadata !== null)
       ? Message_PollUpdateMessageMetadata.fromPartial(object.metadata)
       : undefined;
@@ -64726,22 +61753,17 @@ export const PreKeyRecordStructure: MessageFns<PreKeyRecordStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PreKeyRecordStructure>): PreKeyRecordStructure {
-    return PreKeyRecordStructure.fromPartial(base ?? {});
+    return createPartialMessage(PreKeyRecordStructure, base);
   },
   fromPartial(object: DeepPartial<PreKeyRecordStructure>): PreKeyRecordStructure {
     const message = createBasePreKeyRecordStructure();
-    message.id = object.id ?? undefined;
-    message.publicKey = object.publicKey ?? undefined;
-    message.privateKey = object.privateKey ?? undefined;
+    copyPartialScalars(message, object, 1617, 1620);
     return message;
   },
 };
@@ -64851,27 +61873,17 @@ export const PreKeySignalMessage: MessageFns<PreKeySignalMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PreKeySignalMessage>): PreKeySignalMessage {
-    return PreKeySignalMessage.fromPartial(base ?? {});
+    return createPartialMessage(PreKeySignalMessage, base);
   },
   fromPartial(object: DeepPartial<PreKeySignalMessage>): PreKeySignalMessage {
     const message = createBasePreKeySignalMessage();
-    message.registrationId = object.registrationId ?? undefined;
-    message.preKeyId = object.preKeyId ?? undefined;
-    message.signedPreKeyId = object.signedPreKeyId ?? undefined;
-    message.baseKey = object.baseKey ?? undefined;
-    message.identityKey = object.identityKey ?? undefined;
-    message.message = object.message ?? undefined;
-    message.kyberPreKeyId = object.kyberPreKeyId ?? undefined;
-    message.kyberCiphertext = object.kyberCiphertext ?? undefined;
+    copyPartialScalars(message, object, 1620, 1628);
     return message;
   },
 };
@@ -64904,16 +61916,13 @@ export const PremiumMessageInfo: MessageFns<PremiumMessageInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PremiumMessageInfo>): PremiumMessageInfo {
-    return PremiumMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(PremiumMessageInfo, base);
   },
   fromPartial(object: DeepPartial<PremiumMessageInfo>): PremiumMessageInfo {
     const message = createBasePremiumMessageInfo();
@@ -64961,21 +61970,17 @@ export const PrimaryEphemeralIdentity: MessageFns<PrimaryEphemeralIdentity> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<PrimaryEphemeralIdentity>): PrimaryEphemeralIdentity {
-    return PrimaryEphemeralIdentity.fromPartial(base ?? {});
+    return createPartialMessage(PrimaryEphemeralIdentity, base);
   },
   fromPartial(object: DeepPartial<PrimaryEphemeralIdentity>): PrimaryEphemeralIdentity {
     const message = createBasePrimaryEphemeralIdentity();
-    message.publicKey = object.publicKey ?? undefined;
-    message.nonce = object.nonce ?? undefined;
+    copyPartialScalars(message, object, 1628, 1630);
     return message;
   },
 };
@@ -65093,26 +62098,17 @@ export const ProcessedVideo: MessageFns<ProcessedVideo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ProcessedVideo>): ProcessedVideo {
-    return ProcessedVideo.fromPartial(base ?? {});
+    return createPartialMessage(ProcessedVideo, base);
   },
   fromPartial(object: DeepPartial<ProcessedVideo>): ProcessedVideo {
     const message = createBaseProcessedVideo();
-    message.directPath = object.directPath ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.height = object.height ?? undefined;
-    message.width = object.width ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.bitrate = object.bitrate ?? undefined;
-    message.quality = object.quality ?? undefined;
+    copyPartialScalars(message, object, 1630, 1637);
     message.capabilities = object.capabilities?.map((e) => e) || undefined;
     return message;
   },
@@ -65157,16 +62153,13 @@ export const ProloguePayload: MessageFns<ProloguePayload> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ProloguePayload>): ProloguePayload {
-    return ProloguePayload.fromPartial(base ?? {});
+    return createPartialMessage(ProloguePayload, base);
   },
   fromPartial(object: DeepPartial<ProloguePayload>): ProloguePayload {
     const message = createBaseProloguePayload();
@@ -65217,21 +62210,17 @@ export const Pushname: MessageFns<Pushname> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Pushname>): Pushname {
-    return Pushname.fromPartial(base ?? {});
+    return createPartialMessage(Pushname, base);
   },
   fromPartial(object: DeepPartial<Pushname>): Pushname {
     const message = createBasePushname();
-    message.id = object.id ?? undefined;
-    message.pushname = object.pushname ?? undefined;
+    copyPartialScalars(message, object, 1637, 1639);
     return message;
   },
 };
@@ -65253,16 +62242,13 @@ export const QP: MessageFns<QP> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<QP>): QP {
-    return QP.fromPartial(base ?? {});
+    return createPartialMessage(QP, base);
   },
   fromPartial(_: DeepPartial<QP>): QP {
     const message = createBaseQP();
@@ -65339,23 +62325,19 @@ export const QP_Filter: MessageFns<QP_Filter> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<QP_Filter>): QP_Filter {
-    return QP_Filter.fromPartial(base ?? {});
+    return createPartialMessage(QP_Filter, base);
   },
   fromPartial(object: DeepPartial<QP_Filter>): QP_Filter {
     const message = createBaseQP_Filter();
     message.filterName = object.filterName ?? undefined;
     message.parameters = object.parameters?.map((e) => QP_FilterParameters.fromPartial(e)) || undefined;
-    message.filterResult = object.filterResult ?? undefined;
-    message.clientNotSupportedConfig = object.clientNotSupportedConfig ?? undefined;
+    copyPartialScalars(message, object, 1639, 1641);
     return message;
   },
 };
@@ -65426,16 +62408,13 @@ export const QP_FilterClause: MessageFns<QP_FilterClause> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<QP_FilterClause>): QP_FilterClause {
-    return QP_FilterClause.fromPartial(base ?? {});
+    return createPartialMessage(QP_FilterClause, base);
   },
   fromPartial(object: DeepPartial<QP_FilterClause>): QP_FilterClause {
     const message = createBaseQP_FilterClause();
@@ -65485,21 +62464,17 @@ export const QP_FilterParameters: MessageFns<QP_FilterParameters> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<QP_FilterParameters>): QP_FilterParameters {
-    return QP_FilterParameters.fromPartial(base ?? {});
+    return createPartialMessage(QP_FilterParameters, base);
   },
   fromPartial(object: DeepPartial<QP_FilterParameters>): QP_FilterParameters {
     const message = createBaseQP_FilterParameters();
-    message.key = object.key ?? undefined;
-    message.value = object.value ?? undefined;
+    copyPartialScalars(message, object, 1641, 1643);
     return message;
   },
 };
@@ -65543,21 +62518,17 @@ export const QuarantinedMessage: MessageFns<QuarantinedMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<QuarantinedMessage>): QuarantinedMessage {
-    return QuarantinedMessage.fromPartial(base ?? {});
+    return createPartialMessage(QuarantinedMessage, base);
   },
   fromPartial(object: DeepPartial<QuarantinedMessage>): QuarantinedMessage {
     const message = createBaseQuarantinedMessage();
-    message.originalData = object.originalData ?? undefined;
-    message.extractedText = object.extractedText ?? undefined;
+    copyPartialScalars(message, object, 1643, 1645);
     return message;
   },
 };
@@ -65634,24 +62605,18 @@ export const Reaction: MessageFns<Reaction> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Reaction>): Reaction {
-    return Reaction.fromPartial(base ?? {});
+    return createPartialMessage(Reaction, base);
   },
   fromPartial(object: DeepPartial<Reaction>): Reaction {
     const message = createBaseReaction();
     message.key = (object.key !== undefined && object.key !== null) ? MessageKey.fromPartial(object.key) : undefined;
-    message.text = object.text ?? undefined;
-    message.groupingKey = object.groupingKey ?? undefined;
-    message.senderTimestampMs = object.senderTimestampMs ?? undefined;
-    message.unread = object.unread ?? undefined;
+    copyPartialScalars(message, object, 1645, 1649);
     return message;
   },
 };
@@ -65695,21 +62660,17 @@ export const RecentEmojiWeight: MessageFns<RecentEmojiWeight> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RecentEmojiWeight>): RecentEmojiWeight {
-    return RecentEmojiWeight.fromPartial(base ?? {});
+    return createPartialMessage(RecentEmojiWeight, base);
   },
   fromPartial(object: DeepPartial<RecentEmojiWeight>): RecentEmojiWeight {
     const message = createBaseRecentEmojiWeight();
-    message.emoji = object.emoji ?? undefined;
-    message.weight = object.weight ?? undefined;
+    copyPartialScalars(message, object, 1649, 1651);
     return message;
   },
 };
@@ -65761,16 +62722,13 @@ export const RecordStructure: MessageFns<RecordStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RecordStructure>): RecordStructure {
-    return RecordStructure.fromPartial(base ?? {});
+    return createPartialMessage(RecordStructure, base);
   },
   fromPartial(object: DeepPartial<RecordStructure>): RecordStructure {
     const message = createBaseRecordStructure();
@@ -65843,23 +62801,17 @@ export const Reportable: MessageFns<Reportable> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<Reportable>): Reportable {
-    return Reportable.fromPartial(base ?? {});
+    return createPartialMessage(Reportable, base);
   },
   fromPartial(object: DeepPartial<Reportable>): Reportable {
     const message = createBaseReportable();
-    message.minVersion = object.minVersion ?? undefined;
-    message.maxVersion = object.maxVersion ?? undefined;
-    message.notReportableMinVersion = object.notReportableMinVersion ?? undefined;
-    message.never = object.never ?? undefined;
+    copyPartialScalars(message, object, 1651, 1655);
     return message;
   },
 };
@@ -65903,21 +62855,17 @@ export const ReportingTokenInfo: MessageFns<ReportingTokenInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ReportingTokenInfo>): ReportingTokenInfo {
-    return ReportingTokenInfo.fromPartial(base ?? {});
+    return createPartialMessage(ReportingTokenInfo, base);
   },
   fromPartial(object: DeepPartial<ReportingTokenInfo>): ReportingTokenInfo {
     const message = createBaseReportingTokenInfo();
-    message.reportingTag = object.reportingTag ?? undefined;
-    message.reportingTagTimestamp = object.reportingTagTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1655, 1657);
     return message;
   },
 };
@@ -66002,23 +62950,17 @@ export const RotateEpochInput: MessageFns<RotateEpochInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RotateEpochInput>): RotateEpochInput {
-    return RotateEpochInput.fromPartial(base ?? {});
+    return createPartialMessage(RotateEpochInput, base);
   },
   fromPartial(object: DeepPartial<RotateEpochInput>): RotateEpochInput {
     const message = createBaseRotateEpochInput();
-    message.currentEpochRootKey = object.currentEpochRootKey ?? undefined;
-    message.currentEpochAnonId = object.currentEpochAnonId ?? undefined;
-    message.currentEpochFbid = object.currentEpochFbid ?? undefined;
-    message.epochStoragePrivateKey = object.epochStoragePrivateKey ?? undefined;
+    copyPartialScalars(message, object, 1657, 1661);
     message.members = object.members?.map((e) => RotateEpochMemberInput.fromPartial(e)) || undefined;
     return message;
   },
@@ -66074,22 +63016,17 @@ export const RotateEpochMemberEdge: MessageFns<RotateEpochMemberEdge> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RotateEpochMemberEdge>): RotateEpochMemberEdge {
-    return RotateEpochMemberEdge.fromPartial(base ?? {});
+    return createPartialMessage(RotateEpochMemberEdge, base);
   },
   fromPartial(object: DeepPartial<RotateEpochMemberEdge>): RotateEpochMemberEdge {
     const message = createBaseRotateEpochMemberEdge();
-    message.deviceId = object.deviceId ?? undefined;
-    message.encryptedEpochKey = object.encryptedEpochKey ?? undefined;
-    message.deviceEpochHmac = object.deviceEpochHmac ?? undefined;
+    copyPartialScalars(message, object, 1661, 1664);
     return message;
   },
 };
@@ -66144,22 +63081,17 @@ export const RotateEpochMemberInput: MessageFns<RotateEpochMemberInput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RotateEpochMemberInput>): RotateEpochMemberInput {
-    return RotateEpochMemberInput.fromPartial(base ?? {});
+    return createPartialMessage(RotateEpochMemberInput, base);
   },
   fromPartial(object: DeepPartial<RotateEpochMemberInput>): RotateEpochMemberInput {
     const message = createBaseRotateEpochMemberInput();
-    message.deviceId = object.deviceId ?? undefined;
-    message.epochStoragePublicKey = object.epochStoragePublicKey ?? undefined;
-    message.devicePublicKey = object.devicePublicKey ?? undefined;
+    copyPartialScalars(message, object, 1664, 1667);
     return message;
   },
 };
@@ -66277,29 +63209,22 @@ export const RotateEpochOutput: MessageFns<RotateEpochOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RotateEpochOutput>): RotateEpochOutput {
-    return RotateEpochOutput.fromPartial(base ?? {});
+    return createPartialMessage(RotateEpochOutput, base);
   },
   fromPartial(object: DeepPartial<RotateEpochOutput>): RotateEpochOutput {
     const message = createBaseRotateEpochOutput();
-    message.newEpochRootKey = object.newEpochRootKey ?? undefined;
-    message.newEpochAnonId = object.newEpochAnonId ?? undefined;
-    message.newEpochFbid = object.newEpochFbid ?? undefined;
-    message.epochAnonId = object.epochAnonId ?? undefined;
+    copyPartialScalars(message, object, 1667, 1671);
     message.backwardEdge = (object.backwardEdge !== undefined && object.backwardEdge !== null)
       ? BackwardEdge.fromPartial(object.backwardEdge)
       : undefined;
     message.memberEdges = object.memberEdges?.map((e) => RotateEpochMemberEdge.fromPartial(e)) || undefined;
-    message.epochRootKeyFingerprint = object.epochRootKeyFingerprint ?? undefined;
-    message.error = object.error ?? undefined;
+    copyPartialScalars(message, object, 1671, 1673);
     return message;
   },
 };
@@ -66423,25 +63348,19 @@ export const RoutingInfo: MessageFns<RoutingInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<RoutingInfo>): RoutingInfo {
-    return RoutingInfo.fromPartial(base ?? {});
+    return createPartialMessage(RoutingInfo, base);
   },
   fromPartial(object: DeepPartial<RoutingInfo>): RoutingInfo {
     const message = createBaseRoutingInfo();
     message.regionId = object.regionId?.map((e) => e) || undefined;
     message.clusterId = object.clusterId?.map((e) => e) || undefined;
-    message.taskId = object.taskId ?? undefined;
-    message.debug = object.debug ?? undefined;
-    message.tcpBbr = object.tcpBbr ?? undefined;
-    message.tcpKeepalive = object.tcpKeepalive ?? undefined;
+    copyPartialScalars(message, object, 1673, 1677);
     return message;
   },
 };
@@ -66496,22 +63415,17 @@ export const ScheduledMessageMetadata: MessageFns<ScheduledMessageMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ScheduledMessageMetadata>): ScheduledMessageMetadata {
-    return ScheduledMessageMetadata.fromPartial(base ?? {});
+    return createPartialMessage(ScheduledMessageMetadata, base);
   },
   fromPartial(object: DeepPartial<ScheduledMessageMetadata>): ScheduledMessageMetadata {
     const message = createBaseScheduledMessageMetadata();
-    message.revealKeyId = object.revealKeyId ?? undefined;
-    message.revealKey = object.revealKey ?? undefined;
-    message.scheduledTime = object.scheduledTime ?? undefined;
+    copyPartialScalars(message, object, 1677, 1680);
     return message;
   },
 };
@@ -66577,23 +63491,17 @@ export const SenderKeyDistributionMessage: MessageFns<SenderKeyDistributionMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyDistributionMessage>): SenderKeyDistributionMessage {
-    return SenderKeyDistributionMessage.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyDistributionMessage, base);
   },
   fromPartial(object: DeepPartial<SenderKeyDistributionMessage>): SenderKeyDistributionMessage {
     const message = createBaseSenderKeyDistributionMessage();
-    message.id = object.id ?? undefined;
-    message.iteration = object.iteration ?? undefined;
-    message.chainKey = object.chainKey ?? undefined;
-    message.signingKey = object.signingKey ?? undefined;
+    copyPartialScalars(message, object, 1680, 1684);
     return message;
   },
 };
@@ -66648,22 +63556,17 @@ export const SenderKeyMessage: MessageFns<SenderKeyMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyMessage>): SenderKeyMessage {
-    return SenderKeyMessage.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyMessage, base);
   },
   fromPartial(object: DeepPartial<SenderKeyMessage>): SenderKeyMessage {
     const message = createBaseSenderKeyMessage();
-    message.id = object.id ?? undefined;
-    message.iteration = object.iteration ?? undefined;
-    message.ciphertext = object.ciphertext ?? undefined;
+    copyPartialScalars(message, object, 1684, 1687);
     return message;
   },
 };
@@ -66704,16 +63607,13 @@ export const SenderKeyRecordStructure: MessageFns<SenderKeyRecordStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyRecordStructure>): SenderKeyRecordStructure {
-    return SenderKeyRecordStructure.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyRecordStructure, base);
   },
   fromPartial(object: DeepPartial<SenderKeyRecordStructure>): SenderKeyRecordStructure {
     const message = createBaseSenderKeyRecordStructure();
@@ -66791,16 +63691,13 @@ export const SenderKeyStateStructure: MessageFns<SenderKeyStateStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyStateStructure>): SenderKeyStateStructure {
-    return SenderKeyStateStructure.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyStateStructure, base);
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure>): SenderKeyStateStructure {
     const message = createBaseSenderKeyStateStructure();
@@ -66856,21 +63753,17 @@ export const SenderKeyStateStructure_SenderChainKey: MessageFns<SenderKeyStateSt
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyStateStructure_SenderChainKey>): SenderKeyStateStructure_SenderChainKey {
-    return SenderKeyStateStructure_SenderChainKey.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyStateStructure_SenderChainKey, base);
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderChainKey>): SenderKeyStateStructure_SenderChainKey {
     const message = createBaseSenderKeyStateStructure_SenderChainKey();
-    message.iteration = object.iteration ?? undefined;
-    message.seed = object.seed ?? undefined;
+    copyPartialScalars(message, object, 1687, 1689);
     return message;
   },
 };
@@ -66914,21 +63807,17 @@ export const SenderKeyStateStructure_SenderMessageKey: MessageFns<SenderKeyState
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyStateStructure_SenderMessageKey>): SenderKeyStateStructure_SenderMessageKey {
-    return SenderKeyStateStructure_SenderMessageKey.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyStateStructure_SenderMessageKey, base);
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderMessageKey>): SenderKeyStateStructure_SenderMessageKey {
     const message = createBaseSenderKeyStateStructure_SenderMessageKey();
-    message.iteration = object.iteration ?? undefined;
-    message.seed = object.seed ?? undefined;
+    copyPartialScalars(message, object, 1689, 1691);
     return message;
   },
 };
@@ -66972,21 +63861,17 @@ export const SenderKeyStateStructure_SenderSigningKey: MessageFns<SenderKeyState
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SenderKeyStateStructure_SenderSigningKey>): SenderKeyStateStructure_SenderSigningKey {
-    return SenderKeyStateStructure_SenderSigningKey.fromPartial(base ?? {});
+    return createPartialMessage(SenderKeyStateStructure_SenderSigningKey, base);
   },
   fromPartial(object: DeepPartial<SenderKeyStateStructure_SenderSigningKey>): SenderKeyStateStructure_SenderSigningKey {
     const message = createBaseSenderKeyStateStructure_SenderSigningKey();
-    message.public = object.public ?? undefined;
-    message.private = object.private ?? undefined;
+    copyPartialScalars(message, object, 1691, 1693);
     return message;
   },
 };
@@ -67019,16 +63904,13 @@ export const ServerErrorReceipt: MessageFns<ServerErrorReceipt> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ServerErrorReceipt>): ServerErrorReceipt {
-    return ServerErrorReceipt.fromPartial(base ?? {});
+    return createPartialMessage(ServerErrorReceipt, base);
   },
   fromPartial(object: DeepPartial<ServerErrorReceipt>): ServerErrorReceipt {
     const message = createBaseServerErrorReceipt();
@@ -67205,24 +64087,17 @@ export const SessionStructure: MessageFns<SessionStructure> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure>): SessionStructure {
-    return SessionStructure.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure, base);
   },
   fromPartial(object: DeepPartial<SessionStructure>): SessionStructure {
     const message = createBaseSessionStructure();
-    message.sessionVersion = object.sessionVersion ?? undefined;
-    message.localIdentityPublic = object.localIdentityPublic ?? undefined;
-    message.remoteIdentityPublic = object.remoteIdentityPublic ?? undefined;
-    message.rootKey = object.rootKey ?? undefined;
-    message.previousCounter = object.previousCounter ?? undefined;
+    copyPartialScalars(message, object, 1693, 1698);
     message.senderChain = (object.senderChain !== undefined && object.senderChain !== null)
       ? SessionStructure_Chain.fromPartial(object.senderChain)
       : undefined;
@@ -67233,10 +64108,7 @@ export const SessionStructure: MessageFns<SessionStructure> = {
     message.pendingPreKey = (object.pendingPreKey !== undefined && object.pendingPreKey !== null)
       ? SessionStructure_PendingPreKey.fromPartial(object.pendingPreKey)
       : undefined;
-    message.remoteRegistrationId = object.remoteRegistrationId ?? undefined;
-    message.localRegistrationId = object.localRegistrationId ?? undefined;
-    message.needsRefresh = object.needsRefresh ?? undefined;
-    message.aliceBaseKey = object.aliceBaseKey ?? undefined;
+    copyPartialScalars(message, object, 1698, 1702);
     return message;
   },
 };
@@ -67310,21 +64182,17 @@ export const SessionStructure_Chain: MessageFns<SessionStructure_Chain> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure_Chain>): SessionStructure_Chain {
-    return SessionStructure_Chain.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure_Chain, base);
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain>): SessionStructure_Chain {
     const message = createBaseSessionStructure_Chain();
-    message.senderRatchetKey = object.senderRatchetKey ?? undefined;
-    message.senderRatchetKeyPrivate = object.senderRatchetKeyPrivate ?? undefined;
+    copyPartialScalars(message, object, 1702, 1704);
     message.chainKey = (object.chainKey !== undefined && object.chainKey !== null)
       ? SessionStructure_Chain_ChainKey.fromPartial(object.chainKey)
       : undefined;
@@ -67372,21 +64240,17 @@ export const SessionStructure_Chain_ChainKey: MessageFns<SessionStructure_Chain_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure_Chain_ChainKey>): SessionStructure_Chain_ChainKey {
-    return SessionStructure_Chain_ChainKey.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure_Chain_ChainKey, base);
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain_ChainKey>): SessionStructure_Chain_ChainKey {
     const message = createBaseSessionStructure_Chain_ChainKey();
-    message.index = object.index ?? undefined;
-    message.key = object.key ?? undefined;
+    copyPartialScalars(message, object, 1704, 1706);
     return message;
   },
 };
@@ -67452,23 +64316,17 @@ export const SessionStructure_Chain_MessageKey: MessageFns<SessionStructure_Chai
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure_Chain_MessageKey>): SessionStructure_Chain_MessageKey {
-    return SessionStructure_Chain_MessageKey.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure_Chain_MessageKey, base);
   },
   fromPartial(object: DeepPartial<SessionStructure_Chain_MessageKey>): SessionStructure_Chain_MessageKey {
     const message = createBaseSessionStructure_Chain_MessageKey();
-    message.index = object.index ?? undefined;
-    message.cipherKey = object.cipherKey ?? undefined;
-    message.macKey = object.macKey ?? undefined;
-    message.iv = object.iv ?? undefined;
+    copyPartialScalars(message, object, 1706, 1710);
     return message;
   },
 };
@@ -67567,26 +64425,17 @@ export const SessionStructure_PendingKeyExchange: MessageFns<SessionStructure_Pe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure_PendingKeyExchange>): SessionStructure_PendingKeyExchange {
-    return SessionStructure_PendingKeyExchange.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure_PendingKeyExchange, base);
   },
   fromPartial(object: DeepPartial<SessionStructure_PendingKeyExchange>): SessionStructure_PendingKeyExchange {
     const message = createBaseSessionStructure_PendingKeyExchange();
-    message.sequence = object.sequence ?? undefined;
-    message.localBaseKey = object.localBaseKey ?? undefined;
-    message.localBaseKeyPrivate = object.localBaseKeyPrivate ?? undefined;
-    message.localRatchetKey = object.localRatchetKey ?? undefined;
-    message.localRatchetKeyPrivate = object.localRatchetKeyPrivate ?? undefined;
-    message.localIdentityKey = object.localIdentityKey ?? undefined;
-    message.localIdentityKeyPrivate = object.localIdentityKeyPrivate ?? undefined;
+    copyPartialScalars(message, object, 1710, 1717);
     return message;
   },
 };
@@ -67663,24 +64512,17 @@ export const SessionStructure_PendingPreKey: MessageFns<SessionStructure_Pending
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionStructure_PendingPreKey>): SessionStructure_PendingPreKey {
-    return SessionStructure_PendingPreKey.fromPartial(base ?? {});
+    return createPartialMessage(SessionStructure_PendingPreKey, base);
   },
   fromPartial(object: DeepPartial<SessionStructure_PendingPreKey>): SessionStructure_PendingPreKey {
     const message = createBaseSessionStructure_PendingPreKey();
-    message.preKeyId = object.preKeyId ?? undefined;
-    message.signedPreKeyId = object.signedPreKeyId ?? undefined;
-    message.baseKey = object.baseKey ?? undefined;
-    message.kyberPreKeyId = object.kyberPreKeyId ?? undefined;
-    message.kyberCiphertext = object.kyberCiphertext ?? undefined;
+    copyPartialScalars(message, object, 1717, 1722);
     return message;
   },
 };
@@ -67735,22 +64577,17 @@ export const SessionTransparencyMetadata: MessageFns<SessionTransparencyMetadata
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SessionTransparencyMetadata>): SessionTransparencyMetadata {
-    return SessionTransparencyMetadata.fromPartial(base ?? {});
+    return createPartialMessage(SessionTransparencyMetadata, base);
   },
   fromPartial(object: DeepPartial<SessionTransparencyMetadata>): SessionTransparencyMetadata {
     const message = createBaseSessionTransparencyMetadata();
-    message.disclaimerText = object.disclaimerText ?? undefined;
-    message.hcaId = object.hcaId ?? undefined;
-    message.sessionTransparencyType = object.sessionTransparencyType ?? undefined;
+    copyPartialScalars(message, object, 1722, 1725);
     return message;
   },
 };
@@ -67816,23 +64653,17 @@ export const SignalMessage: MessageFns<SignalMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SignalMessage>): SignalMessage {
-    return SignalMessage.fromPartial(base ?? {});
+    return createPartialMessage(SignalMessage, base);
   },
   fromPartial(object: DeepPartial<SignalMessage>): SignalMessage {
     const message = createBaseSignalMessage();
-    message.ratchetKey = object.ratchetKey ?? undefined;
-    message.counter = object.counter ?? undefined;
-    message.previousCounter = object.previousCounter ?? undefined;
-    message.ciphertext = object.ciphertext ?? undefined;
+    copyPartialScalars(message, object, 1725, 1729);
     return message;
   },
 };
@@ -67887,16 +64718,13 @@ export const SignedMmkDistributionFromMailbox: MessageFns<SignedMmkDistributionF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SignedMmkDistributionFromMailbox>): SignedMmkDistributionFromMailbox {
-    return SignedMmkDistributionFromMailbox.fromPartial(base ?? {});
+    return createPartialMessage(SignedMmkDistributionFromMailbox, base);
   },
   fromPartial(object: DeepPartial<SignedMmkDistributionFromMailbox>): SignedMmkDistributionFromMailbox {
     const message = createBaseSignedMmkDistributionFromMailbox();
@@ -67983,24 +64811,17 @@ export const SignedPreKeyRecordStructure: MessageFns<SignedPreKeyRecordStructure
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SignedPreKeyRecordStructure>): SignedPreKeyRecordStructure {
-    return SignedPreKeyRecordStructure.fromPartial(base ?? {});
+    return createPartialMessage(SignedPreKeyRecordStructure, base);
   },
   fromPartial(object: DeepPartial<SignedPreKeyRecordStructure>): SignedPreKeyRecordStructure {
     const message = createBaseSignedPreKeyRecordStructure();
-    message.id = object.id ?? undefined;
-    message.publicKey = object.publicKey ?? undefined;
-    message.privateKey = object.privateKey ?? undefined;
-    message.signature = object.signature ?? undefined;
-    message.timestamp = object.timestamp ?? undefined;
+    copyPartialScalars(message, object, 1729, 1734);
     return message;
   },
 };
@@ -68110,21 +64931,17 @@ export const StatusAttribution: MessageFns<StatusAttribution> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution>): StatusAttribution {
-    return StatusAttribution.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution>): StatusAttribution {
     const message = createBaseStatusAttribution();
-    message.type = object.type ?? undefined;
-    message.actionUrl = object.actionUrl ?? undefined;
+    copyPartialScalars(message, object, 1734, 1736);
     message.statusReshare = (object.statusReshare !== undefined && object.statusReshare !== null)
       ? StatusAttribution_StatusReshare.fromPartial(object.statusReshare)
       : undefined;
@@ -68175,16 +64992,13 @@ export const StatusAttribution_AiCreatedAttribution: MessageFns<StatusAttributio
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_AiCreatedAttribution>): StatusAttribution_AiCreatedAttribution {
-    return StatusAttribution_AiCreatedAttribution.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_AiCreatedAttribution, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_AiCreatedAttribution>): StatusAttribution_AiCreatedAttribution {
     const message = createBaseStatusAttribution_AiCreatedAttribution();
@@ -68254,23 +65068,17 @@ export const StatusAttribution_ExternalShare: MessageFns<StatusAttribution_Exter
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_ExternalShare>): StatusAttribution_ExternalShare {
-    return StatusAttribution_ExternalShare.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_ExternalShare, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_ExternalShare>): StatusAttribution_ExternalShare {
     const message = createBaseStatusAttribution_ExternalShare();
-    message.actionUrl = object.actionUrl ?? undefined;
-    message.source = object.source ?? undefined;
-    message.duration = object.duration ?? undefined;
-    message.actionFallbackUrl = object.actionFallbackUrl ?? undefined;
+    copyPartialScalars(message, object, 1736, 1740);
     return message;
   },
 };
@@ -68303,16 +65111,13 @@ export const StatusAttribution_GroupStatus: MessageFns<StatusAttribution_GroupSt
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_GroupStatus>): StatusAttribution_GroupStatus {
-    return StatusAttribution_GroupStatus.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_GroupStatus, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_GroupStatus>): StatusAttribution_GroupStatus {
     const message = createBaseStatusAttribution_GroupStatus();
@@ -68404,25 +65209,17 @@ export const StatusAttribution_Music: MessageFns<StatusAttribution_Music> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_Music>): StatusAttribution_Music {
-    return StatusAttribution_Music.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_Music, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_Music>): StatusAttribution_Music {
     const message = createBaseStatusAttribution_Music();
-    message.authorName = object.authorName ?? undefined;
-    message.songId = object.songId ?? undefined;
-    message.title = object.title ?? undefined;
-    message.author = object.author ?? undefined;
-    message.artistAttribution = object.artistAttribution ?? undefined;
-    message.isExplicit = object.isExplicit ?? undefined;
+    copyPartialScalars(message, object, 1740, 1746);
     return message;
   },
 };
@@ -68455,16 +65252,13 @@ export const StatusAttribution_RLAttribution: MessageFns<StatusAttribution_RLAtt
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_RLAttribution>): StatusAttribution_RLAttribution {
-    return StatusAttribution_RLAttribution.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_RLAttribution, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_RLAttribution>): StatusAttribution_RLAttribution {
     const message = createBaseStatusAttribution_RLAttribution();
@@ -68512,16 +65306,13 @@ export const StatusAttribution_StatusReshare: MessageFns<StatusAttribution_Statu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_StatusReshare>): StatusAttribution_StatusReshare {
-    return StatusAttribution_StatusReshare.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_StatusReshare, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_StatusReshare>): StatusAttribution_StatusReshare {
     const message = createBaseStatusAttribution_StatusReshare();
@@ -68594,23 +65385,17 @@ export const StatusAttribution_StatusReshare_Metadata: MessageFns<StatusAttribut
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusAttribution_StatusReshare_Metadata>): StatusAttribution_StatusReshare_Metadata {
-    return StatusAttribution_StatusReshare_Metadata.fromPartial(base ?? {});
+    return createPartialMessage(StatusAttribution_StatusReshare_Metadata, base);
   },
   fromPartial(object: DeepPartial<StatusAttribution_StatusReshare_Metadata>): StatusAttribution_StatusReshare_Metadata {
     const message = createBaseStatusAttribution_StatusReshare_Metadata();
-    message.duration = object.duration ?? undefined;
-    message.channelJid = object.channelJid ?? undefined;
-    message.channelMessageId = object.channelMessageId ?? undefined;
-    message.hasMultipleReshares = object.hasMultipleReshares ?? undefined;
+    copyPartialScalars(message, object, 1746, 1750);
     return message;
   },
 };
@@ -68643,16 +65428,13 @@ export const StatusMentionMessage: MessageFns<StatusMentionMessage> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusMentionMessage>): StatusMentionMessage {
-    return StatusMentionMessage.fromPartial(base ?? {});
+    return createPartialMessage(StatusMentionMessage, base);
   },
   fromPartial(object: DeepPartial<StatusMentionMessage>): StatusMentionMessage {
     const message = createBaseStatusMentionMessage();
@@ -68702,21 +65484,17 @@ export const StatusPSA: MessageFns<StatusPSA> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StatusPSA>): StatusPSA {
-    return StatusPSA.fromPartial(base ?? {});
+    return createPartialMessage(StatusPSA, base);
   },
   fromPartial(object: DeepPartial<StatusPSA>): StatusPSA {
     const message = createBaseStatusPSA();
-    message.campaignId = object.campaignId ?? undefined;
-    message.campaignExpirationTimestamp = object.campaignExpirationTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1750, 1752);
     return message;
   },
 };
@@ -68892,33 +65670,17 @@ export const StickerMetadata: MessageFns<StickerMetadata> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<StickerMetadata>): StickerMetadata {
-    return StickerMetadata.fromPartial(base ?? {});
+    return createPartialMessage(StickerMetadata, base);
   },
   fromPartial(object: DeepPartial<StickerMetadata>): StickerMetadata {
     const message = createBaseStickerMetadata();
-    message.url = object.url ?? undefined;
-    message.fileSha256 = object.fileSha256 ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.height = object.height ?? undefined;
-    message.width = object.width ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.weight = object.weight ?? undefined;
-    message.lastStickerSentTs = object.lastStickerSentTs ?? undefined;
-    message.isLottie = object.isLottie ?? undefined;
-    message.imageHash = object.imageHash ?? undefined;
-    message.isAvatarSticker = object.isAvatarSticker ?? undefined;
+    copyPartialScalars(message, object, 1752, 1766);
     return message;
   },
 };
@@ -68962,21 +65724,17 @@ export const SubProtocol: MessageFns<SubProtocol> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SubProtocol>): SubProtocol {
-    return SubProtocol.fromPartial(base ?? {});
+    return createPartialMessage(SubProtocol, base);
   },
   fromPartial(object: DeepPartial<SubProtocol>): SubProtocol {
     const message = createBaseSubProtocol();
-    message.payload = object.payload ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 1766, 1768);
     return message;
   },
 };
@@ -69042,16 +65800,13 @@ export const SyncActionData: MessageFns<SyncActionData> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionData>): SyncActionData {
-    return SyncActionData.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionData, base);
   },
   fromPartial(object: DeepPartial<SyncActionData>): SyncActionData {
     const message = createBaseSyncActionData();
@@ -69059,8 +65814,7 @@ export const SyncActionData: MessageFns<SyncActionData> = {
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncActionValue.fromPartial(object.value)
       : undefined;
-    message.padding = object.padding ?? undefined;
-    message.version = object.version ?? undefined;
+    copyPartialScalars(message, object, 1768, 1770);
     return message;
   },
 };
@@ -70071,16 +66825,13 @@ export const SyncActionValue: MessageFns<SyncActionValue> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue>): SyncActionValue {
-    return SyncActionValue.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue>): SyncActionValue {
     const message = createBaseSyncActionValue();
@@ -70434,22 +67185,17 @@ export const SyncActionValue_AgentAction: MessageFns<SyncActionValue_AgentAction
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_AgentAction>): SyncActionValue_AgentAction {
-    return SyncActionValue_AgentAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_AgentAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_AgentAction>): SyncActionValue_AgentAction {
     const message = createBaseSyncActionValue_AgentAction();
-    message.name = object.name ?? undefined;
-    message.deviceId = object.deviceId ?? undefined;
-    message.isDeleted = object.isDeleted ?? undefined;
+    copyPartialScalars(message, object, 1770, 1773);
     return message;
   },
 };
@@ -70482,16 +67228,13 @@ export const SyncActionValue_AiThreadRenameAction: MessageFns<SyncActionValue_Ai
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_AiThreadRenameAction>): SyncActionValue_AiThreadRenameAction {
-    return SyncActionValue_AiThreadRenameAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_AiThreadRenameAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_AiThreadRenameAction>): SyncActionValue_AiThreadRenameAction {
     const message = createBaseSyncActionValue_AiThreadRenameAction();
@@ -70528,16 +67271,13 @@ export const SyncActionValue_AndroidUnsupportedActions: MessageFns<SyncActionVal
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_AndroidUnsupportedActions>): SyncActionValue_AndroidUnsupportedActions {
-    return SyncActionValue_AndroidUnsupportedActions.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_AndroidUnsupportedActions, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_AndroidUnsupportedActions>,
@@ -70587,16 +67327,13 @@ export const SyncActionValue_ArchiveChatAction: MessageFns<SyncActionValue_Archi
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ArchiveChatAction>): SyncActionValue_ArchiveChatAction {
-    return SyncActionValue_ArchiveChatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ArchiveChatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ArchiveChatAction>): SyncActionValue_ArchiveChatAction {
     const message = createBaseSyncActionValue_ArchiveChatAction();
@@ -70641,10 +67378,7 @@ export const SyncActionValue_AutoOrganizeBusinessChatSetting: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -70652,7 +67386,7 @@ export const SyncActionValue_AutoOrganizeBusinessChatSetting: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_AutoOrganizeBusinessChatSetting>,
   ): SyncActionValue_AutoOrganizeBusinessChatSetting {
-    return SyncActionValue_AutoOrganizeBusinessChatSetting.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_AutoOrganizeBusinessChatSetting, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_AutoOrganizeBusinessChatSetting>,
@@ -70710,16 +67444,13 @@ export const SyncActionValue_AvatarUpdatedAction: MessageFns<SyncActionValue_Ava
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_AvatarUpdatedAction>): SyncActionValue_AvatarUpdatedAction {
-    return SyncActionValue_AvatarUpdatedAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_AvatarUpdatedAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_AvatarUpdatedAction>): SyncActionValue_AvatarUpdatedAction {
     const message = createBaseSyncActionValue_AvatarUpdatedAction();
@@ -70780,22 +67511,17 @@ export const SyncActionValue_BizAISettingsNudgeAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_BizAISettingsNudgeAction>): SyncActionValue_BizAISettingsNudgeAction {
-    return SyncActionValue_BizAISettingsNudgeAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BizAISettingsNudgeAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_BizAISettingsNudgeAction>): SyncActionValue_BizAISettingsNudgeAction {
     const message = createBaseSyncActionValue_BizAISettingsNudgeAction();
-    message.category = object.category ?? undefined;
-    message.version = object.version ?? undefined;
-    message.updatedAtMs = object.updatedAtMs ?? undefined;
+    copyPartialScalars(message, object, 1773, 1776);
     return message;
   },
 };
@@ -70828,16 +67554,13 @@ export const SyncActionValue_BotWelcomeRequestAction: MessageFns<SyncActionValue
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_BotWelcomeRequestAction>): SyncActionValue_BotWelcomeRequestAction {
-    return SyncActionValue_BotWelcomeRequestAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BotWelcomeRequestAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_BotWelcomeRequestAction>): SyncActionValue_BotWelcomeRequestAction {
     const message = createBaseSyncActionValue_BotWelcomeRequestAction();
@@ -70885,21 +67608,17 @@ export const SyncActionValue_BroadcastListParticipant: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_BroadcastListParticipant>): SyncActionValue_BroadcastListParticipant {
-    return SyncActionValue_BroadcastListParticipant.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BroadcastListParticipant, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_BroadcastListParticipant>): SyncActionValue_BroadcastListParticipant {
     const message = createBaseSyncActionValue_BroadcastListParticipant();
-    message.lidJid = object.lidJid ?? undefined;
-    message.pnJid = object.pnJid ?? undefined;
+    copyPartialScalars(message, object, 1776, 1778);
     return message;
   },
 };
@@ -70932,16 +67651,13 @@ export const SyncActionValue_BubbleLockMessageAction: MessageFns<SyncActionValue
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_BubbleLockMessageAction>): SyncActionValue_BubbleLockMessageAction {
-    return SyncActionValue_BubbleLockMessageAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BubbleLockMessageAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_BubbleLockMessageAction>): SyncActionValue_BubbleLockMessageAction {
     const message = createBaseSyncActionValue_BubbleLockMessageAction();
@@ -70983,10 +67699,7 @@ export const SyncActionValue_BusinessBroadcastAssociationAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -70994,7 +67707,7 @@ export const SyncActionValue_BusinessBroadcastAssociationAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_BusinessBroadcastAssociationAction>,
   ): SyncActionValue_BusinessBroadcastAssociationAction {
-    return SyncActionValue_BusinessBroadcastAssociationAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BusinessBroadcastAssociationAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_BusinessBroadcastAssociationAction>,
@@ -71126,10 +67839,7 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -71137,21 +67847,13 @@ export const SyncActionValue_BusinessBroadcastCampaignAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_BusinessBroadcastCampaignAction>,
   ): SyncActionValue_BusinessBroadcastCampaignAction {
-    return SyncActionValue_BusinessBroadcastCampaignAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BusinessBroadcastCampaignAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_BusinessBroadcastCampaignAction>,
   ): SyncActionValue_BusinessBroadcastCampaignAction {
     const message = createBaseSyncActionValue_BusinessBroadcastCampaignAction();
-    message.deviceId = object.deviceId ?? undefined;
-    message.adId = object.adId ?? undefined;
-    message.name = object.name ?? undefined;
-    message.msgId = object.msgId ?? undefined;
-    message.broadcastJid = object.broadcastJid ?? undefined;
-    message.reservedQuota = object.reservedQuota ?? undefined;
-    message.scheduledTimestamp = object.scheduledTimestamp ?? undefined;
-    message.createTimestamp = object.createTimestamp ?? undefined;
-    message.status = object.status ?? undefined;
+    copyPartialScalars(message, object, 1778, 1787);
     return message;
   },
 };
@@ -71233,10 +67935,7 @@ export const SyncActionValue_BusinessBroadcastInsightsAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -71244,17 +67943,13 @@ export const SyncActionValue_BusinessBroadcastInsightsAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_BusinessBroadcastInsightsAction>,
   ): SyncActionValue_BusinessBroadcastInsightsAction {
-    return SyncActionValue_BusinessBroadcastInsightsAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BusinessBroadcastInsightsAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_BusinessBroadcastInsightsAction>,
   ): SyncActionValue_BusinessBroadcastInsightsAction {
     const message = createBaseSyncActionValue_BusinessBroadcastInsightsAction();
-    message.recipientCount = object.recipientCount ?? undefined;
-    message.deliveredCount = object.deliveredCount ?? undefined;
-    message.readCount = object.readCount ?? undefined;
-    message.repliedCount = object.repliedCount ?? undefined;
-    message.quickReplyCount = object.quickReplyCount ?? undefined;
+    copyPartialScalars(message, object, 1787, 1792);
     return message;
   },
 };
@@ -71361,16 +68056,13 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_BusinessBroadcastListAction>): SyncActionValue_BusinessBroadcastListAction {
-    return SyncActionValue_BusinessBroadcastListAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_BusinessBroadcastListAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_BusinessBroadcastListAction>,
@@ -71381,8 +68073,7 @@ export const SyncActionValue_BusinessBroadcastListAction: MessageFns<SyncActionV
       undefined;
     message.listName = object.listName ?? undefined;
     message.labelIds = object.labelIds?.map((e) => e) || undefined;
-    message.audienceExpression = object.audienceExpression ?? undefined;
-    message.customAudienceFbid = object.customAudienceFbid ?? undefined;
+    copyPartialScalars(message, object, 1792, 1794);
     return message;
   },
 };
@@ -71415,16 +68106,13 @@ export const SyncActionValue_CallLogAction: MessageFns<SyncActionValue_CallLogAc
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CallLogAction>): SyncActionValue_CallLogAction {
-    return SyncActionValue_CallLogAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CallLogAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_CallLogAction>): SyncActionValue_CallLogAction {
     const message = createBaseSyncActionValue_CallLogAction();
@@ -71463,16 +68151,13 @@ export const SyncActionValue_ChatAssignmentAction: MessageFns<SyncActionValue_Ch
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ChatAssignmentAction>): SyncActionValue_ChatAssignmentAction {
-    return SyncActionValue_ChatAssignmentAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ChatAssignmentAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ChatAssignmentAction>): SyncActionValue_ChatAssignmentAction {
     const message = createBaseSyncActionValue_ChatAssignmentAction();
@@ -71514,10 +68199,7 @@ export const SyncActionValue_ChatAssignmentOpenedStatusAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -71525,7 +68207,7 @@ export const SyncActionValue_ChatAssignmentOpenedStatusAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_ChatAssignmentOpenedStatusAction>,
   ): SyncActionValue_ChatAssignmentOpenedStatusAction {
-    return SyncActionValue_ChatAssignmentOpenedStatusAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ChatAssignmentOpenedStatusAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_ChatAssignmentOpenedStatusAction>,
@@ -71564,16 +68246,13 @@ export const SyncActionValue_ClearChatAction: MessageFns<SyncActionValue_ClearCh
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ClearChatAction>): SyncActionValue_ClearChatAction {
-    return SyncActionValue_ClearChatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ClearChatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ClearChatAction>): SyncActionValue_ClearChatAction {
     const message = createBaseSyncActionValue_ClearChatAction();
@@ -71612,16 +68291,13 @@ export const SyncActionValue_CoexV2VersionAction: MessageFns<SyncActionValue_Coe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CoexV2VersionAction>): SyncActionValue_CoexV2VersionAction {
-    return SyncActionValue_CoexV2VersionAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CoexV2VersionAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_CoexV2VersionAction>): SyncActionValue_CoexV2VersionAction {
     const message = createBaseSyncActionValue_CoexV2VersionAction();
@@ -71713,25 +68389,17 @@ export const SyncActionValue_ContactAction: MessageFns<SyncActionValue_ContactAc
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ContactAction>): SyncActionValue_ContactAction {
-    return SyncActionValue_ContactAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ContactAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ContactAction>): SyncActionValue_ContactAction {
     const message = createBaseSyncActionValue_ContactAction();
-    message.fullName = object.fullName ?? undefined;
-    message.firstName = object.firstName ?? undefined;
-    message.lidJid = object.lidJid ?? undefined;
-    message.saveOnPrimaryAddressbook = object.saveOnPrimaryAddressbook ?? undefined;
-    message.pnJid = object.pnJid ?? undefined;
-    message.username = object.username ?? undefined;
+    copyPartialScalars(message, object, 1794, 1800);
     return message;
   },
 };
@@ -71764,16 +68432,13 @@ export const SyncActionValue_CtwaMessageReceivedAction: MessageFns<SyncActionVal
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CtwaMessageReceivedAction>): SyncActionValue_CtwaMessageReceivedAction {
-    return SyncActionValue_CtwaMessageReceivedAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CtwaMessageReceivedAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_CtwaMessageReceivedAction>,
@@ -71817,10 +68482,7 @@ export const SyncActionValue_CtwaPerCustomerDataSharingAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -71828,7 +68490,7 @@ export const SyncActionValue_CtwaPerCustomerDataSharingAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_CtwaPerCustomerDataSharingAction>,
   ): SyncActionValue_CtwaPerCustomerDataSharingAction {
-    return SyncActionValue_CtwaPerCustomerDataSharingAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CtwaPerCustomerDataSharingAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_CtwaPerCustomerDataSharingAction>,
@@ -71908,22 +68570,17 @@ export const SyncActionValue_CustomPaymentMethod: MessageFns<SyncActionValue_Cus
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CustomPaymentMethod>): SyncActionValue_CustomPaymentMethod {
-    return SyncActionValue_CustomPaymentMethod.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CustomPaymentMethod, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_CustomPaymentMethod>): SyncActionValue_CustomPaymentMethod {
     const message = createBaseSyncActionValue_CustomPaymentMethod();
-    message.credentialId = object.credentialId ?? undefined;
-    message.country = object.country ?? undefined;
-    message.type = object.type ?? undefined;
+    copyPartialScalars(message, object, 1800, 1803);
     message.metadata = object.metadata?.map((e) => SyncActionValue_CustomPaymentMethodMetadata.fromPartial(e)) ||
       undefined;
     return message;
@@ -71972,23 +68629,19 @@ export const SyncActionValue_CustomPaymentMethodMetadata: MessageFns<SyncActionV
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CustomPaymentMethodMetadata>): SyncActionValue_CustomPaymentMethodMetadata {
-    return SyncActionValue_CustomPaymentMethodMetadata.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CustomPaymentMethodMetadata, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_CustomPaymentMethodMetadata>,
   ): SyncActionValue_CustomPaymentMethodMetadata {
     const message = createBaseSyncActionValue_CustomPaymentMethodMetadata();
-    message.key = object.key ?? undefined;
-    message.value = object.value ?? undefined;
+    copyPartialScalars(message, object, 1803, 1805);
     return message;
   },
 };
@@ -72029,16 +68682,13 @@ export const SyncActionValue_CustomPaymentMethodsAction: MessageFns<SyncActionVa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CustomPaymentMethodsAction>): SyncActionValue_CustomPaymentMethodsAction {
-    return SyncActionValue_CustomPaymentMethodsAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CustomPaymentMethodsAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_CustomPaymentMethodsAction>,
@@ -72188,30 +68838,17 @@ export const SyncActionValue_CustomerDataAction: MessageFns<SyncActionValue_Cust
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_CustomerDataAction>): SyncActionValue_CustomerDataAction {
-    return SyncActionValue_CustomerDataAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_CustomerDataAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_CustomerDataAction>): SyncActionValue_CustomerDataAction {
     const message = createBaseSyncActionValue_CustomerDataAction();
-    message.chatJid = object.chatJid ?? undefined;
-    message.contactType = object.contactType ?? undefined;
-    message.email = object.email ?? undefined;
-    message.altPhoneNumbers = object.altPhoneNumbers ?? undefined;
-    message.birthday = object.birthday ?? undefined;
-    message.address = object.address ?? undefined;
-    message.acquisitionSource = object.acquisitionSource ?? undefined;
-    message.leadStage = object.leadStage ?? undefined;
-    message.lastOrder = object.lastOrder ?? undefined;
-    message.createdAt = object.createdAt ?? undefined;
-    message.modifiedAt = object.modifiedAt ?? undefined;
+    copyPartialScalars(message, object, 1805, 1816);
     return message;
   },
 };
@@ -72244,16 +68881,13 @@ export const SyncActionValue_DeleteChatAction: MessageFns<SyncActionValue_Delete
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_DeleteChatAction>): SyncActionValue_DeleteChatAction {
-    return SyncActionValue_DeleteChatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_DeleteChatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_DeleteChatAction>): SyncActionValue_DeleteChatAction {
     const message = createBaseSyncActionValue_DeleteChatAction();
@@ -72307,10 +68941,7 @@ export const SyncActionValue_DeleteIndividualCallLogAction: MessageFns<SyncActio
             continue;
           }
         }
-        if (tag >>> 3 === 0 || (tag & 7) === 4) {
-          throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-        }
-        reader.skip(tag & 7);
+        skipUnknownProtoField(reader, tag);
       }
       return message;
     },
@@ -72318,14 +68949,13 @@ export const SyncActionValue_DeleteIndividualCallLogAction: MessageFns<SyncActio
     create(
       base?: DeepPartial<SyncActionValue_DeleteIndividualCallLogAction>,
     ): SyncActionValue_DeleteIndividualCallLogAction {
-      return SyncActionValue_DeleteIndividualCallLogAction.fromPartial(base ?? {});
+      return createPartialMessage(SyncActionValue_DeleteIndividualCallLogAction, base);
     },
     fromPartial(
       object: DeepPartial<SyncActionValue_DeleteIndividualCallLogAction>,
     ): SyncActionValue_DeleteIndividualCallLogAction {
       const message = createBaseSyncActionValue_DeleteIndividualCallLogAction();
-      message.peerJid = object.peerJid ?? undefined;
-      message.isIncoming = object.isIncoming ?? undefined;
+      copyPartialScalars(message, object, 1816, 1818);
       return message;
     },
   };
@@ -72369,21 +68999,17 @@ export const SyncActionValue_DeleteMessageForMeAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_DeleteMessageForMeAction>): SyncActionValue_DeleteMessageForMeAction {
-    return SyncActionValue_DeleteMessageForMeAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_DeleteMessageForMeAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_DeleteMessageForMeAction>): SyncActionValue_DeleteMessageForMeAction {
     const message = createBaseSyncActionValue_DeleteMessageForMeAction();
-    message.deleteMedia = object.deleteMedia ?? undefined;
-    message.messageTimestamp = object.messageTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1818, 1820);
     return message;
   },
 };
@@ -72419,10 +69045,7 @@ export const SyncActionValue_DetectedOutcomesStatusAction: MessageFns<SyncAction
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -72430,7 +69053,7 @@ export const SyncActionValue_DetectedOutcomesStatusAction: MessageFns<SyncAction
   create(
     base?: DeepPartial<SyncActionValue_DetectedOutcomesStatusAction>,
   ): SyncActionValue_DetectedOutcomesStatusAction {
-    return SyncActionValue_DetectedOutcomesStatusAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_DetectedOutcomesStatusAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_DetectedOutcomesStatusAction>,
@@ -72469,16 +69092,13 @@ export const SyncActionValue_ExternalWebBetaAction: MessageFns<SyncActionValue_E
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ExternalWebBetaAction>): SyncActionValue_ExternalWebBetaAction {
-    return SyncActionValue_ExternalWebBetaAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ExternalWebBetaAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ExternalWebBetaAction>): SyncActionValue_ExternalWebBetaAction {
     const message = createBaseSyncActionValue_ExternalWebBetaAction();
@@ -72523,16 +69143,13 @@ export const SyncActionValue_FavoritesAction: MessageFns<SyncActionValue_Favorit
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_FavoritesAction>): SyncActionValue_FavoritesAction {
-    return SyncActionValue_FavoritesAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_FavoritesAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_FavoritesAction>): SyncActionValue_FavoritesAction {
     const message = createBaseSyncActionValue_FavoritesAction();
@@ -72570,16 +69187,13 @@ export const SyncActionValue_FavoritesAction_Favorite: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_FavoritesAction_Favorite>): SyncActionValue_FavoritesAction_Favorite {
-    return SyncActionValue_FavoritesAction_Favorite.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_FavoritesAction_Favorite, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_FavoritesAction_Favorite>): SyncActionValue_FavoritesAction_Favorite {
     const message = createBaseSyncActionValue_FavoritesAction_Favorite();
@@ -72627,21 +69241,17 @@ export const SyncActionValue_InteractiveMessageAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_InteractiveMessageAction>): SyncActionValue_InteractiveMessageAction {
-    return SyncActionValue_InteractiveMessageAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_InteractiveMessageAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_InteractiveMessageAction>): SyncActionValue_InteractiveMessageAction {
     const message = createBaseSyncActionValue_InteractiveMessageAction();
-    message.type = object.type ?? undefined;
-    message.agmId = object.agmId ?? undefined;
+    copyPartialScalars(message, object, 1820, 1822);
     return message;
   },
 };
@@ -72674,16 +69284,13 @@ export const SyncActionValue_KeyExpiration: MessageFns<SyncActionValue_KeyExpira
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_KeyExpiration>): SyncActionValue_KeyExpiration {
-    return SyncActionValue_KeyExpiration.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_KeyExpiration, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_KeyExpiration>): SyncActionValue_KeyExpiration {
     const message = createBaseSyncActionValue_KeyExpiration();
@@ -72731,21 +69338,17 @@ export const SyncActionValue_LabelAssociationAction: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LabelAssociationAction>): SyncActionValue_LabelAssociationAction {
-    return SyncActionValue_LabelAssociationAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LabelAssociationAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelAssociationAction>): SyncActionValue_LabelAssociationAction {
     const message = createBaseSyncActionValue_LabelAssociationAction();
-    message.labeled = object.labeled ?? undefined;
-    message.modelMetaData = object.modelMetaData ?? undefined;
+    copyPartialScalars(message, object, 1822, 1824);
     return message;
   },
 };
@@ -72866,28 +69469,17 @@ export const SyncActionValue_LabelEditAction: MessageFns<SyncActionValue_LabelEd
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LabelEditAction>): SyncActionValue_LabelEditAction {
-    return SyncActionValue_LabelEditAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LabelEditAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelEditAction>): SyncActionValue_LabelEditAction {
     const message = createBaseSyncActionValue_LabelEditAction();
-    message.name = object.name ?? undefined;
-    message.color = object.color ?? undefined;
-    message.predefinedId = object.predefinedId ?? undefined;
-    message.deleted = object.deleted ?? undefined;
-    message.orderIndex = object.orderIndex ?? undefined;
-    message.isActive = object.isActive ?? undefined;
-    message.type = object.type ?? undefined;
-    message.isImmutable = object.isImmutable ?? undefined;
-    message.muteEndTimeMs = object.muteEndTimeMs ?? undefined;
+    copyPartialScalars(message, object, 1824, 1833);
     return message;
   },
 };
@@ -72938,16 +69530,13 @@ export const SyncActionValue_LabelReorderingAction: MessageFns<SyncActionValue_L
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LabelReorderingAction>): SyncActionValue_LabelReorderingAction {
-    return SyncActionValue_LabelReorderingAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LabelReorderingAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelReorderingAction>): SyncActionValue_LabelReorderingAction {
     const message = createBaseSyncActionValue_LabelReorderingAction();
@@ -72984,16 +69573,13 @@ export const SyncActionValue_LabelSublistAction: MessageFns<SyncActionValue_Labe
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LabelSublistAction>): SyncActionValue_LabelSublistAction {
-    return SyncActionValue_LabelSublistAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LabelSublistAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LabelSublistAction>): SyncActionValue_LabelSublistAction {
     const message = createBaseSyncActionValue_LabelSublistAction();
@@ -73052,22 +69638,17 @@ export const SyncActionValue_LidContactAction: MessageFns<SyncActionValue_LidCon
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LidContactAction>): SyncActionValue_LidContactAction {
-    return SyncActionValue_LidContactAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LidContactAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LidContactAction>): SyncActionValue_LidContactAction {
     const message = createBaseSyncActionValue_LidContactAction();
-    message.fullName = object.fullName ?? undefined;
-    message.firstName = object.firstName ?? undefined;
-    message.username = object.username ?? undefined;
+    copyPartialScalars(message, object, 1833, 1836);
     return message;
   },
 };
@@ -73100,16 +69681,13 @@ export const SyncActionValue_LocaleSetting: MessageFns<SyncActionValue_LocaleSet
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LocaleSetting>): SyncActionValue_LocaleSetting {
-    return SyncActionValue_LocaleSetting.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LocaleSetting, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LocaleSetting>): SyncActionValue_LocaleSetting {
     const message = createBaseSyncActionValue_LocaleSetting();
@@ -73146,16 +69724,13 @@ export const SyncActionValue_LockChatAction: MessageFns<SyncActionValue_LockChat
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_LockChatAction>): SyncActionValue_LockChatAction {
-    return SyncActionValue_LockChatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_LockChatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_LockChatAction>): SyncActionValue_LockChatAction {
     const message = createBaseSyncActionValue_LockChatAction();
@@ -73206,10 +69781,7 @@ export const SyncActionValue_MaibaAIFeaturesControlAction: MessageFns<SyncAction
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -73217,14 +69789,13 @@ export const SyncActionValue_MaibaAIFeaturesControlAction: MessageFns<SyncAction
   create(
     base?: DeepPartial<SyncActionValue_MaibaAIFeaturesControlAction>,
   ): SyncActionValue_MaibaAIFeaturesControlAction {
-    return SyncActionValue_MaibaAIFeaturesControlAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MaibaAIFeaturesControlAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_MaibaAIFeaturesControlAction>,
   ): SyncActionValue_MaibaAIFeaturesControlAction {
     const message = createBaseSyncActionValue_MaibaAIFeaturesControlAction();
-    message.aiFeatureStatus = object.aiFeatureStatus ?? undefined;
-    message.aiReplyMode = object.aiReplyMode ?? undefined;
+    copyPartialScalars(message, object, 1836, 1838);
     return message;
   },
 };
@@ -73268,16 +69839,13 @@ export const SyncActionValue_MarkChatAsReadAction: MessageFns<SyncActionValue_Ma
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_MarkChatAsReadAction>): SyncActionValue_MarkChatAsReadAction {
-    return SyncActionValue_MarkChatAsReadAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MarkChatAsReadAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_MarkChatAsReadAction>): SyncActionValue_MarkChatAsReadAction {
     const message = createBaseSyncActionValue_MarkChatAsReadAction();
@@ -73383,26 +69951,17 @@ export const SyncActionValue_MarketingMessageAction: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_MarketingMessageAction>): SyncActionValue_MarketingMessageAction {
-    return SyncActionValue_MarketingMessageAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MarketingMessageAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_MarketingMessageAction>): SyncActionValue_MarketingMessageAction {
     const message = createBaseSyncActionValue_MarketingMessageAction();
-    message.name = object.name ?? undefined;
-    message.message = object.message ?? undefined;
-    message.type = object.type ?? undefined;
-    message.createdAt = object.createdAt ?? undefined;
-    message.lastSentAt = object.lastSentAt ?? undefined;
-    message.isDeleted = object.isDeleted ?? undefined;
-    message.mediaId = object.mediaId ?? undefined;
+    copyPartialScalars(message, object, 1838, 1845);
     return message;
   },
 };
@@ -73440,10 +69999,7 @@ export const SyncActionValue_MarketingMessageBroadcastAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -73451,7 +70007,7 @@ export const SyncActionValue_MarketingMessageBroadcastAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_MarketingMessageBroadcastAction>,
   ): SyncActionValue_MarketingMessageBroadcastAction {
-    return SyncActionValue_MarketingMessageBroadcastAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MarketingMessageBroadcastAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_MarketingMessageBroadcastAction>,
@@ -73526,10 +70082,7 @@ export const SyncActionValue_MerchantPaymentPartnerAction: MessageFns<SyncAction
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -73537,16 +70090,13 @@ export const SyncActionValue_MerchantPaymentPartnerAction: MessageFns<SyncAction
   create(
     base?: DeepPartial<SyncActionValue_MerchantPaymentPartnerAction>,
   ): SyncActionValue_MerchantPaymentPartnerAction {
-    return SyncActionValue_MerchantPaymentPartnerAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MerchantPaymentPartnerAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_MerchantPaymentPartnerAction>,
   ): SyncActionValue_MerchantPaymentPartnerAction {
     const message = createBaseSyncActionValue_MerchantPaymentPartnerAction();
-    message.status = object.status ?? undefined;
-    message.country = object.country ?? undefined;
-    message.gatewayName = object.gatewayName ?? undefined;
-    message.credentialId = object.credentialId ?? undefined;
+    copyPartialScalars(message, object, 1845, 1849);
     return message;
   },
 };
@@ -73597,16 +70147,13 @@ export const SyncActionValue_MusicUserIdAction: MessageFns<SyncActionValue_Music
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_MusicUserIdAction>): SyncActionValue_MusicUserIdAction {
-    return SyncActionValue_MusicUserIdAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MusicUserIdAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_MusicUserIdAction>): SyncActionValue_MusicUserIdAction {
     const message = createBaseSyncActionValue_MusicUserIdAction();
@@ -73670,10 +70217,7 @@ export const SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -73681,14 +70225,13 @@ export const SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry>,
   ): SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
-    return SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry>,
   ): SyncActionValue_MusicUserIdAction_MusicUserIdMapEntry {
     const message = createBaseSyncActionValue_MusicUserIdAction_MusicUserIdMapEntry();
-    message.key = object.key ?? undefined;
-    message.value = object.value ?? undefined;
+    copyPartialScalars(message, object, 1849, 1851);
     return message;
   },
 };
@@ -73754,23 +70297,17 @@ export const SyncActionValue_MuteAction: MessageFns<SyncActionValue_MuteAction> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_MuteAction>): SyncActionValue_MuteAction {
-    return SyncActionValue_MuteAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_MuteAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_MuteAction>): SyncActionValue_MuteAction {
     const message = createBaseSyncActionValue_MuteAction();
-    message.muted = object.muted ?? undefined;
-    message.muteEndTimestamp = object.muteEndTimestamp ?? undefined;
-    message.autoMuted = object.autoMuted ?? undefined;
-    message.muteEveryoneMentionEndTimestamp = object.muteEveryoneMentionEndTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1851, 1855);
     return message;
   },
 };
@@ -73803,16 +70340,13 @@ export const SyncActionValue_NctSaltSyncAction: MessageFns<SyncActionValue_NctSa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_NctSaltSyncAction>): SyncActionValue_NctSaltSyncAction {
-    return SyncActionValue_NctSaltSyncAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_NctSaltSyncAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_NctSaltSyncAction>): SyncActionValue_NctSaltSyncAction {
     const message = createBaseSyncActionValue_NctSaltSyncAction();
@@ -73854,10 +70388,7 @@ export const SyncActionValue_NewsletterSavedInterestsAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -73865,7 +70396,7 @@ export const SyncActionValue_NewsletterSavedInterestsAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_NewsletterSavedInterestsAction>,
   ): SyncActionValue_NewsletterSavedInterestsAction {
-    return SyncActionValue_NewsletterSavedInterestsAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_NewsletterSavedInterestsAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_NewsletterSavedInterestsAction>,
@@ -73948,24 +70479,17 @@ export const SyncActionValue_NoteEditAction: MessageFns<SyncActionValue_NoteEdit
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_NoteEditAction>): SyncActionValue_NoteEditAction {
-    return SyncActionValue_NoteEditAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_NoteEditAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_NoteEditAction>): SyncActionValue_NoteEditAction {
     const message = createBaseSyncActionValue_NoteEditAction();
-    message.type = object.type ?? undefined;
-    message.chatJid = object.chatJid ?? undefined;
-    message.createdAt = object.createdAt ?? undefined;
-    message.deleted = object.deleted ?? undefined;
-    message.unstructuredContent = object.unstructuredContent ?? undefined;
+    copyPartialScalars(message, object, 1855, 1860);
     return message;
   },
 };
@@ -74003,10 +70527,7 @@ export const SyncActionValue_NotificationActivitySettingAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -74014,7 +70535,7 @@ export const SyncActionValue_NotificationActivitySettingAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_NotificationActivitySettingAction>,
   ): SyncActionValue_NotificationActivitySettingAction {
-    return SyncActionValue_NotificationActivitySettingAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_NotificationActivitySettingAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_NotificationActivitySettingAction>,
@@ -74053,16 +70574,13 @@ export const SyncActionValue_NuxAction: MessageFns<SyncActionValue_NuxAction> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_NuxAction>): SyncActionValue_NuxAction {
-    return SyncActionValue_NuxAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_NuxAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_NuxAction>): SyncActionValue_NuxAction {
     const message = createBaseSyncActionValue_NuxAction();
@@ -74110,21 +70628,17 @@ export const SyncActionValue_OutContactAction: MessageFns<SyncActionValue_OutCon
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_OutContactAction>): SyncActionValue_OutContactAction {
-    return SyncActionValue_OutContactAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_OutContactAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_OutContactAction>): SyncActionValue_OutContactAction {
     const message = createBaseSyncActionValue_OutContactAction();
-    message.fullName = object.fullName ?? undefined;
-    message.firstName = object.firstName ?? undefined;
+    copyPartialScalars(message, object, 1860, 1862);
     return message;
   },
 };
@@ -74157,16 +70671,13 @@ export const SyncActionValue_PaymentInfoAction: MessageFns<SyncActionValue_Payme
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PaymentInfoAction>): SyncActionValue_PaymentInfoAction {
-    return SyncActionValue_PaymentInfoAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PaymentInfoAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PaymentInfoAction>): SyncActionValue_PaymentInfoAction {
     const message = createBaseSyncActionValue_PaymentInfoAction();
@@ -74214,21 +70725,17 @@ export const SyncActionValue_PaymentTosAction: MessageFns<SyncActionValue_Paymen
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PaymentTosAction>): SyncActionValue_PaymentTosAction {
-    return SyncActionValue_PaymentTosAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PaymentTosAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PaymentTosAction>): SyncActionValue_PaymentTosAction {
     const message = createBaseSyncActionValue_PaymentTosAction();
-    message.paymentNotice = object.paymentNotice ?? undefined;
-    message.accepted = object.accepted ?? undefined;
+    copyPartialScalars(message, object, 1862, 1864);
     return message;
   },
 };
@@ -74261,16 +70768,13 @@ export const SyncActionValue_PinAction: MessageFns<SyncActionValue_PinAction> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PinAction>): SyncActionValue_PinAction {
-    return SyncActionValue_PinAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PinAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PinAction>): SyncActionValue_PinAction {
     const message = createBaseSyncActionValue_PinAction();
@@ -74307,16 +70811,13 @@ export const SyncActionValue_PnForLidChatAction: MessageFns<SyncActionValue_PnFo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PnForLidChatAction>): SyncActionValue_PnForLidChatAction {
-    return SyncActionValue_PnForLidChatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PnForLidChatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PnForLidChatAction>): SyncActionValue_PnForLidChatAction {
     const message = createBaseSyncActionValue_PnForLidChatAction();
@@ -74361,16 +70862,13 @@ export const SyncActionValue_PrimaryFeature: MessageFns<SyncActionValue_PrimaryF
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PrimaryFeature>): SyncActionValue_PrimaryFeature {
-    return SyncActionValue_PrimaryFeature.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrimaryFeature, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PrimaryFeature>): SyncActionValue_PrimaryFeature {
     const message = createBaseSyncActionValue_PrimaryFeature();
@@ -74407,16 +70905,13 @@ export const SyncActionValue_PrimaryVersionAction: MessageFns<SyncActionValue_Pr
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PrimaryVersionAction>): SyncActionValue_PrimaryVersionAction {
-    return SyncActionValue_PrimaryVersionAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrimaryVersionAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PrimaryVersionAction>): SyncActionValue_PrimaryVersionAction {
     const message = createBaseSyncActionValue_PrimaryVersionAction();
@@ -74458,10 +70953,7 @@ export const SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAct
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -74469,7 +70961,7 @@ export const SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAct
   create(
     base?: DeepPartial<SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction>,
   ): SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction {
-    return SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_PrivacySettingChannelsPersonalisedRecommendationAction>,
@@ -74513,10 +71005,7 @@ export const SyncActionValue_PrivacySettingDisableLinkPreviewsAction: MessageFns
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -74524,7 +71013,7 @@ export const SyncActionValue_PrivacySettingDisableLinkPreviewsAction: MessageFns
   create(
     base?: DeepPartial<SyncActionValue_PrivacySettingDisableLinkPreviewsAction>,
   ): SyncActionValue_PrivacySettingDisableLinkPreviewsAction {
-    return SyncActionValue_PrivacySettingDisableLinkPreviewsAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrivacySettingDisableLinkPreviewsAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_PrivacySettingDisableLinkPreviewsAction>,
@@ -74566,16 +71055,13 @@ export const SyncActionValue_PrivacySettingRelayAllCalls: MessageFns<SyncActionV
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PrivacySettingRelayAllCalls>): SyncActionValue_PrivacySettingRelayAllCalls {
-    return SyncActionValue_PrivacySettingRelayAllCalls.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrivacySettingRelayAllCalls, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_PrivacySettingRelayAllCalls>,
@@ -74619,10 +71105,7 @@ export const SyncActionValue_PrivateProcessingSettingAction: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -74630,7 +71113,7 @@ export const SyncActionValue_PrivateProcessingSettingAction: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_PrivateProcessingSettingAction>,
   ): SyncActionValue_PrivateProcessingSettingAction {
-    return SyncActionValue_PrivateProcessingSettingAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PrivateProcessingSettingAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_PrivateProcessingSettingAction>,
@@ -74669,16 +71152,13 @@ export const SyncActionValue_PushNameSetting: MessageFns<SyncActionValue_PushNam
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_PushNameSetting>): SyncActionValue_PushNameSetting {
-    return SyncActionValue_PushNameSetting.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_PushNameSetting, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_PushNameSetting>): SyncActionValue_PushNameSetting {
     const message = createBaseSyncActionValue_PushNameSetting();
@@ -74786,24 +71266,19 @@ export const SyncActionValue_QuickReplyAction: MessageFns<SyncActionValue_QuickR
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_QuickReplyAction>): SyncActionValue_QuickReplyAction {
-    return SyncActionValue_QuickReplyAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_QuickReplyAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_QuickReplyAction>): SyncActionValue_QuickReplyAction {
     const message = createBaseSyncActionValue_QuickReplyAction();
-    message.shortcut = object.shortcut ?? undefined;
-    message.message = object.message ?? undefined;
+    copyPartialScalars(message, object, 1864, 1866);
     message.keywords = object.keywords?.map((e) => e) || undefined;
-    message.count = object.count ?? undefined;
-    message.deleted = object.deleted ?? undefined;
+    copyPartialScalars(message, object, 1866, 1868);
     message.associatedLabelIds = object.associatedLabelIds?.map((e) => e) || undefined;
     return message;
   },
@@ -74845,16 +71320,13 @@ export const SyncActionValue_RecentEmojiWeightsAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_RecentEmojiWeightsAction>): SyncActionValue_RecentEmojiWeightsAction {
-    return SyncActionValue_RecentEmojiWeightsAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_RecentEmojiWeightsAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_RecentEmojiWeightsAction>): SyncActionValue_RecentEmojiWeightsAction {
     const message = createBaseSyncActionValue_RecentEmojiWeightsAction();
@@ -74891,16 +71363,13 @@ export const SyncActionValue_RemoveRecentStickerAction: MessageFns<SyncActionVal
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_RemoveRecentStickerAction>): SyncActionValue_RemoveRecentStickerAction {
-    return SyncActionValue_RemoveRecentStickerAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_RemoveRecentStickerAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_RemoveRecentStickerAction>,
@@ -75302,53 +71771,17 @@ export const SyncActionValue_SettingsSyncAction: MessageFns<SyncActionValue_Sett
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_SettingsSyncAction>): SyncActionValue_SettingsSyncAction {
-    return SyncActionValue_SettingsSyncAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SettingsSyncAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_SettingsSyncAction>): SyncActionValue_SettingsSyncAction {
     const message = createBaseSyncActionValue_SettingsSyncAction();
-    message.startAtLogin = object.startAtLogin ?? undefined;
-    message.minimizeToTray = object.minimizeToTray ?? undefined;
-    message.language = object.language ?? undefined;
-    message.replaceTextWithEmoji = object.replaceTextWithEmoji ?? undefined;
-    message.bannerNotificationDisplayMode = object.bannerNotificationDisplayMode ?? undefined;
-    message.unreadCounterBadgeDisplayMode = object.unreadCounterBadgeDisplayMode ?? undefined;
-    message.isMessagesNotificationEnabled = object.isMessagesNotificationEnabled ?? undefined;
-    message.isCallsNotificationEnabled = object.isCallsNotificationEnabled ?? undefined;
-    message.isReactionsNotificationEnabled = object.isReactionsNotificationEnabled ?? undefined;
-    message.isStatusReactionsNotificationEnabled = object.isStatusReactionsNotificationEnabled ?? undefined;
-    message.isTextPreviewForNotificationEnabled = object.isTextPreviewForNotificationEnabled ?? undefined;
-    message.defaultNotificationToneId = object.defaultNotificationToneId ?? undefined;
-    message.groupDefaultNotificationToneId = object.groupDefaultNotificationToneId ?? undefined;
-    message.appTheme = object.appTheme ?? undefined;
-    message.wallpaperId = object.wallpaperId ?? undefined;
-    message.isDoodleWallpaperEnabled = object.isDoodleWallpaperEnabled ?? undefined;
-    message.fontSize = object.fontSize ?? undefined;
-    message.isPhotosAutodownloadEnabled = object.isPhotosAutodownloadEnabled ?? undefined;
-    message.isAudiosAutodownloadEnabled = object.isAudiosAutodownloadEnabled ?? undefined;
-    message.isVideosAutodownloadEnabled = object.isVideosAutodownloadEnabled ?? undefined;
-    message.isDocumentsAutodownloadEnabled = object.isDocumentsAutodownloadEnabled ?? undefined;
-    message.disableLinkPreviews = object.disableLinkPreviews ?? undefined;
-    message.notificationToneId = object.notificationToneId ?? undefined;
-    message.mediaUploadQuality = object.mediaUploadQuality ?? undefined;
-    message.isSpellCheckEnabled = object.isSpellCheckEnabled ?? undefined;
-    message.isEnterToSendEnabled = object.isEnterToSendEnabled ?? undefined;
-    message.isGroupMessageNotificationEnabled = object.isGroupMessageNotificationEnabled ?? undefined;
-    message.isGroupReactionsNotificationEnabled = object.isGroupReactionsNotificationEnabled ?? undefined;
-    message.isStatusNotificationEnabled = object.isStatusNotificationEnabled ?? undefined;
-    message.statusNotificationToneId = object.statusNotificationToneId ?? undefined;
-    message.shouldPlaySoundForCallNotification = object.shouldPlaySoundForCallNotification ?? undefined;
-    message.chatThemeId = object.chatThemeId ?? undefined;
-    message.colorSchemeId = object.colorSchemeId ?? undefined;
-    message.stockWallpaperImageId = object.stockWallpaperImageId ?? undefined;
+    copyPartialScalars(message, object, 1868, 1902);
     return message;
   },
 };
@@ -75381,16 +71814,13 @@ export const SyncActionValue_StarAction: MessageFns<SyncActionValue_StarAction> 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_StarAction>): SyncActionValue_StarAction {
-    return SyncActionValue_StarAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_StarAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_StarAction>): SyncActionValue_StarAction {
     const message = createBaseSyncActionValue_StarAction();
@@ -75432,10 +71862,7 @@ export const SyncActionValue_StatusPostOptInNotificationPreferencesAction: Messa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -75443,7 +71870,7 @@ export const SyncActionValue_StatusPostOptInNotificationPreferencesAction: Messa
   create(
     base?: DeepPartial<SyncActionValue_StatusPostOptInNotificationPreferencesAction>,
   ): SyncActionValue_StatusPostOptInNotificationPreferencesAction {
-    return SyncActionValue_StatusPostOptInNotificationPreferencesAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_StatusPostOptInNotificationPreferencesAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_StatusPostOptInNotificationPreferencesAction>,
@@ -75571,23 +71998,19 @@ export const SyncActionValue_StatusPrivacyAction: MessageFns<SyncActionValue_Sta
           break;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_StatusPrivacyAction>): SyncActionValue_StatusPrivacyAction {
-    return SyncActionValue_StatusPrivacyAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_StatusPrivacyAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_StatusPrivacyAction>): SyncActionValue_StatusPrivacyAction {
     const message = createBaseSyncActionValue_StatusPrivacyAction();
     message.mode = object.mode ?? undefined;
     message.userJid = object.userJid?.map((e) => e) || undefined;
-    message.shareToFb = object.shareToFb ?? undefined;
-    message.shareToIg = object.shareToIg ?? undefined;
+    copyPartialScalars(message, object, 1902, 1904);
     message.customLists =
       object.customLists?.map((e) => SyncActionValue_StatusPrivacyAction_CustomList.fromPartial(e)) || undefined;
     message.modes = object.modes?.map((e) => e) || undefined;
@@ -75680,10 +72103,7 @@ export const SyncActionValue_StatusPrivacyAction_CustomList: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -75691,16 +72111,13 @@ export const SyncActionValue_StatusPrivacyAction_CustomList: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_StatusPrivacyAction_CustomList>,
   ): SyncActionValue_StatusPrivacyAction_CustomList {
-    return SyncActionValue_StatusPrivacyAction_CustomList.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_StatusPrivacyAction_CustomList, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_StatusPrivacyAction_CustomList>,
   ): SyncActionValue_StatusPrivacyAction_CustomList {
     const message = createBaseSyncActionValue_StatusPrivacyAction_CustomList();
-    message.listId = object.listId ?? undefined;
-    message.name = object.name ?? undefined;
-    message.emoji = object.emoji ?? undefined;
-    message.isSelected = object.isSelected ?? undefined;
+    copyPartialScalars(message, object, 1904, 1908);
     message.userJid = object.userJid?.map((e) => e) || undefined;
     return message;
   },
@@ -75866,32 +72283,17 @@ export const SyncActionValue_StickerAction: MessageFns<SyncActionValue_StickerAc
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_StickerAction>): SyncActionValue_StickerAction {
-    return SyncActionValue_StickerAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_StickerAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_StickerAction>): SyncActionValue_StickerAction {
     const message = createBaseSyncActionValue_StickerAction();
-    message.url = object.url ?? undefined;
-    message.fileEncSha256 = object.fileEncSha256 ?? undefined;
-    message.mediaKey = object.mediaKey ?? undefined;
-    message.mimetype = object.mimetype ?? undefined;
-    message.height = object.height ?? undefined;
-    message.width = object.width ?? undefined;
-    message.directPath = object.directPath ?? undefined;
-    message.fileLength = object.fileLength ?? undefined;
-    message.isFavorite = object.isFavorite ?? undefined;
-    message.deviceIdHint = object.deviceIdHint ?? undefined;
-    message.isLottie = object.isLottie ?? undefined;
-    message.imageHash = object.imageHash ?? undefined;
-    message.isAvatarSticker = object.isAvatarSticker ?? undefined;
+    copyPartialScalars(message, object, 1908, 1921);
     return message;
   },
 };
@@ -75946,22 +72348,17 @@ export const SyncActionValue_SubscriptionAction: MessageFns<SyncActionValue_Subs
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_SubscriptionAction>): SyncActionValue_SubscriptionAction {
-    return SyncActionValue_SubscriptionAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SubscriptionAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_SubscriptionAction>): SyncActionValue_SubscriptionAction {
     const message = createBaseSyncActionValue_SubscriptionAction();
-    message.isDeactivated = object.isDeactivated ?? undefined;
-    message.isAutoRenewing = object.isAutoRenewing ?? undefined;
-    message.expirationDate = object.expirationDate ?? undefined;
+    copyPartialScalars(message, object, 1921, 1924);
     return message;
   },
 };
@@ -76021,16 +72418,13 @@ export const SyncActionValue_SubscriptionsSyncV2Action: MessageFns<SyncActionVal
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action>): SyncActionValue_SubscriptionsSyncV2Action {
-    return SyncActionValue_SubscriptionsSyncV2Action.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SubscriptionsSyncV2Action, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action>,
@@ -76111,10 +72505,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -76122,16 +72513,13 @@ export const SyncActionValue_SubscriptionsSyncV2Action_PaidFeature: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_PaidFeature>,
   ): SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
-    return SyncActionValue_SubscriptionsSyncV2Action_PaidFeature.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SubscriptionsSyncV2Action_PaidFeature, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_PaidFeature>,
   ): SyncActionValue_SubscriptionsSyncV2Action_PaidFeature {
     const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_PaidFeature();
-    message.name = object.name ?? undefined;
-    message.enabled = object.enabled ?? undefined;
-    message.limit = object.limit ?? undefined;
-    message.expirationTime = object.expirationTime ?? undefined;
+    copyPartialScalars(message, object, 1924, 1928);
     return message;
   },
 };
@@ -76246,10 +72634,7 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -76257,20 +72642,13 @@ export const SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo: Message
   create(
     base?: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo>,
   ): SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
-    return SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo>,
   ): SyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo {
     const message = createBaseSyncActionValue_SubscriptionsSyncV2Action_SubscriptionInfo();
-    message.id = object.id ?? undefined;
-    message.tier = object.tier ?? undefined;
-    message.status = object.status ?? undefined;
-    message.startTime = object.startTime ?? undefined;
-    message.endTime = object.endTime ?? undefined;
-    message.isPlatformChanged = object.isPlatformChanged ?? undefined;
-    message.source = object.source ?? undefined;
-    message.creationTime = object.creationTime ?? undefined;
+    copyPartialScalars(message, object, 1928, 1936);
     return message;
   },
 };
@@ -76314,16 +72692,13 @@ export const SyncActionValue_SyncActionMessage: MessageFns<SyncActionValue_SyncA
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_SyncActionMessage>): SyncActionValue_SyncActionMessage {
-    return SyncActionValue_SyncActionMessage.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SyncActionMessage, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_SyncActionMessage>): SyncActionValue_SyncActionMessage {
     const message = createBaseSyncActionValue_SyncActionMessage();
@@ -76391,21 +72766,17 @@ export const SyncActionValue_SyncActionMessageRange: MessageFns<SyncActionValue_
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_SyncActionMessageRange>): SyncActionValue_SyncActionMessageRange {
-    return SyncActionValue_SyncActionMessageRange.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_SyncActionMessageRange, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_SyncActionMessageRange>): SyncActionValue_SyncActionMessageRange {
     const message = createBaseSyncActionValue_SyncActionMessageRange();
-    message.lastMessageTimestamp = object.lastMessageTimestamp ?? undefined;
-    message.lastSystemMessageTimestamp = object.lastSystemMessageTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1936, 1938);
     message.messages = object.messages?.map((e) => SyncActionValue_SyncActionMessage.fromPartial(e)) || undefined;
     return message;
   },
@@ -76439,16 +72810,13 @@ export const SyncActionValue_ThreadPinAction: MessageFns<SyncActionValue_ThreadP
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_ThreadPinAction>): SyncActionValue_ThreadPinAction {
-    return SyncActionValue_ThreadPinAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_ThreadPinAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_ThreadPinAction>): SyncActionValue_ThreadPinAction {
     const message = createBaseSyncActionValue_ThreadPinAction();
@@ -76485,16 +72853,13 @@ export const SyncActionValue_TimeFormatAction: MessageFns<SyncActionValue_TimeFo
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_TimeFormatAction>): SyncActionValue_TimeFormatAction {
-    return SyncActionValue_TimeFormatAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_TimeFormatAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_TimeFormatAction>): SyncActionValue_TimeFormatAction {
     const message = createBaseSyncActionValue_TimeFormatAction();
@@ -76531,16 +72896,13 @@ export const SyncActionValue_UGCBot: MessageFns<SyncActionValue_UGCBot> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_UGCBot>): SyncActionValue_UGCBot {
-    return SyncActionValue_UGCBot.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_UGCBot, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_UGCBot>): SyncActionValue_UGCBot {
     const message = createBaseSyncActionValue_UGCBot();
@@ -76577,16 +72939,13 @@ export const SyncActionValue_UnarchiveChatsSetting: MessageFns<SyncActionValue_U
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_UnarchiveChatsSetting>): SyncActionValue_UnarchiveChatsSetting {
-    return SyncActionValue_UnarchiveChatsSetting.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_UnarchiveChatsSetting, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_UnarchiveChatsSetting>): SyncActionValue_UnarchiveChatsSetting {
     const message = createBaseSyncActionValue_UnarchiveChatsSetting();
@@ -76623,16 +72982,13 @@ export const SyncActionValue_UserStatusMuteAction: MessageFns<SyncActionValue_Us
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_UserStatusMuteAction>): SyncActionValue_UserStatusMuteAction {
-    return SyncActionValue_UserStatusMuteAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_UserStatusMuteAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_UserStatusMuteAction>): SyncActionValue_UserStatusMuteAction {
     const message = createBaseSyncActionValue_UserStatusMuteAction();
@@ -76672,16 +73028,13 @@ export const SyncActionValue_UsernameChatStartModeAction: MessageFns<SyncActionV
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_UsernameChatStartModeAction>): SyncActionValue_UsernameChatStartModeAction {
-    return SyncActionValue_UsernameChatStartModeAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_UsernameChatStartModeAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_UsernameChatStartModeAction>,
@@ -76728,16 +73081,13 @@ export const SyncActionValue_WASARootSecretAction: MessageFns<SyncActionValue_WA
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_WASARootSecretAction>): SyncActionValue_WASARootSecretAction {
-    return SyncActionValue_WASARootSecretAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_WASARootSecretAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_WASARootSecretAction>): SyncActionValue_WASARootSecretAction {
     const message = createBaseSyncActionValue_WASARootSecretAction();
@@ -76813,10 +73163,7 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -76824,16 +73171,13 @@ export const SyncActionValue_WASARootSecretAction_RootSecretEntry: MessageFns<
   create(
     base?: DeepPartial<SyncActionValue_WASARootSecretAction_RootSecretEntry>,
   ): SyncActionValue_WASARootSecretAction_RootSecretEntry {
-    return SyncActionValue_WASARootSecretAction_RootSecretEntry.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_WASARootSecretAction_RootSecretEntry, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_WASARootSecretAction_RootSecretEntry>,
   ): SyncActionValue_WASARootSecretAction_RootSecretEntry {
     const message = createBaseSyncActionValue_WASARootSecretAction_RootSecretEntry();
-    message.id = object.id ?? undefined;
-    message.rootSecret = object.rootSecret ?? undefined;
-    message.epoch = object.epoch ?? undefined;
-    message.status = object.status ?? undefined;
+    copyPartialScalars(message, object, 1938, 1942);
     return message;
   },
 };
@@ -76869,10 +73213,7 @@ export const SyncActionValue_WaffleAccountLinkStateAction: MessageFns<SyncAction
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -76880,7 +73221,7 @@ export const SyncActionValue_WaffleAccountLinkStateAction: MessageFns<SyncAction
   create(
     base?: DeepPartial<SyncActionValue_WaffleAccountLinkStateAction>,
   ): SyncActionValue_WaffleAccountLinkStateAction {
-    return SyncActionValue_WaffleAccountLinkStateAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_WaffleAccountLinkStateAction, base);
   },
   fromPartial(
     object: DeepPartial<SyncActionValue_WaffleAccountLinkStateAction>,
@@ -76919,16 +73260,13 @@ export const SyncActionValue_WamoUserIdentifierAction: MessageFns<SyncActionValu
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncActionValue_WamoUserIdentifierAction>): SyncActionValue_WamoUserIdentifierAction {
-    return SyncActionValue_WamoUserIdentifierAction.fromPartial(base ?? {});
+    return createPartialMessage(SyncActionValue_WamoUserIdentifierAction, base);
   },
   fromPartial(object: DeepPartial<SyncActionValue_WamoUserIdentifierAction>): SyncActionValue_WamoUserIdentifierAction {
     const message = createBaseSyncActionValue_WamoUserIdentifierAction();
@@ -76965,16 +73303,13 @@ export const SyncdIndex: MessageFns<SyncdIndex> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdIndex>): SyncdIndex {
-    return SyncdIndex.fromPartial(base ?? {});
+    return createPartialMessage(SyncdIndex, base);
   },
   fromPartial(object: DeepPartial<SyncdIndex>): SyncdIndex {
     const message = createBaseSyncdIndex();
@@ -77022,16 +73357,13 @@ export const SyncdMutation: MessageFns<SyncdMutation> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdMutation>): SyncdMutation {
-    return SyncdMutation.fromPartial(base ?? {});
+    return createPartialMessage(SyncdMutation, base);
   },
   fromPartial(object: DeepPartial<SyncdMutation>): SyncdMutation {
     const message = createBaseSyncdMutation();
@@ -77079,16 +73411,13 @@ export const SyncdMutations: MessageFns<SyncdMutations> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdMutations>): SyncdMutations {
-    return SyncdMutations.fromPartial(base ?? {});
+    return createPartialMessage(SyncdMutations, base);
   },
   fromPartial(object: DeepPartial<SyncdMutations>): SyncdMutations {
     const message = createBaseSyncdMutations();
@@ -77221,16 +73550,13 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdPatch>): SyncdPatch {
-    return SyncdPatch.fromPartial(base ?? {});
+    return createPartialMessage(SyncdPatch, base);
   },
   fromPartial(object: DeepPartial<SyncdPatch>): SyncdPatch {
     const message = createBaseSyncdPatch();
@@ -77241,14 +73567,12 @@ export const SyncdPatch: MessageFns<SyncdPatch> = {
     message.externalMutations = (object.externalMutations !== undefined && object.externalMutations !== null)
       ? ExternalBlobReference.fromPartial(object.externalMutations)
       : undefined;
-    message.snapshotMac = object.snapshotMac ?? undefined;
-    message.patchMac = object.patchMac ?? undefined;
+    copyPartialScalars(message, object, 1942, 1944);
     message.keyId = (object.keyId !== undefined && object.keyId !== null) ? KeyId.fromPartial(object.keyId) : undefined;
     message.exitCode = (object.exitCode !== undefined && object.exitCode !== null)
       ? ExitCode.fromPartial(object.exitCode)
       : undefined;
-    message.deviceIndex = object.deviceIndex ?? undefined;
-    message.clientDebugData = object.clientDebugData ?? undefined;
+    copyPartialScalars(message, object, 1944, 1946);
     return message;
   },
 };
@@ -77303,24 +73627,20 @@ export const SyncdPlainTextRecord: MessageFns<SyncdPlainTextRecord> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdPlainTextRecord>): SyncdPlainTextRecord {
-    return SyncdPlainTextRecord.fromPartial(base ?? {});
+    return createPartialMessage(SyncdPlainTextRecord, base);
   },
   fromPartial(object: DeepPartial<SyncdPlainTextRecord>): SyncdPlainTextRecord {
     const message = createBaseSyncdPlainTextRecord();
     message.value = (object.value !== undefined && object.value !== null)
       ? SyncActionData.fromPartial(object.value)
       : undefined;
-    message.keyId = object.keyId ?? undefined;
-    message.mac = object.mac ?? undefined;
+    copyPartialScalars(message, object, 1946, 1948);
     return message;
   },
 };
@@ -77375,16 +73695,13 @@ export const SyncdRecord: MessageFns<SyncdRecord> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdRecord>): SyncdRecord {
-    return SyncdRecord.fromPartial(base ?? {});
+    return createPartialMessage(SyncdRecord, base);
   },
   fromPartial(object: DeepPartial<SyncdRecord>): SyncdRecord {
     const message = createBaseSyncdRecord();
@@ -77468,16 +73785,13 @@ export const SyncdSnapshot: MessageFns<SyncdSnapshot> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdSnapshot>): SyncdSnapshot {
-    return SyncdSnapshot.fromPartial(base ?? {});
+    return createPartialMessage(SyncdSnapshot, base);
   },
   fromPartial(object: DeepPartial<SyncdSnapshot>): SyncdSnapshot {
     const message = createBaseSyncdSnapshot();
@@ -77560,16 +73874,13 @@ export const SyncdSnapshotRecovery: MessageFns<SyncdSnapshotRecovery> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdSnapshotRecovery>): SyncdSnapshotRecovery {
-    return SyncdSnapshotRecovery.fromPartial(base ?? {});
+    return createPartialMessage(SyncdSnapshotRecovery, base);
   },
   fromPartial(object: DeepPartial<SyncdSnapshotRecovery>): SyncdSnapshotRecovery {
     const message = createBaseSyncdSnapshotRecovery();
@@ -77611,16 +73922,13 @@ export const SyncdValue: MessageFns<SyncdValue> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdValue>): SyncdValue {
-    return SyncdValue.fromPartial(base ?? {});
+    return createPartialMessage(SyncdValue, base);
   },
   fromPartial(object: DeepPartial<SyncdValue>): SyncdValue {
     const message = createBaseSyncdValue();
@@ -77657,16 +73965,13 @@ export const SyncdVersion: MessageFns<SyncdVersion> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<SyncdVersion>): SyncdVersion {
-    return SyncdVersion.fromPartial(base ?? {});
+    return createPartialMessage(SyncdVersion, base);
   },
   fromPartial(object: DeepPartial<SyncdVersion>): SyncdVersion {
     const message = createBaseSyncdVersion();
@@ -77714,21 +74019,17 @@ export const TapLinkAction: MessageFns<TapLinkAction> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<TapLinkAction>): TapLinkAction {
-    return TapLinkAction.fromPartial(base ?? {});
+    return createPartialMessage(TapLinkAction, base);
   },
   fromPartial(object: DeepPartial<TapLinkAction>): TapLinkAction {
     const message = createBaseTapLinkAction();
-    message.title = object.title ?? undefined;
-    message.tapUrl = object.tapUrl ?? undefined;
+    copyPartialScalars(message, object, 1948, 1950);
     return message;
   },
 };
@@ -77794,16 +74095,13 @@ export const TemplateButton: MessageFns<TemplateButton> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<TemplateButton>): TemplateButton {
-    return TemplateButton.fromPartial(base ?? {});
+    return createPartialMessage(TemplateButton, base);
   },
   fromPartial(object: DeepPartial<TemplateButton>): TemplateButton {
     const message = createBaseTemplateButton();
@@ -77860,16 +74158,13 @@ export const TemplateButton_CallButton: MessageFns<TemplateButton_CallButton> = 
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<TemplateButton_CallButton>): TemplateButton_CallButton {
-    return TemplateButton_CallButton.fromPartial(base ?? {});
+    return createPartialMessage(TemplateButton_CallButton, base);
   },
   fromPartial(object: DeepPartial<TemplateButton_CallButton>): TemplateButton_CallButton {
     const message = createBaseTemplateButton_CallButton();
@@ -77922,16 +74217,13 @@ export const TemplateButton_QuickReplyButton: MessageFns<TemplateButton_QuickRep
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<TemplateButton_QuickReplyButton>): TemplateButton_QuickReplyButton {
-    return TemplateButton_QuickReplyButton.fromPartial(base ?? {});
+    return createPartialMessage(TemplateButton_QuickReplyButton, base);
   },
   fromPartial(object: DeepPartial<TemplateButton_QuickReplyButton>): TemplateButton_QuickReplyButton {
     const message = createBaseTemplateButton_QuickReplyButton();
@@ -77982,16 +74274,13 @@ export const TemplateButton_URLButton: MessageFns<TemplateButton_URLButton> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<TemplateButton_URLButton>): TemplateButton_URLButton {
-    return TemplateButton_URLButton.fromPartial(base ?? {});
+    return createPartialMessage(TemplateButton_URLButton, base);
   },
   fromPartial(object: DeepPartial<TemplateButton_URLButton>): TemplateButton_URLButton {
     const message = createBaseTemplateButton_URLButton();
@@ -78044,16 +74333,13 @@ export const ThreadID: MessageFns<ThreadID> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<ThreadID>): ThreadID {
-    return ThreadID.fromPartial(base ?? {});
+    return createPartialMessage(ThreadID, base);
   },
   fromPartial(object: DeepPartial<ThreadID>): ThreadID {
     const message = createBaseThreadID();
@@ -78123,16 +74409,13 @@ export const UnCountedAssociatedMessageList: MessageFns<UnCountedAssociatedMessa
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UnCountedAssociatedMessageList>): UnCountedAssociatedMessageList {
-    return UnCountedAssociatedMessageList.fromPartial(base ?? {});
+    return createPartialMessage(UnCountedAssociatedMessageList, base);
   },
   fromPartial(object: DeepPartial<UnCountedAssociatedMessageList>): UnCountedAssociatedMessageList {
     const message = createBaseUnCountedAssociatedMessageList();
@@ -78197,10 +74480,7 @@ export const UnCountedAssociatedMessageListWithMessageBytes: MessageFns<
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
@@ -78208,7 +74488,7 @@ export const UnCountedAssociatedMessageListWithMessageBytes: MessageFns<
   create(
     base?: DeepPartial<UnCountedAssociatedMessageListWithMessageBytes>,
   ): UnCountedAssociatedMessageListWithMessageBytes {
-    return UnCountedAssociatedMessageListWithMessageBytes.fromPartial(base ?? {});
+    return createPartialMessage(UnCountedAssociatedMessageListWithMessageBytes, base);
   },
   fromPartial(
     object: DeepPartial<UnCountedAssociatedMessageListWithMessageBytes>,
@@ -78258,16 +74538,13 @@ export const UrlTrackingMap: MessageFns<UrlTrackingMap> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UrlTrackingMap>): UrlTrackingMap {
-    return UrlTrackingMap.fromPartial(base ?? {});
+    return createPartialMessage(UrlTrackingMap, base);
   },
   fromPartial(object: DeepPartial<UrlTrackingMap>): UrlTrackingMap {
     const message = createBaseUrlTrackingMap();
@@ -78338,23 +74615,17 @@ export const UrlTrackingMap_UrlTrackingMapElement: MessageFns<UrlTrackingMap_Url
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UrlTrackingMap_UrlTrackingMapElement>): UrlTrackingMap_UrlTrackingMapElement {
-    return UrlTrackingMap_UrlTrackingMapElement.fromPartial(base ?? {});
+    return createPartialMessage(UrlTrackingMap_UrlTrackingMapElement, base);
   },
   fromPartial(object: DeepPartial<UrlTrackingMap_UrlTrackingMapElement>): UrlTrackingMap_UrlTrackingMapElement {
     const message = createBaseUrlTrackingMap_UrlTrackingMapElement();
-    message.originalUrl = object.originalUrl ?? undefined;
-    message.unconsentedUsersUrl = object.unconsentedUsersUrl ?? undefined;
-    message.consentedUsersUrl = object.consentedUsersUrl ?? undefined;
-    message.cardIndex = object.cardIndex ?? undefined;
+    copyPartialScalars(message, object, 1950, 1954);
     return message;
   },
 };
@@ -78428,21 +74699,17 @@ export const UserPassword: MessageFns<UserPassword> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UserPassword>): UserPassword {
-    return UserPassword.fromPartial(base ?? {});
+    return createPartialMessage(UserPassword, base);
   },
   fromPartial(object: DeepPartial<UserPassword>): UserPassword {
     const message = createBaseUserPassword();
-    message.encoding = object.encoding ?? undefined;
-    message.transformer = object.transformer ?? undefined;
+    copyPartialScalars(message, object, 1954, 1956);
     message.transformerArg = object.transformerArg?.map((e) => UserPassword_TransformerArg.fromPartial(e)) || undefined;
     message.transformedData = object.transformedData ?? undefined;
     return message;
@@ -78488,16 +74755,13 @@ export const UserPassword_TransformerArg: MessageFns<UserPassword_TransformerArg
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UserPassword_TransformerArg>): UserPassword_TransformerArg {
-    return UserPassword_TransformerArg.fromPartial(base ?? {});
+    return createPartialMessage(UserPassword_TransformerArg, base);
   },
   fromPartial(object: DeepPartial<UserPassword_TransformerArg>): UserPassword_TransformerArg {
     const message = createBaseUserPassword_TransformerArg();
@@ -78548,21 +74812,17 @@ export const UserPassword_TransformerArg_Value: MessageFns<UserPassword_Transfor
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UserPassword_TransformerArg_Value>): UserPassword_TransformerArg_Value {
-    return UserPassword_TransformerArg_Value.fromPartial(base ?? {});
+    return createPartialMessage(UserPassword_TransformerArg_Value, base);
   },
   fromPartial(object: DeepPartial<UserPassword_TransformerArg_Value>): UserPassword_TransformerArg_Value {
     const message = createBaseUserPassword_TransformerArg_Value();
-    message.asBlob = object.asBlob ?? undefined;
-    message.asUnsignedInteger = object.asUnsignedInteger ?? undefined;
+    copyPartialScalars(message, object, 1956, 1958);
     return message;
   },
 };
@@ -78666,23 +74926,17 @@ export const UserReceipt: MessageFns<UserReceipt> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<UserReceipt>): UserReceipt {
-    return UserReceipt.fromPartial(base ?? {});
+    return createPartialMessage(UserReceipt, base);
   },
   fromPartial(object: DeepPartial<UserReceipt>): UserReceipt {
     const message = createBaseUserReceipt();
-    message.userJid = object.userJid ?? undefined;
-    message.receiptTimestamp = object.receiptTimestamp ?? undefined;
-    message.readTimestamp = object.readTimestamp ?? undefined;
-    message.playedTimestamp = object.playedTimestamp ?? undefined;
+    copyPartialScalars(message, object, 1958, 1962);
     message.pendingDeviceJid = object.pendingDeviceJid?.map((e) => e) || undefined;
     message.deliveredDeviceJid = object.deliveredDeviceJid?.map((e) => e) || undefined;
     return message;
@@ -78739,22 +74993,17 @@ export const VerifiedNameCertificate: MessageFns<VerifiedNameCertificate> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<VerifiedNameCertificate>): VerifiedNameCertificate {
-    return VerifiedNameCertificate.fromPartial(base ?? {});
+    return createPartialMessage(VerifiedNameCertificate, base);
   },
   fromPartial(object: DeepPartial<VerifiedNameCertificate>): VerifiedNameCertificate {
     const message = createBaseVerifiedNameCertificate();
-    message.details = object.details ?? undefined;
-    message.signature = object.signature ?? undefined;
-    message.serverSignature = object.serverSignature ?? undefined;
+    copyPartialScalars(message, object, 1962, 1965);
     return message;
   },
 };
@@ -78839,22 +75088,17 @@ export const VerifiedNameCertificate_Details: MessageFns<VerifiedNameCertificate
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<VerifiedNameCertificate_Details>): VerifiedNameCertificate_Details {
-    return VerifiedNameCertificate_Details.fromPartial(base ?? {});
+    return createPartialMessage(VerifiedNameCertificate_Details, base);
   },
   fromPartial(object: DeepPartial<VerifiedNameCertificate_Details>): VerifiedNameCertificate_Details {
     const message = createBaseVerifiedNameCertificate_Details();
-    message.serial = object.serial ?? undefined;
-    message.issuer = object.issuer ?? undefined;
-    message.verifiedName = object.verifiedName ?? undefined;
+    copyPartialScalars(message, object, 1965, 1968);
     message.localizedNames = object.localizedNames?.map((e) => LocalizedName.fromPartial(e)) || undefined;
     message.issueTime = object.issueTime ?? undefined;
     return message;
@@ -78955,25 +75199,17 @@ export const VirtualDeviceOutput: MessageFns<VirtualDeviceOutput> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<VirtualDeviceOutput>): VirtualDeviceOutput {
-    return VirtualDeviceOutput.fromPartial(base ?? {});
+    return createPartialMessage(VirtualDeviceOutput, base);
   },
   fromPartial(object: DeepPartial<VirtualDeviceOutput>): VirtualDeviceOutput {
     const message = createBaseVirtualDeviceOutput();
-    message.vdId = object.vdId ?? undefined;
-    message.vdPublicKey = object.vdPublicKey ?? undefined;
-    message.vdEpochStoragePublicKey = object.vdEpochStoragePublicKey ?? undefined;
-    message.vdEpochStoragePublicKeySig = object.vdEpochStoragePublicKeySig ?? undefined;
-    message.ocmfRotationToken = object.ocmfRotationToken ?? undefined;
-    message.deviceEpochHmac = object.deviceEpochHmac ?? undefined;
+    copyPartialScalars(message, object, 1968, 1974);
     message.encryptedSecretValues =
       (object.encryptedSecretValues !== undefined && object.encryptedSecretValues !== null)
         ? EncryptedSecretValuesOutput.fromPartial(object.encryptedSecretValues)
@@ -79032,22 +75268,17 @@ export const WallpaperSettings: MessageFns<WallpaperSettings> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WallpaperSettings>): WallpaperSettings {
-    return WallpaperSettings.fromPartial(base ?? {});
+    return createPartialMessage(WallpaperSettings, base);
   },
   fromPartial(object: DeepPartial<WallpaperSettings>): WallpaperSettings {
     const message = createBaseWallpaperSettings();
-    message.filename = object.filename ?? undefined;
-    message.opacity = object.opacity ?? undefined;
-    message.isGenAi = object.isGenAi ?? undefined;
+    copyPartialScalars(message, object, 1974, 1977);
     return message;
   },
 };
@@ -79564,64 +75795,17 @@ export const WebFeatures: MessageFns<WebFeatures> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WebFeatures>): WebFeatures {
-    return WebFeatures.fromPartial(base ?? {});
+    return createPartialMessage(WebFeatures, base);
   },
   fromPartial(object: DeepPartial<WebFeatures>): WebFeatures {
     const message = createBaseWebFeatures();
-    message.labelsDisplay = object.labelsDisplay ?? undefined;
-    message.voipIndividualOutgoing = object.voipIndividualOutgoing ?? undefined;
-    message.groupsV3 = object.groupsV3 ?? undefined;
-    message.groupsV3Create = object.groupsV3Create ?? undefined;
-    message.changeNumberV2 = object.changeNumberV2 ?? undefined;
-    message.queryStatusV3Thumbnail = object.queryStatusV3Thumbnail ?? undefined;
-    message.liveLocations = object.liveLocations ?? undefined;
-    message.queryVname = object.queryVname ?? undefined;
-    message.voipIndividualIncoming = object.voipIndividualIncoming ?? undefined;
-    message.quickRepliesQuery = object.quickRepliesQuery ?? undefined;
-    message.payments = object.payments ?? undefined;
-    message.stickerPackQuery = object.stickerPackQuery ?? undefined;
-    message.liveLocationsFinal = object.liveLocationsFinal ?? undefined;
-    message.labelsEdit = object.labelsEdit ?? undefined;
-    message.mediaUpload = object.mediaUpload ?? undefined;
-    message.mediaUploadRichQuickReplies = object.mediaUploadRichQuickReplies ?? undefined;
-    message.vnameV2 = object.vnameV2 ?? undefined;
-    message.videoPlaybackUrl = object.videoPlaybackUrl ?? undefined;
-    message.statusRanking = object.statusRanking ?? undefined;
-    message.voipIndividualVideo = object.voipIndividualVideo ?? undefined;
-    message.thirdPartyStickers = object.thirdPartyStickers ?? undefined;
-    message.frequentlyForwardedSetting = object.frequentlyForwardedSetting ?? undefined;
-    message.groupsV4JoinPermission = object.groupsV4JoinPermission ?? undefined;
-    message.recentStickers = object.recentStickers ?? undefined;
-    message.catalog = object.catalog ?? undefined;
-    message.starredStickers = object.starredStickers ?? undefined;
-    message.voipGroupCall = object.voipGroupCall ?? undefined;
-    message.templateMessage = object.templateMessage ?? undefined;
-    message.templateMessageInteractivity = object.templateMessageInteractivity ?? undefined;
-    message.ephemeralMessages = object.ephemeralMessages ?? undefined;
-    message.e2ENotificationSync = object.e2ENotificationSync ?? undefined;
-    message.recentStickersV2 = object.recentStickersV2 ?? undefined;
-    message.recentStickersV3 = object.recentStickersV3 ?? undefined;
-    message.userNotice = object.userNotice ?? undefined;
-    message.support = object.support ?? undefined;
-    message.groupUiiCleanup = object.groupUiiCleanup ?? undefined;
-    message.groupDogfoodingInternalOnly = object.groupDogfoodingInternalOnly ?? undefined;
-    message.settingsSync = object.settingsSync ?? undefined;
-    message.archiveV2 = object.archiveV2 ?? undefined;
-    message.ephemeralAllowGroupMembers = object.ephemeralAllowGroupMembers ?? undefined;
-    message.ephemeral24HDuration = object.ephemeral24HDuration ?? undefined;
-    message.mdForceUpgrade = object.mdForceUpgrade ?? undefined;
-    message.disappearingMode = object.disappearingMode ?? undefined;
-    message.externalMdOptInAvailable = object.externalMdOptInAvailable ?? undefined;
-    message.noDeleteMessageTimeLimit = object.noDeleteMessageTimeLimit ?? undefined;
+    copyPartialScalars(message, object, 1977, 2022);
     return message;
   },
 };
@@ -80527,16 +76711,13 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WebMessageInfo>): WebMessageInfo {
-    return WebMessageInfo.fromPartial(base ?? {});
+    return createPartialMessage(WebMessageInfo, base);
   },
   fromPartial(object: DeepPartial<WebMessageInfo>): WebMessageInfo {
     const message = createBaseWebMessageInfo();
@@ -80544,20 +76725,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.message = (object.message !== undefined && object.message !== null)
       ? Message.fromPartial(object.message)
       : undefined;
-    message.messageTimestamp = object.messageTimestamp ?? undefined;
-    message.status = object.status ?? undefined;
-    message.participant = object.participant ?? undefined;
-    message.messageC2STimestamp = object.messageC2STimestamp ?? undefined;
-    message.ignore = object.ignore ?? undefined;
-    message.starred = object.starred ?? undefined;
-    message.broadcast = object.broadcast ?? undefined;
-    message.pushName = object.pushName ?? undefined;
-    message.mediaCiphertextSha256 = object.mediaCiphertextSha256 ?? undefined;
-    message.multicast = object.multicast ?? undefined;
-    message.urlText = object.urlText ?? undefined;
-    message.urlNumber = object.urlNumber ?? undefined;
-    message.messageStubType = object.messageStubType ?? undefined;
-    message.clearMedia = object.clearMedia ?? undefined;
+    copyPartialScalars(message, object, 2022, 2036);
     message.messageStubParameters = object.messageStubParameters?.map((e) => e) || undefined;
     message.duration = object.duration ?? undefined;
     message.labels = object.labels?.map((e) => e) || undefined;
@@ -80570,12 +76738,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.quotedPaymentInfo = (object.quotedPaymentInfo !== undefined && object.quotedPaymentInfo !== null)
       ? PaymentInfo.fromPartial(object.quotedPaymentInfo)
       : undefined;
-    message.ephemeralStartTimestamp = object.ephemeralStartTimestamp ?? undefined;
-    message.ephemeralDuration = object.ephemeralDuration ?? undefined;
-    message.ephemeralOffToOn = object.ephemeralOffToOn ?? undefined;
-    message.ephemeralOutOfSync = object.ephemeralOutOfSync ?? undefined;
-    message.bizPrivacyStatus = object.bizPrivacyStatus ?? undefined;
-    message.verifiedBizName = object.verifiedBizName ?? undefined;
+    copyPartialScalars(message, object, 2036, 2042);
     message.mediaData = (object.mediaData !== undefined && object.mediaData !== null)
       ? MediaData.fromPartial(object.mediaData)
       : undefined;
@@ -80596,23 +76759,18 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
       (object.pollAdditionalMetadata !== undefined && object.pollAdditionalMetadata !== null)
         ? PollAdditionalMetadata.fromPartial(object.pollAdditionalMetadata)
         : undefined;
-    message.agentId = object.agentId ?? undefined;
-    message.statusAlreadyViewed = object.statusAlreadyViewed ?? undefined;
-    message.messageSecret = object.messageSecret ?? undefined;
+    copyPartialScalars(message, object, 2042, 2045);
     message.keepInChat = (object.keepInChat !== undefined && object.keepInChat !== null)
       ? KeepInChat.fromPartial(object.keepInChat)
       : undefined;
-    message.originalSelfAuthorUserJidString = object.originalSelfAuthorUserJidString ?? undefined;
-    message.revokeMessageTimestamp = object.revokeMessageTimestamp ?? undefined;
+    copyPartialScalars(message, object, 2045, 2047);
     message.pinInChat = (object.pinInChat !== undefined && object.pinInChat !== null)
       ? PinInChat.fromPartial(object.pinInChat)
       : undefined;
     message.premiumMessageInfo = (object.premiumMessageInfo !== undefined && object.premiumMessageInfo !== null)
       ? PremiumMessageInfo.fromPartial(object.premiumMessageInfo)
       : undefined;
-    message.is1PBizBotMessage = object.is1PBizBotMessage ?? undefined;
-    message.isGroupHistoryMessage = object.isGroupHistoryMessage ?? undefined;
-    message.botMessageInvokerJid = object.botMessageInvokerJid ?? undefined;
+    copyPartialScalars(message, object, 2047, 2050);
     message.commentMetadata = (object.commentMetadata !== undefined && object.commentMetadata !== null)
       ? CommentMetadata.fromPartial(object.commentMetadata)
       : undefined;
@@ -80655,9 +76813,7 @@ export const WebMessageInfo: MessageFns<WebMessageInfo> = {
     message.quarantinedMessage = (object.quarantinedMessage !== undefined && object.quarantinedMessage !== null)
       ? QuarantinedMessage.fromPartial(object.quarantinedMessage)
       : undefined;
-    message.nonJidMentions = object.nonJidMentions ?? undefined;
-    message.hsmTag = object.hsmTag ?? undefined;
-    message.ephemeralExpirationTimestamp = object.ephemeralExpirationTimestamp ?? undefined;
+    copyPartialScalars(message, object, 2050, 2053);
     message.scheduledMessageMetadata =
       (object.scheduledMessageMetadata !== undefined && object.scheduledMessageMetadata !== null)
         ? ScheduledMessageMetadata.fromPartial(object.scheduledMessageMetadata)
@@ -80707,16 +76863,13 @@ export const WebMessageInfoWithMessageBytes: MessageFns<WebMessageInfoWithMessag
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WebMessageInfoWithMessageBytes>): WebMessageInfoWithMessageBytes {
-    return WebMessageInfoWithMessageBytes.fromPartial(base ?? {});
+    return createPartialMessage(WebMessageInfoWithMessageBytes, base);
   },
   fromPartial(object: DeepPartial<WebMessageInfoWithMessageBytes>): WebMessageInfoWithMessageBytes {
     const message = createBaseWebMessageInfoWithMessageBytes();
@@ -80795,22 +76948,17 @@ export const WebNotificationsInfo: MessageFns<WebNotificationsInfo> = {
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WebNotificationsInfo>): WebNotificationsInfo {
-    return WebNotificationsInfo.fromPartial(base ?? {});
+    return createPartialMessage(WebNotificationsInfo, base);
   },
   fromPartial(object: DeepPartial<WebNotificationsInfo>): WebNotificationsInfo {
     const message = createBaseWebNotificationsInfo();
-    message.timestamp = object.timestamp ?? undefined;
-    message.unreadChats = object.unreadChats ?? undefined;
-    message.notifyMessageCount = object.notifyMessageCount ?? undefined;
+    copyPartialScalars(message, object, 2053, 2056);
     message.notifyMessages = object.notifyMessages?.map((e) => WebMessageInfo.fromPartial(e)) || undefined;
     return message;
   },
@@ -80844,16 +76992,13 @@ export const WrapTransportSigningPublicKeyInput: MessageFns<WrapTransportSigning
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WrapTransportSigningPublicKeyInput>): WrapTransportSigningPublicKeyInput {
-    return WrapTransportSigningPublicKeyInput.fromPartial(base ?? {});
+    return createPartialMessage(WrapTransportSigningPublicKeyInput, base);
   },
   fromPartial(object: DeepPartial<WrapTransportSigningPublicKeyInput>): WrapTransportSigningPublicKeyInput {
     const message = createBaseWrapTransportSigningPublicKeyInput();
@@ -80890,16 +77035,13 @@ export const WrapTransportSigningPublicKeyResult: MessageFns<WrapTransportSignin
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WrapTransportSigningPublicKeyResult>): WrapTransportSigningPublicKeyResult {
-    return WrapTransportSigningPublicKeyResult.fromPartial(base ?? {});
+    return createPartialMessage(WrapTransportSigningPublicKeyResult, base);
   },
   fromPartial(object: DeepPartial<WrapTransportSigningPublicKeyResult>): WrapTransportSigningPublicKeyResult {
     const message = createBaseWrapTransportSigningPublicKeyResult();
@@ -80936,16 +77078,13 @@ export const WrapTransportSigningSecretKeyInput: MessageFns<WrapTransportSigning
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WrapTransportSigningSecretKeyInput>): WrapTransportSigningSecretKeyInput {
-    return WrapTransportSigningSecretKeyInput.fromPartial(base ?? {});
+    return createPartialMessage(WrapTransportSigningSecretKeyInput, base);
   },
   fromPartial(object: DeepPartial<WrapTransportSigningSecretKeyInput>): WrapTransportSigningSecretKeyInput {
     const message = createBaseWrapTransportSigningSecretKeyInput();
@@ -80982,16 +77121,13 @@ export const WrapTransportSigningSecretKeyResult: MessageFns<WrapTransportSignin
           continue;
         }
       }
-      if (tag >>> 3 === 0 || (tag & 7) === 4) {
-        throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
-      }
-      reader.skip(tag & 7);
+      skipUnknownProtoField(reader, tag);
     }
     return message;
   },
 
   create(base?: DeepPartial<WrapTransportSigningSecretKeyResult>): WrapTransportSigningSecretKeyResult {
-    return WrapTransportSigningSecretKeyResult.fromPartial(base ?? {});
+    return createPartialMessage(WrapTransportSigningSecretKeyResult, base);
   },
   fromPartial(object: DeepPartial<WrapTransportSigningSecretKeyResult>): WrapTransportSigningSecretKeyResult {
     const message = createBaseWrapTransportSigningSecretKeyResult();
@@ -81013,4 +77149,24 @@ export interface MessageFns<T> {
   decode(input: BinaryReader | Uint8Array, length?: number, into?: T): T;
   create(base?: DeepPartial<T>): T;
   fromPartial(object: DeepPartial<T>): T;
+}
+
+function skipUnknownProtoField(reader: BinaryReader, tag: number): void {
+  if (tag >>> 3 === 0 || (tag & 7) === 4) {
+    throw new RangeError(`illegal protobuf tag ${tag} at offset ${reader.pos}`);
+  }
+  reader.skip(tag & 7);
+}
+
+function copyPartialScalars(message: any, object: any, start: number, end: number): void {
+  for (let index = start; index < end; index++) {
+    const key = partialScalarKeys[index];
+    message[key] = object[key] ?? undefined;
+  }
+}
+
+const partialScalarKeys: readonly string[] = ["rawId","timestamp","keyIndex","accountType","deviceType","rawId","timestamp","currentIndex","details","accountSignatureKey","accountSignature","deviceSignature","details","hmac","accountType","details","accountSignature","accountSignatureKey","type","title","promptText","sessionId","imageWdsIdentifier","imageTintColor","imageBackgroundColor","cardTypeId","collectionId","expectedMediaCount","hasGlobalCaption","collectionId","uploadOrderIndex","createdWithGenAi","editedWithGenAi","highlightType","codeContent","title","profileIconUrl","thumbnailUrl","videoUrl","type","version","url","loopCount","imagePreviewUrl","imageHighResUrl","sourceUrl","imageText","alignment","tapLinkUrl","latexExpression","url","width","height","fontHeight","imageTopPadding","imageLeadingPadding","imageBottomPadding","imageTrailingPadding","centerLatitude","centerLongitude","latitudeDelta","longitudeDelta","annotationNumber","latitude","longitude","title","body","type","sourceChatJid","lid","username","countryCode","isUsernameDeleted","accesstoken","fbid","nonce","encryptedPassword","url","buttonTitle","downloadImages","downloadAudio","downloadVideo","downloadDocuments","fbid","password","encryptedPrevEpochAnonId","encryptedPrevEpochRootKey","prevEpochRootKeyFingerprint","whatsappBizAcctFbid","whatsappAcctNumber","issueTime","hostStorage","accountType","signed","revoked","hostStorage","actualActors","privacyModeTs","featureControls","ageCollectionEligible","shouldTriggerAgeCollectionOnClient","ageCollectionType","token","clientPublicKey","commandName","commandDescription","commandPrompt","kind","text","kindNegative","kindPositive","kindReport","selectedRequestId","surveyId","simonSessionFbid","responseOtid","responseTimestampMsString","isSelectedResponsePrimary","messageIdToEdit","tessaEvent","tessaSessionFbid","simonSessionFbid","surveyId","primaryResponseId","testArmName","timestampMsString","isSurveyExpired","clickDwellTimeMsString","responseDwellTimeMsString","selectedResponseId","imagineType","shortPrompt","acAuthTokens","acErrorCode","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","mimetype","orientationType","fact","factId","botEntryPointOrigin","forwardScore","conversationStarterPromptId","botResponseId","destinationId","destinationEntryPoint","threadOrigin","modelType","premiumModelStatus","modelNameOverride","provider","pluginType","thumbnailCdnUrl","profilePhotoCdnUrl","searchProviderUrl","referenceIndex","expectedLinksCount","searchQuery","deprecatedField","parentPluginType","faviconCdnUrl","statusTitle","statusBody","status","isReasoning","isEnhancedSearch","title","provider","sourceUrl","favIconUrl","sourceTitle","provider","sourceUrl","sectionTitle","sectionBody","promotionType","buttonTitle","prompt","promptId","featureType","remainingQuota","expirationTimestamp","action","name","nextTriggerTimestamp","frequency","bloksVersioningId","pixelDensity","toolCallId","resolutionDataSerialized","sessionId","sessionSource","version","useCase","signature","useCase","ski","provider","thumbnailCdnUrl","sourceProviderUrl","sourceQuery","faviconCdnUrl","citationNumber","sourceTitle","primaryResponseId","surveyCtaHasRendered","callResult","isDndMode","silenceReason","duration","startTime","isIncoming","isVideo","isCallLink","callLinkToken","scheduledCallId","callId","callCreatorJid","groupJid","userJid","callResult","details","signature","serial","issuerSerial","key","notBefore","notAfter","text","omittedUrl","conversionSource","conversionData","sourceUrl","sourceId","sourceType","title","description","thumbnail","thumbnailUrl","mediaType","mediaUrl","isSuspiciousLink","context","sourceUrl","icebreaker","phone","title","subtitle","cmsId","imageUrl","isChatDbLidMigrated","isSyncdPureLidSession","isSyncdSnapshotRecoveryEnabled","isHsThumbnailSyncEnabled","subscriptionSyncPayload","dnsMethod","appCached","eRegid","eKeytype","eIdent","eSkeyId","eSkeyVal","eSkeySig","buildHash","deviceProps","accountId","token","enableReadReceipts","mcc","mnc","osVersion","manufacturer","device","osBuildNumber","phoneId","releaseChannel","localeLanguageIso6391","localeCountryIso31661Alpha2","deviceBoard","deviceExpId","deviceType","deviceModelType","distributionChannel","primary","secondary","tertiary","quaternary","quinary","refToken","version","webSubPlatform","browser","browserVersion","usesParticipantInKey","supportsStarredMessages","supportsDocumentMessages","supportsUrlMessages","supportsMediaRetry","supportsE2EImage","supportsE2EVideo","supportsE2EAudio","supportsE2EDocument","documentTypes","features","dirtyVersion","operation","commandType","offset","length","validationToken","publicKey","deviceType","ref","matchedText","canonicalUrl","description","title","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","sequenceNumber","timeOffset","degreesLatitude","degreesLongitude","name","x","y","encKey","name","encPayload","encIv","text","groupingKey","senderTimestampMs","reactionMetadataDataclassData","style","textArgb","backgroundArgb","font","advertiserName","mediaType","jpegThumbnail","caption","entryPoint","signedPayload","pillType","actionUrl","businessName","businessCategory","businessIsOpen","businessIsOpenSnapshotMs","showMmDisclosure","encryptedSignalTokenConsented","key","stringData","intData","floatData","title","body","mediaType","thumbnailUrl","mediaUrl","thumbnail","sourceType","sourceId","sourceUrl","containsAutoReply","renderLargerThumbnail","showAdAttribution","ctwaClid","ref","clickToWhatsappCall","adContextPreviewDismissed","sourceApp","automatedGreetingMessageShown","greetingMessageBody","ctaPayload","disableNudge","originalImageUrl","automatedGreetingMessageCtaType","wtwaAdFormat","adType","wtwaWebsiteUrl","adPreviewUrl","containsCtwaFlowsAutoReply","agmThumbnailStrategy","agmTitleStrategy","agmSubtitleStrategy","agmHeaderInteractionStrategy","cannotBeReactedTo","cannotBeRanked","canRequestFeedback","canBeReshared","canReceiveMultiReact","newsletterJid","serverMessageId","newsletterName","contentType","accessibilityText","profileName","audienceType","listName","listEmoji","utmSource","utmCampaign","newJid","oldJid","lastMsgTimestamp","unreadCount","readOnly","endOfHistoryTransfer","ephemeralExpiration","ephemeralSettingTimestamp","endOfHistoryTransferType","conversationTimestamp","name","pHash","notSpam","archived","unreadMentionCount","markedAsUnread","tcToken","tcTokenTimestamp","contactPrimaryIdentityKey","pinned","muteEndTime","mediaVisibility","tcTokenSenderTimestamp","suspended","terminated","createdAt","createdBy","description","support","isParentGroup","parentGroupId","isDefaultSubgroup","displayName","pnJid","shareOwnPn","pnhDuplicateLidThread","lidJid","username","lidOriginType","commentsCount","locked","systemMessageToInsert","capiCreatedGroup","accountLid","limitSharing","limitSharingSettingTimestamp","limitSharingTrigger","limitSharingInitiatedByMe","maibaAiThreadEnabled","isMarketingMessageThread","isSenderNewAccount","afterReadDuration","isSenderSuspicious","appealStatus","appealUpdateTime","authAgentParentCompanyName","authAgentObaPhoneNumber","recoveryCode","userId","mailboxRootKey","error","mekId","rosterHash","recipientEncSk","version","encryptedMek","ephemeralEncryptionPk","signingPk","signature","recipientEpochHead","toMailboxSk","fromPk","mekId","senderEpochHead","rosterHash","ciphertext","toEpochHead","mekEncryptionVersion","epochRootKey","epochAnonId","threadId","encryptionVersion","ciphertext","plaintextPayload","error","encryptedMmk","exportRootKey","mailboxHeadHash","exportRootKey","epochNumber","mailboxAuthPublicKey","mailboxAuthPrivateKey","exportRootKey","epochNumber","mailboxEncryptionPublicKey","mailboxEncryptionPrivateKey","exportRootKey","epochNumber","mailboxSigningPublicKey","mailboxSigningPrivateKey","epochRootKey","epochAnonId","threadId","messageKey","error","encSk","encPk","authSk","authPk","deviceId","name","sigPk","authPk","encPk","signature","importListEnabled","companionSupportEnabled","campaignSyncEnabled","insightsSyncEnabled","recipientLimit","generation","signature","senderKeyHash","senderTimestamp","senderAccountType","receiverAccountType","recipientKeyHash","recipientTimestamp","publicKey","epochAuthPublicKey","epochAuthPublicKeySig","epochStoragePublicKey","epochStoragePublicKeySig","encryptionVersionSignature","clientVersion","ocmfClientState","epochStoragePrivateKey","platformType","requireFullSync","primary","secondary","tertiary","quaternary","quinary","fullSyncDaysLimit","fullSyncSizeMbLimit","storageQuotaMb","inlineInitialPayloadInE2EeMsg","recentSyncDaysLimit","supportCallLogHistory","supportBotUserAgentChatHistory","supportCagReactionsAndPolls","supportBizHostedMsg","supportRecentSyncChunkMessageCountTuning","supportHostedGroupMsg","supportFbidBotChatHistory","supportAddOnHistorySyncMigration","supportMessageAssociation","supportGroupHistory","onDemandReady","supportGuestChat","completeOnDemandReady","thumbnailSyncDaysLimit","initialSyncMaxMessagesPerChat","supportManusHistory","supportHatchHistory","supportInlineContacts","supportNewsletter","musicContentMediaId","songId","author","title","artworkDirectPath","artworkSha256","artworkEncSha256","artistAttribution","countryBlocklist","isExplicit","artworkMediaKey","musicSongStartTimeInMs","derivedContentStartTimeInMs","overlapDurationInMs","senderEpochHead","toMailboxPk","sk","pk","ciphertext","version","sk","pk","ephemeralEncryptionPk","signingPk","signature","version","epochRootKey","mailboxRootKey","orfClientState","epochAnonId","epochId","threadId","waCanonicalUserFbid","timestampMs","backupId","plaintextPayload","stanzaId","encryptedProtobuf","orfThreadId","valueSecretRef","offlineThreadingId","timestampMs","error","encryptedPayload","iv","encryptedDevicePrivateKey","encryptedObliviousValidationTokenBlob","encryptedEpochStoragePrivateKey","encryptedOcmfClientState","encryptedOrfClientStateV2","encryptedMailboxRootKeyBlob","encryptedEpochAnonId","encryptedEpochRootKey","duration","timestamp","epochFbid","epochAnonId","epochData","wrappedRootKeyForSelf","epochSignature","epochRootKeyFingerprint","epochRootKey","epochNumber","userFbid","mailboxSigningPk","mailboxEncryptionPk","mailboxAuthPk","previousEpochHead","selfSignature","prevSignature","code","text","targetType","targetUsername","targetId","targetExpiringAtSec","xmaLayoutType","titleText","subtitleText","maxTitleNumOfLines","maxSubtitleNumOfLines","headerTitle","overlayIconGlyph","overlayTitle","overlayDescription","sentWithMessageId","messageText","headerSubtitle","xmaDataclass","contentRef","xmaDataclassType","signedXmaDataclassValidation","featureSharedSessionId","buttonType","title","actionUrl","nativeUrl","ctaType","actionContentBlob","mediaKey","directPath","handle","fileSizeBytes","fileSha256","fileEncSha256","minVersion","maxVersion","notReportableMinVersion","isMessage","publicKey","pnIdentifier","lidIdentifier","usernameIdentifier","hostedState","hashedPublicKey","botName","botJid","creatorName","showIndividualNotificationsPreview","showGroupNotificationsPreview","disappearingModeDuration","disappearingModeTimestamp","fontSize","securityNotifications","autoUnarchiveChats","videoQualityMode","photoQualityMode","groupJid","groupSubject","userJid","rank","groupRootKey","keyId","expiryTimestampMs","createdTimestampMs","static","payload","extendedCiphertext","paddedBytes","simulateXxkemFs","ephemeral","static","payload","useExtended","extendedCiphertext","paddedBytes","sendServerHelloPaddedBytes","simulateXxkemFs","pqMode","extendedEphemeral","ephemeral","static","payload","extendedStatic","paddingBytes","extendedCiphertext","data","timestampMs","requestId","chunkOrder","progress","threadIdUserSecret","threadDsTimeframeOffset","companionMetaNonce","shareableChatIdentifierEncryptionKey","displayText","phoneNumber","displayText","id","displayText","url","consentedUsersUrl","webviewPresentation","publicKey","privateKey","verified","actionSeq","tessaSessionId","simonSessionId","simonSurveyId","tessaRootId","requestId","tessaEvent","invitationHeaderText","invitationBodyText","invitationCtaText","invitationCtaUrl","surveyTitle","surveyContinueButtonText","surveySubmitButtonText","privacyStatementFull","feedbackToastText","startQuestionIndex","stringValue","numericValue","textTranslated","text","url","questionText","questionId","pnJid","lidJid","fullName","firstName","username","keepType","serverTimestamp","deviceJid","clientTimestampMs","serverTimestampMs","id","baseKey","ratchetKey","identityKey","baseKeySignature","pn","assignedLid","latestLid","sharingLimited","trigger","limitSharingSettingTimestamp","initiatedByMe","lg","lc","verifiedName","degreesLatitude","degreesLongitude","name","encryptedMek","recipientsHash","recipientEncSk","mekEncryptionVersion","authPk","epochHead","authSk","authPk","authSk","authPk","authSk","authPk","recipientsHash","version","key","mekId","mailboxHeadHash","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","valid","errorMessage","mediaKeyDomain","e2EeMediaKey","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","serverMediaType","uploadToken","validatedTimestamp","sidecar","objectId","fbid","handle","filename","size","lastDownloadAttemptTimestamp","fileSha256","fileEncSha256","directPath","mediaKey","mediaKeyTimestamp","objectId","expressPathUrl","fileEncSha256","fileLength","stanzaId","directPath","result","messageSecret","key","mekId","rosterHash","label","labelTimestamp","mentionType","mentionedJid","offset","length","proof","root","leafIndex","totalLeaves","expectedImageCount","expectedVideoCount","rawId","currentIndex","url","mimetype","fileSha256","fileLength","seconds","ptt","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","streamingSidecar","waveform","backgroundArgb","viewOnce","accessibilityLabel","sessionId","mediaType","masterKey","caption","botJid","historyShareCutoffTimestamp","contentText","footerText","headerType","text","name","paramsJson","type","selectedDisplayText","callKey","conversionSource","conversionData","conversionDelaySeconds","ctwaSignals","ctwaPayload","nativeFlowCallButtonPayload","deeplinkPayload","callEntryPoint","callReason","isVideo","callOutcome","durationSecs","callType","jid","callOutcome","displayName","id","directPath","mediaKey","fileEncSha256","fileSha256","dimLevel","colorLight","colorDark","isDoodleEnabled","stockImageId","dimLevel","settingTimestampMs","clearTheme","colorSchemeId","status","senderNotificationTimestampMs","consumerLid","consumerPhoneNumber","handoffNotificationText","extraJson","encPayload","encIv","conditionalRevealMessageType","revealKeyId","displayName","vcard","url","mimetype","title","fileSha256","fileLength","pageCount","mediaKey","fileName","fileEncSha256","directPath","mediaKeyTimestamp","contactVcard","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","jpegThumbnail","thumbnailHeight","thumbnailWidth","caption","accessibilityLabel","encPayload","encIv","encPayload","encIv","encPayload","encIv","eventId","eventTitle","jpegThumbnail","startTime","caption","isCanceled","endTime","callLink","isCanceled","name","description","joinLink","startTime","endTime","extraGuestsAllowed","isScheduleCall","hasReminder","reminderOffsetSec","response","timestampMs","extraGuestCount","text","matchedText","description","title","textArgb","backgroundArgb","font","previewType","jpegThumbnail","doNotPlayInline","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","inviteLinkGroupType","inviteLinkParentGroupSubjectV2","inviteLinkParentGroupThumbnailV2","inviteLinkGroupTypeV2","viewOnce","videoHeight","videoWidth","historyFromTimestamp","historyDurationDays","requestId","businessProduct","opaqueClientData","groupJid","inviteCode","inviteExpiration","groupName","jpegThumbnail","caption","namespace","elementName","fallbackLg","fallbackLc","deterministicLg","deterministicLc","currencyCode","amount1000","dayOfWeek","year","month","dayOfMonth","hour","minute","calendar","stanzaId","messageSecretProof","fileSha256","fileLength","mediaKey","fileEncSha256","directPath","syncType","chunkOrder","originalMessageId","progress","oldestMsgInChunkTimestampSec","initialHistBootstrapInlinePayload","peerDataRequestSessionId","uuid","data","type","fallback","messageVersion","carouselCardType","bizJid","id","messageVersion","text","hasMediaAttachment","title","subtitle","hasMediaAttachment","messageParamsJson","messageVersion","name","buttonParamsJson","id","surface","messageVersion","text","format","name","paramsJson","version","note","token","attachmentType","attachmentMimetype","attachmentMediaKey","attachmentMediaKeyTimestamp","attachmentFileSha256","attachmentFileEncSha256","attachmentDirectPath","attachmentJpegThumbnail","keepType","timestampMs","fbExperimentId","linkMediaDuration","socialMediaPostType","linkInlineVideoMuted","videoContentUrl","title","description","buttonText","listType","productId","jpegThumbnail","title","description","rowId","title","listType","degreesLatitude","degreesLongitude","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","caption","sequenceNumber","timeOffset","jpegThumbnail","degreesLatitude","degreesLongitude","name","address","url","isLive","accuracyInMeters","speedInMps","degreesClockwiseFromMagneticNorth","comment","jpegThumbnail","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","mediaKey","mediaKeyTimestamp","thumbnailHeight","thumbnailWidth","userJidString","verified","verifiedIdentityKey","actionSeq","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","oldestMessageTimestampInWindow","messageCount","songUri","artworkUri","style","newsletterJid","newsletterName","jpegThumbnail","caption","inviteExpiration","newsletterJid","newsletterName","jpegThumbnail","caption","orderId","thumbnail","itemCount","status","surface","message","orderTitle","sellerJid","token","totalAmount1000","totalCurrencyCode","type","platform","messageParamsJson","serviceType","expiryTimestamp","incentiveEligible","referralId","inviteType","reminderId","instanceId","description","frequency","status","payeeVpa","payeeJid","payerJid","type","flowId","stanzaId","galaxyFlowDownloadRequestId","agmId","syncType","chunkOrder","chunkNotificationId","regenerateChunk","chatJid","oldestMsgId","oldestMsgFromMe","onDemandMsgCount","oldestMsgTimestampMs","accountLid","supportInlineResponse","url","includeHqThumbnail","collectionName","timestamp","peerDataOperationRequestType","stanzaId","campaignId","timestampMs","contactJid","state","nonce","waFbid","forceRefresh","collectionVersion","primaryDurationMs","uniqueContactCount","flowId","galaxyFlowDownloadRequestId","fileName","mimetype","fileSha256","mediaKey","fileEncSha256","directPath","mediaKeyTimestamp","fileLength","syncType","chunkOrder","requestId","responseCode","canRecover","url","title","description","thumbData","matchText","previewType","directPath","thumbHash","encThumbHash","mediaKey","mediaKeyTimestampMs","thumbWidth","thumbHeight","isBusinessVerified","providerName","amount","offset","currency","collectionSnapshot","isCompressed","nonce","waEntFbid","type","senderTimestampMs","encKey","name","pollContentType","pollType","endTime","hideParticipantName","allowAddOption","optionName","optionHash","encPayload","encIv","optionName","optionVoteCount","pollNameHash","lastEditStanzaId","body","footer","title","description","productId","title","description","currencyCode","priceAmount1000","retailerId","url","productImageCount","firstImageId","salePriceAmount1000","signedUrl","type","ephemeralExpiration","ephemeralSettingTimestamp","text","groupingKey","senderTimestampMs","currencyCodeIso4217","amount1000","requestFrom","expiryTimestamp","localChatState","welcomeTrigger","scheduledTimestampMs","callType","title","encPayload","encIv","secretEncType","remoteKeyId","groupId","axolotlSenderKeyDistributionMessage","description","requesterJid","splitId","participantJid","type","text","thumbnail","stickerKey","type","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","mediaKeyTimestamp","firstFrameLength","firstFrameSidecar","isAnimated","pngThumbnail","stickerSentTs","isAvatar","isAiSticker","isLottie","accessibilityLabel","premium","emojis","stickerPackId","name","publisher","fileLength","fileSha256","fileEncSha256","mediaKey","directPath","caption","packDescription","mediaKeyTimestamp","trayIconFileName","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","thumbnailHeight","thumbnailWidth","imageDataHash","stickerPackSize","stickerPackOrigin","fileName","isAnimated","accessibilityLabel","isLottie","mimetype","premium","rmrSource","requestTimestamp","selectedId","selectedDisplayText","selectedIndex","selectedCarouselCardIndex","hydratedContentText","hydratedFooterText","templateId","maskLinkedDevices","username","caption","thumbnailImageUrl","profilePictureUrl","url","mimetype","fileSha256","fileLength","seconds","mediaKey","caption","gifPlayback","height","width","fileEncSha256","directPath","mediaKeyTimestamp","jpegThumbnail","streamingSidecar","gifAttribution","viewOnce","thumbnailDirectPath","thumbnailSha256","thumbnailEncSha256","staticUrl","externalShareFullVideoDurationInSeconds","motionPhotoPresentationOffsetMs","metadataUrl","videoSourceType","senderTimestampMs","serverTimestampMs","status","messageAddOnDurationInSecs","messageAddOnExpiryType","deviceListMetadataVersion","messageSecret","paddingBytes","messageAddOnDurationInSecs","botMessageSecret","reportingTokenVersion","messageAddOnExpiryType","capiCreatedGroup","supportPayload","weblinkRenderConfig","teeBotMetadata","remoteJid","fromMe","id","participant","version","encIv","encPayload","epochHead","deviceRosterHash","sequenceNumber","sigPk","encPk","authPk","preferredMessageEncryptionVersion","preferredMekEncryptionVersion","transportSigningPk","mek","encryptedMessageCiphertext","encryptedMessageSignature","transportSigningSk","mek","plaintext","ciphertext","signature","version","mekId","timestamp","messageId","threadId","userFbid","epochNumber","exportRootKey","previousExportRootKey","previousEpochNumber","previousEpochHead","userFbid","epochNumber","exportRootKey","actThreadId","selfFbid","valid","errorMessage","encryptedMmk","recipDeviceHash","encryptedMmk","recipMailboxHeadHash","value","offset","currencyCode","body","caption","lng","isLive","lat","paymentAmount1000","paymentNoteMsgBody","matchedText","title","description","futureproofBuffer","clientUrl","loc","pollName","pollSelectableOptionsCount","messageSecret","originalSelfAuthor","senderTimestampMs","pollUpdateParentKey","isSentCagPollCreation","pollContentType","pollType","correctOptionIndex","encReactionTargetMessageKey","encReactionEncPayload","encReactionEncIv","botMessageSecret","targetMessageKey","encPayload","encIv","eventName","isEventCanceled","eventDescription","eventJoinLink","eventStartTime","eventEndTime","eventIsScheduledCall","eventExtraGuestsAllowed","plainProtobufBytes","quarantineExtractedText","pollEndTime","pollHideVoterNames","pollAllowAddOption","sharableEventInviteId","sharableEventInviteTitle","sharableEventInviteStartTime","sharableEventInviteEndTime","sharableEventInviteCaption","sharableEventInviteIsCanceled","sharableEventInviteJpegThumbnail","sharableEventInviteCallLink","degreesLatitude","degreesLongitude","name","address","url","jpegThumbnail","name","hash","details","signature","serial","issuer","expires","subject","key","messageTimestamp","participant","messageVibrate","messagePopup","messageLight","lowPriorityNotifications","reactionsMuted","callVibrate","orfClientState","threadId","orfThreadId","error","companionPublicKey","companionIdentityKey","advSecret","userJid","leaveReason","leaveTs","currentLthash","newLthash","patchVersion","collectionName","firstFourBytesFromAHashOfSnapshotMacKey","newLthashSubtract","numberAdd","numberRemove","numberOverride","senderPlatform","isSenderPrimary","id","fileLength","width","height","mimetype","placeholderArgb","textArgb","subtextArgb","mediaKey","mediaKeyTimestamp","fileSha256","fileEncSha256","directPath","currencyDeprecated","amount1000","receiverJid","status","transactionTimestamp","expiryTimestamp","futureproofed","currency","txnStatus","useNoviFiatFormat","pnJid","lidJid","oldPhoto","newPhoto","newPhotoId","senderTimestampMs","serverTimestampMs","xDeprecated","yDeprecated","x","y","editStanzaId","pollNameHash","encPayload","encIv","senderTimestampMs","serverTimestampMs","unread","id","publicKey","privateKey","registrationId","preKeyId","signedPreKeyId","baseKey","identityKey","message","kyberPreKeyId","kyberCiphertext","publicKey","nonce","directPath","fileSha256","height","width","fileLength","bitrate","quality","id","pushname","filterResult","clientNotSupportedConfig","key","value","originalData","extractedText","text","groupingKey","senderTimestampMs","unread","emoji","weight","minVersion","maxVersion","notReportableMinVersion","never","reportingTag","reportingTagTimestamp","currentEpochRootKey","currentEpochAnonId","currentEpochFbid","epochStoragePrivateKey","deviceId","encryptedEpochKey","deviceEpochHmac","deviceId","epochStoragePublicKey","devicePublicKey","newEpochRootKey","newEpochAnonId","newEpochFbid","epochAnonId","epochRootKeyFingerprint","error","taskId","debug","tcpBbr","tcpKeepalive","revealKeyId","revealKey","scheduledTime","id","iteration","chainKey","signingKey","id","iteration","ciphertext","iteration","seed","iteration","seed","public","private","sessionVersion","localIdentityPublic","remoteIdentityPublic","rootKey","previousCounter","remoteRegistrationId","localRegistrationId","needsRefresh","aliceBaseKey","senderRatchetKey","senderRatchetKeyPrivate","index","key","index","cipherKey","macKey","iv","sequence","localBaseKey","localBaseKeyPrivate","localRatchetKey","localRatchetKeyPrivate","localIdentityKey","localIdentityKeyPrivate","preKeyId","signedPreKeyId","baseKey","kyberPreKeyId","kyberCiphertext","disclaimerText","hcaId","sessionTransparencyType","ratchetKey","counter","previousCounter","ciphertext","id","publicKey","privateKey","signature","timestamp","type","actionUrl","actionUrl","source","duration","actionFallbackUrl","authorName","songId","title","author","artistAttribution","isExplicit","duration","channelJid","channelMessageId","hasMultipleReshares","campaignId","campaignExpirationTimestamp","url","fileSha256","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","weight","lastStickerSentTs","isLottie","imageHash","isAvatarSticker","payload","version","padding","version","name","deviceId","isDeleted","category","version","updatedAtMs","lidJid","pnJid","deviceId","adId","name","msgId","broadcastJid","reservedQuota","scheduledTimestamp","createTimestamp","status","recipientCount","deliveredCount","readCount","repliedCount","quickReplyCount","audienceExpression","customAudienceFbid","fullName","firstName","lidJid","saveOnPrimaryAddressbook","pnJid","username","credentialId","country","type","key","value","chatJid","contactType","email","altPhoneNumbers","birthday","address","acquisitionSource","leadStage","lastOrder","createdAt","modifiedAt","peerJid","isIncoming","deleteMedia","messageTimestamp","type","agmId","labeled","modelMetaData","name","color","predefinedId","deleted","orderIndex","isActive","type","isImmutable","muteEndTimeMs","fullName","firstName","username","aiFeatureStatus","aiReplyMode","name","message","type","createdAt","lastSentAt","isDeleted","mediaId","status","country","gatewayName","credentialId","key","value","muted","muteEndTimestamp","autoMuted","muteEveryoneMentionEndTimestamp","type","chatJid","createdAt","deleted","unstructuredContent","fullName","firstName","paymentNotice","accepted","shortcut","message","count","deleted","startAtLogin","minimizeToTray","language","replaceTextWithEmoji","bannerNotificationDisplayMode","unreadCounterBadgeDisplayMode","isMessagesNotificationEnabled","isCallsNotificationEnabled","isReactionsNotificationEnabled","isStatusReactionsNotificationEnabled","isTextPreviewForNotificationEnabled","defaultNotificationToneId","groupDefaultNotificationToneId","appTheme","wallpaperId","isDoodleWallpaperEnabled","fontSize","isPhotosAutodownloadEnabled","isAudiosAutodownloadEnabled","isVideosAutodownloadEnabled","isDocumentsAutodownloadEnabled","disableLinkPreviews","notificationToneId","mediaUploadQuality","isSpellCheckEnabled","isEnterToSendEnabled","isGroupMessageNotificationEnabled","isGroupReactionsNotificationEnabled","isStatusNotificationEnabled","statusNotificationToneId","shouldPlaySoundForCallNotification","chatThemeId","colorSchemeId","stockWallpaperImageId","shareToFb","shareToIg","listId","name","emoji","isSelected","url","fileEncSha256","mediaKey","mimetype","height","width","directPath","fileLength","isFavorite","deviceIdHint","isLottie","imageHash","isAvatarSticker","isDeactivated","isAutoRenewing","expirationDate","name","enabled","limit","expirationTime","id","tier","status","startTime","endTime","isPlatformChanged","source","creationTime","lastMessageTimestamp","lastSystemMessageTimestamp","id","rootSecret","epoch","status","snapshotMac","patchMac","deviceIndex","clientDebugData","keyId","mac","title","tapUrl","originalUrl","unconsentedUsersUrl","consentedUsersUrl","cardIndex","encoding","transformer","asBlob","asUnsignedInteger","userJid","receiptTimestamp","readTimestamp","playedTimestamp","details","signature","serverSignature","serial","issuer","verifiedName","vdId","vdPublicKey","vdEpochStoragePublicKey","vdEpochStoragePublicKeySig","ocmfRotationToken","deviceEpochHmac","filename","opacity","isGenAi","labelsDisplay","voipIndividualOutgoing","groupsV3","groupsV3Create","changeNumberV2","queryStatusV3Thumbnail","liveLocations","queryVname","voipIndividualIncoming","quickRepliesQuery","payments","stickerPackQuery","liveLocationsFinal","labelsEdit","mediaUpload","mediaUploadRichQuickReplies","vnameV2","videoPlaybackUrl","statusRanking","voipIndividualVideo","thirdPartyStickers","frequentlyForwardedSetting","groupsV4JoinPermission","recentStickers","catalog","starredStickers","voipGroupCall","templateMessage","templateMessageInteractivity","ephemeralMessages","e2ENotificationSync","recentStickersV2","recentStickersV3","userNotice","support","groupUiiCleanup","groupDogfoodingInternalOnly","settingsSync","archiveV2","ephemeralAllowGroupMembers","ephemeral24HDuration","mdForceUpgrade","disappearingMode","externalMdOptInAvailable","noDeleteMessageTimeLimit","messageTimestamp","status","participant","messageC2STimestamp","ignore","starred","broadcast","pushName","mediaCiphertextSha256","multicast","urlText","urlNumber","messageStubType","clearMedia","ephemeralStartTimestamp","ephemeralDuration","ephemeralOffToOn","ephemeralOutOfSync","bizPrivacyStatus","verifiedBizName","agentId","statusAlreadyViewed","messageSecret","originalSelfAuthorUserJidString","revokeMessageTimestamp","is1PBizBotMessage","isGroupHistoryMessage","botMessageInvokerJid","nonJidMentions","hsmTag","ephemeralExpirationTimestamp","timestamp","unreadChats","notifyMessageCount"];
+
+function createPartialMessage(codec: { fromPartial(object: any): any }, base: any): any {
+  return codec.fromPartial(base ?? {});
 }

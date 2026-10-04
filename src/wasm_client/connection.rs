@@ -68,7 +68,7 @@ impl WasmWhatsAppClient {
         };
 
         let handle = runtime.spawn(Box::pin(async move {
-            let result = run_completion_to_result(generation, &client.run_with_reason().await);
+            let result = run_completion_to_result(generation, &client.run().await);
             let waiters = {
                 let mut obs = observation.lock().unwrap_or_else(|e| e.into_inner());
                 // A stale generation finishing after a newer run started must
@@ -298,7 +298,7 @@ impl WasmWhatsAppClient {
                 TeardownAdmission::Complete => return Ok(JsValue::UNDEFINED),
             }
 
-            client.disconnect().await;
+            client.shutdown().await;
             abort_teardown_task(&saver_handle);
             if !connection_established.load(std::sync::atomic::Ordering::Acquire) {
                 abort_teardown_task(&connection_handle);
@@ -383,8 +383,7 @@ impl WasmWhatsAppClient {
     pub fn set_auto_reconnect(&self, enabled: bool) {
         self.client
             .unwaited(Unwaited::Local)
-            .enable_auto_reconnect
-            .store(enabled, std::sync::atomic::Ordering::Relaxed);
+            .set_auto_reconnect(enabled);
     }
 
     /// Drop the current connection and reconnect immediately, picking up
@@ -401,7 +400,7 @@ impl WasmWhatsAppClient {
     /// Check if the client is connected.
     #[wasm_bindgen(js_name = isConnected)]
     pub fn is_connected(&self) -> bool {
-        self.client.unwaited(Unwaited::ThisSocket).is_connected()
+        self.client.unwaited(Unwaited::ThisSocket).is_socket_ready()
     }
 
     /// What work handed to the client right now can expect.
@@ -483,7 +482,7 @@ impl WasmWhatsAppClient {
         let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
         self.client
             .unwaited(Unwaited::ThisSocket)
-            .wait_for_socket(timeout)
+            .wait_for_socket_ready(timeout)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -500,7 +499,7 @@ impl WasmWhatsAppClient {
         let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
         self.client
             .unwaited(Unwaited::ThisSocket)
-            .wait_for_connected(timeout)
+            .wait_for_session_ready(timeout)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -1024,7 +1023,14 @@ fn protocol_terminal_to_result(
         P::ConnectFailure(reason) => R::ConnectFailure {
             reason: super::connect_failure_reason_str(reason),
         },
-        P::Conflict => R::Conflict,
+        P::Conflict(cause) => R::Conflict {
+            cause: match cause {
+                whatsapp_rust::ConflictKind::Replaced => "replaced".into(),
+                whatsapp_rust::ConflictKind::DeviceRemoved => "device_removed".into(),
+                whatsapp_rust::ConflictKind::Unknown => "unknown".into(),
+                other => format!("{other:?}"),
+            },
+        },
         other => R::Unknown {
             detail: format!("{other:?}"),
         },
@@ -1308,9 +1314,16 @@ mod run_completion_tests {
         assert_eq!(payload["kind"], "connect-failure");
         assert_eq!(payload["reason"], "LoggedOut");
 
-        let conflict = protocol_terminal_to_result(&P::Conflict);
-        let payload = serde_json::to_value(&conflict).expect("serializes");
-        assert_eq!(payload["kind"], "conflict");
+        for (cause, expected) in [
+            (whatsapp_rust::ConflictKind::Replaced, "replaced"),
+            (whatsapp_rust::ConflictKind::DeviceRemoved, "device_removed"),
+            (whatsapp_rust::ConflictKind::Unknown, "unknown"),
+        ] {
+            let conflict = protocol_terminal_to_result(&P::Conflict(cause));
+            let payload = serde_json::to_value(&conflict).expect("serializes");
+            assert_eq!(payload["kind"], "conflict");
+            assert_eq!(payload["cause"], expected);
+        }
     }
 
     /// The payload the host actually reads: the branch the reconnect-disabled
