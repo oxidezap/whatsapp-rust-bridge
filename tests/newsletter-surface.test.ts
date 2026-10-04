@@ -24,11 +24,11 @@ async function offlineClient() {
   );
 }
 
-async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string }> {
+async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string; field?: string }> {
   try {
     await promise;
   } catch (error) {
-    return error as Error & { kind?: string };
+    return error as Error & { kind?: string; field?: string };
   }
   throw new Error("expected the call to reject");
 }
@@ -147,25 +147,56 @@ describe("newsletter messages", () => {
   test("edit and revoke refuse a JID that is not a channel", async () => {
     const client = await offlineClient();
     try {
-      // Proves these route to the core's newsletter methods and not to the
-      // DM/group edit and revoke, which accept this JID.
+      // The core reference rejects a non-channel target before transport.
+      // Assert the public error contract, not the core's diagnostic wording.
       const edit = await rejection(
         client.newsletterEditMessage(USER, "MSG1", new Uint8Array([]))
       );
-      expect(edit.message).toContain("only valid for newsletter (channel) JIDs");
+      expect(edit).toBeInstanceOf(Error);
+      expect(edit.name).toBe("WhatsAppError");
+      expect(edit.kind).toBe("invalid-argument");
+      expect(edit.field).toBe("jid");
 
       const revoke = await rejection(client.newsletterRevokeMessage(USER, "MSG1"));
-      expect(revoke.message).toContain("only valid for newsletter (channel) JIDs");
+      expect(revoke).toBeInstanceOf(Error);
+      expect(revoke.name).toBe("WhatsAppError");
+      expect(revoke.kind).toBe("invalid-argument");
+      expect(revoke.field).toBe("jid");
     } finally {
       client.free();
     }
   }, 20000);
 
-  test("revoke requires a message id, and edit requires decodable bytes", async () => {
+  test("a non-channel JID wins over an empty message id", async () => {
+    const client = await offlineClient();
+    try {
+      for (const call of [
+        client.newsletterEditMessage(USER, "", new Uint8Array([])),
+        client.newsletterRevokeMessage(USER, ""),
+      ]) {
+        const error = await rejection(call);
+        expect(error.kind).toBe("invalid-argument");
+        expect(error.field).toBe("jid");
+      }
+    } finally {
+      client.free();
+    }
+  });
+
+  test("edit and revoke require a message id, and edit requires decodable bytes", async () => {
     const client = await offlineClient();
     try {
       const emptyId = await rejection(client.newsletterRevokeMessage(CHANNEL, ""));
-      expect(emptyId.message).toContain("needs a target message_id");
+      expect(emptyId).toBeInstanceOf(Error);
+      expect(emptyId.name).toBe("WhatsAppError");
+      expect(emptyId.kind).toBe("invalid-argument");
+      expect(emptyId.field).toBe("messageId");
+
+      const emptyEditId = await rejection(
+        client.newsletterEditMessage(CHANNEL, "", new Uint8Array([]))
+      );
+      expect(emptyEditId.kind).toBe("invalid-argument");
+      expect(emptyEditId.field).toBe("messageId");
 
       const badBytes = await rejection(
         client.newsletterEditMessage(CHANNEL, "MSG1", new Uint8Array([255, 255, 255]))
