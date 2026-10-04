@@ -131,17 +131,22 @@ export function assertNotOlder(version, latest) {
   }
 }
 
-export async function publishPackage(metadata, { getVersion, getLatest, publish, sleep }) {
+export async function publishPackage(metadata, {
+  getVersion, getLatest, publish, sleep, report = () => {},
+}) {
   if (alreadyPublished(await getVersion(), metadata)) return;
   assertNotOlder(metadata.version, (await getLatest())?.version);
   let publishError;
   try { await publish(); } catch (error) { publishError = error; }
   // A failed response can still mean npm accepted the immutable version.
-  for (let attempt = 0; attempt < 6; attempt++) {
+  // npm can accept the upload before registry processing exposes the version.
+  // Keep the same archive and wait up to ten minutes within the job's budget.
+  for (let attempt = 0; attempt <= 60; attempt++) {
     if (alreadyPublished(await getVersion(), metadata)) return;
-    if (attempt < 5) await sleep(5000);
+    if (attempt === 0) report("Waiting up to ten minutes for npm to expose the exact tarball integrity");
+    if (attempt < 60) await sleep(10_000);
   }
-  throw publishError || new Error("npm did not expose the published tarball integrity");
+  throw publishError || new Error("npm did not expose the published tarball integrity; retry failed jobs to retain the verified archive");
 }
 
 export async function finalizeRelease(github, candidate, metadata, getVersion, getLatest) {
@@ -198,6 +203,7 @@ async function main(command) {
       getVersion, getLatest,
       publish: () => execFileSync("npm", ["publish", "./release-package.tgz", "--ignore-scripts", "--access", "public"], { stdio: "inherit" }),
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      report: console.log,
     });
   } else if (command === "finalize") {
     await finalizeRelease(github, { id: process.env.RELEASE_ID, tag: process.env.RELEASE_TAG, sha, tagSha: process.env.RELEASE_TAG_SHA }, metadata, getVersion, getLatest);

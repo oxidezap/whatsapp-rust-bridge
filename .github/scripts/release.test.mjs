@@ -149,6 +149,16 @@ test("accepted publish with a lost response recovers by exact registry integrity
   });
   assert.equal(publishes, 1);
 });
+test("accepted uploads may need minutes before npm exposes their integrity", async () => {
+  let reads = 0, publishes = 0, waited = 0;
+  await publishPackage(metadata, {
+    getVersion: async () => ++reads >= 15 ? published : null,
+    getLatest: async () => ({ version: "0.24.1" }),
+    publish: async () => { publishes++; }, sleep: async (ms) => { waited += ms; },
+  });
+  assert.equal(publishes, 1);
+  assert.equal(waited, 130_000);
+});
 test("an absent version never becomes a successful publish", async () => {
   await assert.rejects(publishPackage(metadata, {
     getVersion: async () => null, getLatest: async () => ({ version: "0.24.1" }),
