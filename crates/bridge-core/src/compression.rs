@@ -21,5 +21,9 @@ pub fn inflate_zlib(data: &[u8], max_output_bytes: Option<f64>) -> CoreResult<Ve
             "maxOutputBytes must be a positive finite number",
         ));
     }
+    // u64::MAX rounds up to 2^64 as f64; equality would already saturate.
+    if limit >= u64::MAX as f64 {
+        return Err(CoreError::new("maxOutputBytes must be less than 2^64"));
+    }
     decompress_zlib_pooled(data, limit as u64).map_err(CoreError::from_display)
 }

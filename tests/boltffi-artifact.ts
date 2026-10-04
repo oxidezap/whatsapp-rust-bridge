@@ -33,7 +33,7 @@ if (!boltffiAvailable) {
   // cannot find. Either form of pin is understood, because this pinned a main
   // revision for as long as no release carried the fixes the backend needs.
   const pin = readFileSync(join(ROOT, "crates", "bridge-boltffi", "Cargo.toml"), "utf8");
-  const version = pin.match(/^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"([^"]+)"/m)?.[1];
+  const version = pin.match(/^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"=?([^"]+)"/m)?.[1];
   const rev = pin.match(/^boltffi\s*=\s*\{[^}]*\brev\s*=\s*"([0-9a-f]+)"/m)?.[1];
   // Naming neither would name the one command that cannot work: an install
   // without a pin resolves to whatever is latest, which is the mismatch this

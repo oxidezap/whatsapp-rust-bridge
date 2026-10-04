@@ -3,43 +3,25 @@
 Measured against `boltffi` at `b9272fb7` (workspace version `0.29.3`, the version
 published on crates.io) and this repository at `v0.7.0`.
 
-> **Update — this PR pins the released `0.30.0`, and every gap below is
-> closed.** Phase 0 was measured against `b9272fb7`, when nothing but a main
-> revision carried the fixes; `0.30.0` is the first release that carries them
-> all, so the pin is a version again rather than a commit.
->
-> What changed upstream, in the order it landed:
->
-> | gap, as first measured | closed by |
-> |---|---|
-> | `Result<(), E>` from a callback skipped, sync and async | `ReturnPlan::Void` arms in both fallible-success matches |
-> | a fallible callback returning bytes traps at runtime | encoder and decoder agreed for byte payloads |
-> | a thrown callback, or one whose handle is gone, aborts the module | tagged and converted through `From<UnexpectedFfiCallbackError>` (#803) |
-> | a callback method named with a JS keyword is uncallable — declared `delete`, invoked `_delete` | called through the declared name (#801) |
-> | a skipped declaration exits 0 | `--deny-skipped` reaches `pack` |
->
-> **Nothing in the storage boundary is blocked any more.** The two members that
-> collided with the renderer's keyword list — `JsStoreCallbacks.delete`
-> (`src/wasm_client.rs:396`) and `JsCacheStore.delete` (`:483`) — cross under
-> their own names, so a BoltFFI client would ask consumers for the same
-> `delete` the wasm-bindgen one does. No naming divergence remains.
->
-> The runtime is no longer a separate problem either. `@boltffi/runtime@0.30.0`
-> is published at wasm ABI 3, which is what a module built from `0.30.0`
-> declares, so `package.json` pins it as an ordinary dependency. While this
-> tracked a main revision, no published runtime could load the artifact at all
-> — the module refused to instantiate with `BoltFFI ABI version mismatch:
-> expected 2, got 3` — and vendoring the runtime was the only way to ship. That
-> is not needed and not done.
->
-> One caveat still holds, and it cost two false reports during this work: the
-> generated JavaScript and the `@boltffi/runtime` package must come from the
-> same version. They are pinned in two files — `crates/bridge-boltffi/Cargo.toml`
-> and `package.json` — and both have to move together. A stale runtime
-> reproduces old symptoms exactly, so it is indistinguishable from a generator
-> bug unless you check.
->
-> The sections below are left as originally measured against `b9272fb7`.
+The current build pins the crate, CLI and `@boltffi/runtime` to **0.31.0**.
+The wasm-bindgen client remains the default; `./boltffi` exposes eight shared
+utility operations. It does not expose the client or the newer AES-GCM/SHA-256
+exports. `generateKeyPair` and `calculateSignature` remain outside this PR's
+BoltFFI API.
+
+[0.31.0](https://github.com/boltffi/boltffi/releases/tag/v0.31.0) includes the
+0.30.0 callback fixes, mutable-byte-slice writeback, buffer shrinking, and WASM
+packaging with wasm-bindgen dependencies. The latter removes an upstream
+packaging limitation; it does not automatically add exports to this bridge.
+This API uses owned byte buffers, so mutable-slice writeback is not exercised.
+
+`scripts/build-boltffi.ts` checks the CLI version and imports the built artifact
+to catch runtime/ABI mismatches. CI also runs cross-backend and declaration tests.
+The crate uses an exact Cargo version requirement so a lockfile refresh cannot
+silently move the generator contract to another release.
+
+The decompression limit rejects values at or above 2^64 before the Rust cast.
+Explicit limits above 64 MiB and fractional truncation remain supported.
 
 # Historical measurement at `b9272fb7`
 

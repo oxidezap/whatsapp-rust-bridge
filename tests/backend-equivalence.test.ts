@@ -61,10 +61,8 @@ const CASES: Array<{
 const NONDETERMINISTIC = new Set<string>([]);
 
 /**
- * Exposed by wasm-bindgen only. Both draw randomness, and this repository
- * builds `getrandom` with the `wasm_js` backend, whose `__wbg_getRandomValues_*`
- * import the BoltFFI runtime cannot satisfy. Asserted below so the gap stays
- * visible instead of looking like an oversight.
+ * The opt-in BoltFFI API retains its original eight utilities. These two
+ * randomness-dependent exports remain wasm-bindgen-only in this PR.
  */
 const BINDGEN_ONLY = new Set(["generateKeyPair", "calculateSignature"]);
 
@@ -162,8 +160,8 @@ describe.skipIf(!boltffiAvailable)("backend equivalence", () => {
    */
   test("every BoltFFI export is covered by a case", () => {
     // Module plumbing, not operations: the loader's default export and the
-    // generated error class.
-    const NOT_AN_OPERATION = /^(default|init|initialized)$|Exception$/;
+    // generated error class and the 0.31 cancellation hook.
+    const NOT_AN_OPERATION = /^(default|init|initialized|__boltffiCancelById)$|Exception$/;
     const exported = Object.entries(boltffi)
       .filter(([name, value]) => typeof value === "function" && !NOT_AN_OPERATION.test(name))
       .map(([name]) => name);
@@ -193,4 +191,23 @@ describe.skipIf(!boltffiAvailable)("backend equivalence", () => {
       .sort();
     expect(missing).toEqual([]);
   });
+});
+
+describe.skipIf(!boltffiAvailable)("decompression limit conversion", () => {
+  const hello = new Uint8Array([120, 156, 203, 72, 205, 201, 201, 7, 0, 6, 44, 2, 21]);
+  for (const [name, backend] of [["wasm-bindgen", bindgen], ["BoltFFI", boltffi]] as const) {
+    test(`${name} rejects limits that saturate u64 before decoding`, () => {
+      for (const limit of [2 ** 64, 1e30, Number.MAX_VALUE]) {
+        let caught: unknown;
+        try { backend.inflateZlib(hello, limit); } catch (error) { caught = error; }
+        expect(errorText(caught)).toBe("maxOutputBytes must be less than 2^64");
+      }
+    });
+    test(`${name} preserves larger explicit limits and fractional truncation`, () => {
+      for (const limit of [64 * 1024 * 1024 + 1, 128 * 1024 * 1024, 2 ** 64 - 2048, 5.9]) {
+        expect(backend.inflateZlib(hello, limit)).toEqual(new TextEncoder().encode("hello"));
+      }
+      expect(() => backend.inflateZlib(hello, 4.9)).toThrow();
+    });
+  }
 });

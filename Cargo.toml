@@ -6,7 +6,7 @@ edition = "2024"
 # The BoltFFI exposure crate is a member but not a default member: a plain
 # `cargo build` here must not need the `boltffi` toolchain installed.
 [workspace]
-members = [".", "crates/bridge-core", "crates/bridge-boltffi"]
+members = [".", "crates/bridge-core", "crates/bridge-boltffi", "benches/ffi-size-bindgen"]
 default-members = [".", "crates/bridge-core"]
 exclude = ["codegen"]
 

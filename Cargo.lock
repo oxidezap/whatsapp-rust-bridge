@@ -103,9 +103,9 @@ dependencies = [
 
 [[package]]
 name = "boltffi"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e161b096a8e0ffbd8cd4f4d27198e41af29674e322cbf7b0e2a8af6a65de5a98"
+checksum = "ab5c4e403028eb5bcc2a8adbd188ecff149dd7aa3d5c3244ad8f5bd3b4f722ac"
 dependencies = [
  "boltffi_core",
  "boltffi_macros",
@@ -113,18 +113,18 @@ dependencies = [
 
 [[package]]
 name = "boltffi_ast"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61eedd854fb50598ba568e1e3c668851d15c1c11ccc190f6716ca3a4b7530cdd"
+checksum = "691c744349eab714cae35af917ccb7db031ebc23eb358bbae3254605ee0accbf"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "boltffi_binding"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f6c295724d3253fd29677d794e26b9d2558a8bc9c54f27633f657a4ab84968"
+checksum = "00160cde65f8a703049cf814815a7176ebab7175e4a8475a24f1ed06ff36b941"
 dependencies = [
  "boltffi_ast",
  "serde",
@@ -133,9 +133,9 @@ dependencies = [
 
 [[package]]
 name = "boltffi_core"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1deac2566e7d9f902f54c6c0d6ec0a3cec34ddc5fb366fe160901e8ba0d9d344"
+checksum = "f57ba85a8dbd747c1d515f49009726b68f8747e4e1391551a7b3e7e6e9ccf866"
 dependencies = [
  "boltffi_macros",
  "url",
@@ -144,9 +144,9 @@ dependencies = [
 
 [[package]]
 name = "boltffi_macros"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe85e3269fb44955621112c2b875ebbe7a06218a36e67b77e914c8c8775296c8"
+checksum = "57510b047b08637e820d3c076d72d6cb6317f74c65891997b523e8fb3a3341e1"
 dependencies = [
  "boltffi_ast",
  "boltffi_binding",
@@ -162,9 +162,9 @@ dependencies = [
 
 [[package]]
 name = "boltffi_scan"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6d8da49292222ba4ca5b64136ed1bee9e5baadc3a385850b5305e6fc9ecd86b"
+checksum = "292549f7564f1b1d15c5cff32338b1dbe813b1a94205957e4edc7ec3b5bdf7d9"
 dependencies = [
  "boltffi_ast",
  "proc-macro2",
@@ -590,6 +590,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "ffi-size-bindgen"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "js-sys",
+ "serde",
+ "serde_bytes",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+ "whatsapp-rust-bridge-core",
 ]
 
 [[package]]

@@ -18,7 +18,7 @@
  * Skipped when `boltffi` is absent, so the default build still works for a
  * contributor who does not have it installed.
  */
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -58,7 +58,7 @@ const HOST_TARGET =
  */
 const CRATE_MANIFEST = readFileSync(join(CRATE, "Cargo.toml"), "utf8");
 const REQUIRED_CLI_VERSION = CRATE_MANIFEST.match(
-  /^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"([^"]+)"/m,
+  /^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"=?([^"]+)"/m,
 )?.[1];
 const PINNED_REV = CRATE_MANIFEST.match(/^boltffi\s*=\s*\{[^}]*\brev\s*=\s*"([0-9a-f]{7,40})"/m)?.[1];
 if (REQUIRED_CLI_VERSION === undefined && PINNED_REV === undefined) {
@@ -121,6 +121,17 @@ if (REQUIRED_CLI_VERSION !== undefined && version !== REQUIRED_CLI_VERSION) {
       `\`cargo install boltffi_cli --version ${REQUIRED_CLI_VERSION} --locked\`.`,
   );
 }
+const runtimeVersion = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"))
+  .dependencies["@boltffi/runtime"];
+const installedRuntime = JSON.parse(readFileSync(
+  join(ROOT, "node_modules", "@boltffi", "runtime", "package.json"), "utf8",
+)).version;
+if (REQUIRED_CLI_VERSION !== undefined &&
+    (runtimeVersion !== REQUIRED_CLI_VERSION || installedRuntime !== runtimeVersion)) {
+  throw new Error(`BoltFFI crate/CLI ${REQUIRED_CLI_VERSION}, runtime pin ${runtimeVersion}, ` +
+    `installed runtime ${installedRuntime} must all match; run bun install after updating the pins.`);
+}
+
 // Cargo may record a short revision where the manifest pins a full one, or the
 // reverse, so they agree when one is a prefix of the other.
 const sameRevision = (a: string, b: string) =>
@@ -164,8 +175,8 @@ if (packed.exitCode !== 0) {
 
 // The emitted `.ts` are inputs to the `.js`/`.d.ts` beside them; shipping both
 // would put two copies of the surface in the tarball.
-for (const stale of [`${MODULE}.ts`, `${MODULE}_node.ts`]) {
-  rmSync(join(PKG, stale), { force: true });
+for (const file of readdirSync(PKG)) {
+  if (file.endsWith(".ts") && !file.endsWith(".d.ts")) rmSync(join(PKG, file));
 }
 
 const required = [`${MODULE}_bg.wasm`, `${MODULE}_node.js`, `${MODULE}_node.d.ts`, "node.js"];

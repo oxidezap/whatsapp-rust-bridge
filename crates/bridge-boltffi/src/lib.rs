@@ -73,17 +73,9 @@ pub fn hkdf(
     ))
 }
 
-// `generateKeyPair` and `calculateSignature` are deliberately absent. They are
-// the operations on this surface that draw randomness, and the repository's
-// `.cargo/config.toml` builds `getrandom` with `getrandom_backend="wasm_js"`
-// for every wasm target. That backend calls `__wbg_getRandomValues_*`, a
-// wasm-bindgen import the BoltFFI runtime does not provide, so the call fails
-// on import resolution. One `getrandom` is built per target for the whole
-// workspace, so this crate cannot select a different backend while the cfg is
-// set repository-wide.
-//
-// `tests/backend-equivalence.test.ts` asserts the absence rather than leaving
-// it to be discovered.
+// Keep this opt-in API limited to its original eight utilities. BoltFFI 0.31
+// can package wasm-bindgen imports, but adding the randomness-dependent
+// generateKeyPair/calculateSignature exports needs its own API tests.
 
 #[export]
 pub fn get_public_from_private_key(
