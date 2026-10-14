@@ -28,8 +28,6 @@ import { compactDeclarationTrivia } from "./dts-trivia";
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
 const BINDGEN_DTS = "whatsapp_rust_bridge.d.ts";
-// Compact only generated declarations; preserve comments and all type tokens.
-const compactFiles = new Set(["proto-types.d.ts", BINDGEN_DTS]);
 
 copyFileSync(join(ROOT, "pkg", BINDGEN_DTS), join(DIST, BINDGEN_DTS));
 
@@ -61,7 +59,7 @@ for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const before = readFileSync(path, "utf8");
   const { text: rewritten } = rewriteDtsSpecifiers(before, file, isDistFile);
-  const after = compactFiles.has(file)
+  const after = file === "proto-types.d.ts"
     ? compactDeclarationTrivia(rewritten)
     : rewritten;
   if (after !== before) writeFileSync(path, after);
@@ -79,7 +77,7 @@ for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
       `dist/${file} still has an unrewritten relative import — update finalize-dist.ts`,
     );
   }
-  if (compactFiles.has(file) && compactDeclarationTrivia(text) !== text) {
+  if (file === "proto-types.d.ts" && compactDeclarationTrivia(text) !== text) {
     throw new Error(`dist/${file} declaration compaction is not idempotent`);
   }
 }

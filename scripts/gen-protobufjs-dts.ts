@@ -242,13 +242,13 @@ const renderInterface = (def: InterfaceDef, leafName: string, depth: number): st
 	// Ambient class/interface merging supplies the same public instance fields
 	// from I<Name>, without publishing each field declaration twice.
 	s += `\n${indent(depth)}interface ${leafName} extends I${leafName}, $ProtoJSON {}\n`
-	s += `\n${indent(depth)}class ${leafName} implements I${leafName} {\n`
+	s += `\n${indent(depth)}class ${leafName} {\n`
 	s += `${indent(depth + 1)}constructor(p?: I${leafName});\n`
-	s += `${indent(depth + 1)}public static create(p?: I${leafName}): ${leafName};\n`
-	s += `${indent(depth + 1)}public static fromObject(d: $ProtoObject): ${leafName};\n`
-	s += `${indent(depth + 1)}public static toObject: $ProtoToObject<${leafName}>;\n`
-	s += `${indent(depth + 1)}public static encode: $ProtoEncode<I${leafName}>;\n`
-	s += `${indent(depth + 1)}public static decode: $ProtoDecode<${leafName}>;\n`
+	s += `${indent(depth + 1)}static create(p?: I${leafName}): ${leafName};\n`
+	s += `${indent(depth + 1)}static fromObject(d: $ProtoObject): ${leafName};\n`
+	s += `${indent(depth + 1)}static toObject: $ProtoToObject<${leafName}>;\n`
+	s += `${indent(depth + 1)}static encode: $ProtoEncode<I${leafName}>;\n`
+	s += `${indent(depth + 1)}static decode: $ProtoDecode<${leafName}>;\n`
 	s += `${indent(depth)}}\n`
 	return s
 }
