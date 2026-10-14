@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.26.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.25.0...v0.26.0) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump whatsapp-rust pin for durable capture and typed media requests ([#148](https://github.com/oxidezap/whatsapp-rust-bridge/issues/148))
+
+### Features
+
+* generate typed bridge operations and boundary contracts ([#146](https://github.com/oxidezap/whatsapp-rust-bridge/issues/146)) ([bb45c37](https://github.com/oxidezap/whatsapp-rust-bridge/commit/bb45c37e88b29a3eef432f76713ef176e2404b1e))
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for durable capture and typed media requests ([#148](https://github.com/oxidezap/whatsapp-rust-bridge/issues/148)) ([a75d376](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a75d3768d87969c0a5eb61e80014d5ac5d6b8193))
+
 ## [0.25.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.1...v0.25.0) (2026-10-04)
 
 
