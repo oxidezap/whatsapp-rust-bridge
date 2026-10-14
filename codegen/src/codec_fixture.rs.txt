@@ -1,0 +1,47 @@
+#![allow(dead_code)]
+#[derive(Debug,PartialEq)] struct Error {field:String,reason:String}
+mod errors {
+    pub fn invalid_arg(field:impl Into<String>,reason:impl Into<String>)->super::Error {super::Error{field:field.into(),reason:reason.into()}}
+    pub fn send_error_for_key(_:(),field:&str)->super::Error {invalid_arg(field,"send failed")}
+}
+mod result_types {pub enum PictureType {Preview,Image}}
+mod whatsapp_rust {
+    #[derive(Debug,PartialEq)] pub enum ProfilePictureType {Preview,Full}
+    pub mod features {
+        #[derive(Debug,PartialEq)] pub struct CatalogOptions {pub limit:u32,pub after:Option<String>,pub image_width:u32,pub image_height:u32,pub allow_shop_source:bool}
+        // Deliberately distinct sentinel defaults prove the template inherits
+        // rather than reimplementing upstream defaults.
+        impl Default for CatalogOptions {fn default()->Self{Self{limit:19,after:None,image_width:307,image_height:401,allow_shop_source:true}}}
+    }
+    #[derive(Debug)] pub struct MessageId(String);
+    impl MessageId {pub fn new(value:String)->Result<Self,&'static str>{super::record("id");if value=="bad"{Err("invalid id")}else{Ok(Self(value))}}}
+    #[derive(Default,Debug)] pub struct SendOptions;
+    impl SendOptions {
+        pub fn with_extra_stanza_nodes(self,_:())->Self {self}
+        pub fn with_group_metadata_freshness(self,_:())->Self {super::record("group");self}
+        pub fn with_device_freshness(self,_:())->Self {super::record("devices");self}
+        pub fn with_message_id(self,_:MessageId)->Self {self}
+    }
+}
+#[derive(Default)] struct CatalogInput {limit:Option<u32>,after:Option<String>,image_width:Option<u32>,image_height:Option<u32>,allow_shop_source:Option<bool>}
+thread_local! {static ORDER:std::cell::RefCell<Vec<&'static str>>=const{std::cell::RefCell::new(Vec::new())};}
+fn record(value:&'static str){ORDER.with(|order|order.borrow_mut().push(value));}
+fn freshness(_:bool){record("freshness");}
+fn js_node_array_to_vec(valid:bool)->Result<(),Error>{record("nodes");if valid{Ok(())}else{Err(errors::invalid_arg("extra_nodes","invalid nodes"))}}
+fn before(before:Option<String>)->Result<Option<u64>,Error> {__BEFORE__ Ok(before_id)}
+fn options(extra_nodes:bool,message_id:Option<String>)->Result<(),Error>{let refresh_group_metadata=false;let refresh_devices=true;__SEND_OPTIONS__ let _=options;Ok(())}
+struct ParentKey{participant:Option<String>,from_me:bool}
+fn guard(parent_key:ParentKey)->Result<(),Error>{__PARENT_GUARD__ record("decode");Ok(())}
+struct Id(String);impl Id {fn into_string(self)->String{self.0}}
+struct Sent {message_id:Id}
+fn sent(result:Result<Sent,()>)->Result<String,Error>{__MESSAGE_ID__}
+fn main(){
+    {let picture_type=result_types::PictureType::Image;__PICTURE__ assert_eq!(size,whatsapp_rust::ProfilePictureType::Full);}
+    {let options:Option<CatalogInput>=None;__CATALOG__ assert_eq!(opts,whatsapp_rust::features::CatalogOptions::default());}
+    {let options=Some(CatalogInput{limit:Some(0),image_width:Some(0),allow_shop_source:Some(false),after:Some("cursor".into()),..Default::default()});__CATALOG__ assert_eq!(opts.limit,0);assert_eq!(opts.image_width,0);assert_eq!(opts.image_height,401);assert!(!opts.allow_shop_source);assert_eq!(opts.after.as_deref(),Some("cursor"));}
+    assert_eq!(before(None).unwrap(),None);assert_eq!(before(Some("0".into())).unwrap(),Some(0));assert_eq!(before(Some(u64::MAX.to_string())).unwrap(),Some(u64::MAX));let error=before(Some("18446744073709551616".into())).unwrap_err();assert_eq!(error.field,"before");assert!(error.reason.starts_with("must be a serverId: "));
+    ORDER.with(|order|order.borrow_mut().clear());let error=options(false,Some("bad".into())).unwrap_err();assert_eq!(error.field,"extra_nodes");ORDER.with(|order|assert_eq!(*order.borrow(),["nodes"]));
+    ORDER.with(|order|order.borrow_mut().clear());let error=options(true,Some("bad".into())).unwrap_err();assert_eq!(error.field,"messageId");ORDER.with(|order|assert_eq!(*order.borrow(),["nodes","freshness","group","freshness","devices","id"]));
+    ORDER.with(|order|order.borrow_mut().clear());assert!(guard(ParentKey{participant:None,from_me:false}).is_err());ORDER.with(|order|assert!(order.borrow().is_empty()));assert!(guard(ParentKey{participant:None,from_me:true}).is_ok());
+    assert_eq!(sent(Ok(Sent{message_id:Id("id".into())})).unwrap(),"id");assert_eq!(sent(Err(())).unwrap_err().field,"target_key");
+}

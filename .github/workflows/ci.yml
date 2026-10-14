@@ -184,6 +184,7 @@ jobs:
           cargo fmt --manifest-path codegen/Cargo.toml --all -- --check
           cargo clippy --manifest-path codegen/Cargo.toml --all-targets --target "$HOST" -- -D warnings
           cargo test --manifest-path codegen/Cargo.toml --target "$HOST"
+          cargo run --manifest-path codegen/Cargo.toml --bin gen-operations --target "$HOST" -- --check
 
   build-and-test:
     # The benchmark step that used to run here invoked `bench:node`, whose
@@ -250,8 +251,8 @@ jobs:
         # --intent-to-add first: `git diff` only sees tracked files, so a
         # generator that starts emitting a new file would pass unreviewed.
         run: |
-          git add --intent-to-add -- src/generated_types.rs ts/generated
-          git diff --exit-code -- src/generated_types.rs ts/generated
+          git add --intent-to-add -- src/generated_types.rs src/wasm_client/generated ts/generated
+          git diff --exit-code -- src/generated_types.rs src/wasm_client/generated ts/generated
 
       # The Noise cert-chain bypass must not reach the shipped graph. The
       # script reads the resolved wasm32 feature set, so only the production

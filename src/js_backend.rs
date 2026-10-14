@@ -121,21 +121,8 @@ pub(crate) fn new_in_memory_backend() -> Arc<dyn Backend> {
     Arc::new(InMemoryBackend::default())
 }
 
-/// Raw JS callback handles + capability flags pulled from the host store object.
-/// Grouped into one struct because the optional surface grew past clarity as a
-/// positional argument list.
-pub(crate) struct JsBackendHandles {
-    pub get_fn: js_sys::Function,
-    pub set_fn: js_sys::Function,
-    pub delete_fn: js_sys::Function,
-    pub set_many_fn: Option<js_sys::Function>,
-    pub delete_many_fn: Option<js_sys::Function>,
-    pub get_many_fn: Option<js_sys::Function>,
-    pub list_keys_fn: Option<js_sys::Function>,
-    pub delete_prefix_fn: Option<js_sys::Function>,
-    pub cap_enumerate: bool,
-    pub cap_prefix_delete: bool,
-}
+include!("wasm_client/generated/storage.rs");
+include!("wasm_client/generated/storage_crud.rs");
 
 /// Create a JsBackend from JS callback handles. The batch/enumeration handles
 /// are optional — when absent the backend falls back to per-key `set`/`delete`
@@ -624,17 +611,8 @@ impl JsBackend {
 // SignalStore
 // ---------------------------------------------------------------------------
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl SignalStore for JsBackend {
-    async fn put_identity(&self, address: &str, key: [u8; 32]) -> Result<()> {
-        self.js_set(STORE_IDENTITY, address, &key).await
-    }
+generated_signal_store! {
 
-    async fn put_identities_batch(&self, identities: &[(Arc<str>, [u8; 32])]) -> Result<()> {
-        self.js_put_many(STORE_IDENTITY, pair_refs(identities))
-            .await
-    }
 
     async fn load_identity(&self, address: &str) -> Result<Option<[u8; 32]>> {
         match self.js_get(STORE_IDENTITY, address).await? {
@@ -646,26 +624,6 @@ impl SignalStore for JsBackend {
             })?)),
             None => Ok(None),
         }
-    }
-
-    async fn delete_identity(&self, address: &str) -> Result<()> {
-        self.js_delete(STORE_IDENTITY, address).await
-    }
-
-    async fn get_session(&self, address: &str) -> Result<Option<Bytes>> {
-        Ok(self.js_get(STORE_SESSION, address).await?.map(Bytes::from))
-    }
-
-    async fn put_session(&self, address: &str, session: &[u8]) -> Result<()> {
-        self.js_set(STORE_SESSION, address, session).await
-    }
-
-    async fn put_sessions_batch(&self, sessions: &[(Arc<str>, Bytes)]) -> Result<()> {
-        self.js_put_many(STORE_SESSION, pair_refs(sessions)).await
-    }
-
-    async fn delete_session(&self, address: &str) -> Result<()> {
-        self.js_delete(STORE_SESSION, address).await
     }
 
     async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
@@ -689,17 +647,6 @@ impl SignalStore for JsBackend {
         Ok(false)
     }
 
-    async fn store_prekey(&self, id: u32, record: &[u8], _uploaded: bool) -> Result<()> {
-        self.js_set(STORE_PREKEY, &id.to_string(), record).await
-    }
-
-    async fn load_prekey(&self, id: u32) -> Result<Option<Bytes>> {
-        Ok(self
-            .js_get(STORE_PREKEY, &id.to_string())
-            .await?
-            .map(Bytes::from))
-    }
-
     async fn load_prekeys_batch(&self, ids: &[u32]) -> Result<Vec<(u32, Bytes)>> {
         let keys = ids.iter().map(u32::to_string).collect::<Vec<_>>();
         self.js_get_many(STORE_PREKEY, &keys)
@@ -715,10 +662,6 @@ impl SignalStore for JsBackend {
                     })
             })
             .collect()
-    }
-
-    async fn remove_prekey(&self, id: u32) -> Result<()> {
-        self.js_delete(STORE_PREKEY, &id.to_string()).await
     }
 
     async fn mark_prekeys_uploaded(&self, _ids: &[u32]) -> Result<()> {
@@ -777,10 +720,6 @@ impl SignalStore for JsBackend {
         Ok(())
     }
 
-    async fn load_signed_prekey(&self, id: u32) -> Result<Option<Vec<u8>>> {
-        self.js_get(STORE_SIGNED_PREKEY, &id.to_string()).await
-    }
-
     async fn load_all_signed_prekeys(&self) -> Result<Vec<(u32, Vec<u8>)>> {
         let ids = self.get_signed_prekey_ids().await?;
         let mut result = Vec::with_capacity(ids.len());
@@ -803,22 +742,6 @@ impl SignalStore for JsBackend {
         Ok(())
     }
 
-    async fn put_sender_key(&self, address: &str, record: &[u8]) -> Result<()> {
-        self.js_set(STORE_SENDER_KEY, address, record).await
-    }
-
-    async fn put_sender_keys_batch(&self, sender_keys: &[(Arc<str>, Bytes)]) -> Result<()> {
-        self.js_put_many(STORE_SENDER_KEY, pair_refs(sender_keys))
-            .await
-    }
-
-    async fn get_sender_key(&self, address: &str) -> Result<Option<Vec<u8>>> {
-        self.js_get(STORE_SENDER_KEY, address).await
-    }
-
-    async fn delete_sender_key(&self, address: &str) -> Result<()> {
-        self.js_delete(STORE_SENDER_KEY, address).await
-    }
 }
 
 impl JsBackend {
@@ -840,36 +763,14 @@ impl JsBackend {
 // AppSyncStore
 // ---------------------------------------------------------------------------
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl AppSyncStore for JsBackend {
-    async fn get_sync_key(&self, key_id: &[u8]) -> Result<Option<AppStateSyncKey>> {
-        let hex_id = to_hex(key_id);
-        self.js_get_json(STORE_SYNC_KEY, &hex_id).await
-    }
+generated_app_sync_store! {
+
 
     async fn set_sync_key(&self, key_id: &[u8], key: AppStateSyncKey) -> Result<()> {
         let hex_id = to_hex(key_id);
         self.js_set_json(STORE_SYNC_KEY, &hex_id, &key).await?;
         self.js_set(STORE_META, META_LATEST_SYNC_KEY_ID, key_id)
             .await
-    }
-
-    /// Absence is passed through rather than defaulted. The core reads `None`
-    /// as "never synced" and asks for a snapshot; a collection that synced and
-    /// is legitimately empty has a record at version 0 and asks for patches.
-    /// Collapsing the two here made every empty collection re-request a
-    /// snapshot forever.
-    async fn get_version(&self, name: &str) -> Result<Option<HashState>> {
-        self.js_get_json(STORE_SYNC_VERSION, name).await
-    }
-
-    async fn delete_version(&self, name: &str) -> Result<()> {
-        self.js_delete(STORE_SYNC_VERSION, name).await
-    }
-
-    async fn set_version(&self, name: &str, state: HashState) -> Result<()> {
-        self.js_set_json(STORE_SYNC_VERSION, name, &state).await
     }
 
     async fn put_mutation_macs(
@@ -995,18 +896,14 @@ impl AppSyncStore for JsBackend {
         Ok(())
     }
 
-    async fn get_latest_sync_key_id(&self) -> Result<Option<Vec<u8>>> {
-        self.js_get(STORE_META, META_LATEST_SYNC_KEY_ID).await
-    }
 }
 
 // ---------------------------------------------------------------------------
 // ProtocolStore
 // ---------------------------------------------------------------------------
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl ProtocolStore for JsBackend {
+generated_protocol_store! {
+
     // --- Sender Key Device Tracking ---
 
     async fn get_sender_key_devices(&self, group_jid: &str) -> Result<Vec<(String, bool)>> {
@@ -1111,13 +1008,6 @@ impl ProtocolStore for JsBackend {
         Ok(())
     }
 
-    // --- LID-PN Mapping ---
-
-    async fn get_lid_mapping(&self, lid: &str) -> Result<Option<LidPnMappingEntry>> {
-        self.js_get_json(STORE_LID_MAPPING, &format!("lid:{lid}"))
-            .await
-    }
-
     async fn get_pn_mapping(&self, phone: &str) -> Result<Option<LidPnMappingEntry>> {
         match self
             .js_get(STORE_LID_MAPPING, &format!("pn:{phone}"))
@@ -1185,52 +1075,6 @@ impl ProtocolStore for JsBackend {
             }
         }
         Ok(result)
-    }
-
-    // --- Base Key Collision Detection ---
-
-    async fn save_base_key(&self, address: &str, message_id: &str, base_key: &[u8]) -> Result<()> {
-        let key = format!("{address}:{message_id}");
-        self.js_set(STORE_BASE_KEY, &key, base_key).await
-    }
-
-    async fn has_same_base_key(
-        &self,
-        address: &str,
-        message_id: &str,
-        current_base_key: &[u8],
-    ) -> Result<bool> {
-        let key = format!("{address}:{message_id}");
-        match self.js_get(STORE_BASE_KEY, &key).await? {
-            Some(stored) => Ok(stored == current_base_key),
-            None => Ok(false),
-        }
-    }
-
-    async fn delete_base_key(&self, address: &str, message_id: &str) -> Result<()> {
-        let key = format!("{address}:{message_id}");
-        self.js_delete(STORE_BASE_KEY, &key).await
-    }
-
-    // --- Device Registry ---
-
-    async fn update_device_list(&self, record: DeviceListRecord) -> Result<()> {
-        self.js_set_json(STORE_DEVICE_LIST, &record.user, &record)
-            .await
-    }
-
-    async fn get_devices(&self, user: &str) -> Result<Option<DeviceListRecord>> {
-        self.js_get_json(STORE_DEVICE_LIST, user).await
-    }
-
-    async fn delete_devices(&self, user: &str) -> Result<()> {
-        self.js_delete(STORE_DEVICE_LIST, user).await
-    }
-
-    // --- TcToken Storage ---
-
-    async fn get_tc_token(&self, jid: &str) -> Result<Option<TcTokenEntry>> {
-        self.js_get_json(STORE_TC_TOKEN, jid).await
     }
 
     async fn put_tc_token(&self, jid: &str, entry: &TcTokenEntry) -> Result<()> {
@@ -1413,6 +1257,7 @@ impl ProtocolStore for JsBackend {
         self.flush_sent_keys(keys).await?;
         Ok(deleted)
     }
+
 }
 
 // ---------------------------------------------------------------------------
@@ -2337,5 +2182,268 @@ mod device_account_authority_tests {
         let decoded = account_serde::from_bytes(&raw).expect("old readers decode the legacy key");
         assert!(same_account(&decoded, &fixture_account()));
         assert!(record_has_account_field(&backend).await);
+    }
+}
+
+#[cfg(test)]
+mod generated_callback_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn object(source: &str) -> JsValue {
+        js_sys::eval(source).expect("storage callback fixture")
+    }
+
+    #[test]
+    fn registration_preserves_getter_order_and_ignores_declaration_only_callbacks() {
+        let value = object(
+            r#"(() => {
+            const reads = [];
+            const store = { reads };
+            for (const name of ['get','set','delete','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
+                Object.defineProperty(store, name, { get() { reads.push(name); return () => null; } });
+            }
+            Object.defineProperty(store, 'capabilities', { get() { reads.push('capabilities'); return {}; } });
+            for (const name of ['listEntries', 'flush']) {
+                Object.defineProperty(store, name, { get() { throw new Error('declaration only: ' + name); } });
+            }
+            return store;
+        })()"#,
+        );
+        let handles = JsBackendHandles::from_js(&value).expect("valid required callbacks");
+        assert!(handles.set_many_fn.is_none());
+        assert!(handles.delete_many_fn.is_none());
+        assert!(handles.get_many_fn.is_none());
+        let reads = js_sys::Reflect::get(&value, &"reads".into()).unwrap();
+        let reads: Vec<String> = js_sys::Array::from(&reads)
+            .iter()
+            .map(|v| v.as_string().unwrap())
+            .collect();
+        assert_eq!(
+            reads,
+            [
+                "get",
+                "set",
+                "delete",
+                "setMany",
+                "deleteMany",
+                "getMany",
+                "listKeys",
+                "deletePrefix",
+                "capabilities",
+                "capabilities",
+                "capabilities"
+            ]
+        );
+    }
+
+    #[test]
+    fn optional_storage_getters_remain_tolerant_and_capabilities_require_handles() {
+        let value = object(
+            r#"({
+            get() {}, set() {}, delete() {},
+            get setMany() { throw new Error('optional'); },
+            deleteMany: 42, getMany() {},
+            get listKeys() { throw new Error('optional'); },
+            deletePrefix() {}, capabilities: { batch: true, enumerate: true, prefixDelete: true }
+        })"#,
+        );
+        let handles = JsBackendHandles::from_js(&value).unwrap();
+        assert!(handles.set_many_fn.is_none());
+        assert!(handles.delete_many_fn.is_none());
+        assert!(handles.get_many_fn.is_some());
+        let backend = JsBackend::new(handles);
+        assert!(!backend.has_enumerate);
+        assert!(backend.has_prefix_delete);
+        let error = JsBackendHandles::from_js(&object("({get: 42})"))
+            .err()
+            .expect("invalid required callback");
+        assert!(
+            matches!(error, crate::errors::BridgeError::InvalidArgument {field, reason} if field == "store" && reason == "store.get must be a function")
+        );
+    }
+
+    #[test]
+    async fn generated_handles_preserve_null_receiver_and_storage_errors() {
+        let value = object(
+            r#"({
+            get: function() { 'use strict'; if (this !== null) throw new Error('receiver'); return null; },
+            set: function() { 'use strict'; if (this !== null) throw new Error('receiver'); throw new Error('sync store failure'); },
+            delete: function() { 'use strict'; if (this !== null) throw new Error('receiver'); return Promise.reject(new Error('async store failure')); }
+        })"#,
+        );
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        assert!(backend.js_get("session", "test").await.unwrap().is_none());
+        let error = backend
+            .js_set("session", "test", b"value")
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("sync store failure")
+        );
+        let error = backend.js_delete("session", "test").await.unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("async store failure")
+        );
+    }
+    #[test]
+    async fn generated_crud_preserves_keys_bytes_json_and_absence() {
+        let value = object(
+            r#"(() => {
+            const records=new Map(),calls=[];
+            return {records,calls,
+                get(store,key){calls.push(['get',store,key]);return records.get(store+':'+key)??null;},
+                set(store,key,value){calls.push(['set',store,key]);records.set(store+':'+key,value);},
+                delete(store,key){calls.push(['delete',store,key]);records.delete(store+':'+key);}
+            };
+        })()"#,
+        );
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        assert!(backend.get_session("absent").await.unwrap().is_none());
+        backend
+            .put_session("alice:7", &[0, 128, 255])
+            .await
+            .unwrap();
+        assert_eq!(
+            backend
+                .get_session("alice:7")
+                .await
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &[0, 128, 255]
+        );
+        backend.store_prekey(u32::MAX, &[9], false).await.unwrap();
+        assert_eq!(
+            backend
+                .load_prekey(u32::MAX)
+                .await
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &[9]
+        );
+        assert!(backend.get_sync_key(&[0, 15, 255]).await.unwrap().is_none());
+        assert!(backend.get_lid_mapping("user:lid").await.unwrap().is_none());
+        assert!(
+            !backend
+                .has_same_base_key("alice:7", "id:1", &[4])
+                .await
+                .unwrap()
+        );
+        backend
+            .save_base_key("alice:7", "id:1", &[4])
+            .await
+            .unwrap();
+        assert!(
+            backend
+                .has_same_base_key("alice:7", "id:1", &[4])
+                .await
+                .unwrap()
+        );
+        assert!(
+            !backend
+                .has_same_base_key("alice:7", "id:1", &[5])
+                .await
+                .unwrap()
+        );
+        backend.delete_base_key("alice:7", "id:1").await.unwrap();
+        assert!(
+            !backend
+                .has_same_base_key("alice:7", "id:1", &[4])
+                .await
+                .unwrap()
+        );
+        assert!(backend.get_version("regular").await.unwrap().is_none());
+        backend
+            .set_version("regular", HashState::default())
+            .await
+            .unwrap();
+        assert_eq!(
+            backend
+                .get_version("regular")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            0
+        );
+        let record = DeviceListRecord {
+            user: Arc::from("user:7"),
+            devices: vec![].into_boxed_slice(),
+            timestamp: 42,
+            phash: None,
+            raw_id: None,
+        };
+        let expected = serde_json::to_vec(&record).unwrap();
+        backend.update_device_list(record).await.unwrap();
+        assert_eq!(
+            backend
+                .js_get("device_list", "user:7")
+                .await
+                .unwrap()
+                .unwrap(),
+            expected
+        );
+        let calls: Vec<Vec<String>> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"calls".into()).unwrap())
+                .unwrap();
+        for (operation, store, key) in [
+            ("set", "session", "alice:7"),
+            ("set", "prekey", "4294967295"),
+            ("get", "sync_key", "000fff"),
+            ("get", "lid_mapping", "lid:user:lid"),
+            ("set", "base_key", "alice:7:id:1"),
+            ("set", "device_list", "user:7"),
+        ] {
+            assert!(
+                calls.contains(&vec![operation.into(), store.into(), key.into()]),
+                "missing {operation} {store} {key}"
+            );
+        }
+    }
+
+    #[test]
+    async fn generated_batches_preserve_native_pairs_and_fallback_fail_fast() {
+        let value = object(
+            r#"(() => {
+            const writes=[];return {writes,get(){return null;},delete(){},
+            set(store,key,bytes){writes.push([store,key,Array.from(bytes)]);if(key==='second')throw new Error('stop second');}};
+        })()"#,
+        );
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        let pairs: Vec<(Arc<str>, Bytes)> = vec![
+            (Arc::from("first"), Bytes::from_static(&[0, 255])),
+            (Arc::from("second"), Bytes::from_static(&[128])),
+            (Arc::from("third"), Bytes::from_static(&[1])),
+        ];
+        let error = backend.put_sessions_batch(&pairs).await.unwrap_err();
+        assert!(error.source().unwrap().to_string().contains("stop second"));
+        let writes = js_sys::Array::from(&js_sys::Reflect::get(&value, &"writes".into()).unwrap());
+        assert_eq!(writes.length(), 2);
+        let value = object(
+            r#"(() => {const writes=[];return {writes,get(){return null;},set(){throw new Error('not batched');},delete(){},capabilities:{batch:true},setMany(store,pairs){writes.push([store,pairs.map(([key,bytes])=>[key,Array.from(bytes)])]);}};})()"#,
+        );
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        backend.put_sessions_batch(&pairs).await.unwrap();
+        let writes: serde_json::Value =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"writes".into()).unwrap())
+                .unwrap();
+        assert_eq!(
+            writes,
+            serde_json::json!([[
+                "session",
+                [["first", [0, 255]], ["second", [128]], ["third", [1]]]
+            ]])
+        );
     }
 }

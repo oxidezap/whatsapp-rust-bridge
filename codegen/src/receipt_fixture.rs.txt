@@ -1,0 +1,42 @@
+use std::{cell::Cell, future::Future, task::{Context, Poll, Waker}};
+mod errors { #[derive(Debug, PartialEq)] pub enum BridgeError { Withdrawn, Send, Invalid } }
+use errors::BridgeError;
+type JsValue = bool;
+struct WasmWhatsAppClient { client: Gate }
+struct Gate { online: Cell<usize>, committed: Cell<usize>, attempts: Cell<usize>, withdrawn: bool, fail_at: usize }
+impl Gate {
+    async fn online(&self) -> Result<&Self, BridgeError> {
+        self.online.set(self.online.get()+1);
+        if self.withdrawn { Err(BridgeError::Withdrawn) } else { Ok(self) }
+    }
+    async fn online_committed(&self) -> &Self { self.committed.set(self.committed.get()+1); self }
+    async fn mark_as_read(&self, _: &String, _: Option<&String>, _: &[&str]) -> Result<(), BridgeError> {
+        self.attempts.set(self.attempts.get()+1);
+        if self.attempts.get() == self.fail_at { Err(BridgeError::Send) } else { Ok(()) }
+    }
+    async fn mark_as_played(&self, c: &String, p: Option<&String>, i: &[&str]) -> Result<(), BridgeError> { self.mark_as_read(c,p,i).await }
+}
+fn group_receipt_keys(_: &str, valid: JsValue) -> Result<Vec<(String,Option<String>,Vec<String>)>,BridgeError> {
+    if !valid { return Err(BridgeError::Invalid); }
+    Ok((0..3).map(|i|(i.to_string(),None,vec!["message".into()])).collect())
+}
+fn ready<T>(future: impl Future<Output=T>) -> T {
+    let mut future = std::pin::pin!(future);
+    match future.as_mut().poll(&mut Context::from_waker(Waker::noop())) { Poll::Ready(value)=>value, Poll::Pending=>panic!("fixture unexpectedly suspended") }
+}
+fn main() {
+    for played in [false,true] {
+        for (withdrawn,fail_at,valid,expected,online,committed,attempts) in [
+            (true,0,true,Err(BridgeError::Withdrawn),1,0,0),
+            (false,0,true,Ok(()),1,2,3),
+            (false,1,true,Err(BridgeError::Send),1,0,1),
+            (false,2,true,Err(BridgeError::Send),1,1,2),
+            (true,0,false,Err(BridgeError::Invalid),0,0,0),
+        ] {
+            let client=WasmWhatsAppClient {client:Gate {online:Cell::new(0),committed:Cell::new(0),attempts:Cell::new(0),withdrawn,fail_at}};
+            let outcome=if played {ready(client.mark_played(valid))}else{ready(client.read_messages(valid))};
+            assert_eq!(outcome,expected);
+            assert_eq!((client.client.online.get(),client.client.committed.get(),client.client.attempts.get()),(online,committed,attempts));
+        }
+    }
+}

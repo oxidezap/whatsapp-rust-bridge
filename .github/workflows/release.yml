@@ -204,8 +204,8 @@ jobs:
       # checks it: an upstream schema change has to show up in a diff.
       - name: Fail if the generated types drifted
         run: |
-          git add --intent-to-add -- src/generated_types.rs ts/generated
-          git diff --exit-code -- src/generated_types.rs ts/generated
+          git add --intent-to-add -- src/generated_types.rs src/wasm_client/generated ts/generated
+          git diff --exit-code -- src/generated_types.rs src/wasm_client/generated ts/generated
 
       # Same production-profile gate as ci.yml: this tree is what publish
       # ships, so the bypass must not be in the graph it was built from.

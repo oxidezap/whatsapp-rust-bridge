@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
 import { integrity, request, resolveRelease, validatePackage, alreadyPublished,
   assertNotOlder, publishPackage, finalizeRelease, assertRecoveryInputs } from "./release.mjs";
 
@@ -298,4 +301,36 @@ test("workflow gates and config preserve draft -> verify -> npm -> public orderi
   assert.ok(finalize);
   assert.doesNotMatch(finalize, /id-token: write|release\.mjs publish/);
   assert.match(finalize, /release\.mjs finalize/);
+});
+
+test("CI and release reject changed and newly generated operation wrappers", () => {
+  for (const name of ["ci", "release"]) {
+    const workflow = readFileSync(new URL(`../workflows/${name}.yml`, import.meta.url), "utf8");
+    const step = workflow.match(/- name: Fail if the generated types drifted\n(?: *#[^\n]*\n)* *run: \|\n((?: {10}[^\n]+\n)+)/);
+    assert.ok(step, `${name}: generated-source gate missing`);
+    const script = step[1].replace(/^ {10}/gm, "");
+    const directory = mkdtempSync(join(tmpdir(), "bridge-release-drift-"));
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+    const git = (...args) => execFileSync("git", args, { cwd: directory, env, encoding: "utf8", stdio: "pipe" });
+    const gate = () => spawnSync("bash", ["-e", "-c", script], { cwd: directory, env, encoding: "utf8" });
+    try {
+      for (const path of ["src/wasm_client/generated", "ts/generated"]) {
+        mkdirSync(join(directory, path), { recursive: true });
+      }
+      for (const path of ["src/generated_types.rs", "ts/generated/proto.ts", "src/wasm_client/generated/groups.rs"]) {
+        writeFileSync(join(directory, path), "reviewed\n");
+      }
+      git("init");
+      git("add", ".");
+      git("-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false", "commit", "-m", "reviewed sources");
+      assert.equal(gate().status, 0, `${name}: reviewed tree must pass`);
+      writeFileSync(join(directory, "src/wasm_client/generated/groups.rs"), "regenerated\n");
+      assert.equal(gate().status, 1, `${name}: changed wrapper must stop publication`);
+      writeFileSync(join(directory, "src/wasm_client/generated/groups.rs"), "reviewed\n");
+      writeFileSync(join(directory, "src/wasm_client/generated/new_operation.rs"), "new output\n");
+      assert.equal(gate().status, 1, `${name}: untracked wrapper must stop publication`);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }
 });

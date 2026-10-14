@@ -429,107 +429,6 @@ export interface WhatsAppClientConfig {
   onEvent?: WhatsAppEventHandler;
 }
 
-/**
- * Typed event sink. Message and history-sync events cross the boundary as
- * protobuf wire bytes only: the host decodes them with its own codec, so the
- * bridge never materializes an intermediate reflected JS tree (and never
- * compiles the Rust->JS serializers for those proto graphs). A handler that
- * omits `onMessageBatch`/`onHistorySyncBatch` has those events dropped with an
- * error log; every other event kind continues through `onEvent`.
- */
-export interface WhatsAppEventCallbacks {
-  onEvent(event: WhatsAppEvent): void;
-  /**
-   * Protobuf-wire message path. The bridge packs a bounded ordered group of
-   * messages — payloads and metadata alike — into one flat buffer. Decode it
-   * with `decodeMessageWireBatch`.
-   *
-   * Decode every batch, exactly once, in the order it arrives, before calling
-   * back into the client: addresses and push names repeat, so a batch defines
-   * them once and later batches reference the table the decoder is holding.
-   * A batch skipped or decoded out of order leaves that table describing a
-   * history the records do not have.
-   *
-   * The return type is `void` and TypeScript lets an `async` method satisfy
-   * it, so this is checked rather than trusted: a callback that hands back
-   * anything promise-like has not decoded inside its call, and the bridge
-   * gives up the cross-batch table for the rest of the session — every batch
-   * then carries every value it names, which decodes the same in any order.
-   * Keeping the buffer is fine; decoding it later is what costs the table.
-   *
-   * The check runs after the batch has been handed over, so the batch that
-   * revealed the violation is the one it cannot save: decoded after a later
-   * one, it reads that one's table. Every batch after it is safe whenever it
-   * is decoded.
-   */
-  onMessageBatch(batch: MessageWireBatch): void;
-  /**
-   * Optional host-interest filter for conversation records. When present, the
-   * bridge still walks every history payload and emits its final metadata, but
-   * materializes conversation wire bytes only for the listed numeric sync
-   * types. Omit it for the backward-compatible "all types" behavior.
-   */
-  historySyncConversationTypes?: readonly number[];
-  /**
-   * Protobuf-wire history-sync path. Conversation entries cross as wire bytes
-   * and the non-conversation remainder (pushnames, mappings, settings, ...)
-   * crosses as one encoded `proto.HistorySync` payload in `remainderData`.
-   * Return the number of malformed entries skipped by the host, if any.
-   */
-  onHistorySyncBatch(batch: HistorySyncWireBatch): number | void;
-  /**
-   * Optional packed receipt path: adjacent `receipt` events coalesce into one
-   * flat buffer (decode with `decodeReceiptWireBatch`) instead of one
-   * reflected object per event. Without it, receipts use `onEvent`.
-   * Decode the batch fully before calling back into the client: the reader
-   * walks the buffer in order and shares cached JID objects across events.
-   */
-  onReceiptBatch?(batch: ReceiptWireBatch): void;
-  /**
-   * Optional packed server-ack path, analogous to `onReceiptBatch`; decode
-   * with `decodeServerAckWireBatch`. Without it, acks use `onEvent`.
-   */
-  onServerAckBatch?(batch: ServerAckWireBatch): void;
-  /**
-   * Borrowing form of `onReceiptBatch`, and the whole of the opt-in: declaring
-   * it replaces `onReceiptBatch` as the receipt sink and lets the bridge hand
-   * every batch out of one buffer it reuses.
-   *
-   * The batch is therefore a window on shared memory, valid ONLY for the
-   * synchronous duration of the call: implementations MUST decode or copy it
-   * before returning, and MUST NOT retain it, pass it to an async consumer, or
-   * return a Promise. `decodeReceiptWireBatch` satisfies that on its own, since
-   * it materializes every field and keeps no view over the buffer, so the usual
-   * body is a decode plus whatever the host does with the result. A callback
-   * caught handing back something promise-like, or letting an exception escape,
-   * drops every borrowing callback of every packed kind back to a buffer per
-   * batch for the rest of the session, before the buffer is reused, so the
-   * window it kept stays intact.
-   *
-   * `onReceiptBatch` remains the copying path for every host that does not opt
-   * in, and a batch too large for the shared buffer gets its own regardless.
-   * There is no borrowing form of `onMessageBatch`: `decodeMessageWireBatch`
-   * returns views over the batch, so reuse there would alias the decoded result
-   * and not just the buffer.
-   */
-  onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;
-  /** Borrowing form of `onServerAckBatch`, under the contract above. */
-  onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;
-  /**
-   * Optional coalescing path. A live message produces up to three batches (its
-   * own, its receipt, its ack); with this method the ones the dispatch loop
-   * already holds cross together as one envelope of tagged segments instead of
-   * one crossing each. Split it with `decodeEventWireEnvelope` and hand each
-   * segment to the codec its kind names, in order. Nothing is ever held back
-   * waiting for a companion event, so a batch with no company still arrives
-   * through its own callback above, in the buffer that callback negotiated.
-   *
-   * There is no borrowing form, for the reason `onMessageBatch` has none: an
-   * envelope may carry a message segment, whose decode returns views over the
-   * buffer.
-   */
-  onEventBatch?(batch: EventWireEnvelope): void;
-}
 
 /**
  * A packed batch is one flat buffer: header, records and string bytes. Decode it
@@ -577,80 +476,7 @@ export type WhatsAppEventHandler =
   | ((event: WhatsAppEvent) => void)
   | WhatsAppEventCallbacks;
 
-/**
- * JS storage callbacks for the persistent backend.
- *
- * The boundary is a two-level namespaced key/value store: `store` is one of the
- * fixed STORE_* namespaces (e.g. "session", "msg_secret", "lid_mapping") and
- * `key` is an opaque, namespace-scoped id; values are raw bytes.
- *
- * Only `get`/`set`/`delete` are MANDATORY — a 3-method store keeps working
- * exactly as before. The remaining methods are OPTIONAL performance/structural
- * primitives the core feature-detects (by handle presence) and uses when the
- * host provides them:
- *   - `setMany`/`deleteMany` collapse N per-key FFI crossings into one (this is
- *     what turns a ~20k-secret history-sync write from 20k awaits into a single
- *     batched call).
- *   - `listKeys`/`listEntries` let the core enumerate a namespace directly,
- *     which lets it DROP its hand-maintained meta-index lists (msg_secret_keys,
- *     tc_token_jids, …). A host that cannot enumerate a category (e.g. an
- *     id-addressed external key store) simply omits them; the core then keeps its
- *     self-maintained index for that backend.
- *   - `deletePrefix` accelerates unconditional bulk clears.
- *
- * `capabilities` is read ONCE at init. Omit it (or a field) and the core treats
- * the corresponding primitive as absent. A capability declared `true` MUST have
- * its method(s) present and working.
- */
-export interface JsStoreCallbacks {
-  /** Read one value by (store, key). Null/undefined if absent. MANDATORY. */
-  get(store: string, key: string): Promise<Uint8Array | null>;
-  /** Write one value by (store, key). MANDATORY. */
-  set(store: string, key: string, value: Uint8Array): Promise<void>;
-  /** Delete one key. No-op if absent. MANDATORY. */
-  delete(store: string, key: string): Promise<void>;
 
-  /**
-   * Write many [key, value] pairs into ONE store in a single call. Entries are
-   * tuples (so keys may contain any character). Best-effort: if the medium has
-   * no cross-key atomicity (file-per-key) it MUST still apply every entry and
-   * fail-fast on error so the core can retry (writes are idempotent by key).
-   * Empty array is a valid no-op.
-   */
-  setMany?(store: string, entries: [key: string, value: Uint8Array][]): Promise<void>;
-
-  /** Read many keys from ONE store; one entry per FOUND key, any order. */
-  getMany?(store: string, keys: string[]): Promise<[key: string, value: Uint8Array][]>;
-
-  /** Delete many keys from ONE store in a single call. Missing keys ignored. */
-  deleteMany?(store: string, keys: string[]): Promise<void>;
-
-  /** Enumerate live keys in `store` (optionally prefix-filtered). Unordered. */
-  listKeys?(store: string, prefix?: string): Promise<string[]>;
-
-  /**
-   * Like listKeys but returns [key, value] pairs, so the core can inspect the
-   * embedded timestamp prefix for delete-expired sweeps without N follow-up
-   * gets. If absent but listKeys exists, the core falls back to listKeys+getMany.
-   */
-  listEntries?(store: string, prefix?: string): Promise<[key: string, value: Uint8Array][]>;
-
-  /** Delete every key in `store` starting with `prefix`. Returns count removed. */
-  deletePrefix?(store: string, prefix: string): Promise<number>;
-
-  /** Static capability declaration, read once at init. Omitted => all false. */
-  capabilities?: {
-    /** setMany/getMany/deleteMany are implemented. */
-    batch?: boolean;
-    /** listKeys/listEntries reliably enumerate a namespace. */
-    enumerate?: boolean;
-    /** deletePrefix is implemented. */
-    prefixDelete?: boolean;
-  };
-
-  /** Optional durability barrier (flush pending writes). */
-  flush?(): Promise<void>;
-}
 
 /**
  * Initialize the WASM engine. Call once before creating clients.
@@ -733,13 +559,7 @@ export interface CacheEntryConfig {
   store?: JsCacheStore;
 }
 
-/** Custom cache backend. */
-export interface JsCacheStore {
-  get(namespace: string, key: string): Promise<Uint8Array | null>;
-  set(namespace: string, key: string, value: Uint8Array, ttlSecs?: number): Promise<void>;
-  delete(namespace: string, key: string): Promise<void>;
-  clear(namespace: string): Promise<void>;
-}
+
 
 /** Cache configuration — all fields optional. */
 export interface CacheConfig {
@@ -811,14 +631,8 @@ const HISTORY_SYNC_BATCH_MAX_CONVERSATIONS: usize = 16;
 /// small enough. A single larger conversation remains indivisible and is sent
 /// alone; the count ceiling still bounds tiny-entry callback latency.
 const HISTORY_SYNC_BATCH_MAX_BYTES: usize = crate::WASM_PAGE_BYTES;
-const EVENT_CALLBACK_METHOD: &str = "onEvent";
-const MESSAGE_BATCH_CALLBACK_METHOD: &str = "onMessageBatch";
-const HISTORY_SYNC_BATCH_CALLBACK_METHOD: &str = "onHistorySyncBatch";
-const RECEIPT_BATCH_CALLBACK_METHOD: &str = "onReceiptBatch";
-const SERVER_ACK_BATCH_CALLBACK_METHOD: &str = "onServerAckBatch";
-const RECEIPT_BATCH_BORROWED_CALLBACK_METHOD: &str = "onReceiptBatchBorrowed";
-const SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD: &str = "onServerAckBatchBorrowed";
-const EVENT_BATCH_CALLBACK_METHOD: &str = "onEventBatch";
+include!("wasm_client/generated/events.rs");
+
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
 
 #[inline]
@@ -960,90 +774,7 @@ impl PackedBatchChannelState {
     }
 }
 
-/// Parsed once at client creation so the hot dispatch loop never performs
-/// reflective method lookup. A plain function is the legacy control-plane
-/// shape; message and history-sync delivery requires the object form with the
-/// wire-batch methods (their events are dropped with an error log otherwise).
-struct JsEventCallbacks {
-    receiver: JsValue,
-    on_event: js_sys::Function,
-    on_message_batch: Option<js_sys::Function>,
-    on_history_sync_batch: Option<js_sys::Function>,
-    receipt_channel: PackedBatchChannelState,
-    server_ack_channel: PackedBatchChannelState,
-    on_event_batch: Option<js_sys::Function>,
-    /// Bitset of host-requested numeric sync types; `None` preserves the legacy
-    /// behavior of materializing conversations for every type.
-    history_sync_conversation_types: Option<u128>,
-}
-
 impl JsEventCallbacks {
-    fn from_js(value: JsValue) -> Result<Self, crate::errors::BridgeError> {
-        if value.is_function() {
-            return Ok(Self {
-                receiver: JsValue::NULL,
-                on_event: value.unchecked_into(),
-                on_message_batch: None,
-                on_history_sync_batch: None,
-                receipt_channel: PackedBatchChannelState::default(),
-                server_ack_channel: PackedBatchChannelState::default(),
-                on_event_batch: None,
-                history_sync_conversation_types: None,
-            });
-        }
-
-        if !value.is_object() || value.is_null() {
-            return Err(crate::errors::invalid_arg(
-                "on_event",
-                "must be a function or an object with an onEvent method",
-            ));
-        }
-
-        let on_event = js_sys::Reflect::get(&value, &EVENT_CALLBACK_METHOD.into())
-            .map_err(|_| {
-                crate::errors::invalid_arg("on_event", "could not read the onEvent method")
-            })?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| crate::errors::invalid_arg("on_event.onEvent", "must be a function"))?;
-
-        let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
-        let on_history_sync_batch =
-            Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
-        let receipt_channel = PackedBatchChannelState {
-            copying: Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?,
-            borrowing: Self::optional_method(&value, RECEIPT_BATCH_BORROWED_CALLBACK_METHOD)?,
-        };
-        let server_ack_channel = PackedBatchChannelState {
-            copying: Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?,
-            borrowing: Self::optional_method(&value, SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD)?,
-        };
-        let on_event_batch = Self::optional_method(&value, EVENT_BATCH_CALLBACK_METHOD)?;
-        let history_sync_conversation_types =
-            Self::optional_history_sync_conversation_types(&value)?;
-        // Surface the contract gap at registration time: dispatch drops these
-        // events later, and a host that only learns from per-event error logs
-        // under load has a much worse debugging experience.
-        if on_message_batch.is_none() {
-            log::warn!("event callbacks lack onMessageBatch; message events will be dropped");
-        }
-        if on_history_sync_batch.is_none() {
-            log::warn!(
-                "event callbacks lack onHistorySyncBatch; history-sync events will be dropped"
-            );
-        }
-
-        Ok(Self {
-            receiver: value,
-            on_event,
-            on_message_batch,
-            on_history_sync_batch,
-            receipt_channel,
-            server_ack_channel,
-            on_event_batch,
-            history_sync_conversation_types,
-        })
-    }
-
     fn optional_history_sync_conversation_types(
         receiver: &JsValue,
     ) -> Result<Option<u128>, crate::errors::BridgeError> {
@@ -1082,24 +813,6 @@ impl JsEventCallbacks {
             types |= 1u128 << value as u32;
         }
         Ok(Some(types))
-    }
-
-    fn optional_method(
-        receiver: &JsValue,
-        method: &'static str,
-    ) -> Result<Option<js_sys::Function>, crate::errors::BridgeError> {
-        let value = js_sys::Reflect::get(receiver, &method.into()).map_err(|_| {
-            crate::errors::invalid_arg(
-                "on_event",
-                format!("could not read the optional {method} method"),
-            )
-        })?;
-        if value.is_null() || value.is_undefined() {
-            return Ok(None);
-        }
-        value.dyn_into::<js_sys::Function>().map(Some).map_err(|_| {
-            crate::errors::invalid_arg(format!("on_event.{method}"), "must be a function")
-        })
     }
 
     fn call_event(&self, event: &JsValue) -> Result<JsValue, JsValue> {
@@ -1153,18 +866,6 @@ impl JsEventCallbacks {
             Event::Receipt(_) => self.receipt_channel.is_registered(),
             Event::ServerAck(_) => self.server_ack_channel.is_registered(),
             _ => false,
-        }
-    }
-
-    /// The delivery a lone segment falls back to, which is the one it would
-    /// have used had the run never been buffered.
-    fn channel_of_kind(&self, kind: u32) -> Option<(&'static str, &PackedBatchChannelState)> {
-        match kind {
-            EVENT_SEGMENT_KIND_RECEIPT => Some((ReceiptWireBatch::KIND, &self.receipt_channel)),
-            EVENT_SEGMENT_KIND_SERVER_ACK => {
-                Some((ServerAckWireBatch::KIND, &self.server_ack_channel))
-            }
-            _ => None,
         }
     }
 
@@ -1548,18 +1249,6 @@ async fn dispatch_event_to_js(
 /// `wire_batch` stay independent of the callbacks owner.
 trait PackedBatchChannel: PackedEventBatch {
     fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState;
-}
-
-impl PackedBatchChannel for ReceiptWireBatch {
-    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
-        &callbacks.receipt_channel
-    }
-}
-
-impl PackedBatchChannel for ServerAckWireBatch {
-    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
-        &callbacks.server_ack_channel
-    }
 }
 
 /// Coalesce an adjacent same-kind run into packed batches. The cross-kind
@@ -2651,72 +2340,7 @@ pub async fn create_whatsapp_client(
     ) = (base_runtime, None);
     let backend: Arc<dyn wacore::store::traits::Backend> = match store {
         Some(ref store_val) if !store_val.is_null() && !store_val.is_undefined() => {
-            // A missing or non-function required callback is the caller's own
-            // `store` argument, so it is `invalid-argument`, not `internal`.
-            let get_fn = js_sys::Reflect::get(store_val, &"get".into())
-                .map_err(|_| crate::errors::invalid_arg("store", "store.get is required"))?
-                .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::invalid_arg("store", "store.get must be a function"))?;
-            let set_fn = js_sys::Reflect::get(store_val, &"set".into())
-                .map_err(|_| crate::errors::invalid_arg("store", "store.set is required"))?
-                .dyn_into::<js_sys::Function>()
-                .map_err(|_| crate::errors::invalid_arg("store", "store.set must be a function"))?;
-            let delete_fn = js_sys::Reflect::get(store_val, &"delete".into())
-                .map_err(|_| crate::errors::invalid_arg("store", "store.delete is required"))?
-                .dyn_into::<js_sys::Function>()
-                .map_err(|_| {
-                    crate::errors::invalid_arg("store", "store.delete must be a function")
-                })?;
-            // Optional batch primitives — feature-detected by handle presence.
-            // A host that omits them keeps the per-key set/delete fallback.
-            let opt_fn = |name: &str| {
-                js_sys::Reflect::get(store_val, &name.into())
-                    .ok()
-                    .and_then(|v| v.dyn_into::<js_sys::Function>().ok())
-            };
-            let set_many_fn = opt_fn("setMany");
-            let delete_many_fn = opt_fn("deleteMany");
-            let get_many_fn = opt_fn("getMany");
-            let list_keys_fn = opt_fn("listKeys");
-            let delete_prefix_fn = opt_fn("deletePrefix");
-            // `capabilities` is read once: a declared capability must have its
-            // method(s) present. Absent object => all false (legacy 3-method
-            // behavior: the core keeps its self-maintained meta-indexes).
-            let cap = |field: &str| {
-                js_sys::Reflect::get(store_val, &"capabilities".into())
-                    .ok()
-                    .and_then(|c| js_sys::Reflect::get(&c, &field.into()).ok())
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false)
-            };
-            let cap_batch = cap("batch");
-            let cap_enumerate = cap("enumerate");
-            let cap_prefix_delete = cap("prefixDelete");
-            // Batch helpers are only honored when the host DECLARES `batch`, not
-            // merely exposes the methods — keeps the contract (capability gates
-            // behavior) and impl in lockstep. Drop the handles otherwise so the
-            // backend falls back to per-key set/delete.
-            let (set_many_fn, delete_many_fn, get_many_fn) = if cap_batch {
-                (set_many_fn, delete_many_fn, get_many_fn)
-            } else {
-                (None, None, None)
-            };
-            info!(
-                "Using JS-backed persistent storage (batch={}, enumerate={}, prefixDelete={})",
-                cap_batch, cap_enumerate, cap_prefix_delete
-            );
-            js_backend::new_js_backend(js_backend::JsBackendHandles {
-                get_fn,
-                set_fn,
-                delete_fn,
-                set_many_fn,
-                delete_many_fn,
-                get_many_fn,
-                list_keys_fn,
-                delete_prefix_fn,
-                cap_enumerate,
-                cap_prefix_delete,
-            })
+            js_backend::new_js_backend(js_backend::JsBackendHandles::from_js(store_val)?)
         }
         _ => {
             info!("Using in-memory storage (no persistence)");
@@ -3251,236 +2875,6 @@ impl Drop for WasmWhatsAppClient {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Parse what a participant update needs, so its caller can reject a bad JID
-/// before deciding whether to wait for a connection.
-fn participants_update_input(
-    jid: &str,
-    participants: &[String],
-    action: crate::result_types::GroupParticipantAction,
-) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
-    if matches!(action, crate::result_types::GroupParticipantAction::Modify) {
-        return Err(crate::errors::BridgeError::InvalidArgument {
-            field: "action".into(),
-            reason: "modify represents a received participant identity change and cannot be sent"
-                .into(),
-        });
-    }
-    let group_jid = parse_jid(jid)?;
-    let participant_jids = participants
-        .iter()
-        .map(|participant| parse_jid(participant))
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((group_jid, participant_jids))
-}
-
-async fn participants_update(
-    client: &whatsapp_rust::Client,
-    group_jid: wacore_binary::jid::Jid,
-    participant_jids: Vec<wacore_binary::jid::Jid>,
-    action: crate::result_types::GroupParticipantAction,
-    include_linked_groups_on_remove: bool,
-) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError> {
-    use crate::result_types::GroupParticipantAction;
-
-    let responses = match action {
-        GroupParticipantAction::Add => {
-            client
-                .groups()
-                .add_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Remove if include_linked_groups_on_remove => {
-            client
-                .community()
-                .remove_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Remove => {
-            client
-                .groups()
-                .remove_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Promote => {
-            client
-                .groups()
-                .promote_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Demote => {
-            client
-                .groups()
-                .demote_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        // `participants_update_input` rejects this above the gate, so a caller
-        // hears it at once rather than after a reconnect. Kept as a real error
-        // rather than a trap: a trap does not cross as a `WhatsAppError` with
-        // a `.kind`, and a later caller reaching here without the helper would
-        // get no usable failure at all.
-        GroupParticipantAction::Modify => {
-            return Err(crate::errors::BridgeError::InvalidArgument {
-                field: "action".into(),
-                reason:
-                    "modify represents a received participant identity change and cannot be sent"
-                        .into(),
-            });
-        }
-    };
-
-    to_ts_vec(responses.iter().map(participant_change_to_result).collect())
-}
-
-fn participant_change_to_result(
-    response: &whatsapp_rust::features::ParticipantChangeResponse,
-) -> crate::result_types::ParticipantChangeResult {
-    crate::result_types::ParticipantChangeResult {
-        jid: response.jid.to_string(),
-        status: response.status.clone(),
-        error: response.error.clone(),
-        phone_number: response.phone_number.as_ref().map(ToString::to_string),
-        username: response.username.clone(),
-        add_request: response.add_request.as_ref().map(|request| {
-            crate::result_types::ParticipantAddRequestResult {
-                code: request.code.clone(),
-                expiration: request.expiration as f64,
-            }
-        }),
-    }
-}
-
-fn community_link_result(
-    succeeded: Vec<Jid>,
-    failed: Vec<whatsapp_rust::features::SubgroupFailure>,
-) -> crate::result_types::CommunityLinkResult {
-    crate::result_types::CommunityLinkResult {
-        succeeded: succeeded.into_iter().map(|jid| jid.to_string()).collect(),
-        failed: failed
-            .into_iter()
-            .map(|failure| crate::result_types::CommunityLinkFailureResult {
-                jid: failure.jid.to_string(),
-                error: failure.code as f64,
-            })
-            .collect(),
-    }
-}
-
-fn group_overview_to_result(
-    group: &whatsapp_rust::features::GroupOverview,
-) -> crate::result_types::GroupOverviewResult {
-    use crate::result_types::{GroupHierarchyResult as R, GroupOverviewResult};
-    use whatsapp_rust::features::{GroupHierarchy as H, SubgroupKind};
-    GroupOverviewResult {
-        id: group.id.to_string(),
-        subject: group.subject.clone(),
-        participant_count: group.participant_count.map(|v| v as f64),
-        hierarchy: match &group.hierarchy {
-            H::Standalone => R::Standalone,
-            H::Community => R::Community,
-            H::Subgroup { parent, kind } => R::Subgroup {
-                parent: parent.to_string(),
-                kind: match kind {
-                    SubgroupKind::Regular => "regular".into(),
-                    SubgroupKind::Announcement => "announcement".into(),
-                    SubgroupKind::General => "general".into(),
-                    other => format!("{other:?}"),
-                },
-            },
-            other => R::Unknown {
-                detail: format!("{other:?}"),
-            },
-        },
-    }
-}
-
-/// Convert GroupMetadata to a typed result struct.
-fn group_metadata_to_result(
-    metadata: &whatsapp_rust::features::GroupMetadata,
-) -> crate::result_types::GroupMetadataResult {
-    use crate::result_types::{
-        GroupEphemeralSettingsResult, GroupGrowthLockInfoResult, GroupMetadataParticipant,
-        GroupMetadataResult,
-    };
-    GroupMetadataResult {
-        id: metadata.id.to_string(),
-        subject: metadata.subject.clone(),
-        notify: metadata.notify.clone(),
-        participants: metadata
-            .participants
-            .iter()
-            .map(|p| GroupMetadataParticipant {
-                jid: p.jid.to_string(),
-                phone_number: p.phone_number.as_ref().map(|pn| pn.to_string()),
-                lid: p.lid.as_ref().map(|lid| lid.to_string()),
-                username: p.username.as_ref().map(ToString::to_string),
-                participant_type: p.participant_type.as_str().to_string(),
-                is_admin: p.is_admin(),
-                is_super_admin: p.is_super_admin(),
-            })
-            .collect(),
-        addressing_mode: metadata.addressing_mode.as_str().to_string(),
-        creator: metadata.creator.as_ref().map(|j| j.to_string()),
-        creator_pn: metadata.creator_pn.as_ref().map(|j| j.to_string()),
-        creator_username: metadata.creator_username.clone(),
-        creator_country_code: metadata.creator_country_code.clone(),
-        creation_time: metadata.creation_time.map(|v| v as f64),
-        subject_time: metadata.subject_time.map(|v| v as f64),
-        subject_owner: metadata.subject_owner.as_ref().map(|j| j.to_string()),
-        subject_owner_pn: metadata.subject_owner_pn.as_ref().map(|j| j.to_string()),
-        subject_owner_username: metadata.subject_owner_username.clone(),
-        description: metadata.description.clone(),
-        description_id: metadata.description_id.clone(),
-        description_owner: metadata.description_owner.as_ref().map(|j| j.to_string()),
-        description_owner_pn: metadata
-            .description_owner_pn
-            .as_ref()
-            .map(|j| j.to_string()),
-        description_owner_username: metadata.description_owner_username.clone(),
-        description_time: metadata.description_time.map(|v| v as f64),
-        is_locked: metadata.is_locked,
-        is_announcement: metadata.is_announcement,
-        ephemeral: metadata
-            .ephemeral
-            .map(|settings| GroupEphemeralSettingsResult {
-                expiration: settings.expiration.map(|v| v as f64),
-                trigger: settings.trigger.map(|v| v as f64),
-            }),
-        membership_approval: metadata.membership_approval,
-        member_add_mode: metadata
-            .member_add_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        member_link_mode: metadata
-            .member_link_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        participant_count: metadata.participant_count.map(|v| v as f64),
-        is_parent_group: metadata.is_parent_group,
-        parent_group_jid: metadata.parent_group_jid.as_ref().map(|j| j.to_string()),
-        is_default_sub_group: metadata.is_default_sub_group,
-        is_general_chat: metadata.is_general_chat,
-        allow_non_admin_sub_group_creation: metadata.allow_non_admin_sub_group_creation,
-        no_frequently_forwarded: metadata.no_frequently_forwarded,
-        member_share_history_mode: metadata
-            .member_share_history_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        growth_locked: metadata
-            .growth_locked
-            .as_ref()
-            .map(|lock| GroupGrowthLockInfoResult {
-                lock_type: lock.lock_type.clone(),
-                expiration: lock.expiration as f64,
-            }),
-        is_suspended: metadata.is_suspended,
-        allow_admin_reports: metadata.allow_admin_reports,
-        is_hidden_group: metadata.is_hidden_group,
-        is_incognito: metadata.is_incognito,
-        has_group_history: metadata.has_group_history,
-        is_limit_sharing_enabled: metadata.is_limit_sharing_enabled,
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Poll vote decryption — standalone functions (not on WasmWhatsAppClient)
 // ---------------------------------------------------------------------------
@@ -3616,58 +3010,6 @@ fn call_no_args(target: &JsValue, method: &str) -> Result<JsValue, String> {
         })
 }
 
-/// Carry the bot directory across as the core grouped it: every section, with
-/// its presentation metadata. `BotList::flatten` is the core's own collapse and
-/// stays a consumer's call.
-fn bot_list_to_result(
-    list: &whatsapp_rust::features::BotList,
-) -> crate::result_types::BotListResult {
-    use crate::result_types::{
-        BotDefaultResult, BotListEntryResult, BotListSectionResult, BotThemeResult,
-    };
-
-    crate::result_types::BotListResult {
-        version: list.version.as_str().to_owned(),
-        bhash: list.bhash.clone(),
-        default_bot: list.default_bot.as_ref().map(|bot| BotDefaultResult {
-            jid: bot.jid.to_string(),
-            persona_id: bot.persona_id.clone(),
-        }),
-        sections: list
-            .sections
-            .iter()
-            .map(|section| BotListSectionResult {
-                name: section.name.clone(),
-                section_type: section.section_type.as_str().to_owned(),
-                display_type: section
-                    .display_type
-                    .as_ref()
-                    .map(|kind| kind.as_str().to_owned()),
-                bots: section
-                    .bots
-                    .iter()
-                    .map(|bot| BotListEntryResult {
-                        jid: bot.jid.to_string(),
-                        persona_id: bot.persona_id.clone(),
-                        card_title: bot.card_title.clone(),
-                        count: bot.count.map(|value| value as f64),
-                        themes: bot
-                            .themes
-                            .iter()
-                            .map(|theme| BotThemeResult {
-                                mode: theme.mode.as_str().to_owned(),
-                                background: theme.background.clone(),
-                                primary_text: theme.primary_text.clone(),
-                                secondary_text: theme.secondary_text.clone(),
-                            })
-                            .collect(),
-                    })
-                    .collect(),
-            })
-            .collect(),
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Node ↔ BinaryNode conversion
 // ---------------------------------------------------------------------------
@@ -3675,81 +3017,7 @@ fn bot_list_to_result(
 // wacore's `Node` stores compact attributes and tagged content. These
 // converters preserve the neutral wire representation across the boundary.
 
-/// Convert a wacore `Node` → JS `BinaryNode` object `{ tag, attrs, content }`.
-fn node_to_js(node: &wacore_binary::node::Node) -> Result<JsValue, JsValue> {
-    let obj = js_sys::Object::new();
-    js_sys::Reflect::set(&obj, &"tag".into(), &node.tag.as_ref().into())?;
-
-    // attrs: Record<string, string> — flatten Vec<(key, NodeValue)> to object
-    let attrs_obj = js_sys::Object::new();
-    for (key, value) in node.attrs.iter() {
-        let val_str: String = value.as_str().into_owned();
-        js_sys::Reflect::set(&attrs_obj, &key.as_ref().into(), &val_str.into())?;
-    }
-    js_sys::Reflect::set(&obj, &"attrs".into(), &attrs_obj.into())?;
-
-    // content: BinaryNode[] | string | Uint8Array | undefined
-    if let Some(content) = &node.content {
-        let content_js = match content {
-            wacore_binary::node::NodeContent::Nodes(nodes) => {
-                let arr = js_sys::Array::new_with_length(nodes.len() as u32);
-                for (i, child) in nodes.iter().enumerate() {
-                    arr.set(i as u32, node_to_js(child)?);
-                }
-                arr.into()
-            }
-            wacore_binary::node::NodeContent::Bytes(bytes) => {
-                js_sys::Uint8Array::from(bytes.as_slice()).into()
-            }
-            wacore_binary::node::NodeContent::String(s) => JsValue::from_str(s),
-        };
-        js_sys::Reflect::set(&obj, &"content".into(), &content_js)?;
-    }
-
-    Ok(obj.into())
-}
-
-/// Convert a yoke-borrowed `NodeRef` → JS `BinaryNode` object `{ tag, attrs, content }`.
-/// Zero-copy: reads directly from the decoded buffer without cloning to `Node`.
-fn node_ref_to_js(node: &wacore_binary::node::NodeRef<'_>) -> Result<JsValue, JsValue> {
-    let obj = js_sys::Object::new();
-    js_sys::Reflect::set(&obj, &"tag".into(), &JsValue::from_str(&node.tag))?;
-
-    let attrs_obj = js_sys::Object::new();
-    for (key, value) in node.attrs_iter() {
-        let js_val = match value {
-            wacore_binary::node::ValueRef::String(s) => JsValue::from_str(s),
-            wacore_binary::node::ValueRef::Jid(j) => {
-                let mut s = String::with_capacity(j.user.len() + 20);
-                wacore_binary::push_jid_to_string(&j.user, j.server, j.agent, j.device, &mut s);
-                JsValue::from_str(&s)
-            }
-        };
-        js_sys::Reflect::set(&attrs_obj, &JsValue::from_str(key), &js_val)?;
-    }
-    js_sys::Reflect::set(&obj, &"attrs".into(), &attrs_obj.into())?;
-
-    if let Some(content) = node.content.as_ref() {
-        let content_js = match content {
-            wacore_binary::node::NodeContentRef::Nodes(children) => {
-                let arr = js_sys::Array::new_with_length(children.len() as u32);
-                for (i, child) in children.iter().enumerate() {
-                    arr.set(i as u32, node_ref_to_js(child)?);
-                }
-                arr.into()
-            }
-            wacore_binary::node::NodeContentRef::Bytes(bytes) => {
-                js_sys::Uint8Array::from(bytes.as_ref()).into()
-            }
-            wacore_binary::node::NodeContentRef::String(s) => JsValue::from_str(s.as_ref()),
-        };
-        js_sys::Reflect::set(&obj, &"content".into(), &content_js)?;
-    }
-
-    Ok(obj.into())
-}
-
-/// Convert a JS `BinaryNode` object → wacore `Node`.
+/// Convert a JS `BinaryNode` object to a wacore `Node`.
 fn js_to_node(val: &JsValue) -> Result<wacore_binary::node::Node, crate::errors::BridgeError> {
     use std::borrow::Cow;
     use wacore_binary::node::{Attrs, Node, NodeContent, NodeValue};
@@ -3957,143 +3225,6 @@ fn js_node_array_to_vec(
     Ok(result)
 }
 
-async fn send_message_with_options(
-    client: &whatsapp_rust::Client,
-    to: Jid,
-    msg: waproto::whatsapp::Message,
-    options: whatsapp_rust::SendOptions,
-) -> Result<String, crate::errors::BridgeError> {
-    let request = whatsapp_rust::SendRequest::new(&to, msg).with_options(options);
-    let result = client.send(request).await?;
-    Ok(result.message_id.into_string())
-}
-
-/// Decode and parse what a status send needs, so its caller can reject bad
-/// input before deciding whether to wait for a connection.
-fn status_message_input(
-    bytes: &[u8],
-    recipients: &[String],
-) -> Result<(waproto::whatsapp::Message, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError>
-{
-    let msg = waproto::codec::message_decode(bytes)
-        .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
-    let recipients = recipients
-        .iter()
-        .map(|jid| parse_jid(jid))
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((msg, recipients))
-}
-
-async fn send_status_message_with_options(
-    client: &whatsapp_rust::Client,
-    msg: waproto::whatsapp::Message,
-    recipients: Vec<wacore_binary::jid::Jid>,
-    options: whatsapp_rust::StatusSendOptions,
-) -> Result<String, crate::errors::BridgeError> {
-    let result = client.status().send_raw(msg, &recipients, options).await?;
-    Ok(result.message_id.into_string())
-}
-
-fn admin_profile_to_result(
-    profile: &whatsapp_rust::features::NewsletterAdminProfile,
-) -> crate::result_types::NewsletterAdminProfileResult {
-    crate::result_types::NewsletterAdminProfileResult {
-        id: profile.id.clone(),
-        name: profile.name.clone(),
-        picture_id: profile.picture_id.clone(),
-        picture_direct_path: profile.picture_direct_path.clone(),
-    }
-}
-
-/// The JS spelling of a core enum, written down here rather than taken from
-/// `Debug`.
-///
-/// `Debug` is not a stable API. Renaming a variant upstream is an ordinary
-/// refactor there and neither crate would fail to build, but the string a host
-/// switches on would have changed. Each mapping below emits exactly what the
-/// surface emits today, so this is a change of source rather than of value.
-fn newsletter_verification_str(v: &whatsapp_rust::features::NewsletterVerification) -> String {
-    use whatsapp_rust::features::NewsletterVerification as V;
-    match v {
-        V::Verified => "Verified".into(),
-        V::Unverified => "Unverified".into(),
-        // `#[non_exhaustive]` forces a wildcard. `Debug` keeps a variant added
-        // upstream identifiable rather than folding it into a name above.
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-fn newsletter_state_str(s: &whatsapp_rust::features::NewsletterState) -> String {
-    use whatsapp_rust::features::NewsletterState as S;
-    match s {
-        S::Active => "Active".into(),
-        S::Suspended => "Suspended".into(),
-        S::Geosuspended => "Geosuspended".into(),
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-fn newsletter_role_str(r: &whatsapp_rust::features::NewsletterRole) -> String {
-    use whatsapp_rust::features::NewsletterRole as R;
-    match r {
-        R::Owner => "Owner".into(),
-        R::Admin => "Admin".into(),
-        R::Subscriber => "Subscriber".into(),
-        R::Guest => "Guest".into(),
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-///
-/// This one is matched whole: the core enum is not `#[non_exhaustive]`, so a
-/// variant added upstream stops the build here and has to be given a string
-/// deliberately.
-fn connect_failure_reason_str(r: &wacore::types::events::ConnectFailureReason) -> String {
-    use wacore::types::events::ConnectFailureReason as R;
-    match r {
-        R::Generic => "Generic".into(),
-        R::LoggedOut => "LoggedOut".into(),
-        R::TempBanned => "TempBanned".into(),
-        R::AccountLocked => "AccountLocked".into(),
-        R::UnknownLogout => "UnknownLogout".into(),
-        R::ClientOutdated => "ClientOutdated".into(),
-        R::BadUserAgent => "BadUserAgent".into(),
-        R::CatExpired => "CatExpired".into(),
-        R::CatInvalid => "CatInvalid".into(),
-        R::NotFound => "NotFound".into(),
-        R::ClientUnknown => "ClientUnknown".into(),
-        R::InternalServerError => "InternalServerError".into(),
-        R::Experimental => "Experimental".into(),
-        R::ServiceUnavailable => "ServiceUnavailable".into(),
-        // The core's own fallback: the code it could not name, carried through.
-        R::Unknown(code) => format!("Unknown({code})"),
-    }
-}
-
-/// Convert NewsletterMetadata to a typed result struct.
-fn newsletter_metadata_to_result(
-    meta: &whatsapp_rust::features::NewsletterMetadata,
-) -> crate::result_types::NewsletterMetadataResult {
-    crate::result_types::NewsletterMetadataResult {
-        jid: meta.jid.to_string(),
-        name: meta.name.to_string(),
-        description: meta.description.clone(),
-        subscriber_count: meta.subscriber_count as f64,
-        verification: newsletter_verification_str(&meta.verification),
-        state: newsletter_state_str(&meta.state),
-        picture_url: meta.picture_url.clone(),
-        preview_url: meta.preview_url.clone(),
-        invite_code: meta.invite_code.clone(),
-        role: meta.role.as_ref().map(newsletter_role_str),
-        creation_time: meta.creation_time.map(|v| v as f64),
-        muted: meta.muted,
-        follower_activity_muted: meta.follower_activity_muted,
-    }
-}
-
 #[cfg(test)]
 mod enum_string_tests {
     use super::*;
@@ -4152,111 +3283,6 @@ mod enum_string_tests {
         use wacore::types::events::ConnectFailureReason as R;
 
         assert_eq!(connect_failure_reason_str(&R::Unknown(499)), "Unknown(499)");
-    }
-}
-
-/// Money crosses as a string: `amount_1000` is an i64 and a JS number is exact
-/// only below 2^53, so a large order would come out silently wrong.
-fn price_to_result(price: &whatsapp_rust::features::Price) -> crate::result_types::PriceResult {
-    crate::result_types::PriceResult {
-        amount_1000: price.amount_1000.to_string(),
-        currency: price.currency.clone(),
-    }
-}
-
-fn product_image_to_result(
-    image: &whatsapp_rust::features::ProductImage,
-) -> crate::result_types::ProductImageResult {
-    crate::result_types::ProductImageResult {
-        id: image.id.clone(),
-        request_image_url: image.request_image_url.clone(),
-        original_image_url: image.original_image_url.clone(),
-    }
-}
-
-fn product_to_result(
-    product: &whatsapp_rust::features::Product,
-) -> crate::result_types::ProductResult {
-    crate::result_types::ProductResult {
-        id: product.id.clone(),
-        retailer_id: product.retailer_id.clone(),
-        name: product.name.clone(),
-        description: product.description.clone(),
-        url: product.url.clone(),
-        shimmed_url: product.shimmed_url.clone(),
-        price: product.price.as_ref().map(price_to_result),
-        sale_price: product
-            .sale_price
-            .as_ref()
-            .map(|sale| crate::result_types::SalePriceResult {
-                price: price_to_result(&sale.price),
-                start_date: sale.start_date.clone(),
-                end_date: sale.end_date.clone(),
-            }),
-        is_hidden: product.is_hidden,
-        is_sanctioned: product.is_sanctioned,
-        max_available: product.max_available.map(|v| v as f64),
-        availability: product.availability.as_ref().map(|a| a.as_str().to_owned()),
-        review_status: product.review_status.clone(),
-        can_appeal: product.can_appeal,
-        belongs_to: product.belongs_to,
-        images: product.images.iter().map(product_image_to_result).collect(),
-        videos: product
-            .videos
-            .iter()
-            .map(|video| crate::result_types::ProductVideoResult {
-                id: video.id.clone(),
-                original_video_url: video.original_video_url.clone(),
-                thumbnail_url: video.thumbnail_url.clone(),
-            })
-            .collect(),
-        compliance_category: product.compliance_category.clone(),
-        country_code_origin: product.country_code_origin.clone(),
-        importer_name: product.importer_name.clone(),
-        importer_address: product.importer_address.as_ref().map(|address| {
-            crate::result_types::ImporterAddressResult {
-                street1: address.street1.clone(),
-                street2: address.street2.clone(),
-                city: address.city.clone(),
-                region: address.region.clone(),
-                postal_code: address.postal_code.clone(),
-                country_code: address.country_code.clone(),
-            }
-        }),
-    }
-}
-
-fn business_profile_to_result(
-    p: &wacore::iq::business::BusinessProfile,
-) -> crate::result_types::BusinessProfileResult {
-    crate::result_types::BusinessProfileResult {
-        wid: p.wid.as_ref().map(|j| j.to_string()),
-        description: p.description.clone(),
-        email: p.email.clone(),
-        website: p.website.clone(),
-        categories: p
-            .categories
-            .iter()
-            .map(|c| crate::result_types::BusinessCategoryResult {
-                id: c.id.clone(),
-                name: c.name.clone(),
-            })
-            .collect(),
-        address: p.address.clone(),
-        business_hours: crate::result_types::BusinessHoursResult {
-            timezone: p.business_hours.timezone.clone(),
-            business_config: p.business_hours.business_config.as_ref().map(|configs| {
-                configs
-                    .iter()
-                    .map(|c| crate::result_types::BusinessHoursConfigResult {
-                        day_of_week: c.day_of_week.to_string(),
-                        mode: c.mode.to_string(),
-                        open_time: c.open_time.map(f64::from),
-                        close_time: c.close_time.map(f64::from),
-                    })
-                    .collect()
-            }),
-        },
     }
 }
 
@@ -4762,12 +3788,14 @@ mod event_delivery_tests {
         }
     }
 
+    #[cfg(feature = "client-groups")]
     #[test]
     fn missing_group_subject_stays_absent_and_count_is_not_roster_length() {
         let mut metadata =
             whatsapp_rust::features::GroupMetadata::new("120363000000000000@g.us".parse().unwrap());
         metadata.participant_count = Some(300);
-        let value = serde_json::to_value(group_metadata_to_result(&metadata)).unwrap();
+        let value =
+            serde_json::to_value(crate::result_types::project_group_metadata(&metadata)).unwrap();
         assert!(value.get("subject").is_none());
         assert_eq!(value["participantCount"], 300.0);
         assert_eq!(value["participants"], serde_json::json!([]));
@@ -5769,3 +4797,68 @@ mod event_coverage_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod generated_event_registration_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn generated_event_getters_preserve_order_and_strict_optional_errors() {
+        let value=js_sys::eval(r#"(() => {
+            const reads=[],target={reads};
+            for(const name of ['onEvent','onMessageBatch','onHistorySyncBatch','onReceiptBatch','onReceiptBatchBorrowed','onServerAckBatch','onServerAckBatchBorrowed','onEventBatch']) {
+                Object.defineProperty(target,name,{get(){reads.push(name);return ()=>{};}});
+            }
+            Object.defineProperty(target,'historySyncConversationTypes',{get(){reads.push('historySyncConversationTypes');return [];}});
+            return target;
+        })()"#).unwrap();
+        let callbacks = JsEventCallbacks::from_js(value.clone()).unwrap();
+        assert_eq!(callbacks.receiver, value);
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(
+            reads,
+            [
+                "onEvent",
+                "onMessageBatch",
+                "onHistorySyncBatch",
+                "onReceiptBatch",
+                "onReceiptBatchBorrowed",
+                "onServerAckBatch",
+                "onServerAckBatchBorrowed",
+                "onEventBatch",
+                "historySyncConversationTypes"
+            ]
+        );
+        let value = js_sys::eval(
+            "({onEvent(){},get onReceiptBatch(){throw new Error('strict optional');}})",
+        )
+        .unwrap();
+        let error = JsEventCallbacks::from_js(value).err().unwrap();
+        assert!(
+            matches!(error,crate::errors::BridgeError::InvalidArgument{field,reason} if field=="on_event" && reason=="could not read the optional onReceiptBatch method")
+        );
+        let value = js_sys::eval("({onEvent(){},onReceiptBatch:42})").unwrap();
+        let error = JsEventCallbacks::from_js(value).err().unwrap();
+        assert!(
+            matches!(error,crate::errors::BridgeError::InvalidArgument{field,reason} if field=="on_event.onReceiptBatch" && reason=="must be a function")
+        );
+        let callback = js_sys::Function::new_no_args("");
+        assert!(
+            JsEventCallbacks::from_js(callback.into())
+                .unwrap()
+                .receiver
+                .is_null()
+        );
+    }
+}
+
+include!("wasm_client/generated/preparations.rs");
+
+include!("wasm_client/generated/variant_strings.rs");
+
+include!("wasm_client/generated/nodes.rs");
+
+include!("wasm_client/generated/call_adapters.rs");

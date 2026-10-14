@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "gen-proto-types"
 path = "src/proto_gen.rs"
 
+[[bin]]
+name = "gen-operations"
+path = "src/gen_operations.rs"
+
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
