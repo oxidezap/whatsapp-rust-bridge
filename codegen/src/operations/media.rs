@@ -74,10 +74,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     mt,
                 )
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(data),
-                body: parse_quote!({ Ok(js_sys::Uint8Array::from(&data[..])) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Bytes,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -111,18 +111,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Cached),
             call: parse_quote!(client.upload(data.to_vec(), mt, Default::default())),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(resp),
-                body: parse_quote!({
-                    to_ts(crate::result_types::UploadMediaResult {
-                        url: resp.url,
-                        direct_path: resp.direct_path,
-                        media_key: resp.media_key,
-                        file_sha256: resp.file_sha256,
-                        file_enc_sha256: resp.file_enc_sha256,
-                        file_length: resp.file_length as f64,
-                    })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::UploadMedia,
+                envelope: Envelope::Value,
             },
         },
         Operation {

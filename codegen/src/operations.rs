@@ -1,5 +1,8 @@
 //! Compile-time bindings for the concrete client operations. The catalog owns
 //! admission and boundary projections; Rust still checks every emitted call.
+use crate::operation_codecs::{
+    Converter, InputCodec, JidFamily, ObjectShape, OutputCodec, ResultError, ValueCodec,
+};
 use crate::projections::{Envelope, Projection};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -33,6 +36,7 @@ pub struct Operation {
 }
 
 enum Input {
+    Codec(crate::operation_codecs::InputCodec),
     Jids {
         binding: Ident,
         value: Expr,
@@ -82,6 +86,7 @@ enum Input {
 impl Input {
     fn emit(&self) -> TokenStream {
         match self {
+            Self::Codec(codec) => codec.emit(),
             Self::Jids { binding, value } => {
                 quote!(let #binding:Vec<wacore_binary::jid::Jid>=#value.iter().map(|jid|parse_jid(jid)).collect::<Result<_,_>>()?;)
             }
@@ -180,6 +185,7 @@ enum Unwaited {
 }
 
 enum ReturnAdapter {
+    Codec(crate::operation_codecs::OutputCodec),
     Dto {
         projection: Projection,
         envelope: Envelope,
@@ -574,6 +580,7 @@ impl Operation {
             });
         }
         let output = match &self.output {
+            ReturnAdapter::Codec(codec) => codec.emit(projected_call),
             ReturnAdapter::Dto {
                 projection,
                 envelope,
@@ -614,7 +621,12 @@ impl Operation {
 
 pub fn emit(domain: &Domain) -> TokenStream {
     let methods = domain.operations.iter().map(Operation::emit);
-    quote!(#[wasm_bindgen] impl WasmWhatsAppClient { #(#methods)* })
+    let tests = if domain.name == "signal" {
+        crate::operation_codecs::wasm_fixture()
+    } else {
+        TokenStream::new()
+    };
+    quote!(#[wasm_bindgen] impl WasmWhatsAppClient { #(#methods)* } #tests)
 }
 
 #[cfg(test)]
@@ -777,5 +789,91 @@ mod tests {
             domains[0].operations[0].signature = signature;
             assert!(validate(&domains).is_err());
         }
+    }
+    #[test]
+    fn catalog_codecs_execute_defaults_error_order_and_output_contracts() {
+        let domains = catalog();
+        let operation = |name: &str| {
+            domains
+                .iter()
+                .flat_map(|domain| &domain.operations)
+                .find(|operation| operation.signature.ident == name)
+                .unwrap()
+        };
+        let input = |name: &str, predicate: fn(&InputCodec) -> bool| {
+            operation(name)
+                .inputs
+                .iter()
+                .find_map(|input| match input {
+                    Input::Codec(codec) if predicate(codec) => Some(codec.emit()),
+                    _ => None,
+                })
+                .unwrap()
+                .to_string()
+        };
+        let mut source = include_str!("codec_fixture.rs.txt").to_owned();
+        for (marker, code) in [
+            (
+                "__PICTURE__",
+                input("profile_picture_url", |codec| {
+                    matches!(codec, InputCodec::Enum { .. })
+                }),
+            ),
+            (
+                "__CATALOG__",
+                input("get_catalog", |codec| {
+                    matches!(codec, InputCodec::DefaultOverlay { .. })
+                }),
+            ),
+            (
+                "__BEFORE__",
+                input("newsletter_messages", |codec| {
+                    matches!(codec, InputCodec::Scalar { .. })
+                }),
+            ),
+            (
+                "__SEND_OPTIONS__",
+                input("relay_message_bytes_with_options", |codec| {
+                    matches!(codec, InputCodec::SendOptions { .. })
+                }),
+            ),
+            (
+                "__PARENT_GUARD__",
+                input("send_comment_bytes", |codec| {
+                    matches!(codec, InputCodec::ParentKeyGuard { .. })
+                }),
+            ),
+        ] {
+            assert!(source.contains(marker));
+            source = source.replace(marker, &code);
+        }
+        let ReturnAdapter::Codec(codec) = &operation("send_reaction").output else {
+            panic!("generated send result codec")
+        };
+        source = source.replace("__MESSAGE_ID__", &codec.emit(quote!(result)).to_string());
+        let root = std::env::temp_dir().join(format!("bridge-codecs-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("codecs.rs");
+        let binary = root.join("codecs");
+        std::fs::write(&path, source).unwrap();
+        let compiled = std::process::Command::new("rustc")
+            .args(["--edition", "2024", "--crate-name", "codec_fixture"])
+            .arg(&path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let result = std::process::Command::new(&binary).output().unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
     }
 }

@@ -90,33 +90,31 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::CatalogResult>, crate::errors::BridgeError>
             ),
             inputs: vec![
-                Input::Convert(parse_quote!({
-                    use whatsapp_rust::features::CatalogOptions;
-                })),
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let input = from_js_input::<Option<crate::result_types::CatalogOptionsInput>>(
-                        "options", options,
-                    )?
-                    .unwrap_or_default();
-                    let mut opts = CatalogOptions::default();
-                    if let Some(limit) = input.limit {
-                        opts.limit = limit;
-                    }
-                    if let Some(width) = input.image_width {
-                        opts.image_width = width;
-                    }
-                    if let Some(height) = input.image_height {
-                        opts.image_height = height;
-                    }
-                    if let Some(allow) = input.allow_shop_source {
-                        opts.allow_shop_source = allow;
-                    }
-                    opts.after = input.after;
-                })),
+                Input::Decode {
+                    binding: parse_quote!(options),
+                    ty: parse_quote!(Option<crate::result_types::CatalogOptionsInput>),
+                    field: parse_quote!("options"),
+                    value: parse_quote!(options),
+                },
+                Input::Codec(InputCodec::DefaultOverlay {
+                    binding: parse_quote!(opts),
+                    input: parse_quote!(options),
+                    ty: parse_quote!(whatsapp_rust::features::CatalogOptions),
+                    optional: vec![
+                        (parse_quote!(limit), parse_quote!(limit)),
+                        (parse_quote!(image_width), parse_quote!(image_width)),
+                        (parse_quote!(image_height), parse_quote!(image_height)),
+                        (
+                            parse_quote!(allow_shop_source),
+                            parse_quote!(allow_shop_source),
+                        ),
+                    ],
+                    direct: vec![(parse_quote!(after), parse_quote!(after))],
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -142,33 +140,31 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::CollectionsResult>, crate::errors::BridgeError>
             ),
             inputs: vec![
-                Input::Convert(parse_quote!({
-                    let options = from_js_input::<
-                        Option<crate::result_types::CollectionOptionsInput>,
-                    >("options", options)?;
-                    use whatsapp_rust::features::CollectionOptions;
-                })),
+                Input::Decode {
+                    binding: parse_quote!(options),
+                    ty: parse_quote!(Option<crate::result_types::CollectionOptionsInput>),
+                    field: parse_quote!("options"),
+                    value: parse_quote!(options),
+                },
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let input = options.unwrap_or_default();
-                    let mut opts = CollectionOptions::default();
-                    if let Some(limit) = input.collection_limit {
-                        opts.collection_limit = limit;
-                    }
-                    if let Some(limit) = input.item_limit {
-                        opts.item_limit = limit;
-                    }
-                    if let Some(width) = input.image_width {
-                        opts.image_width = width;
-                    }
-                    if let Some(height) = input.image_height {
-                        opts.image_height = height;
-                    }
-                    opts.after = input.after;
-                })),
+                Input::Codec(InputCodec::DefaultOverlay {
+                    binding: parse_quote!(opts),
+                    input: parse_quote!(options),
+                    ty: parse_quote!(whatsapp_rust::features::CollectionOptions),
+                    optional: vec![
+                        (
+                            parse_quote!(collection_limit),
+                            parse_quote!(collection_limit),
+                        ),
+                        (parse_quote!(item_limit), parse_quote!(item_limit)),
+                        (parse_quote!(image_width), parse_quote!(image_width)),
+                        (parse_quote!(image_height), parse_quote!(image_height)),
+                    ],
+                    direct: vec![(parse_quote!(after), parse_quote!(after))],
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -247,14 +243,14 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("upload"),
                     value: parse_quote!(upload),
                 },
-                Input::Convert(parse_quote!({
-                    let timestamp = upload.timestamp.parse::<i64>().map_err(|e| {
-                        crate::errors::BridgeError::InvalidArgument {
-                            field: "timestamp".into(),
-                            reason: format!("must be the upload's ts: {e}"),
-                        }
-                    })?;
-                })),
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(timestamp),
+                    value: parse_quote!(upload.timestamp),
+                    ty: parse_quote!(i64),
+                    field: parse_quote!("timestamp"),
+                    prefix: Some(parse_quote!("must be the upload's ts: ")),
+                    optional: false,
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,

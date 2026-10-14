@@ -24,10 +24,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.send_message(to, msg)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ Ok(result.message_id.into_string()) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::MessageId,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -48,16 +48,14 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: parse_quote!(jid),
                     bytes: parse_quote!(bytes),
                 },
-                Input::Convert(parse_quote!({
-                    let mut options = whatsapp_rust::SendOptions::default();
-                    if let Some(message_id) = message_id {
-                        options = options.with_message_id(
-                            whatsapp_rust::MessageId::new(message_id).map_err(|e| {
-                                crate::errors::invalid_arg("messageId", e.to_string())
-                            })?,
-                        );
-                    }
-                })),
+                Input::Codec(InputCodec::SendOptions {
+                    binding: parse_quote!(options),
+                    status: false,
+                    extra_nodes: None,
+                    group_freshness: None,
+                    device_freshness: None,
+                    message_id: parse_quote!(message_id),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -90,19 +88,14 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: parse_quote!(jid),
                     bytes: parse_quote!(bytes),
                 },
-                Input::Convert(parse_quote!({
-                    let mut options = whatsapp_rust::SendOptions::default()
-                        .with_extra_stanza_nodes(js_node_array_to_vec(extra_nodes)?)
-                        .with_group_metadata_freshness(freshness(refresh_group_metadata))
-                        .with_device_freshness(freshness(refresh_devices));
-                    if let Some(message_id) = message_id {
-                        options = options.with_message_id(
-                            whatsapp_rust::MessageId::new(message_id).map_err(|e| {
-                                crate::errors::invalid_arg("messageId", e.to_string())
-                            })?,
-                        );
-                    }
-                })),
+                Input::Codec(InputCodec::SendOptions {
+                    binding: parse_quote!(options),
+                    status: false,
+                    extra_nodes: Some(parse_quote!(extra_nodes)),
+                    group_freshness: Some(parse_quote!(refresh_group_metadata)),
+                    device_freshness: Some(parse_quote!(refresh_devices)),
+                    message_id: parse_quote!(message_id),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -194,10 +187,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.edit_message_raw(to, message_id, msg, options)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ Ok(result.message_id.into_string()) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::MessageId,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -266,10 +259,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 oldest_msg_timestamp_ms as i64,
                 count,
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(msg_id),
-                body: parse_quote!({ Ok(msg_id) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Identity,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -290,20 +283,21 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("state"),
                     value: parse_quote!(state),
                 },
-                Input::Convert(parse_quote!({
-                    use crate::result_types::ChatState;
-                })),
                 Input::Jid {
                     binding: parse_quote!(to),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let chat_state = match state {
-                        ChatState::Composing => whatsapp_rust::features::ChatStateType::Composing,
-                        ChatState::Recording => whatsapp_rust::features::ChatStateType::Recording,
-                        ChatState::Paused => whatsapp_rust::features::ChatStateType::Paused,
-                    };
-                })),
+                Input::Codec(InputCodec::Enum {
+                    binding: parse_quote!(chat_state),
+                    value: parse_quote!(state),
+                    source: parse_quote!(crate::result_types::ChatState),
+                    target: parse_quote!(whatsapp_rust::features::ChatStateType),
+                    variants: vec![
+                        (parse_quote!(Composing), parse_quote!(Composing)),
+                        (parse_quote!(Recording), parse_quote!(Recording)),
+                        (parse_quote!(Paused), parse_quote!(Paused)),
+                    ],
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -380,10 +374,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 message_secret,
                 &option_names
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ Ok(result.message_id.into_string()) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::MessageId,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -428,18 +422,19 @@ pub(super) fn catalog() -> Vec<Operation> {
                     refresh_devices: bool,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let mut options = whatsapp_rust::StatusSendOptions::default()
-                    .with_extra_stanza_nodes(js_node_array_to_vec(extra_nodes)?)
-                    .with_device_freshness(freshness(refresh_devices));
-                if let Some(message_id) = message_id {
-                    options = options.with_message_id(
-                        whatsapp_rust::MessageId::new(message_id)
-                            .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
-                    );
-                }
-                let (msg, recipients) = status_message_input(bytes, &recipients)?;
-            }))],
+            inputs: vec![
+                Input::Codec(InputCodec::SendOptions {
+                    binding: parse_quote!(options),
+                    status: true,
+                    extra_nodes: Some(parse_quote!(extra_nodes)),
+                    group_freshness: None,
+                    device_freshness: Some(parse_quote!(refresh_devices)),
+                    message_id: parse_quote!(message_id),
+                }),
+                Input::Convert(parse_quote!({
+                    let (msg, recipients) = status_message_input(bytes, &recipients)?;
+                })),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,

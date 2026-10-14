@@ -5,6 +5,9 @@ use syn::{Ident, Type, parse_quote};
 
 #[derive(Clone, Copy)]
 pub enum Projection {
+    UploadMedia,
+    SignalSessionMigration,
+    NewsletterFollower,
     NewsletterAdminProfile,
     NewsletterAdminInfo,
     NewsletterReactionCount,
@@ -53,6 +56,8 @@ enum Codec {
     CloneValue,
     DisplayString,
     NumberF64,
+    NumberU32,
+    NewsletterRole,
     Binary,
     WireAsStr,
     Nested(Projection),
@@ -213,6 +218,60 @@ impl Projection {
                 doc: "A single media host from `getMediaConn`.",
                 ownership: Ownership::Borrowed,
                 fields: vec![field("hostname", parse_quote!(String), false, CloneValue)],
+            },
+            Self::UploadMedia => Descriptor {
+                source: parse_quote!(whatsapp_rust::upload::UploadResponse),
+                target: parse_quote!(UploadMediaResult),
+                function: parse_quote!(project_upload_media),
+                feature: "client-media",
+                doc: "Result from `uploadMedia`.",
+                ownership: Ownership::Owned,
+                fields: vec![
+                    field("url", parse_quote!(String), false, Identity),
+                    field("direct_path", parse_quote!(String), false, Identity),
+                    field("media_key", parse_quote!([u8; 32]), false, Binary),
+                    field("file_sha256", parse_quote!([u8; 32]), false, Binary),
+                    field("file_enc_sha256", parse_quote!([u8; 32]), false, Binary),
+                    field("file_length", parse_quote!(f64), false, NumberF64),
+                ],
+            },
+            Self::SignalSessionMigration => Descriptor {
+                source: parse_quote!(whatsapp_rust::features::SignalSessionMigration),
+                target: parse_quote!(SignalSessionMigrationResult),
+                function: parse_quote!(project_signal_session_migration),
+                feature: "client-signal",
+                doc: "Counts produced while moving pairwise sessions between identifier namespaces.",
+                ownership: Ownership::Owned,
+                fields: vec![
+                    field("migrated", parse_quote!(u32), false, NumberU32),
+                    field("skipped", parse_quote!(u32), false, NumberU32),
+                    field("total", parse_quote!(u32), false, NumberU32),
+                ],
+            },
+            Self::NewsletterFollower => Descriptor {
+                source: parse_quote!(whatsapp_rust::features::NewsletterFollower),
+                target: parse_quote!(NewsletterFollowerResult),
+                function: parse_quote!(project_newsletter_follower),
+                feature: "client-newsletter",
+                doc: "One follower of a newsletter, from `newsletterFollowers`.",
+                ownership: Ownership::Borrowed,
+                fields: vec![
+                    field("jid", parse_quote!(String), false, DisplayString),
+                    field_doc(
+                        field("phone_jid", parse_quote!(String), true, DisplayString),
+                        "Withheld by the server when the follower's privacy settings hide it.",
+                    ),
+                    field("display_name", parse_quote!(String), true, CloneValue),
+                    field("username", parse_quote!(String), true, CloneValue),
+                    field("role", parse_quote!(String), true, NewsletterRole),
+                    field("follow_time", parse_quote!(f64), true, NumberF64),
+                    field(
+                        "admin_profile",
+                        parse_quote!(NewsletterAdminProfileResult),
+                        true,
+                        Nested(Projection::NewsletterAdminProfile),
+                    ),
+                ],
             },
             Self::Price => Descriptor {
                 source: parse_quote!(whatsapp_rust::features::Price),
@@ -676,6 +735,9 @@ impl Projection {
 pub fn emit() -> TokenStream {
     let mut output = TokenStream::new();
     for projection in [
+        Projection::UploadMedia,
+        Projection::SignalSessionMigration,
+        Projection::NewsletterFollower,
         Projection::NewsletterAdminProfile,
         Projection::NewsletterAdminInfo,
         Projection::NewsletterReactionCount,
@@ -749,6 +811,14 @@ pub fn emit() -> TokenStream {
                 Codec::CloneValue => quote!(#value.clone()),
                 Codec::DisplayString => quote!(#value.to_string()),
                 Codec::WireAsStr => quote!(#value.as_str().to_owned()),
+                Codec::NumberU32 => {
+                    if reference {
+                        quote!(*#value as u32)
+                    } else {
+                        quote!(#value as u32)
+                    }
+                }
+                Codec::NewsletterRole => quote!(crate::wasm_client::newsletter_role_str(#value)),
                 Codec::NumberF64 => {
                     if reference {
                         quote!(*#value as f64)
@@ -772,6 +842,8 @@ pub fn emit() -> TokenStream {
             let value = if f.optional {
                 if matches!(f.codec, Codec::Identity) && matches!(d.ownership, Ownership::Owned) {
                     quote!(source.#name)
+                } else if matches!(f.codec, Codec::NewsletterRole) {
+                    quote!(source.#name.as_ref().map(crate::wasm_client::newsletter_role_str))
                 } else if let Codec::Nested(projection) = f.codec {
                     let nested = projection.descriptor();
                     let function = nested.function;

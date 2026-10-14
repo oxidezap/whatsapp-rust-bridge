@@ -64,14 +64,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(chat),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let target_key = waproto::whatsapp::MessageKey {
-                        remote_jid: Some(chat.to_string()),
-                        from_me: Some(key.from_me),
-                        id: Some(key.id),
-                        participant: key.participant,
-                    };
-                })),
+                Input::Codec(InputCodec::MessageKey {
+                    binding: parse_quote!(target_key),
+                    chat: parse_quote!(chat),
+                    key: parse_quote!(key),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -81,14 +78,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 target_key,
                 emoji.as_deref().unwrap_or("")
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let result = boundary_result
-                        .map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
-                    Ok(result.message_id.into_string())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::MessageId,
+                error: Some(ResultError::SendKey(parse_quote!("target_key"))),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -116,40 +109,28 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("parent_key"),
                     value: parse_quote!(parent_key),
                 },
-                Input::Convert(parse_quote!({
-                    if parent_key.participant.is_none() && !parent_key.from_me {
-                        return Err(crate::errors::invalid_arg(
-                            "parent_key",
-                            "needs participant (the post author) or fromMe: true",
-                        ));
-                    }
-                })),
+                Input::Codec(InputCodec::ParentKeyGuard {
+                    key: parse_quote!(parent_key),
+                }),
                 Input::Message {
                     binding: parse_quote!((chat, body)),
                     jid: parse_quote!(jid),
                     bytes: parse_quote!(bytes),
                 },
-                Input::Convert(parse_quote!({
-                    let key = waproto::whatsapp::MessageKey {
-                        remote_jid: Some(chat.to_string()),
-                        from_me: Some(parent_key.from_me),
-                        id: Some(parent_key.id),
-                        participant: parent_key.participant,
-                    };
-                })),
+                Input::Codec(InputCodec::MessageKey {
+                    binding: parse_quote!(key),
+                    chat: parse_quote!(chat),
+                    key: parse_quote!(parent_key),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.comments().send_message_raw(chat, key, body)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let result = boundary_result
-                        .map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
-                    Ok(result.message_id.into_string())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::MessageId,
+                error: Some(ResultError::SendKey(parse_quote!("parent_key"))),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -553,11 +534,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(chat_jid),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let mute_until = mute_until
-                        .map(|ts| parse_timestamp_ms("muteUntil", ts))
-                        .transpose()?;
-                })),
+                Input::Codec(InputCodec::OptionalMillis {
+                    binding: parse_quote!(mute_until),
+                    value: parse_quote!(mute_until),
+                    field: parse_quote!("muteUntil"),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Immediate,

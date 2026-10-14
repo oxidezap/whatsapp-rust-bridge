@@ -21,10 +21,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.groups().fetch_metadata(&group_jid)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(metadata),
-                expression: parse_quote!(to_ts(group_metadata_to_result(&metadata))),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::GroupMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -45,9 +46,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let group_subject = whatsapp_rust::features::GroupSubject::new(subject)?;
-                })),
+                Input::Codec(InputCodec::GroupText {
+                    binding: parse_quote!(group_subject),
+                    value: parse_quote!(subject),
+                    description: false,
+                }),
             ],
             admission: Admission::Online,
             call: parse_quote!(client.groups().set_subject(&group_jid, group_subject)),
@@ -72,12 +75,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let desc = description
-                        .as_deref()
-                        .map(whatsapp_rust::features::GroupDescription::new)
-                        .transpose()?;
-                })),
+                Input::Codec(InputCodec::GroupText {
+                    binding: parse_quote!(desc),
+                    value: parse_quote!(description),
+                    description: true,
+                }),
             ],
             admission: Admission::Online,
             call: parse_quote!(
@@ -196,10 +198,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.groups().get_invite_link(&group_jid, true)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(new_code),
-                expression: parse_quote!(Ok(new_code)),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Identity,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -245,13 +247,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             ],
             admission: Admission::Online,
             call: parse_quote!(client.community().link_subgroups(parent, &subgroups)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(result),
-                expression: parse_quote!(to_ts(community_link_result(
-                    result.linked_jids,
-                    result.failed_groups,
-                ))),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::CommunityLink {
+                groups: parse_quote!(linked_jids),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -284,13 +282,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                 &subgroups,
                 remove_orphan_members
             )),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(result),
-                expression: parse_quote!(to_ts(community_link_result(
-                    result.unlinked_jids,
-                    result.failed_groups,
-                ))),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::CommunityLink {
+                groups: parse_quote!(unlinked_jids),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -332,10 +326,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             inputs: vec![],
             admission: Admission::Online,
             call: parse_quote!(client.groups().join_with_invite_code(code)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(jid),
-                expression: parse_quote!(Ok(jid.group_jid().to_string())),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::GroupJid,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -370,10 +364,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 expiration as i64,
                 &admin
             )),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(result),
-                expression: parse_quote!(Ok(result.group_jid().to_string())),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::GroupJid,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -423,10 +417,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             inputs: vec![],
             admission: Admission::Online,
             call: parse_quote!(client.groups().get_invite_info(code)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(metadata),
-                expression: parse_quote!(to_ts(group_metadata_to_result(&metadata))),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::GroupMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -483,10 +478,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.groups().create_group(options)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(group_metadata_to_result(&result.metadata)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::GroupMetadata,
+                field: Some(parse_quote!(metadata)),
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -540,18 +536,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.groups().list_participating()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(groups),
-                body: parse_quote!({
-                    let obj = js_sys::Object::new();
-                    for group in &groups {
-                        let result = group_overview_to_result(group);
-                        let js_metadata = serde_wasm_bindgen::to_value(&result)?;
-                        js_sys::Reflect::set(&obj, &JsValue::from_str(&result.id), &js_metadata)?;
-                    }
-                    Ok(obj.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::GroupRecord { source_key: false }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -583,10 +568,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.community().create(options)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(group_metadata_to_result(&result.metadata)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::GroupMetadata,
+                field: Some(parse_quote!(metadata)),
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -619,10 +605,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     .community()
                     .create_subgroup(name, &participants, parent)
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(group_metadata_to_result(&result.metadata)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::GroupMetadata,
+                field: Some(parse_quote!(metadata)),
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -639,17 +626,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.community().list_participating()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(communities),
-                body: parse_quote!({
-                    let result = js_sys::Object::new();
-                    for group in &communities {
-                        let value = serde_wasm_bindgen::to_value(&group_overview_to_result(group))?;
-                        js_sys::Reflect::set(&result, &group.id.to_string().into(), &value)?;
-                    }
-                    Ok(result.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::GroupRecord { source_key: true }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -708,21 +685,20 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("mode"),
                     value: parse_quote!(mode),
                 },
-                Input::Convert(parse_quote!({
-                    use crate::result_types::MemberAddMode;
-                })),
                 Input::Jid {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let add_mode = match mode {
-                        MemberAddMode::AdminAdd => whatsapp_rust::features::MemberAddMode::AdminAdd,
-                        MemberAddMode::AllMemberAdd => {
-                            whatsapp_rust::features::MemberAddMode::AllMemberAdd
-                        }
-                    };
-                })),
+                Input::Codec(InputCodec::Enum {
+                    binding: parse_quote!(add_mode),
+                    value: parse_quote!(mode),
+                    source: parse_quote!(crate::result_types::MemberAddMode),
+                    target: parse_quote!(whatsapp_rust::features::MemberAddMode),
+                    variants: vec![
+                        (parse_quote!(AdminAdd), parse_quote!(AdminAdd)),
+                        (parse_quote!(AllMemberAdd), parse_quote!(AllMemberAdd)),
+                    ],
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -750,9 +726,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("setting"),
                     value: parse_quote!(setting),
                 },
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use crate::result_types::GroupSetting;
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),
@@ -803,9 +779,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("action"),
                     value: parse_quote!(action),
                 },
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use crate::result_types::GroupRequestAction;
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),

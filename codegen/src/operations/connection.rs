@@ -214,10 +214,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.bots().list()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(list),
-                body: parse_quote!({ to_ts(bot_list_to_result(&list)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::BotList,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -368,10 +369,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
             call: parse_quote!(client.pair_with_code(options)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(code),
-                body: parse_quote!({ Ok(code) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Identity,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(

@@ -11,8 +11,8 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let client = self.client.online().await?;
-        let result = client.send_message(to, msg).await?;
-        Ok(result.message_id.into_string())
+        let value = client.send_message(to, msg).await?;
+        Ok(value.message_id.into_string())
     }
     #[doc = r" Low-level message relay from protobuf binary bytes."]
     # [wasm_bindgen (js_name = relayMessageBytes)]
@@ -27,7 +27,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(
                 whatsapp_rust::MessageId::new(message_id)
-                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+                    .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?,
             );
         }
         let client = self.client.online().await?;
@@ -55,7 +55,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(
                 whatsapp_rust::MessageId::new(message_id)
-                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+                    .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?,
             );
         }
         let client = self.client.online().await?;
@@ -107,10 +107,10 @@ impl WasmWhatsAppClient {
         let (to, msg) = parse_jid_and_msg_bytes(jid, bytes)?;
         let options = edit_options(stanza_id)?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .edit_message_raw(to, message_id, msg, options)
             .await?;
-        Ok(result.message_id.into_string())
+        Ok(value.message_id.into_string())
     }
     #[doc = r" Revoke (delete) a sent message."]
     # [wasm_bindgen (js_name = revokeMessage)]
@@ -150,7 +150,7 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
         let client = self.client.online().await?;
-        let msg_id = client
+        let value = client
             .fetch_message_history(
                 &chat,
                 oldest_msg_id,
@@ -159,7 +159,7 @@ impl WasmWhatsAppClient {
                 count,
             )
             .await?;
-        Ok(msg_id)
+        Ok(value)
     }
     #[doc = r" Send a chat state update (typing indicator)."]
     # [wasm_bindgen (js_name = sendChatState)]
@@ -169,12 +169,17 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "ChatState")] state: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let state = from_js_input::<crate::result_types::ChatState>("state", state)?;
-        use crate::result_types::ChatState;
         let to = parse_jid(jid)?;
         let chat_state = match state {
-            ChatState::Composing => whatsapp_rust::features::ChatStateType::Composing,
-            ChatState::Recording => whatsapp_rust::features::ChatStateType::Recording,
-            ChatState::Paused => whatsapp_rust::features::ChatStateType::Paused,
+            crate::result_types::ChatState::Composing => {
+                whatsapp_rust::features::ChatStateType::Composing
+            }
+            crate::result_types::ChatState::Recording => {
+                whatsapp_rust::features::ChatStateType::Recording
+            }
+            crate::result_types::ChatState::Paused => {
+                whatsapp_rust::features::ChatStateType::Paused
+            }
         };
         let client = self.client.unwaited(Unwaited::ConnectionBound);
         client
@@ -218,11 +223,11 @@ impl WasmWhatsAppClient {
         let chat = parse_jid(chat_jid)?;
         let creator = parse_jid(poll_creator_jid)?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .polls()
             .vote_raw(&chat, poll_msg_id, &creator, message_secret, &option_names)
             .await?;
-        Ok(result.message_id.into_string())
+        Ok(value.message_id.into_string())
     }
     #[doc = r" Send a status/story message to specified recipients."]
     #[doc = r" Use `encodeProto('Message', obj)` on the JS side to produce the bytes."]
@@ -259,7 +264,7 @@ impl WasmWhatsAppClient {
         if let Some(message_id) = message_id {
             options = options.with_message_id(
                 whatsapp_rust::MessageId::new(message_id)
-                    .map_err(|e| crate::errors::invalid_arg("messageId", e.to_string()))?,
+                    .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?,
             );
         }
         let (msg, recipients) = status_message_input(bytes, &recipients)?;

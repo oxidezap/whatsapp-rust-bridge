@@ -2,6 +2,28 @@
   "bridgeRevision": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
   "coreRevision": "6f7a62296242f5dab8967431bd1c6528c1339efe",
   "types": {
+    "UploadMediaResult": [
+      "url: string;",
+      "directPath: string;",
+      "mediaKey: Uint8Array;",
+      "fileSha256: Uint8Array;",
+      "fileEncSha256: Uint8Array;",
+      "fileLength: number;"
+    ],
+    "SignalSessionMigrationResult": [
+      "migrated: number;",
+      "skipped: number;",
+      "total: number;"
+    ],
+    "NewsletterFollowerResult": [
+      "jid: string;",
+      "phoneJid?: string;",
+      "displayName?: string;",
+      "username?: string;",
+      "role?: string;",
+      "followTime?: number;",
+      "adminProfile?: NewsletterAdminProfileResult;"
+    ],
     "NewsletterAdminProfileResult": [
       "id?: string;",
       "name: string;",

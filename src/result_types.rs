@@ -436,24 +436,6 @@ pub struct ParticipantAddRequestResult {
     pub expiration: f64,
 }
 
-/// Result from `uploadMedia`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct UploadMediaResult {
-    pub url: String,
-    pub direct_path: String,
-    #[tsify(type = "Uint8Array")]
-    #[serde(with = "serde_bytes")]
-    pub media_key: [u8; 32],
-    #[tsify(type = "Uint8Array")]
-    #[serde(with = "serde_bytes")]
-    pub file_sha256: [u8; 32],
-    #[tsify(type = "Uint8Array")]
-    #[serde(with = "serde_bytes")]
-    pub file_enc_sha256: [u8; 32],
-    pub file_length: f64,
-}
-
 /// Result from `encryptMediaStream`.
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -512,15 +494,6 @@ pub struct SignalSessionBundleInput {
 pub struct LidPnMappingInput {
     pub lid: String,
     pub pn: String,
-}
-
-/// Counts produced while moving pairwise sessions between identifier namespaces.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct SignalSessionMigrationResult {
-    pub migrated: u32,
-    pub skipped: u32,
-    pub total: u32,
 }
 
 /// A message key for `readMessages`.
@@ -963,30 +936,6 @@ pub struct CoverPhotoUploadInput {
     pub token: String,
     /// `ts` from the upload response, as a string: it is an i64.
     pub timestamp: String,
-}
-
-// ---------------------------------------------------------------------------
-// Newsletter
-// ---------------------------------------------------------------------------
-
-/// One follower of a newsletter, from `newsletterFollowers`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct NewsletterFollowerResult {
-    pub jid: String,
-    /// Withheld by the server when the follower's privacy settings hide it.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phone_jid: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub display_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub role: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub follow_time: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub admin_profile: Option<NewsletterAdminProfileResult>,
 }
 
 /// One message from `newsletterMessages`.

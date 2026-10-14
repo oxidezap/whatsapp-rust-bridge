@@ -62,11 +62,18 @@ pub(super) fn catalog() -> Vec<Operation> {
                     timeout_ms: Option<f64>,
                 ) -> Result<JsBinaryNode, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let node_js: JsValue = node_js.into();
-                let node = js_to_node(&node_js)?;
-                let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
-            }))],
+            inputs: vec![
+                Input::Node {
+                    binding: parse_quote!(node),
+                    input: parse_quote!(node_js),
+                },
+                Input::Timeout {
+                    binding: parse_quote!(timeout),
+                    field: parse_quote!("timeoutMs"),
+                    value: parse_quote!(timeout_ms),
+                    optional: true,
+                },
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Opaque),
@@ -110,16 +117,20 @@ pub(super) fn catalog() -> Vec<Operation> {
                     failure_reason: Option<i32>,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let stanza_js: JsValue = stanza_js.into();
-                let stanza = js_to_node(&stanza_js)?;
-                let reason = whatsapp_rust::NackReason::from(error_code);
-                let rejection = if reason == whatsapp_rust::NackReason::InvalidProtobuf {
-                    whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
-                } else {
-                    whatsapp_rust::StanzaRejection::new(reason)
-                };
-            }))],
+            inputs: vec![
+                Input::Node {
+                    binding: parse_quote!(stanza),
+                    input: parse_quote!(stanza_js),
+                },
+                Input::Convert(parse_quote!({
+                    let reason = whatsapp_rust::NackReason::from(error_code);
+                    let rejection = if reason == whatsapp_rust::NackReason::InvalidProtobuf {
+                        whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
+                    } else {
+                        whatsapp_rust::StanzaRejection::new(reason)
+                    };
+                })),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::ConnectionBound),
@@ -138,12 +149,16 @@ pub(super) fn catalog() -> Vec<Operation> {
                     force_include_keys: Option<bool>,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let stanza_js: JsValue = stanza_js.into();
-                let stanza = js_to_node(&stanza_js)?;
-                let options = whatsapp_rust::RetryRequestOptions::new()
-                    .with_force_include_keys(force_include_keys.unwrap_or(false));
-            }))],
+            inputs: vec![
+                Input::Node {
+                    binding: parse_quote!(stanza),
+                    input: parse_quote!(stanza_js),
+                },
+                Input::Convert(parse_quote!({
+                    let options = whatsapp_rust::RetryRequestOptions::new()
+                        .with_force_include_keys(force_include_keys.unwrap_or(false));
+                })),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::ConnectionBound),
@@ -201,13 +216,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.signal().assert_sessions(&parsed)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    boundary_result?;
-                    Ok(true)
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::True,
+                error: Some(ResultError::From),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -234,29 +246,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.signal().get_user_devices(&parsed)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(devices),
-                body: parse_quote!({
-                    let arr = js_sys::Array::new_with_length(devices.len() as u32);
-                    for (i, jid) in devices.iter().enumerate() {
-                        let obj = js_sys::Object::new();
-                        js_sys::Reflect::set(&obj, &"user".into(), &jid.user.as_str().into())
-                            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                        if jid.device != 0 {
-                            js_sys::Reflect::set(
-                                &obj,
-                                &"device".into(),
-                                &(jid.device as f64).into(),
-                            )
-                            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                        }
-                        js_sys::Reflect::set(&obj, &"jid".into(), &jid.to_string().into())
-                            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                        arr.set(i as u32, obj.into());
-                    }
-                    Ok(arr.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Object(ObjectShape::UsyncDevices)),
         },
         Operation {
             attributes: attributes(quote!(
@@ -279,22 +269,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().encrypt_message(&parsed, data)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let (msg_type, ciphertext) = boundary_result?;
-                    let obj = js_sys::Object::new();
-                    js_sys::Reflect::set(&obj, &"type".into(), &msg_type.as_wire_str().into())
-                        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    js_sys::Reflect::set(
-                        &obj,
-                        &"ciphertext".into(),
-                        &js_sys::Uint8Array::from(ciphertext.as_slice()).into(),
-                    )
-                    .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    Ok(obj.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Object(ObjectShape::SignalMessage)),
         },
         Operation {
             attributes: attributes(quote!(
@@ -329,18 +304,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     .signal()
                     .decrypt_message(&parsed, enc_type, ciphertext)
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let plaintext = boundary_result.map_err(|e| match e {
-                        whatsapp_rust::features::SignalError::Unsupported(detail) => {
-                            crate::errors::invalid_arg("msgType", detail)
-                        }
-                        other => other.into(),
-                    })?;
-                    Ok(js_sys::Uint8Array::from(plaintext.as_slice()))
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Bytes,
+                error: Some(ResultError::SignalType),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -366,26 +333,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().encrypt_group_message(&parsed, data)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let (skdm, ciphertext) = boundary_result?;
-                    let obj = js_sys::Object::new();
-                    let skdm_js = match &skdm {
-                        Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
-                        None => JsValue::UNDEFINED,
-                    };
-                    js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &skdm_js)
-                        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    js_sys::Reflect::set(
-                        &obj,
-                        &"ciphertext".into(),
-                        &js_sys::Uint8Array::from(ciphertext.as_slice()).into(),
-                    )
-                    .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    Ok(obj.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Object(ObjectShape::SignalGroup)),
         },
         Operation {
             attributes: attributes(quote!(
@@ -414,10 +362,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().decrypt_group_message(&group, &sender, msg)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(plaintext),
-                body: parse_quote!({ Ok(js_sys::Uint8Array::from(plaintext.as_slice())) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Bytes,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -438,9 +386,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("input"),
                     value: parse_quote!(input),
                 },
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use wacore::libsignal::protocol::{IdentityKey, PreKeyBundle, PublicKey};
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(parsed),
                     value: parse_quote!(jid),
@@ -594,10 +542,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().sender_key_distribution(&group, &sender)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(distribution),
-                body: parse_quote!({ Ok(crate::wasm_utils::byte_array(&distribution)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::OwnedByteArray,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -625,10 +573,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().has_sender_key(&group, &sender)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({ Ok(boundary_result?) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::Identity,
+                error: Some(ResultError::From),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -757,15 +705,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().migrate_sessions(&from, &to)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    to_ts(crate::result_types::SignalSessionMigrationResult {
-                        migrated: result.migrated as u32,
-                        skipped: result.skipped as u32,
-                        total: result.total as u32,
-                    })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::SignalSessionMigration,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -829,21 +771,23 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<Option<String>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed = if jid.contains('@') {
-                    parse_jid(jid)?
-                } else {
-                    Jid::pn(jid)
-                };
-            }))],
+            inputs: vec![Input::Codec(InputCodec::FullOrBareJid {
+                binding: parse_quote!(parsed),
+                value: parse_quote!(jid),
+                family: JidFamily::Pn,
+                list: false,
+            })],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.get_lid_pn_entry(&parsed)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({ Ok(boundary_result?.map(|e| format!("{}@lid", e.lid))) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::OptionalAddress {
+                    field: parse_quote!(lid),
+                    server: parse_quote!("lid"),
+                },
+                error: Some(ResultError::From),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -861,23 +805,23 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<Option<String>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed = if jid.contains('@') {
-                    parse_jid(jid)?
-                } else {
-                    Jid::lid(jid)
-                };
-            }))],
+            inputs: vec![Input::Codec(InputCodec::FullOrBareJid {
+                binding: parse_quote!(parsed),
+                value: parse_quote!(jid),
+                family: JidFamily::Lid,
+                list: false,
+            })],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.get_lid_pn_entry(&parsed)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    Ok(boundary_result?.map(|e| format!("{}@s.whatsapp.net", e.phone_number)))
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::OptionalAddress {
+                    field: parse_quote!(phone_number),
+                    server: parse_quote!("s.whatsapp.net"),
+                },
+                error: Some(ResultError::From),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -896,14 +840,16 @@ pub(super) fn catalog() -> Vec<Operation> {
                     _extra_attrs: JsValue,
                 ) -> Result<JsValue, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let recipient_jids: Vec<wacore_binary::jid::Jid> = jids
-                    .iter()
-                    .map(|j| parse_jid(j))
-                    .collect::<Result<_, _>>()?;
-                let msg = waproto::codec::message_decode(bytes)
-                    .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
-            }))],
+            inputs: vec![
+                Input::Jids {
+                    binding: parse_quote!(recipient_jids),
+                    value: parse_quote!(jids),
+                },
+                Input::Codec(InputCodec::MessageBytes {
+                    binding: parse_quote!(msg),
+                    value: parse_quote!(bytes),
+                }),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
@@ -912,25 +858,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     .signal()
                     .create_participant_nodes(&recipient_jids, &msg)
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let (nodes, should_include_device_identity) = boundary_result?;
-                    let obj = js_sys::Object::new();
-                    let nodes_js = nodes_to_js_array(&nodes).map_err(|e| {
-                        crate::errors::internal(format!("node serialization failed: {e:?}"))
-                    })?;
-                    js_sys::Reflect::set(&obj, &"nodes".into(), &nodes_js)
-                        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    js_sys::Reflect::set(
-                        &obj,
-                        &"shouldIncludeDeviceIdentity".into(),
-                        &should_include_device_identity.into(),
-                    )
-                    .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-                    Ok(obj.into())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Object(ObjectShape::ParticipantNodes)),
         },
         Operation {
             attributes: attributes(quote!(

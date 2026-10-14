@@ -9,11 +9,11 @@ impl WasmWhatsAppClient {
         description: Option<String>,
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .newsletter()
             .create(name, description.as_deref())
             .await?;
-        to_ts(newsletter_metadata_to_result(&result))
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Fetch metadata for a newsletter by JID."]
     # [wasm_bindgen (js_name = newsletterMetadata)]
@@ -23,8 +23,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let result = client.newsletter().get_metadata(&target).await?;
-        to_ts(newsletter_metadata_to_result(&result))
+        let value = client.newsletter().get_metadata(&target).await?;
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Subscribe (join) a newsletter."]
     # [wasm_bindgen (js_name = newsletterSubscribe)]
@@ -34,8 +34,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let result = client.newsletter().join(&target).await?;
-        to_ts(newsletter_metadata_to_result(&result))
+        let value = client.newsletter().join(&target).await?;
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Unsubscribe (leave) a newsletter."]
     # [wasm_bindgen (js_name = newsletterUnsubscribe)]
@@ -64,17 +64,19 @@ impl WasmWhatsAppClient {
         reaction: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
-        let sid: u64 = server_id.parse().map_err(|e: std::num::ParseIntError| {
-            crate::errors::invalid_arg("serverId", e.to_string())
-        })?;
+        let sid = {
+            let value = server_id;
+            value
+                .parse::<u64>()
+                .map_err(|error| crate::errors::invalid_arg("serverId", error.to_string()))
+        }?;
         let client = self.client.online().await?;
-        let boundary_result = client
+        let value = client
             .newsletter()
             .send_reaction_raw(&target, sid, reaction.as_deref().unwrap_or(""))
             .await;
-        boundary_result
-            .map(whatsapp_rust::StanzaId::into_string)
-            .map_err(crate::errors::BridgeError::from)
+        let value = value?;
+        Ok(value.into_string())
     }
     #[doc = r" Mute or unmute a newsletter's follower-activity notifications"]
     #[doc = r" (`MUTE_FOLLOWER_ACTIVITY`) — what a subscriber toggles."]
@@ -115,8 +117,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<Ts<crate::result_types::NewsletterMetadataResult>>, crate::errors::BridgeError>
     {
         let client = self.client.online().await?;
-        let list = client.newsletter().list_subscribed().await?;
-        to_ts_vec(list.iter().map(newsletter_metadata_to_result).collect())
+        let value = client.newsletter().list_subscribed().await?;
+        to_ts_vec(value.iter().map(newsletter_metadata_to_result).collect())
     }
     #[doc = r" Fetch a newsletter's metadata by its invite code."]
     # [wasm_bindgen (js_name = newsletterMetadataByInvite)]
@@ -125,11 +127,11 @@ impl WasmWhatsAppClient {
         invite_code: &str,
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let meta = client
+        let value = client
             .newsletter()
             .get_metadata_by_invite(invite_code)
             .await?;
-        to_ts(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Update a newsletter's name and/or description. Returns the refreshed"]
     #[doc = r" metadata."]
@@ -142,11 +144,11 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let meta = client
+        let value = client
             .newsletter()
             .update(&target, name.as_deref(), description.as_deref())
             .await?;
-        to_ts(newsletter_metadata_to_result(&meta))
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Delete a newsletter. Owner-only."]
     # [wasm_bindgen (js_name = newsletterDelete)]
@@ -204,8 +206,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let meta = client.newsletter().set_picture(&target, jpeg).await?;
-        to_ts(newsletter_metadata_to_result(&meta))
+        let value = client.newsletter().set_picture(&target, jpeg).await?;
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Remove a newsletter's picture. Returns the refreshed metadata."]
     # [wasm_bindgen (js_name = newsletterRemovePicture)]
@@ -215,8 +217,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let meta = client.newsletter().remove_picture(&target).await?;
-        to_ts(newsletter_metadata_to_result(&meta))
+        let value = client.newsletter().remove_picture(&target).await?;
+        to_ts(newsletter_metadata_to_result(&value))
     }
     #[doc = r" Fetch a newsletter's admin-side information, including its admin count."]
     # [wasm_bindgen (js_name = newsletterAdminInfo)]
@@ -243,22 +245,11 @@ impl WasmWhatsAppClient {
     {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let followers = client.newsletter().get_followers(&target, count).await?;
+        let value = client.newsletter().get_followers(&target, count).await?;
         to_ts_vec(
-            followers
+            value
                 .iter()
-                .map(|follower| crate::result_types::NewsletterFollowerResult {
-                    jid: follower.jid.to_string(),
-                    phone_jid: follower.phone_jid.as_ref().map(|j| j.to_string()),
-                    display_name: follower.display_name.clone(),
-                    username: follower.username.clone(),
-                    role: follower.role.as_ref().map(newsletter_role_str),
-                    follow_time: follower.follow_time.map(|v| v as f64),
-                    admin_profile: follower
-                        .admin_profile
-                        .as_ref()
-                        .map(crate::result_types::project_newsletter_admin_profile),
-                })
+                .map(crate::result_types::project_newsletter_follower)
                 .collect(),
         )
     }
@@ -275,15 +266,14 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<Ts<crate::result_types::NewsletterMessageResult>>, crate::errors::BridgeError>
     {
         let target = parse_jid(jid)?;
-        let before_id = match before.as_deref() {
-            Some(value) => Some(value.parse::<u64>().map_err(|e| {
-                crate::errors::BridgeError::InvalidArgument {
-                    field: "before".into(),
-                    reason: format!("must be a serverId: {e}"),
-                }
-            })?),
-            None => None,
-        };
+        let before_id = before
+            .as_deref()
+            .map(|value| {
+                value.parse::<u64>().map_err(|error| {
+                    crate::errors::invalid_arg("before", format!("must be a serverId: {error}"))
+                })
+            })
+            .transpose()?;
         let client = self.client.online().await?;
         let messages = client
             .newsletter()
@@ -353,8 +343,8 @@ impl WasmWhatsAppClient {
     ) -> Result<f64, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let duration = client.newsletter().subscribe_live_updates(target).await?;
-        Ok(duration as f64)
+        let value = client.newsletter().subscribe_live_updates(target).await?;
+        Ok(value as f64)
     }
     #[doc = r" Edit a newsletter message. `messageId` is the message's own id, not its"]
     #[doc = r" `serverId` — reactions key on the latter, edit and revoke on the former."]

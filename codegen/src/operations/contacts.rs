@@ -22,18 +22,12 @@ pub(super) fn catalog() -> Vec<Operation> {
                     phones: Vec<String>,
                 ) -> Result<Vec<Ts<crate::result_types::IsOnWhatsAppResult>>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let jids: Vec<Jid> = phones
-                    .iter()
-                    .map(|p| {
-                        if p.contains('@') {
-                            parse_jid(p)
-                        } else {
-                            Ok(Jid::pn(p))
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-            }))],
+            inputs: vec![Input::Codec(InputCodec::FullOrBareJid {
+                binding: parse_quote!(jids),
+                value: parse_quote!(phones),
+                family: JidFamily::Pn,
+                list: true,
+            })],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -88,9 +82,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     username_key: Option<String>,
                 ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
+            inputs: vec![Input::Codec(InputCodec::Import(parse_quote!(
                 use whatsapp_rust::features::UsernameLookup;
-            }))],
+            )))],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -151,20 +145,26 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("picture_type"),
                     value: parse_quote!(picture_type),
                 },
-                Input::Convert(parse_quote!({
-                    use crate::result_types::PictureType;
-                })),
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let size = match picture_type {
-                        PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
-                        PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
-                    };
-                    let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
-                })),
+                Input::Codec(InputCodec::Enum {
+                    binding: parse_quote!(size),
+                    value: parse_quote!(picture_type),
+                    source: parse_quote!(crate::result_types::PictureType),
+                    target: parse_quote!(whatsapp_rust::ProfilePictureType),
+                    variants: vec![
+                        (parse_quote!(Preview), parse_quote!(Preview)),
+                        (parse_quote!(Image), parse_quote!(Full)),
+                    ],
+                }),
+                Input::Timeout {
+                    binding: parse_quote!(timeout),
+                    field: parse_quote!("timeoutMs"),
+                    value: parse_quote!(timeout_ms),
+                    optional: true,
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -334,21 +334,18 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError>
             ),
             inputs: vec![
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use wacore_binary::JidExt;
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(group_jid),
                 },
-                Input::Convert(parse_quote!({
-                    if !target.is_group() {
-                        return Err(crate::errors::invalid_arg(
-                            "groupJid",
-                            "must be a group jid",
-                        ));
-                    }
-                })),
+                Input::Codec(InputCodec::JidGuard {
+                    value: parse_quote!(target),
+                    field: parse_quote!("groupJid"),
+                    reason: parse_quote!("must be a group jid"),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -373,21 +370,18 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError>
             ),
             inputs: vec![
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use wacore_binary::JidExt;
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(group_jid),
                 },
-                Input::Convert(parse_quote!({
-                    if !target.is_group() {
-                        return Err(crate::errors::invalid_arg(
-                            "groupJid",
-                            "must be a group jid",
-                        ));
-                    }
-                })),
+                Input::Codec(InputCodec::JidGuard {
+                    value: parse_quote!(target),
+                    field: parse_quote!("groupJid"),
+                    reason: parse_quote!("must be a group jid"),
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -395,11 +389,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             call: parse_quote!(client.execute(
                 wacore::iq::contacts::SetProfilePictureSpec::remove_group(&target,)
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    to_ts(crate::result_types::ProfilePictureResult { id: result.id })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::ProfilePicture,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -520,17 +512,16 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("status"),
                     value: parse_quote!(status),
                 },
-                Input::Convert(parse_quote!({
-                    use crate::result_types::PresenceStatus;
-                    let presence_status = match status {
-                        PresenceStatus::Available => {
-                            whatsapp_rust::features::PresenceStatus::Available
-                        }
-                        PresenceStatus::Unavailable => {
-                            whatsapp_rust::features::PresenceStatus::Unavailable
-                        }
-                    };
-                })),
+                Input::Codec(InputCodec::Enum {
+                    binding: parse_quote!(presence_status),
+                    value: parse_quote!(status),
+                    source: parse_quote!(crate::result_types::PresenceStatus),
+                    target: parse_quote!(whatsapp_rust::features::PresenceStatus),
+                    variants: vec![
+                        (parse_quote!(Available), parse_quote!(Available)),
+                        (parse_quote!(Unavailable), parse_quote!(Unavailable)),
+                    ],
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -599,9 +590,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("action"),
                     value: parse_quote!(action),
                 },
-                Input::Convert(parse_quote!({
+                Input::Codec(InputCodec::Import(parse_quote!(
                     use crate::result_types::BlockAction;
-                })),
+                ))),
                 Input::Jid {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),

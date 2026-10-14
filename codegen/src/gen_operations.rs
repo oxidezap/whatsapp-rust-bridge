@@ -1,5 +1,6 @@
 mod events;
 mod lifecycle;
+mod operation_codecs;
 mod operations;
 mod projections;
 mod storage;

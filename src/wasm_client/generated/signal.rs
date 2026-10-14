@@ -124,8 +124,7 @@ impl WasmWhatsAppClient {
             .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
-        let boundary_result = client.signal().assert_sessions(&parsed).await;
-        boundary_result?;
+        client.signal().assert_sessions(&parsed).await?;
         Ok(true)
     }
     #[doc = r" Get the list of known devices for the given user JIDs via usync query."]
@@ -147,17 +146,24 @@ impl WasmWhatsAppClient {
         let client = self.client.online().await?;
         let devices = client.signal().get_user_devices(&parsed).await?;
         let arr = js_sys::Array::new_with_length(devices.len() as u32);
-        for (i, jid) in devices.iter().enumerate() {
+        for (index, jid) in devices.iter().enumerate() {
             let obj = js_sys::Object::new();
-            js_sys::Reflect::set(&obj, &"user".into(), &jid.user.as_str().into())
-                .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-            if jid.device != 0 {
-                js_sys::Reflect::set(&obj, &"device".into(), &(jid.device as f64).into())
-                    .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
+            {
+                let value: JsValue = jid.user.as_str().into();
+                js_sys::Reflect::set(&obj, &"user".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
             }
-            js_sys::Reflect::set(&obj, &"jid".into(), &jid.to_string().into())
-                .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-            arr.set(i as u32, obj.into());
+            if jid.device != 0 {
+                let value: JsValue = (jid.device as f64).into();
+                js_sys::Reflect::set(&obj, &"device".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+            }
+            {
+                let value: JsValue = jid.to_string().into();
+                js_sys::Reflect::set(&obj, &"jid".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+            }
+            arr.set(index as u32, obj.into());
         }
         Ok(arr.into())
     }
@@ -171,17 +177,18 @@ impl WasmWhatsAppClient {
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let parsed = parse_jid(jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.signal().encrypt_message(&parsed, data).await;
-        let (msg_type, ciphertext) = boundary_result?;
+        let (msg_type, ciphertext) = client.signal().encrypt_message(&parsed, data).await?;
         let obj = js_sys::Object::new();
-        js_sys::Reflect::set(&obj, &"type".into(), &msg_type.as_wire_str().into())
-            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-        js_sys::Reflect::set(
-            &obj,
-            &"ciphertext".into(),
-            &js_sys::Uint8Array::from(ciphertext.as_slice()).into(),
-        )
-        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
+        {
+            let value: JsValue = msg_type.as_wire_str().into();
+            js_sys::Reflect::set(&obj, &"type".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
+        {
+            let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
+            js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
         Ok(obj.into())
     }
     #[doc = r#" Decrypt a Signal protocol message. `msg_type` is "msg", "pkmsg", or "skmsg"."#]
@@ -196,17 +203,17 @@ impl WasmWhatsAppClient {
         let enc_type = wacore::message_processing::EncType::from_wire(msg_type)
             .ok_or_else(|| crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}")))?;
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client
+        let value = client
             .signal()
             .decrypt_message(&parsed, enc_type, ciphertext)
             .await;
-        let plaintext = boundary_result.map_err(|e| match e {
+        let value = value.map_err(|error| match error {
             whatsapp_rust::features::SignalError::Unsupported(detail) => {
                 crate::errors::invalid_arg("msgType", detail)
             }
             other => other.into(),
         })?;
-        Ok(js_sys::Uint8Array::from(plaintext.as_slice()))
+        Ok(js_sys::Uint8Array::from(value.as_slice()))
     }
     #[doc = r" Encrypt plaintext for a group (sender key)."]
     #[doc = r" Returns `{ senderKeyDistributionMessage: Uint8Array, ciphertext: Uint8Array }`."]
@@ -221,21 +228,21 @@ impl WasmWhatsAppClient {
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let parsed = parse_jid(group_jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.signal().encrypt_group_message(&parsed, data).await;
-        let (skdm, ciphertext) = boundary_result?;
+        let (skdm, ciphertext) = client.signal().encrypt_group_message(&parsed, data).await?;
         let obj = js_sys::Object::new();
-        let skdm_js = match &skdm {
-            Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
-            None => JsValue::UNDEFINED,
-        };
-        js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &skdm_js)
-            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-        js_sys::Reflect::set(
-            &obj,
-            &"ciphertext".into(),
-            &js_sys::Uint8Array::from(ciphertext.as_slice()).into(),
-        )
-        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
+        {
+            let value: JsValue = match &skdm {
+                Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
+                None => JsValue::UNDEFINED,
+            };
+            js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
+        {
+            let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
+            js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
         Ok(obj.into())
     }
     #[doc = r" Decrypt a group (sender-key) message."]
@@ -249,11 +256,11 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(author_jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let plaintext = client
+        let value = client
             .signal()
             .decrypt_group_message(&group, &sender, msg)
             .await?;
-        Ok(js_sys::Uint8Array::from(plaintext.as_slice()))
+        Ok(js_sys::Uint8Array::from(value.as_slice()))
     }
     #[doc = r" Install a supplied pairwise pre-key bundle."]
     # [wasm_bindgen (js_name = signalInstallPreKeyBundle)]
@@ -347,11 +354,11 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(sender_jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let distribution = client
+        let value = client
             .signal()
             .sender_key_distribution(&group, &sender)
             .await?;
-        Ok(crate::wasm_utils::byte_array(&distribution))
+        Ok(crate::wasm_utils::byte_array(&value))
     }
     #[doc = r" Check whether sender-key state exists for a group and sender."]
     # [wasm_bindgen (js_name = signalHasSenderKey)]
@@ -363,8 +370,9 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let sender = parse_jid(sender_jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.signal().has_sender_key(&group, &sender).await;
-        Ok(boundary_result?)
+        let value = client.signal().has_sender_key(&group, &sender).await;
+        let value = value?;
+        Ok(value)
     }
     #[doc = r" Delete one sender-key chain from live and durable state."]
     # [wasm_bindgen (js_name = signalDeleteSenderKey)]
@@ -434,12 +442,8 @@ impl WasmWhatsAppClient {
         let from = parse_jid(from_jid)?;
         let to = parse_jid(to_jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let result = client.signal().migrate_sessions(&from, &to).await?;
-        to_ts(crate::result_types::SignalSessionMigrationResult {
-            migrated: result.migrated as u32,
-            skipped: result.skipped as u32,
-            total: result.total as u32,
-        })
+        let value = client.signal().migrate_sessions(&from, &to).await?;
+        to_ts(crate::result_types::project_signal_session_migration(value))
     }
     #[doc = r" Check whether a Signal session exists for the given JID."]
     # [wasm_bindgen (js_name = signalValidateSession)]
@@ -492,8 +496,9 @@ impl WasmWhatsAppClient {
             Jid::pn(jid)
         };
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.get_lid_pn_entry(&parsed).await;
-        Ok(boundary_result?.map(|e| format!("{}@lid", e.lid)))
+        let value = client.get_lid_pn_entry(&parsed).await;
+        let value = value?;
+        Ok(value.map(|entry| format!("{}@lid", entry.lid)))
     }
     #[doc = r" Look up the phone number JID corresponding to a given LID JID."]
     #[doc = r""]
@@ -512,8 +517,9 @@ impl WasmWhatsAppClient {
             Jid::lid(jid)
         };
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.get_lid_pn_entry(&parsed).await;
-        Ok(boundary_result?.map(|e| format!("{}@s.whatsapp.net", e.phone_number)))
+        let value = client.get_lid_pn_entry(&parsed).await;
+        let value = value?;
+        Ok(value.map(|entry| format!("{}@s.whatsapp.net", entry.phone_number)))
     }
     #[doc = r" Create encrypted participant `<to>` nodes for recipient JIDs."]
     #[doc = r" Returns `{ nodes: [...], shouldIncludeDeviceIdentity: boolean }`."]
@@ -529,27 +535,28 @@ impl WasmWhatsAppClient {
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let recipient_jids: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|j| parse_jid(j))
+            .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let msg = waproto::codec::message_decode(bytes)
-            .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
+            .map_err(|error| crate::errors::internal(format!("invalid message bytes: {error}")))?;
         let client = self.client.online().await?;
-        let boundary_result = client
+        let (nodes, should_include_device_identity) = client
             .signal()
             .create_participant_nodes(&recipient_jids, &msg)
-            .await;
-        let (nodes, should_include_device_identity) = boundary_result?;
+            .await?;
         let obj = js_sys::Object::new();
-        let nodes_js = nodes_to_js_array(&nodes)
-            .map_err(|e| crate::errors::internal(format!("node serialization failed: {e:?}")))?;
-        js_sys::Reflect::set(&obj, &"nodes".into(), &nodes_js)
-            .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
-        js_sys::Reflect::set(
-            &obj,
-            &"shouldIncludeDeviceIdentity".into(),
-            &should_include_device_identity.into(),
-        )
-        .map_err(|e| crate::errors::internal(format!("{e:?}")))?;
+        {
+            let value: JsValue = nodes_to_js_array(&nodes).map_err(|error| {
+                crate::errors::internal(format!("node serialization failed: {error:?}"))
+            })?;
+            js_sys::Reflect::set(&obj, &"nodes".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
+        {
+            let value: JsValue = should_include_device_identity.into();
+            js_sys::Reflect::set(&obj, &"shouldIncludeDeviceIdentity".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
         Ok(obj.into())
     }
     #[doc = r" Send pre-marshaled bytes through the noise socket."]
@@ -589,5 +596,95 @@ impl WasmWhatsAppClient {
     # [wasm_bindgen (js_name = setRawNodeForwarding)]
     pub fn set_raw_node_forwarding(&self, enabled: bool) {
         self.execute_set_raw_node_forwarding(enabled)
+    }
+}
+#[cfg(test)]
+mod generated_object_codec_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    fn group(
+        skdm: Option<Vec<u8>>,
+        ciphertext: Vec<u8>,
+    ) -> Result<JsValue, crate::errors::BridgeError> {
+        let (skdm, ciphertext) = Ok::<_, crate::errors::BridgeError>((skdm, ciphertext))?;
+        let obj = js_sys::Object::new();
+        {
+            let value: JsValue = match &skdm {
+                Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
+                None => JsValue::UNDEFINED,
+            };
+            js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
+        {
+            let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
+            js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
+                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+        }
+        Ok(obj.into())
+    }
+    fn devices(devices: Vec<Jid>) -> Result<JsValue, crate::errors::BridgeError> {
+        let devices = devices;
+        let arr = js_sys::Array::new_with_length(devices.len() as u32);
+        for (index, jid) in devices.iter().enumerate() {
+            let obj = js_sys::Object::new();
+            {
+                let value: JsValue = jid.user.as_str().into();
+                js_sys::Reflect::set(&obj, &"user".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+            }
+            if jid.device != 0 {
+                let value: JsValue = (jid.device as f64).into();
+                js_sys::Reflect::set(&obj, &"device".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+            }
+            {
+                let value: JsValue = jid.to_string().into();
+                js_sys::Reflect::set(&obj, &"jid".into(), &value)
+                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+            }
+            arr.set(index as u32, obj.into());
+        }
+        Ok(arr.into())
+    }
+    #[test]
+    fn optional_byte_field_stays_present_with_undefined_or_typed_bytes() {
+        let value = group(None, vec![0, 128, 255]).unwrap();
+        assert!(js_sys::Reflect::has(&value, &"senderKeyDistributionMessage".into()).unwrap());
+        assert!(
+            js_sys::Reflect::get(&value, &"senderKeyDistributionMessage".into())
+                .unwrap()
+                .is_undefined()
+        );
+        assert_eq!(
+            js_sys::Uint8Array::new(&js_sys::Reflect::get(&value, &"ciphertext".into()).unwrap())
+                .to_vec(),
+            [0, 128, 255]
+        );
+        let value = group(Some(vec![]), vec![]).unwrap();
+        let bytes = js_sys::Reflect::get(&value, &"senderKeyDistributionMessage".into()).unwrap();
+        assert!(bytes.is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(js_sys::Uint8Array::new(&bytes).length(), 0);
+    }
+    #[test]
+    fn device_zero_is_omitted_and_nonzero_stays_numeric() {
+        let first = Jid::pn("123");
+        let mut second = Jid::pn("456");
+        second.device = 7;
+        let value = js_sys::Array::from(&devices(vec![first, second]).unwrap());
+        assert!(!js_sys::Reflect::has(&value.get(0), &"device".into()).unwrap());
+        assert_eq!(
+            js_sys::Reflect::get(&value.get(1), &"device".into())
+                .unwrap()
+                .as_f64(),
+            Some(7.0)
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&value.get(1), &"user".into())
+                .unwrap()
+                .as_string()
+                .as_deref(),
+            Some("456")
+        );
     }
 }

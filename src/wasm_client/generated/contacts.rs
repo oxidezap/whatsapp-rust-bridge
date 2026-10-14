@@ -18,11 +18,11 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<Ts<crate::result_types::IsOnWhatsAppResult>>, crate::errors::BridgeError> {
         let jids: Vec<Jid> = phones
             .iter()
-            .map(|p| {
-                if p.contains('@') {
-                    parse_jid(p)
+            .map(|jid| {
+                if jid.contains('@') {
+                    parse_jid(jid)
                 } else {
-                    Ok(Jid::pn(p))
+                    Ok(Jid::pn(jid))
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -104,11 +104,10 @@ impl WasmWhatsAppClient {
     {
         let picture_type =
             from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
-        use crate::result_types::PictureType;
         let target = parse_jid(jid)?;
         let size = match picture_type {
-            PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
-            PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
+            crate::result_types::PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
+            crate::result_types::PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
         };
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
         let client = self.client.online().await?;
@@ -242,12 +241,12 @@ impl WasmWhatsAppClient {
             ));
         }
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .execute(wacore::iq::contacts::SetProfilePictureSpec::remove_group(
                 &target,
             ))
             .await?;
-        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::project_profile_picture(value))
     }
     #[doc = r" Update the user's status text (about)."]
     # [wasm_bindgen (js_name = updateProfileStatus)]
@@ -321,10 +320,13 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "PresenceStatus")] status: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let status = from_js_input::<crate::result_types::PresenceStatus>("status", status)?;
-        use crate::result_types::PresenceStatus;
         let presence_status = match status {
-            PresenceStatus::Available => whatsapp_rust::features::PresenceStatus::Available,
-            PresenceStatus::Unavailable => whatsapp_rust::features::PresenceStatus::Unavailable,
+            crate::result_types::PresenceStatus::Available => {
+                whatsapp_rust::features::PresenceStatus::Available
+            }
+            crate::result_types::PresenceStatus::Unavailable => {
+                whatsapp_rust::features::PresenceStatus::Unavailable
+            }
         };
         let client = self.client.unwaited(Unwaited::ConnectionBound);
         client

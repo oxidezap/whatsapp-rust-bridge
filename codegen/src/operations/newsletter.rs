@@ -19,10 +19,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().create(name, description.as_deref())),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&result)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -43,10 +44,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().get_metadata(&target)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&result)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -67,10 +69,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().join(&target)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&result)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -115,11 +118,14 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let sid: u64 = server_id.parse().map_err(|e: std::num::ParseIntError| {
-                        crate::errors::invalid_arg("serverId", e.to_string())
-                    })?;
-                })),
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(sid),
+                    value: parse_quote!(server_id),
+                    ty: parse_quote!(u64),
+                    field: parse_quote!("serverId"),
+                    prefix: None,
+                    optional: false,
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -129,14 +135,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 sid,
                 reaction.as_deref().unwrap_or("")
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    boundary_result
-                        .map(whatsapp_rust::StanzaId::into_string)
-                        .map_err(crate::errors::BridgeError::from)
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::StanzaId,
+                error: Some(ResultError::From),
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -199,12 +201,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().list_subscribed()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(list),
-                body: parse_quote!({
-                    to_ts_vec(list.iter().map(newsletter_metadata_to_result).collect())
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: true,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -222,10 +223,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().get_metadata_by_invite(invite_code)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(meta),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&meta)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -253,10 +255,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                 name.as_deref(),
                 description.as_deref()
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(meta),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&meta)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -356,10 +359,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().set_picture(&target, jpeg)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(meta),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&meta)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -380,10 +384,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().remove_picture(&target)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(meta),
-                body: parse_quote!({ to_ts(newsletter_metadata_to_result(&meta)) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Converted {
+                converter: Converter::NewsletterMetadata,
+                field: None,
+                list: false,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -432,27 +437,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().get_followers(&target, count)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(followers),
-                body: parse_quote!({
-                    to_ts_vec(
-                        followers
-                            .iter()
-                            .map(|follower| crate::result_types::NewsletterFollowerResult {
-                                jid: follower.jid.to_string(),
-                                phone_jid: follower.phone_jid.as_ref().map(|j| j.to_string()),
-                                display_name: follower.display_name.clone(),
-                                username: follower.username.clone(),
-                                role: follower.role.as_ref().map(newsletter_role_str),
-                                follow_time: follower.follow_time.map(|v| v as f64),
-                                admin_profile: follower
-                                    .admin_profile
-                                    .as_ref()
-                                    .map(crate::result_types::project_newsletter_admin_profile),
-                            })
-                            .collect(),
-                    )
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::NewsletterFollower,
+                envelope: Envelope::List,
             },
         },
         Operation {
@@ -476,17 +463,14 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(target),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let before_id = match before.as_deref() {
-                        Some(value) => Some(value.parse::<u64>().map_err(|e| {
-                            crate::errors::BridgeError::InvalidArgument {
-                                field: "before".into(),
-                                reason: format!("must be a serverId: {e}"),
-                            }
-                        })?),
-                        None => None,
-                    };
-                })),
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(before_id),
+                    value: parse_quote!(before),
+                    ty: parse_quote!(u64),
+                    field: parse_quote!("before"),
+                    prefix: Some(parse_quote!("must be a serverId: ")),
+                    optional: true,
+                }),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -583,10 +567,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.newsletter().subscribe_live_updates(target)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(duration),
-                body: parse_quote!({ Ok(duration as f64) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::NumberF64,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(

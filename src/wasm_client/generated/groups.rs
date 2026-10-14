@@ -9,8 +9,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let group_jid = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let metadata = client.groups().fetch_metadata(&group_jid).await?;
-        to_ts(group_metadata_to_result(&metadata))
+        let value = client.groups().fetch_metadata(&group_jid).await?;
+        to_ts(group_metadata_to_result(&value))
     }
     #[doc = r" Update a group's subject (name)."]
     # [wasm_bindgen (js_name = groupUpdateSubject)]
@@ -114,8 +114,8 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let group_jid = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let new_code = client.groups().get_invite_link(&group_jid, true).await?;
-        Ok(new_code)
+        let value = client.groups().get_invite_link(&group_jid, true).await?;
+        Ok(value)
     }
     #[doc = r" Deactivate a parent group without deleting its former subgroups."]
     # [wasm_bindgen (js_name = deactivateCommunity)]
@@ -141,13 +141,13 @@ impl WasmWhatsAppClient {
             .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .community()
             .link_subgroups(parent, &subgroups)
             .await?;
         to_ts(community_link_result(
-            result.linked_jids,
-            result.failed_groups,
+            value.linked_jids,
+            value.failed_groups,
         ))
     }
     #[doc = r" Unlink groups from a parent group."]
@@ -164,13 +164,13 @@ impl WasmWhatsAppClient {
             .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .community()
             .unlink_subgroups(parent, &subgroups, remove_orphan_members)
             .await?;
         to_ts(community_link_result(
-            result.unlinked_jids,
-            result.failed_groups,
+            value.unlinked_jids,
+            value.failed_groups,
         ))
     }
     #[doc = r" Fetch subgroups of a parent group."]
@@ -197,8 +197,8 @@ impl WasmWhatsAppClient {
         code: &str,
     ) -> Result<String, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let jid = client.groups().join_with_invite_code(code).await?;
-        Ok(jid.group_jid().to_string())
+        let value = client.groups().join_with_invite_code(code).await?;
+        Ok(value.group_jid().to_string())
     }
     #[doc = r" Join a group via a GroupInviteMessage (V4 invite)."]
     # [wasm_bindgen (js_name = groupAcceptInviteV4)]
@@ -212,11 +212,11 @@ impl WasmWhatsAppClient {
         let group = parse_jid(group_jid)?;
         let admin = parse_jid(admin_jid)?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .groups()
             .join_with_invite_v4(&group, code, expiration as i64, &admin)
             .await?;
-        Ok(result.group_jid().to_string())
+        Ok(value.group_jid().to_string())
     }
     #[doc = r" Revoke invitation codes previously issued to participants."]
     # [wasm_bindgen (js_name = groupRevokeInviteV4)]
@@ -242,8 +242,8 @@ impl WasmWhatsAppClient {
         code: &str,
     ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let metadata = client.groups().get_invite_info(code).await?;
-        to_ts(group_metadata_to_result(&metadata))
+        let value = client.groups().get_invite_info(code).await?;
+        to_ts(group_metadata_to_result(&value))
     }
     #[doc = r" Get list of pending join requests for a group."]
     # [wasm_bindgen (js_name = groupRequestParticipantsList)]
@@ -283,8 +283,8 @@ impl WasmWhatsAppClient {
         let options = whatsapp_rust::features::GroupCreateOptions::new(subject)
             .with_participants(participant_options);
         let client = self.client.online().await?;
-        let result = client.groups().create_group(options).await?;
-        to_ts(group_metadata_to_result(&result.metadata))
+        let value = client.groups().create_group(options).await?;
+        to_ts(group_metadata_to_result(&value.metadata))
     }
     #[doc = r" Update group participants."]
     # [wasm_bindgen (js_name = groupParticipantsUpdate)]
@@ -308,13 +308,13 @@ impl WasmWhatsAppClient {
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let client = self.client.online().await?;
         let groups = client.groups().list_participating().await?;
-        let obj = js_sys::Object::new();
+        let result = js_sys::Object::new();
         for group in &groups {
-            let result = group_overview_to_result(group);
-            let js_metadata = serde_wasm_bindgen::to_value(&result)?;
-            js_sys::Reflect::set(&obj, &JsValue::from_str(&result.id), &js_metadata)?;
+            let entry = group_overview_to_result(group);
+            let value = serde_wasm_bindgen::to_value(&entry)?;
+            js_sys::Reflect::set(&result, &JsValue::from_str(&entry.id), &value)?;
         }
-        Ok(obj.into())
+        Ok(result.into())
     }
     #[doc = r" Create a parent group with explicit protocol options."]
     # [wasm_bindgen (js_name = createCommunity)]
@@ -336,8 +336,8 @@ impl WasmWhatsAppClient {
         options.allow_non_admin_sub_group_creation = allow_non_admin_sub_group_creation;
         options.create_general_chat = create_general_chat;
         let client = self.client.online().await?;
-        let result = client.community().create(options).await?;
-        to_ts(group_metadata_to_result(&result.metadata))
+        let value = client.community().create(options).await?;
+        to_ts(group_metadata_to_result(&value.metadata))
     }
     #[doc = r" Create a subgroup already linked to a parent group."]
     # [wasm_bindgen (js_name = createCommunitySubgroup)]
@@ -353,11 +353,11 @@ impl WasmWhatsAppClient {
             .collect::<Result<_, _>>()?;
         let parent = parse_jid(parent_jid)?;
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .community()
             .create_subgroup(name, &participants, parent)
             .await?;
-        to_ts(group_metadata_to_result(&result.metadata))
+        to_ts(group_metadata_to_result(&value.metadata))
     }
     #[doc = r" Fetch all parent groups the account currently participates in."]
     # [wasm_bindgen (js_name = communityFetchAllParticipating , skip_typescript)]
@@ -365,10 +365,11 @@ impl WasmWhatsAppClient {
         &self,
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let communities = client.community().list_participating().await?;
+        let groups = client.community().list_participating().await?;
         let result = js_sys::Object::new();
-        for group in &communities {
-            let value = serde_wasm_bindgen::to_value(&group_overview_to_result(group))?;
+        for group in &groups {
+            let entry = group_overview_to_result(group);
+            let value = serde_wasm_bindgen::to_value(&entry)?;
             js_sys::Reflect::set(&result, &group.id.to_string().into(), &value)?;
         }
         Ok(result.into())
@@ -397,11 +398,14 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "MemberAddMode")] mode: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let mode = from_js_input::<crate::result_types::MemberAddMode>("mode", mode)?;
-        use crate::result_types::MemberAddMode;
         let group_jid = parse_jid(jid)?;
         let add_mode = match mode {
-            MemberAddMode::AdminAdd => whatsapp_rust::features::MemberAddMode::AdminAdd,
-            MemberAddMode::AllMemberAdd => whatsapp_rust::features::MemberAddMode::AllMemberAdd,
+            crate::result_types::MemberAddMode::AdminAdd => {
+                whatsapp_rust::features::MemberAddMode::AdminAdd
+            }
+            crate::result_types::MemberAddMode::AllMemberAdd => {
+                whatsapp_rust::features::MemberAddMode::AllMemberAdd
+            }
         };
         let client = self.client.online().await?;
         client

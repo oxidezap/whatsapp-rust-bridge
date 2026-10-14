@@ -127,8 +127,8 @@ impl WasmWhatsAppClient {
         &self,
     ) -> Result<Ts<crate::result_types::BotListResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let list = client.bots().list().await?;
-        to_ts(bot_list_to_result(&list))
+        let value = client.bots().list().await?;
+        to_ts(bot_list_to_result(&value))
     }
     #[doc = r" Fetch how many new chats this account may still start this cycle."]
     # [wasm_bindgen (js_name = fetchNewChatMessageCappingInfo)]
@@ -227,8 +227,8 @@ impl WasmWhatsAppClient {
             ..Default::default()
         };
         let client = self.client.unwaited(Unwaited::ThisSocket);
-        let code = client.pair_with_code(options).await?;
-        Ok(code)
+        let value = client.pair_with_code(options).await?;
+        Ok(value)
     }
     #[doc = r" Get the current push name."]
     # [wasm_bindgen (js_name = getPushName)]

@@ -3654,7 +3654,7 @@ fn newsletter_state_str(s: &whatsapp_rust::features::NewsletterState) -> String 
 }
 
 /// See [`newsletter_verification_str`].
-fn newsletter_role_str(r: &whatsapp_rust::features::NewsletterRole) -> String {
+pub(crate) fn newsletter_role_str(r: &whatsapp_rust::features::NewsletterRole) -> String {
     use whatsapp_rust::features::NewsletterRole as R;
     match r {
         R::Owner => "Owner".into(),

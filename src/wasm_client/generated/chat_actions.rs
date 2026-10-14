@@ -49,12 +49,12 @@ impl WasmWhatsAppClient {
             participant: key.participant,
         };
         let client = self.client.online().await?;
-        let boundary_result = client
+        let value = client
             .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
             .await;
-        let result = boundary_result
-            .map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
-        Ok(result.message_id.into_string())
+        let value =
+            value.map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
+        Ok(value.message_id.into_string())
     }
     #[doc = r" Comment on a channel (CAG) post. `bytes` is the encoded body `Message`"]
     #[doc = r" proto (encoding belongs to JS, like `sendMessageBytes`); `parent_key`"]
@@ -86,10 +86,10 @@ impl WasmWhatsAppClient {
             participant: parent_key.participant,
         };
         let client = self.client.online().await?;
-        let boundary_result = client.comments().send_message_raw(chat, key, body).await;
-        let result = boundary_result
-            .map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
-        Ok(result.message_id.into_string())
+        let value = client.comments().send_message_raw(chat, key, body).await;
+        let value =
+            value.map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
+        Ok(value.message_id.into_string())
     }
     #[doc = r" Mark a chat as read or unread via app state mutation."]
     #[doc = r" Different from readMessages (which sends read receipts)."]
@@ -348,7 +348,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
         let mute_until = mute_until
-            .map(|ts| parse_timestamp_ms("muteUntil", ts))
+            .map(|timestamp| parse_timestamp_ms("muteUntil", timestamp))
             .transpose()?;
         let client = self.client.online().await?;
         match mute_until {

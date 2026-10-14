@@ -35,7 +35,7 @@ impl WasmWhatsAppClient {
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let client = self.client.unwaited(Unwaited::Cached);
-        let data = client
+        let value = client
             .download(&whatsapp_rust::download::DownloadParams::encrypted(
                 direct_path,
                 media_key,
@@ -45,7 +45,7 @@ impl WasmWhatsAppClient {
                 mt,
             ))
             .await?;
-        Ok(js_sys::Uint8Array::from(&data[..]))
+        Ok(js_sys::Uint8Array::from(value.as_slice()))
     }
     #[doc = r" Upload media: encrypt in memory + upload with CDN failover and retry."]
     #[doc = r""]
@@ -60,15 +60,8 @@ impl WasmWhatsAppClient {
         let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
         let mt: wacore::download::MediaType = media_type.into();
         let client = self.client.unwaited(Unwaited::Cached);
-        let resp = client.upload(data.to_vec(), mt, Default::default()).await?;
-        to_ts(crate::result_types::UploadMediaResult {
-            url: resp.url,
-            direct_path: resp.direct_path,
-            media_key: resp.media_key,
-            file_sha256: resp.file_sha256,
-            file_enc_sha256: resp.file_enc_sha256,
-            file_length: resp.file_length as f64,
-        })
+        let value = client.upload(data.to_vec(), mt, Default::default()).await?;
+        to_ts(crate::result_types::project_upload_media(value))
     }
     #[doc = r" Request the server to re-upload expired media."]
     #[doc = r""]

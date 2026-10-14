@@ -60,23 +60,22 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_optional_param_type = "CatalogOptionsInput | null")]
         options: JsValue,
     ) -> Result<Ts<crate::result_types::CatalogResult>, crate::errors::BridgeError> {
-        use whatsapp_rust::features::CatalogOptions;
         let target = parse_jid(jid)?;
-        let input =
-            from_js_input::<Option<crate::result_types::CatalogOptionsInput>>("options", options)?
-                .unwrap_or_default();
-        let mut opts = CatalogOptions::default();
-        if let Some(limit) = input.limit {
-            opts.limit = limit;
+        let options =
+            from_js_input::<Option<crate::result_types::CatalogOptionsInput>>("options", options)?;
+        let input = options.unwrap_or_default();
+        let mut opts = whatsapp_rust::features::CatalogOptions::default();
+        if let Some(value) = input.limit {
+            opts.limit = value;
         }
-        if let Some(width) = input.image_width {
-            opts.image_width = width;
+        if let Some(value) = input.image_width {
+            opts.image_width = value;
         }
-        if let Some(height) = input.image_height {
-            opts.image_height = height;
+        if let Some(value) = input.image_height {
+            opts.image_height = value;
         }
-        if let Some(allow) = input.allow_shop_source {
-            opts.allow_shop_source = allow;
+        if let Some(value) = input.allow_shop_source {
+            opts.allow_shop_source = value;
         }
         opts.after = input.after;
         let client = self.client.online().await?;
@@ -95,21 +94,20 @@ impl WasmWhatsAppClient {
         let options = from_js_input::<Option<crate::result_types::CollectionOptionsInput>>(
             "options", options,
         )?;
-        use whatsapp_rust::features::CollectionOptions;
         let target = parse_jid(jid)?;
         let input = options.unwrap_or_default();
-        let mut opts = CollectionOptions::default();
-        if let Some(limit) = input.collection_limit {
-            opts.collection_limit = limit;
+        let mut opts = whatsapp_rust::features::CollectionOptions::default();
+        if let Some(value) = input.collection_limit {
+            opts.collection_limit = value;
         }
-        if let Some(limit) = input.item_limit {
-            opts.item_limit = limit;
+        if let Some(value) = input.item_limit {
+            opts.item_limit = value;
         }
-        if let Some(width) = input.image_width {
-            opts.image_width = width;
+        if let Some(value) = input.image_width {
+            opts.image_width = value;
         }
-        if let Some(height) = input.image_height {
-            opts.image_height = height;
+        if let Some(value) = input.image_height {
+            opts.image_height = value;
         }
         opts.after = input.after;
         let client = self.client.online().await?;
@@ -198,12 +196,12 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "CoverPhotoUploadInput")] upload: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let upload = from_js_input::<crate::result_types::CoverPhotoUploadInput>("upload", upload)?;
-        let timestamp = upload.timestamp.parse::<i64>().map_err(|e| {
-            crate::errors::BridgeError::InvalidArgument {
-                field: "timestamp".into(),
-                reason: format!("must be the upload's ts: {e}"),
-            }
-        })?;
+        let timestamp = {
+            let value = upload.timestamp;
+            value.parse::<i64>().map_err(|error| {
+                crate::errors::invalid_arg("timestamp", format!("must be the upload's ts: {error}"))
+            })
+        }?;
         let client = self.client.online().await?;
         client
             .business()
