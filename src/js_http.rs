@@ -63,7 +63,7 @@ impl HttpClient for JsHttpClientAdapter {
             Vec::new()
         };
 
-        Ok(HttpResponse { status_code, body })
+        Ok(HttpResponse::new(status_code, body))
     }
 }
 

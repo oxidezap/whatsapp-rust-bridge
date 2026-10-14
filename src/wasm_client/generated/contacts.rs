@@ -116,14 +116,20 @@ impl WasmWhatsAppClient {
         }
     }
     #[doc = r" Set the user's push name (display name)."]
+    #[doc = r" A rejection from app-state sync may follow a successful presence send"]
+    #[doc = r" and local name update. Its original typed cause is preserved."]
     # [wasm_bindgen (js_name = setPushName)]
     pub async fn set_push_name(&self, name: &str) -> Result<(), crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        client
-            .profile()
-            .set_push_name(name)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+        match client.profile().set_push_name(name).await? {
+            whatsapp_rust::features::PushNameOutcome::Synced => Ok(()),
+            whatsapp_rust::features::PushNameOutcome::SyncPending { source } => {
+                Err(crate::errors::BridgeError::from(source))
+            }
+            other => Err(crate::errors::internal(format!(
+                "unhandled push-name outcome: {other:?}"
+            ))),
+        }
     }
     #[doc = r" Read this account's own Meta username, its state and its username key."]
     #[doc = r""]

@@ -95,13 +95,12 @@ pub struct DeviceAppVersion {
 
 impl From<DeviceAppVersion> for wa_dp::AppVersion {
     fn from(v: DeviceAppVersion) -> Self {
-        Self {
-            primary: v.primary,
-            secondary: v.secondary,
-            tertiary: v.tertiary,
-            quaternary: v.quaternary,
-            ..Default::default()
-        }
+        let mut version = Self::default();
+        version.primary = v.primary;
+        version.secondary = v.secondary;
+        version.tertiary = v.tertiary;
+        version.quaternary = v.quaternary;
+        version
     }
 }
 

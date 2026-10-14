@@ -156,6 +156,8 @@ pub(super) fn catalog() -> Vec<Operation> {
         Operation {
             attributes: attributes(quote!(
                 /// Set the user's push name (display name).
+                /// A rejection from app-state sync may follow a successful presence send
+                /// and local name update. Its original typed cause is preserved.
                 #[wasm_bindgen(js_name = setPushName)]
             )),
             signature: parse_quote!(
@@ -163,10 +165,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             ),
             inputs: vec![],
             boundary: Boundary::AsyncBorrowed,
-            evaluation: Evaluation::Await,
+            evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().set_push_name(name)),
-            output: ReturnAdapter::MapError,
+            output: ReturnAdapter::Codec(OutputCodec::Variant(VariantCodec::PushName)),
         },
         Operation {
             attributes: attributes(quote!(

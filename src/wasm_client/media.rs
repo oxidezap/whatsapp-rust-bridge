@@ -15,17 +15,17 @@ fn download_stream(
     file_length: u64,
     mt: wacore::download::MediaType,
 ) -> Result<web_sys::ReadableStream, crate::errors::BridgeError> {
+    let params = whatsapp_rust::download::DownloadParams::encrypted(
+        direct_path,
+        &media_key,
+        &file_sha256,
+        &file_enc_sha256,
+        file_length,
+        mt,
+    )
+    .map_err(crate::errors::download_preparation_error)?;
     Ok(buffered_download_stream(async move {
-        client
-            .download(&whatsapp_rust::download::DownloadParams::encrypted(
-                direct_path.as_str(),
-                &media_key,
-                &file_sha256,
-                &file_enc_sha256,
-                file_length,
-                mt,
-            ))
-            .await
+        client.download(&params).await
     }))
 }
 

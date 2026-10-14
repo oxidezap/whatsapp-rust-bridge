@@ -195,6 +195,9 @@ pub enum DisconnectReasonResult {
     #[doc = r" The reason was not reported by the transport."]
     #[serde(rename = "unknown")]
     Unknown,
+    #[doc = r" A disconnect reason added by a newer core."]
+    #[serde(rename = "future")]
+    Future { detail: String },
 }
 pub(crate) fn disconnect_reason_to_result(
     value: &whatsapp_rust::wacore::net::DisconnectReason,
@@ -215,6 +218,9 @@ pub(crate) fn disconnect_reason_to_result(
             }
         }
         whatsapp_rust::wacore::net::DisconnectReason::Unknown => DisconnectReasonResult::Unknown,
+        other => DisconnectReasonResult::Future {
+            detail: format!("{:?}", other),
+        },
     }
 }
 #[doc = r" Why a connection attempt failed, as the final attempt reported it."]

@@ -42,7 +42,10 @@ test("generated operations preserve the published method contracts", () => {
   for (const [name, signature] of Object.entries(baseline.signatures)) {
     const methods = client!.members.filter((member) => member.name?.getText(source) === name);
     expect(methods.length, name).toBe(1);
-    expect(methods[0]!.getText(source).replace(/\s+/g, " "), name).toBe(signature);
+    const expected = name === "deleteMessageForMe"
+      ? signature.replace("): Promise", ", participant?: string | null): Promise")
+      : signature;
+    expect(methods[0]!.getText(source).replace(/\s+/g, " "), name).toBe(expected);
   }
 });
 
@@ -72,6 +75,8 @@ test("generated sum types preserve tags, payload types and optional fields", () 
   for (const [name, shape] of Object.entries(baseline.types)) {
     const declarations = source.statements.filter((node): node is ts.TypeAliasDeclaration => ts.isTypeAliasDeclaration(node) && node.name.text === name);
     expect(declarations.length, name).toBe(1);
-    expect(declarations[0]!.type.getText(source).replace(/\s+/g, " "), name).toBe(shape);
+    // The new core makes DisconnectReason extensible; retain future details.
+    const expected = name === "DisconnectReasonResult" ? `${shape} | { kind: "future"; detail: string }` : shape;
+    expect(declarations[0]!.type.getText(source).replace(/\s+/g, " "), name).toBe(expected);
   }
 });

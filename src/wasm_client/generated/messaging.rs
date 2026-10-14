@@ -73,13 +73,15 @@ impl WasmWhatsAppClient {
             from_js_input::<crate::result_types::MessageRetransmissionInput>("input", input)?;
         let (chat, msg) = parse_jid_and_msg_bytes(chat_jid, bytes)?;
         let requester = parse_jid(&input.requester_jid)?;
+        let message_id = whatsapp_rust::MessageId::new(input.message_id)
+            .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
         let retry_count = u8::try_from(input.retry_count)
             .map_err(|_| crate::errors::internal("retry count exceeds the u8 range"))?;
         let mut request = whatsapp_rust::MessageRetransmission::new(
             chat,
             requester,
             msg,
-            input.message_id,
+            message_id,
             retry_count,
         );
         request = request.with_group_metadata_freshness(freshness(input.refresh_group_metadata));
@@ -180,13 +182,13 @@ impl WasmWhatsAppClient {
         let to = parse_jid(jid)?;
         let chat_state = match state {
             crate::result_types::ChatState::Composing => {
-                whatsapp_rust::features::ChatStateType::Composing
+                whatsapp_rust::wacore::types::presence::ChatActivity::Typing
             }
             crate::result_types::ChatState::Recording => {
-                whatsapp_rust::features::ChatStateType::Recording
+                whatsapp_rust::wacore::types::presence::ChatActivity::RecordingAudio
             }
             crate::result_types::ChatState::Paused => {
-                whatsapp_rust::features::ChatStateType::Paused
+                whatsapp_rust::wacore::types::presence::ChatActivity::Idle
             }
         };
         let client = self.client.unwaited(Unwaited::ConnectionBound);

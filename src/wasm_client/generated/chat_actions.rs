@@ -42,12 +42,11 @@ impl WasmWhatsAppClient {
     ) -> Result<String, crate::errors::BridgeError> {
         let key = from_js_input::<crate::result_types::TargetMessageKey>("key", key)?;
         let chat = parse_jid(jid)?;
-        let target_key = waproto::whatsapp::MessageKey {
-            remote_jid: Some(chat.to_string()),
-            from_me: Some(key.from_me),
-            id: Some(key.id),
-            participant: key.participant,
-        };
+        let mut target_key = waproto::whatsapp::MessageKey::default();
+        target_key.remote_jid = Some(chat.to_string());
+        target_key.from_me = Some(key.from_me);
+        target_key.id = Some(key.id);
+        target_key.participant = key.participant;
         let client = self.client.online().await?;
         let value = client
             .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
@@ -79,12 +78,11 @@ impl WasmWhatsAppClient {
             ));
         }
         let (chat, body) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let key = waproto::whatsapp::MessageKey {
-            remote_jid: Some(chat.to_string()),
-            from_me: Some(parent_key.from_me),
-            id: Some(parent_key.id),
-            participant: parent_key.participant,
-        };
+        let mut key = waproto::whatsapp::MessageKey::default();
+        key.remote_jid = Some(chat.to_string());
+        key.from_me = Some(parent_key.from_me);
+        key.id = Some(parent_key.id);
+        key.participant = parent_key.participant;
         let client = self.client.online().await?;
         let value = client.comments().send_message_raw(chat, key, body).await;
         let value =
@@ -145,12 +143,32 @@ impl WasmWhatsAppClient {
         jid: &str,
         message_id: &str,
         from_me: bool,
+        participant: Option<String>,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
+        let participant_jid = participant
+            .as_deref()
+            .map(|value| {
+                value
+                    .parse::<Jid>()
+                    .map_err(|error| crate::errors::invalid_arg("participant", error.to_string()))
+            })
+            .transpose()?;
+        let message_id = whatsapp_rust::MessageId::new(message_id)
+            .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
+        let target = whatsapp_rust::MessageRef::new(
+            &chat_jid,
+            message_id,
+            participant_jid.as_ref(),
+            from_me,
+        )
+        .map_err(|error| {
+            crate::errors::message_reference_error(&error, "messageId", "jid", "participant")
+        })?;
         let client = self.client.online().await?;
         client
             .chat_actions()
-            .delete_message_for_me(&chat_jid, None, message_id, from_me, true, None)
+            .delete_message_for_me(&target, true, None)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -254,10 +272,16 @@ impl WasmWhatsAppClient {
         message_id: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
+        let message_id = {
+            let value = message_id;
+            value
+                .parse::<whatsapp_rust::MessageId>()
+                .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
+        }?;
         let client = self.client.online().await?;
         client
             .labels()
-            .add_message_label(label_id, &chat, message_id)
+            .add_message_label(label_id, &chat, &message_id)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -270,10 +294,16 @@ impl WasmWhatsAppClient {
         message_id: &str,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
+        let message_id = {
+            let value = message_id;
+            value
+                .parse::<whatsapp_rust::MessageId>()
+                .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
+        }?;
         let client = self.client.online().await?;
         client
             .labels()
-            .remove_message_label(label_id, &chat, message_id)
+            .remove_message_label(label_id, &chat, &message_id)
             .await
             .map_err(crate::errors::BridgeError::from)
     }
@@ -387,17 +417,17 @@ impl WasmWhatsAppClient {
         star: bool,
     ) -> Result<(), crate::errors::BridgeError> {
         let chat_jid = parse_jid(jid)?;
+        let message_id = whatsapp_rust::MessageId::new(message_id)
+            .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
+        let target =
+            whatsapp_rust::MessageRef::new(&chat_jid, message_id, None, true).map_err(|error| {
+                crate::errors::message_reference_error(&error, "messageId", "jid", "participant")
+            })?;
         let client = self.client.online().await?;
         if star {
-            client
-                .chat_actions()
-                .star_message(&chat_jid, None, message_id, true)
-                .await
+            client.chat_actions().star_message(&target).await
         } else {
-            client
-                .chat_actions()
-                .unstar_message(&chat_jid, None, message_id, true)
-                .await
+            client.chat_actions().unstar_message(&target).await
         }
         .map_err(crate::errors::BridgeError::from)
     }

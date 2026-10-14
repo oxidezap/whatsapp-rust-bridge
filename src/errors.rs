@@ -282,7 +282,7 @@ fn invalid_request(detail: impl core::fmt::Display) -> BridgeError {
     invalid_arg("request", detail.to_string())
 }
 
-fn message_reference_error(
+pub(crate) fn message_reference_error(
     error: &MessageRefError,
     id_field: &'static str,
     jid_field: &'static str,
@@ -733,8 +733,8 @@ classify! {
     // timeout answer does not report it.
     MediaReuploadError {
         MediaReuploadError::NotLoggedIn => BridgeError::NotConnected,
-        MediaReuploadError::Timeout => BridgeError::Timeout,
-        MediaReuploadError::InvalidRequest(detail) => invalid_request(detail),
+        MediaReuploadError::Timeout { .. } => BridgeError::Timeout,
+        MediaReuploadError::Conflict(_) => invalid_arg("msgId", "another media reupload target or key owns this message ID"),
     }
 
     NewsletterError {
@@ -925,6 +925,25 @@ pub fn to_js_error(e: &BridgeError) -> JsValue {
     }
 
     err.into()
+}
+
+/// Owned download metadata is validated before any CDN I/O.
+#[cfg(feature = "client-media")]
+pub(crate) fn download_preparation_error(
+    error: wacore::download::DownloadPreparationError,
+) -> BridgeError {
+    use wacore::download::DownloadPreparationError::*;
+    let field = match error {
+        InvalidMediaKeyLength | MissingMediaKey => "media_key",
+        InvalidPlaintextHashLength | MissingPlaintextHash => "file_sha256",
+        InvalidEncryptedHashLength | MissingEncryptedHash => "file_enc_sha256",
+        RequiresPlaintext | RequiresEncryption => "media_type",
+        MissingDirectPath | InvalidDirectPath | InvalidDirectPathPort | OriginChanged => {
+            "direct_path"
+        }
+        _ => "request",
+    };
+    invalid_arg(field, error.to_string())
 }
 
 #[cfg(test)]
@@ -1652,13 +1671,17 @@ mod tests {
                 "not-connected",
             ),
             (
-                "MediaReuploadError::InvalidRequest",
-                MediaReuploadError::InvalidRequest("no media key".into()).into(),
-                "invalid-argument:request",
+                "MediaReuploadError::Conflict",
+                MediaReuploadError::Conflict(whatsapp_rust::MessageId::new("conflict").unwrap())
+                    .into(),
+                "invalid-argument:msgId",
             ),
             (
                 "MediaReuploadError::Timeout",
-                MediaReuploadError::Timeout.into(),
+                MediaReuploadError::Timeout {
+                    phase: whatsapp_rust::features::MediaReuploadPhase::Notification,
+                }
+                .into(),
                 "timeout",
             ),
             (

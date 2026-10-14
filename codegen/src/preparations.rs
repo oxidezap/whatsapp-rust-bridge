@@ -557,6 +557,12 @@ impl Preparation {
                 },
             ],
             Self::Retransmission => vec![
+                construct(
+                    "message_id",
+                    "whatsapp_rust::MessageId::new",
+                    &["input.message_id"],
+                    Error::Field("messageId"),
+                ),
                 bind(
                     "retry_count",
                     "u8::try_from(input.retry_count).map_err(|_|crate::errors::internal(\"retry count exceeds the u8 range\"))?",
@@ -564,7 +570,7 @@ impl Preparation {
                 Step::Let {
                     binding: pat("request"),
                     value: expr(
-                        "whatsapp_rust::MessageRetransmission::new(chat,requester,msg,input.message_id,retry_count)",
+                        "whatsapp_rust::MessageRetransmission::new(chat,requester,msg,message_id,retry_count)",
                     ),
                     mutable: true,
                 },
@@ -649,16 +655,24 @@ impl Preparation {
                     vec![construct("jid", "parse_jid", &["value"], Error::Bridge)],
                     "jid",
                 ),
+                construct(
+                    "message_id",
+                    "whatsapp_rust::MessageId::new",
+                    &["msg_id"],
+                    Error::Field("msgId"),
+                ),
+                bind(
+                    "media_key",
+                    "<&[u8;32]>::try_from(media_key).map_err(|_|crate::errors::invalid_arg(\"mediaKey\",\"must contain 32 bytes\"))?",
+                ),
+                bind(
+                    "target",
+                    "whatsapp_rust::MessageRef::new(&chat,message_id,participant_jid.as_ref(),is_from_me).map_err(|error|crate::errors::message_reference_error(&error,\"msgId\",\"chatJid\",\"participant\"))?",
+                ),
                 structure(
                     "req",
                     "whatsapp_rust::MediaReuploadRequest",
-                    &[
-                        ("msg_id", "msg_id"),
-                        ("chat_jid", "&chat"),
-                        ("media_key", "media_key"),
-                        ("is_from_me", "is_from_me"),
-                        ("participant", "participant_jid.as_ref()"),
-                    ],
+                    &[("target", "target"), ("media_key", "media_key")],
                     false,
                 ),
             ],

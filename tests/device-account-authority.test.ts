@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./fixtures/unexercised-atomic-storage.js";
 /**
  * Device/account persistence failures must surface as `storage`, not `internal`.
  *
@@ -26,6 +27,7 @@ function mapStore() {
   return {
     kept,
     callbacks: {
+      ...unexercisedAtomicStorage,
       async get(store: string, key: string) {
         return kept.get(`${store}/${key}`) ?? null;
       },
@@ -138,6 +140,7 @@ describe("device/account persistence failures", () => {
     const store = mapStore();
     const operations: string[] = [];
     const callbacks = {
+      ...unexercisedAtomicStorage,
       async get(...args: Parameters<typeof store.callbacks.get>) {
         operations.push(`get:${args[0]}/${args[1]}`);
         return store.callbacks.get(...args);

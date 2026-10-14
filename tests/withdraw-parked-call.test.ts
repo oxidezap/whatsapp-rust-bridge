@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./fixtures/unexercised-atomic-storage.js";
 /**
  * What "giving up" on a call can mean.
  *
@@ -51,6 +52,7 @@ function countingStore() {
   return {
     counts,
     callbacks: {
+      ...unexercisedAtomicStorage,
       async get(store: string, key: string) {
         if (store === "device_list") counts.deviceReads++;
         return kept.get(`${store}/${key}`) ?? null;

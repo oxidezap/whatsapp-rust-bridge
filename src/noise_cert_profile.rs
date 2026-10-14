@@ -21,35 +21,43 @@ mod tests {
     // fictitious keys. Mirrors the core's `cert_chain_verify.rs` fixture so no
     // `test-util` feature is needed to build it.
     fn build_zero_signed_chain(server_static_pub: &[u8; 32]) -> Vec<u8> {
-        let intermediate_details = noise_certificate::Details {
-            serial: Some(1),
-            issuer_serial: Some(0),
-            key: Some(vec![0xCC; 32]),
-            not_before: Some(1_700_000_000),
-            not_after: Some(1_900_000_000),
+        let intermediate_details = {
+            let mut __fixture = noise_certificate::Details::default();
+            __fixture.serial = Some(1);
+            __fixture.issuer_serial = Some(0);
+            __fixture.key = Some(vec![0xCC; 32]);
+            __fixture.not_before = Some(1_700_000_000);
+            __fixture.not_after = Some(1_900_000_000);
+            __fixture
         };
         let intermediate_details_bytes = intermediate_details.encode_to_vec();
 
-        let leaf_details = noise_certificate::Details {
-            serial: Some(2),
-            issuer_serial: Some(1),
-            key: Some(server_static_pub.to_vec()),
-            not_before: Some(1_700_000_500),
-            not_after: Some(1_899_999_500),
+        let leaf_details = {
+            let mut __fixture = noise_certificate::Details::default();
+            __fixture.serial = Some(2);
+            __fixture.issuer_serial = Some(1);
+            __fixture.key = Some(server_static_pub.to_vec());
+            __fixture.not_before = Some(1_700_000_500);
+            __fixture.not_after = Some(1_899_999_500);
+            __fixture
         };
         let leaf_details_bytes = leaf_details.encode_to_vec();
 
-        let chain = wa::CertChain {
-            leaf: whatsapp_rust::buffa::MessageField::some(wa::cert_chain::NoiseCertificate {
-                details: Some(leaf_details_bytes),
-                signature: Some(vec![0u8; 64]),
-            }),
-            intermediate: whatsapp_rust::buffa::MessageField::some(
-                wa::cert_chain::NoiseCertificate {
-                    details: Some(intermediate_details_bytes),
-                    signature: Some(vec![0u8; 64]),
-                },
-            ),
+        let chain = {
+            let mut __fixture = wa::CertChain::default();
+            __fixture.leaf = whatsapp_rust::buffa::MessageField::some({
+                let mut __fixture = wa::cert_chain::NoiseCertificate::default();
+                __fixture.details = Some(leaf_details_bytes);
+                __fixture.signature = Some(vec![0u8; 64]);
+                __fixture
+            });
+            __fixture.intermediate = whatsapp_rust::buffa::MessageField::some({
+                let mut __fixture = wa::cert_chain::NoiseCertificate::default();
+                __fixture.details = Some(intermediate_details_bytes);
+                __fixture.signature = Some(vec![0u8; 64]);
+                __fixture
+            });
+            __fixture
         };
         chain.encode_to_vec()
     }

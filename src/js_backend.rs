@@ -138,6 +138,9 @@ pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<JsBackend> {
 
 /// Storage backend that delegates all persistence to JavaScript callbacks.
 pub struct JsBackend {
+    commit_patch_fn: Option<js_sys::Function>,
+    touch_tc_token_fn: Option<js_sys::Function>,
+    store_received_tc_token_fn: Option<js_sys::Function>,
     get_fn: js_sys::Function,
     set_fn: js_sys::Function,
     delete_fn: js_sys::Function,
@@ -176,6 +179,9 @@ impl JsBackend {
         let has_enumerate = h.cap_enumerate && h.list_keys_fn.is_some();
         let has_prefix_delete = h.cap_prefix_delete && h.delete_prefix_fn.is_some();
         Self {
+            commit_patch_fn: h.commit_patch_fn,
+            touch_tc_token_fn: h.touch_tc_token_fn,
+            store_received_tc_token_fn: h.store_received_tc_token_fn,
             get_fn: h.get_fn,
             set_fn: h.set_fn,
             delete_fn: h.delete_fn,
@@ -811,6 +817,26 @@ generated_app_sync_store! {
         Ok(())
     }
 
+    async fn commit_patch(&self, name: &str, state: HashState, removed_index_macs: &[Vec<u8>], added: &[AppStateMutationMAC]) -> Result<()> {
+        let callback = self.commit_patch_fn.as_ref().ok_or_else(|| js_err_to_store_err("commitPatch", JsValue::from_str("host must provide atomic commitPatch")))?;
+        let state = serde_json::to_vec(&state).map_err(|error| wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError { op: "serialize", store: STORE_SYNC_VERSION.into(), key: name.into(), source: error })))?;
+        let removed = js_sys::Array::new();
+        for mac in removed_index_macs { removed.push(&format!("{name}:{}",to_hex(mac)).into()); }
+        let additions = js_sys::Array::new();
+        for mac in added {
+            let pair = js_sys::Array::new();
+            pair.push(&format!("{name}:{}",to_hex(&mac.index_mac)).into());
+            pair.push(&js_sys::Uint8Array::from(mac.value_mac.as_slice()));
+            additions.push(&pair);
+        }
+        let args = js_sys::Array::new();
+        args.push(&name.into()); args.push(&js_sys::Uint8Array::from(state.as_slice()));
+        args.push(&removed); args.push(&additions); args.push(&self.needs_self_index().into());
+        let result = callback.apply(&JsValue::NULL, &args).map_err(|error|js_err_to_store_err("commitPatch",error))?;
+        resolve_promise(result).await.map_err(|error|js_err_to_store_err("commitPatch",error))?;
+        Ok(())
+    }
+
     async fn get_mutation_mac(&self, name: &str, index_mac: &[u8]) -> Result<Option<Vec<u8>>> {
         let key = format!("{}:{}", name, to_hex(index_mac));
         self.js_get(STORE_MUTATION_MAC, &key).await
@@ -1075,6 +1101,20 @@ generated_protocol_store! {
             }
         }
         Ok(result)
+    }
+
+    async fn touch_tc_token_sender_timestamp(&self, jid: &str, sender_timestamp: i64) -> Result<()> {
+        let callback = self.touch_tc_token_fn.as_ref().ok_or_else(|| js_err_to_store_err("touchTcTokenSenderTimestamp",JsValue::from_str("host must provide atomic token merging")))?;
+        let result = callback.call2(&JsValue::NULL,&jid.into(),&sender_timestamp.to_string().into()).map_err(|error|js_err_to_store_err("touchTcTokenSenderTimestamp",error))?;
+        resolve_promise(result).await.map_err(|error|js_err_to_store_err("touchTcTokenSenderTimestamp",error))?;
+        Ok(())
+    }
+
+    async fn store_received_tc_token(&self, jid: &str, token: &[u8], token_timestamp: i64) -> Result<()> {
+        let callback = self.store_received_tc_token_fn.as_ref().ok_or_else(|| js_err_to_store_err("storeReceivedTcToken",JsValue::from_str("host must provide atomic token merging")))?;
+        let result = callback.call3(&JsValue::NULL,&jid.into(),&js_sys::Uint8Array::from(token),&token_timestamp.to_string().into()).map_err(|error|js_err_to_store_err("storeReceivedTcToken",error))?;
+        resolve_promise(result).await.map_err(|error|js_err_to_store_err("storeReceivedTcToken",error))?;
+        Ok(())
     }
 
     async fn put_tc_token(&self, jid: &str, entry: &TcTokenEntry) -> Result<()> {
@@ -1623,6 +1663,9 @@ mod batch_store_tests {
     fn recording_backend(slot: &str) -> JsBackend {
         let refuse = js_sys::Function::new_no_args("throw new Error('per-key write')");
         JsBackend::new(JsBackendHandles {
+            commit_patch_fn: None,
+            touch_tc_token_fn: None,
+            store_received_tc_token_fn: None,
             get_fn: refuse.clone(),
             set_fn: refuse.clone(),
             delete_fn: refuse,
@@ -1734,7 +1777,7 @@ mod device_account_authority_tests {
 
     type StoreError = wacore::store::error::StoreError;
 
-    fn mem_handles(slot: &str) -> JsBackendHandles {
+    pub(super) fn mem_handles(slot: &str) -> JsBackendHandles {
         js_sys::Reflect::set(
             &js_sys::global(),
             &JsValue::from_str(slot),
@@ -1742,6 +1785,9 @@ mod device_account_authority_tests {
         )
         .expect("slot init");
         JsBackendHandles {
+            commit_patch_fn: None,
+            touch_tc_token_fn: None,
+            store_received_tc_token_fn: None,
             get_fn: js_sys::Function::new_with_args(
                 "store, key",
                 &format!(
@@ -1776,11 +1822,13 @@ mod device_account_authority_tests {
     }
 
     fn fixture_account() -> Arc<waproto::whatsapp::ADVSignedDeviceIdentity> {
-        Arc::new(waproto::whatsapp::ADVSignedDeviceIdentity {
-            details: Some(b"fictitious-details".to_vec()),
-            account_signature_key: Some(vec![7; 32]),
-            account_signature: Some(vec![8; 64]),
-            device_signature: Some(vec![9; 64]),
+        Arc::new({
+            let mut __fixture = waproto::whatsapp::ADVSignedDeviceIdentity::default();
+            __fixture.details = Some(b"fictitious-details".to_vec());
+            __fixture.account_signature_key = Some(vec![7; 32]);
+            __fixture.account_signature = Some(vec![8; 64]);
+            __fixture.device_signature = Some(vec![9; 64]);
+            __fixture
         })
     }
 
@@ -2192,7 +2240,20 @@ mod generated_callback_tests {
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     fn object(source: &str) -> JsValue {
-        js_sys::eval(source).expect("storage callback fixture")
+        let value = js_sys::eval(source).expect("storage callback fixture");
+        for name in [
+            "commitPatch",
+            "touchTcTokenSenderTimestamp",
+            "storeReceivedTcToken",
+        ] {
+            if !js_sys::Reflect::has(&value, &name.into()).unwrap() {
+                let reject = js_sys::Function::new_no_args(
+                    "throw new Error('atomic operation not exercised by this fixture')",
+                );
+                js_sys::Reflect::set(&value, &name.into(), &reject).unwrap();
+            }
+        }
+        value
     }
 
     #[test]
@@ -2201,7 +2262,7 @@ mod generated_callback_tests {
             r#"(() => {
             const reads = [];
             const store = { reads };
-            for (const name of ['get','set','delete','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
+            for (const name of ['get','set','delete','commitPatch','touchTcTokenSenderTimestamp','storeReceivedTcToken','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
                 Object.defineProperty(store, name, { get() { reads.push(name); return () => null; } });
             }
             Object.defineProperty(store, 'capabilities', { get() { reads.push('capabilities'); return {}; } });
@@ -2226,6 +2287,9 @@ mod generated_callback_tests {
                 "get",
                 "set",
                 "delete",
+                "commitPatch",
+                "touchTcTokenSenderTimestamp",
+                "storeReceivedTcToken",
                 "setMany",
                 "deleteMany",
                 "getMany",
@@ -2445,5 +2509,328 @@ mod generated_callback_tests {
                 [["first", [0, 255]], ["second", [128]], ["third", [1]]]
             ]])
         );
+    }
+}
+
+#[cfg(test)]
+mod atomic_storage_contract_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn host(slot: &str) -> (JsValue, JsBackend) {
+        let value = js_sys::Function::new_with_args(
+            "slot",
+            include_str!("../tests/fixtures/atomic-storage.js"),
+        )
+        .call1(&JsValue::NULL, &slot.into())
+        .unwrap();
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        (value, backend)
+    }
+    fn failure(host: &JsValue, mode: &str) {
+        js_sys::Reflect::get(host, &"setFailure".into())
+            .unwrap()
+            .dyn_into::<js_sys::Function>()
+            .unwrap()
+            .call1(&JsValue::NULL, &mode.into())
+            .unwrap();
+    }
+    fn patch(version: u64) -> HashState {
+        HashState {
+            version,
+            hash: [version as u8; 128],
+            ..Default::default()
+        }
+    }
+    fn mac(index: u8, value: u8) -> AppStateMutationMAC {
+        AppStateMutationMAC {
+            index_mac: vec![index; 32],
+            value_mac: vec![value; 32],
+        }
+    }
+
+    #[test]
+    async fn missing_atomic_callbacks_never_fall_back_to_separate_crud_calls() {
+        let backend = JsBackend::new(super::device_account_authority_tests::mem_handles(
+            "atomic-missing",
+        ));
+        let error = backend
+            .commit_patch("regular", patch(1), &[], &[mac(1, 1)])
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("host must provide atomic commitPatch")
+        );
+        assert!(
+            backend
+                .touch_tc_token_sender_timestamp("jid", 1)
+                .await
+                .unwrap_err()
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("host must provide atomic token merging")
+        );
+        assert!(
+            backend
+                .store_received_tc_token("jid", b"token", 1)
+                .await
+                .unwrap_err()
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("host must provide atomic token merging")
+        );
+        assert!(backend.get_version("regular").await.unwrap().is_none());
+        assert!(
+            backend
+                .get_mutation_mac("regular", &[1; 32])
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert!(backend.get_tc_token("jid").await.unwrap().is_none());
+    }
+
+    // Mirrors the pinned core's wacore/tests/support/tc_token_contract.rs.
+    #[test]
+    async fn token_contract_preserves_both_buckets_across_shared_host_adapters() {
+        let (_, first) = host("atomic-token-contract");
+        let (_, second) = host("atomic-token-contract");
+        let jid = "100001@lid";
+        first
+            .touch_tc_token_sender_timestamp(jid, 9000)
+            .await
+            .unwrap();
+        second
+            .store_received_tc_token(jid, b"first", 3000)
+            .await
+            .unwrap();
+        let row = first.get_tc_token(jid).await.unwrap().unwrap();
+        assert_eq!(row.token, b"first");
+        assert_eq!(row.token_timestamp, 3000);
+        assert_eq!(row.sender_timestamp, Some(9000));
+        for round in 0..16 {
+            let jid = format!("race-{round}@lid");
+            let (received, sender, stale, old_sender) = futures::join!(
+                first.store_received_tc_token(&jid, b"new", 6000),
+                second.touch_tc_token_sender_timestamp(&jid, 9000),
+                second.store_received_tc_token(&jid, b"old", 2000),
+                first.touch_tc_token_sender_timestamp(&jid, 1000),
+            );
+            received.unwrap();
+            sender.unwrap();
+            stale.unwrap();
+            old_sender.unwrap();
+            let row = second.get_tc_token(&jid).await.unwrap().unwrap();
+            assert_eq!(row.token, b"new");
+            assert_eq!(row.token_timestamp, 6000);
+            assert_eq!(row.sender_timestamp, Some(9000));
+            second
+                .store_received_tc_token(&jid, b"equal", 6000)
+                .await
+                .unwrap();
+            assert_eq!(
+                first.get_tc_token(&jid).await.unwrap().unwrap().token,
+                b"equal"
+            );
+        }
+        assert_eq!(first.get_all_tc_token_jids().await.unwrap().len(), 17);
+    }
+
+    #[test]
+    async fn callback_timestamps_preserve_i64_precision_and_placeholder_semantics() {
+        let (_, backend) = host("atomic-token-i64");
+        backend
+            .touch_tc_token_sender_timestamp("jid", i64::MAX)
+            .await
+            .unwrap();
+        backend
+            .store_received_tc_token("jid", b"first", i64::MIN)
+            .await
+            .unwrap();
+        backend
+            .touch_tc_token_sender_timestamp("jid", i64::MIN)
+            .await
+            .unwrap();
+        let row = backend.get_tc_token("jid").await.unwrap().unwrap();
+        assert_eq!(row.token_timestamp, i64::MIN);
+        assert_eq!(row.sender_timestamp, Some(i64::MAX));
+        assert_eq!(row.token, b"first");
+    }
+
+    #[test]
+    async fn patch_commit_removes_before_additions_and_keeps_the_index_in_step() {
+        let (_, backend) = host("atomic-patch-overlap");
+        backend
+            .commit_patch("regular", patch(1), &[], &[mac(1, 1), mac(2, 2)])
+            .await
+            .unwrap();
+        backend
+            .commit_patch(
+                "regular",
+                patch(2),
+                &[vec![1; 32], vec![2; 32]],
+                &[mac(1, 3)],
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            backend
+                .get_version("regular")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            2
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[1; 32]).await.unwrap(),
+            Some(vec![3; 32])
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[2; 32]).await.unwrap(),
+            None
+        );
+        let index: Vec<String> = backend
+            .js_get_json(STORE_META, MUTATION_MAC_INDEX)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(index, vec![format!("regular:{}", to_hex(&[1; 32]))]);
+        backend
+            .commit_patch("regular_low", patch(1), &[], &[mac(1, 4)])
+            .await
+            .unwrap();
+        backend
+            .commit_patch("regular", patch(3), &[], &[])
+            .await
+            .unwrap();
+        assert_eq!(
+            backend
+                .get_version("regular")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            3
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[1; 32]).await.unwrap(),
+            Some(vec![3; 32])
+        );
+        assert_eq!(
+            backend
+                .get_version("regular_low")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            1
+        );
+        assert_eq!(
+            backend
+                .get_mutation_mac("regular_low", &[1; 32])
+                .await
+                .unwrap(),
+            Some(vec![4; 32])
+        );
+        backend.clear_mutation_macs("regular").await.unwrap();
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[1; 32]).await.unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    async fn patch_errors_preserve_old_or_complete_new_state_and_the_original_cause() {
+        let (value, backend) = host("atomic-patch-errors");
+        backend
+            .commit_patch("regular", patch(1), &[], &[mac(1, 1)])
+            .await
+            .unwrap();
+        failure(&value, "before");
+        let error = backend
+            .commit_patch("regular", patch(2), &[vec![1; 32]], &[mac(2, 2)])
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("before commit")
+        );
+        assert_eq!(
+            backend
+                .get_version("regular")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            1
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[1; 32]).await.unwrap(),
+            Some(vec![1; 32])
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[2; 32]).await.unwrap(),
+            None
+        );
+        failure(&value, "after");
+        let error = backend
+            .commit_patch("regular", patch(2), &[vec![1; 32]], &[mac(2, 2)])
+            .await
+            .unwrap_err();
+        assert!(error.source().unwrap().to_string().contains("after commit"));
+        assert_eq!(
+            backend
+                .get_version("regular")
+                .await
+                .unwrap()
+                .unwrap()
+                .version,
+            2
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[1; 32]).await.unwrap(),
+            None
+        );
+        assert_eq!(
+            backend.get_mutation_mac("regular", &[2; 32]).await.unwrap(),
+            Some(vec![2; 32])
+        );
+    }
+
+    #[test]
+    async fn rejected_token_merge_keeps_previous_bytes_and_timestamps() {
+        let (value, backend) = host("atomic-token-error");
+        backend
+            .store_received_tc_token("jid", b"old", 10)
+            .await
+            .unwrap();
+        failure(&value, "before");
+        assert!(
+            backend
+                .touch_tc_token_sender_timestamp("jid", 20)
+                .await
+                .is_err()
+        );
+        assert!(
+            backend
+                .store_received_tc_token("jid", b"new", 30)
+                .await
+                .is_err()
+        );
+        let row = backend.get_tc_token("jid").await.unwrap().unwrap();
+        assert_eq!(row.token, b"old");
+        assert_eq!(row.token_timestamp, 10);
+        assert_eq!(row.sender_timestamp, None);
     }
 }

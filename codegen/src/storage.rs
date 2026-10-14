@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 #[derive(Clone, Copy)]
 enum Support {
     Required,
+    RequiredAtomic,
     Optional,
     DeclaredOnly,
 }
@@ -51,6 +52,52 @@ fn catalog() -> Vec<Callback> {
             parameters: "store: string, key: string",
             result: "void",
             doc: r###"/** Delete one key. No-op if absent. MANDATORY. */"###,
+        },
+        Callback {
+            name: "commitPatch",
+            field: "commit_patch_fn",
+            support: Support::RequiredAtomic,
+            capability: None,
+            parameters: "name: string, state: Uint8Array, removedKeys: string[], added: [key: string, value: Uint8Array][], maintainIndex: boolean",
+            result: "void",
+            doc: r###"/** Atomically commit `sync_version[name]` and `mutation_mac` removals/additions.
+             * `state` is the exact JSON byte format used by set/get. Keys already include
+             * the collection prefix. Remove before adding when a key occurs in both.
+             * With maintainIndex, update `meta[mutation_mac_keys]` in the same transaction.
+             * Failure/cancellation leaves the old state or the complete new state, never
+             * a partial patch. Resolution confirms persistence; retain post-commit errors.
+             * All writers in the device scope must share the transaction/locking mechanism.
+             * There is no get/set or setMany fallback. */"###,
+        },
+        Callback {
+            name: "touchTcTokenSenderTimestamp",
+            field: "touch_tc_token_fn",
+            support: Support::RequiredAtomic,
+            capability: None,
+            parameters: "jid: string, senderTimestamp: string",
+            result: "void",
+            doc: r###"/** Atomically max-merge the sender timestamp in `tc_token[jid]`.
+             * Timestamp is a signed i64 decimal string. Preserve existing token bytes
+             * and token_timestamp; an absent row becomes an empty-token placeholder with
+             * token_timestamp=senderTimestamp. Add jid to `meta[tc_token_jids]` atomically.
+             * Serialize against ALL row writers, including set/delete and expiry sweeps,
+             * across every adapter/process in this device scope. No local-lock fallback. */"###,
+        },
+        Callback {
+            name: "storeReceivedTcToken",
+            field: "store_received_tc_token_fn",
+            support: Support::RequiredAtomic,
+            capability: None,
+            parameters: "jid: string, token: Uint8Array, tokenTimestamp: string",
+            result: "void",
+            doc: r###"/** Atomically merge received token bytes and the signed i64 decimal timestamp.
+             * Replace only a missing/empty-token row or one whose token_timestamp is no
+             * newer. Equal timestamps accept incoming bytes. Preserve sender_timestamp,
+             * using null on insertion. Add jid to `meta[tc_token_jids]` atomically.
+             * Share serialization with every writer, including touch, set and delete.
+             * Values retain the existing JSON byte layout; preserve exact i64 integers.
+             * Resolution confirms persistence; thrown/rejected causes remain storage errors.
+             * There is no non-atomic fallback. */"###,
         },
         Callback {
             name: "setMany",
@@ -137,7 +184,10 @@ fn typescript(callbacks: &[Callback]) -> String {
         result.push_str(&format!(
             "  {}{}({}): Promise<{}>;\n",
             callback.name,
-            if matches!(callback.support, Support::Required) {
+            if matches!(
+                callback.support,
+                Support::Required | Support::RequiredAtomic
+            ) {
                 ""
             } else {
                 "?"
@@ -177,8 +227,16 @@ pub fn emit() -> TokenStream {
         assert!(fields.insert(callback.field), "duplicate storage handle");
         let field = format_ident!("{}", callback.field);
         let name = callback.name;
-        if matches!(callback.support, Support::Required) {
-            declarations.push(quote!(pub #field: js_sys::Function,));
+        if matches!(
+            callback.support,
+            Support::Required | Support::RequiredAtomic
+        ) {
+            let atomic = matches!(callback.support, Support::RequiredAtomic);
+            declarations.push(if atomic {
+                quote!(pub #field: Option<js_sys::Function>,)
+            } else {
+                quote!(pub #field: js_sys::Function,)
+            });
             let required = format!("store.{name} is required");
             let wrong_type = format!("store.{name} must be a function");
             extraction.push(quote!(
@@ -187,6 +245,9 @@ pub fn emit() -> TokenStream {
                     .dyn_into::<js_sys::Function>()
                     .map_err(|_| crate::errors::invalid_arg("store", #wrong_type))?;
             ));
+            if atomic {
+                extraction.push(quote!(let #field = Some(#field);));
+            }
             initialization.push(quote!(#field,));
         } else {
             declarations.push(quote!(pub #field: Option<js_sys::Function>,));
@@ -239,10 +300,14 @@ const INTERFACE_DOC: &str = r###"/**
  * fixed STORE_* namespaces (e.g. "session", "msg_secret", "lid_mapping") and
  * `key` is an opaque, namespace-scoped id; values are raw bytes.
  *
- * Only `get`/`set`/`delete` are MANDATORY — a 3-method store keeps working
- * exactly as before. The remaining methods are OPTIONAL performance/structural
- * primitives the core feature-detects (by handle presence) and uses when the
- * host provides them:
+ * All six CRUD and atomic callbacks are mandatory at construction.
+ * Missing or non-function callbacks reject before backend initialization.
+ * `get`/`set`/`delete` provide ordinary CRUD. The atomic callbacks are required
+ * to commit app-state patches and merge trusted-contact tokens: a three-method
+ * store cannot implement those operations safely. They never fall back to
+ * separate CRUD calls or non-transactional batches.
+ *
+ * The remaining methods are optional performance/structural primitives:
  *   - `setMany`/`deleteMany` collapse N per-key FFI crossings into one (this is
  *     what turns a ~20k-secret history-sync write from 20k awaits into a single
  *     batched call).

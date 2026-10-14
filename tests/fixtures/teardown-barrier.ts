@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./unexercised-atomic-storage.js";
 import { createWhatsAppClient, initWasmEngine } from "../../dist/index.js";
 
 process.on("uncaughtException", (error) => {
@@ -12,6 +13,7 @@ function observeOperation() {
   if (disposed) postDisposeOperations++;
 }
 const store = {
+  ...unexercisedAtomicStorage,
   async get() {
     observeOperation();
     return null;

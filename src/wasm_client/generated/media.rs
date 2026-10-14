@@ -36,14 +36,17 @@ impl WasmWhatsAppClient {
         let mt: wacore::download::MediaType = media_type.into();
         let client = self.client.unwaited(Unwaited::Cached);
         let value = client
-            .download(&whatsapp_rust::download::DownloadParams::encrypted(
-                direct_path,
-                media_key,
-                file_sha256,
-                file_enc_sha256,
-                file_length as u64,
-                mt,
-            ))
+            .download(
+                &whatsapp_rust::download::DownloadParams::encrypted(
+                    direct_path,
+                    media_key,
+                    file_sha256,
+                    file_enc_sha256,
+                    file_length as u64,
+                    mt,
+                )
+                .map_err(crate::errors::download_preparation_error)?,
+            )
             .await?;
         Ok(js_sys::Uint8Array::from(value.as_slice()))
     }
@@ -84,13 +87,21 @@ impl WasmWhatsAppClient {
                 Ok(jid)
             })
             .transpose()?;
-        let req = whatsapp_rust::MediaReuploadRequest {
-            msg_id,
-            chat_jid: &chat,
-            media_key,
-            is_from_me,
-            participant: participant_jid.as_ref(),
-        };
+        let message_id = whatsapp_rust::MessageId::new(msg_id)
+            .map_err(|error| crate::errors::invalid_arg("msgId", error.to_string()))?;
+        let media_key = <&[u8; 32]>::try_from(media_key)
+            .map_err(|_| crate::errors::invalid_arg("mediaKey", "must contain 32 bytes"))?;
+        let target =
+            whatsapp_rust::MessageRef::new(&chat, message_id, participant_jid.as_ref(), is_from_me)
+                .map_err(|error| {
+                    crate::errors::message_reference_error(
+                        &error,
+                        "msgId",
+                        "chatJid",
+                        "participant",
+                    )
+                })?;
+        let req = whatsapp_rust::MediaReuploadRequest { target, media_key };
         let client = self.client.online().await?;
         crate::result_types::project_media_retry(client.media_reupload().request(&req).await?)
     }
