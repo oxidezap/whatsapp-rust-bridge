@@ -386,12 +386,12 @@ mod generated_projection_tests {
 
     #[cfg(feature = "client-signal")]
     #[test]
-    fn generated_binary_projection_serializes_as_uint8array() {
-        let source = whatsapp_rust::features::SignalSessionInfo {
+    fn generated_binary_dto_serializes_as_uint8array() {
+        let dto = SignalSessionInfoResult {
             base_key: vec![0, 128, 255],
             registration_id: u32::MAX,
         };
-        let value = serde_wasm_bindgen::to_value(&project_signal_session_info(source)).unwrap();
+        let value = serde_wasm_bindgen::to_value(&dto).unwrap();
         let bytes = js_sys::Reflect::get(&value, &"baseKey".into()).unwrap();
         use wasm_bindgen::JsCast as _;
         assert!(bytes.is_instance_of::<js_sys::Uint8Array>());

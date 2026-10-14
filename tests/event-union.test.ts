@@ -65,6 +65,7 @@ const PUBLISHED: Record<string, string> = {
   user_status_mute_update: "UserStatusMuteUpdate",
   delete_message_for_me_update: "DeleteMessageForMeUpdate",
   label_edit_update: "LabelEditUpdate",
+  label_sublist_update: "LabelSublistUpdate",
   label_association_update: "LabelAssociationUpdate",
   message_label_association_update: "MessageLabelAssociationUpdate",
   quick_reply_update: "QuickReplyUpdate",

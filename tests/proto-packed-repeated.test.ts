@@ -27,6 +27,14 @@ const expectBytes = (actual: Uint8Array, expected: Uint8Array) => {
 };
 
 describe("repeated fields declared [packed = true]", () => {
+  test("ContextInfo.experienceIds uses its new packed field 82", () => {
+    const packed = bytes(0x92, 0x05, 0x02, 0x01, 0x02);
+    expectBytes(encodeProto("ContextInfo", { experienceIds: [1, 2] }), packed);
+    expect(decodeProto("ContextInfo", packed)).toMatchObject({ experienceIds: [1, 2] });
+    expect(decodeProto("ContextInfo", bytes(0x90, 0x05, 0x01, 0x90, 0x05, 0x02)))
+      .toMatchObject({ experienceIds: [1, 2] });
+  });
+
   // ADVKeyIndexList.validIndexes = 4, uint32, [packed = true].
   // Packed tag = (4 << 3) | 2 = 0x22, then a byte length, then the varints.
   test("validIndexes encodes length-delimited", () => {
@@ -231,12 +239,13 @@ describe("the generated codec packs exactly the fields the schema declares", () 
   // behind an existing one.
   const PACKED_BY_SCHEMA = [
     "ADVKeyIndexList.validIndexes",
+    "ContextInfo.experienceIds",
     "DeviceListMetadata.senderKeyIndexes",
     "DeviceListMetadata.recipientKeyIndexes",
     "Message_AppStateSyncKeyFingerprint.deviceIndexes",
   ];
 
-  test("no field packs beyond the four declared [packed = true]", () => {
+  test("no field packs beyond the five declared [packed = true]", () => {
     const source = readFileSync(
       new URL("../ts/generated/whatsapp.ts", import.meta.url),
       "utf8",

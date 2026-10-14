@@ -188,6 +188,12 @@ declare namespace $protobuf {
 \tinterface IConversionOptions { [key: string]: any; }
 }
 
+type $ProtoObject = { [k: string]: any };
+
+// Keep method-origin signatures so strictFunctionTypes retains their variance.
+type $ProtoEncode<T> = { encode(m: T, w?: $protobuf.Writer): $protobuf.Writer }["encode"];
+type $ProtoDecode<T> = { decode(r: ($protobuf.Reader|Uint8Array), l?: number): T }["decode"];
+
 export namespace proto {
 `
 
@@ -231,17 +237,17 @@ const renderInterface = (def: InterfaceDef, leafName: string, depth: number): st
 		s += `${indent(depth + 1)}${renderField(f, false)}\n`
 	}
 	s += `${indent(depth)}}\n`
+	// Ambient class/interface merging supplies the same public instance fields
+	// from I<Name>, without publishing each field declaration twice.
+	s += `\n${indent(depth)}interface ${leafName} extends I${leafName} {}\n`
 	s += `\n${indent(depth)}class ${leafName} implements I${leafName} {\n`
 	s += `${indent(depth + 1)}constructor(p?: I${leafName});\n`
-	for (const f of def.fields) {
-		s += `${indent(depth + 1)}${renderField(f, true)}\n`
-	}
 	s += `${indent(depth + 1)}public static create(p?: I${leafName}): ${leafName};\n`
-	s += `${indent(depth + 1)}public static fromObject(d: { [k: string]: any }): ${leafName};\n`
-	s += `${indent(depth + 1)}public static toObject(m: ${leafName}, o?: $protobuf.IConversionOptions): { [k: string]: any };\n`
-	s += `${indent(depth + 1)}public static encode(m: I${leafName}, w?: $protobuf.Writer): $protobuf.Writer;\n`
-	s += `${indent(depth + 1)}public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): ${leafName};\n`
-	s += `${indent(depth + 1)}public toJSON(): { [k: string]: any };\n`
+	s += `${indent(depth + 1)}public static fromObject(d: $ProtoObject): ${leafName};\n`
+	s += `${indent(depth + 1)}public static toObject(m: ${leafName}, o?: $protobuf.IConversionOptions): $ProtoObject;\n`
+	s += `${indent(depth + 1)}public static encode: $ProtoEncode<I${leafName}>;\n`
+	s += `${indent(depth + 1)}public static decode: $ProtoDecode<${leafName}>;\n`
+	s += `${indent(depth + 1)}public toJSON(): $ProtoObject;\n`
 	s += `${indent(depth)}}\n`
 	return s
 }

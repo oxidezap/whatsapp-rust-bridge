@@ -64,16 +64,19 @@ pub(super) fn catalog() -> Vec<Operation> {
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Cached),
-            call: parse_quote!(client.download(
-                &whatsapp_rust::download::DownloadParams::encrypted(
-                    direct_path,
-                    media_key,
-                    file_sha256,
-                    file_enc_sha256,
-                    file_length as u64,
-                    mt,
+            call: parse_quote!(
+                client.download(
+                    &whatsapp_rust::download::DownloadParams::encrypted(
+                        direct_path,
+                        media_key,
+                        file_sha256,
+                        file_enc_sha256,
+                        file_length as u64,
+                        mt,
+                    )
+                    .map_err(crate::errors::download_preparation_error)?
                 )
-            )),
+            ),
             output: ReturnAdapter::Codec(OutputCodec::Value {
                 codec: ValueCodec::Bytes,
                 error: None,

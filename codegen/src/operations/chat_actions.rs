@@ -220,19 +220,35 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                     message_id: &str,
                     from_me: bool,
+                    participant: Option<String>,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Jid {
-                binding: parse_quote!(chat_jid),
-                value: parse_quote!(jid),
-            }],
+            inputs: vec![
+                Input::Jid {
+                    binding: parse_quote!(chat_jid),
+                    value: parse_quote!(jid),
+                },
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(participant_jid),
+                    value: parse_quote!(participant),
+                    ty: parse_quote!(Jid),
+                    field: parse_quote!("participant"),
+                    prefix: None,
+                    optional: true,
+                }),
+                Input::Codec(InputCodec::MessageReference {
+                    chat: parse_quote!(chat_jid),
+                    from_me: parse_quote!(from_me),
+                    sender: parse_quote!(participant_jid.as_ref()),
+                }),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
                 client
                     .chat_actions()
-                    .delete_message_for_me(&chat_jid, None, message_id, from_me, true, None)
+                    .delete_message_for_me(&target, true, None)
             ),
             output: ReturnAdapter::MapError,
         },
@@ -378,17 +394,27 @@ pub(super) fn catalog() -> Vec<Operation> {
                     message_id: &str,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Jid {
-                binding: parse_quote!(chat),
-                value: parse_quote!(chat_jid),
-            }],
+            inputs: vec![
+                Input::Jid {
+                    binding: parse_quote!(chat),
+                    value: parse_quote!(chat_jid),
+                },
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(message_id),
+                    value: parse_quote!(message_id),
+                    ty: parse_quote!(whatsapp_rust::MessageId),
+                    field: parse_quote!("messageId"),
+                    prefix: None,
+                    optional: false,
+                }),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
                 client
                     .labels()
-                    .add_message_label(label_id, &chat, message_id)
+                    .add_message_label(label_id, &chat, &message_id)
             ),
             output: ReturnAdapter::MapError,
         },
@@ -405,17 +431,27 @@ pub(super) fn catalog() -> Vec<Operation> {
                     message_id: &str,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Jid {
-                binding: parse_quote!(chat),
-                value: parse_quote!(chat_jid),
-            }],
+            inputs: vec![
+                Input::Jid {
+                    binding: parse_quote!(chat),
+                    value: parse_quote!(chat_jid),
+                },
+                Input::Codec(InputCodec::Scalar {
+                    binding: parse_quote!(message_id),
+                    value: parse_quote!(message_id),
+                    ty: parse_quote!(whatsapp_rust::MessageId),
+                    field: parse_quote!("messageId"),
+                    prefix: None,
+                    optional: false,
+                }),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
                 client
                     .labels()
-                    .remove_message_label(label_id, &chat, message_id)
+                    .remove_message_label(label_id, &chat, &message_id)
             ),
             output: ReturnAdapter::MapError,
         },
@@ -599,24 +635,25 @@ pub(super) fn catalog() -> Vec<Operation> {
                     star: bool,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Jid {
-                binding: parse_quote!(chat_jid),
-                value: parse_quote!(jid),
-            }],
+            inputs: vec![
+                Input::Jid {
+                    binding: parse_quote!(chat_jid),
+                    value: parse_quote!(jid),
+                },
+                Input::Codec(InputCodec::MessageReference {
+                    chat: parse_quote!(chat_jid),
+                    from_me: parse_quote!(true),
+                    sender: parse_quote!(None),
+                }),
+            ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
                 if star {
-                    client
-                        .chat_actions()
-                        .star_message(&chat_jid, None, message_id, true)
-                        .await
+                    client.chat_actions().star_message(&target).await
                 } else {
-                    client
-                        .chat_actions()
-                        .unstar_message(&chat_jid, None, message_id, true)
-                        .await
+                    client.chat_actions().unstar_message(&target).await
                 }
                 .map_err(crate::errors::BridgeError::from)
             }),

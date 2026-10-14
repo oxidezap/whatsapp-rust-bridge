@@ -26,6 +26,11 @@ pub enum InputCodec {
         chat: Expr,
         key: Ident,
     },
+    MessageReference {
+        chat: Expr,
+        from_me: Expr,
+        sender: Expr,
+    },
     ParentKeyGuard {
         key: Ident,
     },
@@ -116,7 +121,14 @@ impl InputCodec {
                 }
             }
             Self::MessageKey { binding, chat, key } => {
-                quote!(let #binding=waproto::whatsapp::MessageKey {remote_jid:Some(#chat.to_string()),from_me:Some(#key.from_me),id:Some(#key.id),participant:#key.participant,};)
+                quote!(let mut #binding=waproto::whatsapp::MessageKey::default();#binding.remote_jid=Some(#chat.to_string());#binding.from_me=Some(#key.from_me);#binding.id=Some(#key.id);#binding.participant=#key.participant;)
+            }
+            Self::MessageReference {
+                chat,
+                from_me,
+                sender,
+            } => {
+                quote!(let message_id=whatsapp_rust::MessageId::new(message_id).map_err(|error|crate::errors::invalid_arg("messageId",error.to_string()))?;let target=whatsapp_rust::MessageRef::new(&#chat,message_id,#sender,#from_me).map_err(|error|crate::errors::message_reference_error(&error,"messageId","jid","participant"))?;)
             }
             Self::ParentKeyGuard { key } => {
                 quote!(if #key.participant.is_none()&&!#key.from_me {return Err(crate::errors::invalid_arg("parent_key","needs participant (the post author) or fromMe: true"));})
@@ -284,6 +296,7 @@ pub enum Converter {
 pub enum VariantCodec {
     UsernameLookup,
     MediaRetry,
+    PushName,
 }
 pub enum Serializer {
     Serde,
@@ -301,6 +314,13 @@ impl OutputCodec {
         match self {
             Self::Variant(VariantCodec::UsernameLookup) => {
                 quote!(to_ts(crate::result_types::project_username_lookup(#call)?))
+            }
+            Self::Variant(VariantCodec::PushName) => {
+                quote!(match #call {
+                    whatsapp_rust::features::PushNameOutcome::Synced => Ok(()),
+                    whatsapp_rust::features::PushNameOutcome::SyncPending { source } => Err(crate::errors::BridgeError::from(source)),
+                    other => Err(crate::errors::internal(format!("unhandled push-name outcome: {other:?}"))),
+                })
             }
             Self::Variant(VariantCodec::MediaRetry) => {
                 quote!(crate::result_types::project_media_retry(#call))

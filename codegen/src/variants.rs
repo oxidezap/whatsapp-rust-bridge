@@ -599,6 +599,19 @@ fn lifecycle_specs() -> Vec<LifecycleVariant> {
     #[serde(rename = "unknown")]),
                     fields: vec![],
                 },
+                LifecycleArm {
+                    pattern: parse_quote!(other),
+                    name: parse_quote!(Future),
+                    attributes: quote!(/// A disconnect reason added by a newer core.
+                        #[serde(rename = "future")]),
+                    fields: vec![LifecycleField {
+                        name: parse_quote!(detail),
+                        ty: parse_quote!(String),
+                        attributes: quote!(),
+                        source: parse_quote!(other),
+                        codec: LifecycleCodec::Debug,
+                    }],
+                },
             ],
         },
         LifecycleVariant {

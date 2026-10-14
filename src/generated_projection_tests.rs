@@ -72,9 +72,10 @@ fn newsletter_projection_preserves_large_counters_binary_and_protobuf_presence()
     source.views_count = Some(u64::MAX);
     source.forwards_count = Some(0);
     source.rcat = Some(vec![0, 128, 255]);
-    let message = whatsapp_rust::waproto::whatsapp::Message {
-        conversation: Some("projection fixture".into()),
-        ..Default::default()
+    let message = {
+        let mut __fixture = whatsapp_rust::waproto::whatsapp::Message::default();
+        __fixture.conversation = Some("projection fixture".into());
+        __fixture
     };
     let expected = whatsapp_rust::waproto::codec::message_to_vec(&message);
     source.message = Some(message);

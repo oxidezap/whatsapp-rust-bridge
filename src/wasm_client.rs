@@ -332,6 +332,7 @@ bridge_events! {
         ContactRemoved           => "contact_removed"               => "ContactRemoved",
         PairingQrCodesExhausted  => "pairing_qr_codes_exhausted"    => "PairingQrCodesExhausted",
         ClientExpirationChanged  => "client_expiration_changed"     => "ClientExpirationChanged",
+        LabelSublistUpdate       => "label_sublist_update"           => "LabelSublistUpdate",
     }
     // Events carrying a protobuf field beside their own. That field crosses in
     // the protobufjs shape its declaration names, keeping an explicit `false` or
@@ -4235,6 +4236,82 @@ mod dispatched_event_tests {
         DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
     }
 
+    #[test]
+    async fn chat_presence_transports_the_core_activity_without_legacy_media_fields() {
+        use wacore::types::events::ChatPresenceUpdate;
+        use wacore::types::presence::ChatActivity;
+        for (activity, expected) in [
+            (ChatActivity::Typing, "typing"),
+            (ChatActivity::RecordingAudio, "recording_audio"),
+            (ChatActivity::Idle, "idle"),
+        ] {
+            let source = wacore::types::message::MessageSource {
+                chat: jid("100@s.whatsapp.net"),
+                sender: jid("101@s.whatsapp.net"),
+                ..Default::default()
+            };
+            let (name, data) = deliver(Event::ChatPresence(
+                ChatPresenceUpdate::builder()
+                    .source(source)
+                    .state(activity)
+                    .build(),
+            ))
+            .await;
+            assert_eq!(name, "chat_presence");
+            assert_eq!(field(&data, "state").as_string().as_deref(), Some(expected));
+            assert!(!js_sys::Reflect::has(&data, &"media".into()).unwrap());
+        }
+    }
+
+    #[test]
+    async fn label_sublist_event_preserves_unknown_ids_zero_and_absent_action_time() {
+        use wacore::types::events::{LabelSublistChange, LabelSublistUpdate};
+        for (change, time) in [
+            (LabelSublistChange::Upsert { sub_list_id: 0 }, None),
+            (
+                LabelSublistChange::Remove,
+                Some(DateTime::from_timestamp(0, 0).unwrap()),
+            ),
+        ] {
+            let update = LabelSublistUpdate::builder()
+                .predefined_id(-123)
+                .chat_jid(jid("100@lid"))
+                .change(change)
+                .maybe_action_timestamp(time)
+                .from_full_sync(false)
+                .build();
+            let (name, data) = deliver(Event::LabelSublistUpdate(update)).await;
+            assert_eq!(name, "label_sublist_update");
+            assert_eq!(field(&data, "predefined_id").as_f64(), Some(-123.0));
+            assert_eq!(
+                field(&field(&data, "chat_jid"), "server")
+                    .as_string()
+                    .as_deref(),
+                Some("lid")
+            );
+            match change {
+                LabelSublistChange::Upsert { .. } => {
+                    assert_eq!(
+                        field(&field(&field(&data, "change"), "Upsert"), "sub_list_id").as_f64(),
+                        Some(0.0)
+                    );
+                    assert!(field(&data, "action_timestamp").is_undefined());
+                }
+                LabelSublistChange::Remove => {
+                    assert_eq!(
+                        field(&data, "change").as_string().as_deref(),
+                        Some("Remove")
+                    );
+                    assert_eq!(
+                        field(&data, "action_timestamp").as_string().as_deref(),
+                        Some("1970-01-01T00:00:00Z")
+                    );
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
     /// Load-bearing since #1291: the core announces the connection and reports
     /// what the critical sync left behind here.
     #[test]
@@ -4289,8 +4366,10 @@ mod dispatched_event_tests {
             UnarchiveChatsSettingUpdate::builder()
                 .unarchive_chats(true)
                 .timestamp(timestamp())
-                .action(Box::new(UnarchiveChatsSetting {
-                    unarchive_chats: Some(true),
+                .action(Box::new({
+                    let mut setting = UnarchiveChatsSetting::default();
+                    setting.unarchive_chats = Some(true);
+                    setting
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4311,8 +4390,10 @@ mod dispatched_event_tests {
             DisableLinkPreviewsUpdate::builder()
                 .previews_disabled(true)
                 .timestamp(timestamp())
-                .action(Box::new(PrivacySettingDisableLinkPreviewsAction {
-                    is_previews_disabled: Some(true),
+                .action(Box::new({
+                    let mut action = PrivacySettingDisableLinkPreviewsAction::default();
+                    action.is_previews_disabled = Some(true);
+                    action
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4337,10 +4418,11 @@ mod dispatched_event_tests {
                 .call_id("CALL-1".to_owned())
                 .from_me(true)
                 .timestamp(timestamp())
-                .record(Box::new(CallLogRecord {
-                    is_video: Some(true),
-                    start_time: Some(1_700_000_000),
-                    ..Default::default()
+                .record(Box::new({
+                    let mut __fixture = CallLogRecord::default();
+                    __fixture.is_video = Some(true);
+                    __fixture.start_time = Some(1_700_000_000);
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4376,8 +4458,10 @@ mod dispatched_event_tests {
             PinUpdate::builder()
                 .jid(jid("5511999@s.whatsapp.net"))
                 .timestamp(timestamp())
-                .action(Box::new(PinAction {
-                    pinned: Some(false),
+                .action(Box::new({
+                    let mut __fixture = PinAction::default();
+                    __fixture.pinned = Some(false);
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4400,9 +4484,10 @@ mod dispatched_event_tests {
             ContactUpdate::builder()
                 .jid(jid("5511999@s.whatsapp.net"))
                 .timestamp(timestamp())
-                .action(Box::new(ContactAction {
-                    full_name: Some(String::new()),
-                    ..Default::default()
+                .action(Box::new({
+                    let mut __fixture = ContactAction::default();
+                    __fixture.full_name = Some(String::new());
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4424,21 +4509,26 @@ mod dispatched_event_tests {
             ArchiveUpdate::builder()
                 .jid(jid("5511999@s.whatsapp.net"))
                 .timestamp(timestamp())
-                .action(Box::new(ArchiveChatAction {
-                    archived: Some(true),
-                    message_range: Some(SyncActionMessageRange {
-                        messages: vec![SyncActionMessage {
-                            key: Some(MessageKey {
-                                id: Some("MSG-1".to_owned()),
-                                from_me: Some(false),
-                                ..Default::default()
+                .action(Box::new({
+                    let mut __fixture = ArchiveChatAction::default();
+                    __fixture.archived = Some(true);
+                    __fixture.message_range = Some({
+                        let mut __fixture = SyncActionMessageRange::default();
+                        __fixture.messages = vec![{
+                            let mut __fixture = SyncActionMessage::default();
+                            __fixture.key = Some({
+                                let mut __fixture = MessageKey::default();
+                                __fixture.id = Some("MSG-1".to_owned());
+                                __fixture.from_me = Some(false);
+                                __fixture
                             })
-                            .into(),
-                            ..Default::default()
-                        }],
-                        ..Default::default()
+                            .into();
+                            __fixture
+                        }];
+                        __fixture
                     })
-                    .into(),
+                    .into();
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4464,10 +4554,11 @@ mod dispatched_event_tests {
             MuteUpdate::builder()
                 .jid(jid("5511999@s.whatsapp.net"))
                 .timestamp(timestamp())
-                .action(Box::new(MuteAction {
-                    muted: Some(true),
-                    mute_end_timestamp: Some(1_700_000_000),
-                    ..Default::default()
+                .action(Box::new({
+                    let mut __fixture = MuteAction::default();
+                    __fixture.muted = Some(true);
+                    __fixture.mute_end_timestamp = Some(1_700_000_000);
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4491,8 +4582,10 @@ mod dispatched_event_tests {
             LockChatUpdate::builder()
                 .jid(jid("5511999@s.whatsapp.net"))
                 .timestamp(timestamp())
-                .action(Box::new(LockChatAction {
-                    locked: Some(false),
+                .action(Box::new({
+                    let mut __fixture = LockChatAction::default();
+                    __fixture.locked = Some(false);
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4519,9 +4612,10 @@ mod dispatched_event_tests {
                 .chat_jid(jid("5511999@s.whatsapp.net"))
                 .message_id("MSG-1".to_owned())
                 .timestamp(timestamp())
-                .action(Box::new(LabelAssociationAction {
-                    labeled: Some(true),
-                    ..Default::default()
+                .action(Box::new({
+                    let mut __fixture = LabelAssociationAction::default();
+                    __fixture.labeled = Some(true);
+                    __fixture
                 }))
                 .from_full_sync(false)
                 .build(),
@@ -4552,10 +4646,11 @@ mod dispatched_event_tests {
             QuickReplyUpdate::builder()
                 .id("QR-1".to_owned())
                 .timestamp(timestamp())
-                .action(Box::new(QuickReplyAction {
-                    shortcut: Some("/hello".to_owned()),
-                    deleted: Some(false),
-                    ..Default::default()
+                .action(Box::new({
+                    let mut __fixture = QuickReplyAction::default();
+                    __fixture.shortcut = Some("/hello".to_owned());
+                    __fixture.deleted = Some(false);
+                    __fixture
                 }))
                 .from_full_sync(true)
                 .build(),
