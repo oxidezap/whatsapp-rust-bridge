@@ -10,37 +10,6 @@ use super::*;
 impl WasmWhatsAppClient {
     // ── Media ────────────────────────────────────────────────────────────
 
-    /// Get media connection info (auth token + upload hosts).
-    ///
-    /// Returns `{ auth: string, ttl: number, hosts: [{hostname: string}] }`.
-    /// The core's `hosts` carry nothing but the hostname, so neither does this.
-    #[wasm_bindgen(js_name = getMediaConn)]
-    pub async fn get_media_conn(
-        &self,
-        force: bool,
-    ) -> Result<Ts<crate::result_types::MediaConnResult>, crate::errors::BridgeError> {
-        // `force` is the one case where the bridge knows: it bypasses the
-        // cache, so the socket is certain to be needed.
-        let client = if force {
-            self.client.online().await?
-        } else {
-            self.client.unwaited(Unwaited::Cached)
-        };
-        let conn = client.refresh_media_conn(force).await?;
-
-        to_ts(crate::result_types::MediaConnResult {
-            auth: conn.auth.clone(),
-            ttl: conn.ttl as f64,
-            hosts: conn
-                .hosts
-                .iter()
-                .map(|h| crate::result_types::MediaHost {
-                    hostname: h.hostname.clone(),
-                })
-                .collect(),
-        })
-    }
-
     /// Download and decrypt media from raw parameters.
     ///
     /// Handles CDN failover, auth refresh, HMAC-SHA256 verification, and
@@ -438,3 +407,5 @@ impl WasmWhatsAppClient {
         }
     }
 }
+
+include!("generated/media.rs");

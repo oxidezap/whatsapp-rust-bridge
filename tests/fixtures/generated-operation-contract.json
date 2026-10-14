@@ -1,0 +1,27 @@
+{
+  "bridge": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
+  "core": "6f7a62296242f5dab8967431bd1c6528c1339efe",
+  "signatures": {
+    "getGroupMetadata": "getGroupMetadata(jid: string): Promise<GroupMetadataResult>;",
+    "groupUpdateSubject": "groupUpdateSubject(jid: string, subject: string): Promise<void>;",
+    "groupUpdateDescription": "groupUpdateDescription(jid: string, description?: string | null): Promise<void>;",
+    "groupLeave": "groupLeave(jid: string): Promise<void>;",
+    "updateMemberLabel": "updateMemberLabel(group_jid: string, label: string): Promise<string>;",
+    "groupInviteCode": "groupInviteCode(jid: string): Promise<string>;",
+    "groupToggleEphemeral": "groupToggleEphemeral(jid: string, expiration: number): Promise<void>;",
+    "groupRevokeInvite": "groupRevokeInvite(jid: string): Promise<string>;",
+    "deactivateCommunity": "deactivateCommunity(jid: string): Promise<void>;",
+    "linkCommunitySubgroups": "linkCommunitySubgroups(parent_jid: string, subgroup_jids: string[]): Promise<CommunityLinkResult>;",
+    "unlinkCommunitySubgroups": "unlinkCommunitySubgroups(parent_jid: string, subgroup_jids: string[], remove_orphan_members: boolean): Promise<CommunityLinkResult>;",
+    "getCommunitySubgroups": "getCommunitySubgroups(parent_jid: string): Promise<CommunitySubgroupResult[]>;",
+    "groupAcceptInvite": "groupAcceptInvite(code: string): Promise<string>;",
+    "groupAcceptInviteV4": "groupAcceptInviteV4(group_jid: string, code: string, expiration: number, admin_jid: string): Promise<string>;",
+    "groupRevokeInviteV4": "groupRevokeInviteV4(group_jid: string, invited_jid: string): Promise<boolean>;",
+    "groupGetInviteInfo": "groupGetInviteInfo(code: string): Promise<GroupMetadataResult>;",
+    "groupRequestParticipantsList": "groupRequestParticipantsList(jid: string): Promise<MembershipRequestResult[]>;",
+    "getBusinessProfile": "getBusinessProfile(jid: string): Promise<BusinessProfileResult | undefined>;",
+    "getOrder": "getOrder(jid: string, order_id: string, token: string): Promise<OrderResult>;",
+    "removeBusinessCoverPhoto": "removeBusinessCoverPhoto(id: string): Promise<void>;",
+    "getMediaConn": "getMediaConn(force: boolean): Promise<MediaConnResult>;"
+  }
+}
