@@ -121,21 +121,7 @@ pub(crate) fn new_in_memory_backend() -> Arc<dyn Backend> {
     Arc::new(InMemoryBackend::default())
 }
 
-/// Raw JS callback handles + capability flags pulled from the host store object.
-/// Grouped into one struct because the optional surface grew past clarity as a
-/// positional argument list.
-pub(crate) struct JsBackendHandles {
-    pub get_fn: js_sys::Function,
-    pub set_fn: js_sys::Function,
-    pub delete_fn: js_sys::Function,
-    pub set_many_fn: Option<js_sys::Function>,
-    pub delete_many_fn: Option<js_sys::Function>,
-    pub get_many_fn: Option<js_sys::Function>,
-    pub list_keys_fn: Option<js_sys::Function>,
-    pub delete_prefix_fn: Option<js_sys::Function>,
-    pub cap_enumerate: bool,
-    pub cap_prefix_delete: bool,
-}
+include!("wasm_client/generated/storage.rs");
 
 /// Create a JsBackend from JS callback handles. The batch/enumeration handles
 /// are optional — when absent the backend falls back to per-key `set`/`delete`
@@ -2337,5 +2323,117 @@ mod device_account_authority_tests {
         let decoded = account_serde::from_bytes(&raw).expect("old readers decode the legacy key");
         assert!(same_account(&decoded, &fixture_account()));
         assert!(record_has_account_field(&backend).await);
+    }
+}
+
+#[cfg(test)]
+mod generated_callback_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn object(source: &str) -> JsValue {
+        js_sys::eval(source).expect("storage callback fixture")
+    }
+
+    #[test]
+    fn registration_preserves_getter_order_and_ignores_declaration_only_callbacks() {
+        let value = object(
+            r#"(() => {
+            const reads = [];
+            const store = { reads };
+            for (const name of ['get','set','delete','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
+                Object.defineProperty(store, name, { get() { reads.push(name); return () => null; } });
+            }
+            Object.defineProperty(store, 'capabilities', { get() { reads.push('capabilities'); return {}; } });
+            for (const name of ['listEntries', 'flush']) {
+                Object.defineProperty(store, name, { get() { throw new Error('declaration only: ' + name); } });
+            }
+            return store;
+        })()"#,
+        );
+        let handles = JsBackendHandles::from_js(&value).expect("valid required callbacks");
+        assert!(handles.set_many_fn.is_none());
+        assert!(handles.delete_many_fn.is_none());
+        assert!(handles.get_many_fn.is_none());
+        let reads = js_sys::Reflect::get(&value, &"reads".into()).unwrap();
+        let reads: Vec<String> = js_sys::Array::from(&reads)
+            .iter()
+            .map(|v| v.as_string().unwrap())
+            .collect();
+        assert_eq!(
+            reads,
+            [
+                "get",
+                "set",
+                "delete",
+                "setMany",
+                "deleteMany",
+                "getMany",
+                "listKeys",
+                "deletePrefix",
+                "capabilities",
+                "capabilities",
+                "capabilities"
+            ]
+        );
+    }
+
+    #[test]
+    fn optional_storage_getters_remain_tolerant_and_capabilities_require_handles() {
+        let value = object(
+            r#"({
+            get() {}, set() {}, delete() {},
+            get setMany() { throw new Error('optional'); },
+            deleteMany: 42, getMany() {},
+            get listKeys() { throw new Error('optional'); },
+            deletePrefix() {}, capabilities: { batch: true, enumerate: true, prefixDelete: true }
+        })"#,
+        );
+        let handles = JsBackendHandles::from_js(&value).unwrap();
+        assert!(handles.set_many_fn.is_none());
+        assert!(handles.delete_many_fn.is_none());
+        assert!(handles.get_many_fn.is_some());
+        let backend = JsBackend::new(handles);
+        assert!(!backend.has_enumerate);
+        assert!(backend.has_prefix_delete);
+        let error = JsBackendHandles::from_js(&object("({get: 42})"))
+            .err()
+            .expect("invalid required callback");
+        assert!(
+            matches!(error, crate::errors::BridgeError::InvalidArgument {field, reason} if field == "store" && reason == "store.get must be a function")
+        );
+    }
+
+    #[test]
+    async fn generated_handles_preserve_null_receiver_and_storage_errors() {
+        let value = object(
+            r#"({
+            get: function() { 'use strict'; if (this !== null) throw new Error('receiver'); return null; },
+            set: function() { 'use strict'; if (this !== null) throw new Error('receiver'); throw new Error('sync store failure'); },
+            delete: function() { 'use strict'; if (this !== null) throw new Error('receiver'); return Promise.reject(new Error('async store failure')); }
+        })"#,
+        );
+        let backend = JsBackend::new(JsBackendHandles::from_js(&value).unwrap());
+        assert!(backend.js_get("session", "test").await.unwrap().is_none());
+        let error = backend
+            .js_set("session", "test", b"value")
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("sync store failure")
+        );
+        let error = backend.js_delete("session", "test").await.unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("async store failure")
+        );
     }
 }

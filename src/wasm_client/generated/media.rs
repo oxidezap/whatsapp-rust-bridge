@@ -28,4 +28,185 @@ impl WasmWhatsAppClient {
                 .collect(),
         })
     }
+    #[doc = r" Download and decrypt media from raw parameters."]
+    #[doc = r""]
+    #[doc = r" Handles CDN failover, auth refresh, HMAC-SHA256 verification, and"]
+    #[doc = r" AES-256-CBC decryption internally. Returns decrypted media bytes."]
+    # [wasm_bindgen (js_name = downloadMedia)]
+    pub async fn download_media(
+        &self,
+        direct_path: &str,
+        media_key: &[u8],
+        file_sha256: &[u8],
+        file_enc_sha256: &[u8],
+        file_length: f64,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
+    ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+        let mt: wacore::download::MediaType = media_type.into();
+        let client = self.client.unwaited(Unwaited::Cached);
+        let data = client
+            .download(&whatsapp_rust::download::DownloadParams::encrypted(
+                direct_path,
+                media_key,
+                file_sha256,
+                file_enc_sha256,
+                file_length as u64,
+                mt,
+            ))
+            .await?;
+        Ok(js_sys::Uint8Array::from(&data[..]))
+    }
+    #[doc = r" Upload media: encrypt in memory + upload with CDN failover and retry."]
+    #[doc = r""]
+    #[doc = r" Takes raw plaintext bytes. Handles AES-256-CBC encryption, HMAC-SHA256"]
+    #[doc = r" signing, multi-host CDN upload, auth refresh, and resumable upload (>=5MB)."]
+    # [wasm_bindgen (js_name = uploadMedia)]
+    pub async fn upload_media(
+        &self,
+        data: &[u8],
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
+    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+        let mt: wacore::download::MediaType = media_type.into();
+        let client = self.client.unwaited(Unwaited::Cached);
+        let resp = client.upload(data.to_vec(), mt, Default::default()).await?;
+        to_ts(crate::result_types::UploadMediaResult {
+            url: resp.url,
+            direct_path: resp.direct_path,
+            media_key: resp.media_key,
+            file_sha256: resp.file_sha256,
+            file_enc_sha256: resp.file_enc_sha256,
+            file_length: resp.file_length as f64,
+        })
+    }
+    #[doc = r" Request the server to re-upload expired media."]
+    #[doc = r""]
+    #[doc = r" Returns the new `directPath` on success."]
+    #[doc = r" Throws on failure (not found, decryption error, timeout, etc.)."]
+    # [wasm_bindgen (js_name = requestMediaReupload)]
+    pub async fn request_media_reupload(
+        &self,
+        msg_id: &str,
+        chat_jid: &str,
+        media_key: &[u8],
+        is_from_me: bool,
+        participant: Option<String>,
+    ) -> Result<String, crate::errors::BridgeError> {
+        let chat = parse_jid(chat_jid)?;
+        let participant_jid = participant.as_deref().map(parse_jid).transpose()?;
+        let req = whatsapp_rust::MediaReuploadRequest {
+            msg_id,
+            chat_jid: &chat,
+            media_key,
+            is_from_me,
+            participant: participant_jid.as_ref(),
+        };
+        let client = self.client.online().await?;
+        let result = client.media_reupload().request(&req).await?;
+        match result {
+            whatsapp_rust::MediaRetryResult::Success { direct_path } => Ok(direct_path),
+            whatsapp_rust::MediaRetryResult::NotFound => {
+                Err(crate::errors::internal("Media not found on server"))
+            }
+            whatsapp_rust::MediaRetryResult::DecryptionError => {
+                Err(crate::errors::internal("Media decryption error"))
+            }
+            whatsapp_rust::MediaRetryResult::GeneralError => {
+                Err(crate::errors::internal("Media reupload failed"))
+            }
+        }
+    }
+    #[doc = r" Download, decrypt, and return a Web ReadableStream of decrypted chunks."]
+    #[doc = r""]
+    #[doc = r" Same as `downloadMedia`, delivered in 64 KB chunks. Neither side is"]
+    #[doc = r" bounded by that: the core has no streaming download, so"]
+    #[doc = r" `download` still resolves the whole plaintext into one"]
+    #[doc = r" `Vec<u8>` before chunking starts, and on the JS side only the queued"]
+    #[doc = r" chunks are bounded — a consumer that keeps them, to rebuild the file,"]
+    #[doc = r" ends up holding all of it. In Node.js, consume with"]
+    #[doc = r" `Readable.fromWeb(stream)`."]
+    # [wasm_bindgen (js_name = downloadMediaStream)]
+    pub fn download_media_stream(
+        &self,
+        direct_path: &str,
+        media_key: &[u8],
+        file_sha256: &[u8],
+        file_enc_sha256: &[u8],
+        file_length: f64,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
+    ) -> Result<web_sys::ReadableStream, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+        let mt: wacore::download::MediaType = media_type.into();
+        let direct_path = direct_path.to_string();
+        let media_key = media_key.to_vec();
+        let file_sha256 = file_sha256.to_vec();
+        let file_enc_sha256 = file_enc_sha256.to_vec();
+        let file_length = file_length as u64;
+        let client = self.client.unwaited(Unwaited::Deferred);
+        download_stream(
+            client.clone(),
+            direct_path,
+            media_key,
+            file_sha256,
+            file_enc_sha256,
+            file_length,
+            mt,
+        )
+    }
+    #[doc = r" True streaming encrypt via `MediaEncryptor`: processes plaintext chunk-by-chunk"]
+    #[doc = r" from JS ReadableStream, encrypts with AES-256-CBC, writes ciphertext to JS WritableStream."]
+    #[doc = r""]
+    #[doc = r" Peak memory: ~130KB (copy buffer + flush buffer + crypto state)."]
+    # [wasm_bindgen (js_name = encryptMediaStream)]
+    pub async fn encrypt_media_stream(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "ReadableStream")] input: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "WritableStream")] output: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
+    ) -> Result<Ts<crate::result_types::EncryptMediaResult>, crate::errors::BridgeError> {
+        let input = from_js_class::<web_sys::ReadableStream>(
+            "input",
+            "ReadableStream",
+            "getReader",
+            input,
+        )?;
+        let output = from_js_class::<web_sys::WritableStream>(
+            "output",
+            "WritableStream",
+            "getWriter",
+            output,
+        )?;
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+        let mt: wacore::download::MediaType = media_type.into();
+        encrypt_stream(input, output, mt).await
+    }
+    #[doc = r" Upload pre-encrypted media with streaming body."]
+    #[doc = r""]
+    #[doc = r" `get_body` is a JS function `() => ReadableStream<Uint8Array>` — called"]
+    #[doc = r" for each upload attempt (retry creates a fresh stream)."]
+    #[doc = r" Handles CDN failover, auth refresh, and resumable upload (>=5MB)."]
+    # [wasm_bindgen (js_name = uploadEncryptedMediaStream)]
+    pub async fn upload_encrypted_media_stream(
+        &self,
+        get_body: &js_sys::Function,
+        media_key: &[u8],
+        file_sha256: &[u8],
+        file_enc_sha256: &[u8],
+        file_length: f64,
+        #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
+    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
+        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+        let mt: wacore::download::MediaType = media_type.into();
+        upload_encrypted_stream(
+            &self.client,
+            get_body,
+            media_key,
+            file_sha256,
+            file_enc_sha256,
+            file_length,
+            mt,
+        )
+        .await
+    }
 }
