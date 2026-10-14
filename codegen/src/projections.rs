@@ -3,7 +3,7 @@ use quote::{format_ident, quote};
 use std::collections::BTreeSet;
 use syn::{Ident, Type, parse_quote};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Projection {
     CommunityLink,
     CommunityUnlink,
@@ -105,6 +105,7 @@ struct Field {
     skip_empty: bool,
 }
 struct Descriptor {
+    projection: Projection,
     source: Type,
     target: Ident,
     function: Ident,
@@ -186,6 +187,7 @@ impl Projection {
         use Codec::*;
         match self {
             Self::NewsletterAdminProfile => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::NewsletterAdminProfile),
                 target: parse_quote!(NewsletterAdminProfileResult),
                 function: parse_quote!(project_newsletter_admin_profile),
@@ -205,6 +207,7 @@ impl Projection {
                 ],
             },
             Self::NewsletterAdminInfo => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::NewsletterAdminInfo),
                 target: parse_quote!(NewsletterAdminInfoResult),
                 function: parse_quote!(project_newsletter_admin_info),
@@ -223,6 +226,7 @@ impl Projection {
                 ],
             },
             Self::NewsletterReactionCount => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::NewsletterReactionCount),
                 target: parse_quote!(NewsletterReactionCountResult),
                 function: parse_quote!(project_newsletter_reaction_count),
@@ -235,6 +239,7 @@ impl Projection {
                 ],
             },
             Self::OwnUsername => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::OwnUsername),
                 target: parse_quote!(OwnUsernameResult),
                 function: parse_quote!(project_own_username),
@@ -257,6 +262,7 @@ impl Projection {
                 ],
             },
             Self::BlocklistEntry => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::blocklist::BlocklistEntry),
                 target: parse_quote!(BlocklistEntryResult),
                 function: parse_quote!(project_blocklist_entry),
@@ -269,6 +275,7 @@ impl Projection {
                 ],
             },
             Self::FetchStatus => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::usync::UserInfo),
                 target: parse_quote!(FetchStatusResult),
                 function: parse_quote!(project_fetch_status),
@@ -281,6 +288,7 @@ impl Projection {
                 ],
             },
             Self::MediaConn => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::mediaconn::MediaConn),
                 target: parse_quote!(MediaConnResult),
                 function: parse_quote!(project_media_conn),
@@ -299,6 +307,7 @@ impl Projection {
                 ],
             },
             Self::MediaHost => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::mediaconn::MediaConnHost),
                 target: parse_quote!(MediaHost),
                 function: parse_quote!(project_media_host),
@@ -308,6 +317,7 @@ impl Projection {
                 fields: vec![field("hostname", parse_quote!(String), false, CloneValue)],
             },
             Self::UploadMedia => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::upload::UploadResponse),
                 target: parse_quote!(UploadMediaResult),
                 function: parse_quote!(project_upload_media),
@@ -324,6 +334,7 @@ impl Projection {
                 ],
             },
             Self::SignalSessionMigration => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::SignalSessionMigration),
                 target: parse_quote!(SignalSessionMigrationResult),
                 function: parse_quote!(project_signal_session_migration),
@@ -337,6 +348,7 @@ impl Projection {
                 ],
             },
             Self::NewsletterFollower => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::NewsletterFollower),
                 target: parse_quote!(NewsletterFollowerResult),
                 function: parse_quote!(project_newsletter_follower),
@@ -362,6 +374,7 @@ impl Projection {
                 ],
             },
             Self::Price => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Price),
                 target: parse_quote!(PriceResult),
                 function: parse_quote!(project_price),
@@ -380,6 +393,7 @@ impl Projection {
                 ],
             },
             Self::SalePrice => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::SalePrice),
                 target: parse_quote!(SalePriceResult),
                 function: parse_quote!(project_sale_price),
@@ -398,6 +412,7 @@ impl Projection {
                 ],
             },
             Self::ProductImage => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::ProductImage),
                 target: parse_quote!(ProductImageResult),
                 function: parse_quote!(project_product_image),
@@ -411,6 +426,7 @@ impl Projection {
                 ],
             },
             Self::ProductVideo => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::ProductVideo),
                 target: parse_quote!(ProductVideoResult),
                 function: parse_quote!(project_product_video),
@@ -424,6 +440,7 @@ impl Projection {
                 ],
             },
             Self::ImporterAddress => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::ImporterAddress),
                 target: parse_quote!(ImporterAddressResult),
                 function: parse_quote!(project_importer_address),
@@ -440,6 +457,7 @@ impl Projection {
                 ],
             },
             Self::VariantProperty => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::VariantProperty),
                 target: parse_quote!(VariantPropertyResult),
                 function: parse_quote!(project_variant_property),
@@ -452,6 +470,7 @@ impl Projection {
                 ],
             },
             Self::OrderPriceDetails => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::OrderPriceDetails),
                 target: parse_quote!(OrderPriceDetailsResult),
                 function: parse_quote!(project_order_price_details),
@@ -475,6 +494,7 @@ impl Projection {
                 ],
             },
             Self::OrderProduct => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::OrderProduct),
                 target: parse_quote!(OrderProductResult),
                 function: parse_quote!(project_order_product),
@@ -509,6 +529,7 @@ impl Projection {
                 ],
             },
             Self::Order => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Order),
                 target: parse_quote!(OrderResult),
                 function: parse_quote!(project_order),
@@ -535,6 +556,7 @@ impl Projection {
                 ],
             },
             Self::Product => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Product),
                 target: parse_quote!(ProductResult),
                 function: parse_quote!(project_product),
@@ -604,6 +626,7 @@ impl Projection {
                 ],
             },
             Self::Catalog => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Catalog),
                 target: parse_quote!(CatalogResult),
                 function: parse_quote!(project_catalog),
@@ -628,6 +651,7 @@ impl Projection {
                 ],
             },
             Self::Collection => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Collection),
                 target: parse_quote!(CollectionResult),
                 function: parse_quote!(project_collection),
@@ -653,6 +677,7 @@ impl Projection {
                 ],
             },
             Self::Collections => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::Collections),
                 target: parse_quote!(CollectionsResult),
                 function: parse_quote!(project_collections),
@@ -670,6 +695,7 @@ impl Projection {
                 ],
             },
             Self::BusinessCategory => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::business::BusinessCategory),
                 target: parse_quote!(BusinessCategoryResult),
                 function: parse_quote!(project_business_category),
@@ -682,6 +708,7 @@ impl Projection {
                 ],
             },
             Self::BusinessHoursConfig => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::business::BusinessHoursConfig),
                 target: parse_quote!(BusinessHoursConfigResult),
                 function: parse_quote!(project_business_hours_config),
@@ -696,6 +723,7 @@ impl Projection {
                 ],
             },
             Self::BusinessHours => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::business::BusinessHours),
                 target: parse_quote!(BusinessHoursResult),
                 function: parse_quote!(project_business_hours),
@@ -713,6 +741,7 @@ impl Projection {
                 ],
             },
             Self::BusinessProfile => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::business::BusinessProfile),
                 target: parse_quote!(BusinessProfileResult),
                 function: parse_quote!(project_business_profile),
@@ -740,6 +769,7 @@ impl Projection {
                 ],
             },
             Self::ProfilePicture => Descriptor {
+                projection: self,
                 source: parse_quote!(
                     whatsapp_rust::wacore::iq::contacts::SetProfilePictureResponse
                 ),
@@ -751,6 +781,7 @@ impl Projection {
                 fields: vec![field("id", parse_quote!(String), false, Identity)],
             },
             Self::MembershipRequest => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::wacore::iq::groups::MembershipRequest),
                 target: parse_quote!(MembershipRequestResult),
                 function: parse_quote!(project_membership_request),
@@ -763,6 +794,7 @@ impl Projection {
                 ],
             },
             Self::CommunitySubgroup => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::CommunitySubgroup),
                 target: parse_quote!(CommunitySubgroupResult),
                 function: parse_quote!(project_community_subgroup),
@@ -780,6 +812,7 @@ impl Projection {
                 ],
             },
             Self::SignalSessionInfo => Descriptor {
+                projection: self,
                 source: parse_quote!(whatsapp_rust::features::SignalSessionInfo),
                 target: parse_quote!(SignalSessionInfoResult),
                 function: parse_quote!(project_signal_session_info),
@@ -791,22 +824,11 @@ impl Projection {
                     field("registration_id", parse_quote!(u32), false, Identity),
                 ],
             },
-            _ => {
-                let name = format!("{self:?}");
-                let mut snake = String::new();
-                for (index, ch) in name.chars().enumerate() {
-                    if index != 0 && ch.is_uppercase() {
-                        snake.push('_');
-                    }
-                    snake.extend(ch.to_lowercase());
-                }
-                let function = format!("project_{snake}");
-                extended::descriptors()
-                    .into_iter()
-                    .chain(calculated::descriptors())
-                    .find(|descriptor| descriptor.function == function)
-                    .expect("registered projection descriptor")
-            }
+            _ => extended::descriptors()
+                .into_iter()
+                .chain(calculated::descriptors())
+                .find(|descriptor| descriptor.projection == self)
+                .expect("registered projection descriptor"),
         }
     }
     pub fn envelope(self, envelope: Envelope, value: TokenStream) -> TokenStream {
@@ -1090,6 +1112,29 @@ pub fn emit() -> TokenStream {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn registered_projections_have_unique_typed_keys_and_converter_names() {
+        let mut keys = Vec::new();
+        let mut functions = BTreeSet::new();
+        for descriptor in extended::descriptors()
+            .into_iter()
+            .chain(calculated::descriptors())
+        {
+            assert!(
+                !keys.contains(&descriptor.projection),
+                "duplicate projection key"
+            );
+            keys.push(descriptor.projection);
+            assert!(
+                functions.insert(descriptor.function.to_string()),
+                "duplicate converter"
+            );
+            let registered = descriptor.projection.descriptor();
+            assert_eq!(registered.function, descriptor.function);
+            assert_eq!(registered.target, descriptor.target);
+        }
+    }
+
     #[test]
     fn link_and_unlink_share_one_dto_and_keep_typed_converters() {
         let file = syn::parse2::<syn::File>(emit()).unwrap();

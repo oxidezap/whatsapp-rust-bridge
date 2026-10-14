@@ -4,6 +4,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
     use Codec::*;
     let mut descriptors = vec![
         Descriptor {
+            projection: Projection::BotTheme,
             source: parse_quote!(whatsapp_rust::features::BotTheme),
             target: parse_quote!(BotThemeResult),
             function: parse_quote!(project_bot_theme),
@@ -18,6 +19,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::BotListEntry,
             source: parse_quote!(whatsapp_rust::features::BotListEntry),
             target: parse_quote!(BotListEntryResult),
             function: parse_quote!(project_bot_list_entry),
@@ -38,6 +40,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::BotListSection,
             source: parse_quote!(whatsapp_rust::features::BotListSection),
             target: parse_quote!(BotListSectionResult),
             function: parse_quote!(project_bot_list_section),
@@ -57,6 +60,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::BotDefault,
             source: parse_quote!(whatsapp_rust::features::BotDefault),
             target: parse_quote!(BotDefaultResult),
             function: parse_quote!(project_bot_default),
@@ -69,6 +73,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::BotList,
             source: parse_quote!(whatsapp_rust::features::BotList),
             target: parse_quote!(BotListResult),
             function: parse_quote!(project_bot_list),
@@ -93,6 +98,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::ParticipantAddRequest,
             source: parse_quote!(whatsapp_rust::wacore::iq::groups::AddRequestInfo),
             target: parse_quote!(ParticipantAddRequestResult),
             function: parse_quote!(project_participant_add_request),
@@ -105,6 +111,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::ParticipantChange,
             source: parse_quote!(whatsapp_rust::features::ParticipantChangeResponse),
             target: parse_quote!(ParticipantChangeResult),
             function: parse_quote!(project_participant_change),
@@ -126,6 +133,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::NewsletterMetadata,
             source: parse_quote!(whatsapp_rust::features::NewsletterMetadata),
             target: parse_quote!(NewsletterMetadataResult),
             function: parse_quote!(project_newsletter_metadata),
@@ -164,6 +172,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::GroupMetadataParticipant,
             source: parse_quote!(whatsapp_rust::features::GroupParticipant),
             target: parse_quote!(GroupMetadataParticipant),
             function: parse_quote!(project_group_metadata_participant),
@@ -196,6 +205,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::GroupEphemeralSettings,
             source: parse_quote!(whatsapp_rust::features::GroupEphemeralSettings),
             target: parse_quote!(GroupEphemeralSettingsResult),
             function: parse_quote!(project_group_ephemeral_settings),
@@ -208,6 +218,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::GroupGrowthLockInfo,
             source: parse_quote!(whatsapp_rust::features::GrowthLockInfo),
             target: parse_quote!(GroupGrowthLockInfoResult),
             function: parse_quote!(project_group_growth_lock_info),
@@ -220,6 +231,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::GroupOverview,
             source: parse_quote!(whatsapp_rust::features::GroupOverview),
             target: parse_quote!(GroupOverviewResult),
             function: parse_quote!(project_group_overview),
@@ -239,6 +251,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::GroupMetadata,
             source: parse_quote!(whatsapp_rust::features::GroupMetadata),
             target: parse_quote!(GroupMetadataResult),
             function: parse_quote!(project_group_metadata),
@@ -360,6 +373,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::CommunityLinkFailure,
             source: parse_quote!(whatsapp_rust::features::SubgroupFailure),
             target: parse_quote!(CommunityLinkFailureResult),
             function: parse_quote!(project_community_link_failure),
@@ -372,19 +386,22 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
     ];
-    for (source, function, groups) in [
+    for (projection, source, function, groups) in [
         (
+            Projection::CommunityLink,
             parse_quote!(whatsapp_rust::features::LinkSubgroupsResult),
             parse_quote!(project_community_link),
             "linked_jids",
         ),
         (
+            Projection::CommunityUnlink,
             parse_quote!(whatsapp_rust::features::UnlinkSubgroupsResult),
             parse_quote!(project_community_unlink),
             "unlinked_jids",
         ),
     ] {
         descriptors.push(Descriptor {
+            projection,
             source,
             target: parse_quote!(CommunityLinkResult),
             function,

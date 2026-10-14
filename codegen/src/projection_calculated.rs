@@ -3,6 +3,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
     use Codec::*;
     vec![
         Descriptor {
+            projection: Projection::MemoryDiagnostics,
             source: parse_quote!(whatsapp_rust::client::ResourceReport),
             target: parse_quote!(MemoryDiagnosticsResult),
             function: parse_quote!(project_memory_diagnostics),
@@ -355,6 +356,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::NewChatMessageCapping,
             source: parse_quote!(whatsapp_rust::NewChatMessageCapping),
             target: parse_quote!(NewChatMessageCappingResult),
             function: parse_quote!(project_new_chat_message_capping),
@@ -377,6 +379,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::CreatePoll,
             source: parse_quote!(whatsapp_rust::CreatedPoll),
             target: parse_quote!(CreatePollResult),
             function: parse_quote!(project_create_poll),
@@ -395,6 +398,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::NewsletterMessage,
             source: parse_quote!(whatsapp_rust::NewsletterMessage),
             target: parse_quote!(NewsletterMessageResult),
             function: parse_quote!(project_newsletter_message),
@@ -467,6 +471,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::NewsletterPollVote,
             source: parse_quote!(whatsapp_rust::NewsletterPollVote),
             target: parse_quote!(NewsletterPollVoteResult),
             function: parse_quote!(project_newsletter_poll_vote),
@@ -484,6 +489,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::IsOnWhatsApp,
             source: parse_quote!(whatsapp_rust::wacore::iq::usync::IsOnWhatsAppResult),
             target: parse_quote!(IsOnWhatsAppResult),
             function: parse_quote!(project_is_on_whats_app),
@@ -517,6 +523,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::UserInfo,
             source: parse_quote!(whatsapp_rust::wacore::iq::usync::UserInfo),
             target: parse_quote!(UserInfoResult),
             function: parse_quote!(project_user_info),
@@ -548,6 +555,7 @@ pub(super) fn descriptors() -> Vec<Descriptor> {
             ],
         },
         Descriptor {
+            projection: Projection::ProfilePictureInfo,
             source: parse_quote!(whatsapp_rust::wacore::iq::contacts::ProfilePicture),
             target: parse_quote!(ProfilePictureInfo),
             function: parse_quote!(project_profile_picture_info),

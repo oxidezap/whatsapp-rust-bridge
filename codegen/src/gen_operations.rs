@@ -108,8 +108,6 @@ fn main() {
                     "codegen/src/events.rs"
                 } else if name == "teardown" {
                     "codegen/src/lifecycle.rs"
-                } else if name == "storage_crud" {
-                    "codegen/src/storage_crud.rs"
                 } else if name == "projections" {
                     "codegen/src/projections.rs"
                 } else if name == "storage" {
