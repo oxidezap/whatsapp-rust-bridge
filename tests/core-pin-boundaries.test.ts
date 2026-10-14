@@ -19,6 +19,28 @@ async function rejects(call: () => unknown, field: string) {
   throw new Error("expected a typed input rejection");
 }
 
+test("each atomic callback is mandatory before any storage I/O", async () => {
+  const names = ["commitPatch", "touchTcTokenSenderTimestamp", "storeReceivedTcToken"];
+  for (const name of names) {
+    for (const replacement of [undefined, 42]) {
+      let calls = 0;
+      const store = {
+        async get() { calls++; return null; },
+        async set() { calls++; },
+        async delete() { calls++; },
+        async commitPatch() { throw new Error("unexpected patch"); },
+        async touchTcTokenSenderTimestamp() { throw new Error("unexpected token merge"); },
+        async storeReceivedTcToken() { throw new Error("unexpected token merge"); },
+        [name]: replacement,
+      };
+      await rejects(() => createWhatsAppClient(
+        { connect() {}, send() {}, disconnect() {} }, createHttp(), null, store as never
+      ), "store");
+      expect(calls).toBe(0);
+    }
+  }
+});
+
 test("typed message IDs reject empty IDs before entering the offline core", async () => {
   const value = await client();
   try {

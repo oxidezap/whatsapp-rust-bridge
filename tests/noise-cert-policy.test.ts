@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./fixtures/unexercised-atomic-storage.js";
 /**
  * The eighth `createWhatsAppClient` argument selects Noise cert verification.
  *
@@ -36,6 +37,7 @@ describe("the Noise cert policy construction argument", () => {
     async (value) => {
       const storageCalls: string[] = [];
       const store = {
+        ...unexercisedAtomicStorage,
         get: async (...args: unknown[]) => {
           storageCalls.push("get");
           return null;
@@ -70,6 +72,7 @@ describe("the Noise cert policy construction argument", () => {
     "an accepted %p policy value constructs successfully",
     async (value) => {
       const store = {
+        ...unexercisedAtomicStorage,
         get: async () => {
           return null;
         },

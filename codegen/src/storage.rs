@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 #[derive(Clone, Copy)]
 enum Support {
     Required,
+    RequiredAtomic,
     Optional,
     DeclaredOnly,
 }
@@ -55,7 +56,7 @@ fn catalog() -> Vec<Callback> {
         Callback {
             name: "commitPatch",
             field: "commit_patch_fn",
-            support: Support::Optional,
+            support: Support::RequiredAtomic,
             capability: None,
             parameters: "name: string, state: Uint8Array, removedKeys: string[], added: [key: string, value: Uint8Array][], maintainIndex: boolean",
             result: "void",
@@ -71,7 +72,7 @@ fn catalog() -> Vec<Callback> {
         Callback {
             name: "touchTcTokenSenderTimestamp",
             field: "touch_tc_token_fn",
-            support: Support::Optional,
+            support: Support::RequiredAtomic,
             capability: None,
             parameters: "jid: string, senderTimestamp: string",
             result: "void",
@@ -85,7 +86,7 @@ fn catalog() -> Vec<Callback> {
         Callback {
             name: "storeReceivedTcToken",
             field: "store_received_tc_token_fn",
-            support: Support::Optional,
+            support: Support::RequiredAtomic,
             capability: None,
             parameters: "jid: string, token: Uint8Array, tokenTimestamp: string",
             result: "void",
@@ -183,7 +184,10 @@ fn typescript(callbacks: &[Callback]) -> String {
         result.push_str(&format!(
             "  {}{}({}): Promise<{}>;\n",
             callback.name,
-            if matches!(callback.support, Support::Required) {
+            if matches!(
+                callback.support,
+                Support::Required | Support::RequiredAtomic
+            ) {
                 ""
             } else {
                 "?"
@@ -223,8 +227,16 @@ pub fn emit() -> TokenStream {
         assert!(fields.insert(callback.field), "duplicate storage handle");
         let field = format_ident!("{}", callback.field);
         let name = callback.name;
-        if matches!(callback.support, Support::Required) {
-            declarations.push(quote!(pub #field: js_sys::Function,));
+        if matches!(
+            callback.support,
+            Support::Required | Support::RequiredAtomic
+        ) {
+            let atomic = matches!(callback.support, Support::RequiredAtomic);
+            declarations.push(if atomic {
+                quote!(pub #field: Option<js_sys::Function>,)
+            } else {
+                quote!(pub #field: js_sys::Function,)
+            });
             let required = format!("store.{name} is required");
             let wrong_type = format!("store.{name} must be a function");
             extraction.push(quote!(
@@ -233,6 +245,9 @@ pub fn emit() -> TokenStream {
                     .dyn_into::<js_sys::Function>()
                     .map_err(|_| crate::errors::invalid_arg("store", #wrong_type))?;
             ));
+            if atomic {
+                extraction.push(quote!(let #field = Some(#field);));
+            }
             initialization.push(quote!(#field,));
         } else {
             declarations.push(quote!(pub #field: Option<js_sys::Function>,));
@@ -285,6 +300,8 @@ const INTERFACE_DOC: &str = r###"/**
  * fixed STORE_* namespaces (e.g. "session", "msg_secret", "lid_mapping") and
  * `key` is an opaque, namespace-scoped id; values are raw bytes.
  *
+ * All six CRUD and atomic callbacks are mandatory at construction.
+ * Missing or non-function callbacks reject before backend initialization.
  * `get`/`set`/`delete` provide ordinary CRUD. The atomic callbacks are required
  * to commit app-state patches and merge trusted-contact tokens: a three-method
  * store cannot implement those operations safely. They never fall back to

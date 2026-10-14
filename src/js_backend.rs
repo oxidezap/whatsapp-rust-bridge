@@ -2240,7 +2240,20 @@ mod generated_callback_tests {
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     fn object(source: &str) -> JsValue {
-        js_sys::eval(source).expect("storage callback fixture")
+        let value = js_sys::eval(source).expect("storage callback fixture");
+        for name in [
+            "commitPatch",
+            "touchTcTokenSenderTimestamp",
+            "storeReceivedTcToken",
+        ] {
+            if !js_sys::Reflect::has(&value, &name.into()).unwrap() {
+                let reject = js_sys::Function::new_no_args(
+                    "throw new Error('atomic operation not exercised by this fixture')",
+                );
+                js_sys::Reflect::set(&value, &name.into(), &reject).unwrap();
+            }
+        }
+        value
     }
 
     #[test]
@@ -2249,7 +2262,7 @@ mod generated_callback_tests {
             r#"(() => {
             const reads = [];
             const store = { reads };
-            for (const name of ['get','set','delete','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
+            for (const name of ['get','set','delete','commitPatch','touchTcTokenSenderTimestamp','storeReceivedTcToken','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
                 Object.defineProperty(store, name, { get() { reads.push(name); return () => null; } });
             }
             Object.defineProperty(store, 'capabilities', { get() { reads.push('capabilities'); return {}; } });
@@ -2274,6 +2287,9 @@ mod generated_callback_tests {
                 "get",
                 "set",
                 "delete",
+                "commitPatch",
+                "touchTcTokenSenderTimestamp",
+                "storeReceivedTcToken",
                 "setMany",
                 "deleteMany",
                 "getMany",

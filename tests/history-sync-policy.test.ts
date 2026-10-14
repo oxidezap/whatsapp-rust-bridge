@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./fixtures/unexercised-atomic-storage.js";
 import { describe, test, expect, beforeAll } from "bun:test";
 import { createWhatsAppClient, initWasmEngine } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
@@ -25,6 +26,7 @@ describe("the history-sync policy construction argument", () => {
     async (value) => {
       const storageCalls: string[] = [];
       const store = {
+        ...unexercisedAtomicStorage,
         get: async () => {
           storageCalls.push("get");
           return null;
