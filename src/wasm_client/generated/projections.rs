@@ -751,3 +751,974 @@ pub(crate) fn project_profile_picture(
 ) -> ProfilePictureResult {
     ProfilePictureResult { id: source.id }
 }
+#[doc = "Per-mode colours for a bot's card."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BotThemeResult {
+    pub mode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secondary_text: Option<String>,
+}
+pub(crate) fn project_bot_theme(source: &whatsapp_rust::features::BotTheme) -> BotThemeResult {
+    BotThemeResult {
+        mode: source.mode.as_str().to_owned(),
+        background: source.background.clone(),
+        primary_text: source.primary_text.clone(),
+        secondary_text: source.secondary_text.clone(),
+    }
+}
+#[doc = "One bot in the directory."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListEntryResult {
+    pub jid: String,
+    pub persona_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<f64>,
+    pub themes: Vec<BotThemeResult>,
+}
+pub(crate) fn project_bot_list_entry(
+    source: &whatsapp_rust::features::BotListEntry,
+) -> BotListEntryResult {
+    BotListEntryResult {
+        jid: source.jid.to_string(),
+        persona_id: source.persona_id.clone(),
+        card_title: source.card_title.clone(),
+        count: source.count.as_ref().map(|value| *value as f64),
+        themes: source.themes.iter().map(project_bot_theme).collect(),
+    }
+}
+#[doc = "One section of the bot directory."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListSectionResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub section_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_type: Option<String>,
+    pub bots: Vec<BotListEntryResult>,
+}
+pub(crate) fn project_bot_list_section(
+    source: &whatsapp_rust::features::BotListSection,
+) -> BotListSectionResult {
+    BotListSectionResult {
+        name: source.name.clone(),
+        section_type: source.section_type.as_str().to_owned(),
+        display_type: source
+            .display_type
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        bots: source.bots.iter().map(project_bot_list_entry).collect(),
+    }
+}
+#[doc = "The bot the server marks as the one to offer by default."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BotDefaultResult {
+    pub jid: String,
+    pub persona_id: String,
+}
+pub(crate) fn project_bot_default(
+    source: &whatsapp_rust::features::BotDefault,
+) -> BotDefaultResult {
+    BotDefaultResult {
+        jid: source.jid.to_string(),
+        persona_id: source.persona_id.clone(),
+    }
+}
+#[doc = "Result from `getBotList`.\n\nSections arrive as the server grouped them. The core keeps every section\nbecause a bot can be carried by a `category` or `featured` section and by no\nother, so flattening is a consumer's decision, not the bridge's."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BotListResult {
+    pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bhash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_bot: Option<BotDefaultResult>,
+    pub sections: Vec<BotListSectionResult>,
+}
+pub(crate) fn project_bot_list(source: &whatsapp_rust::features::BotList) -> BotListResult {
+    BotListResult {
+        version: source.version.as_str().to_owned(),
+        bhash: source.bhash.clone(),
+        default_bot: source.default_bot.as_ref().map(project_bot_default),
+        sections: source
+            .sections
+            .iter()
+            .map(project_bot_list_section)
+            .collect(),
+    }
+}
+#[doc = "Invite fallback returned for a participant that could not be added directly."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ParticipantAddRequestResult {
+    pub code: String,
+    pub expiration: f64,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_participant_add_request(
+    source: &whatsapp_rust::wacore::iq::groups::AddRequestInfo,
+) -> ParticipantAddRequestResult {
+    ParticipantAddRequestResult {
+        code: source.code.clone(),
+        expiration: source.expiration as f64,
+    }
+}
+#[doc = "A participant change result from `groupParticipantsUpdate`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ParticipantChangeResult {
+    pub jid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub add_request: Option<ParticipantAddRequestResult>,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_participant_change(
+    source: &whatsapp_rust::features::ParticipantChangeResponse,
+) -> ParticipantChangeResult {
+    ParticipantChangeResult {
+        jid: source.jid.to_string(),
+        status: source.status.clone(),
+        error: source.error.clone(),
+        phone_number: source.phone_number.as_ref().map(|value| value.to_string()),
+        username: source.username.clone(),
+        add_request: source
+            .add_request
+            .as_ref()
+            .map(project_participant_add_request),
+    }
+}
+#[doc = "Result from newsletter methods."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterMetadataResult {
+    pub jid: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub subscriber_count: f64,
+    pub verification: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preview_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invite_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creation_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub muted: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follower_activity_muted: Option<bool>,
+}
+#[cfg(feature = "client-newsletter")]
+pub(crate) fn project_newsletter_metadata(
+    source: &whatsapp_rust::features::NewsletterMetadata,
+) -> NewsletterMetadataResult {
+    NewsletterMetadataResult {
+        jid: source.jid.to_string(),
+        name: source.name.to_string(),
+        description: source.description.clone(),
+        subscriber_count: source.subscriber_count as f64,
+        verification: crate::wasm_client::newsletter_verification_str(&source.verification),
+        state: crate::wasm_client::newsletter_state_str(&source.state),
+        picture_url: source.picture_url.clone(),
+        preview_url: source.preview_url.clone(),
+        invite_code: source.invite_code.clone(),
+        role: source
+            .role
+            .as_ref()
+            .map(crate::wasm_client::newsletter_role_str),
+        creation_time: source.creation_time.as_ref().map(|value| *value as f64),
+        muted: source.muted.as_ref().map(|value| *value),
+        follower_activity_muted: source.follower_activity_muted.as_ref().map(|value| *value),
+    }
+}
+#[doc = "Group participant info as returned from `getGroupMetadata` / cached group\nstate. Distinct from `wacore::stanza::groups::GroupParticipantInfo` (the\nevent-time variant that carries `Jid` objects on the wire); naming it\nseparately avoids the TypeScript collision that forced consumers to cast."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupMetadataParticipant {
+    pub jid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone_number: Option<String>,
+    #[doc = "LID counterpart when `jid` is a phone-number JID."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lid: Option<String>,
+    #[doc = "Meta username carried by the participant node, when present."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[doc = "Protocol role (`member`, `admin`, or `superadmin`)."]
+    pub participant_type: String,
+    pub is_admin: bool,
+    pub is_super_admin: bool,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_group_metadata_participant(
+    source: &whatsapp_rust::features::GroupParticipant,
+) -> GroupMetadataParticipant {
+    GroupMetadataParticipant {
+        jid: source.jid.to_string(),
+        phone_number: source.phone_number.as_ref().map(|value| value.to_string()),
+        lid: source.lid.as_ref().map(|value| value.to_string()),
+        username: source.username.as_ref().map(|value| value.to_string()),
+        participant_type: source.participant_type.as_str().to_owned(),
+        is_admin: source.is_admin(),
+        is_super_admin: source.is_super_admin(),
+    }
+}
+#[doc = "Disappearing-message settings returned by the group `<ephemeral>` node.\n\nThe outer `Option` on `GroupMetadataResult::ephemeral` preserves the\ndistinction between an absent node and a present node whose values are\nzero or omitted."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupEphemeralSettingsResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trigger: Option<f64>,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_group_ephemeral_settings(
+    source: &whatsapp_rust::features::GroupEphemeralSettings,
+) -> GroupEphemeralSettingsResult {
+    GroupEphemeralSettingsResult {
+        expiration: source.expiration.as_ref().map(|value| *value as f64),
+        trigger: source.trigger.as_ref().map(|value| *value as f64),
+    }
+}
+#[doc = "Server-managed group growth lock information."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupGrowthLockInfoResult {
+    pub lock_type: String,
+    pub expiration: f64,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_group_growth_lock_info(
+    source: &whatsapp_rust::features::GrowthLockInfo,
+) -> GroupGrowthLockInfoResult {
+    GroupGrowthLockInfoResult {
+        lock_type: source.lock_type.clone(),
+        expiration: source.expiration as f64,
+    }
+}
+#[doc = "Slim group listing; the core no longer returns participants or settings here."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupOverviewResult {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    pub hierarchy: GroupHierarchyResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<f64>,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_group_overview(
+    source: &whatsapp_rust::features::GroupOverview,
+) -> GroupOverviewResult {
+    GroupOverviewResult {
+        id: source.id.to_string(),
+        subject: source.subject.clone(),
+        hierarchy: crate::result_types::project_group_hierarchy(&source.hierarchy),
+        participant_count: source.participant_count.as_ref().map(|value| *value as f64),
+    }
+}
+#[doc = "Result from `getGroupMetadata`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupMetadataResult {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify: Option<String>,
+    pub participants: Vec<GroupMetadataParticipant>,
+    pub addressing_mode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creator_country_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creation_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_time: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_owner: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_owner_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_owner_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner_pn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_owner_username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_time: Option<f64>,
+    pub is_locked: bool,
+    pub is_announcement: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ephemeral: Option<GroupEphemeralSettingsResult>,
+    pub membership_approval: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_add_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_link_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<f64>,
+    pub is_parent_group: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_group_jid: Option<String>,
+    pub is_default_sub_group: bool,
+    pub is_general_chat: bool,
+    pub allow_non_admin_sub_group_creation: bool,
+    pub no_frequently_forwarded: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_share_history_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub growth_locked: Option<GroupGrowthLockInfoResult>,
+    pub is_suspended: bool,
+    pub allow_admin_reports: bool,
+    pub is_hidden_group: bool,
+    pub is_incognito: bool,
+    pub has_group_history: bool,
+    pub is_limit_sharing_enabled: bool,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_group_metadata(
+    source: &whatsapp_rust::features::GroupMetadata,
+) -> GroupMetadataResult {
+    GroupMetadataResult {
+        id: source.id.to_string(),
+        subject: source.subject.clone(),
+        notify: source.notify.clone(),
+        participants: source
+            .participants
+            .iter()
+            .map(project_group_metadata_participant)
+            .collect(),
+        addressing_mode: source.addressing_mode.as_str().to_owned(),
+        creator: source.creator.as_ref().map(|value| value.to_string()),
+        creator_pn: source.creator_pn.as_ref().map(|value| value.to_string()),
+        creator_username: source.creator_username.clone(),
+        creator_country_code: source.creator_country_code.clone(),
+        creation_time: source.creation_time.as_ref().map(|value| *value as f64),
+        subject_time: source.subject_time.as_ref().map(|value| *value as f64),
+        subject_owner: source.subject_owner.as_ref().map(|value| value.to_string()),
+        subject_owner_pn: source
+            .subject_owner_pn
+            .as_ref()
+            .map(|value| value.to_string()),
+        subject_owner_username: source.subject_owner_username.clone(),
+        description: source.description.clone(),
+        description_id: source.description_id.clone(),
+        description_owner: source
+            .description_owner
+            .as_ref()
+            .map(|value| value.to_string()),
+        description_owner_pn: source
+            .description_owner_pn
+            .as_ref()
+            .map(|value| value.to_string()),
+        description_owner_username: source.description_owner_username.clone(),
+        description_time: source.description_time.as_ref().map(|value| *value as f64),
+        is_locked: source.is_locked,
+        is_announcement: source.is_announcement,
+        ephemeral: source
+            .ephemeral
+            .as_ref()
+            .map(project_group_ephemeral_settings),
+        membership_approval: source.membership_approval,
+        member_add_mode: source
+            .member_add_mode
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        member_link_mode: source
+            .member_link_mode
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        participant_count: source.participant_count.as_ref().map(|value| *value as f64),
+        is_parent_group: source.is_parent_group,
+        parent_group_jid: source
+            .parent_group_jid
+            .as_ref()
+            .map(|value| value.to_string()),
+        is_default_sub_group: source.is_default_sub_group,
+        is_general_chat: source.is_general_chat,
+        allow_non_admin_sub_group_creation: source.allow_non_admin_sub_group_creation,
+        no_frequently_forwarded: source.no_frequently_forwarded,
+        member_share_history_mode: source
+            .member_share_history_mode
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        growth_locked: source
+            .growth_locked
+            .as_ref()
+            .map(project_group_growth_lock_info),
+        is_suspended: source.is_suspended,
+        allow_admin_reports: source.allow_admin_reports,
+        is_hidden_group: source.is_hidden_group,
+        is_incognito: source.is_incognito,
+        has_group_history: source.has_group_history,
+        is_limit_sharing_enabled: source.is_limit_sharing_enabled,
+    }
+}
+#[doc = "One failed parent/subgroup relationship mutation."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunityLinkFailureResult {
+    pub jid: String,
+    pub error: f64,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_community_link_failure(
+    source: &whatsapp_rust::features::SubgroupFailure,
+) -> CommunityLinkFailureResult {
+    CommunityLinkFailureResult {
+        jid: source.jid.to_string(),
+        error: source.code as f64,
+    }
+}
+#[doc = "Result of linking or unlinking subgroups."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CommunityLinkResult {
+    pub succeeded: Vec<String>,
+    pub failed: Vec<CommunityLinkFailureResult>,
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_community_link(
+    source: &whatsapp_rust::features::LinkSubgroupsResult,
+) -> CommunityLinkResult {
+    CommunityLinkResult {
+        succeeded: source.linked_jids.iter().map(ToString::to_string).collect(),
+        failed: source
+            .failed_groups
+            .iter()
+            .map(project_community_link_failure)
+            .collect(),
+    }
+}
+#[cfg(feature = "client-groups")]
+pub(crate) fn project_community_unlink(
+    source: &whatsapp_rust::features::UnlinkSubgroupsResult,
+) -> CommunityLinkResult {
+    CommunityLinkResult {
+        succeeded: source
+            .unlinked_jids
+            .iter()
+            .map(ToString::to_string)
+            .collect(),
+        failed: source
+            .failed_groups
+            .iter()
+            .map(project_community_link_failure)
+            .collect(),
+    }
+}
+#[doc = "Result from `getMemoryDiagnostics`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryDiagnosticsResult {
+    pub group_cache: f64,
+    pub group_cache_bytes: f64,
+    pub device_registry_cache: f64,
+    pub device_registry_cache_bytes: f64,
+    pub sender_key_device_cache: f64,
+    pub sender_key_device_cache_bytes: f64,
+    pub group_devices_memo: f64,
+    pub group_devices_memo_bytes: f64,
+    pub lid_pn_lid_entries: f64,
+    pub lid_pn_lid_bytes: f64,
+    pub lid_pn_pn_entries: f64,
+    pub lid_pn_pn_bytes: f64,
+    pub recent_messages: f64,
+    pub recent_messages_bytes: f64,
+    pub message_retry_counts: f64,
+    pub undecryptable_dispatched: f64,
+    pub pdo_pending_requests: f64,
+    pub pdo_requested: f64,
+    pub session_locks: f64,
+    pub chat_lanes: f64,
+    pub group_distribution_locks: f64,
+    pub group_distribution_lock_evictions: f64,
+    pub group_distribution_lock_eviction_blocks: f64,
+    pub resend_rate_limiter_chats: f64,
+    pub response_waiters: f64,
+    pub node_waiters: f64,
+    pub pending_retries: f64,
+    pub presence_subscriptions: f64,
+    pub app_state_key_requests: f64,
+    pub app_state_syncing: f64,
+    pub signal_cache_sessions: f64,
+    pub signal_cache_sessions_bytes: f64,
+    pub signal_cache_identities: f64,
+    pub signal_cache_identities_bytes: f64,
+    pub signal_cache_sender_keys: f64,
+    pub signal_cache_sender_keys_bytes: f64,
+    pub history_sync_tasks: f64,
+    pub history_sync_payload_bytes: f64,
+    pub history_sync_peak_tasks: f64,
+    pub history_sync_peak_payload_bytes: f64,
+    pub chatstate_handlers: f64,
+    pub custom_enc_handlers: f64,
+    pub client_estimated_bytes: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_memory_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_pages: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_io_read_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_io_write_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_read_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_write_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transport_tls_state_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_pool_connections: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_pool_buffer_bytes: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_inflight_bytes: Option<f64>,
+    pub resource_estimated_bytes: f64,
+}
+pub(crate) fn project_memory_diagnostics(
+    source: &whatsapp_rust::client::ResourceReport,
+) -> MemoryDiagnosticsResult {
+    MemoryDiagnosticsResult {
+        group_cache: source.client.group_cache.entries as f64,
+        group_cache_bytes: source.client.group_cache.bytes as f64,
+        device_registry_cache: source.client.device_registry_cache.entries as f64,
+        device_registry_cache_bytes: source.client.device_registry_cache.bytes as f64,
+        sender_key_device_cache: source.client.sender_key_device_cache.entries as f64,
+        sender_key_device_cache_bytes: source.client.sender_key_device_cache.bytes as f64,
+        group_devices_memo: source.client.group_devices_memo.entries as f64,
+        group_devices_memo_bytes: source.client.group_devices_memo.bytes as f64,
+        lid_pn_lid_entries: source.client.lid_pn_lid_entries.entries as f64,
+        lid_pn_lid_bytes: source.client.lid_pn_lid_entries.bytes as f64,
+        lid_pn_pn_entries: source.client.lid_pn_pn_entries.entries as f64,
+        lid_pn_pn_bytes: source.client.lid_pn_pn_entries.bytes as f64,
+        recent_messages: source.client.recent_messages.entries as f64,
+        recent_messages_bytes: source.client.recent_messages.bytes as f64,
+        message_retry_counts: source.client.message_retry_counts as f64,
+        undecryptable_dispatched: source.client.undecryptable_dispatched as f64,
+        pdo_pending_requests: source.client.pdo_pending_requests as f64,
+        pdo_requested: source.client.pdo_requested as f64,
+        session_locks: source.client.session_locks as f64,
+        chat_lanes: source.client.chat_lanes as f64,
+        group_distribution_locks: source.client.group_distribution_locks as f64,
+        group_distribution_lock_evictions: source.client.group_distribution_lock_evictions as f64,
+        group_distribution_lock_eviction_blocks: source
+            .client
+            .group_distribution_lock_eviction_blocks
+            as f64,
+        resend_rate_limiter_chats: source.client.resend_rate_limiter_chats as f64,
+        response_waiters: source.client.response_waiters as f64,
+        node_waiters: source.client.node_waiters as f64,
+        pending_retries: source.client.pending_retries as f64,
+        presence_subscriptions: source.client.presence_subscriptions as f64,
+        app_state_key_requests: source.client.app_state_key_requests as f64,
+        app_state_syncing: source.client.app_state_syncing as f64,
+        signal_cache_sessions: source.client.signal_sessions.entries as f64,
+        signal_cache_sessions_bytes: source.client.signal_sessions.bytes as f64,
+        signal_cache_identities: source.client.signal_identities.entries as f64,
+        signal_cache_identities_bytes: source.client.signal_identities.bytes as f64,
+        signal_cache_sender_keys: source.client.signal_sender_keys.entries as f64,
+        signal_cache_sender_keys_bytes: source.client.signal_sender_keys.bytes as f64,
+        history_sync_tasks: source.client.history_sync_tasks.entries as f64,
+        history_sync_payload_bytes: source.client.history_sync_tasks.bytes as f64,
+        history_sync_peak_tasks: source.client.history_sync_tasks_peak as f64,
+        history_sync_peak_payload_bytes: source.client.history_sync_payload_bytes_peak as f64,
+        chatstate_handlers: source.client.chatstate_handlers as f64,
+        custom_enc_handlers: source.client.custom_enc_handlers as f64,
+        client_estimated_bytes: source.client.total_estimated_bytes() as f64,
+        storage_memory_bytes: source
+            .storage
+            .memory_bytes
+            .as_ref()
+            .map(|value| *value as f64),
+        storage_pages: source.storage.pages.as_ref().map(|value| *value as f64),
+        storage_io_read_bytes: source
+            .storage
+            .io_read_bytes
+            .as_ref()
+            .map(|value| *value as f64),
+        storage_io_write_bytes: source
+            .storage
+            .io_write_bytes
+            .as_ref()
+            .map(|value| *value as f64),
+        transport_read_buffer_bytes: source
+            .transport
+            .as_ref()
+            .and_then(|value| value.read_buffer_bytes.as_ref())
+            .map(|value| *value as f64),
+        transport_write_buffer_bytes: source
+            .transport
+            .as_ref()
+            .and_then(|value| value.write_buffer_bytes.as_ref())
+            .map(|value| *value as f64),
+        transport_tls_state_bytes: source
+            .transport
+            .as_ref()
+            .and_then(|value| value.tls_state_bytes.as_ref())
+            .map(|value| *value as f64),
+        http_pool_connections: source
+            .http
+            .as_ref()
+            .and_then(|value| value.pool_connections.as_ref())
+            .map(|value| *value as f64),
+        http_pool_buffer_bytes: source
+            .http
+            .as_ref()
+            .and_then(|value| value.pool_buffer_bytes.as_ref())
+            .map(|value| *value as f64),
+        http_inflight_bytes: source
+            .http
+            .as_ref()
+            .and_then(|value| value.inflight_bytes.as_ref())
+            .map(|value| *value as f64),
+        resource_estimated_bytes: source.total_estimated_bytes() as f64,
+    }
+}
+#[doc = "Result from `fetchNewChatMessageCappingInfo`.\n\nEvery field is optional because the server omits the ones that do not apply\nto an account's tier. `remainingQuota` is the core's own derivation, present\nonly when both quota fields are."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NewChatMessageCappingResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capping_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ote_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mv_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_quota: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub used_quota: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cycle_start_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cycle_end_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_sent_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_quota: Option<f64>,
+}
+pub(crate) fn project_new_chat_message_capping(
+    source: &whatsapp_rust::NewChatMessageCapping,
+) -> NewChatMessageCappingResult {
+    NewChatMessageCappingResult {
+        capping_status: source
+            .capping_status
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        ote_status: source
+            .ote_status
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        mv_status: source
+            .mv_status
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        total_quota: source.total_quota.as_ref().map(|value| *value as f64),
+        used_quota: source.used_quota.as_ref().map(|value| *value as f64),
+        cycle_start_timestamp: source
+            .cycle_start_timestamp
+            .as_ref()
+            .map(|value| *value as f64),
+        cycle_end_timestamp: source
+            .cycle_end_timestamp
+            .as_ref()
+            .map(|value| *value as f64),
+        server_sent_timestamp: source
+            .server_sent_timestamp
+            .as_ref()
+            .map(|value| *value as f64),
+        remaining_quota: source.remaining_quota().as_ref().map(|value| *value as f64),
+    }
+}
+#[doc = "Result from `createPoll`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePollResult {
+    pub message_id: String,
+    #[tsify(type = "Uint8Array")]
+    #[serde(with = "serde_bytes")]
+    pub message_secret: Vec<u8>,
+}
+pub(crate) fn project_create_poll(source: &whatsapp_rust::CreatedPoll) -> CreatePollResult {
+    CreatePollResult {
+        message_id: source.send_result().message_id.to_string(),
+        message_secret: source.secret().as_bytes().to_vec(),
+    }
+}
+#[doc = "One message from `newsletterMessages`.\n\n`serverId` is the pagination cursor and the key `newsletterReactMessage`\nuses; `messageId` is what edit and revoke key on. They are different ids and\nboth cross as strings, since a `serverId` is a u64."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterMessageResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+    pub server_id: String,
+    pub timestamp: f64,
+    pub message_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_type_raw: Option<String>,
+    pub edit: String,
+    pub is_sender: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
+    pub votes: Vec<NewsletterPollVoteResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub forwards_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub views_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub responses_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_edit_timestamp_ms: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_type_raw: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub question_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_association_type: Option<String>,
+    pub is_wamo_sub: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_profile: Option<NewsletterAdminProfileResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rcat: Option<serde_bytes::ByteBuf>,
+    #[doc = "The decoded protobuf, re-encoded. Absent when the stanza carried none."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<serde_bytes::ByteBuf>,
+    pub reactions: Vec<NewsletterReactionCountResult>,
+}
+#[cfg(feature = "client-newsletter")]
+pub(crate) fn project_newsletter_message(
+    source: &whatsapp_rust::NewsletterMessage,
+) -> NewsletterMessageResult {
+    NewsletterMessageResult {
+        message_id: source.message_id.as_ref().map(|value| value.to_string()),
+        server_id: source.server_id.to_string(),
+        timestamp: source.timestamp as f64,
+        message_type: source.message_type.as_str().to_owned(),
+        message_type_raw: source.message_type_raw.clone(),
+        edit: source.edit.as_str().to_owned(),
+        is_sender: source.is_sender,
+        media_type: source
+            .media_type
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        votes: source
+            .votes
+            .iter()
+            .map(project_newsletter_poll_vote)
+            .collect(),
+        forwards_count: source
+            .forwards_count
+            .as_ref()
+            .map(|value| value.to_string()),
+        views_count: source.views_count.as_ref().map(|value| value.to_string()),
+        responses_count: source
+            .responses_count
+            .as_ref()
+            .map(|value| value.to_string()),
+        original_timestamp: source
+            .original_timestamp
+            .as_ref()
+            .map(|value| value.to_string()),
+        last_edit_timestamp_ms: source
+            .last_edit_timestamp_ms
+            .as_ref()
+            .map(|value| value.to_string()),
+        poll_type: source
+            .poll_type
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        poll_type_raw: source.poll_type_raw.clone(),
+        content_type: source.content_type.clone(),
+        question_type: source
+            .question_type
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        message_association_type: source
+            .message_association_type
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
+        is_wamo_sub: source.is_wamo_sub,
+        admin_profile: source
+            .admin_profile
+            .as_ref()
+            .map(project_newsletter_admin_profile),
+        rcat: source
+            .rcat
+            .as_ref()
+            .map(|value| serde_bytes::ByteBuf::from(value.to_vec())),
+        message: source.message.as_ref().map(|value| {
+            serde_bytes::ByteBuf::from(whatsapp_rust::waproto::codec::message_to_vec(value))
+        }),
+        reactions: source
+            .reactions
+            .iter()
+            .map(project_newsletter_reaction_count)
+            .collect(),
+    }
+}
+#[doc = "The core's u64 tally crosses exactly, just like the server-id cursor."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NewsletterPollVoteResult {
+    pub option_hash: serde_bytes::ByteBuf,
+    pub count: String,
+}
+#[cfg(feature = "client-newsletter")]
+pub(crate) fn project_newsletter_poll_vote(
+    source: &whatsapp_rust::NewsletterPollVote,
+) -> NewsletterPollVoteResult {
+    NewsletterPollVoteResult {
+        option_hash: serde_bytes::ByteBuf::from(source.option_hash.to_vec()),
+        count: source.count.to_string(),
+    }
+}
+#[doc = "Result from `isOnWhatsApp`.\n\nMirrors the core `IsOnWhatsAppResult` so callers get the LID/PN counterpart\nand business flag from the same usync round trip — no follow-up\n`fetchUserInfo` IQ needed for the common \"check + enrich\" flow."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct IsOnWhatsAppResult {
+    pub jid: String,
+    pub is_registered: bool,
+    #[doc = "LID counterpart of `jid` when the input was a PN, populated from the\nusync `<lid>` attribute (or the local LID/PN cache)."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lid: Option<String>,
+    #[doc = "PN counterpart, set when the server responds with a LID as primary JID."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pn_jid: Option<String>,
+    pub is_business: bool,
+    #[doc = "Verified business name from the usync `<business><verified_name>` cert, if any."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verified_name: Option<String>,
+    #[doc = "Meta username, without the display-only `@` prefix. Absent when the\nserver reported none, which is also how it reports a deleted one."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+}
+#[cfg(feature = "client-contacts")]
+pub(crate) fn project_is_on_whats_app(
+    source: &whatsapp_rust::wacore::iq::usync::IsOnWhatsAppResult,
+) -> IsOnWhatsAppResult {
+    IsOnWhatsAppResult {
+        jid: project_jid_owned(&source.jid),
+        is_registered: source.is_registered,
+        lid: source.lid.as_ref().map(project_jid_owned),
+        pn_jid: source.pn_jid.as_ref().map(project_jid_owned),
+        is_business: source.is_business,
+        verified_name: source
+            .verified_name
+            .as_ref()
+            .and_then(|value| value.name.as_ref())
+            .cloned(),
+        username: source.username.as_ref().map(|value| value.to_string()),
+    }
+}
+#[doc = "A single entry from `fetchUserInfo`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct UserInfoResult {
+    pub jid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_id: Option<String>,
+    pub is_business: bool,
+    #[doc = "Verified business name from the usync `<business><verified_name>` cert, if any."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verified_name: Option<String>,
+    #[doc = "Device IDs from the usync `<devices>` sublist the same query returns. Empty when\nthe server returned no device list."]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub devices: Vec<u16>,
+    #[doc = "Meta username, without the display-only `@` prefix. Absent when the\nserver reported none, which is also how it reports a deleted one."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+}
+#[cfg(feature = "client-contacts")]
+pub(crate) fn project_user_info(
+    source: &whatsapp_rust::wacore::iq::usync::UserInfo,
+) -> UserInfoResult {
+    UserInfoResult {
+        jid: source.jid.to_string(),
+        lid: source.lid.as_ref().map(|value| value.to_string()),
+        status: source.status.clone(),
+        picture_id: source.picture_id.clone(),
+        is_business: source.is_business,
+        verified_name: source
+            .verified_name
+            .as_ref()
+            .and_then(|value| value.name.as_ref())
+            .cloned(),
+        devices: source.devices.clone(),
+        username: source.username.as_ref().map(|value| value.to_string()),
+    }
+}
+#[doc = "Result from `profilePictureUrl`."]
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfilePictureInfo {
+    pub id: String,
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direct_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hash: Option<String>,
+}
+#[cfg(feature = "client-contacts")]
+pub(crate) fn project_profile_picture_info(
+    source: &whatsapp_rust::wacore::iq::contacts::ProfilePicture,
+) -> ProfilePictureInfo {
+    ProfilePictureInfo {
+        id: source.id.clone(),
+        url: source.url.clone(),
+        direct_path: source.direct_path.clone(),
+        hash: source.hash.clone(),
+    }
+}
+#[cfg(feature = "client-contacts")]
+fn project_jid_owned(jid: &whatsapp_rust::wacore_binary::jid::Jid) -> String {
+    let mut result = String::with_capacity(jid.user.len() + jid.server.as_str().len() + 8);
+    jid.push_to(&mut result);
+    result
+}

@@ -77,7 +77,13 @@ impl WasmWhatsAppClient {
         participant: Option<String>,
     ) -> Result<String, crate::errors::BridgeError> {
         let chat = parse_jid(chat_jid)?;
-        let participant_jid = participant.as_deref().map(parse_jid).transpose()?;
+        let participant_jid = participant
+            .as_deref()
+            .map(|value| -> Result<_, crate::errors::BridgeError> {
+                let jid = parse_jid(value)?;
+                Ok(jid)
+            })
+            .transpose()?;
         let req = whatsapp_rust::MediaReuploadRequest {
             msg_id,
             chat_jid: &chat,
@@ -86,19 +92,7 @@ impl WasmWhatsAppClient {
             participant: participant_jid.as_ref(),
         };
         let client = self.client.online().await?;
-        let result = client.media_reupload().request(&req).await?;
-        match result {
-            whatsapp_rust::MediaRetryResult::Success { direct_path } => Ok(direct_path),
-            whatsapp_rust::MediaRetryResult::NotFound => {
-                Err(crate::errors::internal("Media not found on server"))
-            }
-            whatsapp_rust::MediaRetryResult::DecryptionError => {
-                Err(crate::errors::internal("Media decryption error"))
-            }
-            whatsapp_rust::MediaRetryResult::GeneralError => {
-                Err(crate::errors::internal("Media reupload failed"))
-            }
-        }
+        crate::result_types::project_media_retry(client.media_reupload().request(&req).await?)
     }
     #[doc = r" Download, decrypt, and return a Web ReadableStream of decrypted chunks."]
     #[doc = r""]

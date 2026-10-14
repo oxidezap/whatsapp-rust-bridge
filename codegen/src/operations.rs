@@ -1,13 +1,15 @@
 //! Compile-time bindings for the concrete client operations. The catalog owns
 //! admission and boundary projections; Rust still checks every emitted call.
 use crate::operation_codecs::{
-    Converter, InputCodec, JidFamily, ObjectShape, OutputCodec, ResultError, ValueCodec,
+    Converter, InputCodec, JidFamily, ObjectShape, OutputCodec, ResultError, SerializationError,
+    Serializer, ValueCodec, VariantCodec,
 };
+use crate::preparations::Preparation;
 use crate::projections::{Envelope, Projection};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use std::collections::BTreeSet;
-use syn::{Attribute, Block, Expr, Ident, Signature, parse::Parser, parse_quote, visit::Visit};
+use syn::{Attribute, Expr, Ident, Signature, parse::Parser, parse_quote, visit::Visit};
 
 mod business;
 mod chat_actions;
@@ -36,6 +38,7 @@ pub struct Operation {
 }
 
 enum Input {
+    Preparation(Preparation),
     Codec(crate::operation_codecs::InputCodec),
     Jids {
         binding: Ident,
@@ -79,13 +82,12 @@ enum Input {
         jid: Expr,
         bytes: Expr,
     },
-    // Domain builders stay explicit; validation rejects client access or await.
-    Convert(Block),
 }
 
 impl Input {
     fn emit(&self) -> TokenStream {
         match self {
+            Self::Preparation(preparation) => preparation.emit(),
             Self::Codec(codec) => codec.emit(),
             Self::Jids { binding, value } => {
                 quote!(let #binding:Vec<wacore_binary::jid::Jid>=#value.iter().map(|jid|parse_jid(jid)).collect::<Result<_,_>>()?;)
@@ -128,10 +130,6 @@ impl Input {
                 jid,
                 bytes,
             } => quote!(let #binding = parse_jid_and_msg_bytes(#jid, #bytes)?;),
-            Self::Convert(block) => {
-                let statements = &block.stmts;
-                quote!(#(#statements)*)
-            }
         }
     }
 }
@@ -193,14 +191,6 @@ enum ReturnAdapter {
     MapError,
     Direct,
     Unit,
-    ProjectBlock {
-        binding: syn::Pat,
-        body: Block,
-    },
-    Project {
-        binding: Ident,
-        expression: Expr,
-    },
 }
 
 fn attributes(tokens: TokenStream) -> Vec<Attribute> {
@@ -395,18 +385,6 @@ pub fn validate(domains: &[Domain]) -> Result<(), String> {
                     return Err("call must use its declared admission, not self".into());
                 }
             }
-            let projection = match &operation.output {
-                ReturnAdapter::ProjectBlock { body, .. } => Some(body.to_token_stream()),
-                ReturnAdapter::Project { expression, .. } => Some(quote!({#expression})),
-                _ => None,
-            };
-            if let Some(tokens) = projection {
-                let mut boundary = BoundaryAccess::default();
-                boundary.visit_block(&syn::parse2(tokens).unwrap());
-                if boundary.awaited || boundary.receiver || boundary.admitted_client {
-                    return Err("result projection cannot suspend or reach the client".into());
-                }
-            }
             let name = js_name(&operation.attributes)?;
             if !js_names.insert(name.clone()) {
                 return Err(format!("duplicate JS export {name}"));
@@ -599,17 +577,6 @@ impl Operation {
                 _ => quote!(#call),
             },
             ReturnAdapter::Unit => quote!(#projected_call; Ok(())),
-            ReturnAdapter::ProjectBlock { binding, body } => {
-                let statements = &body.stmts;
-                quote!(let #binding = #projected_call; #(#statements)*)
-            }
-            ReturnAdapter::Project {
-                binding,
-                expression,
-            } => quote!(
-                let #binding = #projected_call;
-                #expression
-            ),
         };
         quote!(#(#attributes)* pub #signature {
             #(#preparation)*
@@ -658,11 +625,10 @@ mod tests {
     #[test]
     fn hidden_admission_and_owned_borrows_fail_generation() {
         let mut domains = catalog();
-        domains[0].operations[0]
-            .inputs
-            .push(Input::Convert(parse_quote!({
-                let _ = self.client.online().await?;
-            })));
+        domains[0].operations[0].inputs.push(Input::Jid {
+            binding: parse_quote!(hidden),
+            value: parse_quote!(self.client.online().await?),
+        });
         assert!(
             validate(&domains)
                 .unwrap_err()
@@ -689,9 +655,10 @@ mod tests {
             .iter_mut()
             .find(|o| matches!(o.boundary, Boundary::OwnedPromise))
             .unwrap();
-        owned.inputs.push(Input::Convert(parse_quote!({
-            let x = 1;
-        })));
+        owned.inputs.push(Input::Jid {
+            binding: parse_quote!(extra),
+            value: parse_quote!(jid),
+        });
         assert!(
             validate(&domains)
                 .unwrap_err()
@@ -700,7 +667,7 @@ mod tests {
     }
 
     #[test]
-    fn receipt_policy_and_result_projection_cannot_bypass_the_template() {
+    fn receipt_policy_cannot_bypass_the_template() {
         let mut domains = catalog();
         let receipts = domains
             .iter_mut()
@@ -709,19 +676,6 @@ mod tests {
             .unwrap();
         receipts.evaluation = Evaluation::Immediate;
         assert!(validate(&domains).unwrap_err().contains("receipt template"));
-        let mut domains = catalog();
-        domains[0].operations[0].output = ReturnAdapter::ProjectBlock {
-            binding: parse_quote!(value),
-            body: parse_quote!({
-                client.is_logged_in();
-                Ok(value)
-            }),
-        };
-        assert!(
-            validate(&domains)
-                .unwrap_err()
-                .contains("projection cannot")
-        );
     }
 
     #[test]

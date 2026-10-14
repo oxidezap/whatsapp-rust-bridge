@@ -41,8 +41,11 @@ impl WasmWhatsAppClient {
         let node = js_to_node(&node_js)?;
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
         let client = self.client.unwaited(Unwaited::Opaque);
-        let response = client.send_iq_node(node, timeout).await?;
-        Ok(node_ref_to_js(response.get())?.unchecked_into())
+        let source = client.send_iq_node(node, timeout).await?;
+        let value = &source;
+        Ok(node_ref_to_js(value.get())
+            .map_err(crate::errors::BridgeError::from)?
+            .unchecked_into())
     }
     #[doc = r" Confirm an inbound stanza through the core-owned acknowledgement path."]
     # [wasm_bindgen (js_name = acknowledgeStanza)]
@@ -67,10 +70,11 @@ impl WasmWhatsAppClient {
         let stanza_js: JsValue = stanza_js.into();
         let stanza = js_to_node(&stanza_js)?;
         let reason = whatsapp_rust::NackReason::from(error_code);
-        let rejection = if reason == whatsapp_rust::NackReason::InvalidProtobuf {
-            whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
-        } else {
-            whatsapp_rust::StanzaRejection::new(reason)
+        let rejection = match reason {
+            whatsapp_rust::NackReason::InvalidProtobuf => {
+                whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
+            }
+            reason => whatsapp_rust::StanzaRejection::new(reason),
         };
         let client = self.client.unwaited(Unwaited::ConnectionBound);
         client
@@ -106,8 +110,11 @@ impl WasmWhatsAppClient {
         let query =
             crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(query.into(), "query")?;
         let client = self.client.online().await?;
-        let response = client.query_usync(query).await?;
-        Ok(crate::proto::to_js_value(&response)?.unchecked_into())
+        let source = client.query_usync(query).await?;
+        let value = &source;
+        Ok(crate::proto::to_js_value(value)
+            .map_err(crate::errors::BridgeError::from)?
+            .unchecked_into())
     }
     #[doc = r" Ensure E2E Signal sessions exist for the given JIDs."]
     #[doc = r" Returns true after sessions are established."]
@@ -270,26 +277,28 @@ impl WasmWhatsAppClient {
         #[wasm_bindgen(unchecked_param_type = "SignalSessionBundleInput")] input: JsValue,
     ) -> Result<(), crate::errors::BridgeError> {
         let input = from_js_input::<crate::result_types::SignalSessionBundleInput>("input", input)?;
-        use wacore::libsignal::protocol::{IdentityKey, PreKeyBundle, PublicKey};
         let parsed = parse_jid(jid)?;
-        let identity_key = PublicKey::from_djb_public_key_bytes(&input.identity_key)
-            .map(IdentityKey::new)
-            .map_err(|error| crate::errors::invalid_arg("identityKey", error.to_string()))?;
-        let signed_pre_key = PublicKey::from_djb_public_key_bytes(&input.signed_pre_key.public_key)
-            .map_err(|error| {
-                crate::errors::invalid_arg("signedPreKey.publicKey", error.to_string())
-            })?;
+        let public_identity =
+            wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(&input.identity_key)
+                .map_err(|error| crate::errors::invalid_arg("identityKey", error.to_string()))?;
+        let identity_key = wacore::libsignal::protocol::IdentityKey::new(public_identity);
+        let signed_pre_key = wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
+            &input.signed_pre_key.public_key,
+        )
+        .map_err(|error| crate::errors::invalid_arg("signedPreKey.publicKey", error.to_string()))?;
         let pre_key = input
             .pre_key
-            .map(|pre_key| {
-                PublicKey::from_djb_public_key_bytes(&pre_key.public_key)
-                    .map(|public_key| (pre_key.key_id.into(), public_key))
-                    .map_err(|error| {
-                        crate::errors::invalid_arg("preKey.publicKey", error.to_string())
-                    })
+            .map(|pre_key| -> Result<_, crate::errors::BridgeError> {
+                let public_key = wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
+                    &pre_key.public_key,
+                )
+                .map_err(|error| {
+                    crate::errors::invalid_arg("preKey.publicKey", error.to_string())
+                })?;
+                Ok((pre_key.key_id.into(), public_key))
             })
             .transpose()?;
-        let bundle = PreKeyBundle::new(
+        let bundle = wacore::libsignal::protocol::PreKeyBundle::new(
             input.registration_id,
             u32::from(parsed.device).into(),
             pre_key,
@@ -426,10 +435,10 @@ impl WasmWhatsAppClient {
             pairs.push((lid.user.to_string(), pn.user.to_string()));
         }
         let client = self.client.unwaited(Unwaited::Local);
-        let written = client
+        let value = client
             .add_lid_pn_mappings(pairs, whatsapp_rust::lid_pn_cache::LearningSource::Other)
             .await?;
-        u32::try_from(written).map_err(|_| crate::errors::internal("mapping count exceeds u32"))
+        u32::try_from(value).map_err(|_| crate::errors::internal("mapping count exceeds u32"))
     }
     #[doc = r" Move pairwise sessions between phone-number and linked-identifier namespaces."]
     # [wasm_bindgen (js_name = signalMigrateSessions)]

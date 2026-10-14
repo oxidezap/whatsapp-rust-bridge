@@ -139,38 +139,13 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(chat),
                     value: parse_quote!(chat_jid),
                 },
-                Input::Convert(parse_quote!({
-                    let participant_jid = participant.as_deref().map(parse_jid).transpose()?;
-                    let req = whatsapp_rust::MediaReuploadRequest {
-                        msg_id,
-                        chat_jid: &chat,
-                        media_key,
-                        is_from_me,
-                        participant: participant_jid.as_ref(),
-                    };
-                })),
+                Input::Preparation(Preparation::MediaReupload),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.media_reupload().request(&req)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    match result {
-                        whatsapp_rust::MediaRetryResult::Success { direct_path } => Ok(direct_path),
-                        whatsapp_rust::MediaRetryResult::NotFound => {
-                            Err(crate::errors::internal("Media not found on server"))
-                        }
-                        whatsapp_rust::MediaRetryResult::DecryptionError => {
-                            Err(crate::errors::internal("Media decryption error"))
-                        }
-                        whatsapp_rust::MediaRetryResult::GeneralError => {
-                            Err(crate::errors::internal("Media reupload failed"))
-                        }
-                    }
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Variant(VariantCodec::MediaRetry)),
         },
         Operation {
             attributes: attributes(quote!(
@@ -203,15 +178,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("media_type"),
                     value: parse_quote!(media_type),
                 },
-                Input::Convert(parse_quote!({
-                    let mt: wacore::download::MediaType = media_type.into();
-
-                    let direct_path = direct_path.to_string();
-                    let media_key = media_key.to_vec();
-                    let file_sha256 = file_sha256.to_vec();
-                    let file_enc_sha256 = file_enc_sha256.to_vec();
-                    let file_length = file_length as u64;
-                })),
+                Input::Preparation(Preparation::DownloadCapture),
             ],
             boundary: Boundary::SyncBorrowed,
             evaluation: Evaluation::Immediate,

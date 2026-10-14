@@ -13,7 +13,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .create(name, description.as_deref())
             .await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Fetch metadata for a newsletter by JID."]
     # [wasm_bindgen (js_name = newsletterMetadata)]
@@ -24,7 +24,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
         let value = client.newsletter().get_metadata(&target).await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Subscribe (join) a newsletter."]
     # [wasm_bindgen (js_name = newsletterSubscribe)]
@@ -35,7 +35,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
         let value = client.newsletter().join(&target).await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Unsubscribe (leave) a newsletter."]
     # [wasm_bindgen (js_name = newsletterUnsubscribe)]
@@ -118,7 +118,12 @@ impl WasmWhatsAppClient {
     {
         let client = self.client.online().await?;
         let value = client.newsletter().list_subscribed().await?;
-        to_ts_vec(value.iter().map(newsletter_metadata_to_result).collect())
+        to_ts_vec(
+            value
+                .iter()
+                .map(crate::result_types::project_newsletter_metadata)
+                .collect(),
+        )
     }
     #[doc = r" Fetch a newsletter's metadata by its invite code."]
     # [wasm_bindgen (js_name = newsletterMetadataByInvite)]
@@ -131,7 +136,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .get_metadata_by_invite(invite_code)
             .await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Update a newsletter's name and/or description. Returns the refreshed"]
     #[doc = r" metadata."]
@@ -148,7 +153,7 @@ impl WasmWhatsAppClient {
             .newsletter()
             .update(&target, name.as_deref(), description.as_deref())
             .await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Delete a newsletter. Owner-only."]
     # [wasm_bindgen (js_name = newsletterDelete)]
@@ -207,7 +212,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
         let value = client.newsletter().set_picture(&target, jpeg).await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Remove a newsletter's picture. Returns the refreshed metadata."]
     # [wasm_bindgen (js_name = newsletterRemovePicture)]
@@ -218,7 +223,7 @@ impl WasmWhatsAppClient {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
         let value = client.newsletter().remove_picture(&target).await?;
-        to_ts(newsletter_metadata_to_result(&value))
+        to_ts(crate::result_types::project_newsletter_metadata(&value))
     }
     #[doc = r" Fetch a newsletter's admin-side information, including its admin count."]
     # [wasm_bindgen (js_name = newsletterAdminInfo)]
@@ -275,62 +280,14 @@ impl WasmWhatsAppClient {
             })
             .transpose()?;
         let client = self.client.online().await?;
-        let messages = client
+        let value = client
             .newsletter()
             .get_messages(target, count, before_id)
             .await?;
         to_ts_vec(
-            messages
+            value
                 .iter()
-                .map(|message| crate::result_types::NewsletterMessageResult {
-                    message_id: message.message_id.as_ref().map(ToString::to_string),
-                    server_id: message.server_id.to_string(),
-                    timestamp: message.timestamp as f64,
-                    message_type: message.message_type.as_str().to_owned(),
-                    message_type_raw: message.message_type_raw.clone(),
-                    edit: message.edit.as_str().to_owned(),
-                    is_sender: message.is_sender,
-                    media_type: message.media_type.as_ref().map(|v| v.as_str().to_owned()),
-                    votes: message
-                        .votes
-                        .iter()
-                        .map(|vote| crate::result_types::NewsletterPollVoteResult {
-                            option_hash: serde_bytes::ByteBuf::from(vote.option_hash.to_vec()),
-                            count: vote.count.to_string(),
-                        })
-                        .collect(),
-                    forwards_count: message.forwards_count.map(|v| v.to_string()),
-                    views_count: message.views_count.map(|v| v.to_string()),
-                    responses_count: message.responses_count.map(|v| v.to_string()),
-                    original_timestamp: message.original_timestamp.map(|v| v.to_string()),
-                    last_edit_timestamp_ms: message.last_edit_timestamp_ms.map(|v| v.to_string()),
-                    poll_type: message.poll_type.as_ref().map(|v| v.as_str().to_owned()),
-                    poll_type_raw: message.poll_type_raw.clone(),
-                    content_type: message.content_type.clone(),
-                    question_type: message
-                        .question_type
-                        .as_ref()
-                        .map(|v| v.as_str().to_owned()),
-                    message_association_type: message
-                        .message_association_type
-                        .as_ref()
-                        .map(|v| v.as_str().to_owned()),
-                    is_wamo_sub: message.is_wamo_sub,
-                    admin_profile: message
-                        .admin_profile
-                        .as_ref()
-                        .map(crate::result_types::project_newsletter_admin_profile),
-                    rcat: message.rcat.clone().map(serde_bytes::ByteBuf::from),
-                    message: message
-                        .message
-                        .as_ref()
-                        .map(|m| serde_bytes::ByteBuf::from(waproto::codec::message_to_vec(m))),
-                    reactions: message
-                        .reactions
-                        .iter()
-                        .map(crate::result_types::project_newsletter_reaction_count)
-                        .collect(),
-                })
+                .map(crate::result_types::project_newsletter_message)
                 .collect(),
         )
     }

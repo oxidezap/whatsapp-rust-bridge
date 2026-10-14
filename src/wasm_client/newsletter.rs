@@ -6,21 +6,6 @@
 
 use super::*;
 
-fn newsletter_content_reference<'a>(
-    jid: &'a Jid,
-    message_id: &str,
-) -> Result<whatsapp_rust::NewsletterMessageRef<'a>, crate::errors::BridgeError> {
-    let error = |error| {
-        crate::errors::BridgeError::from(whatsapp_rust::features::NewsletterError::MessageRef(
-            error,
-        ))
-    };
-    // Keep the core's target-before-ID validation order, without parsing error text.
-    let target = whatsapp_rust::NewsletterMessageRef::new(jid, None, None).map_err(error)?;
-    let id = whatsapp_rust::MessageId::new(message_id).map_err(error)?;
-    whatsapp_rust::NewsletterMessageRef::new(target.chat(), Some(id), None).map_err(error)
-}
-
 #[cfg(test)]
 mod reference_tests {
     use super::*;

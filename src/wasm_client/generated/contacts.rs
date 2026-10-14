@@ -27,24 +27,11 @@ impl WasmWhatsAppClient {
             })
             .collect::<Result<Vec<_>, _>>()?;
         let client = self.client.online().await?;
-        let results = client.contacts().is_on_whatsapp(&jids).await?;
-        fn jid_to_owned(jid: &Jid) -> String {
-            let mut buf = String::with_capacity(jid.user.len() + jid.server.as_str().len() + 8);
-            jid.push_to(&mut buf);
-            buf
-        }
+        let value = client.contacts().is_on_whatsapp(&jids).await?;
         to_ts_vec(
-            results
+            value
                 .iter()
-                .map(|r| crate::result_types::IsOnWhatsAppResult {
-                    jid: jid_to_owned(&r.jid),
-                    is_registered: r.is_registered,
-                    lid: r.lid.as_ref().map(jid_to_owned),
-                    pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
-                    is_business: r.is_business,
-                    verified_name: r.verified_name.as_ref().and_then(|v| v.name.clone()),
-                    username: r.username.as_ref().map(|u| u.to_string()),
-                })
+                .map(crate::result_types::project_is_on_whats_app)
                 .collect(),
         )
     }
@@ -64,32 +51,13 @@ impl WasmWhatsAppClient {
         username: &str,
         username_key: Option<String>,
     ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError> {
-        use whatsapp_rust::features::UsernameLookup;
         let client = self.client.online().await?;
-        let lookup = client
-            .contacts()
-            .find_by_username(username, username_key.as_deref())
-            .await?;
-        to_ts(match lookup {
-            UsernameLookup::NotFound => crate::result_types::UsernameLookupResult::NotFound,
-            UsernameLookup::KeyRequired { username } => {
-                crate::result_types::UsernameLookupResult::KeyRequired {
-                    username: username.map(|u| u.to_string()),
-                }
-            }
-            UsernameLookup::Found(user) => crate::result_types::UsernameLookupResult::Found {
-                jid: user.jid.to_string(),
-                pn_jid: user.pn_jid.as_ref().map(|j| j.to_string()),
-                username: user.username.map(|u| u.to_string()),
-                is_business: user.is_business,
-                verified_name: user.verified_name.and_then(|v| v.name),
-            },
-            other => {
-                return Err(crate::errors::internal(format!(
-                    "unhandled username lookup answer: {other:?}"
-                )));
-            }
-        })
+        to_ts(crate::result_types::project_username_lookup(
+            client
+                .contacts()
+                .find_by_username(username, username_key.as_deref())
+                .await?,
+        )?)
     }
     #[doc = r" Get the profile picture URL for a user or group."]
     #[doc = r""]
@@ -111,20 +79,19 @@ impl WasmWhatsAppClient {
         };
         let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
         let client = self.client.online().await?;
-        let boundary_result = client
+        let value = client
             .pictures()
             .lookup(
                 whatsapp_rust::ProfilePictureRequest::new(profile_picture_target(&target), size)
                     .timeout(timeout),
             )
             .await;
-        let result = boundary_result?.into_found();
-        to_ts_opt(result.map(|pic| crate::result_types::ProfilePictureInfo {
-            id: pic.id,
-            url: pic.url,
-            direct_path: pic.direct_path,
-            hash: pic.hash,
-        }))
+        to_ts_opt(
+            value?
+                .into_found()
+                .as_ref()
+                .map(crate::result_types::project_profile_picture_info),
+        )
     }
     #[doc = r" Fetch user info for one or more JIDs."]
     # [wasm_bindgen (js_name = fetchUserInfo , skip_typescript)]
@@ -137,23 +104,16 @@ impl WasmWhatsAppClient {
             .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
-        let result = client.contacts().get_user_info(&parsed_jids).await?;
-        let obj = js_sys::Object::new();
-        for (jid, info) in &result {
-            let entry = crate::result_types::UserInfoResult {
-                jid: info.jid.to_string(),
-                lid: info.lid.as_ref().map(|l| l.to_string()),
-                status: info.status.clone(),
-                picture_id: info.picture_id.clone(),
-                is_business: info.is_business,
-                verified_name: info.verified_name.as_ref().and_then(|v| v.name.clone()),
-                devices: info.devices.clone(),
-                username: info.username.as_ref().map(|u| u.to_string()),
-            };
-            let js_entry = serde_wasm_bindgen::to_value(&entry)?;
-            js_sys::Reflect::set(&obj, &JsValue::from_str(&jid.to_string()), &js_entry)?;
+        let value = client.contacts().get_user_info(&parsed_jids).await?;
+        {
+            let result = js_sys::Object::new();
+            for (key, value) in &value {
+                let entry = crate::result_types::project_user_info(value);
+                let value = serde_wasm_bindgen::to_value(&entry)?;
+                js_sys::Reflect::set(&result, &JsValue::from_str(&key.to_string()), &value)?;
+            }
+            Ok(result.into())
         }
-        Ok(obj.into())
     }
     #[doc = r" Set the user's push name (display name)."]
     # [wasm_bindgen (js_name = setPushName)]
@@ -280,13 +240,15 @@ impl WasmWhatsAppClient {
     # [wasm_bindgen (js_name = fetchPrivacySettings)]
     pub async fn fetch_privacy_settings(&self) -> Result<JsValue, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let response = client.fetch_privacy_settings().await?;
-        let map: std::collections::HashMap<&str, &str> = response
-            .settings
-            .iter()
-            .map(|s| (s.category.as_str(), s.value.as_str()))
-            .collect();
-        serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)
+        {
+            let value = client.fetch_privacy_settings().await?;
+            let map: std::collections::HashMap<&str, &str> = value
+                .settings
+                .iter()
+                .map(|entry| (entry.category.as_str(), entry.value.as_str()))
+                .collect();
+            serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)
+        }
     }
     #[doc = r" Update a single privacy setting."]
     # [wasm_bindgen (js_name = updatePrivacySetting)]

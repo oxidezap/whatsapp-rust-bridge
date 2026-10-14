@@ -64,3 +64,14 @@ test("generated event callbacks preserve required and optional public signatures
   expect(declarations.length).toBe(1);
   expect(Object.fromEntries(declarations[0]!.members.map(member=>[member.name!.getText(source),member.getText(source).replace(/\s+/g," ")]))).toEqual(baseline.members);
 });
+
+// Frozen from the compiled pre-refactor package, independently of variant tables.
+test("generated sum types preserve tags, payload types and optional fields", () => {
+  const baseline = JSON.parse(readFileSync(join(import.meta.dir, "fixtures/generated-variant-contract.json"), "utf8")) as {types: Record<string, string>};
+  const source = ts.createSourceFile("bridge.d.ts", readFileSync(join(import.meta.dir, "../pkg/whatsapp_rust_bridge.d.ts"), "utf8"), ts.ScriptTarget.Latest, true);
+  for (const [name, shape] of Object.entries(baseline.types)) {
+    const declarations = source.statements.filter((node): node is ts.TypeAliasDeclaration => ts.isTypeAliasDeclaration(node) && node.name.text === name);
+    expect(declarations.length, name).toBe(1);
+    expect(declarations[0]!.type.getText(source).replace(/\s+/g, " "), name).toBe(shape);
+  }
+});

@@ -132,21 +132,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(requester),
                     value: parse_quote!(&input.requester_jid),
                 },
-                Input::Convert(parse_quote!({
-                    let retry_count = u8::try_from(input.retry_count)
-                        .map_err(|_| crate::errors::internal("retry count exceeds the u8 range"))?;
-                    let mut request = whatsapp_rust::MessageRetransmission::new(
-                        chat,
-                        requester,
-                        msg,
-                        input.message_id,
-                        retry_count,
-                    )
-                    .with_group_metadata_freshness(freshness(input.refresh_group_metadata));
-                    if let Some(recipient_jid) = input.recipient_jid {
-                        request = request.with_recipient(parse_jid(&recipient_jid)?);
-                    }
-                })),
+                Input::Preparation(Preparation::Retransmission),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -179,9 +165,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: parse_quote!(jid),
                     bytes: parse_quote!(bytes),
                 },
-                Input::Convert(parse_quote!({
-                    let options = edit_options(stanza_id)?;
-                })),
+                Input::Preparation(Preparation::EditOptions),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -210,17 +194,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(to),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let revoke_type = match participant {
-                        Some(p) => {
-                            let sender = parse_jid(&p)?;
-                            whatsapp_rust::RevokeType::Admin {
-                                original_sender: sender,
-                            }
-                        }
-                        None => whatsapp_rust::RevokeType::Sender,
-                    };
-                })),
+                Input::Preparation(Preparation::Revoke),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -329,14 +303,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.polls().create(&to, name, &options, selectable_count)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(created),
-                body: parse_quote!({
-                    to_ts(crate::result_types::CreatePollResult {
-                        message_id: created.send_result().message_id.to_string(),
-                        message_secret: created.secret().as_bytes().to_vec(),
-                    })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::CreatePoll,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -392,9 +361,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     recipients: Vec<String>,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let (msg, recipients) = status_message_input(bytes, &recipients)?;
-            }))],
+            inputs: vec![Input::Preparation(Preparation::StatusMessage)],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
@@ -431,9 +398,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     device_freshness: Some(parse_quote!(refresh_devices)),
                     message_id: parse_quote!(message_id),
                 }),
-                Input::Convert(parse_quote!({
-                    let (msg, recipients) = status_message_input(bytes, &recipients)?;
-                })),
+                Input::Preparation(Preparation::StatusMessage),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,

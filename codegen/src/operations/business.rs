@@ -196,22 +196,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("update"),
                     value: parse_quote!(update),
                 },
-                Input::Convert(parse_quote!({
-                    use wacore::iq::business::{
-                        BusinessHoursConfig, BusinessHoursUpdate, BusinessProfileUpdate,
-                    };
-                    let business_hours = update . business_hours . map (| hours | { let config = hours . config . into_iter () . map (| entry | { let day = entry . day_of_week . as_str () . into () ; let mode = entry . mode . as_str () . into () ; match (entry . open_time , entry . close_time) { (Some (open) , Some (close)) => { Ok (BusinessHoursConfig :: with_hours (day , mode , open , close)) } (None , None) => Ok (BusinessHoursConfig :: new (day , mode)) , (open , _) => { let missing = if open . is_some () { "closeTime" } else { "openTime" } ; Err (crate :: errors :: BridgeError :: InvalidArgument { field : "businessHours.config" . into () , reason : format ! ("{} is missing {missing}: an opening range needs both ends" , entry . day_of_week) , }) } } }) . collect :: < Result < Vec < _ > , _ > > () ? ; Ok :: < _ , crate :: errors :: BridgeError > (BusinessHoursUpdate { timezone : hours . timezone , note : hours . note , config , }) }) . transpose () ? ;
-                    let delta = BusinessProfileUpdate {
-                        address: update.address,
-                        latitude: update.latitude,
-                        longitude: update.longitude,
-                        description: update.description,
-                        email: update.email,
-                        websites: update.websites,
-                        categories: update.categories,
-                        business_hours,
-                    };
-                })),
+                Input::Preparation(Preparation::BusinessProfile),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,

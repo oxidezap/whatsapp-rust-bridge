@@ -3,8 +3,32 @@ use quote::{format_ident, quote};
 use std::collections::BTreeSet;
 use syn::{Ident, Type, parse_quote};
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Projection {
+    CommunityLink,
+    CommunityUnlink,
+    BotTheme,
+    BotListEntry,
+    BotListSection,
+    BotDefault,
+    BotList,
+    ParticipantAddRequest,
+    ParticipantChange,
+    NewsletterMetadata,
+    GroupMetadataParticipant,
+    GroupEphemeralSettings,
+    GroupGrowthLockInfo,
+    GroupOverview,
+    GroupMetadata,
+    CommunityLinkFailure,
+    MemoryDiagnostics,
+    NewChatMessageCapping,
+    CreatePoll,
+    NewsletterMessage,
+    NewsletterPollVote,
+    IsOnWhatsApp,
+    UserInfo,
+    ProfilePictureInfo,
     UploadMedia,
     SignalSessionMigration,
     NewsletterFollower,
@@ -44,6 +68,8 @@ pub enum Envelope {
     Optional,
     List,
     Values,
+    Record,
+    FoundOptional,
 }
 #[derive(Clone, Copy)]
 enum Ownership {
@@ -53,12 +79,18 @@ enum Ownership {
 #[derive(Clone, Copy)]
 enum Codec {
     Identity,
+    Adapter(&'static str),
+    ByteBuf,
+    ProtoMessage,
+    JidOptimized,
     CloneValue,
     DisplayString,
+    DisplayList,
     NumberF64,
     NumberU32,
     NewsletterRole,
     Binary,
+    BinaryToVec,
     WireAsStr,
     Nested(Projection),
     List(Projection),
@@ -69,6 +101,8 @@ struct Field {
     optional: bool,
     codec: Codec,
     doc: Option<&'static str>,
+    source: Option<Source>,
+    skip_empty: bool,
 }
 struct Descriptor {
     source: Type,
@@ -86,10 +120,64 @@ fn field(name: &str, ty: Type, optional: bool, codec: Codec) -> Field {
         optional,
         codec,
         doc: None,
+        source: None,
+        skip_empty: false,
     }
 }
 fn field_doc(mut field: Field, doc: &'static str) -> Field {
     field.doc = Some(doc);
+    field
+}
+
+#[path = "projection_calculated.rs"]
+mod calculated;
+#[path = "projection_catalog.rs"]
+mod extended;
+#[derive(Clone)]
+enum Access {
+    Field(Ident),
+    Method(Ident),
+}
+enum Source {
+    Path(Vec<Access>),
+    Flatten {
+        container: Vec<Access>,
+        inner: Vec<Access>,
+    },
+}
+fn access(path: &str) -> Vec<Access> {
+    path.split('.')
+        .map(|member| match member.strip_suffix("()") {
+            Some(method) => {
+                Access::Method(syn::parse_str(method).expect("source method identifier"))
+            }
+            None => Access::Field(syn::parse_str(member).expect("source field identifier")),
+        })
+        .collect()
+}
+fn chain(mut root: TokenStream, path: &[Access]) -> TokenStream {
+    for member in path {
+        root = match member {
+            Access::Field(field) => quote!(#root.#field),
+            Access::Method(method) => quote!(#root.#method()),
+        };
+    }
+    root
+}
+fn field_path(mut field: Field, path: &str) -> Field {
+    field.source = Some(Source::Path(access(path)));
+    field
+}
+fn field_flatten(mut field: Field, container: &str, inner: &str) -> Field {
+    assert!(field.optional, "flattened field must be optional");
+    field.source = Some(Source::Flatten {
+        container: access(container),
+        inner: access(inner),
+    });
+    field
+}
+fn field_skip_empty(mut field: Field) -> Field {
+    field.skip_empty = true;
     field
 }
 
@@ -703,6 +791,22 @@ impl Projection {
                     field("registration_id", parse_quote!(u32), false, Identity),
                 ],
             },
+            _ => {
+                let name = format!("{self:?}");
+                let mut snake = String::new();
+                for (index, ch) in name.chars().enumerate() {
+                    if index != 0 && ch.is_uppercase() {
+                        snake.push('_');
+                    }
+                    snake.extend(ch.to_lowercase());
+                }
+                let function = format!("project_{snake}");
+                extended::descriptors()
+                    .into_iter()
+                    .chain(calculated::descriptors())
+                    .find(|descriptor| descriptor.function == function)
+                    .expect("registered projection descriptor")
+            }
         }
     }
     pub fn envelope(self, envelope: Envelope, value: TokenStream) -> TokenStream {
@@ -710,6 +814,15 @@ impl Projection {
         let function = d.function;
         let function = quote!(crate::result_types::#function);
         match (envelope, d.ownership) {
+            (Envelope::FoundOptional, Ownership::Borrowed) => {
+                quote!(to_ts_opt(#value?.into_found().as_ref().map(#function)))
+            }
+            (Envelope::Record, Ownership::Borrowed) => {
+                quote!({let result=js_sys::Object::new();for (key,value) in &#value {let entry=#function(value);let value=serde_wasm_bindgen::to_value(&entry)?;js_sys::Reflect::set(&result,&JsValue::from_str(&key.to_string()),&value)?;}Ok(result.into())})
+            }
+            (Envelope::FoundOptional | Envelope::Record, Ownership::Owned) => {
+                panic!("record/found envelopes require borrowed source projections")
+            }
             (Envelope::Value, Ownership::Borrowed) => quote!(to_ts(#function(&#value))),
             (Envelope::Value, Ownership::Owned) => quote!(to_ts(#function(#value))),
             (Envelope::Optional, Ownership::Borrowed) => {
@@ -734,6 +847,7 @@ impl Projection {
 }
 pub fn emit() -> TokenStream {
     let mut output = TokenStream::new();
+    let mut targets = std::collections::BTreeMap::<String, String>::new();
     for projection in [
         Projection::UploadMedia,
         Projection::SignalSessionMigration,
@@ -767,12 +881,40 @@ pub fn emit() -> TokenStream {
         Projection::CommunitySubgroup,
         Projection::SignalSessionInfo,
         Projection::ProfilePicture,
-    ] {
+    ]
+    .into_iter()
+    .chain([
+        Projection::BotTheme,
+        Projection::BotListEntry,
+        Projection::BotListSection,
+        Projection::BotDefault,
+        Projection::BotList,
+        Projection::ParticipantAddRequest,
+        Projection::ParticipantChange,
+        Projection::NewsletterMetadata,
+        Projection::GroupMetadataParticipant,
+        Projection::GroupEphemeralSettings,
+        Projection::GroupGrowthLockInfo,
+        Projection::GroupOverview,
+        Projection::GroupMetadata,
+        Projection::CommunityLinkFailure,
+        Projection::CommunityLink,
+        Projection::CommunityUnlink,
+        Projection::MemoryDiagnostics,
+        Projection::NewChatMessageCapping,
+        Projection::CreatePoll,
+        Projection::NewsletterMessage,
+        Projection::NewsletterPollVote,
+        Projection::IsOnWhatsApp,
+        Projection::UserInfo,
+        Projection::ProfilePictureInfo,
+    ]) {
         let d = projection.descriptor();
         let target = d.target;
         let function = d.function;
         let source = d.source;
         let feature = d.feature;
+        let feature = (!feature.is_empty()).then(|| quote!(#[cfg(feature=#feature)]));
         let doc = (!d.doc.is_empty()).then(|| {
             let doc = d.doc;
             quote!(#[doc=#doc])
@@ -788,6 +930,9 @@ pub fn emit() -> TokenStream {
             let name = f.name;
             assert!(names.insert(name.to_string()), "duplicate DTO field");
             let ty = f.ty;
+            let empty = f
+                .skip_empty
+                .then(|| quote!(#[serde(skip_serializing_if="Vec::is_empty")]));
             let optional = f
                 .optional
                 .then(|| quote!(#[serde(skip_serializing_if = "Option::is_none")]));
@@ -796,11 +941,36 @@ pub fn emit() -> TokenStream {
             } else {
                 quote!(#ty)
             };
-            let binary = matches!(f.codec, Codec::Binary)
+            let binary = matches!(f.codec, Codec::Binary | Codec::BinaryToVec)
                 .then(|| quote!(#[tsify(type = "Uint8Array")] #[serde(with = "serde_bytes")]));
             let doc = f.doc.map(|doc| quote!(#[doc=#doc]));
-            declarations.push(quote!(#doc #optional #binary pub #name: #ty,));
+            declarations.push(quote!(#doc #optional #empty #binary pub #name: #ty,));
             let convert = |value: TokenStream, reference: bool| match f.codec {
+                Codec::Adapter(path) => {
+                    let function: syn::Path =
+                        syn::parse_str(path).expect("registered adapter path");
+                    if reference {
+                        quote!(#function(#value))
+                    } else {
+                        quote!(#function(&#value))
+                    }
+                }
+                Codec::BinaryToVec => quote!(#value.to_vec()),
+                Codec::ByteBuf => quote!(serde_bytes::ByteBuf::from(#value.to_vec())),
+                Codec::ProtoMessage => {
+                    if reference {
+                        quote!(serde_bytes::ByteBuf::from(whatsapp_rust::waproto::codec::message_to_vec(#value)))
+                    } else {
+                        quote!(serde_bytes::ByteBuf::from(whatsapp_rust::waproto::codec::message_to_vec(&#value)))
+                    }
+                }
+                Codec::JidOptimized => {
+                    if reference {
+                        quote!(project_jid_owned(#value))
+                    } else {
+                        quote!(project_jid_owned(&#value))
+                    }
+                }
                 Codec::Identity | Codec::Binary => {
                     if reference {
                         quote!(*#value)
@@ -810,6 +980,7 @@ pub fn emit() -> TokenStream {
                 }
                 Codec::CloneValue => quote!(#value.clone()),
                 Codec::DisplayString => quote!(#value.to_string()),
+                Codec::DisplayList => quote!(#value.iter().map(ToString::to_string).collect()),
                 Codec::WireAsStr => quote!(#value.as_str().to_owned()),
                 Codec::NumberU32 => {
                     if reference {
@@ -839,45 +1010,111 @@ pub fn emit() -> TokenStream {
                     quote!(#value.iter().map(#function).collect())
                 }
             };
+            let flattened = matches!(f.source, Some(Source::Flatten { .. }));
+            let expression = match &f.source {
+                None => quote!(source.#name),
+                Some(Source::Path(path)) => chain(quote!(source), path),
+                Some(Source::Flatten { container, inner }) => {
+                    let container = chain(quote!(source), container);
+                    let inner = chain(quote!(value), inner);
+                    quote!(#container.as_ref().and_then(|value|#inner.as_ref()))
+                }
+            };
+            let reference = flattened || matches!(d.ownership, Ownership::Borrowed);
+            let optional_expression = if reference && !flattened {
+                quote!(#expression.as_ref())
+            } else {
+                expression.clone()
+            };
             let value = if f.optional {
-                if matches!(f.codec, Codec::Identity) && matches!(d.ownership, Ownership::Owned) {
-                    quote!(source.#name)
+                if let Codec::Adapter(path) = f.codec {
+                    let function: syn::Path = syn::parse_str(path).unwrap();
+                    quote!(#optional_expression.map(#function))
+                } else if matches!(f.codec, Codec::Identity) && !reference {
+                    expression
                 } else if matches!(f.codec, Codec::NewsletterRole) {
-                    quote!(source.#name.as_ref().map(crate::wasm_client::newsletter_role_str))
+                    quote!(#optional_expression.map(crate::wasm_client::newsletter_role_str))
                 } else if let Codec::Nested(projection) = f.codec {
                     let nested = projection.descriptor();
                     let function = nested.function;
-                    match (d.ownership, nested.ownership) {
-                        (Ownership::Borrowed, Ownership::Borrowed) => {
-                            quote!(source.#name.as_ref().map(#function))
+                    match (reference, nested.ownership) {
+                        (true, Ownership::Borrowed) | (false, Ownership::Owned) => {
+                            quote!(#optional_expression.map(#function))
                         }
-                        (Ownership::Owned, Ownership::Owned) => quote!(source.#name.map(#function)),
-                        _ => panic!("optional nested ownership must match"),
+                        _ => panic!("nested ownership mismatch"),
                     }
+                } else if matches!(f.codec, Codec::JidOptimized) {
+                    quote!(#optional_expression.map(project_jid_owned))
                 } else if matches!(f.codec, Codec::CloneValue) {
-                    quote!(source.#name.clone())
-                } else if matches!(d.ownership, Ownership::Borrowed) {
-                    let expression = convert(quote!(value), true);
-                    quote!(source.#name.as_ref().map(|value| #expression))
+                    if flattened {
+                        quote!(#optional_expression.cloned())
+                    } else {
+                        quote!(#expression.clone())
+                    }
                 } else {
-                    let expression = convert(quote!(value), false);
-                    quote!(source.#name.map(|value| #expression))
+                    let conversion = convert(quote!(value), reference);
+                    quote!(#optional_expression.map(|value|#conversion))
                 }
             } else {
-                convert(quote!(source.#name), false)
+                convert(expression, false)
             };
             values.push(quote!(#name: #value,));
         }
-        output.extend(quote!(#doc #[derive(Serialize, Tsify)] #[serde(rename_all="camelCase")]
-            pub struct #target { #(#declarations)* }
-            #[cfg(feature=#feature)] pub(crate) fn #function(source:#source)->#target { #target {#(#values)*} }
-        ));
+        let declaration = quote!(#doc #[derive(Serialize, Tsify)] #[serde(rename_all="camelCase")]
+            pub struct #target { #(#declarations)* });
+        match targets.entry(target.to_string()) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(declaration.to_string());
+                output.extend(declaration);
+            }
+            std::collections::btree_map::Entry::Occupied(entry) => {
+                assert_eq!(
+                    entry.get(),
+                    &declaration.to_string(),
+                    "shared DTO schemas must agree"
+                );
+            }
+        }
+        output.extend(quote!(#feature pub(crate) fn #function(source:#source)->#target { #target {#(#values)*} }));
     }
+    output.extend(quote!(
+        #[cfg(feature = "client-contacts")]
+        fn project_jid_owned(jid: &whatsapp_rust::wacore_binary::jid::Jid) -> String {
+            let mut result = String::with_capacity(jid.user.len() + jid.server.as_str().len() + 8);
+            jid.push_to(&mut result);
+            result
+        }
+    ));
     output
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn link_and_unlink_share_one_dto_and_keep_typed_converters() {
+        let file = syn::parse2::<syn::File>(emit()).unwrap();
+        let declarations = file
+            .items
+            .iter()
+            .filter(|item| {
+                matches!(item,
+                    syn::Item::Struct(value) if value.ident == "CommunityLinkResult"
+                )
+            })
+            .count();
+        assert_eq!(declarations, 1);
+        for name in ["project_community_link", "project_community_unlink"] {
+            assert_eq!(
+                file.items
+                    .iter()
+                    .filter(|item| matches!(item,
+                        syn::Item::Fn(value) if value.sig.ident == name
+                    ))
+                    .count(),
+                1
+            );
+        }
+    }
     #[test]
     fn schemas_and_all_envelopes_are_rust_syntax() {
         syn::parse2::<syn::File>(emit()).unwrap();

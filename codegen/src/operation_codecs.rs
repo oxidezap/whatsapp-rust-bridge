@@ -228,6 +228,19 @@ impl InputCodec {
 }
 
 pub enum OutputCodec {
+    Variant(VariantCodec),
+    Serialize {
+        serializer: Serializer,
+        member: Option<Ident>,
+        optional: bool,
+        cast: bool,
+        error: SerializationError,
+    },
+    StringMap {
+        member: Ident,
+        key: Ident,
+        value: Ident,
+    },
     Object(ObjectShape),
     Value {
         codec: ValueCodec,
@@ -247,6 +260,8 @@ pub enum OutputCodec {
 }
 pub enum ValueCodec {
     Identity,
+    AllSucceeded,
+    CheckedU32(&'static str),
     GroupJid,
     StanzaId,
     MessageId,
@@ -266,9 +281,71 @@ pub enum Converter {
     NewsletterMetadata,
     BotList,
 }
+pub enum VariantCodec {
+    UsernameLookup,
+    MediaRetry,
+}
+pub enum Serializer {
+    Serde,
+    Camel,
+    NodeRef,
+    Proto,
+}
+pub enum SerializationError {
+    From,
+    Display(&'static str),
+    Debug(&'static str),
+}
 impl OutputCodec {
     pub fn emit(&self, call: TokenStream) -> TokenStream {
         match self {
+            Self::Variant(VariantCodec::UsernameLookup) => {
+                quote!(to_ts(crate::result_types::project_username_lookup(#call)?))
+            }
+            Self::Variant(VariantCodec::MediaRetry) => {
+                quote!(crate::result_types::project_media_retry(#call))
+            }
+            Self::StringMap { member, key, value } => {
+                quote!({let value=#call;let map:std::collections::HashMap<&str,&str>=value.#member.iter().map(|entry|(entry.#key.as_str(),entry.#value.as_str())).collect();serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)})
+            }
+            Self::Serialize {
+                serializer,
+                member,
+                optional,
+                cast,
+                error,
+            } => {
+                let encode = match serializer {
+                    Serializer::Serde => quote!(serde_wasm_bindgen::to_value(value)),
+                    Serializer::Camel => quote!(crate::camel_serializer::to_js_value_camel(value)),
+                    Serializer::NodeRef => quote!(node_ref_to_js(value.get())),
+                    Serializer::Proto => quote!(crate::proto::to_js_value(value)),
+                };
+                let error = match error {
+                    SerializationError::From => quote!(crate::errors::BridgeError::from),
+                    SerializationError::Display(prefix) | SerializationError::Debug(prefix) => {
+                        let format = if matches!(error, SerializationError::Debug(_)) {
+                            format!("{prefix}{{error:?}}")
+                        } else {
+                            format!("{prefix}{{error}}")
+                        };
+                        quote!(|error| crate::errors::internal(format!(#format)))
+                    }
+                };
+                let encoded = if *cast {
+                    quote!(Ok(#encode.map_err(#error)?.unchecked_into()))
+                } else {
+                    quote!(#encode.map_err(#error))
+                };
+                let source = member
+                    .as_ref()
+                    .map_or_else(|| quote!(source), |member| quote!(source.#member));
+                if *optional {
+                    quote!(let source=#call;match &#source {Some(value)=>#encoded,None=>Ok(JsValue::UNDEFINED),})
+                } else {
+                    quote!(let source=#call;let value=&#source;#encoded)
+                }
+            }
             Self::Object(shape) => shape.emit(call),
             Self::Value { codec, error } => {
                 if matches!(codec, ValueCodec::True) {
@@ -287,6 +364,12 @@ impl OutputCodec {
                 };
                 let output = match codec {
                     ValueCodec::GroupJid => quote!(value.group_jid().to_string()),
+                    ValueCodec::AllSucceeded => {
+                        quote!(value.iter().all(|response| response.is_ok()))
+                    }
+                    ValueCodec::CheckedU32(reason) => {
+                        return quote!(let value=#call;#unwrap u32::try_from(value).map_err(|_|crate::errors::internal(#reason)));
+                    }
                     ValueCodec::Identity => quote!(value),
                     ValueCodec::StanzaId => quote!(value.into_string()),
                     ValueCodec::MessageId => quote!(value.message_id.into_string()),
@@ -313,10 +396,14 @@ impl OutputCodec {
                     !(*list && field.is_some()),
                     "list conversion does not select a scalar field"
                 );
-                let function: Ident = match converter {
-                    Converter::GroupMetadata => parse_quote!(group_metadata_to_result),
-                    Converter::NewsletterMetadata => parse_quote!(newsletter_metadata_to_result),
-                    Converter::BotList => parse_quote!(bot_list_to_result),
+                let function: Path = match converter {
+                    Converter::GroupMetadata => {
+                        parse_quote!(crate::result_types::project_group_metadata)
+                    }
+                    Converter::NewsletterMetadata => {
+                        parse_quote!(crate::result_types::project_newsletter_metadata)
+                    }
+                    Converter::BotList => parse_quote!(crate::result_types::project_bot_list),
                 };
                 if *list {
                     quote!(let value=#call;to_ts_vec(value.iter().map(#function).collect()))
@@ -328,7 +415,12 @@ impl OutputCodec {
                 }
             }
             Self::CommunityLink { groups } => {
-                quote!(let value=#call;to_ts(community_link_result(value.#groups,value.failed_groups)))
+                let function: Path = match groups.to_string().as_str() {
+                    "linked_jids" => parse_quote!(crate::result_types::project_community_link),
+                    "unlinked_jids" => parse_quote!(crate::result_types::project_community_unlink),
+                    _ => panic!("unregistered community link result source"),
+                };
+                quote!(let value=#call;to_ts(#function(&value)))
             }
             Self::GroupRecord { source_key } => {
                 let key = if *source_key {
@@ -336,7 +428,7 @@ impl OutputCodec {
                 } else {
                     quote!(&JsValue::from_str(&entry.id))
                 };
-                quote!(let groups=#call;let result=js_sys::Object::new();for group in &groups {let entry=group_overview_to_result(group);let value=serde_wasm_bindgen::to_value(&entry)?;js_sys::Reflect::set(&result,#key,&value)?;}Ok(result.into()))
+                quote!(let groups=#call;let result=js_sys::Object::new();for group in &groups {let entry=crate::result_types::project_group_overview(group);let value=serde_wasm_bindgen::to_value(&entry)?;js_sys::Reflect::set(&result,#key,&value)?;}Ok(result.into()))
             }
         }
     }

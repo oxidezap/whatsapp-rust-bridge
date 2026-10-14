@@ -78,10 +78,13 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Opaque),
             call: parse_quote!(client.send_iq_node(node, timeout)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(response),
-                body: parse_quote!({ Ok(node_ref_to_js(response.get())?.unchecked_into()) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Serialize {
+                serializer: Serializer::NodeRef,
+                member: None,
+                optional: false,
+                cast: true,
+                error: SerializationError::From,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -122,14 +125,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(stanza),
                     input: parse_quote!(stanza_js),
                 },
-                Input::Convert(parse_quote!({
-                    let reason = whatsapp_rust::NackReason::from(error_code);
-                    let rejection = if reason == whatsapp_rust::NackReason::InvalidProtobuf {
-                        whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
-                    } else {
-                        whatsapp_rust::StanzaRejection::new(reason)
-                    };
-                })),
+                Input::Preparation(Preparation::StanzaRejection),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -154,10 +150,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(stanza),
                     input: parse_quote!(stanza_js),
                 },
-                Input::Convert(parse_quote!({
-                    let options = whatsapp_rust::RetryRequestOptions::new()
-                        .with_force_include_keys(force_include_keys.unwrap_or(false));
-                })),
+                Input::Preparation(Preparation::RetryOptions),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -178,20 +171,18 @@ pub(super) fn catalog() -> Vec<Operation> {
                     query: JsUsyncQuery,
                 ) -> Result<JsUsyncResponse, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let query = crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(
-                    query.into(),
-                    "query",
-                )?;
-            }))],
+            inputs: vec![Input::Preparation(Preparation::Usync)],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.query_usync(query)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(response),
-                body: parse_quote!({ Ok(crate::proto::to_js_value(&response)?.unchecked_into()) }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Serialize {
+                serializer: Serializer::Proto,
+                member: None,
+                optional: false,
+                cast: true,
+                error: SerializationError::From,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -289,12 +280,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(parsed),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let enc_type = wacore::message_processing::EncType::from_wire(msg_type)
-                        .ok_or_else(|| {
-                            crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}"))
-                        })?;
-                })),
+                Input::Preparation(Preparation::DecryptType),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -386,51 +372,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("input"),
                     value: parse_quote!(input),
                 },
-                Input::Codec(InputCodec::Import(parse_quote!(
-                    use wacore::libsignal::protocol::{IdentityKey, PreKeyBundle, PublicKey};
-                ))),
                 Input::Jid {
                     binding: parse_quote!(parsed),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let identity_key = PublicKey::from_djb_public_key_bytes(&input.identity_key)
-                        .map(IdentityKey::new)
-                        .map_err(|error| {
-                            crate::errors::invalid_arg("identityKey", error.to_string())
-                        })?;
-                    let signed_pre_key =
-                        PublicKey::from_djb_public_key_bytes(&input.signed_pre_key.public_key)
-                            .map_err(|error| {
-                                crate::errors::invalid_arg(
-                                    "signedPreKey.publicKey",
-                                    error.to_string(),
-                                )
-                            })?;
-                    let pre_key = input
-                        .pre_key
-                        .map(|pre_key| {
-                            PublicKey::from_djb_public_key_bytes(&pre_key.public_key)
-                                .map(|public_key| (pre_key.key_id.into(), public_key))
-                                .map_err(|error| {
-                                    crate::errors::invalid_arg(
-                                        "preKey.publicKey",
-                                        error.to_string(),
-                                    )
-                                })
-                        })
-                        .transpose()?;
-                    let bundle = PreKeyBundle::new(
-                        input.registration_id,
-                        u32::from(parsed.device).into(),
-                        pre_key,
-                        input.signed_pre_key.key_id.into(),
-                        signed_pre_key,
-                        input.signed_pre_key.signature,
-                        identity_key,
-                    )
-                    .map_err(|error| crate::errors::invalid_arg("bundle", error.to_string()))?;
-                })),
+                Input::Preparation(Preparation::PreKeyBundle),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -641,29 +587,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     #[wasm_bindgen(unchecked_param_type = "LidPnMappingInput[]")] mappings: JsValue,
                 ) -> Result<u32, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let mappings = from_js_input::<Vec<crate::result_types::LidPnMappingInput>>(
-                    "mappings", mappings,
-                )?;
-                let mut pairs = Vec::with_capacity(mappings.len());
-                for (index, mapping) in mappings.into_iter().enumerate() {
-                    let lid = parse_jid(&mapping.lid)?;
-                    if !lid.server.is_lid_family() {
-                        return Err(crate::errors::invalid_arg(
-                            format!("mappings[{index}].lid"),
-                            "must use a linked-identifier namespace",
-                        ));
-                    }
-                    let pn = parse_jid(&mapping.pn)?;
-                    if !pn.server.is_pn_family() {
-                        return Err(crate::errors::invalid_arg(
-                            format!("mappings[{index}].pn"),
-                            "must use a phone-number namespace",
-                        ));
-                    }
-                    pairs.push((lid.user.to_string(), pn.user.to_string()));
-                }
-            }))],
+            inputs: vec![Input::Preparation(Preparation::LidPnMappings)],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Local),
@@ -671,13 +595,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 client
                     .add_lid_pn_mappings(pairs, whatsapp_rust::lid_pn_cache::LearningSource::Other)
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(written),
-                body: parse_quote!({
-                    u32::try_from(written)
-                        .map_err(|_| crate::errors::internal("mapping count exceeds u32"))
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::CheckedU32("mapping count exceeds u32"),
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(

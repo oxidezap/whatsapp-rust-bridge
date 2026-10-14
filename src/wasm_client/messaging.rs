@@ -48,24 +48,4 @@ fn group_receipt_keys(
         .collect()
 }
 
-/// The core's [`whatsapp_rust::EditOptions`] from the edit's optional
-/// caller-supplied stanza id. Empty or whitespace is refused rather than
-/// coerced to absent: absent means "mint a fresh id", and silently un-pinning
-/// an id the caller meant to pin is what a best-effort override cannot surface.
-fn edit_options(
-    stanza_id: Option<String>,
-) -> Result<whatsapp_rust::EditOptions, crate::errors::BridgeError> {
-    match stanza_id {
-        None => Ok(whatsapp_rust::EditOptions::default()),
-        Some(id) if id.trim().is_empty() => Err(crate::errors::invalid_arg(
-            "stanzaId",
-            "must not be empty or whitespace; omit it to have a fresh id minted",
-        )),
-        Some(id) => Ok(whatsapp_rust::EditOptions::default().with_stanza_id(
-            whatsapp_rust::StanzaId::new(id)
-                .map_err(|e| crate::errors::invalid_arg("stanzaId", e.to_string()))?,
-        )),
-    }
-}
-
 include!("generated/messaging.rs");

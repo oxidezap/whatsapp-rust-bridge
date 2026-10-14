@@ -81,11 +81,19 @@ impl WasmWhatsAppClient {
             msg,
             input.message_id,
             retry_count,
-        )
-        .with_group_metadata_freshness(freshness(input.refresh_group_metadata));
-        if let Some(recipient_jid) = input.recipient_jid {
-            request = request.with_recipient(parse_jid(&recipient_jid)?);
-        }
+        );
+        request = request.with_group_metadata_freshness(freshness(input.refresh_group_metadata));
+        let recipient = input
+            .recipient_jid
+            .map(|value| -> Result<_, crate::errors::BridgeError> {
+                let jid = parse_jid(&value)?;
+                Ok(jid)
+            })
+            .transpose()?;
+        let request = match recipient {
+            Some(recipient) => request.with_recipient(recipient),
+            None => request,
+        };
         let client = self.client.unwaited(Unwaited::ConnectionBound);
         client.retransmit_message(request).await?;
         Ok(())
@@ -122,8 +130,8 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let to = parse_jid(jid)?;
         let revoke_type = match participant {
-            Some(p) => {
-                let sender = parse_jid(&p)?;
+            Some(value) => {
+                let sender = parse_jid(&value)?;
                 whatsapp_rust::RevokeType::Admin {
                     original_sender: sender,
                 }
@@ -201,14 +209,11 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::CreatePollResult>, crate::errors::BridgeError> {
         let to = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let created = client
+        let value = client
             .polls()
             .create(&to, name, &options, selectable_count)
             .await?;
-        to_ts(crate::result_types::CreatePollResult {
-            message_id: created.send_result().message_id.to_string(),
-            message_secret: created.secret().as_bytes().to_vec(),
-        })
+        to_ts(crate::result_types::project_create_poll(&value))
     }
     #[doc = r" Vote on a poll. Returns message ID."]
     # [wasm_bindgen (js_name = votePoll)]

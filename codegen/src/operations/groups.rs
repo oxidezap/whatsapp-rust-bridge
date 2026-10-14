@@ -395,10 +395,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             ],
             admission: Admission::Online,
             call: parse_quote!(client.groups().revoke_request_code(&group, &[invited])),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(responses),
-                expression: parse_quote!(Ok(responses.iter().all(|response| response.is_ok()))),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Value {
+                codec: ValueCodec::AllSucceeded,
+                error: None,
+            }),
         },
         Operation {
             attributes: attributes(quote!(
@@ -465,15 +465,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     participants: Vec<String>,
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                use whatsapp_rust::features::GroupParticipantOptions;
-                let participant_options: Vec<GroupParticipantOptions> = participants
-                    .iter()
-                    .map(|p| parse_jid(p).map(GroupParticipantOptions::new))
-                    .collect::<Result<_, _>>()?;
-                let options = whatsapp_rust::features::GroupCreateOptions::new(subject)
-                    .with_participants(participant_options);
-            }))],
+            inputs: vec![Input::Preparation(Preparation::GroupCreate)],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -504,10 +496,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("action"),
                     value: parse_quote!(action),
                 },
-                Input::Convert(parse_quote!({
-                    let (group_jid, participant_jids) =
-                        participants_update_input(jid, &participants, action)?;
-                })),
+                Input::Preparation(Preparation::Participants),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -553,17 +542,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     create_general_chat: bool,
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let mut options = whatsapp_rust::features::CreateCommunityOptions::new(name)
-                    .map_err(|e| crate::errors::invalid_arg("name", e.to_string()))?;
-                options.description = description
-                    .map(whatsapp_rust::features::GroupDescription::new)
-                    .transpose()
-                    .map_err(|e| crate::errors::invalid_arg("description", e.to_string()))?;
-                options.closed = closed;
-                options.allow_non_admin_sub_group_creation = allow_non_admin_sub_group_creation;
-                options.create_general_chat = create_general_chat;
-            }))],
+            inputs: vec![Input::Preparation(Preparation::CommunityCreate)],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -649,10 +628,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("action"),
                     value: parse_quote!(action),
                 },
-                Input::Convert(parse_quote!({
-                    let (group_jid, participant_jids) =
-                        participants_update_input(jid, &participants, action)?;
-                })),
+                Input::Preparation(Preparation::Participants),
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -809,7 +785,12 @@ pub(super) fn catalog() -> Vec<Operation> {
                             .await?
                     }
                 };
-                to_ts_vec(responses.iter().map(participant_change_to_result).collect())
+                to_ts_vec(
+                    responses
+                        .iter()
+                        .map(crate::result_types::project_participant_change)
+                        .collect(),
+                )
             }),
             output: ReturnAdapter::Direct,
         },

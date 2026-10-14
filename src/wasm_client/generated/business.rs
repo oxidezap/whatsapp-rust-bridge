@@ -125,48 +125,50 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let update =
             from_js_input::<crate::result_types::BusinessProfileUpdateInput>("update", update)?;
-        use wacore::iq::business::{
-            BusinessHoursConfig, BusinessHoursUpdate, BusinessProfileUpdate,
-        };
         let business_hours = update
             .business_hours
-            .map(|hours| {
+            .map(|hours| -> Result<_, crate::errors::BridgeError> {
                 let config = hours
                     .config
                     .into_iter()
-                    .map(|entry| {
+                    .map(|entry| -> Result<_, crate::errors::BridgeError> {
                         let day = entry.day_of_week.as_str().into();
                         let mode = entry.mode.as_str().into();
-                        match (entry.open_time, entry.close_time) {
+                        let config = match (entry.open_time, entry.close_time) {
                             (Some(open), Some(close)) => {
-                                Ok(BusinessHoursConfig::with_hours(day, mode, open, close))
+                                wacore::iq::business::BusinessHoursConfig::with_hours(
+                                    day, mode, open, close,
+                                )
                             }
-                            (None, None) => Ok(BusinessHoursConfig::new(day, mode)),
+                            (None, None) => {
+                                wacore::iq::business::BusinessHoursConfig::new(day, mode)
+                            }
                             (open, _) => {
-                                let missing = if open.is_some() {
-                                    "closeTime"
-                                } else {
-                                    "openTime"
+                                let missing = match open {
+                                    Some(_) => "closeTime",
+                                    None => "openTime",
                                 };
-                                Err(crate::errors::BridgeError::InvalidArgument {
-                                    field: "businessHours.config".into(),
-                                    reason: format!(
+                                return Err(crate::errors::invalid_arg(
+                                    "businessHours.config",
+                                    format!(
                                         "{} is missing {missing}: an opening range needs both ends",
                                         entry.day_of_week
                                     ),
-                                })
+                                ));
                             }
-                        }
+                        };
+                        Ok(config)
                     })
                     .collect::<Result<Vec<_>, _>>()?;
-                Ok::<_, crate::errors::BridgeError>(BusinessHoursUpdate {
+                let hours = wacore::iq::business::BusinessHoursUpdate {
                     timezone: hours.timezone,
                     note: hours.note,
                     config,
-                })
+                };
+                Ok(hours)
             })
             .transpose()?;
-        let delta = BusinessProfileUpdate {
+        let delta = wacore::iq::business::BusinessProfileUpdate {
             address: update.address,
             latitude: update.latitude,
             longitude: update.longitude,

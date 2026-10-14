@@ -559,13 +559,7 @@ export interface CacheEntryConfig {
   store?: JsCacheStore;
 }
 
-/** Custom cache backend. */
-export interface JsCacheStore {
-  get(namespace: string, key: string): Promise<Uint8Array | null>;
-  set(namespace: string, key: string, value: Uint8Array, ttlSecs?: number): Promise<void>;
-  delete(namespace: string, key: string): Promise<void>;
-  clear(namespace: string): Promise<void>;
-}
+
 
 /** Cache configuration — all fields optional. */
 export interface CacheConfig {
@@ -2881,236 +2875,6 @@ impl Drop for WasmWhatsAppClient {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Parse what a participant update needs, so its caller can reject a bad JID
-/// before deciding whether to wait for a connection.
-fn participants_update_input(
-    jid: &str,
-    participants: &[String],
-    action: crate::result_types::GroupParticipantAction,
-) -> Result<(wacore_binary::jid::Jid, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError> {
-    if matches!(action, crate::result_types::GroupParticipantAction::Modify) {
-        return Err(crate::errors::BridgeError::InvalidArgument {
-            field: "action".into(),
-            reason: "modify represents a received participant identity change and cannot be sent"
-                .into(),
-        });
-    }
-    let group_jid = parse_jid(jid)?;
-    let participant_jids = participants
-        .iter()
-        .map(|participant| parse_jid(participant))
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((group_jid, participant_jids))
-}
-
-async fn participants_update(
-    client: &whatsapp_rust::Client,
-    group_jid: wacore_binary::jid::Jid,
-    participant_jids: Vec<wacore_binary::jid::Jid>,
-    action: crate::result_types::GroupParticipantAction,
-    include_linked_groups_on_remove: bool,
-) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError> {
-    use crate::result_types::GroupParticipantAction;
-
-    let responses = match action {
-        GroupParticipantAction::Add => {
-            client
-                .groups()
-                .add_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Remove if include_linked_groups_on_remove => {
-            client
-                .community()
-                .remove_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Remove => {
-            client
-                .groups()
-                .remove_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Promote => {
-            client
-                .groups()
-                .promote_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        GroupParticipantAction::Demote => {
-            client
-                .groups()
-                .demote_participants(&group_jid, &participant_jids)
-                .await?
-        }
-        // `participants_update_input` rejects this above the gate, so a caller
-        // hears it at once rather than after a reconnect. Kept as a real error
-        // rather than a trap: a trap does not cross as a `WhatsAppError` with
-        // a `.kind`, and a later caller reaching here without the helper would
-        // get no usable failure at all.
-        GroupParticipantAction::Modify => {
-            return Err(crate::errors::BridgeError::InvalidArgument {
-                field: "action".into(),
-                reason:
-                    "modify represents a received participant identity change and cannot be sent"
-                        .into(),
-            });
-        }
-    };
-
-    to_ts_vec(responses.iter().map(participant_change_to_result).collect())
-}
-
-fn participant_change_to_result(
-    response: &whatsapp_rust::features::ParticipantChangeResponse,
-) -> crate::result_types::ParticipantChangeResult {
-    crate::result_types::ParticipantChangeResult {
-        jid: response.jid.to_string(),
-        status: response.status.clone(),
-        error: response.error.clone(),
-        phone_number: response.phone_number.as_ref().map(ToString::to_string),
-        username: response.username.clone(),
-        add_request: response.add_request.as_ref().map(|request| {
-            crate::result_types::ParticipantAddRequestResult {
-                code: request.code.clone(),
-                expiration: request.expiration as f64,
-            }
-        }),
-    }
-}
-
-fn community_link_result(
-    succeeded: Vec<Jid>,
-    failed: Vec<whatsapp_rust::features::SubgroupFailure>,
-) -> crate::result_types::CommunityLinkResult {
-    crate::result_types::CommunityLinkResult {
-        succeeded: succeeded.into_iter().map(|jid| jid.to_string()).collect(),
-        failed: failed
-            .into_iter()
-            .map(|failure| crate::result_types::CommunityLinkFailureResult {
-                jid: failure.jid.to_string(),
-                error: failure.code as f64,
-            })
-            .collect(),
-    }
-}
-
-fn group_overview_to_result(
-    group: &whatsapp_rust::features::GroupOverview,
-) -> crate::result_types::GroupOverviewResult {
-    use crate::result_types::{GroupHierarchyResult as R, GroupOverviewResult};
-    use whatsapp_rust::features::{GroupHierarchy as H, SubgroupKind};
-    GroupOverviewResult {
-        id: group.id.to_string(),
-        subject: group.subject.clone(),
-        participant_count: group.participant_count.map(|v| v as f64),
-        hierarchy: match &group.hierarchy {
-            H::Standalone => R::Standalone,
-            H::Community => R::Community,
-            H::Subgroup { parent, kind } => R::Subgroup {
-                parent: parent.to_string(),
-                kind: match kind {
-                    SubgroupKind::Regular => "regular".into(),
-                    SubgroupKind::Announcement => "announcement".into(),
-                    SubgroupKind::General => "general".into(),
-                    other => format!("{other:?}"),
-                },
-            },
-            other => R::Unknown {
-                detail: format!("{other:?}"),
-            },
-        },
-    }
-}
-
-/// Convert GroupMetadata to a typed result struct.
-fn group_metadata_to_result(
-    metadata: &whatsapp_rust::features::GroupMetadata,
-) -> crate::result_types::GroupMetadataResult {
-    use crate::result_types::{
-        GroupEphemeralSettingsResult, GroupGrowthLockInfoResult, GroupMetadataParticipant,
-        GroupMetadataResult,
-    };
-    GroupMetadataResult {
-        id: metadata.id.to_string(),
-        subject: metadata.subject.clone(),
-        notify: metadata.notify.clone(),
-        participants: metadata
-            .participants
-            .iter()
-            .map(|p| GroupMetadataParticipant {
-                jid: p.jid.to_string(),
-                phone_number: p.phone_number.as_ref().map(|pn| pn.to_string()),
-                lid: p.lid.as_ref().map(|lid| lid.to_string()),
-                username: p.username.as_ref().map(ToString::to_string),
-                participant_type: p.participant_type.as_str().to_string(),
-                is_admin: p.is_admin(),
-                is_super_admin: p.is_super_admin(),
-            })
-            .collect(),
-        addressing_mode: metadata.addressing_mode.as_str().to_string(),
-        creator: metadata.creator.as_ref().map(|j| j.to_string()),
-        creator_pn: metadata.creator_pn.as_ref().map(|j| j.to_string()),
-        creator_username: metadata.creator_username.clone(),
-        creator_country_code: metadata.creator_country_code.clone(),
-        creation_time: metadata.creation_time.map(|v| v as f64),
-        subject_time: metadata.subject_time.map(|v| v as f64),
-        subject_owner: metadata.subject_owner.as_ref().map(|j| j.to_string()),
-        subject_owner_pn: metadata.subject_owner_pn.as_ref().map(|j| j.to_string()),
-        subject_owner_username: metadata.subject_owner_username.clone(),
-        description: metadata.description.clone(),
-        description_id: metadata.description_id.clone(),
-        description_owner: metadata.description_owner.as_ref().map(|j| j.to_string()),
-        description_owner_pn: metadata
-            .description_owner_pn
-            .as_ref()
-            .map(|j| j.to_string()),
-        description_owner_username: metadata.description_owner_username.clone(),
-        description_time: metadata.description_time.map(|v| v as f64),
-        is_locked: metadata.is_locked,
-        is_announcement: metadata.is_announcement,
-        ephemeral: metadata
-            .ephemeral
-            .map(|settings| GroupEphemeralSettingsResult {
-                expiration: settings.expiration.map(|v| v as f64),
-                trigger: settings.trigger.map(|v| v as f64),
-            }),
-        membership_approval: metadata.membership_approval,
-        member_add_mode: metadata
-            .member_add_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        member_link_mode: metadata
-            .member_link_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        participant_count: metadata.participant_count.map(|v| v as f64),
-        is_parent_group: metadata.is_parent_group,
-        parent_group_jid: metadata.parent_group_jid.as_ref().map(|j| j.to_string()),
-        is_default_sub_group: metadata.is_default_sub_group,
-        is_general_chat: metadata.is_general_chat,
-        allow_non_admin_sub_group_creation: metadata.allow_non_admin_sub_group_creation,
-        no_frequently_forwarded: metadata.no_frequently_forwarded,
-        member_share_history_mode: metadata
-            .member_share_history_mode
-            .as_ref()
-            .map(|m| m.as_str().to_string()),
-        growth_locked: metadata
-            .growth_locked
-            .as_ref()
-            .map(|lock| GroupGrowthLockInfoResult {
-                lock_type: lock.lock_type.clone(),
-                expiration: lock.expiration as f64,
-            }),
-        is_suspended: metadata.is_suspended,
-        allow_admin_reports: metadata.allow_admin_reports,
-        is_hidden_group: metadata.is_hidden_group,
-        is_incognito: metadata.is_incognito,
-        has_group_history: metadata.has_group_history,
-        is_limit_sharing_enabled: metadata.is_limit_sharing_enabled,
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Poll vote decryption — standalone functions (not on WasmWhatsAppClient)
 // ---------------------------------------------------------------------------
@@ -3246,58 +3010,6 @@ fn call_no_args(target: &JsValue, method: &str) -> Result<JsValue, String> {
         })
 }
 
-/// Carry the bot directory across as the core grouped it: every section, with
-/// its presentation metadata. `BotList::flatten` is the core's own collapse and
-/// stays a consumer's call.
-fn bot_list_to_result(
-    list: &whatsapp_rust::features::BotList,
-) -> crate::result_types::BotListResult {
-    use crate::result_types::{
-        BotDefaultResult, BotListEntryResult, BotListSectionResult, BotThemeResult,
-    };
-
-    crate::result_types::BotListResult {
-        version: list.version.as_str().to_owned(),
-        bhash: list.bhash.clone(),
-        default_bot: list.default_bot.as_ref().map(|bot| BotDefaultResult {
-            jid: bot.jid.to_string(),
-            persona_id: bot.persona_id.clone(),
-        }),
-        sections: list
-            .sections
-            .iter()
-            .map(|section| BotListSectionResult {
-                name: section.name.clone(),
-                section_type: section.section_type.as_str().to_owned(),
-                display_type: section
-                    .display_type
-                    .as_ref()
-                    .map(|kind| kind.as_str().to_owned()),
-                bots: section
-                    .bots
-                    .iter()
-                    .map(|bot| BotListEntryResult {
-                        jid: bot.jid.to_string(),
-                        persona_id: bot.persona_id.clone(),
-                        card_title: bot.card_title.clone(),
-                        count: bot.count.map(|value| value as f64),
-                        themes: bot
-                            .themes
-                            .iter()
-                            .map(|theme| BotThemeResult {
-                                mode: theme.mode.as_str().to_owned(),
-                                background: theme.background.clone(),
-                                primary_text: theme.primary_text.clone(),
-                                secondary_text: theme.secondary_text.clone(),
-                            })
-                            .collect(),
-                    })
-                    .collect(),
-            })
-            .collect(),
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Node ↔ BinaryNode conversion
 // ---------------------------------------------------------------------------
@@ -3305,81 +3017,7 @@ fn bot_list_to_result(
 // wacore's `Node` stores compact attributes and tagged content. These
 // converters preserve the neutral wire representation across the boundary.
 
-/// Convert a wacore `Node` → JS `BinaryNode` object `{ tag, attrs, content }`.
-fn node_to_js(node: &wacore_binary::node::Node) -> Result<JsValue, JsValue> {
-    let obj = js_sys::Object::new();
-    js_sys::Reflect::set(&obj, &"tag".into(), &node.tag.as_ref().into())?;
-
-    // attrs: Record<string, string> — flatten Vec<(key, NodeValue)> to object
-    let attrs_obj = js_sys::Object::new();
-    for (key, value) in node.attrs.iter() {
-        let val_str: String = value.as_str().into_owned();
-        js_sys::Reflect::set(&attrs_obj, &key.as_ref().into(), &val_str.into())?;
-    }
-    js_sys::Reflect::set(&obj, &"attrs".into(), &attrs_obj.into())?;
-
-    // content: BinaryNode[] | string | Uint8Array | undefined
-    if let Some(content) = &node.content {
-        let content_js = match content {
-            wacore_binary::node::NodeContent::Nodes(nodes) => {
-                let arr = js_sys::Array::new_with_length(nodes.len() as u32);
-                for (i, child) in nodes.iter().enumerate() {
-                    arr.set(i as u32, node_to_js(child)?);
-                }
-                arr.into()
-            }
-            wacore_binary::node::NodeContent::Bytes(bytes) => {
-                js_sys::Uint8Array::from(bytes.as_slice()).into()
-            }
-            wacore_binary::node::NodeContent::String(s) => JsValue::from_str(s),
-        };
-        js_sys::Reflect::set(&obj, &"content".into(), &content_js)?;
-    }
-
-    Ok(obj.into())
-}
-
-/// Convert a yoke-borrowed `NodeRef` → JS `BinaryNode` object `{ tag, attrs, content }`.
-/// Zero-copy: reads directly from the decoded buffer without cloning to `Node`.
-fn node_ref_to_js(node: &wacore_binary::node::NodeRef<'_>) -> Result<JsValue, JsValue> {
-    let obj = js_sys::Object::new();
-    js_sys::Reflect::set(&obj, &"tag".into(), &JsValue::from_str(&node.tag))?;
-
-    let attrs_obj = js_sys::Object::new();
-    for (key, value) in node.attrs_iter() {
-        let js_val = match value {
-            wacore_binary::node::ValueRef::String(s) => JsValue::from_str(s),
-            wacore_binary::node::ValueRef::Jid(j) => {
-                let mut s = String::with_capacity(j.user.len() + 20);
-                wacore_binary::push_jid_to_string(&j.user, j.server, j.agent, j.device, &mut s);
-                JsValue::from_str(&s)
-            }
-        };
-        js_sys::Reflect::set(&attrs_obj, &JsValue::from_str(key), &js_val)?;
-    }
-    js_sys::Reflect::set(&obj, &"attrs".into(), &attrs_obj.into())?;
-
-    if let Some(content) = node.content.as_ref() {
-        let content_js = match content {
-            wacore_binary::node::NodeContentRef::Nodes(children) => {
-                let arr = js_sys::Array::new_with_length(children.len() as u32);
-                for (i, child) in children.iter().enumerate() {
-                    arr.set(i as u32, node_ref_to_js(child)?);
-                }
-                arr.into()
-            }
-            wacore_binary::node::NodeContentRef::Bytes(bytes) => {
-                js_sys::Uint8Array::from(bytes.as_ref()).into()
-            }
-            wacore_binary::node::NodeContentRef::String(s) => JsValue::from_str(s.as_ref()),
-        };
-        js_sys::Reflect::set(&obj, &"content".into(), &content_js)?;
-    }
-
-    Ok(obj.into())
-}
-
-/// Convert a JS `BinaryNode` object → wacore `Node`.
+/// Convert a JS `BinaryNode` object to a wacore `Node`.
 fn js_to_node(val: &JsValue) -> Result<wacore_binary::node::Node, crate::errors::BridgeError> {
     use std::borrow::Cow;
     use wacore_binary::node::{Attrs, Node, NodeContent, NodeValue};
@@ -3585,132 +3223,6 @@ fn js_node_array_to_vec(
         result.push(js_to_node(&node)?);
     }
     Ok(result)
-}
-
-async fn send_message_with_options(
-    client: &whatsapp_rust::Client,
-    to: Jid,
-    msg: waproto::whatsapp::Message,
-    options: whatsapp_rust::SendOptions,
-) -> Result<String, crate::errors::BridgeError> {
-    let request = whatsapp_rust::SendRequest::new(&to, msg).with_options(options);
-    let result = client.send(request).await?;
-    Ok(result.message_id.into_string())
-}
-
-/// Decode and parse what a status send needs, so its caller can reject bad
-/// input before deciding whether to wait for a connection.
-fn status_message_input(
-    bytes: &[u8],
-    recipients: &[String],
-) -> Result<(waproto::whatsapp::Message, Vec<wacore_binary::jid::Jid>), crate::errors::BridgeError>
-{
-    let msg = waproto::codec::message_decode(bytes)
-        .map_err(|e| crate::errors::internal(format!("invalid message bytes: {e}")))?;
-    let recipients = recipients
-        .iter()
-        .map(|jid| parse_jid(jid))
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((msg, recipients))
-}
-
-async fn send_status_message_with_options(
-    client: &whatsapp_rust::Client,
-    msg: waproto::whatsapp::Message,
-    recipients: Vec<wacore_binary::jid::Jid>,
-    options: whatsapp_rust::StatusSendOptions,
-) -> Result<String, crate::errors::BridgeError> {
-    let result = client.status().send_raw(msg, &recipients, options).await?;
-    Ok(result.message_id.into_string())
-}
-
-/// The JS spelling of a core enum, written down here rather than taken from
-/// `Debug`.
-///
-/// `Debug` is not a stable API. Renaming a variant upstream is an ordinary
-/// refactor there and neither crate would fail to build, but the string a host
-/// switches on would have changed. Each mapping below emits exactly what the
-/// surface emits today, so this is a change of source rather than of value.
-fn newsletter_verification_str(v: &whatsapp_rust::features::NewsletterVerification) -> String {
-    use whatsapp_rust::features::NewsletterVerification as V;
-    match v {
-        V::Verified => "Verified".into(),
-        V::Unverified => "Unverified".into(),
-        // `#[non_exhaustive]` forces a wildcard. `Debug` keeps a variant added
-        // upstream identifiable rather than folding it into a name above.
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-fn newsletter_state_str(s: &whatsapp_rust::features::NewsletterState) -> String {
-    use whatsapp_rust::features::NewsletterState as S;
-    match s {
-        S::Active => "Active".into(),
-        S::Suspended => "Suspended".into(),
-        S::Geosuspended => "Geosuspended".into(),
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-pub(crate) fn newsletter_role_str(r: &whatsapp_rust::features::NewsletterRole) -> String {
-    use whatsapp_rust::features::NewsletterRole as R;
-    match r {
-        R::Owner => "Owner".into(),
-        R::Admin => "Admin".into(),
-        R::Subscriber => "Subscriber".into(),
-        R::Guest => "Guest".into(),
-        other => format!("{other:?}"),
-    }
-}
-
-/// See [`newsletter_verification_str`].
-///
-/// This one is matched whole: the core enum is not `#[non_exhaustive]`, so a
-/// variant added upstream stops the build here and has to be given a string
-/// deliberately.
-fn connect_failure_reason_str(r: &wacore::types::events::ConnectFailureReason) -> String {
-    use wacore::types::events::ConnectFailureReason as R;
-    match r {
-        R::Generic => "Generic".into(),
-        R::LoggedOut => "LoggedOut".into(),
-        R::TempBanned => "TempBanned".into(),
-        R::AccountLocked => "AccountLocked".into(),
-        R::UnknownLogout => "UnknownLogout".into(),
-        R::ClientOutdated => "ClientOutdated".into(),
-        R::BadUserAgent => "BadUserAgent".into(),
-        R::CatExpired => "CatExpired".into(),
-        R::CatInvalid => "CatInvalid".into(),
-        R::NotFound => "NotFound".into(),
-        R::ClientUnknown => "ClientUnknown".into(),
-        R::InternalServerError => "InternalServerError".into(),
-        R::Experimental => "Experimental".into(),
-        R::ServiceUnavailable => "ServiceUnavailable".into(),
-        // The core's own fallback: the code it could not name, carried through.
-        R::Unknown(code) => format!("Unknown({code})"),
-    }
-}
-
-/// Convert NewsletterMetadata to a typed result struct.
-fn newsletter_metadata_to_result(
-    meta: &whatsapp_rust::features::NewsletterMetadata,
-) -> crate::result_types::NewsletterMetadataResult {
-    crate::result_types::NewsletterMetadataResult {
-        jid: meta.jid.to_string(),
-        name: meta.name.to_string(),
-        description: meta.description.clone(),
-        subscriber_count: meta.subscriber_count as f64,
-        verification: newsletter_verification_str(&meta.verification),
-        state: newsletter_state_str(&meta.state),
-        picture_url: meta.picture_url.clone(),
-        preview_url: meta.preview_url.clone(),
-        invite_code: meta.invite_code.clone(),
-        role: meta.role.as_ref().map(newsletter_role_str),
-        creation_time: meta.creation_time.map(|v| v as f64),
-        muted: meta.muted,
-        follower_activity_muted: meta.follower_activity_muted,
-    }
 }
 
 #[cfg(test)]
@@ -4276,12 +3788,14 @@ mod event_delivery_tests {
         }
     }
 
+    #[cfg(feature = "client-groups")]
     #[test]
     fn missing_group_subject_stays_absent_and_count_is_not_roster_length() {
         let mut metadata =
             whatsapp_rust::features::GroupMetadata::new("120363000000000000@g.us".parse().unwrap());
         metadata.participant_count = Some(300);
-        let value = serde_json::to_value(group_metadata_to_result(&metadata)).unwrap();
+        let value =
+            serde_json::to_value(crate::result_types::project_group_metadata(&metadata)).unwrap();
         assert!(value.get("subject").is_none());
         assert_eq!(value["participantCount"], 300.0);
         assert_eq!(value["participants"], serde_json::json!([]));
@@ -5340,3 +4854,11 @@ mod generated_event_registration_tests {
         );
     }
 }
+
+include!("wasm_client/generated/preparations.rs");
+
+include!("wasm_client/generated/variant_strings.rs");
+
+include!("wasm_client/generated/nodes.rs");
+
+include!("wasm_client/generated/call_adapters.rs");

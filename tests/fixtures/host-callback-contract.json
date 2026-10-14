@@ -1,0 +1,33 @@
+{
+  "source": "../audit-bridge/pkg/whatsapp_rust_bridge.d.ts",
+  "interfaces": {
+    "JsCacheStore": [
+      "get(namespace: string, key: string): Promise<Uint8Array | null>;",
+      "set(namespace: string, key: string, value: Uint8Array, ttlSecs?: number): Promise<void>;",
+      "delete(namespace: string, key: string): Promise<void>;",
+      "clear(namespace: string): Promise<void>;"
+    ],
+    "JsCryptoCallbacks": [
+      "aesCbc256Encrypt(key: Uint8Array, iv: Uint8Array, plaintext: Uint8Array): Uint8Array;",
+      "aesCbc256Decrypt(key: Uint8Array, iv: Uint8Array, ciphertext: Uint8Array): Uint8Array;",
+      "aesGcm256Encrypt(key: Uint8Array, nonce: Uint8Array, aad: Uint8Array, plaintext: Uint8Array): Uint8Array;",
+      "aesGcm256Decrypt(key: Uint8Array, nonce: Uint8Array, aad: Uint8Array, ciphertextWithTag: Uint8Array): Uint8Array;",
+      "hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array;",
+      "hmacSha256TwoPart?(key: Uint8Array, first: Uint8Array, second: Uint8Array): Uint8Array;"
+    ],
+    "JsHttpClientConfig": [
+      "execute(url: string, method: string, headers: Record<string, string>, body: Uint8Array | null): Promise<{ statusCode: number; body: Uint8Array }>;"
+    ],
+    "JsTransportCallbacks": [
+      "connect(handle: JsTransportHandle): void | Promise<void>;",
+      "send(data: Uint8Array): void | Promise<void>;",
+      "sendBorrowed?(data: Uint8Array): void;",
+      "disconnect(): void | Promise<void>;"
+    ],
+    "JsTransportHandle": [
+      "onConnected(): void;",
+      "onData(data: Uint8Array): void;",
+      "onDisconnected(): void;"
+    ]
+  }
+}

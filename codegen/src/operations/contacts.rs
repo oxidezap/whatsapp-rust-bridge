@@ -32,33 +32,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().is_on_whatsapp(&jids)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(results),
-                body: parse_quote!({
-                    fn jid_to_owned(jid: &Jid) -> String {
-                        let mut buf =
-                            String::with_capacity(jid.user.len() + jid.server.as_str().len() + 8);
-                        jid.push_to(&mut buf);
-                        buf
-                    }
-                    to_ts_vec(
-                        results
-                            .iter()
-                            .map(|r| crate::result_types::IsOnWhatsAppResult {
-                                jid: jid_to_owned(&r.jid),
-                                is_registered: r.is_registered,
-                                lid: r.lid.as_ref().map(jid_to_owned),
-                                pn_jid: r.pn_jid.as_ref().map(jid_to_owned),
-                                is_business: r.is_business,
-                                verified_name: r
-                                    .verified_name
-                                    .as_ref()
-                                    .and_then(|v| v.name.clone()),
-                                username: r.username.as_ref().map(|u| u.to_string()),
-                            })
-                            .collect(),
-                    )
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::IsOnWhatsApp,
+                envelope: Envelope::List,
             },
         },
         Operation {
@@ -82,9 +58,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     username_key: Option<String>,
                 ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Codec(InputCodec::Import(parse_quote!(
-                use whatsapp_rust::features::UsernameLookup;
-            )))],
+            inputs: vec![],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -93,35 +67,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     .contacts()
                     .find_by_username(username, username_key.as_deref())
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(lookup),
-                body: parse_quote!({
-                    to_ts(match lookup {
-                        UsernameLookup::NotFound => {
-                            crate::result_types::UsernameLookupResult::NotFound
-                        }
-                        UsernameLookup::KeyRequired { username } => {
-                            crate::result_types::UsernameLookupResult::KeyRequired {
-                                username: username.map(|u| u.to_string()),
-                            }
-                        }
-                        UsernameLookup::Found(user) => {
-                            crate::result_types::UsernameLookupResult::Found {
-                                jid: user.jid.to_string(),
-                                pn_jid: user.pn_jid.as_ref().map(|j| j.to_string()),
-                                username: user.username.map(|u| u.to_string()),
-                                is_business: user.is_business,
-                                verified_name: user.verified_name.and_then(|v| v.name),
-                            }
-                        }
-                        other => {
-                            return Err(crate::errors::internal(format!(
-                                "unhandled username lookup answer: {other:?}"
-                            )));
-                        }
-                    })
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::Variant(VariantCodec::UsernameLookup)),
         },
         Operation {
             attributes: attributes(quote!(
@@ -178,17 +124,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                     .timeout(timeout),
                 )
             ),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    let result = boundary_result?.into_found();
-                    to_ts_opt(result.map(|pic| crate::result_types::ProfilePictureInfo {
-                        id: pic.id,
-                        url: pic.url,
-                        direct_path: pic.direct_path,
-                        hash: pic.hash,
-                    }))
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::ProfilePictureInfo,
+                envelope: Envelope::FoundOptional,
             },
         },
         Operation {
@@ -210,30 +148,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().get_user_info(&parsed_jids)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    let obj = js_sys::Object::new();
-                    for (jid, info) in &result {
-                        let entry = crate::result_types::UserInfoResult {
-                            jid: info.jid.to_string(),
-                            lid: info.lid.as_ref().map(|l| l.to_string()),
-                            status: info.status.clone(),
-                            picture_id: info.picture_id.clone(),
-                            is_business: info.is_business,
-                            verified_name: info.verified_name.as_ref().and_then(|v| v.name.clone()),
-                            devices: info.devices.clone(),
-                            username: info.username.as_ref().map(|u| u.to_string()),
-                        };
-                        let js_entry = serde_wasm_bindgen::to_value(&entry)?;
-                        js_sys::Reflect::set(
-                            &obj,
-                            &JsValue::from_str(&jid.to_string()),
-                            &js_entry,
-                        )?;
-                    }
-                    Ok(obj.into())
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::UserInfo,
+                envelope: Envelope::Record,
             },
         },
         Operation {
@@ -445,17 +362,11 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.fetch_privacy_settings()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(response),
-                body: parse_quote!({
-                    let map: std::collections::HashMap<&str, &str> = response
-                        .settings
-                        .iter()
-                        .map(|s| (s.category.as_str(), s.value.as_str()))
-                        .collect();
-                    serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)
-                }),
-            },
+            output: ReturnAdapter::Codec(OutputCodec::StringMap {
+                member: parse_quote!(settings),
+                key: parse_quote!(category),
+                value: parse_quote!(value),
+            }),
         },
         Operation {
             attributes: attributes(quote!(

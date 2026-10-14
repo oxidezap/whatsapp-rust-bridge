@@ -1,10 +1,16 @@
+mod call_adapters;
+mod diagnostics;
 mod events;
+mod host_callbacks;
 mod lifecycle;
+mod node_projection;
 mod operation_codecs;
 mod operations;
+mod preparations;
 mod projections;
 mod storage;
 mod storage_crud;
+mod variants;
 
 use std::io::Write;
 use std::path::Path;
@@ -43,10 +49,17 @@ fn main() {
         .map(|domain| (domain.name, operations::emit(domain)))
         .collect();
     artifacts.push(("storage", storage::emit()));
+    artifacts.push(("diagnostics", diagnostics::emit()));
+    artifacts.push(("nodes", node_projection::emit()));
+    artifacts.push(("call_adapters", call_adapters::emit()));
+    artifacts.push(("host_callbacks", host_callbacks::emit()));
+    artifacts.push(("preparations", preparations::emit_helpers()));
     artifacts.push(("events", events::emit()));
     artifacts.push(("teardown", lifecycle::emit()));
     artifacts.push(("storage_crud", proc_macro2::TokenStream::new()));
     artifacts.push(("projections", projections::emit()));
+    artifacts.push(("variant_strings", variants::root()));
+    artifacts.push(("variant_projections", variants::projections()));
     let mut names = std::collections::BTreeSet::new();
     for (name, _) in &artifacts {
         assert!(names.insert(name), "duplicate generated artifact");
@@ -79,7 +92,19 @@ fn main() {
             )
         } else {
             formatted(
-                if name == "events" {
+                if name == "call_adapters" {
+                    "codegen/src/call_adapters.rs"
+                } else if name == "nodes" {
+                    "codegen/src/node_projection.rs"
+                } else if name == "diagnostics" {
+                    "codegen/src/diagnostics.rs"
+                } else if name == "variant_strings" || name == "variant_projections" {
+                    "codegen/src/variants.rs"
+                } else if name == "host_callbacks" {
+                    "codegen/src/host_callbacks.rs"
+                } else if name == "preparations" {
+                    "codegen/src/preparations.rs"
+                } else if name == "events" {
                     "codegen/src/events.rs"
                 } else if name == "teardown" {
                     "codegen/src/lifecycle.rs"
