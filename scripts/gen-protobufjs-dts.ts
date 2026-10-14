@@ -189,10 +189,12 @@ declare namespace $protobuf {
 }
 
 type $ProtoObject = { [k: string]: any };
+interface $ProtoJSON { toJSON(): $ProtoObject; }
 
 // Keep method-origin signatures so strictFunctionTypes retains their variance.
 type $ProtoEncode<T> = { encode(m: T, w?: $protobuf.Writer): $protobuf.Writer }["encode"];
 type $ProtoDecode<T> = { decode(r: ($protobuf.Reader|Uint8Array), l?: number): T }["decode"];
+type $ProtoToObject<T> = { toObject(m: T, o?: $protobuf.IConversionOptions): $ProtoObject }["toObject"];
 
 export namespace proto {
 `
@@ -239,15 +241,14 @@ const renderInterface = (def: InterfaceDef, leafName: string, depth: number): st
 	s += `${indent(depth)}}\n`
 	// Ambient class/interface merging supplies the same public instance fields
 	// from I<Name>, without publishing each field declaration twice.
-	s += `\n${indent(depth)}interface ${leafName} extends I${leafName} {}\n`
+	s += `\n${indent(depth)}interface ${leafName} extends I${leafName}, $ProtoJSON {}\n`
 	s += `\n${indent(depth)}class ${leafName} implements I${leafName} {\n`
 	s += `${indent(depth + 1)}constructor(p?: I${leafName});\n`
 	s += `${indent(depth + 1)}public static create(p?: I${leafName}): ${leafName};\n`
 	s += `${indent(depth + 1)}public static fromObject(d: $ProtoObject): ${leafName};\n`
-	s += `${indent(depth + 1)}public static toObject(m: ${leafName}, o?: $protobuf.IConversionOptions): $ProtoObject;\n`
+	s += `${indent(depth + 1)}public static toObject: $ProtoToObject<${leafName}>;\n`
 	s += `${indent(depth + 1)}public static encode: $ProtoEncode<I${leafName}>;\n`
 	s += `${indent(depth + 1)}public static decode: $ProtoDecode<${leafName}>;\n`
-	s += `${indent(depth + 1)}public toJSON(): $ProtoObject;\n`
 	s += `${indent(depth)}}\n`
 	return s
 }

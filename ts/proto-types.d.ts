@@ -13,10 +13,12 @@ declare namespace $protobuf {
 }
 
 type $ProtoObject = { [k: string]: any };
+interface $ProtoJSON { toJSON(): $ProtoObject; }
 
 // Keep method-origin signatures so strictFunctionTypes retains their variance.
 type $ProtoEncode<T> = { encode(m: T, w?: $protobuf.Writer): $protobuf.Writer }["encode"];
 type $ProtoDecode<T> = { decode(r: ($protobuf.Reader|Uint8Array), l?: number): T }["decode"];
+type $ProtoToObject<T> = { toObject(m: T, o?: $protobuf.IConversionOptions): $ProtoObject }["toObject"];
 
 export namespace proto {
 
@@ -27,16 +29,15 @@ export namespace proto {
 		isUsernameDeleted?: (boolean|null);
 	}
 
-	interface Account extends IAccount {}
+	interface Account extends IAccount, $ProtoJSON {}
 
 	class Account implements IAccount {
 		constructor(p?: IAccount);
 		public static create(p?: IAccount): Account;
 		public static fromObject(d: $ProtoObject): Account;
-		public static toObject(m: Account, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Account>;
 		public static encode: $ProtoEncode<IAccount>;
 		public static decode: $ProtoDecode<Account>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAccountLinkingOpaqueData {
@@ -46,16 +47,15 @@ export namespace proto {
 		encryptedPassword?: (string|null);
 	}
 
-	interface AccountLinkingOpaqueData extends IAccountLinkingOpaqueData {}
+	interface AccountLinkingOpaqueData extends IAccountLinkingOpaqueData, $ProtoJSON {}
 
 	class AccountLinkingOpaqueData implements IAccountLinkingOpaqueData {
 		constructor(p?: IAccountLinkingOpaqueData);
 		public static create(p?: IAccountLinkingOpaqueData): AccountLinkingOpaqueData;
 		public static fromObject(d: $ProtoObject): AccountLinkingOpaqueData;
-		public static toObject(m: AccountLinkingOpaqueData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AccountLinkingOpaqueData>;
 		public static encode: $ProtoEncode<IAccountLinkingOpaqueData>;
 		public static decode: $ProtoDecode<AccountLinkingOpaqueData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IACP2Setting {
@@ -65,16 +65,15 @@ export namespace proto {
 		initiatedByMe?: (boolean|null);
 	}
 
-	interface ACP2Setting extends IACP2Setting {}
+	interface ACP2Setting extends IACP2Setting, $ProtoJSON {}
 
 	class ACP2Setting implements IACP2Setting {
 		constructor(p?: IACP2Setting);
 		public static create(p?: IACP2Setting): ACP2Setting;
 		public static fromObject(d: $ProtoObject): ACP2Setting;
-		public static toObject(m: ACP2Setting, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ACP2Setting>;
 		public static encode: $ProtoEncode<IACP2Setting>;
 		public static decode: $ProtoDecode<ACP2Setting>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IActionLink {
@@ -82,16 +81,15 @@ export namespace proto {
 		buttonTitle?: (string|null);
 	}
 
-	interface ActionLink extends IActionLink {}
+	interface ActionLink extends IActionLink, $ProtoJSON {}
 
 	class ActionLink implements IActionLink {
 		constructor(p?: IActionLink);
 		public static create(p?: IActionLink): ActionLink;
 		public static fromObject(d: $ProtoObject): ActionLink;
-		public static toObject(m: ActionLink, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ActionLink>;
 		public static encode: $ProtoEncode<IActionLink>;
 		public static decode: $ProtoDecode<ActionLink>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IADVDeviceIdentity {
@@ -102,16 +100,15 @@ export namespace proto {
 		deviceType?: (proto.ADVEncryptionType|null);
 	}
 
-	interface ADVDeviceIdentity extends IADVDeviceIdentity {}
+	interface ADVDeviceIdentity extends IADVDeviceIdentity, $ProtoJSON {}
 
 	class ADVDeviceIdentity implements IADVDeviceIdentity {
 		constructor(p?: IADVDeviceIdentity);
 		public static create(p?: IADVDeviceIdentity): ADVDeviceIdentity;
 		public static fromObject(d: $ProtoObject): ADVDeviceIdentity;
-		public static toObject(m: ADVDeviceIdentity, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ADVDeviceIdentity>;
 		public static encode: $ProtoEncode<IADVDeviceIdentity>;
 		public static decode: $ProtoDecode<ADVDeviceIdentity>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum ADVEncryptionType {
@@ -128,16 +125,15 @@ export namespace proto {
 		accountType?: (proto.ADVEncryptionType|null);
 	}
 
-	interface ADVKeyIndexList extends IADVKeyIndexList {}
+	interface ADVKeyIndexList extends IADVKeyIndexList, $ProtoJSON {}
 
 	class ADVKeyIndexList implements IADVKeyIndexList {
 		constructor(p?: IADVKeyIndexList);
 		public static create(p?: IADVKeyIndexList): ADVKeyIndexList;
 		public static fromObject(d: $ProtoObject): ADVKeyIndexList;
-		public static toObject(m: ADVKeyIndexList, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ADVKeyIndexList>;
 		public static encode: $ProtoEncode<IADVKeyIndexList>;
 		public static decode: $ProtoDecode<ADVKeyIndexList>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IADVSignedDeviceIdentity {
@@ -147,16 +143,15 @@ export namespace proto {
 		deviceSignature?: (Uint8Array|null);
 	}
 
-	interface ADVSignedDeviceIdentity extends IADVSignedDeviceIdentity {}
+	interface ADVSignedDeviceIdentity extends IADVSignedDeviceIdentity, $ProtoJSON {}
 
 	class ADVSignedDeviceIdentity implements IADVSignedDeviceIdentity {
 		constructor(p?: IADVSignedDeviceIdentity);
 		public static create(p?: IADVSignedDeviceIdentity): ADVSignedDeviceIdentity;
 		public static fromObject(d: $ProtoObject): ADVSignedDeviceIdentity;
-		public static toObject(m: ADVSignedDeviceIdentity, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ADVSignedDeviceIdentity>;
 		public static encode: $ProtoEncode<IADVSignedDeviceIdentity>;
 		public static decode: $ProtoDecode<ADVSignedDeviceIdentity>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IADVSignedDeviceIdentityHMAC {
@@ -165,16 +160,15 @@ export namespace proto {
 		accountType?: (proto.ADVEncryptionType|null);
 	}
 
-	interface ADVSignedDeviceIdentityHMAC extends IADVSignedDeviceIdentityHMAC {}
+	interface ADVSignedDeviceIdentityHMAC extends IADVSignedDeviceIdentityHMAC, $ProtoJSON {}
 
 	class ADVSignedDeviceIdentityHMAC implements IADVSignedDeviceIdentityHMAC {
 		constructor(p?: IADVSignedDeviceIdentityHMAC);
 		public static create(p?: IADVSignedDeviceIdentityHMAC): ADVSignedDeviceIdentityHMAC;
 		public static fromObject(d: $ProtoObject): ADVSignedDeviceIdentityHMAC;
-		public static toObject(m: ADVSignedDeviceIdentityHMAC, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ADVSignedDeviceIdentityHMAC>;
 		public static encode: $ProtoEncode<IADVSignedDeviceIdentityHMAC>;
 		public static decode: $ProtoDecode<ADVSignedDeviceIdentityHMAC>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IADVSignedKeyIndexList {
@@ -183,16 +177,15 @@ export namespace proto {
 		accountSignatureKey?: (Uint8Array|null);
 	}
 
-	interface ADVSignedKeyIndexList extends IADVSignedKeyIndexList {}
+	interface ADVSignedKeyIndexList extends IADVSignedKeyIndexList, $ProtoJSON {}
 
 	class ADVSignedKeyIndexList implements IADVSignedKeyIndexList {
 		constructor(p?: IADVSignedKeyIndexList);
 		public static create(p?: IADVSignedKeyIndexList): ADVSignedKeyIndexList;
 		public static fromObject(d: $ProtoObject): ADVSignedKeyIndexList;
-		public static toObject(m: ADVSignedKeyIndexList, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ADVSignedKeyIndexList>;
 		public static encode: $ProtoEncode<IADVSignedKeyIndexList>;
 		public static decode: $ProtoDecode<ADVSignedKeyIndexList>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIHomeState {
@@ -201,16 +194,15 @@ export namespace proto {
 		conversationOptions?: proto.AIHomeState.IAIHomeOption[];
 	}
 
-	interface AIHomeState extends IAIHomeState {}
+	interface AIHomeState extends IAIHomeState, $ProtoJSON {}
 
 	class AIHomeState implements IAIHomeState {
 		constructor(p?: IAIHomeState);
 		public static create(p?: IAIHomeState): AIHomeState;
 		public static fromObject(d: $ProtoObject): AIHomeState;
-		public static toObject(m: AIHomeState, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIHomeState>;
 		public static encode: $ProtoEncode<IAIHomeState>;
 		public static decode: $ProtoDecode<AIHomeState>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIHomeState {
@@ -226,16 +218,15 @@ export namespace proto {
 			cardTypeId?: (string|null);
 		}
 
-		interface AIHomeOption extends IAIHomeOption {}
+		interface AIHomeOption extends IAIHomeOption, $ProtoJSON {}
 
 		class AIHomeOption implements IAIHomeOption {
 			constructor(p?: IAIHomeOption);
 			public static create(p?: IAIHomeOption): AIHomeOption;
 			public static fromObject(d: $ProtoObject): AIHomeOption;
-			public static toObject(m: AIHomeOption, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIHomeOption>;
 			public static encode: $ProtoEncode<IAIHomeOption>;
 			public static decode: $ProtoDecode<AIHomeOption>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AIHomeOption {
@@ -257,16 +248,15 @@ export namespace proto {
 		hasGlobalCaption?: (boolean|null);
 	}
 
-	interface AIMediaCollectionMessage extends IAIMediaCollectionMessage {}
+	interface AIMediaCollectionMessage extends IAIMediaCollectionMessage, $ProtoJSON {}
 
 	class AIMediaCollectionMessage implements IAIMediaCollectionMessage {
 		constructor(p?: IAIMediaCollectionMessage);
 		public static create(p?: IAIMediaCollectionMessage): AIMediaCollectionMessage;
 		public static fromObject(d: $ProtoObject): AIMediaCollectionMessage;
-		public static toObject(m: AIMediaCollectionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIMediaCollectionMessage>;
 		public static encode: $ProtoEncode<IAIMediaCollectionMessage>;
 		public static decode: $ProtoDecode<AIMediaCollectionMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIMediaCollectionMetadata {
@@ -274,16 +264,15 @@ export namespace proto {
 		uploadOrderIndex?: (number|null);
 	}
 
-	interface AIMediaCollectionMetadata extends IAIMediaCollectionMetadata {}
+	interface AIMediaCollectionMetadata extends IAIMediaCollectionMetadata, $ProtoJSON {}
 
 	class AIMediaCollectionMetadata implements IAIMediaCollectionMetadata {
 		constructor(p?: IAIMediaCollectionMetadata);
 		public static create(p?: IAIMediaCollectionMetadata): AIMediaCollectionMetadata;
 		public static fromObject(d: $ProtoObject): AIMediaCollectionMetadata;
-		public static toObject(m: AIMediaCollectionMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIMediaCollectionMetadata>;
 		public static encode: $ProtoEncode<IAIMediaCollectionMetadata>;
 		public static decode: $ProtoDecode<AIMediaCollectionMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIMetadataOperation {
@@ -291,16 +280,15 @@ export namespace proto {
 		bizAiMetadataSync?: (proto.IBizAIMetadataSync|null);
 	}
 
-	interface AIMetadataOperation extends IAIMetadataOperation {}
+	interface AIMetadataOperation extends IAIMetadataOperation, $ProtoJSON {}
 
 	class AIMetadataOperation implements IAIMetadataOperation {
 		constructor(p?: IAIMetadataOperation);
 		public static create(p?: IAIMetadataOperation): AIMetadataOperation;
 		public static fromObject(d: $ProtoObject): AIMetadataOperation;
-		public static toObject(m: AIMetadataOperation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIMetadataOperation>;
 		public static encode: $ProtoEncode<IAIMetadataOperation>;
 		public static decode: $ProtoDecode<AIMetadataOperation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIProvenance {
@@ -308,16 +296,15 @@ export namespace proto {
 		iptcMetadata?: (proto.AIProvenance.IMetadata|null);
 	}
 
-	interface AIProvenance extends IAIProvenance {}
+	interface AIProvenance extends IAIProvenance, $ProtoJSON {}
 
 	class AIProvenance implements IAIProvenance {
 		constructor(p?: IAIProvenance);
 		public static create(p?: IAIProvenance): AIProvenance;
 		public static fromObject(d: $ProtoObject): AIProvenance;
-		public static toObject(m: AIProvenance, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIProvenance>;
 		public static encode: $ProtoEncode<IAIProvenance>;
 		public static decode: $ProtoDecode<AIProvenance>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIProvenance {
@@ -327,16 +314,15 @@ export namespace proto {
 			editedWithGenAi?: (boolean|null);
 		}
 
-		interface Metadata extends IMetadata {}
+		interface Metadata extends IMetadata, $ProtoJSON {}
 
 		class Metadata implements IMetadata {
 			constructor(p?: IMetadata);
 			public static create(p?: IMetadata): Metadata;
 			public static fromObject(d: $ProtoObject): Metadata;
-			public static toObject(m: Metadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Metadata>;
 			public static encode: $ProtoEncode<IMetadata>;
 			public static decode: $ProtoDecode<Metadata>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -346,16 +332,15 @@ export namespace proto {
 		timestamp?: (Long|null);
 	}
 
-	interface AIQueryFanout extends IAIQueryFanout {}
+	interface AIQueryFanout extends IAIQueryFanout, $ProtoJSON {}
 
 	class AIQueryFanout implements IAIQueryFanout {
 		constructor(p?: IAIQueryFanout);
 		public static create(p?: IAIQueryFanout): AIQueryFanout;
 		public static fromObject(d: $ProtoObject): AIQueryFanout;
-		public static toObject(m: AIQueryFanout, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIQueryFanout>;
 		public static encode: $ProtoEncode<IAIQueryFanout>;
 		public static decode: $ProtoDecode<AIQueryFanout>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIRegenerateMetadata {
@@ -363,16 +348,15 @@ export namespace proto {
 		responseTimestampMs?: (Long|null);
 	}
 
-	interface AIRegenerateMetadata extends IAIRegenerateMetadata {}
+	interface AIRegenerateMetadata extends IAIRegenerateMetadata, $ProtoJSON {}
 
 	class AIRegenerateMetadata implements IAIRegenerateMetadata {
 		constructor(p?: IAIRegenerateMetadata);
 		public static create(p?: IAIRegenerateMetadata): AIRegenerateMetadata;
 		public static fromObject(d: $ProtoObject): AIRegenerateMetadata;
-		public static toObject(m: AIRegenerateMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRegenerateMetadata>;
 		public static encode: $ProtoEncode<IAIRegenerateMetadata>;
 		public static decode: $ProtoDecode<AIRegenerateMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIRichResponseCodeMetadata {
@@ -380,16 +364,15 @@ export namespace proto {
 		codeBlocks?: proto.AIRichResponseCodeMetadata.IAIRichResponseCodeBlock[];
 	}
 
-	interface AIRichResponseCodeMetadata extends IAIRichResponseCodeMetadata {}
+	interface AIRichResponseCodeMetadata extends IAIRichResponseCodeMetadata, $ProtoJSON {}
 
 	class AIRichResponseCodeMetadata implements IAIRichResponseCodeMetadata {
 		constructor(p?: IAIRichResponseCodeMetadata);
 		public static create(p?: IAIRichResponseCodeMetadata): AIRichResponseCodeMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseCodeMetadata;
-		public static toObject(m: AIRichResponseCodeMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseCodeMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseCodeMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseCodeMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseCodeMetadata {
@@ -399,16 +382,15 @@ export namespace proto {
 			codeContent?: (string|null);
 		}
 
-		interface AIRichResponseCodeBlock extends IAIRichResponseCodeBlock {}
+		interface AIRichResponseCodeBlock extends IAIRichResponseCodeBlock, $ProtoJSON {}
 
 		class AIRichResponseCodeBlock implements IAIRichResponseCodeBlock {
 			constructor(p?: IAIRichResponseCodeBlock);
 			public static create(p?: IAIRichResponseCodeBlock): AIRichResponseCodeBlock;
 			public static fromObject(d: $ProtoObject): AIRichResponseCodeBlock;
-			public static toObject(m: AIRichResponseCodeBlock, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseCodeBlock>;
 			public static encode: $ProtoEncode<IAIRichResponseCodeBlock>;
 			public static decode: $ProtoDecode<AIRichResponseCodeBlock>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum AIRichResponseCodeHighlightType {
@@ -426,16 +408,15 @@ export namespace proto {
 		contentType?: (proto.AIRichResponseContentItemsMetadata.ContentType|null);
 	}
 
-	interface AIRichResponseContentItemsMetadata extends IAIRichResponseContentItemsMetadata {}
+	interface AIRichResponseContentItemsMetadata extends IAIRichResponseContentItemsMetadata, $ProtoJSON {}
 
 	class AIRichResponseContentItemsMetadata implements IAIRichResponseContentItemsMetadata {
 		constructor(p?: IAIRichResponseContentItemsMetadata);
 		public static create(p?: IAIRichResponseContentItemsMetadata): AIRichResponseContentItemsMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseContentItemsMetadata;
-		public static toObject(m: AIRichResponseContentItemsMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseContentItemsMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseContentItemsMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseContentItemsMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseContentItemsMetadata {
@@ -444,16 +425,15 @@ export namespace proto {
 			reelItem?: (proto.AIRichResponseContentItemsMetadata.IAIRichResponseReelItem|null);
 		}
 
-		interface AIRichResponseContentItemMetadata extends IAIRichResponseContentItemMetadata {}
+		interface AIRichResponseContentItemMetadata extends IAIRichResponseContentItemMetadata, $ProtoJSON {}
 
 		class AIRichResponseContentItemMetadata implements IAIRichResponseContentItemMetadata {
 			constructor(p?: IAIRichResponseContentItemMetadata);
 			public static create(p?: IAIRichResponseContentItemMetadata): AIRichResponseContentItemMetadata;
 			public static fromObject(d: $ProtoObject): AIRichResponseContentItemMetadata;
-			public static toObject(m: AIRichResponseContentItemMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseContentItemMetadata>;
 			public static encode: $ProtoEncode<IAIRichResponseContentItemMetadata>;
 			public static decode: $ProtoDecode<AIRichResponseContentItemMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAIRichResponseReelItem {
@@ -463,16 +443,15 @@ export namespace proto {
 			videoUrl?: (string|null);
 		}
 
-		interface AIRichResponseReelItem extends IAIRichResponseReelItem {}
+		interface AIRichResponseReelItem extends IAIRichResponseReelItem, $ProtoJSON {}
 
 		class AIRichResponseReelItem implements IAIRichResponseReelItem {
 			constructor(p?: IAIRichResponseReelItem);
 			public static create(p?: IAIRichResponseReelItem): AIRichResponseReelItem;
 			public static fromObject(d: $ProtoObject): AIRichResponseReelItem;
-			public static toObject(m: AIRichResponseReelItem, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseReelItem>;
 			public static encode: $ProtoEncode<IAIRichResponseReelItem>;
 			public static decode: $ProtoDecode<AIRichResponseReelItem>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum ContentType {
@@ -488,16 +467,15 @@ export namespace proto {
 		loopCount?: (number|null);
 	}
 
-	interface AIRichResponseDynamicMetadata extends IAIRichResponseDynamicMetadata {}
+	interface AIRichResponseDynamicMetadata extends IAIRichResponseDynamicMetadata, $ProtoJSON {}
 
 	class AIRichResponseDynamicMetadata implements IAIRichResponseDynamicMetadata {
 		constructor(p?: IAIRichResponseDynamicMetadata);
 		public static create(p?: IAIRichResponseDynamicMetadata): AIRichResponseDynamicMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseDynamicMetadata;
-		public static toObject(m: AIRichResponseDynamicMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseDynamicMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseDynamicMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseDynamicMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseDynamicMetadata {
@@ -514,16 +492,15 @@ export namespace proto {
 		imageUrls?: proto.IAIRichResponseImageURL[];
 	}
 
-	interface AIRichResponseGridImageMetadata extends IAIRichResponseGridImageMetadata {}
+	interface AIRichResponseGridImageMetadata extends IAIRichResponseGridImageMetadata, $ProtoJSON {}
 
 	class AIRichResponseGridImageMetadata implements IAIRichResponseGridImageMetadata {
 		constructor(p?: IAIRichResponseGridImageMetadata);
 		public static create(p?: IAIRichResponseGridImageMetadata): AIRichResponseGridImageMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseGridImageMetadata;
-		public static toObject(m: AIRichResponseGridImageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseGridImageMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseGridImageMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseGridImageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIRichResponseImageURL {
@@ -532,16 +509,15 @@ export namespace proto {
 		sourceUrl?: (string|null);
 	}
 
-	interface AIRichResponseImageURL extends IAIRichResponseImageURL {}
+	interface AIRichResponseImageURL extends IAIRichResponseImageURL, $ProtoJSON {}
 
 	class AIRichResponseImageURL implements IAIRichResponseImageURL {
 		constructor(p?: IAIRichResponseImageURL);
 		public static create(p?: IAIRichResponseImageURL): AIRichResponseImageURL;
 		public static fromObject(d: $ProtoObject): AIRichResponseImageURL;
-		public static toObject(m: AIRichResponseImageURL, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseImageURL>;
 		public static encode: $ProtoEncode<IAIRichResponseImageURL>;
 		public static decode: $ProtoDecode<AIRichResponseImageURL>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIRichResponseInlineImageMetadata {
@@ -551,16 +527,15 @@ export namespace proto {
 		tapLinkUrl?: (string|null);
 	}
 
-	interface AIRichResponseInlineImageMetadata extends IAIRichResponseInlineImageMetadata {}
+	interface AIRichResponseInlineImageMetadata extends IAIRichResponseInlineImageMetadata, $ProtoJSON {}
 
 	class AIRichResponseInlineImageMetadata implements IAIRichResponseInlineImageMetadata {
 		constructor(p?: IAIRichResponseInlineImageMetadata);
 		public static create(p?: IAIRichResponseInlineImageMetadata): AIRichResponseInlineImageMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseInlineImageMetadata;
-		public static toObject(m: AIRichResponseInlineImageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseInlineImageMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseInlineImageMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseInlineImageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseInlineImageMetadata {
@@ -577,16 +552,15 @@ export namespace proto {
 		expressions?: proto.AIRichResponseLatexMetadata.IAIRichResponseLatexExpression[];
 	}
 
-	interface AIRichResponseLatexMetadata extends IAIRichResponseLatexMetadata {}
+	interface AIRichResponseLatexMetadata extends IAIRichResponseLatexMetadata, $ProtoJSON {}
 
 	class AIRichResponseLatexMetadata implements IAIRichResponseLatexMetadata {
 		constructor(p?: IAIRichResponseLatexMetadata);
 		public static create(p?: IAIRichResponseLatexMetadata): AIRichResponseLatexMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseLatexMetadata;
-		public static toObject(m: AIRichResponseLatexMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseLatexMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseLatexMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseLatexMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseLatexMetadata {
@@ -603,16 +577,15 @@ export namespace proto {
 			imageTrailingPadding?: (number|null);
 		}
 
-		interface AIRichResponseLatexExpression extends IAIRichResponseLatexExpression {}
+		interface AIRichResponseLatexExpression extends IAIRichResponseLatexExpression, $ProtoJSON {}
 
 		class AIRichResponseLatexExpression implements IAIRichResponseLatexExpression {
 			constructor(p?: IAIRichResponseLatexExpression);
 			public static create(p?: IAIRichResponseLatexExpression): AIRichResponseLatexExpression;
 			public static fromObject(d: $ProtoObject): AIRichResponseLatexExpression;
-			public static toObject(m: AIRichResponseLatexExpression, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseLatexExpression>;
 			public static encode: $ProtoEncode<IAIRichResponseLatexExpression>;
 			public static decode: $ProtoDecode<AIRichResponseLatexExpression>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -625,16 +598,15 @@ export namespace proto {
 		showInfoList?: (boolean|null);
 	}
 
-	interface AIRichResponseMapMetadata extends IAIRichResponseMapMetadata {}
+	interface AIRichResponseMapMetadata extends IAIRichResponseMapMetadata, $ProtoJSON {}
 
 	class AIRichResponseMapMetadata implements IAIRichResponseMapMetadata {
 		constructor(p?: IAIRichResponseMapMetadata);
 		public static create(p?: IAIRichResponseMapMetadata): AIRichResponseMapMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseMapMetadata;
-		public static toObject(m: AIRichResponseMapMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseMapMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseMapMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseMapMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseMapMetadata {
@@ -647,16 +619,15 @@ export namespace proto {
 			body?: (string|null);
 		}
 
-		interface AIRichResponseMapAnnotation extends IAIRichResponseMapAnnotation {}
+		interface AIRichResponseMapAnnotation extends IAIRichResponseMapAnnotation, $ProtoJSON {}
 
 		class AIRichResponseMapAnnotation implements IAIRichResponseMapAnnotation {
 			constructor(p?: IAIRichResponseMapAnnotation);
 			public static create(p?: IAIRichResponseMapAnnotation): AIRichResponseMapAnnotation;
 			public static fromObject(d: $ProtoObject): AIRichResponseMapAnnotation;
-			public static toObject(m: AIRichResponseMapAnnotation, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseMapAnnotation>;
 			public static encode: $ProtoEncode<IAIRichResponseMapAnnotation>;
 			public static decode: $ProtoDecode<AIRichResponseMapAnnotation>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -668,16 +639,15 @@ export namespace proto {
 		originalRecipientMetadata?: (proto.IAIRichResponseUnifiedResponse|null);
 	}
 
-	interface AIRichResponseMessage extends IAIRichResponseMessage {}
+	interface AIRichResponseMessage extends IAIRichResponseMessage, $ProtoJSON {}
 
 	class AIRichResponseMessage implements IAIRichResponseMessage {
 		constructor(p?: IAIRichResponseMessage);
 		public static create(p?: IAIRichResponseMessage): AIRichResponseMessage;
 		public static fromObject(d: $ProtoObject): AIRichResponseMessage;
-		public static toObject(m: AIRichResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseMessage>;
 		public static encode: $ProtoEncode<IAIRichResponseMessage>;
 		public static decode: $ProtoDecode<AIRichResponseMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum AIRichResponseMessageType {
@@ -698,16 +668,15 @@ export namespace proto {
 		contentItemsMetadata?: (proto.IAIRichResponseContentItemsMetadata|null);
 	}
 
-	interface AIRichResponseSubMessage extends IAIRichResponseSubMessage {}
+	interface AIRichResponseSubMessage extends IAIRichResponseSubMessage, $ProtoJSON {}
 
 	class AIRichResponseSubMessage implements IAIRichResponseSubMessage {
 		constructor(p?: IAIRichResponseSubMessage);
 		public static create(p?: IAIRichResponseSubMessage): AIRichResponseSubMessage;
 		public static fromObject(d: $ProtoObject): AIRichResponseSubMessage;
-		public static toObject(m: AIRichResponseSubMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseSubMessage>;
 		public static encode: $ProtoEncode<IAIRichResponseSubMessage>;
 		public static decode: $ProtoDecode<AIRichResponseSubMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum AIRichResponseSubMessageType {
@@ -728,16 +697,15 @@ export namespace proto {
 		title?: (string|null);
 	}
 
-	interface AIRichResponseTableMetadata extends IAIRichResponseTableMetadata {}
+	interface AIRichResponseTableMetadata extends IAIRichResponseTableMetadata, $ProtoJSON {}
 
 	class AIRichResponseTableMetadata implements IAIRichResponseTableMetadata {
 		constructor(p?: IAIRichResponseTableMetadata);
 		public static create(p?: IAIRichResponseTableMetadata): AIRichResponseTableMetadata;
 		public static fromObject(d: $ProtoObject): AIRichResponseTableMetadata;
-		public static toObject(m: AIRichResponseTableMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseTableMetadata>;
 		public static encode: $ProtoEncode<IAIRichResponseTableMetadata>;
 		public static decode: $ProtoDecode<AIRichResponseTableMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIRichResponseTableMetadata {
@@ -747,16 +715,15 @@ export namespace proto {
 			isHeading?: (boolean|null);
 		}
 
-		interface AIRichResponseTableRow extends IAIRichResponseTableRow {}
+		interface AIRichResponseTableRow extends IAIRichResponseTableRow, $ProtoJSON {}
 
 		class AIRichResponseTableRow implements IAIRichResponseTableRow {
 			constructor(p?: IAIRichResponseTableRow);
 			public static create(p?: IAIRichResponseTableRow): AIRichResponseTableRow;
 			public static fromObject(d: $ProtoObject): AIRichResponseTableRow;
-			public static toObject(m: AIRichResponseTableRow, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIRichResponseTableRow>;
 			public static encode: $ProtoEncode<IAIRichResponseTableRow>;
 			public static decode: $ProtoDecode<AIRichResponseTableRow>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -764,16 +731,15 @@ export namespace proto {
 		data?: (Uint8Array|null);
 	}
 
-	interface AIRichResponseUnifiedResponse extends IAIRichResponseUnifiedResponse {}
+	interface AIRichResponseUnifiedResponse extends IAIRichResponseUnifiedResponse, $ProtoJSON {}
 
 	class AIRichResponseUnifiedResponse implements IAIRichResponseUnifiedResponse {
 		constructor(p?: IAIRichResponseUnifiedResponse);
 		public static create(p?: IAIRichResponseUnifiedResponse): AIRichResponseUnifiedResponse;
 		public static fromObject(d: $ProtoObject): AIRichResponseUnifiedResponse;
-		public static toObject(m: AIRichResponseUnifiedResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIRichResponseUnifiedResponse>;
 		public static encode: $ProtoEncode<IAIRichResponseUnifiedResponse>;
 		public static decode: $ProtoDecode<AIRichResponseUnifiedResponse>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum AISubscriptionRequestType {
@@ -787,16 +753,15 @@ export namespace proto {
 		requestType?: (proto.AISubscriptionRequestType|null);
 	}
 
-	interface AISubscriptionUpsellMetadata extends IAISubscriptionUpsellMetadata {}
+	interface AISubscriptionUpsellMetadata extends IAISubscriptionUpsellMetadata, $ProtoJSON {}
 
 	class AISubscriptionUpsellMetadata implements IAISubscriptionUpsellMetadata {
 		constructor(p?: IAISubscriptionUpsellMetadata);
 		public static create(p?: IAISubscriptionUpsellMetadata): AISubscriptionUpsellMetadata;
 		public static fromObject(d: $ProtoObject): AISubscriptionUpsellMetadata;
-		public static toObject(m: AISubscriptionUpsellMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AISubscriptionUpsellMetadata>;
 		public static encode: $ProtoEncode<IAISubscriptionUpsellMetadata>;
 		public static decode: $ProtoDecode<AISubscriptionUpsellMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAIThreadInfo {
@@ -804,16 +769,15 @@ export namespace proto {
 		clientInfo?: (proto.AIThreadInfo.IAIThreadClientInfo|null);
 	}
 
-	interface AIThreadInfo extends IAIThreadInfo {}
+	interface AIThreadInfo extends IAIThreadInfo, $ProtoJSON {}
 
 	class AIThreadInfo implements IAIThreadInfo {
 		constructor(p?: IAIThreadInfo);
 		public static create(p?: IAIThreadInfo): AIThreadInfo;
 		public static fromObject(d: $ProtoObject): AIThreadInfo;
-		public static toObject(m: AIThreadInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AIThreadInfo>;
 		public static encode: $ProtoEncode<IAIThreadInfo>;
 		public static decode: $ProtoDecode<AIThreadInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace AIThreadInfo {
@@ -823,16 +787,15 @@ export namespace proto {
 			sourceChatJid?: (string|null);
 		}
 
-		interface AIThreadClientInfo extends IAIThreadClientInfo {}
+		interface AIThreadClientInfo extends IAIThreadClientInfo, $ProtoJSON {}
 
 		class AIThreadClientInfo implements IAIThreadClientInfo {
 			constructor(p?: IAIThreadClientInfo);
 			public static create(p?: IAIThreadClientInfo): AIThreadClientInfo;
 			public static fromObject(d: $ProtoObject): AIThreadClientInfo;
-			public static toObject(m: AIThreadClientInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIThreadClientInfo>;
 			public static encode: $ProtoEncode<IAIThreadClientInfo>;
 			public static decode: $ProtoDecode<AIThreadClientInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AIThreadClientInfo {
@@ -849,16 +812,15 @@ export namespace proto {
 			title?: (string|null);
 		}
 
-		interface AIThreadServerInfo extends IAIThreadServerInfo {}
+		interface AIThreadServerInfo extends IAIThreadServerInfo, $ProtoJSON {}
 
 		class AIThreadServerInfo implements IAIThreadServerInfo {
 			constructor(p?: IAIThreadServerInfo);
 			public static create(p?: IAIThreadServerInfo): AIThreadServerInfo;
 			public static fromObject(d: $ProtoObject): AIThreadServerInfo;
-			public static toObject(m: AIThreadServerInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AIThreadServerInfo>;
 			public static encode: $ProtoEncode<IAIThreadServerInfo>;
 			public static decode: $ProtoDecode<AIThreadServerInfo>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -869,16 +831,15 @@ export namespace proto {
 		downloadDocuments?: (boolean|null);
 	}
 
-	interface AutoDownloadSettings extends IAutoDownloadSettings {}
+	interface AutoDownloadSettings extends IAutoDownloadSettings, $ProtoJSON {}
 
 	class AutoDownloadSettings implements IAutoDownloadSettings {
 		constructor(p?: IAutoDownloadSettings);
 		public static create(p?: IAutoDownloadSettings): AutoDownloadSettings;
 		public static fromObject(d: $ProtoObject): AutoDownloadSettings;
-		public static toObject(m: AutoDownloadSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AutoDownloadSettings>;
 		public static encode: $ProtoEncode<IAutoDownloadSettings>;
 		public static decode: $ProtoDecode<AutoDownloadSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IAvatarUserSettings {
@@ -886,16 +847,15 @@ export namespace proto {
 		password?: (string|null);
 	}
 
-	interface AvatarUserSettings extends IAvatarUserSettings {}
+	interface AvatarUserSettings extends IAvatarUserSettings, $ProtoJSON {}
 
 	class AvatarUserSettings implements IAvatarUserSettings {
 		constructor(p?: IAvatarUserSettings);
 		public static create(p?: IAvatarUserSettings): AvatarUserSettings;
 		public static fromObject(d: $ProtoObject): AvatarUserSettings;
-		public static toObject(m: AvatarUserSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<AvatarUserSettings>;
 		public static encode: $ProtoEncode<IAvatarUserSettings>;
 		public static decode: $ProtoDecode<AvatarUserSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBackwardEdge {
@@ -904,16 +864,15 @@ export namespace proto {
 		prevEpochRootKeyFingerprint?: (Uint8Array|null);
 	}
 
-	interface BackwardEdge extends IBackwardEdge {}
+	interface BackwardEdge extends IBackwardEdge, $ProtoJSON {}
 
 	class BackwardEdge implements IBackwardEdge {
 		constructor(p?: IBackwardEdge);
 		public static create(p?: IBackwardEdge): BackwardEdge;
 		public static fromObject(d: $ProtoObject): BackwardEdge;
-		public static toObject(m: BackwardEdge, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BackwardEdge>;
 		public static encode: $ProtoEncode<IBackwardEdge>;
 		public static decode: $ProtoDecode<BackwardEdge>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBizAccountLinkInfo {
@@ -924,16 +883,15 @@ export namespace proto {
 		accountType?: (proto.BizAccountLinkInfo.AccountType|null);
 	}
 
-	interface BizAccountLinkInfo extends IBizAccountLinkInfo {}
+	interface BizAccountLinkInfo extends IBizAccountLinkInfo, $ProtoJSON {}
 
 	class BizAccountLinkInfo implements IBizAccountLinkInfo {
 		constructor(p?: IBizAccountLinkInfo);
 		public static create(p?: IBizAccountLinkInfo): BizAccountLinkInfo;
 		public static fromObject(d: $ProtoObject): BizAccountLinkInfo;
-		public static toObject(m: BizAccountLinkInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BizAccountLinkInfo>;
 		public static encode: $ProtoEncode<IBizAccountLinkInfo>;
 		public static decode: $ProtoDecode<BizAccountLinkInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BizAccountLinkInfo {
@@ -953,32 +911,30 @@ export namespace proto {
 		bizAcctLinkInfo?: (Uint8Array|null);
 	}
 
-	interface BizAccountPayload extends IBizAccountPayload {}
+	interface BizAccountPayload extends IBizAccountPayload, $ProtoJSON {}
 
 	class BizAccountPayload implements IBizAccountPayload {
 		constructor(p?: IBizAccountPayload);
 		public static create(p?: IBizAccountPayload): BizAccountPayload;
 		public static fromObject(d: $ProtoObject): BizAccountPayload;
-		public static toObject(m: BizAccountPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BizAccountPayload>;
 		public static encode: $ProtoEncode<IBizAccountPayload>;
 		public static decode: $ProtoDecode<BizAccountPayload>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBizAIMetadataSync {
 		serverEvent?: (proto.BizAIMetadataSync.IServerEvent|null);
 	}
 
-	interface BizAIMetadataSync extends IBizAIMetadataSync {}
+	interface BizAIMetadataSync extends IBizAIMetadataSync, $ProtoJSON {}
 
 	class BizAIMetadataSync implements IBizAIMetadataSync {
 		constructor(p?: IBizAIMetadataSync);
 		public static create(p?: IBizAIMetadataSync): BizAIMetadataSync;
 		public static fromObject(d: $ProtoObject): BizAIMetadataSync;
-		public static toObject(m: BizAIMetadataSync, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BizAIMetadataSync>;
 		public static encode: $ProtoEncode<IBizAIMetadataSync>;
 		public static decode: $ProtoDecode<BizAIMetadataSync>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BizAIMetadataSync {
@@ -988,16 +944,15 @@ export namespace proto {
 			agentOnboardingStarted?: (proto.BizAIMetadataSync.ServerEvent.IAgentOnboardingStarted|null);
 		}
 
-		interface ServerEvent extends IServerEvent {}
+		interface ServerEvent extends IServerEvent, $ProtoJSON {}
 
 		class ServerEvent implements IServerEvent {
 			constructor(p?: IServerEvent);
 			public static create(p?: IServerEvent): ServerEvent;
 			public static fromObject(d: $ProtoObject): ServerEvent;
-			public static toObject(m: ServerEvent, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ServerEvent>;
 			public static encode: $ProtoEncode<IServerEvent>;
 			public static decode: $ProtoDecode<ServerEvent>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ServerEvent {
@@ -1006,16 +961,15 @@ export namespace proto {
 				composerBlockDurationSecs?: (Long|null);
 			}
 
-			interface AgentOnboardingStarted extends IAgentOnboardingStarted {}
+			interface AgentOnboardingStarted extends IAgentOnboardingStarted, $ProtoJSON {}
 
 			class AgentOnboardingStarted implements IAgentOnboardingStarted {
 				constructor(p?: IAgentOnboardingStarted);
 				public static create(p?: IAgentOnboardingStarted): AgentOnboardingStarted;
 				public static fromObject(d: $ProtoObject): AgentOnboardingStarted;
-				public static toObject(m: AgentOnboardingStarted, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<AgentOnboardingStarted>;
 				public static encode: $ProtoEncode<IAgentOnboardingStarted>;
 				public static decode: $ProtoDecode<AgentOnboardingStarted>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum ProtocolEvent {
@@ -1036,16 +990,15 @@ export namespace proto {
 		featureControls?: (Long|null);
 	}
 
-	interface BizIdentityInfo extends IBizIdentityInfo {}
+	interface BizIdentityInfo extends IBizIdentityInfo, $ProtoJSON {}
 
 	class BizIdentityInfo implements IBizIdentityInfo {
 		constructor(p?: IBizIdentityInfo);
 		public static create(p?: IBizIdentityInfo): BizIdentityInfo;
 		public static fromObject(d: $ProtoObject): BizIdentityInfo;
-		public static toObject(m: BizIdentityInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BizIdentityInfo>;
 		public static encode: $ProtoEncode<IBizIdentityInfo>;
 		public static decode: $ProtoDecode<BizIdentityInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BizIdentityInfo {
@@ -1073,16 +1026,15 @@ export namespace proto {
 		ageCollectionType?: (proto.BotAgeCollectionMetadata.AgeCollectionType|null);
 	}
 
-	interface BotAgeCollectionMetadata extends IBotAgeCollectionMetadata {}
+	interface BotAgeCollectionMetadata extends IBotAgeCollectionMetadata, $ProtoJSON {}
 
 	class BotAgeCollectionMetadata implements IBotAgeCollectionMetadata {
 		constructor(p?: IBotAgeCollectionMetadata);
 		public static create(p?: IBotAgeCollectionMetadata): BotAgeCollectionMetadata;
 		public static fromObject(d: $ProtoObject): BotAgeCollectionMetadata;
-		public static toObject(m: BotAgeCollectionMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotAgeCollectionMetadata>;
 		public static encode: $ProtoEncode<IBotAgeCollectionMetadata>;
 		public static decode: $ProtoDecode<BotAgeCollectionMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotAgeCollectionMetadata {
@@ -1098,48 +1050,45 @@ export namespace proto {
 		clientPublicKey?: (Uint8Array|null);
 	}
 
-	interface BotAgentDeepLinkMetadata extends IBotAgentDeepLinkMetadata {}
+	interface BotAgentDeepLinkMetadata extends IBotAgentDeepLinkMetadata, $ProtoJSON {}
 
 	class BotAgentDeepLinkMetadata implements IBotAgentDeepLinkMetadata {
 		constructor(p?: IBotAgentDeepLinkMetadata);
 		public static create(p?: IBotAgentDeepLinkMetadata): BotAgentDeepLinkMetadata;
 		public static fromObject(d: $ProtoObject): BotAgentDeepLinkMetadata;
-		public static toObject(m: BotAgentDeepLinkMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotAgentDeepLinkMetadata>;
 		public static encode: $ProtoEncode<IBotAgentDeepLinkMetadata>;
 		public static decode: $ProtoDecode<BotAgentDeepLinkMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotAgentMetadata {
 		deepLinkMetadata?: (proto.IBotAgentDeepLinkMetadata|null);
 	}
 
-	interface BotAgentMetadata extends IBotAgentMetadata {}
+	interface BotAgentMetadata extends IBotAgentMetadata, $ProtoJSON {}
 
 	class BotAgentMetadata implements IBotAgentMetadata {
 		constructor(p?: IBotAgentMetadata);
 		public static create(p?: IBotAgentMetadata): BotAgentMetadata;
 		public static fromObject(d: $ProtoObject): BotAgentMetadata;
-		public static toObject(m: BotAgentMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotAgentMetadata>;
 		public static encode: $ProtoEncode<IBotAgentMetadata>;
 		public static decode: $ProtoDecode<BotAgentMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotCapabilityMetadata {
 		capabilities?: proto.BotCapabilityMetadata.BotCapabilityType[];
 	}
 
-	interface BotCapabilityMetadata extends IBotCapabilityMetadata {}
+	interface BotCapabilityMetadata extends IBotCapabilityMetadata, $ProtoJSON {}
 
 	class BotCapabilityMetadata implements IBotCapabilityMetadata {
 		constructor(p?: IBotCapabilityMetadata);
 		public static create(p?: IBotCapabilityMetadata): BotCapabilityMetadata;
 		public static fromObject(d: $ProtoObject): BotCapabilityMetadata;
-		public static toObject(m: BotCapabilityMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotCapabilityMetadata>;
 		public static encode: $ProtoEncode<IBotCapabilityMetadata>;
 		public static decode: $ProtoDecode<BotCapabilityMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotCapabilityMetadata {
@@ -1226,32 +1175,30 @@ export namespace proto {
 		commandPrompt?: (string|null);
 	}
 
-	interface BotCommandMetadata extends IBotCommandMetadata {}
+	interface BotCommandMetadata extends IBotCommandMetadata, $ProtoJSON {}
 
 	class BotCommandMetadata implements IBotCommandMetadata {
 		constructor(p?: IBotCommandMetadata);
 		public static create(p?: IBotCommandMetadata): BotCommandMetadata;
 		public static fromObject(d: $ProtoObject): BotCommandMetadata;
-		public static toObject(m: BotCommandMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotCommandMetadata>;
 		public static encode: $ProtoEncode<IBotCommandMetadata>;
 		public static decode: $ProtoDecode<BotCommandMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotDocumentMessageMetadata {
 		pluginType?: (proto.BotDocumentMessageMetadata.DocumentPluginType|null);
 	}
 
-	interface BotDocumentMessageMetadata extends IBotDocumentMessageMetadata {}
+	interface BotDocumentMessageMetadata extends IBotDocumentMessageMetadata, $ProtoJSON {}
 
 	class BotDocumentMessageMetadata implements IBotDocumentMessageMetadata {
 		constructor(p?: IBotDocumentMessageMetadata);
 		public static create(p?: IBotDocumentMessageMetadata): BotDocumentMessageMetadata;
 		public static fromObject(d: $ProtoObject): BotDocumentMessageMetadata;
-		public static toObject(m: BotDocumentMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotDocumentMessageMetadata>;
 		public static encode: $ProtoEncode<IBotDocumentMessageMetadata>;
 		public static decode: $ProtoDecode<BotDocumentMessageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotDocumentMessageMetadata {
@@ -1272,16 +1219,15 @@ export namespace proto {
 		sideBySideSurveyMetadata?: (proto.BotFeedbackMessage.ISideBySideSurveyMetadata|null);
 	}
 
-	interface BotFeedbackMessage extends IBotFeedbackMessage {}
+	interface BotFeedbackMessage extends IBotFeedbackMessage, $ProtoJSON {}
 
 	class BotFeedbackMessage implements IBotFeedbackMessage {
 		constructor(p?: IBotFeedbackMessage);
 		public static create(p?: IBotFeedbackMessage): BotFeedbackMessage;
 		public static fromObject(d: $ProtoObject): BotFeedbackMessage;
-		public static toObject(m: BotFeedbackMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotFeedbackMessage>;
 		public static encode: $ProtoEncode<IBotFeedbackMessage>;
 		public static decode: $ProtoDecode<BotFeedbackMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotFeedbackMessage {
@@ -1337,16 +1283,15 @@ export namespace proto {
 			metaAiAnalyticsData?: (proto.BotFeedbackMessage.SideBySideSurveyMetadata.ISidebySideSurveyMetaAiAnalyticsData|null);
 		}
 
-		interface SideBySideSurveyMetadata extends ISideBySideSurveyMetadata {}
+		interface SideBySideSurveyMetadata extends ISideBySideSurveyMetadata, $ProtoJSON {}
 
 		class SideBySideSurveyMetadata implements ISideBySideSurveyMetadata {
 			constructor(p?: ISideBySideSurveyMetadata);
 			public static create(p?: ISideBySideSurveyMetadata): SideBySideSurveyMetadata;
 			public static fromObject(d: $ProtoObject): SideBySideSurveyMetadata;
-			public static toObject(m: SideBySideSurveyMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SideBySideSurveyMetadata>;
 			public static encode: $ProtoEncode<ISideBySideSurveyMetadata>;
 			public static decode: $ProtoDecode<SideBySideSurveyMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SideBySideSurveyMetadata {
@@ -1357,16 +1302,15 @@ export namespace proto {
 				simonSessionFbid?: (string|null);
 			}
 
-			interface SideBySideSurveyAnalyticsData extends ISideBySideSurveyAnalyticsData {}
+			interface SideBySideSurveyAnalyticsData extends ISideBySideSurveyAnalyticsData, $ProtoJSON {}
 
 			class SideBySideSurveyAnalyticsData implements ISideBySideSurveyAnalyticsData {
 				constructor(p?: ISideBySideSurveyAnalyticsData);
 				public static create(p?: ISideBySideSurveyAnalyticsData): SideBySideSurveyAnalyticsData;
 				public static fromObject(d: $ProtoObject): SideBySideSurveyAnalyticsData;
-				public static toObject(m: SideBySideSurveyAnalyticsData, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SideBySideSurveyAnalyticsData>;
 				public static encode: $ProtoEncode<ISideBySideSurveyAnalyticsData>;
 				public static decode: $ProtoDecode<SideBySideSurveyAnalyticsData>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ISidebySideSurveyMetaAiAnalyticsData {
@@ -1381,16 +1325,15 @@ export namespace proto {
 				abandonEvent?: (proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.ISideBySideSurveyAbandonEventData|null);
 			}
 
-			interface SidebySideSurveyMetaAiAnalyticsData extends ISidebySideSurveyMetaAiAnalyticsData {}
+			interface SidebySideSurveyMetaAiAnalyticsData extends ISidebySideSurveyMetaAiAnalyticsData, $ProtoJSON {}
 
 			class SidebySideSurveyMetaAiAnalyticsData implements ISidebySideSurveyMetaAiAnalyticsData {
 				constructor(p?: ISidebySideSurveyMetaAiAnalyticsData);
 				public static create(p?: ISidebySideSurveyMetaAiAnalyticsData): SidebySideSurveyMetaAiAnalyticsData;
 				public static fromObject(d: $ProtoObject): SidebySideSurveyMetaAiAnalyticsData;
-				public static toObject(m: SidebySideSurveyMetaAiAnalyticsData, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SidebySideSurveyMetaAiAnalyticsData>;
 				public static encode: $ProtoEncode<ISidebySideSurveyMetaAiAnalyticsData>;
 				public static decode: $ProtoDecode<SidebySideSurveyMetaAiAnalyticsData>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace SidebySideSurveyMetaAiAnalyticsData {
@@ -1399,31 +1342,29 @@ export namespace proto {
 					abandonDwellTimeMsString?: (string|null);
 				}
 
-				interface SideBySideSurveyAbandonEventData extends ISideBySideSurveyAbandonEventData {}
+				interface SideBySideSurveyAbandonEventData extends ISideBySideSurveyAbandonEventData, $ProtoJSON {}
 
 				class SideBySideSurveyAbandonEventData implements ISideBySideSurveyAbandonEventData {
 					constructor(p?: ISideBySideSurveyAbandonEventData);
 					public static create(p?: ISideBySideSurveyAbandonEventData): SideBySideSurveyAbandonEventData;
 					public static fromObject(d: $ProtoObject): SideBySideSurveyAbandonEventData;
-					public static toObject(m: SideBySideSurveyAbandonEventData, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SideBySideSurveyAbandonEventData>;
 					public static encode: $ProtoEncode<ISideBySideSurveyAbandonEventData>;
 					public static decode: $ProtoDecode<SideBySideSurveyAbandonEventData>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ISideBySideSurveyCardImpressionEventData {
 				}
 
-				interface SideBySideSurveyCardImpressionEventData extends ISideBySideSurveyCardImpressionEventData {}
+				interface SideBySideSurveyCardImpressionEventData extends ISideBySideSurveyCardImpressionEventData, $ProtoJSON {}
 
 				class SideBySideSurveyCardImpressionEventData implements ISideBySideSurveyCardImpressionEventData {
 					constructor(p?: ISideBySideSurveyCardImpressionEventData);
 					public static create(p?: ISideBySideSurveyCardImpressionEventData): SideBySideSurveyCardImpressionEventData;
 					public static fromObject(d: $ProtoObject): SideBySideSurveyCardImpressionEventData;
-					public static toObject(m: SideBySideSurveyCardImpressionEventData, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SideBySideSurveyCardImpressionEventData>;
 					public static encode: $ProtoEncode<ISideBySideSurveyCardImpressionEventData>;
 					public static decode: $ProtoDecode<SideBySideSurveyCardImpressionEventData>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ISideBySideSurveyCTAClickEventData {
@@ -1431,32 +1372,30 @@ export namespace proto {
 					clickDwellTimeMsString?: (string|null);
 				}
 
-				interface SideBySideSurveyCTAClickEventData extends ISideBySideSurveyCTAClickEventData {}
+				interface SideBySideSurveyCTAClickEventData extends ISideBySideSurveyCTAClickEventData, $ProtoJSON {}
 
 				class SideBySideSurveyCTAClickEventData implements ISideBySideSurveyCTAClickEventData {
 					constructor(p?: ISideBySideSurveyCTAClickEventData);
 					public static create(p?: ISideBySideSurveyCTAClickEventData): SideBySideSurveyCTAClickEventData;
 					public static fromObject(d: $ProtoObject): SideBySideSurveyCTAClickEventData;
-					public static toObject(m: SideBySideSurveyCTAClickEventData, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SideBySideSurveyCTAClickEventData>;
 					public static encode: $ProtoEncode<ISideBySideSurveyCTAClickEventData>;
 					public static decode: $ProtoDecode<SideBySideSurveyCTAClickEventData>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ISideBySideSurveyCTAImpressionEventData {
 					isSurveyExpired?: (boolean|null);
 				}
 
-				interface SideBySideSurveyCTAImpressionEventData extends ISideBySideSurveyCTAImpressionEventData {}
+				interface SideBySideSurveyCTAImpressionEventData extends ISideBySideSurveyCTAImpressionEventData, $ProtoJSON {}
 
 				class SideBySideSurveyCTAImpressionEventData implements ISideBySideSurveyCTAImpressionEventData {
 					constructor(p?: ISideBySideSurveyCTAImpressionEventData);
 					public static create(p?: ISideBySideSurveyCTAImpressionEventData): SideBySideSurveyCTAImpressionEventData;
 					public static fromObject(d: $ProtoObject): SideBySideSurveyCTAImpressionEventData;
-					public static toObject(m: SideBySideSurveyCTAImpressionEventData, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SideBySideSurveyCTAImpressionEventData>;
 					public static encode: $ProtoEncode<ISideBySideSurveyCTAImpressionEventData>;
 					public static decode: $ProtoDecode<SideBySideSurveyCTAImpressionEventData>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ISideBySideSurveyResponseEventData {
@@ -1464,16 +1403,15 @@ export namespace proto {
 					selectedResponseId?: (string|null);
 				}
 
-				interface SideBySideSurveyResponseEventData extends ISideBySideSurveyResponseEventData {}
+				interface SideBySideSurveyResponseEventData extends ISideBySideSurveyResponseEventData, $ProtoJSON {}
 
 				class SideBySideSurveyResponseEventData implements ISideBySideSurveyResponseEventData {
 					constructor(p?: ISideBySideSurveyResponseEventData);
 					public static create(p?: ISideBySideSurveyResponseEventData): SideBySideSurveyResponseEventData;
 					public static fromObject(d: $ProtoObject): SideBySideSurveyResponseEventData;
-					public static toObject(m: SideBySideSurveyResponseEventData, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SideBySideSurveyResponseEventData>;
 					public static encode: $ProtoEncode<ISideBySideSurveyResponseEventData>;
 					public static decode: $ProtoDecode<SideBySideSurveyResponseEventData>;
-					public toJSON(): $ProtoObject;
 				}
 			}
 		}
@@ -1483,48 +1421,45 @@ export namespace proto {
 		participantsMetadata?: proto.IBotGroupParticipantMetadata[];
 	}
 
-	interface BotGroupMetadata extends IBotGroupMetadata {}
+	interface BotGroupMetadata extends IBotGroupMetadata, $ProtoJSON {}
 
 	class BotGroupMetadata implements IBotGroupMetadata {
 		constructor(p?: IBotGroupMetadata);
 		public static create(p?: IBotGroupMetadata): BotGroupMetadata;
 		public static fromObject(d: $ProtoObject): BotGroupMetadata;
-		public static toObject(m: BotGroupMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotGroupMetadata>;
 		public static encode: $ProtoEncode<IBotGroupMetadata>;
 		public static decode: $ProtoDecode<BotGroupMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotGroupParticipantMetadata {
 		botFbid?: (string|null);
 	}
 
-	interface BotGroupParticipantMetadata extends IBotGroupParticipantMetadata {}
+	interface BotGroupParticipantMetadata extends IBotGroupParticipantMetadata, $ProtoJSON {}
 
 	class BotGroupParticipantMetadata implements IBotGroupParticipantMetadata {
 		constructor(p?: IBotGroupParticipantMetadata);
 		public static create(p?: IBotGroupParticipantMetadata): BotGroupParticipantMetadata;
 		public static fromObject(d: $ProtoObject): BotGroupParticipantMetadata;
-		public static toObject(m: BotGroupParticipantMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotGroupParticipantMetadata>;
 		public static encode: $ProtoEncode<IBotGroupParticipantMetadata>;
 		public static decode: $ProtoDecode<BotGroupParticipantMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotHistoryShareMetadata {
 		participantsMetadata?: proto.IBotGroupParticipantMetadata[];
 	}
 
-	interface BotHistoryShareMetadata extends IBotHistoryShareMetadata {}
+	interface BotHistoryShareMetadata extends IBotHistoryShareMetadata, $ProtoJSON {}
 
 	class BotHistoryShareMetadata implements IBotHistoryShareMetadata {
 		constructor(p?: IBotHistoryShareMetadata);
 		public static create(p?: IBotHistoryShareMetadata): BotHistoryShareMetadata;
 		public static fromObject(d: $ProtoObject): BotHistoryShareMetadata;
-		public static toObject(m: BotHistoryShareMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotHistoryShareMetadata>;
 		public static encode: $ProtoEncode<IBotHistoryShareMetadata>;
 		public static decode: $ProtoDecode<BotHistoryShareMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotImagineMetadata {
@@ -1532,16 +1467,15 @@ export namespace proto {
 		shortPrompt?: (string|null);
 	}
 
-	interface BotImagineMetadata extends IBotImagineMetadata {}
+	interface BotImagineMetadata extends IBotImagineMetadata, $ProtoJSON {}
 
 	class BotImagineMetadata implements IBotImagineMetadata {
 		constructor(p?: IBotImagineMetadata);
 		public static create(p?: IBotImagineMetadata): BotImagineMetadata;
 		public static fromObject(d: $ProtoObject): BotImagineMetadata;
-		public static toObject(m: BotImagineMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotImagineMetadata>;
 		public static encode: $ProtoEncode<IBotImagineMetadata>;
 		public static decode: $ProtoDecode<BotImagineMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotImagineMetadata {
@@ -1561,16 +1495,15 @@ export namespace proto {
 		isThinking?: (boolean|null);
 	}
 
-	interface BotInfrastructureDiagnostics extends IBotInfrastructureDiagnostics {}
+	interface BotInfrastructureDiagnostics extends IBotInfrastructureDiagnostics, $ProtoJSON {}
 
 	class BotInfrastructureDiagnostics implements IBotInfrastructureDiagnostics {
 		constructor(p?: IBotInfrastructureDiagnostics);
 		public static create(p?: IBotInfrastructureDiagnostics): BotInfrastructureDiagnostics;
 		public static fromObject(d: $ProtoObject): BotInfrastructureDiagnostics;
-		public static toObject(m: BotInfrastructureDiagnostics, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotInfrastructureDiagnostics>;
 		public static encode: $ProtoEncode<IBotInfrastructureDiagnostics>;
 		public static decode: $ProtoDecode<BotInfrastructureDiagnostics>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotInfrastructureDiagnostics {
@@ -1585,16 +1518,15 @@ export namespace proto {
 		type?: (proto.BotLinkedAccount.BotLinkedAccountType|null);
 	}
 
-	interface BotLinkedAccount extends IBotLinkedAccount {}
+	interface BotLinkedAccount extends IBotLinkedAccount, $ProtoJSON {}
 
 	class BotLinkedAccount implements IBotLinkedAccount {
 		constructor(p?: IBotLinkedAccount);
 		public static create(p?: IBotLinkedAccount): BotLinkedAccount;
 		public static fromObject(d: $ProtoObject): BotLinkedAccount;
-		public static toObject(m: BotLinkedAccount, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotLinkedAccount>;
 		public static encode: $ProtoEncode<IBotLinkedAccount>;
 		public static decode: $ProtoDecode<BotLinkedAccount>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotLinkedAccount {
@@ -1610,16 +1542,15 @@ export namespace proto {
 		acErrorCode?: (number|null);
 	}
 
-	interface BotLinkedAccountsMetadata extends IBotLinkedAccountsMetadata {}
+	interface BotLinkedAccountsMetadata extends IBotLinkedAccountsMetadata, $ProtoJSON {}
 
 	class BotLinkedAccountsMetadata implements IBotLinkedAccountsMetadata {
 		constructor(p?: IBotLinkedAccountsMetadata);
 		public static create(p?: IBotLinkedAccountsMetadata): BotLinkedAccountsMetadata;
 		public static fromObject(d: $ProtoObject): BotLinkedAccountsMetadata;
-		public static toObject(m: BotLinkedAccountsMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotLinkedAccountsMetadata>;
 		public static encode: $ProtoEncode<IBotLinkedAccountsMetadata>;
 		public static decode: $ProtoDecode<BotLinkedAccountsMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMediaMetadata {
@@ -1632,16 +1563,15 @@ export namespace proto {
 		orientationType?: (proto.BotMediaMetadata.OrientationType|null);
 	}
 
-	interface BotMediaMetadata extends IBotMediaMetadata {}
+	interface BotMediaMetadata extends IBotMediaMetadata, $ProtoJSON {}
 
 	class BotMediaMetadata implements IBotMediaMetadata {
 		constructor(p?: IBotMediaMetadata);
 		public static create(p?: IBotMediaMetadata): BotMediaMetadata;
 		public static fromObject(d: $ProtoObject): BotMediaMetadata;
-		public static toObject(m: BotMediaMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMediaMetadata>;
 		public static encode: $ProtoEncode<IBotMediaMetadata>;
 		public static decode: $ProtoDecode<BotMediaMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotMediaMetadata {
@@ -1658,16 +1588,15 @@ export namespace proto {
 		factId?: (string|null);
 	}
 
-	interface BotMemoryFact extends IBotMemoryFact {}
+	interface BotMemoryFact extends IBotMemoryFact, $ProtoJSON {}
 
 	class BotMemoryFact implements IBotMemoryFact {
 		constructor(p?: IBotMemoryFact);
 		public static create(p?: IBotMemoryFact): BotMemoryFact;
 		public static fromObject(d: $ProtoObject): BotMemoryFact;
-		public static toObject(m: BotMemoryFact, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMemoryFact>;
 		public static encode: $ProtoEncode<IBotMemoryFact>;
 		public static decode: $ProtoDecode<BotMemoryFact>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMemoryMetadata {
@@ -1676,48 +1605,45 @@ export namespace proto {
 		disclaimer?: (string|null);
 	}
 
-	interface BotMemoryMetadata extends IBotMemoryMetadata {}
+	interface BotMemoryMetadata extends IBotMemoryMetadata, $ProtoJSON {}
 
 	class BotMemoryMetadata implements IBotMemoryMetadata {
 		constructor(p?: IBotMemoryMetadata);
 		public static create(p?: IBotMemoryMetadata): BotMemoryMetadata;
 		public static fromObject(d: $ProtoObject): BotMemoryMetadata;
-		public static toObject(m: BotMemoryMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMemoryMetadata>;
 		public static encode: $ProtoEncode<IBotMemoryMetadata>;
 		public static decode: $ProtoDecode<BotMemoryMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMemuMetadata {
 		faceImages?: proto.IBotMediaMetadata[];
 	}
 
-	interface BotMemuMetadata extends IBotMemuMetadata {}
+	interface BotMemuMetadata extends IBotMemuMetadata, $ProtoJSON {}
 
 	class BotMemuMetadata implements IBotMemuMetadata {
 		constructor(p?: IBotMemuMetadata);
 		public static create(p?: IBotMemuMetadata): BotMemuMetadata;
 		public static fromObject(d: $ProtoObject): BotMemuMetadata;
-		public static toObject(m: BotMemuMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMemuMetadata>;
 		public static encode: $ProtoEncode<IBotMemuMetadata>;
 		public static decode: $ProtoDecode<BotMemuMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMessageOrigin {
 		type?: (proto.BotMessageOrigin.BotMessageOriginType|null);
 	}
 
-	interface BotMessageOrigin extends IBotMessageOrigin {}
+	interface BotMessageOrigin extends IBotMessageOrigin, $ProtoJSON {}
 
 	class BotMessageOrigin implements IBotMessageOrigin {
 		constructor(p?: IBotMessageOrigin);
 		public static create(p?: IBotMessageOrigin): BotMessageOrigin;
 		public static fromObject(d: $ProtoObject): BotMessageOrigin;
-		public static toObject(m: BotMessageOrigin, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMessageOrigin>;
 		public static encode: $ProtoEncode<IBotMessageOrigin>;
 		public static decode: $ProtoDecode<BotMessageOrigin>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotMessageOrigin {
@@ -1731,16 +1657,15 @@ export namespace proto {
 		origins?: proto.IBotMessageOrigin[];
 	}
 
-	interface BotMessageOriginMetadata extends IBotMessageOriginMetadata {}
+	interface BotMessageOriginMetadata extends IBotMessageOriginMetadata, $ProtoJSON {}
 
 	class BotMessageOriginMetadata implements IBotMessageOriginMetadata {
 		constructor(p?: IBotMessageOriginMetadata);
 		public static create(p?: IBotMessageOriginMetadata): BotMessageOriginMetadata;
 		public static fromObject(d: $ProtoObject): BotMessageOriginMetadata;
-		public static toObject(m: BotMessageOriginMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMessageOriginMetadata>;
 		public static encode: $ProtoEncode<IBotMessageOriginMetadata>;
 		public static decode: $ProtoDecode<BotMessageOriginMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMessageSharingInfo {
@@ -1748,16 +1673,15 @@ export namespace proto {
 		forwardScore?: (number|null);
 	}
 
-	interface BotMessageSharingInfo extends IBotMessageSharingInfo {}
+	interface BotMessageSharingInfo extends IBotMessageSharingInfo, $ProtoJSON {}
 
 	class BotMessageSharingInfo implements IBotMessageSharingInfo {
 		constructor(p?: IBotMessageSharingInfo);
 		public static create(p?: IBotMessageSharingInfo): BotMessageSharingInfo;
 		public static fromObject(d: $ProtoObject): BotMessageSharingInfo;
-		public static toObject(m: BotMessageSharingInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMessageSharingInfo>;
 		public static encode: $ProtoEncode<IBotMessageSharingInfo>;
 		public static decode: $ProtoDecode<BotMessageSharingInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotMetadata {
@@ -1807,16 +1731,15 @@ export namespace proto {
 		internalMetadata?: (Uint8Array|null);
 	}
 
-	interface BotMetadata extends IBotMetadata {}
+	interface BotMetadata extends IBotMetadata, $ProtoJSON {}
 
 	class BotMetadata implements IBotMetadata {
 		constructor(p?: IBotMetadata);
 		public static create(p?: IBotMetadata): BotMetadata;
 		public static fromObject(d: $ProtoObject): BotMetadata;
-		public static toObject(m: BotMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMetadata>;
 		public static encode: $ProtoEncode<IBotMetadata>;
 		public static decode: $ProtoDecode<BotMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum BotMetricsEntryPoint {
@@ -1878,16 +1801,15 @@ export namespace proto {
 		threadOrigin?: (proto.BotMetricsThreadEntryPoint|null);
 	}
 
-	interface BotMetricsMetadata extends IBotMetricsMetadata {}
+	interface BotMetricsMetadata extends IBotMetricsMetadata, $ProtoJSON {}
 
 	class BotMetricsMetadata implements IBotMetricsMetadata {
 		constructor(p?: IBotMetricsMetadata);
 		public static create(p?: IBotMetricsMetadata): BotMetricsMetadata;
 		public static fromObject(d: $ProtoObject): BotMetricsMetadata;
-		public static toObject(m: BotMetricsMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotMetricsMetadata>;
 		public static encode: $ProtoEncode<IBotMetricsMetadata>;
 		public static decode: $ProtoDecode<BotMetricsMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum BotMetricsThreadEntryPoint {
@@ -1904,16 +1826,15 @@ export namespace proto {
 		modelNameOverride?: (string|null);
 	}
 
-	interface BotModelMetadata extends IBotModelMetadata {}
+	interface BotModelMetadata extends IBotModelMetadata, $ProtoJSON {}
 
 	class BotModelMetadata implements IBotModelMetadata {
 		constructor(p?: IBotModelMetadata);
 		public static create(p?: IBotModelMetadata): BotModelMetadata;
 		public static fromObject(d: $ProtoObject): BotModelMetadata;
-		public static toObject(m: BotModelMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotModelMetadata>;
 		public static encode: $ProtoEncode<IBotModelMetadata>;
 		public static decode: $ProtoDecode<BotModelMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotModelMetadata {
@@ -1936,16 +1857,15 @@ export namespace proto {
 		overrideMode?: number[];
 	}
 
-	interface BotModeSelectionMetadata extends IBotModeSelectionMetadata {}
+	interface BotModeSelectionMetadata extends IBotModeSelectionMetadata, $ProtoJSON {}
 
 	class BotModeSelectionMetadata implements IBotModeSelectionMetadata {
 		constructor(p?: IBotModeSelectionMetadata);
 		public static create(p?: IBotModeSelectionMetadata): BotModeSelectionMetadata;
 		public static fromObject(d: $ProtoObject): BotModeSelectionMetadata;
-		public static toObject(m: BotModeSelectionMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotModeSelectionMetadata>;
 		public static encode: $ProtoEncode<IBotModeSelectionMetadata>;
 		public static decode: $ProtoDecode<BotModeSelectionMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotModeSelectionMetadata {
@@ -1971,16 +1891,15 @@ export namespace proto {
 		faviconCdnUrl?: (string|null);
 	}
 
-	interface BotPluginMetadata extends IBotPluginMetadata {}
+	interface BotPluginMetadata extends IBotPluginMetadata, $ProtoJSON {}
 
 	class BotPluginMetadata implements IBotPluginMetadata {
 		constructor(p?: IBotPluginMetadata);
 		public static create(p?: IBotPluginMetadata): BotPluginMetadata;
 		public static fromObject(d: $ProtoObject): BotPluginMetadata;
-		public static toObject(m: BotPluginMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotPluginMetadata>;
 		public static encode: $ProtoEncode<IBotPluginMetadata>;
 		public static decode: $ProtoDecode<BotPluginMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotPluginMetadata {
@@ -2005,16 +1924,15 @@ export namespace proto {
 		estimatedCompletionTime?: (Long|null);
 	}
 
-	interface BotProgressIndicatorMetadata extends IBotProgressIndicatorMetadata {}
+	interface BotProgressIndicatorMetadata extends IBotProgressIndicatorMetadata, $ProtoJSON {}
 
 	class BotProgressIndicatorMetadata implements IBotProgressIndicatorMetadata {
 		constructor(p?: IBotProgressIndicatorMetadata);
 		public static create(p?: IBotProgressIndicatorMetadata): BotProgressIndicatorMetadata;
 		public static fromObject(d: $ProtoObject): BotProgressIndicatorMetadata;
-		public static toObject(m: BotProgressIndicatorMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotProgressIndicatorMetadata>;
 		public static encode: $ProtoEncode<IBotProgressIndicatorMetadata>;
 		public static decode: $ProtoDecode<BotProgressIndicatorMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotProgressIndicatorMetadata {
@@ -2029,16 +1947,15 @@ export namespace proto {
 			sections?: proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.IBotPlanningStepSectionMetadata[];
 		}
 
-		interface BotPlanningStepMetadata extends IBotPlanningStepMetadata {}
+		interface BotPlanningStepMetadata extends IBotPlanningStepMetadata, $ProtoJSON {}
 
 		class BotPlanningStepMetadata implements IBotPlanningStepMetadata {
 			constructor(p?: IBotPlanningStepMetadata);
 			public static create(p?: IBotPlanningStepMetadata): BotPlanningStepMetadata;
 			public static fromObject(d: $ProtoObject): BotPlanningStepMetadata;
-			public static toObject(m: BotPlanningStepMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BotPlanningStepMetadata>;
 			public static encode: $ProtoEncode<IBotPlanningStepMetadata>;
 			public static decode: $ProtoDecode<BotPlanningStepMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BotPlanningStepMetadata {
@@ -2050,16 +1967,15 @@ export namespace proto {
 				favIconUrl?: (string|null);
 			}
 
-			interface BotPlanningSearchSourceMetadata extends IBotPlanningSearchSourceMetadata {}
+			interface BotPlanningSearchSourceMetadata extends IBotPlanningSearchSourceMetadata, $ProtoJSON {}
 
 			class BotPlanningSearchSourceMetadata implements IBotPlanningSearchSourceMetadata {
 				constructor(p?: IBotPlanningSearchSourceMetadata);
 				public static create(p?: IBotPlanningSearchSourceMetadata): BotPlanningSearchSourceMetadata;
 				public static fromObject(d: $ProtoObject): BotPlanningSearchSourceMetadata;
-				public static toObject(m: BotPlanningSearchSourceMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BotPlanningSearchSourceMetadata>;
 				public static encode: $ProtoEncode<IBotPlanningSearchSourceMetadata>;
 				public static decode: $ProtoDecode<BotPlanningSearchSourceMetadata>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IBotPlanningSearchSourcesMetadata {
@@ -2068,16 +1984,15 @@ export namespace proto {
 				sourceUrl?: (string|null);
 			}
 
-			interface BotPlanningSearchSourcesMetadata extends IBotPlanningSearchSourcesMetadata {}
+			interface BotPlanningSearchSourcesMetadata extends IBotPlanningSearchSourcesMetadata, $ProtoJSON {}
 
 			class BotPlanningSearchSourcesMetadata implements IBotPlanningSearchSourcesMetadata {
 				constructor(p?: IBotPlanningSearchSourcesMetadata);
 				public static create(p?: IBotPlanningSearchSourcesMetadata): BotPlanningSearchSourcesMetadata;
 				public static fromObject(d: $ProtoObject): BotPlanningSearchSourcesMetadata;
-				public static toObject(m: BotPlanningSearchSourcesMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BotPlanningSearchSourcesMetadata>;
 				public static encode: $ProtoEncode<IBotPlanningSearchSourcesMetadata>;
 				public static decode: $ProtoDecode<BotPlanningSearchSourcesMetadata>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace BotPlanningSearchSourcesMetadata {
@@ -2096,16 +2011,15 @@ export namespace proto {
 				sourcesMetadata?: proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.IBotPlanningSearchSourceMetadata[];
 			}
 
-			interface BotPlanningStepSectionMetadata extends IBotPlanningStepSectionMetadata {}
+			interface BotPlanningStepSectionMetadata extends IBotPlanningStepSectionMetadata, $ProtoJSON {}
 
 			class BotPlanningStepSectionMetadata implements IBotPlanningStepSectionMetadata {
 				constructor(p?: IBotPlanningStepSectionMetadata);
 				public static create(p?: IBotPlanningStepSectionMetadata): BotPlanningStepSectionMetadata;
 				public static fromObject(d: $ProtoObject): BotPlanningStepSectionMetadata;
-				public static toObject(m: BotPlanningStepSectionMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BotPlanningStepSectionMetadata>;
 				public static encode: $ProtoEncode<IBotPlanningStepSectionMetadata>;
 				public static decode: $ProtoDecode<BotPlanningStepSectionMetadata>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum BotSearchSourceProvider {
@@ -2129,16 +2043,15 @@ export namespace proto {
 		buttonTitle?: (string|null);
 	}
 
-	interface BotPromotionMessageMetadata extends IBotPromotionMessageMetadata {}
+	interface BotPromotionMessageMetadata extends IBotPromotionMessageMetadata, $ProtoJSON {}
 
 	class BotPromotionMessageMetadata implements IBotPromotionMessageMetadata {
 		constructor(p?: IBotPromotionMessageMetadata);
 		public static create(p?: IBotPromotionMessageMetadata): BotPromotionMessageMetadata;
 		public static fromObject(d: $ProtoObject): BotPromotionMessageMetadata;
-		public static toObject(m: BotPromotionMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotPromotionMessageMetadata>;
 		public static encode: $ProtoEncode<IBotPromotionMessageMetadata>;
 		public static decode: $ProtoDecode<BotPromotionMessageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotPromotionMessageMetadata {
@@ -2155,64 +2068,60 @@ export namespace proto {
 		promptId?: (string|null);
 	}
 
-	interface BotPromptSuggestion extends IBotPromptSuggestion {}
+	interface BotPromptSuggestion extends IBotPromptSuggestion, $ProtoJSON {}
 
 	class BotPromptSuggestion implements IBotPromptSuggestion {
 		constructor(p?: IBotPromptSuggestion);
 		public static create(p?: IBotPromptSuggestion): BotPromptSuggestion;
 		public static fromObject(d: $ProtoObject): BotPromptSuggestion;
-		public static toObject(m: BotPromptSuggestion, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotPromptSuggestion>;
 		public static encode: $ProtoEncode<IBotPromptSuggestion>;
 		public static decode: $ProtoDecode<BotPromptSuggestion>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotPromptSuggestions {
 		suggestions?: proto.IBotPromptSuggestion[];
 	}
 
-	interface BotPromptSuggestions extends IBotPromptSuggestions {}
+	interface BotPromptSuggestions extends IBotPromptSuggestions, $ProtoJSON {}
 
 	class BotPromptSuggestions implements IBotPromptSuggestions {
 		constructor(p?: IBotPromptSuggestions);
 		public static create(p?: IBotPromptSuggestions): BotPromptSuggestions;
 		public static fromObject(d: $ProtoObject): BotPromptSuggestions;
-		public static toObject(m: BotPromptSuggestions, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotPromptSuggestions>;
 		public static encode: $ProtoEncode<IBotPromptSuggestions>;
 		public static decode: $ProtoDecode<BotPromptSuggestions>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotPttPromptMetadata {
 		transcript?: (string|null);
 	}
 
-	interface BotPttPromptMetadata extends IBotPttPromptMetadata {}
+	interface BotPttPromptMetadata extends IBotPttPromptMetadata, $ProtoJSON {}
 
 	class BotPttPromptMetadata implements IBotPttPromptMetadata {
 		constructor(p?: IBotPttPromptMetadata);
 		public static create(p?: IBotPttPromptMetadata): BotPttPromptMetadata;
 		public static fromObject(d: $ProtoObject): BotPttPromptMetadata;
-		public static toObject(m: BotPttPromptMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotPttPromptMetadata>;
 		public static encode: $ProtoEncode<IBotPttPromptMetadata>;
 		public static decode: $ProtoDecode<BotPttPromptMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotQuotaMetadata {
 		botFeatureQuotaMetadata?: proto.BotQuotaMetadata.IBotFeatureQuotaMetadata[];
 	}
 
-	interface BotQuotaMetadata extends IBotQuotaMetadata {}
+	interface BotQuotaMetadata extends IBotQuotaMetadata, $ProtoJSON {}
 
 	class BotQuotaMetadata implements IBotQuotaMetadata {
 		constructor(p?: IBotQuotaMetadata);
 		public static create(p?: IBotQuotaMetadata): BotQuotaMetadata;
 		public static fromObject(d: $ProtoObject): BotQuotaMetadata;
-		public static toObject(m: BotQuotaMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotQuotaMetadata>;
 		public static encode: $ProtoEncode<IBotQuotaMetadata>;
 		public static decode: $ProtoDecode<BotQuotaMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotQuotaMetadata {
@@ -2223,16 +2132,15 @@ export namespace proto {
 			expirationTimestamp?: (Long|null);
 		}
 
-		interface BotFeatureQuotaMetadata extends IBotFeatureQuotaMetadata {}
+		interface BotFeatureQuotaMetadata extends IBotFeatureQuotaMetadata, $ProtoJSON {}
 
 		class BotFeatureQuotaMetadata implements IBotFeatureQuotaMetadata {
 			constructor(p?: IBotFeatureQuotaMetadata);
 			public static create(p?: IBotFeatureQuotaMetadata): BotFeatureQuotaMetadata;
 			public static fromObject(d: $ProtoObject): BotFeatureQuotaMetadata;
-			public static toObject(m: BotFeatureQuotaMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BotFeatureQuotaMetadata>;
 			public static encode: $ProtoEncode<IBotFeatureQuotaMetadata>;
 			public static decode: $ProtoDecode<BotFeatureQuotaMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BotFeatureQuotaMetadata {
@@ -2252,16 +2160,15 @@ export namespace proto {
 		frequency?: (proto.BotReminderMetadata.ReminderFrequency|null);
 	}
 
-	interface BotReminderMetadata extends IBotReminderMetadata {}
+	interface BotReminderMetadata extends IBotReminderMetadata, $ProtoJSON {}
 
 	class BotReminderMetadata implements IBotReminderMetadata {
 		constructor(p?: IBotReminderMetadata);
 		public static create(p?: IBotReminderMetadata): BotReminderMetadata;
 		public static fromObject(d: $ProtoObject): BotReminderMetadata;
-		public static toObject(m: BotReminderMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotReminderMetadata>;
 		public static encode: $ProtoEncode<IBotReminderMetadata>;
 		public static decode: $ProtoDecode<BotReminderMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotReminderMetadata {
@@ -2287,32 +2194,30 @@ export namespace proto {
 		pixelDensity?: (number|null);
 	}
 
-	interface BotRenderingConfigMetadata extends IBotRenderingConfigMetadata {}
+	interface BotRenderingConfigMetadata extends IBotRenderingConfigMetadata, $ProtoJSON {}
 
 	class BotRenderingConfigMetadata implements IBotRenderingConfigMetadata {
 		constructor(p?: IBotRenderingConfigMetadata);
 		public static create(p?: IBotRenderingConfigMetadata): BotRenderingConfigMetadata;
 		public static fromObject(d: $ProtoObject): BotRenderingConfigMetadata;
-		public static toObject(m: BotRenderingConfigMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotRenderingConfigMetadata>;
 		public static encode: $ProtoEncode<IBotRenderingConfigMetadata>;
 		public static decode: $ProtoDecode<BotRenderingConfigMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotRenderingMetadata {
 		keywords?: proto.BotRenderingMetadata.IKeyword[];
 	}
 
-	interface BotRenderingMetadata extends IBotRenderingMetadata {}
+	interface BotRenderingMetadata extends IBotRenderingMetadata, $ProtoJSON {}
 
 	class BotRenderingMetadata implements IBotRenderingMetadata {
 		constructor(p?: IBotRenderingMetadata);
 		public static create(p?: IBotRenderingMetadata): BotRenderingMetadata;
 		public static fromObject(d: $ProtoObject): BotRenderingMetadata;
-		public static toObject(m: BotRenderingMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotRenderingMetadata>;
 		public static encode: $ProtoEncode<IBotRenderingMetadata>;
 		public static decode: $ProtoDecode<BotRenderingMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotRenderingMetadata {
@@ -2322,16 +2227,15 @@ export namespace proto {
 			associatedPrompts?: string[];
 		}
 
-		interface Keyword extends IKeyword {}
+		interface Keyword extends IKeyword, $ProtoJSON {}
 
 		class Keyword implements IKeyword {
 			constructor(p?: IKeyword);
 			public static create(p?: IKeyword): Keyword;
 			public static fromObject(d: $ProtoObject): Keyword;
-			public static toObject(m: Keyword, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Keyword>;
 			public static encode: $ProtoEncode<IKeyword>;
 			public static decode: $ProtoDecode<Keyword>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -2340,16 +2244,15 @@ export namespace proto {
 		resolutionDataSerialized?: (string|null);
 	}
 
-	interface BotResolvedToolCallMetadata extends IBotResolvedToolCallMetadata {}
+	interface BotResolvedToolCallMetadata extends IBotResolvedToolCallMetadata, $ProtoJSON {}
 
 	class BotResolvedToolCallMetadata implements IBotResolvedToolCallMetadata {
 		constructor(p?: IBotResolvedToolCallMetadata);
 		public static create(p?: IBotResolvedToolCallMetadata): BotResolvedToolCallMetadata;
 		public static fromObject(d: $ProtoObject): BotResolvedToolCallMetadata;
-		public static toObject(m: BotResolvedToolCallMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotResolvedToolCallMetadata>;
 		public static encode: $ProtoEncode<IBotResolvedToolCallMetadata>;
 		public static decode: $ProtoDecode<BotResolvedToolCallMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotSessionMetadata {
@@ -2357,16 +2260,15 @@ export namespace proto {
 		sessionSource?: (proto.BotSessionSource|null);
 	}
 
-	interface BotSessionMetadata extends IBotSessionMetadata {}
+	interface BotSessionMetadata extends IBotSessionMetadata, $ProtoJSON {}
 
 	class BotSessionMetadata implements IBotSessionMetadata {
 		constructor(p?: IBotSessionMetadata);
 		public static create(p?: IBotSessionMetadata): BotSessionMetadata;
 		public static fromObject(d: $ProtoObject): BotSessionMetadata;
-		public static toObject(m: BotSessionMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotSessionMetadata>;
 		public static encode: $ProtoEncode<IBotSessionMetadata>;
 		public static decode: $ProtoDecode<BotSessionMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum BotSessionSource {
@@ -2384,16 +2286,15 @@ export namespace proto {
 		proofs?: proto.IBotSignatureVerificationUseCaseProof[];
 	}
 
-	interface BotSignatureVerificationMetadata extends IBotSignatureVerificationMetadata {}
+	interface BotSignatureVerificationMetadata extends IBotSignatureVerificationMetadata, $ProtoJSON {}
 
 	class BotSignatureVerificationMetadata implements IBotSignatureVerificationMetadata {
 		constructor(p?: IBotSignatureVerificationMetadata);
 		public static create(p?: IBotSignatureVerificationMetadata): BotSignatureVerificationMetadata;
 		public static fromObject(d: $ProtoObject): BotSignatureVerificationMetadata;
-		public static toObject(m: BotSignatureVerificationMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotSignatureVerificationMetadata>;
 		public static encode: $ProtoEncode<IBotSignatureVerificationMetadata>;
 		public static decode: $ProtoDecode<BotSignatureVerificationMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotSignatureVerificationUseCaseProof {
@@ -2404,16 +2305,15 @@ export namespace proto {
 		certificateChainSki?: proto.BotSignatureVerificationUseCaseProof.ICertificateSKI[];
 	}
 
-	interface BotSignatureVerificationUseCaseProof extends IBotSignatureVerificationUseCaseProof {}
+	interface BotSignatureVerificationUseCaseProof extends IBotSignatureVerificationUseCaseProof, $ProtoJSON {}
 
 	class BotSignatureVerificationUseCaseProof implements IBotSignatureVerificationUseCaseProof {
 		constructor(p?: IBotSignatureVerificationUseCaseProof);
 		public static create(p?: IBotSignatureVerificationUseCaseProof): BotSignatureVerificationUseCaseProof;
 		public static fromObject(d: $ProtoObject): BotSignatureVerificationUseCaseProof;
-		public static toObject(m: BotSignatureVerificationUseCaseProof, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotSignatureVerificationUseCaseProof>;
 		public static encode: $ProtoEncode<IBotSignatureVerificationUseCaseProof>;
 		public static decode: $ProtoDecode<BotSignatureVerificationUseCaseProof>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotSignatureVerificationUseCaseProof {
@@ -2432,16 +2332,15 @@ export namespace proto {
 			ski?: (Uint8Array|null);
 		}
 
-		interface CertificateSKI extends ICertificateSKI {}
+		interface CertificateSKI extends ICertificateSKI, $ProtoJSON {}
 
 		class CertificateSKI implements ICertificateSKI {
 			constructor(p?: ICertificateSKI);
 			public static create(p?: ICertificateSKI): CertificateSKI;
 			public static fromObject(d: $ProtoObject): CertificateSKI;
-			public static toObject(m: CertificateSKI, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CertificateSKI>;
 			public static encode: $ProtoEncode<ICertificateSKI>;
 			public static decode: $ProtoDecode<CertificateSKI>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -2449,16 +2348,15 @@ export namespace proto {
 		sources?: proto.BotSourcesMetadata.IBotSourceItem[];
 	}
 
-	interface BotSourcesMetadata extends IBotSourcesMetadata {}
+	interface BotSourcesMetadata extends IBotSourcesMetadata, $ProtoJSON {}
 
 	class BotSourcesMetadata implements IBotSourcesMetadata {
 		constructor(p?: IBotSourcesMetadata);
 		public static create(p?: IBotSourcesMetadata): BotSourcesMetadata;
 		public static fromObject(d: $ProtoObject): BotSourcesMetadata;
-		public static toObject(m: BotSourcesMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotSourcesMetadata>;
 		public static encode: $ProtoEncode<IBotSourcesMetadata>;
 		public static decode: $ProtoDecode<BotSourcesMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotSourcesMetadata {
@@ -2473,16 +2371,15 @@ export namespace proto {
 			sourceTitle?: (string|null);
 		}
 
-		interface BotSourceItem extends IBotSourceItem {}
+		interface BotSourceItem extends IBotSourceItem, $ProtoJSON {}
 
 		class BotSourceItem implements IBotSourceItem {
 			constructor(p?: IBotSourceItem);
 			public static create(p?: IBotSourceItem): BotSourceItem;
 			public static fromObject(d: $ProtoObject): BotSourceItem;
-			public static toObject(m: BotSourceItem, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BotSourceItem>;
 			public static encode: $ProtoEncode<IBotSourceItem>;
 			public static decode: $ProtoDecode<BotSourceItem>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BotSourceItem {
@@ -2504,16 +2401,15 @@ export namespace proto {
 		selectedPromptId?: (string|null);
 	}
 
-	interface BotSuggestedPromptMetadata extends IBotSuggestedPromptMetadata {}
+	interface BotSuggestedPromptMetadata extends IBotSuggestedPromptMetadata, $ProtoJSON {}
 
 	class BotSuggestedPromptMetadata implements IBotSuggestedPromptMetadata {
 		constructor(p?: IBotSuggestedPromptMetadata);
 		public static create(p?: IBotSuggestedPromptMetadata): BotSuggestedPromptMetadata;
 		public static fromObject(d: $ProtoObject): BotSuggestedPromptMetadata;
-		public static toObject(m: BotSuggestedPromptMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotSuggestedPromptMetadata>;
 		public static encode: $ProtoEncode<IBotSuggestedPromptMetadata>;
 		public static decode: $ProtoDecode<BotSuggestedPromptMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IBotUnifiedResponseMutation {
@@ -2521,16 +2417,15 @@ export namespace proto {
 		mediaDetailsMetadataList?: proto.BotUnifiedResponseMutation.IMediaDetailsMetadata[];
 	}
 
-	interface BotUnifiedResponseMutation extends IBotUnifiedResponseMutation {}
+	interface BotUnifiedResponseMutation extends IBotUnifiedResponseMutation, $ProtoJSON {}
 
 	class BotUnifiedResponseMutation implements IBotUnifiedResponseMutation {
 		constructor(p?: IBotUnifiedResponseMutation);
 		public static create(p?: IBotUnifiedResponseMutation): BotUnifiedResponseMutation;
 		public static fromObject(d: $ProtoObject): BotUnifiedResponseMutation;
-		public static toObject(m: BotUnifiedResponseMutation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<BotUnifiedResponseMutation>;
 		public static encode: $ProtoEncode<IBotUnifiedResponseMutation>;
 		public static decode: $ProtoDecode<BotUnifiedResponseMutation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace BotUnifiedResponseMutation {
@@ -2541,16 +2436,15 @@ export namespace proto {
 			previewMedia?: (proto.IBotMediaMetadata|null);
 		}
 
-		interface MediaDetailsMetadata extends IMediaDetailsMetadata {}
+		interface MediaDetailsMetadata extends IMediaDetailsMetadata, $ProtoJSON {}
 
 		class MediaDetailsMetadata implements IMediaDetailsMetadata {
 			constructor(p?: IMediaDetailsMetadata);
 			public static create(p?: IMediaDetailsMetadata): MediaDetailsMetadata;
 			public static fromObject(d: $ProtoObject): MediaDetailsMetadata;
-			public static toObject(m: MediaDetailsMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MediaDetailsMetadata>;
 			public static encode: $ProtoEncode<IMediaDetailsMetadata>;
 			public static decode: $ProtoDecode<MediaDetailsMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISideBySideMetadata {
@@ -2558,16 +2452,15 @@ export namespace proto {
 			surveyCtaHasRendered?: (boolean|null);
 		}
 
-		interface SideBySideMetadata extends ISideBySideMetadata {}
+		interface SideBySideMetadata extends ISideBySideMetadata, $ProtoJSON {}
 
 		class SideBySideMetadata implements ISideBySideMetadata {
 			constructor(p?: ISideBySideMetadata);
 			public static create(p?: ISideBySideMetadata): SideBySideMetadata;
 			public static fromObject(d: $ProtoObject): SideBySideMetadata;
-			public static toObject(m: SideBySideMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SideBySideMetadata>;
 			public static encode: $ProtoEncode<ISideBySideMetadata>;
 			public static decode: $ProtoDecode<SideBySideMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -2589,16 +2482,15 @@ export namespace proto {
 		callType?: (proto.CallLogRecord.CallType|null);
 	}
 
-	interface CallLogRecord extends ICallLogRecord {}
+	interface CallLogRecord extends ICallLogRecord, $ProtoJSON {}
 
 	class CallLogRecord implements ICallLogRecord {
 		constructor(p?: ICallLogRecord);
 		public static create(p?: ICallLogRecord): CallLogRecord;
 		public static fromObject(d: $ProtoObject): CallLogRecord;
-		public static toObject(m: CallLogRecord, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CallLogRecord>;
 		public static encode: $ProtoEncode<ICallLogRecord>;
 		public static decode: $ProtoDecode<CallLogRecord>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace CallLogRecord {
@@ -2628,16 +2520,15 @@ export namespace proto {
 			callResult?: (proto.CallLogRecord.CallResult|null);
 		}
 
-		interface ParticipantInfo extends IParticipantInfo {}
+		interface ParticipantInfo extends IParticipantInfo, $ProtoJSON {}
 
 		class ParticipantInfo implements IParticipantInfo {
 			constructor(p?: IParticipantInfo);
 			public static create(p?: IParticipantInfo): ParticipantInfo;
 			public static fromObject(d: $ProtoObject): ParticipantInfo;
-			public static toObject(m: ParticipantInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ParticipantInfo>;
 			public static encode: $ProtoEncode<IParticipantInfo>;
 			public static decode: $ProtoDecode<ParticipantInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum SilenceReason {
@@ -2653,16 +2544,15 @@ export namespace proto {
 		intermediate?: (proto.CertChain.INoiseCertificate|null);
 	}
 
-	interface CertChain extends ICertChain {}
+	interface CertChain extends ICertChain, $ProtoJSON {}
 
 	class CertChain implements ICertChain {
 		constructor(p?: ICertChain);
 		public static create(p?: ICertChain): CertChain;
 		public static fromObject(d: $ProtoObject): CertChain;
-		public static toObject(m: CertChain, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CertChain>;
 		public static encode: $ProtoEncode<ICertChain>;
 		public static decode: $ProtoDecode<CertChain>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace CertChain {
@@ -2672,16 +2562,15 @@ export namespace proto {
 			signature?: (Uint8Array|null);
 		}
 
-		interface NoiseCertificate extends INoiseCertificate {}
+		interface NoiseCertificate extends INoiseCertificate, $ProtoJSON {}
 
 		class NoiseCertificate implements INoiseCertificate {
 			constructor(p?: INoiseCertificate);
 			public static create(p?: INoiseCertificate): NoiseCertificate;
 			public static fromObject(d: $ProtoObject): NoiseCertificate;
-			public static toObject(m: NoiseCertificate, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NoiseCertificate>;
 			public static encode: $ProtoEncode<INoiseCertificate>;
 			public static decode: $ProtoDecode<NoiseCertificate>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace NoiseCertificate {
@@ -2694,16 +2583,15 @@ export namespace proto {
 				notAfter?: (Long|null);
 			}
 
-			interface Details extends IDetails {}
+			interface Details extends IDetails, $ProtoJSON {}
 
 			class Details implements IDetails {
 				constructor(p?: IDetails);
 				public static create(p?: IDetails): Details;
 				public static fromObject(d: $ProtoObject): Details;
-				public static toObject(m: Details, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Details>;
 				public static encode: $ProtoEncode<IDetails>;
 				public static decode: $ProtoDecode<Details>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 	}
@@ -2713,32 +2601,30 @@ export namespace proto {
 		secretCode?: (proto.IUserPassword|null);
 	}
 
-	interface ChatLockSettings extends IChatLockSettings {}
+	interface ChatLockSettings extends IChatLockSettings, $ProtoJSON {}
 
 	class ChatLockSettings implements IChatLockSettings {
 		constructor(p?: IChatLockSettings);
 		public static create(p?: IChatLockSettings): ChatLockSettings;
 		public static fromObject(d: $ProtoObject): ChatLockSettings;
-		public static toObject(m: ChatLockSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ChatLockSettings>;
 		public static encode: $ProtoEncode<IChatLockSettings>;
 		public static decode: $ProtoDecode<ChatLockSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IChatRowOpaqueData {
 		draftMessage?: (proto.ChatRowOpaqueData.IDraftMessage|null);
 	}
 
-	interface ChatRowOpaqueData extends IChatRowOpaqueData {}
+	interface ChatRowOpaqueData extends IChatRowOpaqueData, $ProtoJSON {}
 
 	class ChatRowOpaqueData implements IChatRowOpaqueData {
 		constructor(p?: IChatRowOpaqueData);
 		public static create(p?: IChatRowOpaqueData): ChatRowOpaqueData;
 		public static fromObject(d: $ProtoObject): ChatRowOpaqueData;
-		public static toObject(m: ChatRowOpaqueData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ChatRowOpaqueData>;
 		public static encode: $ProtoEncode<IChatRowOpaqueData>;
 		public static decode: $ProtoDecode<ChatRowOpaqueData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ChatRowOpaqueData {
@@ -2751,16 +2637,15 @@ export namespace proto {
 			timestamp?: (Long|null);
 		}
 
-		interface DraftMessage extends IDraftMessage {}
+		interface DraftMessage extends IDraftMessage, $ProtoJSON {}
 
 		class DraftMessage implements IDraftMessage {
 			constructor(p?: IDraftMessage);
 			public static create(p?: IDraftMessage): DraftMessage;
 			public static fromObject(d: $ProtoObject): DraftMessage;
-			public static toObject(m: DraftMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DraftMessage>;
 			public static encode: $ProtoEncode<IDraftMessage>;
 			public static decode: $ProtoDecode<DraftMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace DraftMessage {
@@ -2780,16 +2665,15 @@ export namespace proto {
 				isSuspiciousLink?: (boolean|null);
 			}
 
-			interface CtwaContextData extends ICtwaContextData {}
+			interface CtwaContextData extends ICtwaContextData, $ProtoJSON {}
 
 			class CtwaContextData implements ICtwaContextData {
 				constructor(p?: ICtwaContextData);
 				public static create(p?: ICtwaContextData): CtwaContextData;
 				public static fromObject(d: $ProtoObject): CtwaContextData;
-				public static toObject(m: CtwaContextData, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CtwaContextData>;
 				public static encode: $ProtoEncode<ICtwaContextData>;
 				public static decode: $ProtoDecode<CtwaContextData>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace CtwaContextData {
@@ -2808,16 +2692,15 @@ export namespace proto {
 				phone?: (string|null);
 			}
 
-			interface CtwaContextLinkData extends ICtwaContextLinkData {}
+			interface CtwaContextLinkData extends ICtwaContextLinkData, $ProtoJSON {}
 
 			class CtwaContextLinkData implements ICtwaContextLinkData {
 				constructor(p?: ICtwaContextLinkData);
 				public static create(p?: ICtwaContextLinkData): CtwaContextLinkData;
 				public static fromObject(d: $ProtoObject): CtwaContextLinkData;
-				public static toObject(m: CtwaContextLinkData, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CtwaContextLinkData>;
 				public static encode: $ProtoEncode<ICtwaContextLinkData>;
 				public static decode: $ProtoDecode<CtwaContextLinkData>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 	}
@@ -2829,16 +2712,15 @@ export namespace proto {
 		imageUrl?: (string|null);
 	}
 
-	interface Citation extends ICitation {}
+	interface Citation extends ICitation, $ProtoJSON {}
 
 	class Citation implements ICitation {
 		constructor(p?: ICitation);
 		public static create(p?: ICitation): Citation;
 		public static fromObject(d: $ProtoObject): Citation;
-		public static toObject(m: Citation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Citation>;
 		public static encode: $ProtoEncode<ICitation>;
 		public static decode: $ProtoDecode<Citation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IClientPairingProps {
@@ -2850,16 +2732,15 @@ export namespace proto {
 		isBotJidDbMigrated?: (boolean|null);
 	}
 
-	interface ClientPairingProps extends IClientPairingProps {}
+	interface ClientPairingProps extends IClientPairingProps, $ProtoJSON {}
 
 	class ClientPairingProps implements IClientPairingProps {
 		constructor(p?: IClientPairingProps);
 		public static create(p?: IClientPairingProps): ClientPairingProps;
 		public static fromObject(d: $ProtoObject): ClientPairingProps;
-		public static toObject(m: ClientPairingProps, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ClientPairingProps>;
 		public static encode: $ProtoEncode<IClientPairingProps>;
 		public static decode: $ProtoDecode<ClientPairingProps>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IClientPayload {
@@ -2901,16 +2782,15 @@ export namespace proto {
 		testIsolationId?: (Uint8Array|null);
 	}
 
-	interface ClientPayload extends IClientPayload {}
+	interface ClientPayload extends IClientPayload, $ProtoJSON {}
 
 	class ClientPayload implements IClientPayload {
 		constructor(p?: IClientPayload);
 		public static create(p?: IClientPayload): ClientPayload;
 		public static fromObject(d: $ProtoObject): ClientPayload;
-		public static toObject(m: ClientPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ClientPayload>;
 		public static encode: $ProtoEncode<IClientPayload>;
 		public static decode: $ProtoDecode<ClientPayload>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ClientPayload {
@@ -2959,16 +2839,15 @@ export namespace proto {
 			deviceProps?: (Uint8Array|null);
 		}
 
-		interface DevicePairingRegistrationData extends IDevicePairingRegistrationData {}
+		interface DevicePairingRegistrationData extends IDevicePairingRegistrationData, $ProtoJSON {}
 
 		class DevicePairingRegistrationData implements IDevicePairingRegistrationData {
 			constructor(p?: IDevicePairingRegistrationData);
 			public static create(p?: IDevicePairingRegistrationData): DevicePairingRegistrationData;
 			public static fromObject(d: $ProtoObject): DevicePairingRegistrationData;
-			public static toObject(m: DevicePairingRegistrationData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DevicePairingRegistrationData>;
 			public static encode: $ProtoEncode<IDevicePairingRegistrationData>;
 			public static decode: $ProtoDecode<DevicePairingRegistrationData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDNSSource {
@@ -2976,16 +2855,15 @@ export namespace proto {
 			appCached?: (boolean|null);
 		}
 
-		interface DNSSource extends IDNSSource {}
+		interface DNSSource extends IDNSSource, $ProtoJSON {}
 
 		class DNSSource implements IDNSSource {
 			constructor(p?: IDNSSource);
 			public static create(p?: IDNSSource): DNSSource;
 			public static fromObject(d: $ProtoObject): DNSSource;
-			public static toObject(m: DNSSource, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DNSSource>;
 			public static encode: $ProtoEncode<IDNSSource>;
 			public static decode: $ProtoDecode<DNSSource>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace DNSSource {
@@ -3008,16 +2886,15 @@ export namespace proto {
 			enableReadReceipts?: (boolean|null);
 		}
 
-		interface InteropData extends IInteropData {}
+		interface InteropData extends IInteropData, $ProtoJSON {}
 
 		class InteropData implements IInteropData {
 			constructor(p?: IInteropData);
 			public static create(p?: IInteropData): InteropData;
 			public static fromObject(d: $ProtoObject): InteropData;
-			public static toObject(m: InteropData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InteropData>;
 			public static encode: $ProtoEncode<IInteropData>;
 			public static decode: $ProtoDecode<InteropData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum IOSAppExtension {
@@ -3059,16 +2936,15 @@ export namespace proto {
 			distributionChannel?: (proto.ClientPayload.UserAgent.DistributionChannel|null);
 		}
 
-		interface UserAgent extends IUserAgent {}
+		interface UserAgent extends IUserAgent, $ProtoJSON {}
 
 		class UserAgent implements IUserAgent {
 			constructor(p?: IUserAgent);
 			public static create(p?: IUserAgent): UserAgent;
 			public static fromObject(d: $ProtoObject): UserAgent;
-			public static toObject(m: UserAgent, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UserAgent>;
 			public static encode: $ProtoEncode<IUserAgent>;
 			public static decode: $ProtoDecode<UserAgent>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace UserAgent {
@@ -3081,16 +2957,15 @@ export namespace proto {
 				quinary?: (number|null);
 			}
 
-			interface AppVersion extends IAppVersion {}
+			interface AppVersion extends IAppVersion, $ProtoJSON {}
 
 			class AppVersion implements IAppVersion {
 				constructor(p?: IAppVersion);
 				public static create(p?: IAppVersion): AppVersion;
 				public static fromObject(d: $ProtoObject): AppVersion;
-				public static toObject(m: AppVersion, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<AppVersion>;
 				public static encode: $ProtoEncode<IAppVersion>;
 				public static decode: $ProtoDecode<AppVersion>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum DeviceType {
@@ -3169,16 +3044,15 @@ export namespace proto {
 			browserVersion?: (string|null);
 		}
 
-		interface WebInfo extends IWebInfo {}
+		interface WebInfo extends IWebInfo, $ProtoJSON {}
 
 		class WebInfo implements IWebInfo {
 			constructor(p?: IWebInfo);
 			public static create(p?: IWebInfo): WebInfo;
 			public static fromObject(d: $ProtoObject): WebInfo;
-			public static toObject(m: WebInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<WebInfo>;
 			public static encode: $ProtoEncode<IWebInfo>;
 			public static decode: $ProtoDecode<WebInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace WebInfo {
@@ -3197,16 +3071,15 @@ export namespace proto {
 				features?: (Uint8Array|null);
 			}
 
-			interface WebdPayload extends IWebdPayload {}
+			interface WebdPayload extends IWebdPayload, $ProtoJSON {}
 
 			class WebdPayload implements IWebdPayload {
 				constructor(p?: IWebdPayload);
 				public static create(p?: IWebdPayload): WebdPayload;
 				public static fromObject(d: $ProtoObject): WebdPayload;
-				public static toObject(m: WebdPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<WebdPayload>;
 				public static encode: $ProtoEncode<IWebdPayload>;
 				public static decode: $ProtoDecode<WebdPayload>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum WebSubPlatform {
@@ -3224,16 +3097,15 @@ export namespace proto {
 		collectionMutations?: proto.CoexStateSync.ICollectionMutations[];
 	}
 
-	interface CoexStateSync extends ICoexStateSync {}
+	interface CoexStateSync extends ICoexStateSync, $ProtoJSON {}
 
 	class CoexStateSync implements ICoexStateSync {
 		constructor(p?: ICoexStateSync);
 		public static create(p?: ICoexStateSync): CoexStateSync;
 		public static fromObject(d: $ProtoObject): CoexStateSync;
-		public static toObject(m: CoexStateSync, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CoexStateSync>;
 		public static encode: $ProtoEncode<ICoexStateSync>;
 		public static decode: $ProtoDecode<CoexStateSync>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace CoexStateSync {
@@ -3243,16 +3115,15 @@ export namespace proto {
 			mutations?: proto.CoexStateSync.IMutation[];
 		}
 
-		interface CollectionMutations extends ICollectionMutations {}
+		interface CollectionMutations extends ICollectionMutations, $ProtoJSON {}
 
 		class CollectionMutations implements ICollectionMutations {
 			constructor(p?: ICollectionMutations);
 			public static create(p?: ICollectionMutations): CollectionMutations;
 			public static fromObject(d: $ProtoObject): CollectionMutations;
-			public static toObject(m: CollectionMutations, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CollectionMutations>;
 			public static encode: $ProtoEncode<ICollectionMutations>;
 			public static decode: $ProtoDecode<CollectionMutations>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMutation {
@@ -3262,16 +3133,15 @@ export namespace proto {
 			operation?: (proto.SyncdMutation.SyncdOperation|null);
 		}
 
-		interface Mutation extends IMutation {}
+		interface Mutation extends IMutation, $ProtoJSON {}
 
 		class Mutation implements IMutation {
 			constructor(p?: IMutation);
 			public static create(p?: IMutation): Mutation;
 			public static fromObject(d: $ProtoObject): Mutation;
-			public static toObject(m: Mutation, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Mutation>;
 			public static encode: $ProtoEncode<IMutation>;
 			public static decode: $ProtoDecode<Mutation>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -3290,16 +3160,15 @@ export namespace proto {
 		remoteFingerprint?: (proto.IFingerprintData|null);
 	}
 
-	interface CombinedFingerprint extends ICombinedFingerprint {}
+	interface CombinedFingerprint extends ICombinedFingerprint, $ProtoJSON {}
 
 	class CombinedFingerprint implements ICombinedFingerprint {
 		constructor(p?: ICombinedFingerprint);
 		public static create(p?: ICombinedFingerprint): CombinedFingerprint;
 		public static fromObject(d: $ProtoObject): CombinedFingerprint;
-		public static toObject(m: CombinedFingerprint, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CombinedFingerprint>;
 		public static encode: $ProtoEncode<ICombinedFingerprint>;
 		public static decode: $ProtoDecode<CombinedFingerprint>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ICommand {
@@ -3309,16 +3178,15 @@ export namespace proto {
 		validationToken?: (string|null);
 	}
 
-	interface Command extends ICommand {}
+	interface Command extends ICommand, $ProtoJSON {}
 
 	class Command implements ICommand {
 		constructor(p?: ICommand);
 		public static create(p?: ICommand): Command;
 		public static fromObject(d: $ProtoObject): Command;
-		public static toObject(m: Command, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Command>;
 		public static encode: $ProtoEncode<ICommand>;
 		public static decode: $ProtoDecode<Command>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum commandCommandType {
@@ -3333,32 +3201,30 @@ export namespace proto {
 		replyCount?: (number|null);
 	}
 
-	interface CommentMetadata extends ICommentMetadata {}
+	interface CommentMetadata extends ICommentMetadata, $ProtoJSON {}
 
 	class CommentMetadata implements ICommentMetadata {
 		constructor(p?: ICommentMetadata);
 		public static create(p?: ICommentMetadata): CommentMetadata;
 		public static fromObject(d: $ProtoObject): CommentMetadata;
-		public static toObject(m: CommentMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CommentMetadata>;
 		public static encode: $ProtoEncode<ICommentMetadata>;
 		public static decode: $ProtoDecode<CommentMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ICompanionCommitment {
 		hash?: (Uint8Array|null);
 	}
 
-	interface CompanionCommitment extends ICompanionCommitment {}
+	interface CompanionCommitment extends ICompanionCommitment, $ProtoJSON {}
 
 	class CompanionCommitment implements ICompanionCommitment {
 		constructor(p?: ICompanionCommitment);
 		public static create(p?: ICompanionCommitment): CompanionCommitment;
 		public static fromObject(d: $ProtoObject): CompanionCommitment;
-		public static toObject(m: CompanionCommitment, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CompanionCommitment>;
 		public static encode: $ProtoEncode<ICompanionCommitment>;
 		public static decode: $ProtoDecode<CompanionCommitment>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ICompanionEphemeralIdentity {
@@ -3367,16 +3233,15 @@ export namespace proto {
 		ref?: (string|null);
 	}
 
-	interface CompanionEphemeralIdentity extends ICompanionEphemeralIdentity {}
+	interface CompanionEphemeralIdentity extends ICompanionEphemeralIdentity, $ProtoJSON {}
 
 	class CompanionEphemeralIdentity implements ICompanionEphemeralIdentity {
 		constructor(p?: ICompanionEphemeralIdentity);
 		public static create(p?: ICompanionEphemeralIdentity): CompanionEphemeralIdentity;
 		public static fromObject(d: $ProtoObject): CompanionEphemeralIdentity;
-		public static toObject(m: CompanionEphemeralIdentity, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CompanionEphemeralIdentity>;
 		public static encode: $ProtoEncode<ICompanionEphemeralIdentity>;
 		public static decode: $ProtoDecode<CompanionEphemeralIdentity>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IConfig {
@@ -3384,16 +3249,15 @@ export namespace proto {
 		version?: (number|null);
 	}
 
-	interface Config extends IConfig {}
+	interface Config extends IConfig, $ProtoJSON {}
 
 	class Config implements IConfig {
 		constructor(p?: IConfig);
 		public static create(p?: IConfig): Config;
 		public static fromObject(d: $ProtoObject): Config;
-		public static toObject(m: Config, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Config>;
 		public static encode: $ProtoEncode<IConfig>;
 		public static decode: $ProtoDecode<Config>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace Config {
@@ -3403,16 +3267,15 @@ export namespace proto {
 			value?: (proto.IField|null);
 		}
 
-		interface FieldEntry extends IFieldEntry {}
+		interface FieldEntry extends IFieldEntry, $ProtoJSON {}
 
 		class FieldEntry implements IFieldEntry {
 			constructor(p?: IFieldEntry);
 			public static create(p?: IFieldEntry): FieldEntry;
 			public static fromObject(d: $ProtoObject): FieldEntry;
-			public static toObject(m: FieldEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FieldEntry>;
 			public static encode: $ProtoEncode<IFieldEntry>;
 			public static decode: $ProtoDecode<FieldEntry>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -3421,16 +3284,15 @@ export namespace proto {
 		metadata?: (proto.ConsumerApplication.IMetadata|null);
 	}
 
-	interface ConsumerApplication extends IConsumerApplication {}
+	interface ConsumerApplication extends IConsumerApplication, $ProtoJSON {}
 
 	class ConsumerApplication implements IConsumerApplication {
 		constructor(p?: IConsumerApplication);
 		public static create(p?: IConsumerApplication): ConsumerApplication;
 		public static fromObject(d: $ProtoObject): ConsumerApplication;
-		public static toObject(m: ConsumerApplication, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ConsumerApplication>;
 		public static encode: $ProtoEncode<IConsumerApplication>;
 		public static decode: $ProtoDecode<ConsumerApplication>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ConsumerApplication {
@@ -3439,16 +3301,15 @@ export namespace proto {
 			revoke?: (proto.ConsumerApplication.IRevokeMessage|null);
 		}
 
-		interface ApplicationData extends IApplicationData {}
+		interface ApplicationData extends IApplicationData, $ProtoJSON {}
 
 		class ApplicationData implements IApplicationData {
 			constructor(p?: IApplicationData);
 			public static create(p?: IApplicationData): ApplicationData;
 			public static fromObject(d: $ProtoObject): ApplicationData;
-			public static toObject(m: ApplicationData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ApplicationData>;
 			public static encode: $ProtoEncode<IApplicationData>;
 			public static decode: $ProtoDecode<ApplicationData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAudioMessage {
@@ -3456,16 +3317,15 @@ export namespace proto {
 			ptt?: (boolean|null);
 		}
 
-		interface AudioMessage extends IAudioMessage {}
+		interface AudioMessage extends IAudioMessage, $ProtoJSON {}
 
 		class AudioMessage implements IAudioMessage {
 			constructor(p?: IAudioMessage);
 			public static create(p?: IAudioMessage): AudioMessage;
 			public static fromObject(d: $ProtoObject): AudioMessage;
-			public static toObject(m: AudioMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AudioMessage>;
 			public static encode: $ProtoEncode<IAudioMessage>;
 			public static decode: $ProtoDecode<AudioMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum consumerApplicationExtendedTextMessagePreviewType {
@@ -3477,16 +3337,15 @@ export namespace proto {
 			contact?: (proto.ISubProtocol|null);
 		}
 
-		interface ContactMessage extends IContactMessage {}
+		interface ContactMessage extends IContactMessage, $ProtoJSON {}
 
 		class ContactMessage implements IContactMessage {
 			constructor(p?: IContactMessage);
 			public static create(p?: IContactMessage): ContactMessage;
 			public static fromObject(d: $ProtoObject): ContactMessage;
-			public static toObject(m: ContactMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactMessage>;
 			public static encode: $ProtoEncode<IContactMessage>;
 			public static decode: $ProtoDecode<ContactMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IContactsArrayMessage {
@@ -3494,16 +3353,15 @@ export namespace proto {
 			contacts?: proto.ConsumerApplication.IContactMessage[];
 		}
 
-		interface ContactsArrayMessage extends IContactsArrayMessage {}
+		interface ContactsArrayMessage extends IContactsArrayMessage, $ProtoJSON {}
 
 		class ContactsArrayMessage implements IContactsArrayMessage {
 			constructor(p?: IContactsArrayMessage);
 			public static create(p?: IContactsArrayMessage): ContactsArrayMessage;
 			public static fromObject(d: $ProtoObject): ContactsArrayMessage;
-			public static toObject(m: ContactsArrayMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactsArrayMessage>;
 			public static encode: $ProtoEncode<IContactsArrayMessage>;
 			public static decode: $ProtoDecode<ContactsArrayMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IContent {
@@ -3527,16 +3385,15 @@ export namespace proto {
 			editMessage?: (proto.ConsumerApplication.IEditMessage|null);
 		}
 
-		interface Content extends IContent {}
+		interface Content extends IContent, $ProtoJSON {}
 
 		class Content implements IContent {
 			constructor(p?: IContent);
 			public static create(p?: IContent): Content;
 			public static fromObject(d: $ProtoObject): Content;
-			public static toObject(m: Content, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Content>;
 			public static encode: $ProtoEncode<IContent>;
 			public static decode: $ProtoDecode<Content>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDocumentMessage {
@@ -3544,16 +3401,15 @@ export namespace proto {
 			fileName?: (string|null);
 		}
 
-		interface DocumentMessage extends IDocumentMessage {}
+		interface DocumentMessage extends IDocumentMessage, $ProtoJSON {}
 
 		class DocumentMessage implements IDocumentMessage {
 			constructor(p?: IDocumentMessage);
 			public static create(p?: IDocumentMessage): DocumentMessage;
 			public static fromObject(d: $ProtoObject): DocumentMessage;
-			public static toObject(m: DocumentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DocumentMessage>;
 			public static encode: $ProtoEncode<IDocumentMessage>;
 			public static decode: $ProtoDecode<DocumentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEditMessage {
@@ -3562,16 +3418,15 @@ export namespace proto {
 			timestampMs?: (Long|null);
 		}
 
-		interface EditMessage extends IEditMessage {}
+		interface EditMessage extends IEditMessage, $ProtoJSON {}
 
 		class EditMessage implements IEditMessage {
 			constructor(p?: IEditMessage);
 			public static create(p?: IEditMessage): EditMessage;
 			public static fromObject(d: $ProtoObject): EditMessage;
-			public static toObject(m: EditMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EditMessage>;
 			public static encode: $ProtoEncode<IEditMessage>;
 			public static decode: $ProtoDecode<EditMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IExtendedTextMessage {
@@ -3584,16 +3439,15 @@ export namespace proto {
 			previewType?: (proto.ConsumerApplication.consumerApplicationExtendedTextMessagePreviewType|null);
 		}
 
-		interface ExtendedTextMessage extends IExtendedTextMessage {}
+		interface ExtendedTextMessage extends IExtendedTextMessage, $ProtoJSON {}
 
 		class ExtendedTextMessage implements IExtendedTextMessage {
 			constructor(p?: IExtendedTextMessage);
 			public static create(p?: IExtendedTextMessage): ExtendedTextMessage;
 			public static fromObject(d: $ProtoObject): ExtendedTextMessage;
-			public static toObject(m: ExtendedTextMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ExtendedTextMessage>;
 			public static encode: $ProtoEncode<IExtendedTextMessage>;
 			public static decode: $ProtoDecode<ExtendedTextMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IGroupInviteMessage {
@@ -3605,16 +3459,15 @@ export namespace proto {
 			caption?: (proto.IMessageText|null);
 		}
 
-		interface GroupInviteMessage extends IGroupInviteMessage {}
+		interface GroupInviteMessage extends IGroupInviteMessage, $ProtoJSON {}
 
 		class GroupInviteMessage implements IGroupInviteMessage {
 			constructor(p?: IGroupInviteMessage);
 			public static create(p?: IGroupInviteMessage): GroupInviteMessage;
 			public static fromObject(d: $ProtoObject): GroupInviteMessage;
-			public static toObject(m: GroupInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<GroupInviteMessage>;
 			public static encode: $ProtoEncode<IGroupInviteMessage>;
 			public static decode: $ProtoDecode<GroupInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IImageMessage {
@@ -3622,16 +3475,15 @@ export namespace proto {
 			caption?: (proto.IMessageText|null);
 		}
 
-		interface ImageMessage extends IImageMessage {}
+		interface ImageMessage extends IImageMessage, $ProtoJSON {}
 
 		class ImageMessage implements IImageMessage {
 			constructor(p?: IImageMessage);
 			public static create(p?: IImageMessage): ImageMessage;
 			public static fromObject(d: $ProtoObject): ImageMessage;
-			public static toObject(m: ImageMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ImageMessage>;
 			public static encode: $ProtoEncode<IImageMessage>;
 			public static decode: $ProtoDecode<ImageMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IInteractiveAnnotation {
@@ -3639,16 +3491,15 @@ export namespace proto {
 			location?: (proto.ConsumerApplication.ILocation|null);
 		}
 
-		interface InteractiveAnnotation extends IInteractiveAnnotation {}
+		interface InteractiveAnnotation extends IInteractiveAnnotation, $ProtoJSON {}
 
 		class InteractiveAnnotation implements IInteractiveAnnotation {
 			constructor(p?: IInteractiveAnnotation);
 			public static create(p?: IInteractiveAnnotation): InteractiveAnnotation;
 			public static fromObject(d: $ProtoObject): InteractiveAnnotation;
-			public static toObject(m: InteractiveAnnotation, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InteractiveAnnotation>;
 			public static encode: $ProtoEncode<IInteractiveAnnotation>;
 			public static decode: $ProtoDecode<InteractiveAnnotation>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILiveLocationMessage {
@@ -3661,16 +3512,15 @@ export namespace proto {
 			timeOffset?: (number|null);
 		}
 
-		interface LiveLocationMessage extends ILiveLocationMessage {}
+		interface LiveLocationMessage extends ILiveLocationMessage, $ProtoJSON {}
 
 		class LiveLocationMessage implements ILiveLocationMessage {
 			constructor(p?: ILiveLocationMessage);
 			public static create(p?: ILiveLocationMessage): LiveLocationMessage;
 			public static fromObject(d: $ProtoObject): LiveLocationMessage;
-			public static toObject(m: LiveLocationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LiveLocationMessage>;
 			public static encode: $ProtoEncode<ILiveLocationMessage>;
 			public static decode: $ProtoDecode<LiveLocationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILocation {
@@ -3679,16 +3529,15 @@ export namespace proto {
 			name?: (string|null);
 		}
 
-		interface Location extends ILocation {}
+		interface Location extends ILocation, $ProtoJSON {}
 
 		class Location implements ILocation {
 			constructor(p?: ILocation);
 			public static create(p?: ILocation): Location;
 			public static fromObject(d: $ProtoObject): Location;
-			public static toObject(m: Location, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Location>;
 			public static encode: $ProtoEncode<ILocation>;
 			public static decode: $ProtoDecode<Location>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILocationMessage {
@@ -3696,64 +3545,60 @@ export namespace proto {
 			address?: (string|null);
 		}
 
-		interface LocationMessage extends ILocationMessage {}
+		interface LocationMessage extends ILocationMessage, $ProtoJSON {}
 
 		class LocationMessage implements ILocationMessage {
 			constructor(p?: ILocationMessage);
 			public static create(p?: ILocationMessage): LocationMessage;
 			public static fromObject(d: $ProtoObject): LocationMessage;
-			public static toObject(m: LocationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LocationMessage>;
 			public static encode: $ProtoEncode<ILocationMessage>;
 			public static decode: $ProtoDecode<LocationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMediaPayload {
 			protocol?: (proto.ISubProtocol|null);
 		}
 
-		interface MediaPayload extends IMediaPayload {}
+		interface MediaPayload extends IMediaPayload, $ProtoJSON {}
 
 		class MediaPayload implements IMediaPayload {
 			constructor(p?: IMediaPayload);
 			public static create(p?: IMediaPayload): MediaPayload;
 			public static fromObject(d: $ProtoObject): MediaPayload;
-			public static toObject(m: MediaPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MediaPayload>;
 			public static encode: $ProtoEncode<IMediaPayload>;
 			public static decode: $ProtoDecode<MediaPayload>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMetadata {
 			specialTextSize?: (consumerApplicationMetadataSpecialTextSize|null);
 		}
 
-		interface Metadata extends IMetadata {}
+		interface Metadata extends IMetadata, $ProtoJSON {}
 
 		class Metadata implements IMetadata {
 			constructor(p?: IMetadata);
 			public static create(p?: IMetadata): Metadata;
 			public static fromObject(d: $ProtoObject): Metadata;
-			public static toObject(m: Metadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Metadata>;
 			public static encode: $ProtoEncode<IMetadata>;
 			public static decode: $ProtoDecode<Metadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IOption {
 			optionName?: (string|null);
 		}
 
-		interface Option extends IOption {}
+		interface Option extends IOption, $ProtoJSON {}
 
 		class Option implements IOption {
 			constructor(p?: IOption);
 			public static create(p?: IOption): Option;
 			public static fromObject(d: $ProtoObject): Option;
-			public static toObject(m: Option, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Option>;
 			public static encode: $ProtoEncode<IOption>;
 			public static decode: $ProtoDecode<Option>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPayload {
@@ -3763,16 +3608,15 @@ export namespace proto {
 			subProtocol?: (proto.ConsumerApplication.ISubProtocolPayload|null);
 		}
 
-		interface Payload extends IPayload {}
+		interface Payload extends IPayload, $ProtoJSON {}
 
 		class Payload implements IPayload {
 			constructor(p?: IPayload);
 			public static create(p?: IPayload): Payload;
 			public static fromObject(d: $ProtoObject): Payload;
-			public static toObject(m: Payload, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Payload>;
 			public static encode: $ProtoEncode<IPayload>;
 			public static decode: $ProtoDecode<Payload>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPoint {
@@ -3780,32 +3624,30 @@ export namespace proto {
 			y?: (number|null);
 		}
 
-		interface Point extends IPoint {}
+		interface Point extends IPoint, $ProtoJSON {}
 
 		class Point implements IPoint {
 			constructor(p?: IPoint);
 			public static create(p?: IPoint): Point;
 			public static fromObject(d: $ProtoObject): Point;
-			public static toObject(m: Point, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Point>;
 			public static encode: $ProtoEncode<IPoint>;
 			public static decode: $ProtoDecode<Point>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollAddOptionMessage {
 			pollOption?: proto.ConsumerApplication.IOption[];
 		}
 
-		interface PollAddOptionMessage extends IPollAddOptionMessage {}
+		interface PollAddOptionMessage extends IPollAddOptionMessage, $ProtoJSON {}
 
 		class PollAddOptionMessage implements IPollAddOptionMessage {
 			constructor(p?: IPollAddOptionMessage);
 			public static create(p?: IPollAddOptionMessage): PollAddOptionMessage;
 			public static fromObject(d: $ProtoObject): PollAddOptionMessage;
-			public static toObject(m: PollAddOptionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollAddOptionMessage>;
 			public static encode: $ProtoEncode<IPollAddOptionMessage>;
 			public static decode: $ProtoDecode<PollAddOptionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollCreationMessage {
@@ -3815,16 +3657,15 @@ export namespace proto {
 			selectableOptionsCount?: (number|null);
 		}
 
-		interface PollCreationMessage extends IPollCreationMessage {}
+		interface PollCreationMessage extends IPollCreationMessage, $ProtoJSON {}
 
 		class PollCreationMessage implements IPollCreationMessage {
 			constructor(p?: IPollCreationMessage);
 			public static create(p?: IPollCreationMessage): PollCreationMessage;
 			public static fromObject(d: $ProtoObject): PollCreationMessage;
-			public static toObject(m: PollCreationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollCreationMessage>;
 			public static encode: $ProtoEncode<IPollCreationMessage>;
 			public static decode: $ProtoDecode<PollCreationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollEncValue {
@@ -3832,16 +3673,15 @@ export namespace proto {
 			encIv?: (Uint8Array|null);
 		}
 
-		interface PollEncValue extends IPollEncValue {}
+		interface PollEncValue extends IPollEncValue, $ProtoJSON {}
 
 		class PollEncValue implements IPollEncValue {
 			constructor(p?: IPollEncValue);
 			public static create(p?: IPollEncValue): PollEncValue;
 			public static fromObject(d: $ProtoObject): PollEncValue;
-			public static toObject(m: PollEncValue, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollEncValue>;
 			public static encode: $ProtoEncode<IPollEncValue>;
 			public static decode: $ProtoDecode<PollEncValue>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollUpdateMessage {
@@ -3850,16 +3690,15 @@ export namespace proto {
 			addOption?: (proto.ConsumerApplication.IPollEncValue|null);
 		}
 
-		interface PollUpdateMessage extends IPollUpdateMessage {}
+		interface PollUpdateMessage extends IPollUpdateMessage, $ProtoJSON {}
 
 		class PollUpdateMessage implements IPollUpdateMessage {
 			constructor(p?: IPollUpdateMessage);
 			public static create(p?: IPollUpdateMessage): PollUpdateMessage;
 			public static fromObject(d: $ProtoObject): PollUpdateMessage;
-			public static toObject(m: PollUpdateMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollUpdateMessage>;
 			public static encode: $ProtoEncode<IPollUpdateMessage>;
 			public static decode: $ProtoDecode<PollUpdateMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollVoteMessage {
@@ -3867,16 +3706,15 @@ export namespace proto {
 			senderTimestampMs?: (Long|null);
 		}
 
-		interface PollVoteMessage extends IPollVoteMessage {}
+		interface PollVoteMessage extends IPollVoteMessage, $ProtoJSON {}
 
 		class PollVoteMessage implements IPollVoteMessage {
 			constructor(p?: IPollVoteMessage);
 			public static create(p?: IPollVoteMessage): PollVoteMessage;
 			public static fromObject(d: $ProtoObject): PollVoteMessage;
-			public static toObject(m: PollVoteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollVoteMessage>;
 			public static encode: $ProtoEncode<IPollVoteMessage>;
 			public static decode: $ProtoDecode<PollVoteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IReactionMessage {
@@ -3888,47 +3726,44 @@ export namespace proto {
 			style?: (number|null);
 		}
 
-		interface ReactionMessage extends IReactionMessage {}
+		interface ReactionMessage extends IReactionMessage, $ProtoJSON {}
 
 		class ReactionMessage implements IReactionMessage {
 			constructor(p?: IReactionMessage);
 			public static create(p?: IReactionMessage): ReactionMessage;
 			public static fromObject(d: $ProtoObject): ReactionMessage;
-			public static toObject(m: ReactionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ReactionMessage>;
 			public static encode: $ProtoEncode<IReactionMessage>;
 			public static decode: $ProtoDecode<ReactionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRevokeMessage {
 			key?: (proto.IMessageKey|null);
 		}
 
-		interface RevokeMessage extends IRevokeMessage {}
+		interface RevokeMessage extends IRevokeMessage, $ProtoJSON {}
 
 		class RevokeMessage implements IRevokeMessage {
 			constructor(p?: IRevokeMessage);
 			public static create(p?: IRevokeMessage): RevokeMessage;
 			public static fromObject(d: $ProtoObject): RevokeMessage;
-			public static toObject(m: RevokeMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RevokeMessage>;
 			public static encode: $ProtoEncode<IRevokeMessage>;
 			public static decode: $ProtoDecode<RevokeMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISignal {
 		}
 
-		interface Signal extends ISignal {}
+		interface Signal extends ISignal, $ProtoJSON {}
 
 		class Signal implements ISignal {
 			constructor(p?: ISignal);
 			public static create(p?: ISignal): Signal;
 			public static fromObject(d: $ProtoObject): Signal;
-			public static toObject(m: Signal, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Signal>;
 			public static encode: $ProtoEncode<ISignal>;
 			public static decode: $ProtoDecode<Signal>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStatusTextMesage {
@@ -3938,48 +3773,45 @@ export namespace proto {
 			font?: (consumerApplicationStatusTextMesageFontType|null);
 		}
 
-		interface StatusTextMesage extends IStatusTextMesage {}
+		interface StatusTextMesage extends IStatusTextMesage, $ProtoJSON {}
 
 		class StatusTextMesage implements IStatusTextMesage {
 			constructor(p?: IStatusTextMesage);
 			public static create(p?: IStatusTextMesage): StatusTextMesage;
 			public static fromObject(d: $ProtoObject): StatusTextMesage;
-			public static toObject(m: StatusTextMesage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusTextMesage>;
 			public static encode: $ProtoEncode<IStatusTextMesage>;
 			public static decode: $ProtoDecode<StatusTextMesage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStickerMessage {
 			sticker?: (proto.ISubProtocol|null);
 		}
 
-		interface StickerMessage extends IStickerMessage {}
+		interface StickerMessage extends IStickerMessage, $ProtoJSON {}
 
 		class StickerMessage implements IStickerMessage {
 			constructor(p?: IStickerMessage);
 			public static create(p?: IStickerMessage): StickerMessage;
 			public static fromObject(d: $ProtoObject): StickerMessage;
-			public static toObject(m: StickerMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StickerMessage>;
 			public static encode: $ProtoEncode<IStickerMessage>;
 			public static decode: $ProtoDecode<StickerMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISubProtocolPayload {
 			futureProof?: (futureProofBehavior|null);
 		}
 
-		interface SubProtocolPayload extends ISubProtocolPayload {}
+		interface SubProtocolPayload extends ISubProtocolPayload, $ProtoJSON {}
 
 		class SubProtocolPayload implements ISubProtocolPayload {
 			constructor(p?: ISubProtocolPayload);
 			public static create(p?: ISubProtocolPayload): SubProtocolPayload;
 			public static fromObject(d: $ProtoObject): SubProtocolPayload;
-			public static toObject(m: SubProtocolPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SubProtocolPayload>;
 			public static encode: $ProtoEncode<ISubProtocolPayload>;
 			public static decode: $ProtoDecode<SubProtocolPayload>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IVideoMessage {
@@ -3987,16 +3819,15 @@ export namespace proto {
 			caption?: (proto.IMessageText|null);
 		}
 
-		interface VideoMessage extends IVideoMessage {}
+		interface VideoMessage extends IVideoMessage, $ProtoJSON {}
 
 		class VideoMessage implements IVideoMessage {
 			constructor(p?: IVideoMessage);
 			public static create(p?: IVideoMessage): VideoMessage;
 			public static fromObject(d: $ProtoObject): VideoMessage;
-			public static toObject(m: VideoMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<VideoMessage>;
 			public static encode: $ProtoEncode<IVideoMessage>;
 			public static decode: $ProtoDecode<VideoMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IViewOnceMessage {
@@ -4004,16 +3835,15 @@ export namespace proto {
 			videoMessage?: (proto.ConsumerApplication.IVideoMessage|null);
 		}
 
-		interface ViewOnceMessage extends IViewOnceMessage {}
+		interface ViewOnceMessage extends IViewOnceMessage, $ProtoJSON {}
 
 		class ViewOnceMessage implements IViewOnceMessage {
 			constructor(p?: IViewOnceMessage);
 			public static create(p?: IViewOnceMessage): ViewOnceMessage;
 			public static fromObject(d: $ProtoObject): ViewOnceMessage;
-			public static toObject(m: ViewOnceMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ViewOnceMessage>;
 			public static encode: $ProtoEncode<IViewOnceMessage>;
 			public static decode: $ProtoDecode<ViewOnceMessage>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -4101,16 +3931,15 @@ export namespace proto {
 		partnerDeepLinkToken?: (string|null);
 	}
 
-	interface ContextInfo extends IContextInfo {}
+	interface ContextInfo extends IContextInfo, $ProtoJSON {}
 
 	class ContextInfo implements IContextInfo {
 		constructor(p?: IContextInfo);
 		public static create(p?: IContextInfo): ContextInfo;
 		public static fromObject(d: $ProtoObject): ContextInfo;
-		public static toObject(m: ContextInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ContextInfo>;
 		public static encode: $ProtoEncode<IContextInfo>;
 		public static decode: $ProtoDecode<ContextInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ContextInfo {
@@ -4122,16 +3951,15 @@ export namespace proto {
 			caption?: (string|null);
 		}
 
-		interface AdReplyInfo extends IAdReplyInfo {}
+		interface AdReplyInfo extends IAdReplyInfo, $ProtoJSON {}
 
 		class AdReplyInfo implements IAdReplyInfo {
 			constructor(p?: IAdReplyInfo);
 			public static create(p?: IAdReplyInfo): AdReplyInfo;
 			public static fromObject(d: $ProtoObject): AdReplyInfo;
-			public static toObject(m: AdReplyInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AdReplyInfo>;
 			public static encode: $ProtoEncode<IAdReplyInfo>;
 			public static decode: $ProtoDecode<AdReplyInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AdReplyInfo {
@@ -4152,16 +3980,15 @@ export namespace proto {
 			unauthenticatedBusinessMetadata?: (proto.ContextInfo.BusinessInteractionPills.IUnauthenticatedBusinessMetadata|null);
 		}
 
-		interface BusinessInteractionPills extends IBusinessInteractionPills {}
+		interface BusinessInteractionPills extends IBusinessInteractionPills, $ProtoJSON {}
 
 		class BusinessInteractionPills implements IBusinessInteractionPills {
 			constructor(p?: IBusinessInteractionPills);
 			public static create(p?: IBusinessInteractionPills): BusinessInteractionPills;
 			public static fromObject(d: $ProtoObject): BusinessInteractionPills;
-			public static toObject(m: BusinessInteractionPills, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessInteractionPills>;
 			public static encode: $ProtoEncode<IBusinessInteractionPills>;
 			public static decode: $ProtoDecode<BusinessInteractionPills>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BusinessInteractionPills {
@@ -4180,16 +4007,15 @@ export namespace proto {
 				actionUrl?: (string|null);
 			}
 
-			interface Pill extends IPill {}
+			interface Pill extends IPill, $ProtoJSON {}
 
 			class Pill implements IPill {
 				constructor(p?: IPill);
 				public static create(p?: IPill): Pill;
 				public static fromObject(d: $ProtoObject): Pill;
-				public static toObject(m: Pill, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Pill>;
 				public static encode: $ProtoEncode<IPill>;
 				public static decode: $ProtoDecode<Pill>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum PillType {
@@ -4213,16 +4039,15 @@ export namespace proto {
 				pills?: proto.ContextInfo.BusinessInteractionPills.IPill[];
 			}
 
-			interface SignedPayload extends ISignedPayload {}
+			interface SignedPayload extends ISignedPayload, $ProtoJSON {}
 
 			class SignedPayload implements ISignedPayload {
 				constructor(p?: ISignedPayload);
 				public static create(p?: ISignedPayload): SignedPayload;
 				public static fromObject(d: $ProtoObject): SignedPayload;
-				public static toObject(m: SignedPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SignedPayload>;
 				public static encode: $ProtoEncode<ISignedPayload>;
 				public static decode: $ProtoDecode<SignedPayload>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IUnauthenticatedBusinessMetadata {
@@ -4232,16 +4057,15 @@ export namespace proto {
 				businessIsOpenSnapshotMs?: (Long|null);
 			}
 
-			interface UnauthenticatedBusinessMetadata extends IUnauthenticatedBusinessMetadata {}
+			interface UnauthenticatedBusinessMetadata extends IUnauthenticatedBusinessMetadata, $ProtoJSON {}
 
 			class UnauthenticatedBusinessMetadata implements IUnauthenticatedBusinessMetadata {
 				constructor(p?: IUnauthenticatedBusinessMetadata);
 				public static create(p?: IUnauthenticatedBusinessMetadata): UnauthenticatedBusinessMetadata;
 				public static fromObject(d: $ProtoObject): UnauthenticatedBusinessMetadata;
-				public static toObject(m: UnauthenticatedBusinessMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<UnauthenticatedBusinessMetadata>;
 				public static encode: $ProtoEncode<IUnauthenticatedBusinessMetadata>;
 				public static decode: $ProtoDecode<UnauthenticatedBusinessMetadata>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -4249,16 +4073,15 @@ export namespace proto {
 			businessOwnerJid?: (string|null);
 		}
 
-		interface BusinessMessageForwardInfo extends IBusinessMessageForwardInfo {}
+		interface BusinessMessageForwardInfo extends IBusinessMessageForwardInfo, $ProtoJSON {}
 
 		class BusinessMessageForwardInfo implements IBusinessMessageForwardInfo {
 			constructor(p?: IBusinessMessageForwardInfo);
 			public static create(p?: IBusinessMessageForwardInfo): BusinessMessageForwardInfo;
 			public static fromObject(d: $ProtoObject): BusinessMessageForwardInfo;
-			public static toObject(m: BusinessMessageForwardInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessMessageForwardInfo>;
 			public static encode: $ProtoEncode<IBusinessMessageForwardInfo>;
 			public static decode: $ProtoDecode<BusinessMessageForwardInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum CrossAppSource {
@@ -4274,16 +4097,15 @@ export namespace proto {
 			dataSharingFlags?: (number|null);
 		}
 
-		interface DataSharingContext extends IDataSharingContext {}
+		interface DataSharingContext extends IDataSharingContext, $ProtoJSON {}
 
 		class DataSharingContext implements IDataSharingContext {
 			constructor(p?: IDataSharingContext);
 			public static create(p?: IDataSharingContext): DataSharingContext;
 			public static fromObject(d: $ProtoObject): DataSharingContext;
-			public static toObject(m: DataSharingContext, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DataSharingContext>;
 			public static encode: $ProtoEncode<IDataSharingContext>;
 			public static decode: $ProtoDecode<DataSharingContext>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace DataSharingContext {
@@ -4301,16 +4123,15 @@ export namespace proto {
 				contents?: (proto.ContextInfo.DataSharingContext.IParameters|null);
 			}
 
-			interface Parameters extends IParameters {}
+			interface Parameters extends IParameters, $ProtoJSON {}
 
 			class Parameters implements IParameters {
 				constructor(p?: IParameters);
 				public static create(p?: IParameters): Parameters;
 				public static fromObject(d: $ProtoObject): Parameters;
-				public static toObject(m: Parameters, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Parameters>;
 				public static encode: $ProtoEncode<IParameters>;
 				public static decode: $ProtoDecode<Parameters>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -4350,16 +4171,15 @@ export namespace proto {
 			containsCtwaFlowsAutoLabel?: (boolean|null);
 		}
 
-		interface ExternalAdReplyInfo extends IExternalAdReplyInfo {}
+		interface ExternalAdReplyInfo extends IExternalAdReplyInfo, $ProtoJSON {}
 
 		class ExternalAdReplyInfo implements IExternalAdReplyInfo {
 			constructor(p?: IExternalAdReplyInfo);
 			public static create(p?: IExternalAdReplyInfo): ExternalAdReplyInfo;
 			public static fromObject(d: $ProtoObject): ExternalAdReplyInfo;
-			public static toObject(m: ExternalAdReplyInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ExternalAdReplyInfo>;
 			public static encode: $ProtoEncode<IExternalAdReplyInfo>;
 			public static decode: $ProtoDecode<ExternalAdReplyInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ExternalAdReplyInfo {
@@ -4384,16 +4204,15 @@ export namespace proto {
 			canReceiveMultiReact?: (boolean|null);
 		}
 
-		interface FeatureEligibilities extends IFeatureEligibilities {}
+		interface FeatureEligibilities extends IFeatureEligibilities, $ProtoJSON {}
 
 		class FeatureEligibilities implements IFeatureEligibilities {
 			constructor(p?: IFeatureEligibilities);
 			public static create(p?: IFeatureEligibilities): FeatureEligibilities;
 			public static fromObject(d: $ProtoObject): FeatureEligibilities;
-			public static toObject(m: FeatureEligibilities, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FeatureEligibilities>;
 			public static encode: $ProtoEncode<IFeatureEligibilities>;
 			public static decode: $ProtoDecode<FeatureEligibilities>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IForwardedNewsletterMessageInfo {
@@ -4405,16 +4224,15 @@ export namespace proto {
 			profileName?: (string|null);
 		}
 
-		interface ForwardedNewsletterMessageInfo extends IForwardedNewsletterMessageInfo {}
+		interface ForwardedNewsletterMessageInfo extends IForwardedNewsletterMessageInfo, $ProtoJSON {}
 
 		class ForwardedNewsletterMessageInfo implements IForwardedNewsletterMessageInfo {
 			constructor(p?: IForwardedNewsletterMessageInfo);
 			public static create(p?: IForwardedNewsletterMessageInfo): ForwardedNewsletterMessageInfo;
 			public static fromObject(d: $ProtoObject): ForwardedNewsletterMessageInfo;
-			public static toObject(m: ForwardedNewsletterMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ForwardedNewsletterMessageInfo>;
 			public static encode: $ProtoEncode<IForwardedNewsletterMessageInfo>;
 			public static decode: $ProtoDecode<ForwardedNewsletterMessageInfo>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ForwardedNewsletterMessageInfo {
@@ -4439,16 +4257,15 @@ export namespace proto {
 			url?: (string|null);
 		}
 
-		interface InstagramThreadLink extends IInstagramThreadLink {}
+		interface InstagramThreadLink extends IInstagramThreadLink, $ProtoJSON {}
 
 		class InstagramThreadLink implements IInstagramThreadLink {
 			constructor(p?: IInstagramThreadLink);
 			public static create(p?: IInstagramThreadLink): InstagramThreadLink;
 			public static fromObject(d: $ProtoObject): InstagramThreadLink;
-			public static toObject(m: InstagramThreadLink, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InstagramThreadLink>;
 			public static encode: $ProtoEncode<IInstagramThreadLink>;
 			public static decode: $ProtoDecode<InstagramThreadLink>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum PairedMediaType {
@@ -4467,16 +4284,15 @@ export namespace proto {
 			text?: (string|null);
 		}
 
-		interface PartiallySelectedContent extends IPartiallySelectedContent {}
+		interface PartiallySelectedContent extends IPartiallySelectedContent, $ProtoJSON {}
 
 		class PartiallySelectedContent implements IPartiallySelectedContent {
 			constructor(p?: IPartiallySelectedContent);
 			public static create(p?: IPartiallySelectedContent): PartiallySelectedContent;
 			public static fromObject(d: $ProtoObject): PartiallySelectedContent;
-			public static toObject(m: PartiallySelectedContent, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PartiallySelectedContent>;
 			public static encode: $ProtoEncode<IPartiallySelectedContent>;
 			public static decode: $ProtoDecode<PartiallySelectedContent>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IQuestionReplyQuotedMessage {
@@ -4485,16 +4301,15 @@ export namespace proto {
 			quotedResponse?: (proto.IMessage|null);
 		}
 
-		interface QuestionReplyQuotedMessage extends IQuestionReplyQuotedMessage {}
+		interface QuestionReplyQuotedMessage extends IQuestionReplyQuotedMessage, $ProtoJSON {}
 
 		class QuestionReplyQuotedMessage implements IQuestionReplyQuotedMessage {
 			constructor(p?: IQuestionReplyQuotedMessage);
 			public static create(p?: IQuestionReplyQuotedMessage): QuestionReplyQuotedMessage;
 			public static fromObject(d: $ProtoObject): QuestionReplyQuotedMessage;
-			public static toObject(m: QuestionReplyQuotedMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<QuestionReplyQuotedMessage>;
 			public static encode: $ProtoEncode<IQuestionReplyQuotedMessage>;
 			public static decode: $ProtoDecode<QuestionReplyQuotedMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum QuotedType {
@@ -4516,16 +4331,15 @@ export namespace proto {
 			listEmoji?: (string|null);
 		}
 
-		interface StatusAudienceMetadata extends IStatusAudienceMetadata {}
+		interface StatusAudienceMetadata extends IStatusAudienceMetadata, $ProtoJSON {}
 
 		class StatusAudienceMetadata implements IStatusAudienceMetadata {
 			constructor(p?: IStatusAudienceMetadata);
 			public static create(p?: IStatusAudienceMetadata): StatusAudienceMetadata;
 			public static fromObject(d: $ProtoObject): StatusAudienceMetadata;
-			public static toObject(m: StatusAudienceMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusAudienceMetadata>;
 			public static encode: $ProtoEncode<IStatusAudienceMetadata>;
 			public static decode: $ProtoDecode<StatusAudienceMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusAudienceMetadata {
@@ -4550,16 +4364,15 @@ export namespace proto {
 			utmCampaign?: (string|null);
 		}
 
-		interface UTMInfo extends IUTMInfo {}
+		interface UTMInfo extends IUTMInfo, $ProtoJSON {}
 
 		class UTMInfo implements IUTMInfo {
 			constructor(p?: IUTMInfo);
 			public static create(p?: IUTMInfo): UTMInfo;
 			public static fromObject(d: $ProtoObject): UTMInfo;
-			public static toObject(m: UTMInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UTMInfo>;
 			public static encode: $ProtoEncode<IUTMInfo>;
 			public static decode: $ProtoDecode<UTMInfo>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -4630,16 +4443,15 @@ export namespace proto {
 		acp2Setting?: (proto.IACP2Setting|null);
 	}
 
-	interface Conversation extends IConversation {}
+	interface Conversation extends IConversation, $ProtoJSON {}
 
 	class Conversation implements IConversation {
 		constructor(p?: IConversation);
 		public static create(p?: IConversation): Conversation;
 		public static fromObject(d: $ProtoObject): Conversation;
-		public static toObject(m: Conversation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Conversation>;
 		public static encode: $ProtoEncode<IConversation>;
 		public static decode: $ProtoDecode<Conversation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace Conversation {
@@ -4664,16 +4476,15 @@ export namespace proto {
 		userId?: (Long|null);
 	}
 
-	interface CreateBackupInput extends ICreateBackupInput {}
+	interface CreateBackupInput extends ICreateBackupInput, $ProtoJSON {}
 
 	class CreateBackupInput implements ICreateBackupInput {
 		constructor(p?: ICreateBackupInput);
 		public static create(p?: ICreateBackupInput): CreateBackupInput;
 		public static fromObject(d: $ProtoObject): CreateBackupInput;
-		public static toObject(m: CreateBackupInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CreateBackupInput>;
 		public static encode: $ProtoEncode<ICreateBackupInput>;
 		public static decode: $ProtoDecode<CreateBackupInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ICreateBackupOutput {
@@ -4684,16 +4495,15 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface CreateBackupOutput extends ICreateBackupOutput {}
+	interface CreateBackupOutput extends ICreateBackupOutput, $ProtoJSON {}
 
 	class CreateBackupOutput implements ICreateBackupOutput {
 		constructor(p?: ICreateBackupOutput);
 		public static create(p?: ICreateBackupOutput): CreateBackupOutput;
 		public static fromObject(d: $ProtoObject): CreateBackupOutput;
-		public static toObject(m: CreateBackupOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<CreateBackupOutput>;
 		public static encode: $ProtoEncode<ICreateBackupOutput>;
 		public static decode: $ProtoDecode<CreateBackupOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMekForDistributionFromTransportSenderInput {
@@ -4705,16 +4515,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface DecryptMekForDistributionFromTransportSenderInput extends IDecryptMekForDistributionFromTransportSenderInput {}
+	interface DecryptMekForDistributionFromTransportSenderInput extends IDecryptMekForDistributionFromTransportSenderInput, $ProtoJSON {}
 
 	class DecryptMekForDistributionFromTransportSenderInput implements IDecryptMekForDistributionFromTransportSenderInput {
 		constructor(p?: IDecryptMekForDistributionFromTransportSenderInput);
 		public static create(p?: IDecryptMekForDistributionFromTransportSenderInput): DecryptMekForDistributionFromTransportSenderInput;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionFromTransportSenderInput;
-		public static toObject(m: DecryptMekForDistributionFromTransportSenderInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionFromTransportSenderInput>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionFromTransportSenderInput>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionFromTransportSenderInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace DecryptMekForDistributionFromTransportSenderInput {
@@ -4727,16 +4536,15 @@ export namespace proto {
 			recipientEpochHead?: (Uint8Array|null);
 		}
 
-		interface TransportSenderMEKDistributionSingleRecipient extends ITransportSenderMEKDistributionSingleRecipient {}
+		interface TransportSenderMEKDistributionSingleRecipient extends ITransportSenderMEKDistributionSingleRecipient, $ProtoJSON {}
 
 		class TransportSenderMEKDistributionSingleRecipient implements ITransportSenderMEKDistributionSingleRecipient {
 			constructor(p?: ITransportSenderMEKDistributionSingleRecipient);
 			public static create(p?: ITransportSenderMEKDistributionSingleRecipient): TransportSenderMEKDistributionSingleRecipient;
 			public static fromObject(d: $ProtoObject): TransportSenderMEKDistributionSingleRecipient;
-			public static toObject(m: TransportSenderMEKDistributionSingleRecipient, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TransportSenderMEKDistributionSingleRecipient>;
 			public static encode: $ProtoEncode<ITransportSenderMEKDistributionSingleRecipient>;
 			public static decode: $ProtoDecode<TransportSenderMEKDistributionSingleRecipient>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -4745,32 +4553,30 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface DecryptMekForDistributionFromTransportSenderResult extends IDecryptMekForDistributionFromTransportSenderResult {}
+	interface DecryptMekForDistributionFromTransportSenderResult extends IDecryptMekForDistributionFromTransportSenderResult, $ProtoJSON {}
 
 	class DecryptMekForDistributionFromTransportSenderResult implements IDecryptMekForDistributionFromTransportSenderResult {
 		constructor(p?: IDecryptMekForDistributionFromTransportSenderResult);
 		public static create(p?: IDecryptMekForDistributionFromTransportSenderResult): DecryptMekForDistributionFromTransportSenderResult;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionFromTransportSenderResult;
-		public static toObject(m: DecryptMekForDistributionFromTransportSenderResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionFromTransportSenderResult>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionFromTransportSenderResult>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionFromTransportSenderResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMekForDistributionFromTransportSenderSuccess {
 		mek?: (Uint8Array|null);
 	}
 
-	interface DecryptMekForDistributionFromTransportSenderSuccess extends IDecryptMekForDistributionFromTransportSenderSuccess {}
+	interface DecryptMekForDistributionFromTransportSenderSuccess extends IDecryptMekForDistributionFromTransportSenderSuccess, $ProtoJSON {}
 
 	class DecryptMekForDistributionFromTransportSenderSuccess implements IDecryptMekForDistributionFromTransportSenderSuccess {
 		constructor(p?: IDecryptMekForDistributionFromTransportSenderSuccess);
 		public static create(p?: IDecryptMekForDistributionFromTransportSenderSuccess): DecryptMekForDistributionFromTransportSenderSuccess;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionFromTransportSenderSuccess;
-		public static toObject(m: DecryptMekForDistributionFromTransportSenderSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionFromTransportSenderSuccess>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionFromTransportSenderSuccess>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionFromTransportSenderSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMekForDistributionInput {
@@ -4785,16 +4591,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface DecryptMekForDistributionInput extends IDecryptMekForDistributionInput {}
+	interface DecryptMekForDistributionInput extends IDecryptMekForDistributionInput, $ProtoJSON {}
 
 	class DecryptMekForDistributionInput implements IDecryptMekForDistributionInput {
 		constructor(p?: IDecryptMekForDistributionInput);
 		public static create(p?: IDecryptMekForDistributionInput): DecryptMekForDistributionInput;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionInput;
-		public static toObject(m: DecryptMekForDistributionInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionInput>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionInput>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMekForDistributionResult {
@@ -4802,32 +4607,30 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface DecryptMekForDistributionResult extends IDecryptMekForDistributionResult {}
+	interface DecryptMekForDistributionResult extends IDecryptMekForDistributionResult, $ProtoJSON {}
 
 	class DecryptMekForDistributionResult implements IDecryptMekForDistributionResult {
 		constructor(p?: IDecryptMekForDistributionResult);
 		public static create(p?: IDecryptMekForDistributionResult): DecryptMekForDistributionResult;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionResult;
-		public static toObject(m: DecryptMekForDistributionResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionResult>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionResult>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMekForDistributionSuccess {
 		mek?: (Uint8Array|null);
 	}
 
-	interface DecryptMekForDistributionSuccess extends IDecryptMekForDistributionSuccess {}
+	interface DecryptMekForDistributionSuccess extends IDecryptMekForDistributionSuccess, $ProtoJSON {}
 
 	class DecryptMekForDistributionSuccess implements IDecryptMekForDistributionSuccess {
 		constructor(p?: IDecryptMekForDistributionSuccess);
 		public static create(p?: IDecryptMekForDistributionSuccess): DecryptMekForDistributionSuccess;
 		public static fromObject(d: $ProtoObject): DecryptMekForDistributionSuccess;
-		public static toObject(m: DecryptMekForDistributionSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMekForDistributionSuccess>;
 		public static encode: $ProtoEncode<IDecryptMekForDistributionSuccess>;
 		public static decode: $ProtoDecode<DecryptMekForDistributionSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMessageInput {
@@ -4838,16 +4641,15 @@ export namespace proto {
 		ciphertext?: (Uint8Array|null);
 	}
 
-	interface DecryptMessageInput extends IDecryptMessageInput {}
+	interface DecryptMessageInput extends IDecryptMessageInput, $ProtoJSON {}
 
 	class DecryptMessageInput implements IDecryptMessageInput {
 		constructor(p?: IDecryptMessageInput);
 		public static create(p?: IDecryptMessageInput): DecryptMessageInput;
 		public static fromObject(d: $ProtoObject): DecryptMessageInput;
-		public static toObject(m: DecryptMessageInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMessageInput>;
 		public static encode: $ProtoEncode<IDecryptMessageInput>;
 		public static decode: $ProtoDecode<DecryptMessageInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptMessageOutput {
@@ -4855,16 +4657,15 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface DecryptMessageOutput extends IDecryptMessageOutput {}
+	interface DecryptMessageOutput extends IDecryptMessageOutput, $ProtoJSON {}
 
 	class DecryptMessageOutput implements IDecryptMessageOutput {
 		constructor(p?: IDecryptMessageOutput);
 		public static create(p?: IDecryptMessageOutput): DecryptMessageOutput;
 		public static fromObject(d: $ProtoObject): DecryptMessageOutput;
-		public static toObject(m: DecryptMessageOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptMessageOutput>;
 		public static encode: $ProtoEncode<IDecryptMessageOutput>;
 		public static decode: $ProtoDecode<DecryptMessageOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptSelfMmkDistributionInput {
@@ -4873,16 +4674,15 @@ export namespace proto {
 		mailboxHeadHash?: (Uint8Array|null);
 	}
 
-	interface DecryptSelfMmkDistributionInput extends IDecryptSelfMmkDistributionInput {}
+	interface DecryptSelfMmkDistributionInput extends IDecryptSelfMmkDistributionInput, $ProtoJSON {}
 
 	class DecryptSelfMmkDistributionInput implements IDecryptSelfMmkDistributionInput {
 		constructor(p?: IDecryptSelfMmkDistributionInput);
 		public static create(p?: IDecryptSelfMmkDistributionInput): DecryptSelfMmkDistributionInput;
 		public static fromObject(d: $ProtoObject): DecryptSelfMmkDistributionInput;
-		public static toObject(m: DecryptSelfMmkDistributionInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptSelfMmkDistributionInput>;
 		public static encode: $ProtoEncode<IDecryptSelfMmkDistributionInput>;
 		public static decode: $ProtoDecode<DecryptSelfMmkDistributionInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptSelfMmkDistributionResult {
@@ -4890,96 +4690,90 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface DecryptSelfMmkDistributionResult extends IDecryptSelfMmkDistributionResult {}
+	interface DecryptSelfMmkDistributionResult extends IDecryptSelfMmkDistributionResult, $ProtoJSON {}
 
 	class DecryptSelfMmkDistributionResult implements IDecryptSelfMmkDistributionResult {
 		constructor(p?: IDecryptSelfMmkDistributionResult);
 		public static create(p?: IDecryptSelfMmkDistributionResult): DecryptSelfMmkDistributionResult;
 		public static fromObject(d: $ProtoObject): DecryptSelfMmkDistributionResult;
-		public static toObject(m: DecryptSelfMmkDistributionResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptSelfMmkDistributionResult>;
 		public static encode: $ProtoEncode<IDecryptSelfMmkDistributionResult>;
 		public static decode: $ProtoDecode<DecryptSelfMmkDistributionResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDecryptSelfMmkDistributionSuccess {
 		mmkSeed?: (Uint8Array|null);
 	}
 
-	interface DecryptSelfMmkDistributionSuccess extends IDecryptSelfMmkDistributionSuccess {}
+	interface DecryptSelfMmkDistributionSuccess extends IDecryptSelfMmkDistributionSuccess, $ProtoJSON {}
 
 	class DecryptSelfMmkDistributionSuccess implements IDecryptSelfMmkDistributionSuccess {
 		constructor(p?: IDecryptSelfMmkDistributionSuccess);
 		public static create(p?: IDecryptSelfMmkDistributionSuccess): DecryptSelfMmkDistributionSuccess;
 		public static fromObject(d: $ProtoObject): DecryptSelfMmkDistributionSuccess;
-		public static toObject(m: DecryptSelfMmkDistributionSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DecryptSelfMmkDistributionSuccess>;
 		public static encode: $ProtoEncode<IDecryptSelfMmkDistributionSuccess>;
 		public static decode: $ProtoDecode<DecryptSelfMmkDistributionSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveAttachmentAccessTokenSecretInput {
 		mediaKey?: (Uint8Array|null);
 	}
 
-	interface DeriveAttachmentAccessTokenSecretInput extends IDeriveAttachmentAccessTokenSecretInput {}
+	interface DeriveAttachmentAccessTokenSecretInput extends IDeriveAttachmentAccessTokenSecretInput, $ProtoJSON {}
 
 	class DeriveAttachmentAccessTokenSecretInput implements IDeriveAttachmentAccessTokenSecretInput {
 		constructor(p?: IDeriveAttachmentAccessTokenSecretInput);
 		public static create(p?: IDeriveAttachmentAccessTokenSecretInput): DeriveAttachmentAccessTokenSecretInput;
 		public static fromObject(d: $ProtoObject): DeriveAttachmentAccessTokenSecretInput;
-		public static toObject(m: DeriveAttachmentAccessTokenSecretInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveAttachmentAccessTokenSecretInput>;
 		public static encode: $ProtoEncode<IDeriveAttachmentAccessTokenSecretInput>;
 		public static decode: $ProtoDecode<DeriveAttachmentAccessTokenSecretInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveAttachmentAccessTokenSecretResult {
 		attachmentAccessTokenSecret?: (Uint8Array|null);
 	}
 
-	interface DeriveAttachmentAccessTokenSecretResult extends IDeriveAttachmentAccessTokenSecretResult {}
+	interface DeriveAttachmentAccessTokenSecretResult extends IDeriveAttachmentAccessTokenSecretResult, $ProtoJSON {}
 
 	class DeriveAttachmentAccessTokenSecretResult implements IDeriveAttachmentAccessTokenSecretResult {
 		constructor(p?: IDeriveAttachmentAccessTokenSecretResult);
 		public static create(p?: IDeriveAttachmentAccessTokenSecretResult): DeriveAttachmentAccessTokenSecretResult;
 		public static fromObject(d: $ProtoObject): DeriveAttachmentAccessTokenSecretResult;
-		public static toObject(m: DeriveAttachmentAccessTokenSecretResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveAttachmentAccessTokenSecretResult>;
 		public static encode: $ProtoEncode<IDeriveAttachmentAccessTokenSecretResult>;
 		public static decode: $ProtoDecode<DeriveAttachmentAccessTokenSecretResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveAttachmentPrimaryKeySecretInput {
 		mediaKey?: (Uint8Array|null);
 	}
 
-	interface DeriveAttachmentPrimaryKeySecretInput extends IDeriveAttachmentPrimaryKeySecretInput {}
+	interface DeriveAttachmentPrimaryKeySecretInput extends IDeriveAttachmentPrimaryKeySecretInput, $ProtoJSON {}
 
 	class DeriveAttachmentPrimaryKeySecretInput implements IDeriveAttachmentPrimaryKeySecretInput {
 		constructor(p?: IDeriveAttachmentPrimaryKeySecretInput);
 		public static create(p?: IDeriveAttachmentPrimaryKeySecretInput): DeriveAttachmentPrimaryKeySecretInput;
 		public static fromObject(d: $ProtoObject): DeriveAttachmentPrimaryKeySecretInput;
-		public static toObject(m: DeriveAttachmentPrimaryKeySecretInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveAttachmentPrimaryKeySecretInput>;
 		public static encode: $ProtoEncode<IDeriveAttachmentPrimaryKeySecretInput>;
 		public static decode: $ProtoDecode<DeriveAttachmentPrimaryKeySecretInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveAttachmentPrimaryKeySecretResult {
 		attachmentPrimaryKeySecret?: (Uint8Array|null);
 	}
 
-	interface DeriveAttachmentPrimaryKeySecretResult extends IDeriveAttachmentPrimaryKeySecretResult {}
+	interface DeriveAttachmentPrimaryKeySecretResult extends IDeriveAttachmentPrimaryKeySecretResult, $ProtoJSON {}
 
 	class DeriveAttachmentPrimaryKeySecretResult implements IDeriveAttachmentPrimaryKeySecretResult {
 		constructor(p?: IDeriveAttachmentPrimaryKeySecretResult);
 		public static create(p?: IDeriveAttachmentPrimaryKeySecretResult): DeriveAttachmentPrimaryKeySecretResult;
 		public static fromObject(d: $ProtoObject): DeriveAttachmentPrimaryKeySecretResult;
-		public static toObject(m: DeriveAttachmentPrimaryKeySecretResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveAttachmentPrimaryKeySecretResult>;
 		public static encode: $ProtoEncode<IDeriveAttachmentPrimaryKeySecretResult>;
 		public static decode: $ProtoDecode<DeriveAttachmentPrimaryKeySecretResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxAuthKeypairInput {
@@ -4987,16 +4781,15 @@ export namespace proto {
 		epochNumber?: (Long|null);
 	}
 
-	interface DeriveMailboxAuthKeypairInput extends IDeriveMailboxAuthKeypairInput {}
+	interface DeriveMailboxAuthKeypairInput extends IDeriveMailboxAuthKeypairInput, $ProtoJSON {}
 
 	class DeriveMailboxAuthKeypairInput implements IDeriveMailboxAuthKeypairInput {
 		constructor(p?: IDeriveMailboxAuthKeypairInput);
 		public static create(p?: IDeriveMailboxAuthKeypairInput): DeriveMailboxAuthKeypairInput;
 		public static fromObject(d: $ProtoObject): DeriveMailboxAuthKeypairInput;
-		public static toObject(m: DeriveMailboxAuthKeypairInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxAuthKeypairInput>;
 		public static encode: $ProtoEncode<IDeriveMailboxAuthKeypairInput>;
 		public static decode: $ProtoDecode<DeriveMailboxAuthKeypairInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxAuthKeypairResult {
@@ -5004,16 +4797,15 @@ export namespace proto {
 		mailboxAuthPrivateKey?: (Uint8Array|null);
 	}
 
-	interface DeriveMailboxAuthKeypairResult extends IDeriveMailboxAuthKeypairResult {}
+	interface DeriveMailboxAuthKeypairResult extends IDeriveMailboxAuthKeypairResult, $ProtoJSON {}
 
 	class DeriveMailboxAuthKeypairResult implements IDeriveMailboxAuthKeypairResult {
 		constructor(p?: IDeriveMailboxAuthKeypairResult);
 		public static create(p?: IDeriveMailboxAuthKeypairResult): DeriveMailboxAuthKeypairResult;
 		public static fromObject(d: $ProtoObject): DeriveMailboxAuthKeypairResult;
-		public static toObject(m: DeriveMailboxAuthKeypairResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxAuthKeypairResult>;
 		public static encode: $ProtoEncode<IDeriveMailboxAuthKeypairResult>;
 		public static decode: $ProtoDecode<DeriveMailboxAuthKeypairResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxEncryptionKeypairInput {
@@ -5021,16 +4813,15 @@ export namespace proto {
 		epochNumber?: (Long|null);
 	}
 
-	interface DeriveMailboxEncryptionKeypairInput extends IDeriveMailboxEncryptionKeypairInput {}
+	interface DeriveMailboxEncryptionKeypairInput extends IDeriveMailboxEncryptionKeypairInput, $ProtoJSON {}
 
 	class DeriveMailboxEncryptionKeypairInput implements IDeriveMailboxEncryptionKeypairInput {
 		constructor(p?: IDeriveMailboxEncryptionKeypairInput);
 		public static create(p?: IDeriveMailboxEncryptionKeypairInput): DeriveMailboxEncryptionKeypairInput;
 		public static fromObject(d: $ProtoObject): DeriveMailboxEncryptionKeypairInput;
-		public static toObject(m: DeriveMailboxEncryptionKeypairInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxEncryptionKeypairInput>;
 		public static encode: $ProtoEncode<IDeriveMailboxEncryptionKeypairInput>;
 		public static decode: $ProtoDecode<DeriveMailboxEncryptionKeypairInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxEncryptionKeypairResult {
@@ -5038,16 +4829,15 @@ export namespace proto {
 		mailboxEncryptionPrivateKey?: (Uint8Array|null);
 	}
 
-	interface DeriveMailboxEncryptionKeypairResult extends IDeriveMailboxEncryptionKeypairResult {}
+	interface DeriveMailboxEncryptionKeypairResult extends IDeriveMailboxEncryptionKeypairResult, $ProtoJSON {}
 
 	class DeriveMailboxEncryptionKeypairResult implements IDeriveMailboxEncryptionKeypairResult {
 		constructor(p?: IDeriveMailboxEncryptionKeypairResult);
 		public static create(p?: IDeriveMailboxEncryptionKeypairResult): DeriveMailboxEncryptionKeypairResult;
 		public static fromObject(d: $ProtoObject): DeriveMailboxEncryptionKeypairResult;
-		public static toObject(m: DeriveMailboxEncryptionKeypairResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxEncryptionKeypairResult>;
 		public static encode: $ProtoEncode<IDeriveMailboxEncryptionKeypairResult>;
 		public static decode: $ProtoDecode<DeriveMailboxEncryptionKeypairResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxSigningKeypairInput {
@@ -5055,16 +4845,15 @@ export namespace proto {
 		epochNumber?: (Long|null);
 	}
 
-	interface DeriveMailboxSigningKeypairInput extends IDeriveMailboxSigningKeypairInput {}
+	interface DeriveMailboxSigningKeypairInput extends IDeriveMailboxSigningKeypairInput, $ProtoJSON {}
 
 	class DeriveMailboxSigningKeypairInput implements IDeriveMailboxSigningKeypairInput {
 		constructor(p?: IDeriveMailboxSigningKeypairInput);
 		public static create(p?: IDeriveMailboxSigningKeypairInput): DeriveMailboxSigningKeypairInput;
 		public static fromObject(d: $ProtoObject): DeriveMailboxSigningKeypairInput;
-		public static toObject(m: DeriveMailboxSigningKeypairInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxSigningKeypairInput>;
 		public static encode: $ProtoEncode<IDeriveMailboxSigningKeypairInput>;
 		public static decode: $ProtoDecode<DeriveMailboxSigningKeypairInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxSigningKeypairResult {
@@ -5072,16 +4861,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface DeriveMailboxSigningKeypairResult extends IDeriveMailboxSigningKeypairResult {}
+	interface DeriveMailboxSigningKeypairResult extends IDeriveMailboxSigningKeypairResult, $ProtoJSON {}
 
 	class DeriveMailboxSigningKeypairResult implements IDeriveMailboxSigningKeypairResult {
 		constructor(p?: IDeriveMailboxSigningKeypairResult);
 		public static create(p?: IDeriveMailboxSigningKeypairResult): DeriveMailboxSigningKeypairResult;
 		public static fromObject(d: $ProtoObject): DeriveMailboxSigningKeypairResult;
-		public static toObject(m: DeriveMailboxSigningKeypairResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxSigningKeypairResult>;
 		public static encode: $ProtoEncode<IDeriveMailboxSigningKeypairResult>;
 		public static decode: $ProtoDecode<DeriveMailboxSigningKeypairResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMailboxSigningKeypairSuccess {
@@ -5089,16 +4877,15 @@ export namespace proto {
 		mailboxSigningPrivateKey?: (Uint8Array|null);
 	}
 
-	interface DeriveMailboxSigningKeypairSuccess extends IDeriveMailboxSigningKeypairSuccess {}
+	interface DeriveMailboxSigningKeypairSuccess extends IDeriveMailboxSigningKeypairSuccess, $ProtoJSON {}
 
 	class DeriveMailboxSigningKeypairSuccess implements IDeriveMailboxSigningKeypairSuccess {
 		constructor(p?: IDeriveMailboxSigningKeypairSuccess);
 		public static create(p?: IDeriveMailboxSigningKeypairSuccess): DeriveMailboxSigningKeypairSuccess;
 		public static fromObject(d: $ProtoObject): DeriveMailboxSigningKeypairSuccess;
-		public static toObject(m: DeriveMailboxSigningKeypairSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMailboxSigningKeypairSuccess>;
 		public static encode: $ProtoEncode<IDeriveMailboxSigningKeypairSuccess>;
 		public static decode: $ProtoDecode<DeriveMailboxSigningKeypairSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMessageKeyInput {
@@ -5107,16 +4894,15 @@ export namespace proto {
 		threadId?: (string|null);
 	}
 
-	interface DeriveMessageKeyInput extends IDeriveMessageKeyInput {}
+	interface DeriveMessageKeyInput extends IDeriveMessageKeyInput, $ProtoJSON {}
 
 	class DeriveMessageKeyInput implements IDeriveMessageKeyInput {
 		constructor(p?: IDeriveMessageKeyInput);
 		public static create(p?: IDeriveMessageKeyInput): DeriveMessageKeyInput;
 		public static fromObject(d: $ProtoObject): DeriveMessageKeyInput;
-		public static toObject(m: DeriveMessageKeyInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMessageKeyInput>;
 		public static encode: $ProtoEncode<IDeriveMessageKeyInput>;
 		public static decode: $ProtoDecode<DeriveMessageKeyInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMessageKeyOutput {
@@ -5124,32 +4910,30 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface DeriveMessageKeyOutput extends IDeriveMessageKeyOutput {}
+	interface DeriveMessageKeyOutput extends IDeriveMessageKeyOutput, $ProtoJSON {}
 
 	class DeriveMessageKeyOutput implements IDeriveMessageKeyOutput {
 		constructor(p?: IDeriveMessageKeyOutput);
 		public static create(p?: IDeriveMessageKeyOutput): DeriveMessageKeyOutput;
 		public static fromObject(d: $ProtoObject): DeriveMessageKeyOutput;
-		public static toObject(m: DeriveMessageKeyOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMessageKeyOutput>;
 		public static encode: $ProtoEncode<IDeriveMessageKeyOutput>;
 		public static decode: $ProtoDecode<DeriveMessageKeyOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMessagingMailboxKeypairsInput {
 		mmkSeed?: (Uint8Array|null);
 	}
 
-	interface DeriveMessagingMailboxKeypairsInput extends IDeriveMessagingMailboxKeypairsInput {}
+	interface DeriveMessagingMailboxKeypairsInput extends IDeriveMessagingMailboxKeypairsInput, $ProtoJSON {}
 
 	class DeriveMessagingMailboxKeypairsInput implements IDeriveMessagingMailboxKeypairsInput {
 		constructor(p?: IDeriveMessagingMailboxKeypairsInput);
 		public static create(p?: IDeriveMessagingMailboxKeypairsInput): DeriveMessagingMailboxKeypairsInput;
 		public static fromObject(d: $ProtoObject): DeriveMessagingMailboxKeypairsInput;
-		public static toObject(m: DeriveMessagingMailboxKeypairsInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMessagingMailboxKeypairsInput>;
 		public static encode: $ProtoEncode<IDeriveMessagingMailboxKeypairsInput>;
 		public static decode: $ProtoDecode<DeriveMessagingMailboxKeypairsInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMessagingMailboxKeypairsResult {
@@ -5157,16 +4941,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface DeriveMessagingMailboxKeypairsResult extends IDeriveMessagingMailboxKeypairsResult {}
+	interface DeriveMessagingMailboxKeypairsResult extends IDeriveMessagingMailboxKeypairsResult, $ProtoJSON {}
 
 	class DeriveMessagingMailboxKeypairsResult implements IDeriveMessagingMailboxKeypairsResult {
 		constructor(p?: IDeriveMessagingMailboxKeypairsResult);
 		public static create(p?: IDeriveMessagingMailboxKeypairsResult): DeriveMessagingMailboxKeypairsResult;
 		public static fromObject(d: $ProtoObject): DeriveMessagingMailboxKeypairsResult;
-		public static toObject(m: DeriveMessagingMailboxKeypairsResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMessagingMailboxKeypairsResult>;
 		public static encode: $ProtoEncode<IDeriveMessagingMailboxKeypairsResult>;
 		public static decode: $ProtoDecode<DeriveMessagingMailboxKeypairsResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeriveMessagingMailboxKeypairsSuccess {
@@ -5176,16 +4959,15 @@ export namespace proto {
 		authPk?: (Uint8Array|null);
 	}
 
-	interface DeriveMessagingMailboxKeypairsSuccess extends IDeriveMessagingMailboxKeypairsSuccess {}
+	interface DeriveMessagingMailboxKeypairsSuccess extends IDeriveMessagingMailboxKeypairsSuccess, $ProtoJSON {}
 
 	class DeriveMessagingMailboxKeypairsSuccess implements IDeriveMessagingMailboxKeypairsSuccess {
 		constructor(p?: IDeriveMessagingMailboxKeypairsSuccess);
 		public static create(p?: IDeriveMessagingMailboxKeypairsSuccess): DeriveMessagingMailboxKeypairsSuccess;
 		public static fromObject(d: $ProtoObject): DeriveMessagingMailboxKeypairsSuccess;
-		public static toObject(m: DeriveMessagingMailboxKeypairsSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeriveMessagingMailboxKeypairsSuccess>;
 		public static encode: $ProtoEncode<IDeriveMessagingMailboxKeypairsSuccess>;
 		public static decode: $ProtoDecode<DeriveMessagingMailboxKeypairsSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDetachedDevicePublicData {
@@ -5197,16 +4979,15 @@ export namespace proto {
 		signature?: (Uint8Array|null);
 	}
 
-	interface DetachedDevicePublicData extends IDetachedDevicePublicData {}
+	interface DetachedDevicePublicData extends IDetachedDevicePublicData, $ProtoJSON {}
 
 	class DetachedDevicePublicData implements IDetachedDevicePublicData {
 		constructor(p?: IDetachedDevicePublicData);
 		public static create(p?: IDetachedDevicePublicData): DetachedDevicePublicData;
 		public static fromObject(d: $ProtoObject): DetachedDevicePublicData;
-		public static toObject(m: DetachedDevicePublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DetachedDevicePublicData>;
 		public static encode: $ProtoEncode<IDetachedDevicePublicData>;
 		public static decode: $ProtoDecode<DetachedDevicePublicData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeviceCapabilities {
@@ -5221,16 +5002,15 @@ export namespace proto {
 		contactRefresh?: (proto.DeviceCapabilities.IContactRefresh|null);
 	}
 
-	interface DeviceCapabilities extends IDeviceCapabilities {}
+	interface DeviceCapabilities extends IDeviceCapabilities, $ProtoJSON {}
 
 	class DeviceCapabilities implements IDeviceCapabilities {
 		constructor(p?: IDeviceCapabilities);
 		public static create(p?: IDeviceCapabilities): DeviceCapabilities;
 		public static fromObject(d: $ProtoObject): DeviceCapabilities;
-		public static toObject(m: DeviceCapabilities, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeviceCapabilities>;
 		public static encode: $ProtoEncode<IDeviceCapabilities>;
 		public static decode: $ProtoDecode<DeviceCapabilities>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace DeviceCapabilities {
@@ -5240,32 +5020,30 @@ export namespace proto {
 			supportVersion?: (number|null);
 		}
 
-		interface AiFbidMigration extends IAiFbidMigration {}
+		interface AiFbidMigration extends IAiFbidMigration, $ProtoJSON {}
 
 		class AiFbidMigration implements IAiFbidMigration {
 			constructor(p?: IAiFbidMigration);
 			public static create(p?: IAiFbidMigration): AiFbidMigration;
 			public static fromObject(d: $ProtoObject): AiFbidMigration;
-			public static toObject(m: AiFbidMigration, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AiFbidMigration>;
 			public static encode: $ProtoEncode<IAiFbidMigration>;
 			public static decode: $ProtoDecode<AiFbidMigration>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAiThread {
 			supportLevel?: (proto.DeviceCapabilities.AiThread.SupportLevel|null);
 		}
 
-		interface AiThread extends IAiThread {}
+		interface AiThread extends IAiThread, $ProtoJSON {}
 
 		class AiThread implements IAiThread {
 			constructor(p?: IAiThread);
 			public static create(p?: IAiThread): AiThread;
 			public static fromObject(d: $ProtoObject): AiThread;
-			public static toObject(m: AiThread, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AiThread>;
 			public static encode: $ProtoEncode<IAiThread>;
 			public static decode: $ProtoDecode<AiThread>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AiThread {
@@ -5281,16 +5059,15 @@ export namespace proto {
 			handoffRemovalTimingEnabled?: (boolean|null);
 		}
 
-		interface BizAiSettingsSync extends IBizAiSettingsSync {}
+		interface BizAiSettingsSync extends IBizAiSettingsSync, $ProtoJSON {}
 
 		class BizAiSettingsSync implements IBizAiSettingsSync {
 			constructor(p?: IBizAiSettingsSync);
 			public static create(p?: IBizAiSettingsSync): BizAiSettingsSync;
 			public static fromObject(d: $ProtoObject): BizAiSettingsSync;
-			public static toObject(m: BizAiSettingsSync, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BizAiSettingsSync>;
 			public static encode: $ProtoEncode<IBizAiSettingsSync>;
 			public static decode: $ProtoDecode<BizAiSettingsSync>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBusinessBroadcast {
@@ -5302,16 +5079,15 @@ export namespace proto {
 			proCompanionSupportEnabled?: (boolean|null);
 		}
 
-		interface BusinessBroadcast extends IBusinessBroadcast {}
+		interface BusinessBroadcast extends IBusinessBroadcast, $ProtoJSON {}
 
 		class BusinessBroadcast implements IBusinessBroadcast {
 			constructor(p?: IBusinessBroadcast);
 			public static create(p?: IBusinessBroadcast): BusinessBroadcast;
 			public static fromObject(d: $ProtoObject): BusinessBroadcast;
-			public static toObject(m: BusinessBroadcast, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessBroadcast>;
 			public static encode: $ProtoEncode<IBusinessBroadcast>;
 			public static decode: $ProtoDecode<BusinessBroadcast>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum ChatLockSupportLevel {
@@ -5324,32 +5100,30 @@ export namespace proto {
 			refreshSupported?: (boolean|null);
 		}
 
-		interface ContactRefresh extends IContactRefresh {}
+		interface ContactRefresh extends IContactRefresh, $ProtoJSON {}
 
 		class ContactRefresh implements IContactRefresh {
 			constructor(p?: IContactRefresh);
 			public static create(p?: IContactRefresh): ContactRefresh;
 			public static fromObject(d: $ProtoObject): ContactRefresh;
-			public static toObject(m: ContactRefresh, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactRefresh>;
 			public static encode: $ProtoEncode<IContactRefresh>;
 			public static decode: $ProtoDecode<ContactRefresh>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILIDMigration {
 			chatDbMigrationTimestamp?: (Long|null);
 		}
 
-		interface LIDMigration extends ILIDMigration {}
+		interface LIDMigration extends ILIDMigration, $ProtoJSON {}
 
 		class LIDMigration implements ILIDMigration {
 			constructor(p?: ILIDMigration);
 			public static create(p?: ILIDMigration): LIDMigration;
 			public static fromObject(d: $ProtoObject): LIDMigration;
-			public static toObject(m: LIDMigration, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LIDMigration>;
 			public static encode: $ProtoEncode<ILIDMigration>;
 			public static decode: $ProtoDecode<LIDMigration>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum MemberNameTagPrimarySupport {
@@ -5362,16 +5136,15 @@ export namespace proto {
 			userHasAvatar?: (boolean|null);
 		}
 
-		interface UserHasAvatar extends IUserHasAvatar {}
+		interface UserHasAvatar extends IUserHasAvatar, $ProtoJSON {}
 
 		class UserHasAvatar implements IUserHasAvatar {
 			constructor(p?: IUserHasAvatar);
 			public static create(p?: IUserHasAvatar): UserHasAvatar;
 			public static fromObject(d: $ProtoObject): UserHasAvatar;
-			public static toObject(m: UserHasAvatar, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UserHasAvatar>;
 			public static encode: $ProtoEncode<IUserHasAvatar>;
 			public static decode: $ProtoDecode<UserHasAvatar>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -5380,16 +5153,15 @@ export namespace proto {
 		signature?: (Uint8Array|null);
 	}
 
-	interface DeviceConsistencyCodeMessage extends IDeviceConsistencyCodeMessage {}
+	interface DeviceConsistencyCodeMessage extends IDeviceConsistencyCodeMessage, $ProtoJSON {}
 
 	class DeviceConsistencyCodeMessage implements IDeviceConsistencyCodeMessage {
 		constructor(p?: IDeviceConsistencyCodeMessage);
 		public static create(p?: IDeviceConsistencyCodeMessage): DeviceConsistencyCodeMessage;
 		public static fromObject(d: $ProtoObject): DeviceConsistencyCodeMessage;
-		public static toObject(m: DeviceConsistencyCodeMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeviceConsistencyCodeMessage>;
 		public static encode: $ProtoEncode<IDeviceConsistencyCodeMessage>;
 		public static decode: $ProtoDecode<DeviceConsistencyCodeMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeviceListMetadata {
@@ -5403,16 +5175,15 @@ export namespace proto {
 		recipientKeyIndexes?: number[];
 	}
 
-	interface DeviceListMetadata extends IDeviceListMetadata {}
+	interface DeviceListMetadata extends IDeviceListMetadata, $ProtoJSON {}
 
 	class DeviceListMetadata implements IDeviceListMetadata {
 		constructor(p?: IDeviceListMetadata);
 		public static create(p?: IDeviceListMetadata): DeviceListMetadata;
 		public static fromObject(d: $ProtoObject): DeviceListMetadata;
-		public static toObject(m: DeviceListMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeviceListMetadata>;
 		public static encode: $ProtoEncode<IDeviceListMetadata>;
 		public static decode: $ProtoDecode<DeviceListMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeviceOutput {
@@ -5428,16 +5199,15 @@ export namespace proto {
 		epochStoragePrivateKey?: (Uint8Array|null);
 	}
 
-	interface DeviceOutput extends IDeviceOutput {}
+	interface DeviceOutput extends IDeviceOutput, $ProtoJSON {}
 
 	class DeviceOutput implements IDeviceOutput {
 		constructor(p?: IDeviceOutput);
 		public static create(p?: IDeviceOutput): DeviceOutput;
 		public static fromObject(d: $ProtoObject): DeviceOutput;
-		public static toObject(m: DeviceOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeviceOutput>;
 		public static encode: $ProtoEncode<IDeviceOutput>;
 		public static decode: $ProtoDecode<DeviceOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IDeviceProps {
@@ -5448,16 +5218,15 @@ export namespace proto {
 		historySyncConfig?: (proto.DeviceProps.IHistorySyncConfig|null);
 	}
 
-	interface DeviceProps extends IDeviceProps {}
+	interface DeviceProps extends IDeviceProps, $ProtoJSON {}
 
 	class DeviceProps implements IDeviceProps {
 		constructor(p?: IDeviceProps);
 		public static create(p?: IDeviceProps): DeviceProps;
 		public static fromObject(d: $ProtoObject): DeviceProps;
-		public static toObject(m: DeviceProps, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DeviceProps>;
 		public static encode: $ProtoEncode<IDeviceProps>;
 		public static decode: $ProtoDecode<DeviceProps>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace DeviceProps {
@@ -5470,16 +5239,15 @@ export namespace proto {
 			quinary?: (number|null);
 		}
 
-		interface AppVersion extends IAppVersion {}
+		interface AppVersion extends IAppVersion, $ProtoJSON {}
 
 		class AppVersion implements IAppVersion {
 			constructor(p?: IAppVersion);
 			public static create(p?: IAppVersion): AppVersion;
 			public static fromObject(d: $ProtoObject): AppVersion;
-			public static toObject(m: AppVersion, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppVersion>;
 			public static encode: $ProtoEncode<IAppVersion>;
 			public static decode: $ProtoDecode<AppVersion>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IHistorySyncConfig {
@@ -5510,16 +5278,15 @@ export namespace proto {
 			supportNewsletter?: (boolean|null);
 		}
 
-		interface HistorySyncConfig extends IHistorySyncConfig {}
+		interface HistorySyncConfig extends IHistorySyncConfig, $ProtoJSON {}
 
 		class HistorySyncConfig implements IHistorySyncConfig {
 			constructor(p?: IHistorySyncConfig);
 			public static create(p?: IHistorySyncConfig): HistorySyncConfig;
 			public static fromObject(d: $ProtoObject): HistorySyncConfig;
-			public static toObject(m: HistorySyncConfig, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HistorySyncConfig>;
 			public static encode: $ProtoEncode<IHistorySyncConfig>;
 			public static decode: $ProtoDecode<HistorySyncConfig>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum PlatformType {
@@ -5561,16 +5328,15 @@ export namespace proto {
 		initiatedByMe?: (boolean|null);
 	}
 
-	interface DisappearingMode extends IDisappearingMode {}
+	interface DisappearingMode extends IDisappearingMode, $ProtoJSON {}
 
 	class DisappearingMode implements IDisappearingMode {
 		constructor(p?: IDisappearingMode);
 		public static create(p?: IDisappearingMode): DisappearingMode;
 		public static fromObject(d: $ProtoObject): DisappearingMode;
-		public static toObject(m: DisappearingMode, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<DisappearingMode>;
 		public static encode: $ProtoEncode<IDisappearingMode>;
 		public static decode: $ProtoDecode<DisappearingMode>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace DisappearingMode {
@@ -5597,16 +5363,15 @@ export namespace proto {
 		embeddedMusic?: (proto.IEmbeddedMusic|null);
 	}
 
-	interface EmbeddedContent extends IEmbeddedContent {}
+	interface EmbeddedContent extends IEmbeddedContent, $ProtoJSON {}
 
 	class EmbeddedContent implements IEmbeddedContent {
 		constructor(p?: IEmbeddedContent);
 		public static create(p?: IEmbeddedContent): EmbeddedContent;
 		public static fromObject(d: $ProtoObject): EmbeddedContent;
-		public static toObject(m: EmbeddedContent, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EmbeddedContent>;
 		public static encode: $ProtoEncode<IEmbeddedContent>;
 		public static decode: $ProtoDecode<EmbeddedContent>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEmbeddedMessage {
@@ -5614,16 +5379,15 @@ export namespace proto {
 		message?: (proto.IMessage|null);
 	}
 
-	interface EmbeddedMessage extends IEmbeddedMessage {}
+	interface EmbeddedMessage extends IEmbeddedMessage, $ProtoJSON {}
 
 	class EmbeddedMessage implements IEmbeddedMessage {
 		constructor(p?: IEmbeddedMessage);
 		public static create(p?: IEmbeddedMessage): EmbeddedMessage;
 		public static fromObject(d: $ProtoObject): EmbeddedMessage;
-		public static toObject(m: EmbeddedMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EmbeddedMessage>;
 		public static encode: $ProtoEncode<IEmbeddedMessage>;
 		public static decode: $ProtoDecode<EmbeddedMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEmbeddedMusic {
@@ -5643,16 +5407,15 @@ export namespace proto {
 		overlapDurationInMs?: (Long|null);
 	}
 
-	interface EmbeddedMusic extends IEmbeddedMusic {}
+	interface EmbeddedMusic extends IEmbeddedMusic, $ProtoJSON {}
 
 	class EmbeddedMusic implements IEmbeddedMusic {
 		constructor(p?: IEmbeddedMusic);
 		public static create(p?: IEmbeddedMusic): EmbeddedMusic;
 		public static fromObject(d: $ProtoObject): EmbeddedMusic;
-		public static toObject(m: EmbeddedMusic, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EmbeddedMusic>;
 		public static encode: $ProtoEncode<IEmbeddedMusic>;
 		public static decode: $ProtoDecode<EmbeddedMusic>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptedPairingRequest {
@@ -5660,16 +5423,15 @@ export namespace proto {
 		iv?: (Uint8Array|null);
 	}
 
-	interface EncryptedPairingRequest extends IEncryptedPairingRequest {}
+	interface EncryptedPairingRequest extends IEncryptedPairingRequest, $ProtoJSON {}
 
 	class EncryptedPairingRequest implements IEncryptedPairingRequest {
 		constructor(p?: IEncryptedPairingRequest);
 		public static create(p?: IEncryptedPairingRequest): EncryptedPairingRequest;
 		public static fromObject(d: $ProtoObject): EncryptedPairingRequest;
-		public static toObject(m: EncryptedPairingRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptedPairingRequest>;
 		public static encode: $ProtoEncode<IEncryptedPairingRequest>;
 		public static decode: $ProtoDecode<EncryptedPairingRequest>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptedSecretValuesOutput {
@@ -5683,16 +5445,15 @@ export namespace proto {
 		encryptedEpochRootKey?: (Uint8Array|null);
 	}
 
-	interface EncryptedSecretValuesOutput extends IEncryptedSecretValuesOutput {}
+	interface EncryptedSecretValuesOutput extends IEncryptedSecretValuesOutput, $ProtoJSON {}
 
 	class EncryptedSecretValuesOutput implements IEncryptedSecretValuesOutput {
 		constructor(p?: IEncryptedSecretValuesOutput);
 		public static create(p?: IEncryptedSecretValuesOutput): EncryptedSecretValuesOutput;
 		public static fromObject(d: $ProtoObject): EncryptedSecretValuesOutput;
-		public static toObject(m: EncryptedSecretValuesOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptedSecretValuesOutput>;
 		public static encode: $ProtoEncode<IEncryptedSecretValuesOutput>;
 		public static decode: $ProtoDecode<EncryptedSecretValuesOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptMekForDistributionInput {
@@ -5704,16 +5465,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface EncryptMekForDistributionInput extends IEncryptMekForDistributionInput {}
+	interface EncryptMekForDistributionInput extends IEncryptMekForDistributionInput, $ProtoJSON {}
 
 	class EncryptMekForDistributionInput implements IEncryptMekForDistributionInput {
 		constructor(p?: IEncryptMekForDistributionInput);
 		public static create(p?: IEncryptMekForDistributionInput): EncryptMekForDistributionInput;
 		public static fromObject(d: $ProtoObject): EncryptMekForDistributionInput;
-		public static toObject(m: EncryptMekForDistributionInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMekForDistributionInput>;
 		public static encode: $ProtoEncode<IEncryptMekForDistributionInput>;
 		public static decode: $ProtoDecode<EncryptMekForDistributionInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace EncryptMekForDistributionInput {
@@ -5723,16 +5483,15 @@ export namespace proto {
 			pk?: (Uint8Array|null);
 		}
 
-		interface MailboxAuthKP extends IMailboxAuthKP {}
+		interface MailboxAuthKP extends IMailboxAuthKP, $ProtoJSON {}
 
 		class MailboxAuthKP implements IMailboxAuthKP {
 			constructor(p?: IMailboxAuthKP);
 			public static create(p?: IMailboxAuthKP): MailboxAuthKP;
 			public static fromObject(d: $ProtoObject): MailboxAuthKP;
-			public static toObject(m: MailboxAuthKP, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MailboxAuthKP>;
 			public static encode: $ProtoEncode<IMailboxAuthKP>;
 			public static decode: $ProtoDecode<MailboxAuthKP>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -5741,16 +5500,15 @@ export namespace proto {
 		version?: (Long|null);
 	}
 
-	interface EncryptMekForDistributionResult extends IEncryptMekForDistributionResult {}
+	interface EncryptMekForDistributionResult extends IEncryptMekForDistributionResult, $ProtoJSON {}
 
 	class EncryptMekForDistributionResult implements IEncryptMekForDistributionResult {
 		constructor(p?: IEncryptMekForDistributionResult);
 		public static create(p?: IEncryptMekForDistributionResult): EncryptMekForDistributionResult;
 		public static fromObject(d: $ProtoObject): EncryptMekForDistributionResult;
-		public static toObject(m: EncryptMekForDistributionResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMekForDistributionResult>;
 		public static encode: $ProtoEncode<IEncryptMekForDistributionResult>;
 		public static decode: $ProtoDecode<EncryptMekForDistributionResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptMeksForDistributionFromTransportSenderInput {
@@ -5761,16 +5519,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface EncryptMeksForDistributionFromTransportSenderInput extends IEncryptMeksForDistributionFromTransportSenderInput {}
+	interface EncryptMeksForDistributionFromTransportSenderInput extends IEncryptMeksForDistributionFromTransportSenderInput, $ProtoJSON {}
 
 	class EncryptMeksForDistributionFromTransportSenderInput implements IEncryptMeksForDistributionFromTransportSenderInput {
 		constructor(p?: IEncryptMeksForDistributionFromTransportSenderInput);
 		public static create(p?: IEncryptMeksForDistributionFromTransportSenderInput): EncryptMeksForDistributionFromTransportSenderInput;
 		public static fromObject(d: $ProtoObject): EncryptMeksForDistributionFromTransportSenderInput;
-		public static toObject(m: EncryptMeksForDistributionFromTransportSenderInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMeksForDistributionFromTransportSenderInput>;
 		public static encode: $ProtoEncode<IEncryptMeksForDistributionFromTransportSenderInput>;
 		public static decode: $ProtoDecode<EncryptMeksForDistributionFromTransportSenderInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace EncryptMeksForDistributionFromTransportSenderInput {
@@ -5780,16 +5537,15 @@ export namespace proto {
 			pk?: (Uint8Array|null);
 		}
 
-		interface TransportSigningKP extends ITransportSigningKP {}
+		interface TransportSigningKP extends ITransportSigningKP, $ProtoJSON {}
 
 		class TransportSigningKP implements ITransportSigningKP {
 			constructor(p?: ITransportSigningKP);
 			public static create(p?: ITransportSigningKP): TransportSigningKP;
 			public static fromObject(d: $ProtoObject): TransportSigningKP;
-			public static toObject(m: TransportSigningKP, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TransportSigningKP>;
 			public static encode: $ProtoEncode<ITransportSigningKP>;
 			public static decode: $ProtoDecode<TransportSigningKP>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -5801,16 +5557,15 @@ export namespace proto {
 		version?: (Long|null);
 	}
 
-	interface EncryptMeksForDistributionFromTransportSenderResult extends IEncryptMeksForDistributionFromTransportSenderResult {}
+	interface EncryptMeksForDistributionFromTransportSenderResult extends IEncryptMeksForDistributionFromTransportSenderResult, $ProtoJSON {}
 
 	class EncryptMeksForDistributionFromTransportSenderResult implements IEncryptMeksForDistributionFromTransportSenderResult {
 		constructor(p?: IEncryptMeksForDistributionFromTransportSenderResult);
 		public static create(p?: IEncryptMeksForDistributionFromTransportSenderResult): EncryptMeksForDistributionFromTransportSenderResult;
 		public static fromObject(d: $ProtoObject): EncryptMeksForDistributionFromTransportSenderResult;
-		public static toObject(m: EncryptMeksForDistributionFromTransportSenderResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMeksForDistributionFromTransportSenderResult>;
 		public static encode: $ProtoEncode<IEncryptMeksForDistributionFromTransportSenderResult>;
 		public static decode: $ProtoDecode<EncryptMeksForDistributionFromTransportSenderResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptMessageInput {
@@ -5827,16 +5582,15 @@ export namespace proto {
 		stanzaId?: (string|null);
 	}
 
-	interface EncryptMessageInput extends IEncryptMessageInput {}
+	interface EncryptMessageInput extends IEncryptMessageInput, $ProtoJSON {}
 
 	class EncryptMessageInput implements IEncryptMessageInput {
 		constructor(p?: IEncryptMessageInput);
 		public static create(p?: IEncryptMessageInput): EncryptMessageInput;
 		public static fromObject(d: $ProtoObject): EncryptMessageInput;
-		public static toObject(m: EncryptMessageInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMessageInput>;
 		public static encode: $ProtoEncode<IEncryptMessageInput>;
 		public static decode: $ProtoDecode<EncryptMessageInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEncryptMessageOutput {
@@ -5848,16 +5602,15 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface EncryptMessageOutput extends IEncryptMessageOutput {}
+	interface EncryptMessageOutput extends IEncryptMessageOutput, $ProtoJSON {}
 
 	class EncryptMessageOutput implements IEncryptMessageOutput {
 		constructor(p?: IEncryptMessageOutput);
 		public static create(p?: IEncryptMessageOutput): EncryptMessageOutput;
 		public static fromObject(d: $ProtoObject): EncryptMessageOutput;
-		public static toObject(m: EncryptMessageOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EncryptMessageOutput>;
 		public static encode: $ProtoEncode<IEncryptMessageOutput>;
 		public static decode: $ProtoDecode<EncryptMessageOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEphemeralSetting {
@@ -5865,16 +5618,15 @@ export namespace proto {
 		timestamp?: (Long|null);
 	}
 
-	interface EphemeralSetting extends IEphemeralSetting {}
+	interface EphemeralSetting extends IEphemeralSetting, $ProtoJSON {}
 
 	class EphemeralSetting implements IEphemeralSetting {
 		constructor(p?: IEphemeralSetting);
 		public static create(p?: IEphemeralSetting): EphemeralSetting;
 		public static fromObject(d: $ProtoObject): EphemeralSetting;
-		public static toObject(m: EphemeralSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EphemeralSetting>;
 		public static encode: $ProtoEncode<IEphemeralSetting>;
 		public static decode: $ProtoDecode<EphemeralSetting>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEpoch0Output {
@@ -5887,16 +5639,15 @@ export namespace proto {
 		epochRootKey?: (Uint8Array|null);
 	}
 
-	interface Epoch0Output extends IEpoch0Output {}
+	interface Epoch0Output extends IEpoch0Output, $ProtoJSON {}
 
 	class Epoch0Output implements IEpoch0Output {
 		constructor(p?: IEpoch0Output);
 		public static create(p?: IEpoch0Output): Epoch0Output;
 		public static fromObject(d: $ProtoObject): Epoch0Output;
-		public static toObject(m: Epoch0Output, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Epoch0Output>;
 		public static encode: $ProtoEncode<IEpoch0Output>;
 		public static decode: $ProtoDecode<Epoch0Output>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEpochPublicData {
@@ -5908,16 +5659,15 @@ export namespace proto {
 		previousEpochHead?: (Uint8Array|null);
 	}
 
-	interface EpochPublicData extends IEpochPublicData {}
+	interface EpochPublicData extends IEpochPublicData, $ProtoJSON {}
 
 	class EpochPublicData implements IEpochPublicData {
 		constructor(p?: IEpochPublicData);
 		public static create(p?: IEpochPublicData): EpochPublicData;
 		public static fromObject(d: $ProtoObject): EpochPublicData;
-		public static toObject(m: EpochPublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EpochPublicData>;
 		public static encode: $ProtoEncode<IEpochPublicData>;
 		public static decode: $ProtoDecode<EpochPublicData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEpochSignatures {
@@ -5925,32 +5675,30 @@ export namespace proto {
 		prevSignature?: (Uint8Array|null);
 	}
 
-	interface EpochSignatures extends IEpochSignatures {}
+	interface EpochSignatures extends IEpochSignatures, $ProtoJSON {}
 
 	class EpochSignatures implements IEpochSignatures {
 		constructor(p?: IEpochSignatures);
 		public static create(p?: IEpochSignatures): EpochSignatures;
 		public static fromObject(d: $ProtoObject): EpochSignatures;
-		public static toObject(m: EpochSignatures, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EpochSignatures>;
 		public static encode: $ProtoEncode<IEpochSignatures>;
 		public static decode: $ProtoDecode<EpochSignatures>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEventAdditionalMetadata {
 		isStale?: (boolean|null);
 	}
 
-	interface EventAdditionalMetadata extends IEventAdditionalMetadata {}
+	interface EventAdditionalMetadata extends IEventAdditionalMetadata, $ProtoJSON {}
 
 	class EventAdditionalMetadata implements IEventAdditionalMetadata {
 		constructor(p?: IEventAdditionalMetadata);
 		public static create(p?: IEventAdditionalMetadata): EventAdditionalMetadata;
 		public static fromObject(d: $ProtoObject): EventAdditionalMetadata;
-		public static toObject(m: EventAdditionalMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EventAdditionalMetadata>;
 		public static encode: $ProtoEncode<IEventAdditionalMetadata>;
 		public static decode: $ProtoDecode<EventAdditionalMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IEventResponse {
@@ -5960,16 +5708,15 @@ export namespace proto {
 		unread?: (boolean|null);
 	}
 
-	interface EventResponse extends IEventResponse {}
+	interface EventResponse extends IEventResponse, $ProtoJSON {}
 
 	class EventResponse implements IEventResponse {
 		constructor(p?: IEventResponse);
 		public static create(p?: IEventResponse): EventResponse;
 		public static fromObject(d: $ProtoObject): EventResponse;
-		public static toObject(m: EventResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<EventResponse>;
 		public static encode: $ProtoEncode<IEventResponse>;
 		public static decode: $ProtoDecode<EventResponse>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IExitCode {
@@ -5977,16 +5724,15 @@ export namespace proto {
 		text?: (string|null);
 	}
 
-	interface ExitCode extends IExitCode {}
+	interface ExitCode extends IExitCode, $ProtoJSON {}
 
 	class ExitCode implements IExitCode {
 		constructor(p?: IExitCode);
 		public static create(p?: IExitCode): ExitCode;
 		public static fromObject(d: $ProtoObject): ExitCode;
-		public static toObject(m: ExitCode, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ExitCode>;
 		public static encode: $ProtoEncode<IExitCode>;
 		public static decode: $ProtoDecode<ExitCode>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IExtendedContentMessage {
@@ -6021,16 +5767,15 @@ export namespace proto {
 		featureSharedSessionId?: (string|null);
 	}
 
-	interface ExtendedContentMessage extends IExtendedContentMessage {}
+	interface ExtendedContentMessage extends IExtendedContentMessage, $ProtoJSON {}
 
 	class ExtendedContentMessage implements IExtendedContentMessage {
 		constructor(p?: IExtendedContentMessage);
 		public static create(p?: IExtendedContentMessage): ExtendedContentMessage;
 		public static fromObject(d: $ProtoObject): ExtendedContentMessage;
-		public static toObject(m: ExtendedContentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ExtendedContentMessage>;
 		public static encode: $ProtoEncode<IExtendedContentMessage>;
 		public static decode: $ProtoDecode<ExtendedContentMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ExtendedContentMessage {
@@ -6044,16 +5789,15 @@ export namespace proto {
 			actionContentBlob?: (string|null);
 		}
 
-		interface CTA extends ICTA {}
+		interface CTA extends ICTA, $ProtoJSON {}
 
 		class CTA implements ICTA {
 			constructor(p?: ICTA);
 			public static create(p?: ICTA): CTA;
 			public static fromObject(d: $ProtoObject): CTA;
-			public static toObject(m: CTA, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CTA>;
 			public static encode: $ProtoEncode<ICTA>;
 			public static decode: $ProtoDecode<CTA>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum extendedContentMessageOverlayIconGlyph {
@@ -6184,16 +5928,15 @@ export namespace proto {
 		fileEncSha256?: (Uint8Array|null);
 	}
 
-	interface ExternalBlobReference extends IExternalBlobReference {}
+	interface ExternalBlobReference extends IExternalBlobReference, $ProtoJSON {}
 
 	class ExternalBlobReference implements IExternalBlobReference {
 		constructor(p?: IExternalBlobReference);
 		public static create(p?: IExternalBlobReference): ExternalBlobReference;
 		public static fromObject(d: $ProtoObject): ExternalBlobReference;
-		public static toObject(m: ExternalBlobReference, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ExternalBlobReference>;
 		public static encode: $ProtoEncode<IExternalBlobReference>;
 		public static decode: $ProtoDecode<ExternalBlobReference>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IField {
@@ -6204,16 +5947,15 @@ export namespace proto {
 		subfield?: ({ [key: number]: Field }|null);
 	}
 
-	interface Field extends IField {}
+	interface Field extends IField, $ProtoJSON {}
 
 	class Field implements IField {
 		constructor(p?: IField);
 		public static create(p?: IField): Field;
 		public static fromObject(d: $ProtoObject): Field;
-		public static toObject(m: Field, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Field>;
 		public static encode: $ProtoEncode<IField>;
 		public static decode: $ProtoDecode<Field>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace Field {
@@ -6223,16 +5965,15 @@ export namespace proto {
 			value?: (proto.IField|null);
 		}
 
-		interface SubfieldEntry extends ISubfieldEntry {}
+		interface SubfieldEntry extends ISubfieldEntry, $ProtoJSON {}
 
 		class SubfieldEntry implements ISubfieldEntry {
 			constructor(p?: ISubfieldEntry);
 			public static create(p?: ISubfieldEntry): SubfieldEntry;
 			public static fromObject(d: $ProtoObject): SubfieldEntry;
-			public static toObject(m: SubfieldEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SubfieldEntry>;
 			public static encode: $ProtoEncode<ISubfieldEntry>;
 			public static decode: $ProtoDecode<SubfieldEntry>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -6245,16 +5986,15 @@ export namespace proto {
 		hashedPublicKey?: (Uint8Array|null);
 	}
 
-	interface FingerprintData extends IFingerprintData {}
+	interface FingerprintData extends IFingerprintData, $ProtoJSON {}
 
 	class FingerprintData implements IFingerprintData {
 		constructor(p?: IFingerprintData);
 		public static create(p?: IFingerprintData): FingerprintData;
 		public static fromObject(d: $ProtoObject): FingerprintData;
-		public static toObject(m: FingerprintData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<FingerprintData>;
 		public static encode: $ProtoEncode<IFingerprintData>;
 		public static decode: $ProtoDecode<FingerprintData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace FingerprintData {
@@ -6271,16 +6011,15 @@ export namespace proto {
 		creatorName?: (string|null);
 	}
 
-	interface ForwardedAIBotMessageInfo extends IForwardedAIBotMessageInfo {}
+	interface ForwardedAIBotMessageInfo extends IForwardedAIBotMessageInfo, $ProtoJSON {}
 
 	class ForwardedAIBotMessageInfo implements IForwardedAIBotMessageInfo {
 		constructor(p?: IForwardedAIBotMessageInfo);
 		public static create(p?: IForwardedAIBotMessageInfo): ForwardedAIBotMessageInfo;
 		public static fromObject(d: $ProtoObject): ForwardedAIBotMessageInfo;
-		public static toObject(m: ForwardedAIBotMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ForwardedAIBotMessageInfo>;
 		public static encode: $ProtoEncode<IForwardedAIBotMessageInfo>;
 		public static decode: $ProtoDecode<ForwardedAIBotMessageInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum futureProofBehavior {
@@ -6293,64 +6032,60 @@ export namespace proto {
 		epochHeads?: Uint8Array[];
 	}
 
-	interface GenerateMekInput extends IGenerateMekInput {}
+	interface GenerateMekInput extends IGenerateMekInput, $ProtoJSON {}
 
 	class GenerateMekInput implements IGenerateMekInput {
 		constructor(p?: IGenerateMekInput);
 		public static create(p?: IGenerateMekInput): GenerateMekInput;
 		public static fromObject(d: $ProtoObject): GenerateMekInput;
-		public static toObject(m: GenerateMekInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GenerateMekInput>;
 		public static encode: $ProtoEncode<IGenerateMekInput>;
 		public static decode: $ProtoDecode<GenerateMekInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGenerateMekResult {
 		mek?: (proto.IMekBundle|null);
 	}
 
-	interface GenerateMekResult extends IGenerateMekResult {}
+	interface GenerateMekResult extends IGenerateMekResult, $ProtoJSON {}
 
 	class GenerateMekResult implements IGenerateMekResult {
 		constructor(p?: IGenerateMekResult);
 		public static create(p?: IGenerateMekResult): GenerateMekResult;
 		public static fromObject(d: $ProtoObject): GenerateMekResult;
-		public static toObject(m: GenerateMekResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GenerateMekResult>;
 		public static encode: $ProtoEncode<IGenerateMekResult>;
 		public static decode: $ProtoDecode<GenerateMekResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGenerateMekRosterHashInput {
 		epochHeads?: Uint8Array[];
 	}
 
-	interface GenerateMekRosterHashInput extends IGenerateMekRosterHashInput {}
+	interface GenerateMekRosterHashInput extends IGenerateMekRosterHashInput, $ProtoJSON {}
 
 	class GenerateMekRosterHashInput implements IGenerateMekRosterHashInput {
 		constructor(p?: IGenerateMekRosterHashInput);
 		public static create(p?: IGenerateMekRosterHashInput): GenerateMekRosterHashInput;
 		public static fromObject(d: $ProtoObject): GenerateMekRosterHashInput;
-		public static toObject(m: GenerateMekRosterHashInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GenerateMekRosterHashInput>;
 		public static encode: $ProtoEncode<IGenerateMekRosterHashInput>;
 		public static decode: $ProtoDecode<GenerateMekRosterHashInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGenerateMekRosterHashResult {
 		rosterHash?: (Uint8Array|null);
 	}
 
-	interface GenerateMekRosterHashResult extends IGenerateMekRosterHashResult {}
+	interface GenerateMekRosterHashResult extends IGenerateMekRosterHashResult, $ProtoJSON {}
 
 	class GenerateMekRosterHashResult implements IGenerateMekRosterHashResult {
 		constructor(p?: IGenerateMekRosterHashResult);
 		public static create(p?: IGenerateMekRosterHashResult): GenerateMekRosterHashResult;
 		public static fromObject(d: $ProtoObject): GenerateMekRosterHashResult;
-		public static toObject(m: GenerateMekRosterHashResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GenerateMekRosterHashResult>;
 		public static encode: $ProtoEncode<IGenerateMekRosterHashResult>;
 		public static decode: $ProtoDecode<GenerateMekRosterHashResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGlobalSettings {
@@ -6376,16 +6111,15 @@ export namespace proto {
 		chatDbLidMigrationTimestamp?: (Long|null);
 	}
 
-	interface GlobalSettings extends IGlobalSettings {}
+	interface GlobalSettings extends IGlobalSettings, $ProtoJSON {}
 
 	class GlobalSettings implements IGlobalSettings {
 		constructor(p?: IGlobalSettings);
 		public static create(p?: IGlobalSettings): GlobalSettings;
 		public static fromObject(d: $ProtoObject): GlobalSettings;
-		public static toObject(m: GlobalSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GlobalSettings>;
 		public static encode: $ProtoEncode<IGlobalSettings>;
 		public static decode: $ProtoDecode<GlobalSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupHistory {
@@ -6395,16 +6129,15 @@ export namespace proto {
 		outOfWindowPinnedMessages?: proto.IWebMessageInfo[];
 	}
 
-	interface GroupHistory extends IGroupHistory {}
+	interface GroupHistory extends IGroupHistory, $ProtoJSON {}
 
 	class GroupHistory implements IGroupHistory {
 		constructor(p?: IGroupHistory);
 		public static create(p?: IGroupHistory): GroupHistory;
 		public static fromObject(d: $ProtoObject): GroupHistory;
-		public static toObject(m: GroupHistory, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupHistory>;
 		public static encode: $ProtoEncode<IGroupHistory>;
 		public static decode: $ProtoDecode<GroupHistory>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupHistoryBundleInfo {
@@ -6412,16 +6145,15 @@ export namespace proto {
 		processState?: (proto.GroupHistoryBundleInfo.ProcessState|null);
 	}
 
-	interface GroupHistoryBundleInfo extends IGroupHistoryBundleInfo {}
+	interface GroupHistoryBundleInfo extends IGroupHistoryBundleInfo, $ProtoJSON {}
 
 	class GroupHistoryBundleInfo implements IGroupHistoryBundleInfo {
 		constructor(p?: IGroupHistoryBundleInfo);
 		public static create(p?: IGroupHistoryBundleInfo): GroupHistoryBundleInfo;
 		public static fromObject(d: $ProtoObject): GroupHistoryBundleInfo;
-		public static toObject(m: GroupHistoryBundleInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupHistoryBundleInfo>;
 		public static encode: $ProtoEncode<IGroupHistoryBundleInfo>;
 		public static decode: $ProtoDecode<GroupHistoryBundleInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace GroupHistoryBundleInfo {
@@ -6441,16 +6173,15 @@ export namespace proto {
 		editedAfterReceivedAsHistory?: (boolean|null);
 	}
 
-	interface GroupHistoryIndividualMessageInfo extends IGroupHistoryIndividualMessageInfo {}
+	interface GroupHistoryIndividualMessageInfo extends IGroupHistoryIndividualMessageInfo, $ProtoJSON {}
 
 	class GroupHistoryIndividualMessageInfo implements IGroupHistoryIndividualMessageInfo {
 		constructor(p?: IGroupHistoryIndividualMessageInfo);
 		public static create(p?: IGroupHistoryIndividualMessageInfo): GroupHistoryIndividualMessageInfo;
 		public static fromObject(d: $ProtoObject): GroupHistoryIndividualMessageInfo;
-		public static toObject(m: GroupHistoryIndividualMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupHistoryIndividualMessageInfo>;
 		public static encode: $ProtoEncode<IGroupHistoryIndividualMessageInfo>;
 		public static decode: $ProtoDecode<GroupHistoryIndividualMessageInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupHistoryWithMessageBytes {
@@ -6460,16 +6191,15 @@ export namespace proto {
 		outOfWindowPinnedMessages?: proto.IWebMessageInfoWithMessageBytes[];
 	}
 
-	interface GroupHistoryWithMessageBytes extends IGroupHistoryWithMessageBytes {}
+	interface GroupHistoryWithMessageBytes extends IGroupHistoryWithMessageBytes, $ProtoJSON {}
 
 	class GroupHistoryWithMessageBytes implements IGroupHistoryWithMessageBytes {
 		constructor(p?: IGroupHistoryWithMessageBytes);
 		public static create(p?: IGroupHistoryWithMessageBytes): GroupHistoryWithMessageBytes;
 		public static fromObject(d: $ProtoObject): GroupHistoryWithMessageBytes;
-		public static toObject(m: GroupHistoryWithMessageBytes, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupHistoryWithMessageBytes>;
 		public static encode: $ProtoEncode<IGroupHistoryWithMessageBytes>;
 		public static decode: $ProtoDecode<GroupHistoryWithMessageBytes>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupMention {
@@ -6477,16 +6207,15 @@ export namespace proto {
 		groupSubject?: (string|null);
 	}
 
-	interface GroupMention extends IGroupMention {}
+	interface GroupMention extends IGroupMention, $ProtoJSON {}
 
 	class GroupMention implements IGroupMention {
 		constructor(p?: IGroupMention);
 		public static create(p?: IGroupMention): GroupMention;
 		public static fromObject(d: $ProtoObject): GroupMention;
-		public static toObject(m: GroupMention, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupMention>;
 		public static encode: $ProtoEncode<IGroupMention>;
 		public static decode: $ProtoDecode<GroupMention>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupParticipant {
@@ -6495,16 +6224,15 @@ export namespace proto {
 		memberLabel?: (proto.IMemberLabel|null);
 	}
 
-	interface GroupParticipant extends IGroupParticipant {}
+	interface GroupParticipant extends IGroupParticipant, $ProtoJSON {}
 
 	class GroupParticipant implements IGroupParticipant {
 		constructor(p?: IGroupParticipant);
 		public static create(p?: IGroupParticipant): GroupParticipant;
 		public static fromObject(d: $ProtoObject): GroupParticipant;
-		public static toObject(m: GroupParticipant, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupParticipant>;
 		public static encode: $ProtoEncode<IGroupParticipant>;
 		public static decode: $ProtoDecode<GroupParticipant>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace GroupParticipant {
@@ -6520,16 +6248,15 @@ export namespace proto {
 		keys?: proto.IGroupRootKeyShareEntry[];
 	}
 
-	interface GroupRootKeyShare extends IGroupRootKeyShare {}
+	interface GroupRootKeyShare extends IGroupRootKeyShare, $ProtoJSON {}
 
 	class GroupRootKeyShare implements IGroupRootKeyShare {
 		constructor(p?: IGroupRootKeyShare);
 		public static create(p?: IGroupRootKeyShare): GroupRootKeyShare;
 		public static fromObject(d: $ProtoObject): GroupRootKeyShare;
-		public static toObject(m: GroupRootKeyShare, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupRootKeyShare>;
 		public static encode: $ProtoEncode<IGroupRootKeyShare>;
 		public static decode: $ProtoDecode<GroupRootKeyShare>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IGroupRootKeyShareEntry {
@@ -6539,16 +6266,15 @@ export namespace proto {
 		createdTimestampMs?: (Long|null);
 	}
 
-	interface GroupRootKeyShareEntry extends IGroupRootKeyShareEntry {}
+	interface GroupRootKeyShareEntry extends IGroupRootKeyShareEntry, $ProtoJSON {}
 
 	class GroupRootKeyShareEntry implements IGroupRootKeyShareEntry {
 		constructor(p?: IGroupRootKeyShareEntry);
 		public static create(p?: IGroupRootKeyShareEntry): GroupRootKeyShareEntry;
 		public static fromObject(d: $ProtoObject): GroupRootKeyShareEntry;
-		public static toObject(m: GroupRootKeyShareEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<GroupRootKeyShareEntry>;
 		public static encode: $ProtoEncode<IGroupRootKeyShareEntry>;
 		public static decode: $ProtoDecode<GroupRootKeyShareEntry>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IHandshakeMessage {
@@ -6557,16 +6283,15 @@ export namespace proto {
 		clientFinish?: (proto.HandshakeMessage.IClientFinish|null);
 	}
 
-	interface HandshakeMessage extends IHandshakeMessage {}
+	interface HandshakeMessage extends IHandshakeMessage, $ProtoJSON {}
 
 	class HandshakeMessage implements IHandshakeMessage {
 		constructor(p?: IHandshakeMessage);
 		public static create(p?: IHandshakeMessage): HandshakeMessage;
 		public static fromObject(d: $ProtoObject): HandshakeMessage;
-		public static toObject(m: HandshakeMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<HandshakeMessage>;
 		public static encode: $ProtoEncode<IHandshakeMessage>;
 		public static decode: $ProtoDecode<HandshakeMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace HandshakeMessage {
@@ -6579,16 +6304,15 @@ export namespace proto {
 			simulateXxkemFs?: (boolean|null);
 		}
 
-		interface ClientFinish extends IClientFinish {}
+		interface ClientFinish extends IClientFinish, $ProtoJSON {}
 
 		class ClientFinish implements IClientFinish {
 			constructor(p?: IClientFinish);
 			public static create(p?: IClientFinish): ClientFinish;
 			public static fromObject(d: $ProtoObject): ClientFinish;
-			public static toObject(m: ClientFinish, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ClientFinish>;
 			public static encode: $ProtoEncode<IClientFinish>;
 			public static decode: $ProtoDecode<ClientFinish>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IClientHello {
@@ -6604,16 +6328,15 @@ export namespace proto {
 			extendedEphemeral?: (Uint8Array|null);
 		}
 
-		interface ClientHello extends IClientHello {}
+		interface ClientHello extends IClientHello, $ProtoJSON {}
 
 		class ClientHello implements IClientHello {
 			constructor(p?: IClientHello);
 			public static create(p?: IClientHello): ClientHello;
 			public static fromObject(d: $ProtoObject): ClientHello;
-			public static toObject(m: ClientHello, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ClientHello>;
 			public static encode: $ProtoEncode<IClientHello>;
 			public static decode: $ProtoDecode<ClientHello>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum HandshakePqMode {
@@ -6638,16 +6361,15 @@ export namespace proto {
 			extendedCiphertext?: (Uint8Array|null);
 		}
 
-		interface ServerHello extends IServerHello {}
+		interface ServerHello extends IServerHello, $ProtoJSON {}
 
 		class ServerHello implements IServerHello {
 			constructor(p?: IServerHello);
 			public static create(p?: IServerHello): ServerHello;
 			public static fromObject(d: $ProtoObject): ServerHello;
-			public static toObject(m: ServerHello, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ServerHello>;
 			public static encode: $ProtoEncode<IServerHello>;
 			public static decode: $ProtoDecode<ServerHello>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -6657,16 +6379,15 @@ export namespace proto {
 		requestId?: (string|null);
 	}
 
-	interface HatchMetadataSync extends IHatchMetadataSync {}
+	interface HatchMetadataSync extends IHatchMetadataSync, $ProtoJSON {}
 
 	class HatchMetadataSync implements IHatchMetadataSync {
 		constructor(p?: IHatchMetadataSync);
 		public static create(p?: IHatchMetadataSync): HatchMetadataSync;
 		public static fromObject(d: $ProtoObject): HatchMetadataSync;
-		public static toObject(m: HatchMetadataSync, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<HatchMetadataSync>;
 		public static encode: $ProtoEncode<IHatchMetadataSync>;
 		public static decode: $ProtoDecode<HatchMetadataSync>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IHistorySync {
@@ -6692,16 +6413,15 @@ export namespace proto {
 		inlineContactsProvided?: (boolean|null);
 	}
 
-	interface HistorySync extends IHistorySync {}
+	interface HistorySync extends IHistorySync, $ProtoJSON {}
 
 	class HistorySync implements IHistorySync {
 		constructor(p?: IHistorySync);
 		public static create(p?: IHistorySync): HistorySync;
 		public static fromObject(d: $ProtoObject): HistorySync;
-		public static toObject(m: HistorySync, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<HistorySync>;
 		public static encode: $ProtoEncode<IHistorySync>;
 		public static decode: $ProtoDecode<HistorySync>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace HistorySync {
@@ -6727,16 +6447,15 @@ export namespace proto {
 		msgOrderId?: (Long|null);
 	}
 
-	interface HistorySyncMsg extends IHistorySyncMsg {}
+	interface HistorySyncMsg extends IHistorySyncMsg, $ProtoJSON {}
 
 	class HistorySyncMsg implements IHistorySyncMsg {
 		constructor(p?: IHistorySyncMsg);
 		public static create(p?: IHistorySyncMsg): HistorySyncMsg;
 		public static fromObject(d: $ProtoObject): HistorySyncMsg;
-		public static toObject(m: HistorySyncMsg, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<HistorySyncMsg>;
 		public static encode: $ProtoEncode<IHistorySyncMsg>;
 		public static decode: $ProtoDecode<HistorySyncMsg>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IHydratedTemplateButton {
@@ -6746,16 +6465,15 @@ export namespace proto {
 		callButton?: (proto.HydratedTemplateButton.IHydratedCallButton|null);
 	}
 
-	interface HydratedTemplateButton extends IHydratedTemplateButton {}
+	interface HydratedTemplateButton extends IHydratedTemplateButton, $ProtoJSON {}
 
 	class HydratedTemplateButton implements IHydratedTemplateButton {
 		constructor(p?: IHydratedTemplateButton);
 		public static create(p?: IHydratedTemplateButton): HydratedTemplateButton;
 		public static fromObject(d: $ProtoObject): HydratedTemplateButton;
-		public static toObject(m: HydratedTemplateButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<HydratedTemplateButton>;
 		public static encode: $ProtoEncode<IHydratedTemplateButton>;
 		public static decode: $ProtoDecode<HydratedTemplateButton>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace HydratedTemplateButton {
@@ -6765,16 +6483,15 @@ export namespace proto {
 			phoneNumber?: (string|null);
 		}
 
-		interface HydratedCallButton extends IHydratedCallButton {}
+		interface HydratedCallButton extends IHydratedCallButton, $ProtoJSON {}
 
 		class HydratedCallButton implements IHydratedCallButton {
 			constructor(p?: IHydratedCallButton);
 			public static create(p?: IHydratedCallButton): HydratedCallButton;
 			public static fromObject(d: $ProtoObject): HydratedCallButton;
-			public static toObject(m: HydratedCallButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HydratedCallButton>;
 			public static encode: $ProtoEncode<IHydratedCallButton>;
 			public static decode: $ProtoDecode<HydratedCallButton>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IHydratedQuickReplyButton {
@@ -6782,16 +6499,15 @@ export namespace proto {
 			id?: (string|null);
 		}
 
-		interface HydratedQuickReplyButton extends IHydratedQuickReplyButton {}
+		interface HydratedQuickReplyButton extends IHydratedQuickReplyButton, $ProtoJSON {}
 
 		class HydratedQuickReplyButton implements IHydratedQuickReplyButton {
 			constructor(p?: IHydratedQuickReplyButton);
 			public static create(p?: IHydratedQuickReplyButton): HydratedQuickReplyButton;
 			public static fromObject(d: $ProtoObject): HydratedQuickReplyButton;
-			public static toObject(m: HydratedQuickReplyButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HydratedQuickReplyButton>;
 			public static encode: $ProtoEncode<IHydratedQuickReplyButton>;
 			public static decode: $ProtoDecode<HydratedQuickReplyButton>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IHydratedURLButton {
@@ -6801,16 +6517,15 @@ export namespace proto {
 			webviewPresentation?: (proto.HydratedTemplateButton.HydratedURLButton.WebviewPresentationType|null);
 		}
 
-		interface HydratedURLButton extends IHydratedURLButton {}
+		interface HydratedURLButton extends IHydratedURLButton, $ProtoJSON {}
 
 		class HydratedURLButton implements IHydratedURLButton {
 			constructor(p?: IHydratedURLButton);
 			public static create(p?: IHydratedURLButton): HydratedURLButton;
 			public static fromObject(d: $ProtoObject): HydratedURLButton;
-			public static toObject(m: HydratedURLButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HydratedURLButton>;
 			public static encode: $ProtoEncode<IHydratedURLButton>;
 			public static decode: $ProtoDecode<HydratedURLButton>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace HydratedURLButton {
@@ -6828,16 +6543,15 @@ export namespace proto {
 		privateKey?: (Uint8Array|null);
 	}
 
-	interface IdentityKeyPairStructure extends IIdentityKeyPairStructure {}
+	interface IdentityKeyPairStructure extends IIdentityKeyPairStructure, $ProtoJSON {}
 
 	class IdentityKeyPairStructure implements IIdentityKeyPairStructure {
 		constructor(p?: IIdentityKeyPairStructure);
 		public static create(p?: IIdentityKeyPairStructure): IdentityKeyPairStructure;
 		public static fromObject(d: $ProtoObject): IdentityKeyPairStructure;
-		public static toObject(m: IdentityKeyPairStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<IdentityKeyPairStructure>;
 		public static encode: $ProtoEncode<IIdentityKeyPairStructure>;
 		public static decode: $ProtoDecode<IdentityKeyPairStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IIdentityVerificationState {
@@ -6845,16 +6559,15 @@ export namespace proto {
 		actionSeq?: (Long|null);
 	}
 
-	interface IdentityVerificationState extends IIdentityVerificationState {}
+	interface IdentityVerificationState extends IIdentityVerificationState, $ProtoJSON {}
 
 	class IdentityVerificationState implements IIdentityVerificationState {
 		constructor(p?: IIdentityVerificationState);
 		public static create(p?: IIdentityVerificationState): IdentityVerificationState;
 		public static fromObject(d: $ProtoObject): IdentityVerificationState;
-		public static toObject(m: IdentityVerificationState, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<IdentityVerificationState>;
 		public static encode: $ProtoEncode<IIdentityVerificationState>;
 		public static decode: $ProtoDecode<IdentityVerificationState>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IInlineContact {
@@ -6865,16 +6578,15 @@ export namespace proto {
 		username?: (string|null);
 	}
 
-	interface InlineContact extends IInlineContact {}
+	interface InlineContact extends IInlineContact, $ProtoJSON {}
 
 	class InlineContact implements IInlineContact {
 		constructor(p?: IInlineContact);
 		public static create(p?: IInlineContact): InlineContact;
 		public static fromObject(d: $ProtoObject): InlineContact;
-		public static toObject(m: InlineContact, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<InlineContact>;
 		public static encode: $ProtoEncode<IInlineContact>;
 		public static decode: $ProtoDecode<InlineContact>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IInteractiveAnnotation {
@@ -6888,16 +6600,15 @@ export namespace proto {
 		tapAction?: (proto.ITapLinkAction|null);
 	}
 
-	interface InteractiveAnnotation extends IInteractiveAnnotation {}
+	interface InteractiveAnnotation extends IInteractiveAnnotation, $ProtoJSON {}
 
 	class InteractiveAnnotation implements IInteractiveAnnotation {
 		constructor(p?: IInteractiveAnnotation);
 		public static create(p?: IInteractiveAnnotation): InteractiveAnnotation;
 		public static fromObject(d: $ProtoObject): InteractiveAnnotation;
-		public static toObject(m: InteractiveAnnotation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<InteractiveAnnotation>;
 		public static encode: $ProtoEncode<IInteractiveAnnotation>;
 		public static decode: $ProtoDecode<InteractiveAnnotation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace InteractiveAnnotation {
@@ -6913,16 +6624,15 @@ export namespace proto {
 		isGalaxyFlowCompleted?: (boolean|null);
 	}
 
-	interface InteractiveMessageAdditionalMetadata extends IInteractiveMessageAdditionalMetadata {}
+	interface InteractiveMessageAdditionalMetadata extends IInteractiveMessageAdditionalMetadata, $ProtoJSON {}
 
 	class InteractiveMessageAdditionalMetadata implements IInteractiveMessageAdditionalMetadata {
 		constructor(p?: IInteractiveMessageAdditionalMetadata);
 		public static create(p?: IInteractiveMessageAdditionalMetadata): InteractiveMessageAdditionalMetadata;
 		public static fromObject(d: $ProtoObject): InteractiveMessageAdditionalMetadata;
-		public static toObject(m: InteractiveMessageAdditionalMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<InteractiveMessageAdditionalMetadata>;
 		public static encode: $ProtoEncode<IInteractiveMessageAdditionalMetadata>;
 		public static decode: $ProtoDecode<InteractiveMessageAdditionalMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IInThreadSurveyMetadata {
@@ -6946,16 +6656,15 @@ export namespace proto {
 		startQuestionIndex?: (number|null);
 	}
 
-	interface InThreadSurveyMetadata extends IInThreadSurveyMetadata {}
+	interface InThreadSurveyMetadata extends IInThreadSurveyMetadata, $ProtoJSON {}
 
 	class InThreadSurveyMetadata implements IInThreadSurveyMetadata {
 		constructor(p?: IInThreadSurveyMetadata);
 		public static create(p?: IInThreadSurveyMetadata): InThreadSurveyMetadata;
 		public static fromObject(d: $ProtoObject): InThreadSurveyMetadata;
-		public static toObject(m: InThreadSurveyMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<InThreadSurveyMetadata>;
 		public static encode: $ProtoEncode<IInThreadSurveyMetadata>;
 		public static decode: $ProtoDecode<InThreadSurveyMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace InThreadSurveyMetadata {
@@ -6966,16 +6675,15 @@ export namespace proto {
 			textTranslated?: (string|null);
 		}
 
-		interface InThreadSurveyOption extends IInThreadSurveyOption {}
+		interface InThreadSurveyOption extends IInThreadSurveyOption, $ProtoJSON {}
 
 		class InThreadSurveyOption implements IInThreadSurveyOption {
 			constructor(p?: IInThreadSurveyOption);
 			public static create(p?: IInThreadSurveyOption): InThreadSurveyOption;
 			public static fromObject(d: $ProtoObject): InThreadSurveyOption;
-			public static toObject(m: InThreadSurveyOption, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InThreadSurveyOption>;
 			public static encode: $ProtoEncode<IInThreadSurveyOption>;
 			public static decode: $ProtoDecode<InThreadSurveyOption>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IInThreadSurveyPrivacyStatementPart {
@@ -6983,16 +6691,15 @@ export namespace proto {
 			url?: (string|null);
 		}
 
-		interface InThreadSurveyPrivacyStatementPart extends IInThreadSurveyPrivacyStatementPart {}
+		interface InThreadSurveyPrivacyStatementPart extends IInThreadSurveyPrivacyStatementPart, $ProtoJSON {}
 
 		class InThreadSurveyPrivacyStatementPart implements IInThreadSurveyPrivacyStatementPart {
 			constructor(p?: IInThreadSurveyPrivacyStatementPart);
 			public static create(p?: IInThreadSurveyPrivacyStatementPart): InThreadSurveyPrivacyStatementPart;
 			public static fromObject(d: $ProtoObject): InThreadSurveyPrivacyStatementPart;
-			public static toObject(m: InThreadSurveyPrivacyStatementPart, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InThreadSurveyPrivacyStatementPart>;
 			public static encode: $ProtoEncode<IInThreadSurveyPrivacyStatementPart>;
 			public static decode: $ProtoDecode<InThreadSurveyPrivacyStatementPart>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IInThreadSurveyQuestion {
@@ -7001,16 +6708,15 @@ export namespace proto {
 			questionOptions?: proto.InThreadSurveyMetadata.IInThreadSurveyOption[];
 		}
 
-		interface InThreadSurveyQuestion extends IInThreadSurveyQuestion {}
+		interface InThreadSurveyQuestion extends IInThreadSurveyQuestion, $ProtoJSON {}
 
 		class InThreadSurveyQuestion implements IInThreadSurveyQuestion {
 			constructor(p?: IInThreadSurveyQuestion);
 			public static create(p?: IInThreadSurveyQuestion): InThreadSurveyQuestion;
 			public static fromObject(d: $ProtoObject): InThreadSurveyQuestion;
-			public static toObject(m: InThreadSurveyQuestion, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InThreadSurveyQuestion>;
 			public static encode: $ProtoEncode<IInThreadSurveyQuestion>;
 			public static decode: $ProtoDecode<InThreadSurveyQuestion>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -7023,16 +6729,15 @@ export namespace proto {
 		serverTimestampMs?: (Long|null);
 	}
 
-	interface KeepInChat extends IKeepInChat {}
+	interface KeepInChat extends IKeepInChat, $ProtoJSON {}
 
 	class KeepInChat implements IKeepInChat {
 		constructor(p?: IKeepInChat);
 		public static create(p?: IKeepInChat): KeepInChat;
 		public static fromObject(d: $ProtoObject): KeepInChat;
-		public static toObject(m: KeepInChat, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<KeepInChat>;
 		public static encode: $ProtoEncode<IKeepInChat>;
 		public static decode: $ProtoDecode<KeepInChat>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum KeepType {
@@ -7049,32 +6754,30 @@ export namespace proto {
 		baseKeySignature?: (Uint8Array|null);
 	}
 
-	interface KeyExchangeMessage extends IKeyExchangeMessage {}
+	interface KeyExchangeMessage extends IKeyExchangeMessage, $ProtoJSON {}
 
 	class KeyExchangeMessage implements IKeyExchangeMessage {
 		constructor(p?: IKeyExchangeMessage);
 		public static create(p?: IKeyExchangeMessage): KeyExchangeMessage;
 		public static fromObject(d: $ProtoObject): KeyExchangeMessage;
-		public static toObject(m: KeyExchangeMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<KeyExchangeMessage>;
 		public static encode: $ProtoEncode<IKeyExchangeMessage>;
 		public static decode: $ProtoDecode<KeyExchangeMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IKeyId {
 		id?: (Uint8Array|null);
 	}
 
-	interface KeyId extends IKeyId {}
+	interface KeyId extends IKeyId, $ProtoJSON {}
 
 	class KeyId implements IKeyId {
 		constructor(p?: IKeyId);
 		public static create(p?: IKeyId): KeyId;
 		public static fromObject(d: $ProtoObject): KeyId;
-		public static toObject(m: KeyId, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<KeyId>;
 		public static encode: $ProtoEncode<IKeyId>;
 		public static decode: $ProtoDecode<KeyId>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILabyrinthWaCommand {
@@ -7086,16 +6789,15 @@ export namespace proto {
 		rotateEpochInput?: (proto.IRotateEpochInput|null);
 	}
 
-	interface LabyrinthWaCommand extends ILabyrinthWaCommand {}
+	interface LabyrinthWaCommand extends ILabyrinthWaCommand, $ProtoJSON {}
 
 	class LabyrinthWaCommand implements ILabyrinthWaCommand {
 		constructor(p?: ILabyrinthWaCommand);
 		public static create(p?: ILabyrinthWaCommand): LabyrinthWaCommand;
 		public static fromObject(d: $ProtoObject): LabyrinthWaCommand;
-		public static toObject(m: LabyrinthWaCommand, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LabyrinthWaCommand>;
 		public static encode: $ProtoEncode<ILabyrinthWaCommand>;
 		public static decode: $ProtoDecode<LabyrinthWaCommand>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILegacyMessage {
@@ -7103,16 +6805,15 @@ export namespace proto {
 		pollVote?: (proto.Message.IPollVoteMessage|null);
 	}
 
-	interface LegacyMessage extends ILegacyMessage {}
+	interface LegacyMessage extends ILegacyMessage, $ProtoJSON {}
 
 	class LegacyMessage implements ILegacyMessage {
 		constructor(p?: ILegacyMessage);
 		public static create(p?: ILegacyMessage): LegacyMessage;
 		public static fromObject(d: $ProtoObject): LegacyMessage;
-		public static toObject(m: LegacyMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LegacyMessage>;
 		public static encode: $ProtoEncode<ILegacyMessage>;
 		public static decode: $ProtoDecode<LegacyMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILIDMigrationMapping {
@@ -7121,32 +6822,30 @@ export namespace proto {
 		latestLid?: (Long|null);
 	}
 
-	interface LIDMigrationMapping extends ILIDMigrationMapping {}
+	interface LIDMigrationMapping extends ILIDMigrationMapping, $ProtoJSON {}
 
 	class LIDMigrationMapping implements ILIDMigrationMapping {
 		constructor(p?: ILIDMigrationMapping);
 		public static create(p?: ILIDMigrationMapping): LIDMigrationMapping;
 		public static fromObject(d: $ProtoObject): LIDMigrationMapping;
-		public static toObject(m: LIDMigrationMapping, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LIDMigrationMapping>;
 		public static encode: $ProtoEncode<ILIDMigrationMapping>;
 		public static decode: $ProtoDecode<LIDMigrationMapping>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILIDMigrationMappingSyncMessage {
 		encodedMappingPayload?: (Uint8Array|null);
 	}
 
-	interface LIDMigrationMappingSyncMessage extends ILIDMigrationMappingSyncMessage {}
+	interface LIDMigrationMappingSyncMessage extends ILIDMigrationMappingSyncMessage, $ProtoJSON {}
 
 	class LIDMigrationMappingSyncMessage implements ILIDMigrationMappingSyncMessage {
 		constructor(p?: ILIDMigrationMappingSyncMessage);
 		public static create(p?: ILIDMigrationMappingSyncMessage): LIDMigrationMappingSyncMessage;
 		public static fromObject(d: $ProtoObject): LIDMigrationMappingSyncMessage;
-		public static toObject(m: LIDMigrationMappingSyncMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LIDMigrationMappingSyncMessage>;
 		public static encode: $ProtoEncode<ILIDMigrationMappingSyncMessage>;
 		public static decode: $ProtoDecode<LIDMigrationMappingSyncMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILIDMigrationMappingSyncPayload {
@@ -7154,16 +6853,15 @@ export namespace proto {
 		chatDbMigrationTimestamp?: (Long|null);
 	}
 
-	interface LIDMigrationMappingSyncPayload extends ILIDMigrationMappingSyncPayload {}
+	interface LIDMigrationMappingSyncPayload extends ILIDMigrationMappingSyncPayload, $ProtoJSON {}
 
 	class LIDMigrationMappingSyncPayload implements ILIDMigrationMappingSyncPayload {
 		constructor(p?: ILIDMigrationMappingSyncPayload);
 		public static create(p?: ILIDMigrationMappingSyncPayload): LIDMigrationMappingSyncPayload;
 		public static fromObject(d: $ProtoObject): LIDMigrationMappingSyncPayload;
-		public static toObject(m: LIDMigrationMappingSyncPayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LIDMigrationMappingSyncPayload>;
 		public static encode: $ProtoEncode<ILIDMigrationMappingSyncPayload>;
 		public static decode: $ProtoDecode<LIDMigrationMappingSyncPayload>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILimitSharing {
@@ -7173,16 +6871,15 @@ export namespace proto {
 		initiatedByMe?: (boolean|null);
 	}
 
-	interface LimitSharing extends ILimitSharing {}
+	interface LimitSharing extends ILimitSharing, $ProtoJSON {}
 
 	class LimitSharing implements ILimitSharing {
 		constructor(p?: ILimitSharing);
 		public static create(p?: ILimitSharing): LimitSharing;
 		public static fromObject(d: $ProtoObject): LimitSharing;
-		public static toObject(m: LimitSharing, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LimitSharing>;
 		public static encode: $ProtoEncode<ILimitSharing>;
 		public static decode: $ProtoDecode<LimitSharing>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace LimitSharing {
@@ -7201,16 +6898,15 @@ export namespace proto {
 		verifiedName?: (string|null);
 	}
 
-	interface LocalizedName extends ILocalizedName {}
+	interface LocalizedName extends ILocalizedName, $ProtoJSON {}
 
 	class LocalizedName implements ILocalizedName {
 		constructor(p?: ILocalizedName);
 		public static create(p?: ILocalizedName): LocalizedName;
 		public static fromObject(d: $ProtoObject): LocalizedName;
-		public static toObject(m: LocalizedName, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<LocalizedName>;
 		public static encode: $ProtoEncode<ILocalizedName>;
 		public static decode: $ProtoDecode<LocalizedName>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ILocation {
@@ -7219,16 +6915,15 @@ export namespace proto {
 		name?: (string|null);
 	}
 
-	interface Location extends ILocation {}
+	interface Location extends ILocation, $ProtoJSON {}
 
 	class Location implements ILocation {
 		constructor(p?: ILocation);
 		public static create(p?: ILocation): Location;
 		public static fromObject(d: $ProtoObject): Location;
-		public static toObject(m: Location, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Location>;
 		public static encode: $ProtoEncode<ILocation>;
 		public static decode: $ProtoDecode<Location>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeDecryptMekInput {
@@ -7245,16 +6940,15 @@ export namespace proto {
 		precomputedEpochSender?: (proto.MandrakeDecryptMekInput.IPrecomputedEpochSenderPublicData|null);
 	}
 
-	interface MandrakeDecryptMekInput extends IMandrakeDecryptMekInput {}
+	interface MandrakeDecryptMekInput extends IMandrakeDecryptMekInput, $ProtoJSON {}
 
 	class MandrakeDecryptMekInput implements IMandrakeDecryptMekInput {
 		constructor(p?: IMandrakeDecryptMekInput);
 		public static create(p?: IMandrakeDecryptMekInput): MandrakeDecryptMekInput;
 		public static fromObject(d: $ProtoObject): MandrakeDecryptMekInput;
-		public static toObject(m: MandrakeDecryptMekInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeDecryptMekInput>;
 		public static encode: $ProtoEncode<IMandrakeDecryptMekInput>;
 		public static decode: $ProtoDecode<MandrakeDecryptMekInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MandrakeDecryptMekInput {
@@ -7263,32 +6957,30 @@ export namespace proto {
 			epochPublicData?: (proto.IEpochPublicData|null);
 		}
 
-		interface EpochSenderPublicData extends IEpochSenderPublicData {}
+		interface EpochSenderPublicData extends IEpochSenderPublicData, $ProtoJSON {}
 
 		class EpochSenderPublicData implements IEpochSenderPublicData {
 			constructor(p?: IEpochSenderPublicData);
 			public static create(p?: IEpochSenderPublicData): EpochSenderPublicData;
 			public static fromObject(d: $ProtoObject): EpochSenderPublicData;
-			public static toObject(m: EpochSenderPublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EpochSenderPublicData>;
 			public static encode: $ProtoEncode<IEpochSenderPublicData>;
 			public static decode: $ProtoDecode<EpochSenderPublicData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMmkSenderPublicData {
 			mmkPublicData?: (proto.IMessagingMailboxPublicData|null);
 		}
 
-		interface MmkSenderPublicData extends IMmkSenderPublicData {}
+		interface MmkSenderPublicData extends IMmkSenderPublicData, $ProtoJSON {}
 
 		class MmkSenderPublicData implements IMmkSenderPublicData {
 			constructor(p?: IMmkSenderPublicData);
 			public static create(p?: IMmkSenderPublicData): MmkSenderPublicData;
 			public static fromObject(d: $ProtoObject): MmkSenderPublicData;
-			public static toObject(m: MmkSenderPublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MmkSenderPublicData>;
 			public static encode: $ProtoEncode<IMmkSenderPublicData>;
 			public static decode: $ProtoDecode<MmkSenderPublicData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrecomputedEpochSenderPublicData {
@@ -7296,16 +6988,15 @@ export namespace proto {
 			epochHead?: (Uint8Array|null);
 		}
 
-		interface PrecomputedEpochSenderPublicData extends IPrecomputedEpochSenderPublicData {}
+		interface PrecomputedEpochSenderPublicData extends IPrecomputedEpochSenderPublicData, $ProtoJSON {}
 
 		class PrecomputedEpochSenderPublicData implements IPrecomputedEpochSenderPublicData {
 			constructor(p?: IPrecomputedEpochSenderPublicData);
 			public static create(p?: IPrecomputedEpochSenderPublicData): PrecomputedEpochSenderPublicData;
 			public static fromObject(d: $ProtoObject): PrecomputedEpochSenderPublicData;
-			public static toObject(m: PrecomputedEpochSenderPublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrecomputedEpochSenderPublicData>;
 			public static encode: $ProtoEncode<IPrecomputedEpochSenderPublicData>;
 			public static decode: $ProtoDecode<PrecomputedEpochSenderPublicData>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -7314,32 +7005,30 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MandrakeDecryptMekResult extends IMandrakeDecryptMekResult {}
+	interface MandrakeDecryptMekResult extends IMandrakeDecryptMekResult, $ProtoJSON {}
 
 	class MandrakeDecryptMekResult implements IMandrakeDecryptMekResult {
 		constructor(p?: IMandrakeDecryptMekResult);
 		public static create(p?: IMandrakeDecryptMekResult): MandrakeDecryptMekResult;
 		public static fromObject(d: $ProtoObject): MandrakeDecryptMekResult;
-		public static toObject(m: MandrakeDecryptMekResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeDecryptMekResult>;
 		public static encode: $ProtoEncode<IMandrakeDecryptMekResult>;
 		public static decode: $ProtoDecode<MandrakeDecryptMekResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeDecryptMekSuccess {
 		mek?: (Uint8Array|null);
 	}
 
-	interface MandrakeDecryptMekSuccess extends IMandrakeDecryptMekSuccess {}
+	interface MandrakeDecryptMekSuccess extends IMandrakeDecryptMekSuccess, $ProtoJSON {}
 
 	class MandrakeDecryptMekSuccess implements IMandrakeDecryptMekSuccess {
 		constructor(p?: IMandrakeDecryptMekSuccess);
 		public static create(p?: IMandrakeDecryptMekSuccess): MandrakeDecryptMekSuccess;
 		public static fromObject(d: $ProtoObject): MandrakeDecryptMekSuccess;
-		public static toObject(m: MandrakeDecryptMekSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeDecryptMekSuccess>;
 		public static encode: $ProtoEncode<IMandrakeDecryptMekSuccess>;
 		public static decode: $ProtoDecode<MandrakeDecryptMekSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeEncryptMekInput {
@@ -7351,16 +7040,15 @@ export namespace proto {
 		detachedDeviceSender?: (proto.MandrakeEncryptMekInput.IDetachedDeviceSender|null);
 	}
 
-	interface MandrakeEncryptMekInput extends IMandrakeEncryptMekInput {}
+	interface MandrakeEncryptMekInput extends IMandrakeEncryptMekInput, $ProtoJSON {}
 
 	class MandrakeEncryptMekInput implements IMandrakeEncryptMekInput {
 		constructor(p?: IMandrakeEncryptMekInput);
 		public static create(p?: IMandrakeEncryptMekInput): MandrakeEncryptMekInput;
 		public static fromObject(d: $ProtoObject): MandrakeEncryptMekInput;
-		public static toObject(m: MandrakeEncryptMekInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeEncryptMekInput>;
 		public static encode: $ProtoEncode<IMandrakeEncryptMekInput>;
 		public static decode: $ProtoDecode<MandrakeEncryptMekInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MandrakeEncryptMekInput {
@@ -7371,16 +7059,15 @@ export namespace proto {
 			authPk?: (Uint8Array|null);
 		}
 
-		interface DetachedDeviceSender extends IDetachedDeviceSender {}
+		interface DetachedDeviceSender extends IDetachedDeviceSender, $ProtoJSON {}
 
 		class DetachedDeviceSender implements IDetachedDeviceSender {
 			constructor(p?: IDetachedDeviceSender);
 			public static create(p?: IDetachedDeviceSender): DetachedDeviceSender;
 			public static fromObject(d: $ProtoObject): DetachedDeviceSender;
-			public static toObject(m: DetachedDeviceSender, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DetachedDeviceSender>;
 			public static encode: $ProtoEncode<IDetachedDeviceSender>;
 			public static decode: $ProtoDecode<DetachedDeviceSender>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEpochSender {
@@ -7389,16 +7076,15 @@ export namespace proto {
 			authPk?: (Uint8Array|null);
 		}
 
-		interface EpochSender extends IEpochSender {}
+		interface EpochSender extends IEpochSender, $ProtoJSON {}
 
 		class EpochSender implements IEpochSender {
 			constructor(p?: IEpochSender);
 			public static create(p?: IEpochSender): EpochSender;
 			public static fromObject(d: $ProtoObject): EpochSender;
-			public static toObject(m: EpochSender, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EpochSender>;
 			public static encode: $ProtoEncode<IEpochSender>;
 			public static decode: $ProtoDecode<EpochSender>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMmkSender {
@@ -7407,16 +7093,15 @@ export namespace proto {
 			authPk?: (Uint8Array|null);
 		}
 
-		interface MmkSender extends IMmkSender {}
+		interface MmkSender extends IMmkSender, $ProtoJSON {}
 
 		class MmkSender implements IMmkSender {
 			constructor(p?: IMmkSender);
 			public static create(p?: IMmkSender): MmkSender;
 			public static fromObject(d: $ProtoObject): MmkSender;
-			public static toObject(m: MmkSender, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MmkSender>;
 			public static encode: $ProtoEncode<IMmkSender>;
 			public static decode: $ProtoDecode<MmkSender>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -7425,16 +7110,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MandrakeEncryptMekResult extends IMandrakeEncryptMekResult {}
+	interface MandrakeEncryptMekResult extends IMandrakeEncryptMekResult, $ProtoJSON {}
 
 	class MandrakeEncryptMekResult implements IMandrakeEncryptMekResult {
 		constructor(p?: IMandrakeEncryptMekResult);
 		public static create(p?: IMandrakeEncryptMekResult): MandrakeEncryptMekResult;
 		public static fromObject(d: $ProtoObject): MandrakeEncryptMekResult;
-		public static toObject(m: MandrakeEncryptMekResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeEncryptMekResult>;
 		public static encode: $ProtoEncode<IMandrakeEncryptMekResult>;
 		public static decode: $ProtoDecode<MandrakeEncryptMekResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeEncryptMekSuccess {
@@ -7443,16 +7127,15 @@ export namespace proto {
 		version?: (Long|null);
 	}
 
-	interface MandrakeEncryptMekSuccess extends IMandrakeEncryptMekSuccess {}
+	interface MandrakeEncryptMekSuccess extends IMandrakeEncryptMekSuccess, $ProtoJSON {}
 
 	class MandrakeEncryptMekSuccess implements IMandrakeEncryptMekSuccess {
 		constructor(p?: IMandrakeEncryptMekSuccess);
 		public static create(p?: IMandrakeEncryptMekSuccess): MandrakeEncryptMekSuccess;
 		public static fromObject(d: $ProtoObject): MandrakeEncryptMekSuccess;
-		public static toObject(m: MandrakeEncryptMekSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeEncryptMekSuccess>;
 		public static encode: $ProtoEncode<IMandrakeEncryptMekSuccess>;
 		public static decode: $ProtoDecode<MandrakeEncryptMekSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MandrakeEncryptMekSuccess {
@@ -7463,16 +7146,15 @@ export namespace proto {
 			recipientMembershipProof?: (proto.IMerkleMembershipProof|null);
 		}
 
-		interface MekDistributionSingleRecipient extends IMekDistributionSingleRecipient {}
+		interface MekDistributionSingleRecipient extends IMekDistributionSingleRecipient, $ProtoJSON {}
 
 		class MekDistributionSingleRecipient implements IMekDistributionSingleRecipient {
 			constructor(p?: IMekDistributionSingleRecipient);
 			public static create(p?: IMekDistributionSingleRecipient): MekDistributionSingleRecipient;
 			public static fromObject(d: $ProtoObject): MekDistributionSingleRecipient;
-			public static toObject(m: MekDistributionSingleRecipient, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MekDistributionSingleRecipient>;
 			public static encode: $ProtoEncode<IMekDistributionSingleRecipient>;
 			public static decode: $ProtoDecode<MekDistributionSingleRecipient>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -7482,16 +7164,15 @@ export namespace proto {
 		mailboxHeadHash?: (Uint8Array|null);
 	}
 
-	interface MandrakeMekBundle extends IMandrakeMekBundle {}
+	interface MandrakeMekBundle extends IMandrakeMekBundle, $ProtoJSON {}
 
 	class MandrakeMekBundle implements IMandrakeMekBundle {
 		constructor(p?: IMandrakeMekBundle);
 		public static create(p?: IMandrakeMekBundle): MandrakeMekBundle;
 		public static fromObject(d: $ProtoObject): MandrakeMekBundle;
-		public static toObject(m: MandrakeMekBundle, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeMekBundle>;
 		public static encode: $ProtoEncode<IMandrakeMekBundle>;
 		public static decode: $ProtoDecode<MandrakeMekBundle>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeOpenEpochInput {
@@ -7505,16 +7186,15 @@ export namespace proto {
 		detachedDevices?: proto.IDetachedDevicePublicData[];
 	}
 
-	interface MandrakeOpenEpochInput extends IMandrakeOpenEpochInput {}
+	interface MandrakeOpenEpochInput extends IMandrakeOpenEpochInput, $ProtoJSON {}
 
 	class MandrakeOpenEpochInput implements IMandrakeOpenEpochInput {
 		constructor(p?: IMandrakeOpenEpochInput);
 		public static create(p?: IMandrakeOpenEpochInput): MandrakeOpenEpochInput;
 		public static fromObject(d: $ProtoObject): MandrakeOpenEpochInput;
-		public static toObject(m: MandrakeOpenEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeOpenEpochInput>;
 		public static encode: $ProtoEncode<IMandrakeOpenEpochInput>;
 		public static decode: $ProtoDecode<MandrakeOpenEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeOpenEpochResult {
@@ -7522,16 +7202,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MandrakeOpenEpochResult extends IMandrakeOpenEpochResult {}
+	interface MandrakeOpenEpochResult extends IMandrakeOpenEpochResult, $ProtoJSON {}
 
 	class MandrakeOpenEpochResult implements IMandrakeOpenEpochResult {
 		constructor(p?: IMandrakeOpenEpochResult);
 		public static create(p?: IMandrakeOpenEpochResult): MandrakeOpenEpochResult;
 		public static fromObject(d: $ProtoObject): MandrakeOpenEpochResult;
-		public static toObject(m: MandrakeOpenEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeOpenEpochResult>;
 		public static encode: $ProtoEncode<IMandrakeOpenEpochResult>;
 		public static decode: $ProtoDecode<MandrakeOpenEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeOpenEpochSuccess {
@@ -7539,16 +7218,15 @@ export namespace proto {
 		signedMmkDistribution?: (proto.ISignedMmkDistributionFromMailbox|null);
 	}
 
-	interface MandrakeOpenEpochSuccess extends IMandrakeOpenEpochSuccess {}
+	interface MandrakeOpenEpochSuccess extends IMandrakeOpenEpochSuccess, $ProtoJSON {}
 
 	class MandrakeOpenEpochSuccess implements IMandrakeOpenEpochSuccess {
 		constructor(p?: IMandrakeOpenEpochSuccess);
 		public static create(p?: IMandrakeOpenEpochSuccess): MandrakeOpenEpochSuccess;
 		public static fromObject(d: $ProtoObject): MandrakeOpenEpochSuccess;
-		public static toObject(m: MandrakeOpenEpochSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeOpenEpochSuccess>;
 		public static encode: $ProtoEncode<IMandrakeOpenEpochSuccess>;
 		public static decode: $ProtoDecode<MandrakeOpenEpochSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeOpenInitialEpochInput {
@@ -7558,16 +7236,15 @@ export namespace proto {
 		detachedDevices?: proto.IDetachedDevicePublicData[];
 	}
 
-	interface MandrakeOpenInitialEpochInput extends IMandrakeOpenInitialEpochInput {}
+	interface MandrakeOpenInitialEpochInput extends IMandrakeOpenInitialEpochInput, $ProtoJSON {}
 
 	class MandrakeOpenInitialEpochInput implements IMandrakeOpenInitialEpochInput {
 		constructor(p?: IMandrakeOpenInitialEpochInput);
 		public static create(p?: IMandrakeOpenInitialEpochInput): MandrakeOpenInitialEpochInput;
 		public static fromObject(d: $ProtoObject): MandrakeOpenInitialEpochInput;
-		public static toObject(m: MandrakeOpenInitialEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeOpenInitialEpochInput>;
 		public static encode: $ProtoEncode<IMandrakeOpenInitialEpochInput>;
 		public static decode: $ProtoDecode<MandrakeOpenInitialEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeOpenInitialEpochResult {
@@ -7575,16 +7252,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MandrakeOpenInitialEpochResult extends IMandrakeOpenInitialEpochResult {}
+	interface MandrakeOpenInitialEpochResult extends IMandrakeOpenInitialEpochResult, $ProtoJSON {}
 
 	class MandrakeOpenInitialEpochResult implements IMandrakeOpenInitialEpochResult {
 		constructor(p?: IMandrakeOpenInitialEpochResult);
 		public static create(p?: IMandrakeOpenInitialEpochResult): MandrakeOpenInitialEpochResult;
 		public static fromObject(d: $ProtoObject): MandrakeOpenInitialEpochResult;
-		public static toObject(m: MandrakeOpenInitialEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeOpenInitialEpochResult>;
 		public static encode: $ProtoEncode<IMandrakeOpenInitialEpochResult>;
 		public static decode: $ProtoDecode<MandrakeOpenInitialEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeValidateNewMmkFromDetachedDeviceInput {
@@ -7593,16 +7269,15 @@ export namespace proto {
 		prevMmk?: (proto.IMessagingMailboxPublicData|null);
 	}
 
-	interface MandrakeValidateNewMmkFromDetachedDeviceInput extends IMandrakeValidateNewMmkFromDetachedDeviceInput {}
+	interface MandrakeValidateNewMmkFromDetachedDeviceInput extends IMandrakeValidateNewMmkFromDetachedDeviceInput, $ProtoJSON {}
 
 	class MandrakeValidateNewMmkFromDetachedDeviceInput implements IMandrakeValidateNewMmkFromDetachedDeviceInput {
 		constructor(p?: IMandrakeValidateNewMmkFromDetachedDeviceInput);
 		public static create(p?: IMandrakeValidateNewMmkFromDetachedDeviceInput): MandrakeValidateNewMmkFromDetachedDeviceInput;
 		public static fromObject(d: $ProtoObject): MandrakeValidateNewMmkFromDetachedDeviceInput;
-		public static toObject(m: MandrakeValidateNewMmkFromDetachedDeviceInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeValidateNewMmkFromDetachedDeviceInput>;
 		public static encode: $ProtoEncode<IMandrakeValidateNewMmkFromDetachedDeviceInput>;
 		public static decode: $ProtoDecode<MandrakeValidateNewMmkFromDetachedDeviceInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeValidateNewMmkFromMailboxInput {
@@ -7612,16 +7287,15 @@ export namespace proto {
 		epochPublicData?: (proto.IEpochPublicData|null);
 	}
 
-	interface MandrakeValidateNewMmkFromMailboxInput extends IMandrakeValidateNewMmkFromMailboxInput {}
+	interface MandrakeValidateNewMmkFromMailboxInput extends IMandrakeValidateNewMmkFromMailboxInput, $ProtoJSON {}
 
 	class MandrakeValidateNewMmkFromMailboxInput implements IMandrakeValidateNewMmkFromMailboxInput {
 		constructor(p?: IMandrakeValidateNewMmkFromMailboxInput);
 		public static create(p?: IMandrakeValidateNewMmkFromMailboxInput): MandrakeValidateNewMmkFromMailboxInput;
 		public static fromObject(d: $ProtoObject): MandrakeValidateNewMmkFromMailboxInput;
-		public static toObject(m: MandrakeValidateNewMmkFromMailboxInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeValidateNewMmkFromMailboxInput>;
 		public static encode: $ProtoEncode<IMandrakeValidateNewMmkFromMailboxInput>;
 		public static decode: $ProtoDecode<MandrakeValidateNewMmkFromMailboxInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMandrakeValidateNewMmkResult {
@@ -7629,32 +7303,30 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MandrakeValidateNewMmkResult extends IMandrakeValidateNewMmkResult {}
+	interface MandrakeValidateNewMmkResult extends IMandrakeValidateNewMmkResult, $ProtoJSON {}
 
 	class MandrakeValidateNewMmkResult implements IMandrakeValidateNewMmkResult {
 		constructor(p?: IMandrakeValidateNewMmkResult);
 		public static create(p?: IMandrakeValidateNewMmkResult): MandrakeValidateNewMmkResult;
 		public static fromObject(d: $ProtoObject): MandrakeValidateNewMmkResult;
-		public static toObject(m: MandrakeValidateNewMmkResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MandrakeValidateNewMmkResult>;
 		public static encode: $ProtoEncode<IMandrakeValidateNewMmkResult>;
 		public static decode: $ProtoDecode<MandrakeValidateNewMmkResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMediaData {
 		localPath?: (string|null);
 	}
 
-	interface MediaData extends IMediaData {}
+	interface MediaData extends IMediaData, $ProtoJSON {}
 
 	class MediaData implements IMediaData {
 		constructor(p?: IMediaData);
 		public static create(p?: IMediaData): MediaData;
 		public static fromObject(d: $ProtoObject): MediaData;
-		public static toObject(m: MediaData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MediaData>;
 		public static encode: $ProtoEncode<IMediaData>;
 		public static decode: $ProtoDecode<MediaData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMediaDomainInfo {
@@ -7662,16 +7334,15 @@ export namespace proto {
 		e2EeMediaKey?: (Uint8Array|null);
 	}
 
-	interface MediaDomainInfo extends IMediaDomainInfo {}
+	interface MediaDomainInfo extends IMediaDomainInfo, $ProtoJSON {}
 
 	class MediaDomainInfo implements IMediaDomainInfo {
 		constructor(p?: IMediaDomainInfo);
 		public static create(p?: IMediaDomainInfo): MediaDomainInfo;
 		public static fromObject(d: $ProtoObject): MediaDomainInfo;
-		public static toObject(m: MediaDomainInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MediaDomainInfo>;
 		public static encode: $ProtoEncode<IMediaDomainInfo>;
 		public static decode: $ProtoDecode<MediaDomainInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMediaEntry {
@@ -7694,16 +7365,15 @@ export namespace proto {
 		lastDownloadAttemptTimestamp?: (Long|null);
 	}
 
-	interface MediaEntry extends IMediaEntry {}
+	interface MediaEntry extends IMediaEntry, $ProtoJSON {}
 
 	class MediaEntry implements IMediaEntry {
 		constructor(p?: IMediaEntry);
 		public static create(p?: IMediaEntry): MediaEntry;
 		public static fromObject(d: $ProtoObject): MediaEntry;
-		public static toObject(m: MediaEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MediaEntry>;
 		public static encode: $ProtoEncode<IMediaEntry>;
 		public static decode: $ProtoDecode<MediaEntry>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MediaEntry {
@@ -7717,16 +7387,15 @@ export namespace proto {
 			objectId?: (string|null);
 		}
 
-		interface DownloadableThumbnail extends IDownloadableThumbnail {}
+		interface DownloadableThumbnail extends IDownloadableThumbnail, $ProtoJSON {}
 
 		class DownloadableThumbnail implements IDownloadableThumbnail {
 			constructor(p?: IDownloadableThumbnail);
 			public static create(p?: IDownloadableThumbnail): DownloadableThumbnail;
 			public static fromObject(d: $ProtoObject): DownloadableThumbnail;
-			public static toObject(m: DownloadableThumbnail, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DownloadableThumbnail>;
 			public static encode: $ProtoEncode<IDownloadableThumbnail>;
 			public static decode: $ProtoDecode<DownloadableThumbnail>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IProgressiveJpegDetails {
@@ -7734,16 +7403,15 @@ export namespace proto {
 			sidecar?: (Uint8Array|null);
 		}
 
-		interface ProgressiveJpegDetails extends IProgressiveJpegDetails {}
+		interface ProgressiveJpegDetails extends IProgressiveJpegDetails, $ProtoJSON {}
 
 		class ProgressiveJpegDetails implements IProgressiveJpegDetails {
 			constructor(p?: IProgressiveJpegDetails);
 			public static create(p?: IProgressiveJpegDetails): ProgressiveJpegDetails;
 			public static fromObject(d: $ProtoObject): ProgressiveJpegDetails;
-			public static toObject(m: ProgressiveJpegDetails, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ProgressiveJpegDetails>;
 			public static encode: $ProtoEncode<IProgressiveJpegDetails>;
 			public static decode: $ProtoDecode<ProgressiveJpegDetails>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -7759,16 +7427,15 @@ export namespace proto {
 		fileLength?: (Long|null);
 	}
 
-	interface MediaNotifyMessage extends IMediaNotifyMessage {}
+	interface MediaNotifyMessage extends IMediaNotifyMessage, $ProtoJSON {}
 
 	class MediaNotifyMessage implements IMediaNotifyMessage {
 		constructor(p?: IMediaNotifyMessage);
 		public static create(p?: IMediaNotifyMessage): MediaNotifyMessage;
 		public static fromObject(d: $ProtoObject): MediaNotifyMessage;
-		public static toObject(m: MediaNotifyMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MediaNotifyMessage>;
 		public static encode: $ProtoEncode<IMediaNotifyMessage>;
 		public static decode: $ProtoDecode<MediaNotifyMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMediaRetryNotification {
@@ -7778,16 +7445,15 @@ export namespace proto {
 		messageSecret?: (Uint8Array|null);
 	}
 
-	interface MediaRetryNotification extends IMediaRetryNotification {}
+	interface MediaRetryNotification extends IMediaRetryNotification, $ProtoJSON {}
 
 	class MediaRetryNotification implements IMediaRetryNotification {
 		constructor(p?: IMediaRetryNotification);
 		public static create(p?: IMediaRetryNotification): MediaRetryNotification;
 		public static fromObject(d: $ProtoObject): MediaRetryNotification;
-		public static toObject(m: MediaRetryNotification, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MediaRetryNotification>;
 		public static encode: $ProtoEncode<IMediaRetryNotification>;
 		public static decode: $ProtoDecode<MediaRetryNotification>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MediaRetryNotification {
@@ -7812,16 +7478,15 @@ export namespace proto {
 		rosterHash?: (Uint8Array|null);
 	}
 
-	interface MekBundle extends IMekBundle {}
+	interface MekBundle extends IMekBundle, $ProtoJSON {}
 
 	class MekBundle implements IMekBundle {
 		constructor(p?: IMekBundle);
 		public static create(p?: IMekBundle): MekBundle;
 		public static fromObject(d: $ProtoObject): MekBundle;
-		public static toObject(m: MekBundle, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MekBundle>;
 		public static encode: $ProtoEncode<IMekBundle>;
 		public static decode: $ProtoDecode<MekBundle>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMemberLabel {
@@ -7829,16 +7494,15 @@ export namespace proto {
 		labelTimestamp?: (Long|null);
 	}
 
-	interface MemberLabel extends IMemberLabel {}
+	interface MemberLabel extends IMemberLabel, $ProtoJSON {}
 
 	class MemberLabel implements IMemberLabel {
 		constructor(p?: IMemberLabel);
 		public static create(p?: IMemberLabel): MemberLabel;
 		public static fromObject(d: $ProtoObject): MemberLabel;
-		public static toObject(m: MemberLabel, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MemberLabel>;
 		public static encode: $ProtoEncode<IMemberLabel>;
 		public static decode: $ProtoDecode<MemberLabel>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMention {
@@ -7848,16 +7512,15 @@ export namespace proto {
 		length?: (number|null);
 	}
 
-	interface Mention extends IMention {}
+	interface Mention extends IMention, $ProtoJSON {}
 
 	class Mention implements IMention {
 		constructor(p?: IMention);
 		public static create(p?: IMention): Mention;
 		public static fromObject(d: $ProtoObject): Mention;
-		public static toObject(m: Mention, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Mention>;
 		public static encode: $ProtoEncode<IMention>;
 		public static decode: $ProtoDecode<Mention>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum mentionMentionType {
@@ -7871,16 +7534,15 @@ export namespace proto {
 		totalLeaves?: (Long|null);
 	}
 
-	interface MerkleMembershipProof extends IMerkleMembershipProof {}
+	interface MerkleMembershipProof extends IMerkleMembershipProof, $ProtoJSON {}
 
 	class MerkleMembershipProof implements IMerkleMembershipProof {
 		constructor(p?: IMerkleMembershipProof);
 		public static create(p?: IMerkleMembershipProof): MerkleMembershipProof;
 		public static fromObject(d: $ProtoObject): MerkleMembershipProof;
-		public static toObject(m: MerkleMembershipProof, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MerkleMembershipProof>;
 		public static encode: $ProtoEncode<IMerkleMembershipProof>;
 		public static decode: $ProtoDecode<MerkleMembershipProof>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMessage {
@@ -7999,16 +7661,15 @@ export namespace proto {
 		audioStickerMessage?: (proto.Message.IFutureProofMessage|null);
 	}
 
-	interface Message extends IMessage {}
+	interface Message extends IMessage, $ProtoJSON {}
 
 	class Message implements IMessage {
 		constructor(p?: IMessage);
 		public static create(p?: IMessage): Message;
 		public static fromObject(d: $ProtoObject): Message;
-		public static toObject(m: Message, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Message>;
 		public static encode: $ProtoEncode<IMessage>;
 		public static decode: $ProtoDecode<Message>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace Message {
@@ -8019,16 +7680,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface AlbumMessage extends IAlbumMessage {}
+		interface AlbumMessage extends IAlbumMessage, $ProtoJSON {}
 
 		class AlbumMessage implements IAlbumMessage {
 			constructor(p?: IAlbumMessage);
 			public static create(p?: IAlbumMessage): AlbumMessage;
 			public static fromObject(d: $ProtoObject): AlbumMessage;
-			public static toObject(m: AlbumMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AlbumMessage>;
 			public static encode: $ProtoEncode<IAlbumMessage>;
 			public static decode: $ProtoDecode<AlbumMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateFatalExceptionNotification {
@@ -8036,16 +7696,15 @@ export namespace proto {
 			timestamp?: (Long|null);
 		}
 
-		interface AppStateFatalExceptionNotification extends IAppStateFatalExceptionNotification {}
+		interface AppStateFatalExceptionNotification extends IAppStateFatalExceptionNotification, $ProtoJSON {}
 
 		class AppStateFatalExceptionNotification implements IAppStateFatalExceptionNotification {
 			constructor(p?: IAppStateFatalExceptionNotification);
 			public static create(p?: IAppStateFatalExceptionNotification): AppStateFatalExceptionNotification;
 			public static fromObject(d: $ProtoObject): AppStateFatalExceptionNotification;
-			public static toObject(m: AppStateFatalExceptionNotification, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateFatalExceptionNotification>;
 			public static encode: $ProtoEncode<IAppStateFatalExceptionNotification>;
 			public static decode: $ProtoDecode<AppStateFatalExceptionNotification>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKey {
@@ -8053,16 +7712,15 @@ export namespace proto {
 			keyData?: (proto.Message.IAppStateSyncKeyData|null);
 		}
 
-		interface AppStateSyncKey extends IAppStateSyncKey {}
+		interface AppStateSyncKey extends IAppStateSyncKey, $ProtoJSON {}
 
 		class AppStateSyncKey implements IAppStateSyncKey {
 			constructor(p?: IAppStateSyncKey);
 			public static create(p?: IAppStateSyncKey): AppStateSyncKey;
 			public static fromObject(d: $ProtoObject): AppStateSyncKey;
-			public static toObject(m: AppStateSyncKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKey>;
 			public static encode: $ProtoEncode<IAppStateSyncKey>;
 			public static decode: $ProtoDecode<AppStateSyncKey>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKeyData {
@@ -8071,16 +7729,15 @@ export namespace proto {
 			timestamp?: (Long|null);
 		}
 
-		interface AppStateSyncKeyData extends IAppStateSyncKeyData {}
+		interface AppStateSyncKeyData extends IAppStateSyncKeyData, $ProtoJSON {}
 
 		class AppStateSyncKeyData implements IAppStateSyncKeyData {
 			constructor(p?: IAppStateSyncKeyData);
 			public static create(p?: IAppStateSyncKeyData): AppStateSyncKeyData;
 			public static fromObject(d: $ProtoObject): AppStateSyncKeyData;
-			public static toObject(m: AppStateSyncKeyData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKeyData>;
 			public static encode: $ProtoEncode<IAppStateSyncKeyData>;
 			public static decode: $ProtoDecode<AppStateSyncKeyData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKeyFingerprint {
@@ -8089,64 +7746,60 @@ export namespace proto {
 			deviceIndexes?: number[];
 		}
 
-		interface AppStateSyncKeyFingerprint extends IAppStateSyncKeyFingerprint {}
+		interface AppStateSyncKeyFingerprint extends IAppStateSyncKeyFingerprint, $ProtoJSON {}
 
 		class AppStateSyncKeyFingerprint implements IAppStateSyncKeyFingerprint {
 			constructor(p?: IAppStateSyncKeyFingerprint);
 			public static create(p?: IAppStateSyncKeyFingerprint): AppStateSyncKeyFingerprint;
 			public static fromObject(d: $ProtoObject): AppStateSyncKeyFingerprint;
-			public static toObject(m: AppStateSyncKeyFingerprint, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKeyFingerprint>;
 			public static encode: $ProtoEncode<IAppStateSyncKeyFingerprint>;
 			public static decode: $ProtoDecode<AppStateSyncKeyFingerprint>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKeyId {
 			keyId?: (Uint8Array|null);
 		}
 
-		interface AppStateSyncKeyId extends IAppStateSyncKeyId {}
+		interface AppStateSyncKeyId extends IAppStateSyncKeyId, $ProtoJSON {}
 
 		class AppStateSyncKeyId implements IAppStateSyncKeyId {
 			constructor(p?: IAppStateSyncKeyId);
 			public static create(p?: IAppStateSyncKeyId): AppStateSyncKeyId;
 			public static fromObject(d: $ProtoObject): AppStateSyncKeyId;
-			public static toObject(m: AppStateSyncKeyId, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKeyId>;
 			public static encode: $ProtoEncode<IAppStateSyncKeyId>;
 			public static decode: $ProtoDecode<AppStateSyncKeyId>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKeyRequest {
 			keyIds?: proto.Message.IAppStateSyncKeyId[];
 		}
 
-		interface AppStateSyncKeyRequest extends IAppStateSyncKeyRequest {}
+		interface AppStateSyncKeyRequest extends IAppStateSyncKeyRequest, $ProtoJSON {}
 
 		class AppStateSyncKeyRequest implements IAppStateSyncKeyRequest {
 			constructor(p?: IAppStateSyncKeyRequest);
 			public static create(p?: IAppStateSyncKeyRequest): AppStateSyncKeyRequest;
 			public static fromObject(d: $ProtoObject): AppStateSyncKeyRequest;
-			public static toObject(m: AppStateSyncKeyRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKeyRequest>;
 			public static encode: $ProtoEncode<IAppStateSyncKeyRequest>;
 			public static decode: $ProtoDecode<AppStateSyncKeyRequest>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAppStateSyncKeyShare {
 			keys?: proto.Message.IAppStateSyncKey[];
 		}
 
-		interface AppStateSyncKeyShare extends IAppStateSyncKeyShare {}
+		interface AppStateSyncKeyShare extends IAppStateSyncKeyShare, $ProtoJSON {}
 
 		class AppStateSyncKeyShare implements IAppStateSyncKeyShare {
 			constructor(p?: IAppStateSyncKeyShare);
 			public static create(p?: IAppStateSyncKeyShare): AppStateSyncKeyShare;
 			public static fromObject(d: $ProtoObject): AppStateSyncKeyShare;
-			public static toObject(m: AppStateSyncKeyShare, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AppStateSyncKeyShare>;
 			public static encode: $ProtoEncode<IAppStateSyncKeyShare>;
 			public static decode: $ProtoDecode<AppStateSyncKeyShare>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAudioMessage {
@@ -8168,16 +7821,15 @@ export namespace proto {
 			accessibilityLabel?: (string|null);
 		}
 
-		interface AudioMessage extends IAudioMessage {}
+		interface AudioMessage extends IAudioMessage, $ProtoJSON {}
 
 		class AudioMessage implements IAudioMessage {
 			constructor(p?: IAudioMessage);
 			public static create(p?: IAudioMessage): AudioMessage;
 			public static fromObject(d: $ProtoObject): AudioMessage;
-			public static toObject(m: AudioMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AudioMessage>;
 			public static encode: $ProtoEncode<IAudioMessage>;
 			public static decode: $ProtoDecode<AudioMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBCallMessage {
@@ -8187,16 +7839,15 @@ export namespace proto {
 			caption?: (string|null);
 		}
 
-		interface BCallMessage extends IBCallMessage {}
+		interface BCallMessage extends IBCallMessage, $ProtoJSON {}
 
 		class BCallMessage implements IBCallMessage {
 			constructor(p?: IBCallMessage);
 			public static create(p?: IBCallMessage): BCallMessage;
 			public static fromObject(d: $ProtoObject): BCallMessage;
-			public static toObject(m: BCallMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BCallMessage>;
 			public static encode: $ProtoEncode<IBCallMessage>;
 			public static decode: $ProtoDecode<BCallMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BCallMessage {
@@ -8214,16 +7865,15 @@ export namespace proto {
 			historyShareMessages?: proto.Message.IHistoryShareMessageEntry[];
 		}
 
-		interface BotHistoryShareSyncMetadata extends IBotHistoryShareSyncMetadata {}
+		interface BotHistoryShareSyncMetadata extends IBotHistoryShareSyncMetadata, $ProtoJSON {}
 
 		class BotHistoryShareSyncMetadata implements IBotHistoryShareSyncMetadata {
 			constructor(p?: IBotHistoryShareSyncMetadata);
 			public static create(p?: IBotHistoryShareSyncMetadata): BotHistoryShareSyncMetadata;
 			public static fromObject(d: $ProtoObject): BotHistoryShareSyncMetadata;
-			public static toObject(m: BotHistoryShareSyncMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BotHistoryShareSyncMetadata>;
 			public static encode: $ProtoEncode<IBotHistoryShareSyncMetadata>;
 			public static decode: $ProtoDecode<BotHistoryShareSyncMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IButtonsMessage {
@@ -8239,16 +7889,15 @@ export namespace proto {
 			locationMessage?: (proto.Message.ILocationMessage|null);
 		}
 
-		interface ButtonsMessage extends IButtonsMessage {}
+		interface ButtonsMessage extends IButtonsMessage, $ProtoJSON {}
 
 		class ButtonsMessage implements IButtonsMessage {
 			constructor(p?: IButtonsMessage);
 			public static create(p?: IButtonsMessage): ButtonsMessage;
 			public static fromObject(d: $ProtoObject): ButtonsMessage;
-			public static toObject(m: ButtonsMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ButtonsMessage>;
 			public static encode: $ProtoEncode<IButtonsMessage>;
 			public static decode: $ProtoDecode<ButtonsMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ButtonsMessage {
@@ -8260,16 +7909,15 @@ export namespace proto {
 				nativeFlowInfo?: (proto.Message.ButtonsMessage.Button.INativeFlowInfo|null);
 			}
 
-			interface Button extends IButton {}
+			interface Button extends IButton, $ProtoJSON {}
 
 			class Button implements IButton {
 				constructor(p?: IButton);
 				public static create(p?: IButton): Button;
 				public static fromObject(d: $ProtoObject): Button;
-				public static toObject(m: Button, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Button>;
 				public static encode: $ProtoEncode<IButton>;
 				public static decode: $ProtoDecode<Button>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace Button {
@@ -8278,16 +7926,15 @@ export namespace proto {
 					displayText?: (string|null);
 				}
 
-				interface ButtonText extends IButtonText {}
+				interface ButtonText extends IButtonText, $ProtoJSON {}
 
 				class ButtonText implements IButtonText {
 					constructor(p?: IButtonText);
 					public static create(p?: IButtonText): ButtonText;
 					public static fromObject(d: $ProtoObject): ButtonText;
-					public static toObject(m: ButtonText, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<ButtonText>;
 					public static encode: $ProtoEncode<IButtonText>;
 					public static decode: $ProtoDecode<ButtonText>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface INativeFlowInfo {
@@ -8295,16 +7942,15 @@ export namespace proto {
 					paramsJson?: (string|null);
 				}
 
-				interface NativeFlowInfo extends INativeFlowInfo {}
+				interface NativeFlowInfo extends INativeFlowInfo, $ProtoJSON {}
 
 				class NativeFlowInfo implements INativeFlowInfo {
 					constructor(p?: INativeFlowInfo);
 					public static create(p?: INativeFlowInfo): NativeFlowInfo;
 					public static fromObject(d: $ProtoObject): NativeFlowInfo;
-					public static toObject(m: NativeFlowInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<NativeFlowInfo>;
 					public static encode: $ProtoEncode<INativeFlowInfo>;
 					public static decode: $ProtoDecode<NativeFlowInfo>;
-					public toJSON(): $ProtoObject;
 				}
 
 				enum Type {
@@ -8332,16 +7978,15 @@ export namespace proto {
 			selectedDisplayText?: (string|null);
 		}
 
-		interface ButtonsResponseMessage extends IButtonsResponseMessage {}
+		interface ButtonsResponseMessage extends IButtonsResponseMessage, $ProtoJSON {}
 
 		class ButtonsResponseMessage implements IButtonsResponseMessage {
 			constructor(p?: IButtonsResponseMessage);
 			public static create(p?: IButtonsResponseMessage): ButtonsResponseMessage;
 			public static fromObject(d: $ProtoObject): ButtonsResponseMessage;
-			public static toObject(m: ButtonsResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ButtonsResponseMessage>;
 			public static encode: $ProtoEncode<IButtonsResponseMessage>;
 			public static decode: $ProtoDecode<ButtonsResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ButtonsResponseMessage {
@@ -8367,16 +8012,15 @@ export namespace proto {
 			callReason?: (string|null);
 		}
 
-		interface Call extends ICall {}
+		interface Call extends ICall, $ProtoJSON {}
 
 		class Call implements ICall {
 			constructor(p?: ICall);
 			public static create(p?: ICall): Call;
 			public static fromObject(d: $ProtoObject): Call;
-			public static toObject(m: Call, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Call>;
 			public static encode: $ProtoEncode<ICall>;
 			public static decode: $ProtoDecode<Call>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICallLogMessage {
@@ -8387,16 +8031,15 @@ export namespace proto {
 			participants?: proto.Message.CallLogMessage.ICallParticipant[];
 		}
 
-		interface CallLogMessage extends ICallLogMessage {}
+		interface CallLogMessage extends ICallLogMessage, $ProtoJSON {}
 
 		class CallLogMessage implements ICallLogMessage {
 			constructor(p?: ICallLogMessage);
 			public static create(p?: ICallLogMessage): CallLogMessage;
 			public static fromObject(d: $ProtoObject): CallLogMessage;
-			public static toObject(m: CallLogMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CallLogMessage>;
 			public static encode: $ProtoEncode<ICallLogMessage>;
 			public static decode: $ProtoDecode<CallLogMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace CallLogMessage {
@@ -8417,16 +8060,15 @@ export namespace proto {
 				callOutcome?: (proto.Message.CallLogMessage.CallOutcome|null);
 			}
 
-			interface CallParticipant extends ICallParticipant {}
+			interface CallParticipant extends ICallParticipant, $ProtoJSON {}
 
 			class CallParticipant implements ICallParticipant {
 				constructor(p?: ICallParticipant);
 				public static create(p?: ICallParticipant): CallParticipant;
 				public static fromObject(d: $ProtoObject): CallParticipant;
-				public static toObject(m: CallParticipant, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CallParticipant>;
 				public static encode: $ProtoEncode<ICallParticipant>;
 				public static decode: $ProtoDecode<CallParticipant>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum CallType {
@@ -8440,16 +8082,15 @@ export namespace proto {
 			key?: (proto.IMessageKey|null);
 		}
 
-		interface CancelPaymentRequestMessage extends ICancelPaymentRequestMessage {}
+		interface CancelPaymentRequestMessage extends ICancelPaymentRequestMessage, $ProtoJSON {}
 
 		class CancelPaymentRequestMessage implements ICancelPaymentRequestMessage {
 			constructor(p?: ICancelPaymentRequestMessage);
 			public static create(p?: ICancelPaymentRequestMessage): CancelPaymentRequestMessage;
 			public static fromObject(d: $ProtoObject): CancelPaymentRequestMessage;
-			public static toObject(m: CancelPaymentRequestMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CancelPaymentRequestMessage>;
 			public static encode: $ProtoEncode<ICancelPaymentRequestMessage>;
 			public static decode: $ProtoDecode<CancelPaymentRequestMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChat {
@@ -8457,16 +8098,15 @@ export namespace proto {
 			id?: (string|null);
 		}
 
-		interface Chat extends IChat {}
+		interface Chat extends IChat, $ProtoJSON {}
 
 		class Chat implements IChat {
 			constructor(p?: IChat);
 			public static create(p?: IChat): Chat;
 			public static fromObject(d: $ProtoObject): Chat;
-			public static toObject(m: Chat, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Chat>;
 			public static encode: $ProtoEncode<IChat>;
 			public static decode: $ProtoDecode<Chat>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatAnimatedWallpaper {
@@ -8474,16 +8114,15 @@ export namespace proto {
 			dimLevel?: (number|null);
 		}
 
-		interface ChatAnimatedWallpaper extends IChatAnimatedWallpaper {}
+		interface ChatAnimatedWallpaper extends IChatAnimatedWallpaper, $ProtoJSON {}
 
 		class ChatAnimatedWallpaper implements IChatAnimatedWallpaper {
 			constructor(p?: IChatAnimatedWallpaper);
 			public static create(p?: IChatAnimatedWallpaper): ChatAnimatedWallpaper;
 			public static fromObject(d: $ProtoObject): ChatAnimatedWallpaper;
-			public static toObject(m: ChatAnimatedWallpaper, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatAnimatedWallpaper>;
 			public static encode: $ProtoEncode<IChatAnimatedWallpaper>;
 			public static decode: $ProtoDecode<ChatAnimatedWallpaper>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatCustomImageWallpaper {
@@ -8494,32 +8133,30 @@ export namespace proto {
 			dimLevel?: (number|null);
 		}
 
-		interface ChatCustomImageWallpaper extends IChatCustomImageWallpaper {}
+		interface ChatCustomImageWallpaper extends IChatCustomImageWallpaper, $ProtoJSON {}
 
 		class ChatCustomImageWallpaper implements IChatCustomImageWallpaper {
 			constructor(p?: IChatCustomImageWallpaper);
 			public static create(p?: IChatCustomImageWallpaper): ChatCustomImageWallpaper;
 			public static fromObject(d: $ProtoObject): ChatCustomImageWallpaper;
-			public static toObject(m: ChatCustomImageWallpaper, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatCustomImageWallpaper>;
 			public static encode: $ProtoEncode<IChatCustomImageWallpaper>;
 			public static decode: $ProtoDecode<ChatCustomImageWallpaper>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatDefaultWallpaper {
 			isDoodleEnabled?: (boolean|null);
 		}
 
-		interface ChatDefaultWallpaper extends IChatDefaultWallpaper {}
+		interface ChatDefaultWallpaper extends IChatDefaultWallpaper, $ProtoJSON {}
 
 		class ChatDefaultWallpaper implements IChatDefaultWallpaper {
 			constructor(p?: IChatDefaultWallpaper);
 			public static create(p?: IChatDefaultWallpaper): ChatDefaultWallpaper;
 			public static fromObject(d: $ProtoObject): ChatDefaultWallpaper;
-			public static toObject(m: ChatDefaultWallpaper, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatDefaultWallpaper>;
 			public static encode: $ProtoEncode<IChatDefaultWallpaper>;
 			public static decode: $ProtoDecode<ChatDefaultWallpaper>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatSolidColorWallpaper {
@@ -8528,16 +8165,15 @@ export namespace proto {
 			isDoodleEnabled?: (boolean|null);
 		}
 
-		interface ChatSolidColorWallpaper extends IChatSolidColorWallpaper {}
+		interface ChatSolidColorWallpaper extends IChatSolidColorWallpaper, $ProtoJSON {}
 
 		class ChatSolidColorWallpaper implements IChatSolidColorWallpaper {
 			constructor(p?: IChatSolidColorWallpaper);
 			public static create(p?: IChatSolidColorWallpaper): ChatSolidColorWallpaper;
 			public static fromObject(d: $ProtoObject): ChatSolidColorWallpaper;
-			public static toObject(m: ChatSolidColorWallpaper, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatSolidColorWallpaper>;
 			public static encode: $ProtoEncode<IChatSolidColorWallpaper>;
 			public static decode: $ProtoDecode<ChatSolidColorWallpaper>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatStockImageWallpaper {
@@ -8545,16 +8181,15 @@ export namespace proto {
 			dimLevel?: (number|null);
 		}
 
-		interface ChatStockImageWallpaper extends IChatStockImageWallpaper {}
+		interface ChatStockImageWallpaper extends IChatStockImageWallpaper, $ProtoJSON {}
 
 		class ChatStockImageWallpaper implements IChatStockImageWallpaper {
 			constructor(p?: IChatStockImageWallpaper);
 			public static create(p?: IChatStockImageWallpaper): ChatStockImageWallpaper;
 			public static fromObject(d: $ProtoObject): ChatStockImageWallpaper;
-			public static toObject(m: ChatStockImageWallpaper, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatStockImageWallpaper>;
 			public static encode: $ProtoEncode<IChatStockImageWallpaper>;
 			public static decode: $ProtoDecode<ChatStockImageWallpaper>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatThemeSetting {
@@ -8568,16 +8203,15 @@ export namespace proto {
 			animatedWallpaper?: (proto.Message.IChatAnimatedWallpaper|null);
 		}
 
-		interface ChatThemeSetting extends IChatThemeSetting {}
+		interface ChatThemeSetting extends IChatThemeSetting, $ProtoJSON {}
 
 		class ChatThemeSetting implements IChatThemeSetting {
 			constructor(p?: IChatThemeSetting);
 			public static create(p?: IChatThemeSetting): ChatThemeSetting;
 			public static fromObject(d: $ProtoObject): ChatThemeSetting;
-			public static toObject(m: ChatThemeSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatThemeSetting>;
 			public static encode: $ProtoEncode<IChatThemeSetting>;
 			public static decode: $ProtoDecode<ChatThemeSetting>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICloudAPIThreadControlNotification {
@@ -8589,16 +8223,15 @@ export namespace proto {
 			shouldSuppressNotification?: (boolean|null);
 		}
 
-		interface CloudAPIThreadControlNotification extends ICloudAPIThreadControlNotification {}
+		interface CloudAPIThreadControlNotification extends ICloudAPIThreadControlNotification, $ProtoJSON {}
 
 		class CloudAPIThreadControlNotification implements ICloudAPIThreadControlNotification {
 			constructor(p?: ICloudAPIThreadControlNotification);
 			public static create(p?: ICloudAPIThreadControlNotification): CloudAPIThreadControlNotification;
 			public static fromObject(d: $ProtoObject): CloudAPIThreadControlNotification;
-			public static toObject(m: CloudAPIThreadControlNotification, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CloudAPIThreadControlNotification>;
 			public static encode: $ProtoEncode<ICloudAPIThreadControlNotification>;
 			public static decode: $ProtoDecode<CloudAPIThreadControlNotification>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace CloudAPIThreadControlNotification {
@@ -8615,16 +8248,15 @@ export namespace proto {
 				extraJson?: (string|null);
 			}
 
-			interface CloudAPIThreadControlNotificationContent extends ICloudAPIThreadControlNotificationContent {}
+			interface CloudAPIThreadControlNotificationContent extends ICloudAPIThreadControlNotificationContent, $ProtoJSON {}
 
 			class CloudAPIThreadControlNotificationContent implements ICloudAPIThreadControlNotificationContent {
 				constructor(p?: ICloudAPIThreadControlNotificationContent);
 				public static create(p?: ICloudAPIThreadControlNotificationContent): CloudAPIThreadControlNotificationContent;
 				public static fromObject(d: $ProtoObject): CloudAPIThreadControlNotificationContent;
-				public static toObject(m: CloudAPIThreadControlNotificationContent, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CloudAPIThreadControlNotificationContent>;
 				public static encode: $ProtoEncode<ICloudAPIThreadControlNotificationContent>;
 				public static decode: $ProtoDecode<CloudAPIThreadControlNotificationContent>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -8633,16 +8265,15 @@ export namespace proto {
 			targetMessageKey?: (proto.IMessageKey|null);
 		}
 
-		interface CommentMessage extends ICommentMessage {}
+		interface CommentMessage extends ICommentMessage, $ProtoJSON {}
 
 		class CommentMessage implements ICommentMessage {
 			constructor(p?: ICommentMessage);
 			public static create(p?: ICommentMessage): CommentMessage;
 			public static fromObject(d: $ProtoObject): CommentMessage;
-			public static toObject(m: CommentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CommentMessage>;
 			public static encode: $ProtoEncode<ICommentMessage>;
 			public static decode: $ProtoDecode<CommentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IConditionalRevealMessage {
@@ -8652,16 +8283,15 @@ export namespace proto {
 			revealKeyId?: (string|null);
 		}
 
-		interface ConditionalRevealMessage extends IConditionalRevealMessage {}
+		interface ConditionalRevealMessage extends IConditionalRevealMessage, $ProtoJSON {}
 
 		class ConditionalRevealMessage implements IConditionalRevealMessage {
 			constructor(p?: IConditionalRevealMessage);
 			public static create(p?: IConditionalRevealMessage): ConditionalRevealMessage;
 			public static fromObject(d: $ProtoObject): ConditionalRevealMessage;
-			public static toObject(m: ConditionalRevealMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ConditionalRevealMessage>;
 			public static encode: $ProtoEncode<IConditionalRevealMessage>;
 			public static decode: $ProtoDecode<ConditionalRevealMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ConditionalRevealMessage {
@@ -8679,16 +8309,15 @@ export namespace proto {
 			isSelfContact?: (boolean|null);
 		}
 
-		interface ContactMessage extends IContactMessage {}
+		interface ContactMessage extends IContactMessage, $ProtoJSON {}
 
 		class ContactMessage implements IContactMessage {
 			constructor(p?: IContactMessage);
 			public static create(p?: IContactMessage): ContactMessage;
 			public static fromObject(d: $ProtoObject): ContactMessage;
-			public static toObject(m: ContactMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactMessage>;
 			public static encode: $ProtoEncode<IContactMessage>;
 			public static decode: $ProtoDecode<ContactMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IContactsArrayMessage {
@@ -8697,32 +8326,30 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface ContactsArrayMessage extends IContactsArrayMessage {}
+		interface ContactsArrayMessage extends IContactsArrayMessage, $ProtoJSON {}
 
 		class ContactsArrayMessage implements IContactsArrayMessage {
 			constructor(p?: IContactsArrayMessage);
 			public static create(p?: IContactsArrayMessage): ContactsArrayMessage;
 			public static fromObject(d: $ProtoObject): ContactsArrayMessage;
-			public static toObject(m: ContactsArrayMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactsArrayMessage>;
 			public static encode: $ProtoEncode<IContactsArrayMessage>;
 			public static decode: $ProtoDecode<ContactsArrayMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDeclinePaymentRequestMessage {
 			key?: (proto.IMessageKey|null);
 		}
 
-		interface DeclinePaymentRequestMessage extends IDeclinePaymentRequestMessage {}
+		interface DeclinePaymentRequestMessage extends IDeclinePaymentRequestMessage, $ProtoJSON {}
 
 		class DeclinePaymentRequestMessage implements IDeclinePaymentRequestMessage {
 			constructor(p?: IDeclinePaymentRequestMessage);
 			public static create(p?: IDeclinePaymentRequestMessage): DeclinePaymentRequestMessage;
 			public static fromObject(d: $ProtoObject): DeclinePaymentRequestMessage;
-			public static toObject(m: DeclinePaymentRequestMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DeclinePaymentRequestMessage>;
 			public static encode: $ProtoEncode<IDeclinePaymentRequestMessage>;
 			public static decode: $ProtoDecode<DeclinePaymentRequestMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDeviceSentMessage {
@@ -8731,16 +8358,15 @@ export namespace proto {
 			phash?: (string|null);
 		}
 
-		interface DeviceSentMessage extends IDeviceSentMessage {}
+		interface DeviceSentMessage extends IDeviceSentMessage, $ProtoJSON {}
 
 		class DeviceSentMessage implements IDeviceSentMessage {
 			constructor(p?: IDeviceSentMessage);
 			public static create(p?: IDeviceSentMessage): DeviceSentMessage;
 			public static fromObject(d: $ProtoObject): DeviceSentMessage;
-			public static toObject(m: DeviceSentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DeviceSentMessage>;
 			public static encode: $ProtoEncode<IDeviceSentMessage>;
 			public static decode: $ProtoDecode<DeviceSentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDocumentMessage {
@@ -8767,16 +8393,15 @@ export namespace proto {
 			accessibilityLabel?: (string|null);
 		}
 
-		interface DocumentMessage extends IDocumentMessage {}
+		interface DocumentMessage extends IDocumentMessage, $ProtoJSON {}
 
 		class DocumentMessage implements IDocumentMessage {
 			constructor(p?: IDocumentMessage);
 			public static create(p?: IDocumentMessage): DocumentMessage;
 			public static fromObject(d: $ProtoObject): DocumentMessage;
-			public static toObject(m: DocumentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DocumentMessage>;
 			public static encode: $ProtoEncode<IDocumentMessage>;
 			public static decode: $ProtoDecode<DocumentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEncCommentMessage {
@@ -8785,16 +8410,15 @@ export namespace proto {
 			encIv?: (Uint8Array|null);
 		}
 
-		interface EncCommentMessage extends IEncCommentMessage {}
+		interface EncCommentMessage extends IEncCommentMessage, $ProtoJSON {}
 
 		class EncCommentMessage implements IEncCommentMessage {
 			constructor(p?: IEncCommentMessage);
 			public static create(p?: IEncCommentMessage): EncCommentMessage;
 			public static fromObject(d: $ProtoObject): EncCommentMessage;
-			public static toObject(m: EncCommentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EncCommentMessage>;
 			public static encode: $ProtoEncode<IEncCommentMessage>;
 			public static decode: $ProtoDecode<EncCommentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEncEventResponseMessage {
@@ -8803,16 +8427,15 @@ export namespace proto {
 			encIv?: (Uint8Array|null);
 		}
 
-		interface EncEventResponseMessage extends IEncEventResponseMessage {}
+		interface EncEventResponseMessage extends IEncEventResponseMessage, $ProtoJSON {}
 
 		class EncEventResponseMessage implements IEncEventResponseMessage {
 			constructor(p?: IEncEventResponseMessage);
 			public static create(p?: IEncEventResponseMessage): EncEventResponseMessage;
 			public static fromObject(d: $ProtoObject): EncEventResponseMessage;
-			public static toObject(m: EncEventResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EncEventResponseMessage>;
 			public static encode: $ProtoEncode<IEncEventResponseMessage>;
 			public static decode: $ProtoDecode<EncEventResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEncReactionMessage {
@@ -8821,16 +8444,15 @@ export namespace proto {
 			encIv?: (Uint8Array|null);
 		}
 
-		interface EncReactionMessage extends IEncReactionMessage {}
+		interface EncReactionMessage extends IEncReactionMessage, $ProtoJSON {}
 
 		class EncReactionMessage implements IEncReactionMessage {
 			constructor(p?: IEncReactionMessage);
 			public static create(p?: IEncReactionMessage): EncReactionMessage;
 			public static fromObject(d: $ProtoObject): EncReactionMessage;
-			public static toObject(m: EncReactionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EncReactionMessage>;
 			public static encode: $ProtoEncode<IEncReactionMessage>;
 			public static decode: $ProtoDecode<EncReactionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEventInviteMessage {
@@ -8845,16 +8467,15 @@ export namespace proto {
 			callLink?: (string|null);
 		}
 
-		interface EventInviteMessage extends IEventInviteMessage {}
+		interface EventInviteMessage extends IEventInviteMessage, $ProtoJSON {}
 
 		class EventInviteMessage implements IEventInviteMessage {
 			constructor(p?: IEventInviteMessage);
 			public static create(p?: IEventInviteMessage): EventInviteMessage;
 			public static fromObject(d: $ProtoObject): EventInviteMessage;
-			public static toObject(m: EventInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EventInviteMessage>;
 			public static encode: $ProtoEncode<IEventInviteMessage>;
 			public static decode: $ProtoDecode<EventInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEventMessage {
@@ -8872,16 +8493,15 @@ export namespace proto {
 			reminderOffsetSec?: (Long|null);
 		}
 
-		interface EventMessage extends IEventMessage {}
+		interface EventMessage extends IEventMessage, $ProtoJSON {}
 
 		class EventMessage implements IEventMessage {
 			constructor(p?: IEventMessage);
 			public static create(p?: IEventMessage): EventMessage;
 			public static fromObject(d: $ProtoObject): EventMessage;
-			public static toObject(m: EventMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EventMessage>;
 			public static encode: $ProtoEncode<IEventMessage>;
 			public static decode: $ProtoDecode<EventMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IEventResponseMessage {
@@ -8890,16 +8510,15 @@ export namespace proto {
 			extraGuestCount?: (number|null);
 		}
 
-		interface EventResponseMessage extends IEventResponseMessage {}
+		interface EventResponseMessage extends IEventResponseMessage, $ProtoJSON {}
 
 		class EventResponseMessage implements IEventResponseMessage {
 			constructor(p?: IEventResponseMessage);
 			public static create(p?: IEventResponseMessage): EventResponseMessage;
 			public static fromObject(d: $ProtoObject): EventResponseMessage;
-			public static toObject(m: EventResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EventResponseMessage>;
 			public static encode: $ProtoEncode<IEventResponseMessage>;
 			public static decode: $ProtoDecode<EventResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace EventResponseMessage {
@@ -8947,16 +8566,15 @@ export namespace proto {
 			paymentExtendedMetadata?: (proto.Message.IPaymentExtendedMetadata|null);
 		}
 
-		interface ExtendedTextMessage extends IExtendedTextMessage {}
+		interface ExtendedTextMessage extends IExtendedTextMessage, $ProtoJSON {}
 
 		class ExtendedTextMessage implements IExtendedTextMessage {
 			constructor(p?: IExtendedTextMessage);
 			public static create(p?: IExtendedTextMessage): ExtendedTextMessage;
 			public static fromObject(d: $ProtoObject): ExtendedTextMessage;
-			public static toObject(m: ExtendedTextMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ExtendedTextMessage>;
 			public static encode: $ProtoEncode<IExtendedTextMessage>;
 			public static decode: $ProtoDecode<ExtendedTextMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ExtendedTextMessage {
@@ -8994,16 +8612,15 @@ export namespace proto {
 			historyDurationDays?: (number|null);
 		}
 
-		interface FullHistorySyncOnDemandConfig extends IFullHistorySyncOnDemandConfig {}
+		interface FullHistorySyncOnDemandConfig extends IFullHistorySyncOnDemandConfig, $ProtoJSON {}
 
 		class FullHistorySyncOnDemandConfig implements IFullHistorySyncOnDemandConfig {
 			constructor(p?: IFullHistorySyncOnDemandConfig);
 			public static create(p?: IFullHistorySyncOnDemandConfig): FullHistorySyncOnDemandConfig;
 			public static fromObject(d: $ProtoObject): FullHistorySyncOnDemandConfig;
-			public static toObject(m: FullHistorySyncOnDemandConfig, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FullHistorySyncOnDemandConfig>;
 			public static encode: $ProtoEncode<IFullHistorySyncOnDemandConfig>;
 			public static decode: $ProtoDecode<FullHistorySyncOnDemandConfig>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IFullHistorySyncOnDemandRequestMetadata {
@@ -9012,32 +8629,30 @@ export namespace proto {
 			opaqueClientData?: (Uint8Array|null);
 		}
 
-		interface FullHistorySyncOnDemandRequestMetadata extends IFullHistorySyncOnDemandRequestMetadata {}
+		interface FullHistorySyncOnDemandRequestMetadata extends IFullHistorySyncOnDemandRequestMetadata, $ProtoJSON {}
 
 		class FullHistorySyncOnDemandRequestMetadata implements IFullHistorySyncOnDemandRequestMetadata {
 			constructor(p?: IFullHistorySyncOnDemandRequestMetadata);
 			public static create(p?: IFullHistorySyncOnDemandRequestMetadata): FullHistorySyncOnDemandRequestMetadata;
 			public static fromObject(d: $ProtoObject): FullHistorySyncOnDemandRequestMetadata;
-			public static toObject(m: FullHistorySyncOnDemandRequestMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FullHistorySyncOnDemandRequestMetadata>;
 			public static encode: $ProtoEncode<IFullHistorySyncOnDemandRequestMetadata>;
 			public static decode: $ProtoDecode<FullHistorySyncOnDemandRequestMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IFutureProofMessage {
 			message?: (proto.IMessage|null);
 		}
 
-		interface FutureProofMessage extends IFutureProofMessage {}
+		interface FutureProofMessage extends IFutureProofMessage, $ProtoJSON {}
 
 		class FutureProofMessage implements IFutureProofMessage {
 			constructor(p?: IFutureProofMessage);
 			public static create(p?: IFutureProofMessage): FutureProofMessage;
 			public static fromObject(d: $ProtoObject): FutureProofMessage;
-			public static toObject(m: FutureProofMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FutureProofMessage>;
 			public static encode: $ProtoEncode<IFutureProofMessage>;
 			public static decode: $ProtoDecode<FutureProofMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IGroupInviteMessage {
@@ -9051,16 +8666,15 @@ export namespace proto {
 			groupType?: (proto.Message.GroupInviteMessage.GroupType|null);
 		}
 
-		interface GroupInviteMessage extends IGroupInviteMessage {}
+		interface GroupInviteMessage extends IGroupInviteMessage, $ProtoJSON {}
 
 		class GroupInviteMessage implements IGroupInviteMessage {
 			constructor(p?: IGroupInviteMessage);
 			public static create(p?: IGroupInviteMessage): GroupInviteMessage;
 			public static fromObject(d: $ProtoObject): GroupInviteMessage;
-			public static toObject(m: GroupInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<GroupInviteMessage>;
 			public static encode: $ProtoEncode<IGroupInviteMessage>;
 			public static decode: $ProtoDecode<GroupInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace GroupInviteMessage {
@@ -9083,16 +8697,15 @@ export namespace proto {
 			hydratedHsm?: (proto.Message.ITemplateMessage|null);
 		}
 
-		interface HighlyStructuredMessage extends IHighlyStructuredMessage {}
+		interface HighlyStructuredMessage extends IHighlyStructuredMessage, $ProtoJSON {}
 
 		class HighlyStructuredMessage implements IHighlyStructuredMessage {
 			constructor(p?: IHighlyStructuredMessage);
 			public static create(p?: IHighlyStructuredMessage): HighlyStructuredMessage;
 			public static fromObject(d: $ProtoObject): HighlyStructuredMessage;
-			public static toObject(m: HighlyStructuredMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HighlyStructuredMessage>;
 			public static encode: $ProtoEncode<IHighlyStructuredMessage>;
 			public static decode: $ProtoDecode<HighlyStructuredMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace HighlyStructuredMessage {
@@ -9103,16 +8716,15 @@ export namespace proto {
 				dateTime?: (proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.IHSMDateTime|null);
 			}
 
-			interface HSMLocalizableParameter extends IHSMLocalizableParameter {}
+			interface HSMLocalizableParameter extends IHSMLocalizableParameter, $ProtoJSON {}
 
 			class HSMLocalizableParameter implements IHSMLocalizableParameter {
 				constructor(p?: IHSMLocalizableParameter);
 				public static create(p?: IHSMLocalizableParameter): HSMLocalizableParameter;
 				public static fromObject(d: $ProtoObject): HSMLocalizableParameter;
-				public static toObject(m: HSMLocalizableParameter, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<HSMLocalizableParameter>;
 				public static encode: $ProtoEncode<IHSMLocalizableParameter>;
 				public static decode: $ProtoDecode<HSMLocalizableParameter>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace HSMLocalizableParameter {
@@ -9122,16 +8734,15 @@ export namespace proto {
 					amount1000?: (Long|null);
 				}
 
-				interface HSMCurrency extends IHSMCurrency {}
+				interface HSMCurrency extends IHSMCurrency, $ProtoJSON {}
 
 				class HSMCurrency implements IHSMCurrency {
 					constructor(p?: IHSMCurrency);
 					public static create(p?: IHSMCurrency): HSMCurrency;
 					public static fromObject(d: $ProtoObject): HSMCurrency;
-					public static toObject(m: HSMCurrency, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<HSMCurrency>;
 					public static encode: $ProtoEncode<IHSMCurrency>;
 					public static decode: $ProtoDecode<HSMCurrency>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IHSMDateTime {
@@ -9139,16 +8750,15 @@ export namespace proto {
 					unixEpoch?: (proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.IHSMDateTimeUnixEpoch|null);
 				}
 
-				interface HSMDateTime extends IHSMDateTime {}
+				interface HSMDateTime extends IHSMDateTime, $ProtoJSON {}
 
 				class HSMDateTime implements IHSMDateTime {
 					constructor(p?: IHSMDateTime);
 					public static create(p?: IHSMDateTime): HSMDateTime;
 					public static fromObject(d: $ProtoObject): HSMDateTime;
-					public static toObject(m: HSMDateTime, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<HSMDateTime>;
 					public static encode: $ProtoEncode<IHSMDateTime>;
 					public static decode: $ProtoDecode<HSMDateTime>;
-					public toJSON(): $ProtoObject;
 				}
 
 				namespace HSMDateTime {
@@ -9163,16 +8773,15 @@ export namespace proto {
 						calendar?: (proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.HSMDateTimeComponent.CalendarType|null);
 					}
 
-					interface HSMDateTimeComponent extends IHSMDateTimeComponent {}
+					interface HSMDateTimeComponent extends IHSMDateTimeComponent, $ProtoJSON {}
 
 					class HSMDateTimeComponent implements IHSMDateTimeComponent {
 						constructor(p?: IHSMDateTimeComponent);
 						public static create(p?: IHSMDateTimeComponent): HSMDateTimeComponent;
 						public static fromObject(d: $ProtoObject): HSMDateTimeComponent;
-						public static toObject(m: HSMDateTimeComponent, o?: $protobuf.IConversionOptions): $ProtoObject;
+						public static toObject: $ProtoToObject<HSMDateTimeComponent>;
 						public static encode: $ProtoEncode<IHSMDateTimeComponent>;
 						public static decode: $ProtoDecode<HSMDateTimeComponent>;
-						public toJSON(): $ProtoObject;
 					}
 
 					namespace HSMDateTimeComponent {
@@ -9197,16 +8806,15 @@ export namespace proto {
 						timestamp?: (Long|null);
 					}
 
-					interface HSMDateTimeUnixEpoch extends IHSMDateTimeUnixEpoch {}
+					interface HSMDateTimeUnixEpoch extends IHSMDateTimeUnixEpoch, $ProtoJSON {}
 
 					class HSMDateTimeUnixEpoch implements IHSMDateTimeUnixEpoch {
 						constructor(p?: IHSMDateTimeUnixEpoch);
 						public static create(p?: IHSMDateTimeUnixEpoch): HSMDateTimeUnixEpoch;
 						public static fromObject(d: $ProtoObject): HSMDateTimeUnixEpoch;
-						public static toObject(m: HSMDateTimeUnixEpoch, o?: $protobuf.IConversionOptions): $ProtoObject;
+						public static toObject: $ProtoToObject<HSMDateTimeUnixEpoch>;
 						public static encode: $ProtoEncode<IHSMDateTimeUnixEpoch>;
 						public static decode: $ProtoDecode<HSMDateTimeUnixEpoch>;
-						public toJSON(): $ProtoObject;
 					}
 				}
 			}
@@ -9217,32 +8825,30 @@ export namespace proto {
 			messageSecretProof?: (Uint8Array|null);
 		}
 
-		interface HistoryShareMessageEntry extends IHistoryShareMessageEntry {}
+		interface HistoryShareMessageEntry extends IHistoryShareMessageEntry, $ProtoJSON {}
 
 		class HistoryShareMessageEntry implements IHistoryShareMessageEntry {
 			constructor(p?: IHistoryShareMessageEntry);
 			public static create(p?: IHistoryShareMessageEntry): HistoryShareMessageEntry;
 			public static fromObject(d: $ProtoObject): HistoryShareMessageEntry;
-			public static toObject(m: HistoryShareMessageEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HistoryShareMessageEntry>;
 			public static encode: $ProtoEncode<IHistoryShareMessageEntry>;
 			public static decode: $ProtoDecode<HistoryShareMessageEntry>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IHistorySyncMessageAccessStatus {
 			completeAccessGranted?: (boolean|null);
 		}
 
-		interface HistorySyncMessageAccessStatus extends IHistorySyncMessageAccessStatus {}
+		interface HistorySyncMessageAccessStatus extends IHistorySyncMessageAccessStatus, $ProtoJSON {}
 
 		class HistorySyncMessageAccessStatus implements IHistorySyncMessageAccessStatus {
 			constructor(p?: IHistorySyncMessageAccessStatus);
 			public static create(p?: IHistorySyncMessageAccessStatus): HistorySyncMessageAccessStatus;
 			public static fromObject(d: $ProtoObject): HistorySyncMessageAccessStatus;
-			public static toObject(m: HistorySyncMessageAccessStatus, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HistorySyncMessageAccessStatus>;
 			public static encode: $ProtoEncode<IHistorySyncMessageAccessStatus>;
 			public static decode: $ProtoDecode<HistorySyncMessageAccessStatus>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IHistorySyncNotification {
@@ -9263,16 +8869,15 @@ export namespace proto {
 			messageAccessStatus?: (proto.Message.IHistorySyncMessageAccessStatus|null);
 		}
 
-		interface HistorySyncNotification extends IHistorySyncNotification {}
+		interface HistorySyncNotification extends IHistorySyncNotification, $ProtoJSON {}
 
 		class HistorySyncNotification implements IHistorySyncNotification {
 			constructor(p?: IHistorySyncNotification);
 			public static create(p?: IHistorySyncNotification): HistorySyncNotification;
 			public static fromObject(d: $ProtoObject): HistorySyncNotification;
-			public static toObject(m: HistorySyncNotification, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<HistorySyncNotification>;
 			public static encode: $ProtoEncode<IHistorySyncNotification>;
 			public static decode: $ProtoDecode<HistorySyncNotification>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum HistorySyncType {
@@ -9320,16 +8925,15 @@ export namespace proto {
 			qrUrl?: (string|null);
 		}
 
-		interface ImageMessage extends IImageMessage {}
+		interface ImageMessage extends IImageMessage, $ProtoJSON {}
 
 		class ImageMessage implements IImageMessage {
 			constructor(p?: IImageMessage);
 			public static create(p?: IImageMessage): ImageMessage;
 			public static fromObject(d: $ProtoObject): ImageMessage;
-			public static toObject(m: ImageMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ImageMessage>;
 			public static encode: $ProtoEncode<IImageMessage>;
 			public static decode: $ProtoDecode<ImageMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ImageMessage {
@@ -9346,16 +8950,15 @@ export namespace proto {
 			securityNotificationEnabled?: (boolean|null);
 		}
 
-		interface InitialSecurityNotificationSettingSync extends IInitialSecurityNotificationSettingSync {}
+		interface InitialSecurityNotificationSettingSync extends IInitialSecurityNotificationSettingSync, $ProtoJSON {}
 
 		class InitialSecurityNotificationSettingSync implements IInitialSecurityNotificationSettingSync {
 			constructor(p?: IInitialSecurityNotificationSettingSync);
 			public static create(p?: IInitialSecurityNotificationSettingSync): InitialSecurityNotificationSettingSync;
 			public static fromObject(d: $ProtoObject): InitialSecurityNotificationSettingSync;
-			public static toObject(m: InitialSecurityNotificationSettingSync, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InitialSecurityNotificationSettingSync>;
 			public static encode: $ProtoEncode<IInitialSecurityNotificationSettingSync>;
 			public static decode: $ProtoDecode<InitialSecurityNotificationSettingSync>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum InsightDeliveryState {
@@ -9379,16 +8982,15 @@ export namespace proto {
 			carouselMessage?: (proto.Message.InteractiveMessage.ICarouselMessage|null);
 		}
 
-		interface InteractiveMessage extends IInteractiveMessage {}
+		interface InteractiveMessage extends IInteractiveMessage, $ProtoJSON {}
 
 		class InteractiveMessage implements IInteractiveMessage {
 			constructor(p?: IInteractiveMessage);
 			public static create(p?: IInteractiveMessage): InteractiveMessage;
 			public static fromObject(d: $ProtoObject): InteractiveMessage;
-			public static toObject(m: InteractiveMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InteractiveMessage>;
 			public static encode: $ProtoEncode<IInteractiveMessage>;
 			public static decode: $ProtoDecode<InteractiveMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace InteractiveMessage {
@@ -9400,32 +9002,30 @@ export namespace proto {
 				fallback?: (string|null);
 			}
 
-			interface BloksWidget extends IBloksWidget {}
+			interface BloksWidget extends IBloksWidget, $ProtoJSON {}
 
 			class BloksWidget implements IBloksWidget {
 				constructor(p?: IBloksWidget);
 				public static create(p?: IBloksWidget): BloksWidget;
 				public static fromObject(d: $ProtoObject): BloksWidget;
-				public static toObject(m: BloksWidget, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BloksWidget>;
 				public static encode: $ProtoEncode<IBloksWidget>;
 				public static decode: $ProtoDecode<BloksWidget>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IBody {
 				text?: (string|null);
 			}
 
-			interface Body extends IBody {}
+			interface Body extends IBody, $ProtoJSON {}
 
 			class Body implements IBody {
 				constructor(p?: IBody);
 				public static create(p?: IBody): Body;
 				public static fromObject(d: $ProtoObject): Body;
-				public static toObject(m: Body, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Body>;
 				public static encode: $ProtoEncode<IBody>;
 				public static decode: $ProtoDecode<Body>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ICarouselMessage {
@@ -9434,16 +9034,15 @@ export namespace proto {
 				carouselCardType?: (proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType|null);
 			}
 
-			interface CarouselMessage extends ICarouselMessage {}
+			interface CarouselMessage extends ICarouselMessage, $ProtoJSON {}
 
 			class CarouselMessage implements ICarouselMessage {
 				constructor(p?: ICarouselMessage);
 				public static create(p?: ICarouselMessage): CarouselMessage;
 				public static fromObject(d: $ProtoObject): CarouselMessage;
-				public static toObject(m: CarouselMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CarouselMessage>;
 				public static encode: $ProtoEncode<ICarouselMessage>;
 				public static decode: $ProtoDecode<CarouselMessage>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace CarouselMessage {
@@ -9461,16 +9060,15 @@ export namespace proto {
 				messageVersion?: (number|null);
 			}
 
-			interface CollectionMessage extends ICollectionMessage {}
+			interface CollectionMessage extends ICollectionMessage, $ProtoJSON {}
 
 			class CollectionMessage implements ICollectionMessage {
 				constructor(p?: ICollectionMessage);
 				public static create(p?: ICollectionMessage): CollectionMessage;
 				public static fromObject(d: $ProtoObject): CollectionMessage;
-				public static toObject(m: CollectionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CollectionMessage>;
 				public static encode: $ProtoEncode<ICollectionMessage>;
 				public static decode: $ProtoDecode<CollectionMessage>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IFooter {
@@ -9479,16 +9077,15 @@ export namespace proto {
 				audioMessage?: (proto.Message.IAudioMessage|null);
 			}
 
-			interface Footer extends IFooter {}
+			interface Footer extends IFooter, $ProtoJSON {}
 
 			class Footer implements IFooter {
 				constructor(p?: IFooter);
 				public static create(p?: IFooter): Footer;
 				public static fromObject(d: $ProtoObject): Footer;
-				public static toObject(m: Footer, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Footer>;
 				public static encode: $ProtoEncode<IFooter>;
 				public static decode: $ProtoDecode<Footer>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IHeader {
@@ -9504,16 +9101,15 @@ export namespace proto {
 				productMessage?: (proto.Message.IProductMessage|null);
 			}
 
-			interface Header extends IHeader {}
+			interface Header extends IHeader, $ProtoJSON {}
 
 			class Header implements IHeader {
 				constructor(p?: IHeader);
 				public static create(p?: IHeader): Header;
 				public static fromObject(d: $ProtoObject): Header;
-				public static toObject(m: Header, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Header>;
 				public static encode: $ProtoEncode<IHeader>;
 				public static decode: $ProtoDecode<Header>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface INativeFlowMessage {
@@ -9522,16 +9118,15 @@ export namespace proto {
 				messageVersion?: (number|null);
 			}
 
-			interface NativeFlowMessage extends INativeFlowMessage {}
+			interface NativeFlowMessage extends INativeFlowMessage, $ProtoJSON {}
 
 			class NativeFlowMessage implements INativeFlowMessage {
 				constructor(p?: INativeFlowMessage);
 				public static create(p?: INativeFlowMessage): NativeFlowMessage;
 				public static fromObject(d: $ProtoObject): NativeFlowMessage;
-				public static toObject(m: NativeFlowMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<NativeFlowMessage>;
 				public static encode: $ProtoEncode<INativeFlowMessage>;
 				public static decode: $ProtoDecode<NativeFlowMessage>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace NativeFlowMessage {
@@ -9541,16 +9136,15 @@ export namespace proto {
 					buttonParamsJson?: (string|null);
 				}
 
-				interface NativeFlowButton extends INativeFlowButton {}
+				interface NativeFlowButton extends INativeFlowButton, $ProtoJSON {}
 
 				class NativeFlowButton implements INativeFlowButton {
 					constructor(p?: INativeFlowButton);
 					public static create(p?: INativeFlowButton): NativeFlowButton;
 					public static fromObject(d: $ProtoObject): NativeFlowButton;
-					public static toObject(m: NativeFlowButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<NativeFlowButton>;
 					public static encode: $ProtoEncode<INativeFlowButton>;
 					public static decode: $ProtoDecode<NativeFlowButton>;
-					public toJSON(): $ProtoObject;
 				}
 			}
 
@@ -9560,16 +9154,15 @@ export namespace proto {
 				messageVersion?: (number|null);
 			}
 
-			interface ShopMessage extends IShopMessage {}
+			interface ShopMessage extends IShopMessage, $ProtoJSON {}
 
 			class ShopMessage implements IShopMessage {
 				constructor(p?: IShopMessage);
 				public static create(p?: IShopMessage): ShopMessage;
 				public static fromObject(d: $ProtoObject): ShopMessage;
-				public static toObject(m: ShopMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ShopMessage>;
 				public static encode: $ProtoEncode<IShopMessage>;
 				public static decode: $ProtoDecode<ShopMessage>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace ShopMessage {
@@ -9589,16 +9182,15 @@ export namespace proto {
 			nativeFlowResponseMessage?: (proto.Message.InteractiveResponseMessage.INativeFlowResponseMessage|null);
 		}
 
-		interface InteractiveResponseMessage extends IInteractiveResponseMessage {}
+		interface InteractiveResponseMessage extends IInteractiveResponseMessage, $ProtoJSON {}
 
 		class InteractiveResponseMessage implements IInteractiveResponseMessage {
 			constructor(p?: IInteractiveResponseMessage);
 			public static create(p?: IInteractiveResponseMessage): InteractiveResponseMessage;
 			public static fromObject(d: $ProtoObject): InteractiveResponseMessage;
-			public static toObject(m: InteractiveResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InteractiveResponseMessage>;
 			public static encode: $ProtoEncode<IInteractiveResponseMessage>;
 			public static decode: $ProtoDecode<InteractiveResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace InteractiveResponseMessage {
@@ -9608,16 +9200,15 @@ export namespace proto {
 				format?: (proto.Message.InteractiveResponseMessage.Body.Format|null);
 			}
 
-			interface Body extends IBody {}
+			interface Body extends IBody, $ProtoJSON {}
 
 			class Body implements IBody {
 				constructor(p?: IBody);
 				public static create(p?: IBody): Body;
 				public static fromObject(d: $ProtoObject): Body;
-				public static toObject(m: Body, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Body>;
 				public static encode: $ProtoEncode<IBody>;
 				public static decode: $ProtoDecode<Body>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace Body {
@@ -9634,16 +9225,15 @@ export namespace proto {
 				version?: (number|null);
 			}
 
-			interface NativeFlowResponseMessage extends INativeFlowResponseMessage {}
+			interface NativeFlowResponseMessage extends INativeFlowResponseMessage, $ProtoJSON {}
 
 			class NativeFlowResponseMessage implements INativeFlowResponseMessage {
 				constructor(p?: INativeFlowResponseMessage);
 				public static create(p?: INativeFlowResponseMessage): NativeFlowResponseMessage;
 				public static fromObject(d: $ProtoObject): NativeFlowResponseMessage;
-				public static toObject(m: NativeFlowResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<NativeFlowResponseMessage>;
 				public static encode: $ProtoEncode<INativeFlowResponseMessage>;
 				public static decode: $ProtoDecode<NativeFlowResponseMessage>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -9660,16 +9250,15 @@ export namespace proto {
 			attachmentJpegThumbnail?: (Uint8Array|null);
 		}
 
-		interface InvoiceMessage extends IInvoiceMessage {}
+		interface InvoiceMessage extends IInvoiceMessage, $ProtoJSON {}
 
 		class InvoiceMessage implements IInvoiceMessage {
 			constructor(p?: IInvoiceMessage);
 			public static create(p?: IInvoiceMessage): InvoiceMessage;
 			public static fromObject(d: $ProtoObject): InvoiceMessage;
-			public static toObject(m: InvoiceMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InvoiceMessage>;
 			public static encode: $ProtoEncode<IInvoiceMessage>;
 			public static decode: $ProtoDecode<InvoiceMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace InvoiceMessage {
@@ -9686,16 +9275,15 @@ export namespace proto {
 			timestampMs?: (Long|null);
 		}
 
-		interface KeepInChatMessage extends IKeepInChatMessage {}
+		interface KeepInChatMessage extends IKeepInChatMessage, $ProtoJSON {}
 
 		class KeepInChatMessage implements IKeepInChatMessage {
 			constructor(p?: IKeepInChatMessage);
 			public static create(p?: IKeepInChatMessage): KeepInChatMessage;
 			public static fromObject(d: $ProtoObject): KeepInChatMessage;
-			public static toObject(m: KeepInChatMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<KeepInChatMessage>;
 			public static encode: $ProtoEncode<IKeepInChatMessage>;
 			public static decode: $ProtoDecode<KeepInChatMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILinkPreviewMetadata {
@@ -9710,16 +9298,15 @@ export namespace proto {
 			videoContentCaption?: (string|null);
 		}
 
-		interface LinkPreviewMetadata extends ILinkPreviewMetadata {}
+		interface LinkPreviewMetadata extends ILinkPreviewMetadata, $ProtoJSON {}
 
 		class LinkPreviewMetadata implements ILinkPreviewMetadata {
 			constructor(p?: ILinkPreviewMetadata);
 			public static create(p?: ILinkPreviewMetadata): LinkPreviewMetadata;
 			public static fromObject(d: $ProtoObject): LinkPreviewMetadata;
-			public static toObject(m: LinkPreviewMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LinkPreviewMetadata>;
 			public static encode: $ProtoEncode<ILinkPreviewMetadata>;
 			public static decode: $ProtoDecode<LinkPreviewMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace LinkPreviewMetadata {
@@ -9745,16 +9332,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface ListMessage extends IListMessage {}
+		interface ListMessage extends IListMessage, $ProtoJSON {}
 
 		class ListMessage implements IListMessage {
 			constructor(p?: IListMessage);
 			public static create(p?: IListMessage): ListMessage;
 			public static fromObject(d: $ProtoObject): ListMessage;
-			public static toObject(m: ListMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ListMessage>;
 			public static encode: $ProtoEncode<IListMessage>;
 			public static decode: $ProtoDecode<ListMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ListMessage {
@@ -9769,16 +9355,15 @@ export namespace proto {
 				productId?: (string|null);
 			}
 
-			interface Product extends IProduct {}
+			interface Product extends IProduct, $ProtoJSON {}
 
 			class Product implements IProduct {
 				constructor(p?: IProduct);
 				public static create(p?: IProduct): Product;
 				public static fromObject(d: $ProtoObject): Product;
-				public static toObject(m: Product, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Product>;
 				public static encode: $ProtoEncode<IProduct>;
 				public static decode: $ProtoDecode<Product>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IProductListHeaderImage {
@@ -9786,16 +9371,15 @@ export namespace proto {
 				jpegThumbnail?: (Uint8Array|null);
 			}
 
-			interface ProductListHeaderImage extends IProductListHeaderImage {}
+			interface ProductListHeaderImage extends IProductListHeaderImage, $ProtoJSON {}
 
 			class ProductListHeaderImage implements IProductListHeaderImage {
 				constructor(p?: IProductListHeaderImage);
 				public static create(p?: IProductListHeaderImage): ProductListHeaderImage;
 				public static fromObject(d: $ProtoObject): ProductListHeaderImage;
-				public static toObject(m: ProductListHeaderImage, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ProductListHeaderImage>;
 				public static encode: $ProtoEncode<IProductListHeaderImage>;
 				public static decode: $ProtoDecode<ProductListHeaderImage>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IProductListInfo {
@@ -9804,16 +9388,15 @@ export namespace proto {
 				businessOwnerJid?: (string|null);
 			}
 
-			interface ProductListInfo extends IProductListInfo {}
+			interface ProductListInfo extends IProductListInfo, $ProtoJSON {}
 
 			class ProductListInfo implements IProductListInfo {
 				constructor(p?: IProductListInfo);
 				public static create(p?: IProductListInfo): ProductListInfo;
 				public static fromObject(d: $ProtoObject): ProductListInfo;
-				public static toObject(m: ProductListInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ProductListInfo>;
 				public static encode: $ProtoEncode<IProductListInfo>;
 				public static decode: $ProtoDecode<ProductListInfo>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IProductSection {
@@ -9821,16 +9404,15 @@ export namespace proto {
 				products?: proto.Message.ListMessage.IProduct[];
 			}
 
-			interface ProductSection extends IProductSection {}
+			interface ProductSection extends IProductSection, $ProtoJSON {}
 
 			class ProductSection implements IProductSection {
 				constructor(p?: IProductSection);
 				public static create(p?: IProductSection): ProductSection;
 				public static fromObject(d: $ProtoObject): ProductSection;
-				public static toObject(m: ProductSection, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ProductSection>;
 				public static encode: $ProtoEncode<IProductSection>;
 				public static decode: $ProtoDecode<ProductSection>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IRow {
@@ -9839,16 +9421,15 @@ export namespace proto {
 				rowId?: (string|null);
 			}
 
-			interface Row extends IRow {}
+			interface Row extends IRow, $ProtoJSON {}
 
 			class Row implements IRow {
 				constructor(p?: IRow);
 				public static create(p?: IRow): Row;
 				public static fromObject(d: $ProtoObject): Row;
-				public static toObject(m: Row, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Row>;
 				public static encode: $ProtoEncode<IRow>;
 				public static decode: $ProtoDecode<Row>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ISection {
@@ -9856,16 +9437,15 @@ export namespace proto {
 				rows?: proto.Message.ListMessage.IRow[];
 			}
 
-			interface Section extends ISection {}
+			interface Section extends ISection, $ProtoJSON {}
 
 			class Section implements ISection {
 				constructor(p?: ISection);
 				public static create(p?: ISection): Section;
 				public static fromObject(d: $ProtoObject): Section;
-				public static toObject(m: Section, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Section>;
 				public static encode: $ProtoEncode<ISection>;
 				public static decode: $ProtoDecode<Section>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -9877,16 +9457,15 @@ export namespace proto {
 			description?: (string|null);
 		}
 
-		interface ListResponseMessage extends IListResponseMessage {}
+		interface ListResponseMessage extends IListResponseMessage, $ProtoJSON {}
 
 		class ListResponseMessage implements IListResponseMessage {
 			constructor(p?: IListResponseMessage);
 			public static create(p?: IListResponseMessage): ListResponseMessage;
 			public static fromObject(d: $ProtoObject): ListResponseMessage;
-			public static toObject(m: ListResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ListResponseMessage>;
 			public static encode: $ProtoEncode<IListResponseMessage>;
 			public static decode: $ProtoDecode<ListResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ListResponseMessage {
@@ -9900,16 +9479,15 @@ export namespace proto {
 				selectedRowId?: (string|null);
 			}
 
-			interface SingleSelectReply extends ISingleSelectReply {}
+			interface SingleSelectReply extends ISingleSelectReply, $ProtoJSON {}
 
 			class SingleSelectReply implements ISingleSelectReply {
 				constructor(p?: ISingleSelectReply);
 				public static create(p?: ISingleSelectReply): SingleSelectReply;
 				public static fromObject(d: $ProtoObject): SingleSelectReply;
-				public static toObject(m: SingleSelectReply, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SingleSelectReply>;
 				public static encode: $ProtoEncode<ISingleSelectReply>;
 				public static decode: $ProtoDecode<SingleSelectReply>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -9926,16 +9504,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface LiveLocationMessage extends ILiveLocationMessage {}
+		interface LiveLocationMessage extends ILiveLocationMessage, $ProtoJSON {}
 
 		class LiveLocationMessage implements ILiveLocationMessage {
 			constructor(p?: ILiveLocationMessage);
 			public static create(p?: ILiveLocationMessage): LiveLocationMessage;
 			public static fromObject(d: $ProtoObject): LiveLocationMessage;
-			public static toObject(m: LiveLocationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LiveLocationMessage>;
 			public static encode: $ProtoEncode<ILiveLocationMessage>;
 			public static decode: $ProtoDecode<LiveLocationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILocationMessage {
@@ -9953,16 +9530,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface LocationMessage extends ILocationMessage {}
+		interface LocationMessage extends ILocationMessage, $ProtoJSON {}
 
 		class LocationMessage implements ILocationMessage {
 			constructor(p?: ILocationMessage);
 			public static create(p?: ILocationMessage): LocationMessage;
 			public static fromObject(d: $ProtoObject): LocationMessage;
-			public static toObject(m: LocationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LocationMessage>;
 			public static encode: $ProtoEncode<ILocationMessage>;
 			public static decode: $ProtoDecode<LocationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMarkAsVerifiedAction {
@@ -9972,16 +9548,15 @@ export namespace proto {
 			actionSeq?: (Long|null);
 		}
 
-		interface MarkAsVerifiedAction extends IMarkAsVerifiedAction {}
+		interface MarkAsVerifiedAction extends IMarkAsVerifiedAction, $ProtoJSON {}
 
 		class MarkAsVerifiedAction implements IMarkAsVerifiedAction {
 			constructor(p?: IMarkAsVerifiedAction);
 			public static create(p?: IMarkAsVerifiedAction): MarkAsVerifiedAction;
 			public static fromObject(d: $ProtoObject): MarkAsVerifiedAction;
-			public static toObject(m: MarkAsVerifiedAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MarkAsVerifiedAction>;
 			public static encode: $ProtoEncode<IMarkAsVerifiedAction>;
 			public static decode: $ProtoDecode<MarkAsVerifiedAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMessageHistoryBundle {
@@ -9995,16 +9570,15 @@ export namespace proto {
 			messageHistoryMetadata?: (proto.Message.IMessageHistoryMetadata|null);
 		}
 
-		interface MessageHistoryBundle extends IMessageHistoryBundle {}
+		interface MessageHistoryBundle extends IMessageHistoryBundle, $ProtoJSON {}
 
 		class MessageHistoryBundle implements IMessageHistoryBundle {
 			constructor(p?: IMessageHistoryBundle);
 			public static create(p?: IMessageHistoryBundle): MessageHistoryBundle;
 			public static fromObject(d: $ProtoObject): MessageHistoryBundle;
-			public static toObject(m: MessageHistoryBundle, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MessageHistoryBundle>;
 			public static encode: $ProtoEncode<IMessageHistoryBundle>;
 			public static decode: $ProtoDecode<MessageHistoryBundle>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMessageHistoryMetadata {
@@ -10015,16 +9589,15 @@ export namespace proto {
 			oldestMessageTimestampInBundle?: (Long|null);
 		}
 
-		interface MessageHistoryMetadata extends IMessageHistoryMetadata {}
+		interface MessageHistoryMetadata extends IMessageHistoryMetadata, $ProtoJSON {}
 
 		class MessageHistoryMetadata implements IMessageHistoryMetadata {
 			constructor(p?: IMessageHistoryMetadata);
 			public static create(p?: IMessageHistoryMetadata): MessageHistoryMetadata;
 			public static fromObject(d: $ProtoObject): MessageHistoryMetadata;
-			public static toObject(m: MessageHistoryMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MessageHistoryMetadata>;
 			public static encode: $ProtoEncode<IMessageHistoryMetadata>;
 			public static decode: $ProtoDecode<MessageHistoryMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMessageHistoryNotice {
@@ -10033,16 +9606,15 @@ export namespace proto {
 			botHistoryShareSyncMetadata?: (proto.Message.IBotHistoryShareSyncMetadata|null);
 		}
 
-		interface MessageHistoryNotice extends IMessageHistoryNotice {}
+		interface MessageHistoryNotice extends IMessageHistoryNotice, $ProtoJSON {}
 
 		class MessageHistoryNotice implements IMessageHistoryNotice {
 			constructor(p?: IMessageHistoryNotice);
 			public static create(p?: IMessageHistoryNotice): MessageHistoryNotice;
 			public static fromObject(d: $ProtoObject): MessageHistoryNotice;
-			public static toObject(m: MessageHistoryNotice, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MessageHistoryNotice>;
 			public static encode: $ProtoEncode<IMessageHistoryNotice>;
 			public static decode: $ProtoDecode<MessageHistoryNotice>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMMSThumbnailMetadata {
@@ -10055,16 +9627,15 @@ export namespace proto {
 			thumbnailWidth?: (number|null);
 		}
 
-		interface MMSThumbnailMetadata extends IMMSThumbnailMetadata {}
+		interface MMSThumbnailMetadata extends IMMSThumbnailMetadata, $ProtoJSON {}
 
 		class MMSThumbnailMetadata implements IMMSThumbnailMetadata {
 			constructor(p?: IMMSThumbnailMetadata);
 			public static create(p?: IMMSThumbnailMetadata): MMSThumbnailMetadata;
 			public static fromObject(d: $ProtoObject): MMSThumbnailMetadata;
-			public static toObject(m: MMSThumbnailMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MMSThumbnailMetadata>;
 			public static encode: $ProtoEncode<IMMSThumbnailMetadata>;
 			public static decode: $ProtoDecode<MMSThumbnailMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMusicMessage {
@@ -10075,16 +9646,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface MusicMessage extends IMusicMessage {}
+		interface MusicMessage extends IMusicMessage, $ProtoJSON {}
 
 		class MusicMessage implements IMusicMessage {
 			constructor(p?: IMusicMessage);
 			public static create(p?: IMusicMessage): MusicMessage;
 			public static fromObject(d: $ProtoObject): MusicMessage;
-			public static toObject(m: MusicMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MusicMessage>;
 			public static encode: $ProtoEncode<IMusicMessage>;
 			public static decode: $ProtoDecode<MusicMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace MusicMessage {
@@ -10104,16 +9674,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface NewsletterAdminInviteMessage extends INewsletterAdminInviteMessage {}
+		interface NewsletterAdminInviteMessage extends INewsletterAdminInviteMessage, $ProtoJSON {}
 
 		class NewsletterAdminInviteMessage implements INewsletterAdminInviteMessage {
 			constructor(p?: INewsletterAdminInviteMessage);
 			public static create(p?: INewsletterAdminInviteMessage): NewsletterAdminInviteMessage;
 			public static fromObject(d: $ProtoObject): NewsletterAdminInviteMessage;
-			public static toObject(m: NewsletterAdminInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NewsletterAdminInviteMessage>;
 			public static encode: $ProtoEncode<INewsletterAdminInviteMessage>;
 			public static decode: $ProtoDecode<NewsletterAdminInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface INewsletterFollowerInviteMessage {
@@ -10124,16 +9693,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface NewsletterFollowerInviteMessage extends INewsletterFollowerInviteMessage {}
+		interface NewsletterFollowerInviteMessage extends INewsletterFollowerInviteMessage, $ProtoJSON {}
 
 		class NewsletterFollowerInviteMessage implements INewsletterFollowerInviteMessage {
 			constructor(p?: INewsletterFollowerInviteMessage);
 			public static create(p?: INewsletterFollowerInviteMessage): NewsletterFollowerInviteMessage;
 			public static fromObject(d: $ProtoObject): NewsletterFollowerInviteMessage;
-			public static toObject(m: NewsletterFollowerInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NewsletterFollowerInviteMessage>;
 			public static encode: $ProtoEncode<INewsletterFollowerInviteMessage>;
 			public static decode: $ProtoDecode<NewsletterFollowerInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IOrderMessage {
@@ -10154,16 +9722,15 @@ export namespace proto {
 			catalogType?: (string|null);
 		}
 
-		interface OrderMessage extends IOrderMessage {}
+		interface OrderMessage extends IOrderMessage, $ProtoJSON {}
 
 		class OrderMessage implements IOrderMessage {
 			constructor(p?: IOrderMessage);
 			public static create(p?: IOrderMessage): OrderMessage;
 			public static fromObject(d: $ProtoObject): OrderMessage;
-			public static toObject(m: OrderMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<OrderMessage>;
 			public static encode: $ProtoEncode<IOrderMessage>;
 			public static decode: $ProtoDecode<OrderMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace OrderMessage {
@@ -10185,16 +9752,15 @@ export namespace proto {
 			messageParamsJson?: (string|null);
 		}
 
-		interface PaymentExtendedMetadata extends IPaymentExtendedMetadata {}
+		interface PaymentExtendedMetadata extends IPaymentExtendedMetadata, $ProtoJSON {}
 
 		class PaymentExtendedMetadata implements IPaymentExtendedMetadata {
 			constructor(p?: IPaymentExtendedMetadata);
 			public static create(p?: IPaymentExtendedMetadata): PaymentExtendedMetadata;
 			public static fromObject(d: $ProtoObject): PaymentExtendedMetadata;
-			public static toObject(m: PaymentExtendedMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentExtendedMetadata>;
 			public static encode: $ProtoEncode<IPaymentExtendedMetadata>;
 			public static decode: $ProtoDecode<PaymentExtendedMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPaymentInviteMessage {
@@ -10205,16 +9771,15 @@ export namespace proto {
 			inviteType?: (proto.Message.PaymentInviteMessage.InviteType|null);
 		}
 
-		interface PaymentInviteMessage extends IPaymentInviteMessage {}
+		interface PaymentInviteMessage extends IPaymentInviteMessage, $ProtoJSON {}
 
 		class PaymentInviteMessage implements IPaymentInviteMessage {
 			constructor(p?: IPaymentInviteMessage);
 			public static create(p?: IPaymentInviteMessage): PaymentInviteMessage;
 			public static fromObject(d: $ProtoObject): PaymentInviteMessage;
-			public static toObject(m: PaymentInviteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentInviteMessage>;
 			public static encode: $ProtoEncode<IPaymentInviteMessage>;
 			public static decode: $ProtoDecode<PaymentInviteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PaymentInviteMessage {
@@ -10239,16 +9804,15 @@ export namespace proto {
 			provider?: (proto.Message.PaymentLinkMetadata.IPaymentLinkProvider|null);
 		}
 
-		interface PaymentLinkMetadata extends IPaymentLinkMetadata {}
+		interface PaymentLinkMetadata extends IPaymentLinkMetadata, $ProtoJSON {}
 
 		class PaymentLinkMetadata implements IPaymentLinkMetadata {
 			constructor(p?: IPaymentLinkMetadata);
 			public static create(p?: IPaymentLinkMetadata): PaymentLinkMetadata;
 			public static fromObject(d: $ProtoObject): PaymentLinkMetadata;
-			public static toObject(m: PaymentLinkMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentLinkMetadata>;
 			public static encode: $ProtoEncode<IPaymentLinkMetadata>;
 			public static decode: $ProtoDecode<PaymentLinkMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PaymentLinkMetadata {
@@ -10257,32 +9821,30 @@ export namespace proto {
 				displayText?: (string|null);
 			}
 
-			interface PaymentLinkButton extends IPaymentLinkButton {}
+			interface PaymentLinkButton extends IPaymentLinkButton, $ProtoJSON {}
 
 			class PaymentLinkButton implements IPaymentLinkButton {
 				constructor(p?: IPaymentLinkButton);
 				public static create(p?: IPaymentLinkButton): PaymentLinkButton;
 				public static fromObject(d: $ProtoObject): PaymentLinkButton;
-				public static toObject(m: PaymentLinkButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PaymentLinkButton>;
 				public static encode: $ProtoEncode<IPaymentLinkButton>;
 				public static decode: $ProtoDecode<PaymentLinkButton>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IPaymentLinkHeader {
 				headerType?: (proto.Message.PaymentLinkMetadata.PaymentLinkHeader.PaymentLinkHeaderType|null);
 			}
 
-			interface PaymentLinkHeader extends IPaymentLinkHeader {}
+			interface PaymentLinkHeader extends IPaymentLinkHeader, $ProtoJSON {}
 
 			class PaymentLinkHeader implements IPaymentLinkHeader {
 				constructor(p?: IPaymentLinkHeader);
 				public static create(p?: IPaymentLinkHeader): PaymentLinkHeader;
 				public static fromObject(d: $ProtoObject): PaymentLinkHeader;
-				public static toObject(m: PaymentLinkHeader, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PaymentLinkHeader>;
 				public static encode: $ProtoEncode<IPaymentLinkHeader>;
 				public static decode: $ProtoDecode<PaymentLinkHeader>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace PaymentLinkHeader {
@@ -10297,16 +9859,15 @@ export namespace proto {
 				paramsJson?: (string|null);
 			}
 
-			interface PaymentLinkProvider extends IPaymentLinkProvider {}
+			interface PaymentLinkProvider extends IPaymentLinkProvider, $ProtoJSON {}
 
 			class PaymentLinkProvider implements IPaymentLinkProvider {
 				constructor(p?: IPaymentLinkProvider);
 				public static create(p?: IPaymentLinkProvider): PaymentLinkProvider;
 				public static fromObject(d: $ProtoObject): PaymentLinkProvider;
-				public static toObject(m: PaymentLinkProvider, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PaymentLinkProvider>;
 				public static encode: $ProtoEncode<IPaymentLinkProvider>;
 				public static decode: $ProtoDecode<PaymentLinkProvider>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -10322,16 +9883,15 @@ export namespace proto {
 			amount?: (proto.IMoney|null);
 		}
 
-		interface PaymentReminderMessage extends IPaymentReminderMessage {}
+		interface PaymentReminderMessage extends IPaymentReminderMessage, $ProtoJSON {}
 
 		class PaymentReminderMessage implements IPaymentReminderMessage {
 			constructor(p?: IPaymentReminderMessage);
 			public static create(p?: IPaymentReminderMessage): PaymentReminderMessage;
 			public static fromObject(d: $ProtoObject): PaymentReminderMessage;
-			public static toObject(m: PaymentReminderMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentReminderMessage>;
 			public static encode: $ProtoEncode<IPaymentReminderMessage>;
 			public static decode: $ProtoDecode<PaymentReminderMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PaymentReminderMessage {
@@ -10369,16 +9929,15 @@ export namespace proto {
 			bizBroadcastInsightsRefreshRequest?: (proto.Message.PeerDataOperationRequestMessage.IBizBroadcastInsightsRefreshRequest|null);
 		}
 
-		interface PeerDataOperationRequestMessage extends IPeerDataOperationRequestMessage {}
+		interface PeerDataOperationRequestMessage extends IPeerDataOperationRequestMessage, $ProtoJSON {}
 
 		class PeerDataOperationRequestMessage implements IPeerDataOperationRequestMessage {
 			constructor(p?: IPeerDataOperationRequestMessage);
 			public static create(p?: IPeerDataOperationRequestMessage): PeerDataOperationRequestMessage;
 			public static fromObject(d: $ProtoObject): PeerDataOperationRequestMessage;
-			public static toObject(m: PeerDataOperationRequestMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PeerDataOperationRequestMessage>;
 			public static encode: $ProtoEncode<IPeerDataOperationRequestMessage>;
 			public static decode: $ProtoDecode<PeerDataOperationRequestMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PeerDataOperationRequestMessage {
@@ -10387,48 +9946,45 @@ export namespace proto {
 				campaignId?: (string|null);
 			}
 
-			interface BizBroadcastInsightsContactListRequest extends IBizBroadcastInsightsContactListRequest {}
+			interface BizBroadcastInsightsContactListRequest extends IBizBroadcastInsightsContactListRequest, $ProtoJSON {}
 
 			class BizBroadcastInsightsContactListRequest implements IBizBroadcastInsightsContactListRequest {
 				constructor(p?: IBizBroadcastInsightsContactListRequest);
 				public static create(p?: IBizBroadcastInsightsContactListRequest): BizBroadcastInsightsContactListRequest;
 				public static fromObject(d: $ProtoObject): BizBroadcastInsightsContactListRequest;
-				public static toObject(m: BizBroadcastInsightsContactListRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BizBroadcastInsightsContactListRequest>;
 				public static encode: $ProtoEncode<IBizBroadcastInsightsContactListRequest>;
 				public static decode: $ProtoDecode<BizBroadcastInsightsContactListRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IBizBroadcastInsightsRefreshRequest {
 				campaignId?: (string|null);
 			}
 
-			interface BizBroadcastInsightsRefreshRequest extends IBizBroadcastInsightsRefreshRequest {}
+			interface BizBroadcastInsightsRefreshRequest extends IBizBroadcastInsightsRefreshRequest, $ProtoJSON {}
 
 			class BizBroadcastInsightsRefreshRequest implements IBizBroadcastInsightsRefreshRequest {
 				constructor(p?: IBizBroadcastInsightsRefreshRequest);
 				public static create(p?: IBizBroadcastInsightsRefreshRequest): BizBroadcastInsightsRefreshRequest;
 				public static fromObject(d: $ProtoObject): BizBroadcastInsightsRefreshRequest;
-				public static toObject(m: BizBroadcastInsightsRefreshRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<BizBroadcastInsightsRefreshRequest>;
 				public static encode: $ProtoEncode<IBizBroadcastInsightsRefreshRequest>;
 				public static decode: $ProtoDecode<BizBroadcastInsightsRefreshRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ICompanionCanonicalUserNonceFetchRequest {
 				registrationTraceId?: (string|null);
 			}
 
-			interface CompanionCanonicalUserNonceFetchRequest extends ICompanionCanonicalUserNonceFetchRequest {}
+			interface CompanionCanonicalUserNonceFetchRequest extends ICompanionCanonicalUserNonceFetchRequest, $ProtoJSON {}
 
 			class CompanionCanonicalUserNonceFetchRequest implements ICompanionCanonicalUserNonceFetchRequest {
 				constructor(p?: ICompanionCanonicalUserNonceFetchRequest);
 				public static create(p?: ICompanionCanonicalUserNonceFetchRequest): CompanionCanonicalUserNonceFetchRequest;
 				public static fromObject(d: $ProtoObject): CompanionCanonicalUserNonceFetchRequest;
-				public static toObject(m: CompanionCanonicalUserNonceFetchRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CompanionCanonicalUserNonceFetchRequest>;
 				public static encode: $ProtoEncode<ICompanionCanonicalUserNonceFetchRequest>;
 				public static decode: $ProtoDecode<CompanionCanonicalUserNonceFetchRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IFullHistorySyncOnDemandRequest {
@@ -10437,16 +9993,15 @@ export namespace proto {
 				fullHistorySyncOnDemandConfig?: (proto.Message.IFullHistorySyncOnDemandConfig|null);
 			}
 
-			interface FullHistorySyncOnDemandRequest extends IFullHistorySyncOnDemandRequest {}
+			interface FullHistorySyncOnDemandRequest extends IFullHistorySyncOnDemandRequest, $ProtoJSON {}
 
 			class FullHistorySyncOnDemandRequest implements IFullHistorySyncOnDemandRequest {
 				constructor(p?: IFullHistorySyncOnDemandRequest);
 				public static create(p?: IFullHistorySyncOnDemandRequest): FullHistorySyncOnDemandRequest;
 				public static fromObject(d: $ProtoObject): FullHistorySyncOnDemandRequest;
-				public static toObject(m: FullHistorySyncOnDemandRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<FullHistorySyncOnDemandRequest>;
 				public static encode: $ProtoEncode<IFullHistorySyncOnDemandRequest>;
 				public static decode: $ProtoDecode<FullHistorySyncOnDemandRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IGalaxyFlowAction {
@@ -10457,16 +10012,15 @@ export namespace proto {
 				agmId?: (string|null);
 			}
 
-			interface GalaxyFlowAction extends IGalaxyFlowAction {}
+			interface GalaxyFlowAction extends IGalaxyFlowAction, $ProtoJSON {}
 
 			class GalaxyFlowAction implements IGalaxyFlowAction {
 				constructor(p?: IGalaxyFlowAction);
 				public static create(p?: IGalaxyFlowAction): GalaxyFlowAction;
 				public static fromObject(d: $ProtoObject): GalaxyFlowAction;
-				public static toObject(m: GalaxyFlowAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<GalaxyFlowAction>;
 				public static encode: $ProtoEncode<IGalaxyFlowAction>;
 				public static decode: $ProtoDecode<GalaxyFlowAction>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace GalaxyFlowAction {
@@ -10484,16 +10038,15 @@ export namespace proto {
 				regenerateChunk?: (boolean|null);
 			}
 
-			interface HistorySyncChunkRetryRequest extends IHistorySyncChunkRetryRequest {}
+			interface HistorySyncChunkRetryRequest extends IHistorySyncChunkRetryRequest, $ProtoJSON {}
 
 			class HistorySyncChunkRetryRequest implements IHistorySyncChunkRetryRequest {
 				constructor(p?: IHistorySyncChunkRetryRequest);
 				public static create(p?: IHistorySyncChunkRetryRequest): HistorySyncChunkRetryRequest;
 				public static fromObject(d: $ProtoObject): HistorySyncChunkRetryRequest;
-				public static toObject(m: HistorySyncChunkRetryRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<HistorySyncChunkRetryRequest>;
 				public static encode: $ProtoEncode<IHistorySyncChunkRetryRequest>;
 				public static decode: $ProtoDecode<HistorySyncChunkRetryRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IHistorySyncOnDemandRequest {
@@ -10506,48 +10059,45 @@ export namespace proto {
 				supportInlineResponse?: (boolean|null);
 			}
 
-			interface HistorySyncOnDemandRequest extends IHistorySyncOnDemandRequest {}
+			interface HistorySyncOnDemandRequest extends IHistorySyncOnDemandRequest, $ProtoJSON {}
 
 			class HistorySyncOnDemandRequest implements IHistorySyncOnDemandRequest {
 				constructor(p?: IHistorySyncOnDemandRequest);
 				public static create(p?: IHistorySyncOnDemandRequest): HistorySyncOnDemandRequest;
 				public static fromObject(d: $ProtoObject): HistorySyncOnDemandRequest;
-				public static toObject(m: HistorySyncOnDemandRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<HistorySyncOnDemandRequest>;
 				public static encode: $ProtoEncode<IHistorySyncOnDemandRequest>;
 				public static decode: $ProtoDecode<HistorySyncOnDemandRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IPlaceholderMessageResendRequest {
 				messageKey?: (proto.IMessageKey|null);
 			}
 
-			interface PlaceholderMessageResendRequest extends IPlaceholderMessageResendRequest {}
+			interface PlaceholderMessageResendRequest extends IPlaceholderMessageResendRequest, $ProtoJSON {}
 
 			class PlaceholderMessageResendRequest implements IPlaceholderMessageResendRequest {
 				constructor(p?: IPlaceholderMessageResendRequest);
 				public static create(p?: IPlaceholderMessageResendRequest): PlaceholderMessageResendRequest;
 				public static fromObject(d: $ProtoObject): PlaceholderMessageResendRequest;
-				public static toObject(m: PlaceholderMessageResendRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PlaceholderMessageResendRequest>;
 				public static encode: $ProtoEncode<IPlaceholderMessageResendRequest>;
 				public static decode: $ProtoDecode<PlaceholderMessageResendRequest>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IRequestStickerReupload {
 				fileSha256?: (string|null);
 			}
 
-			interface RequestStickerReupload extends IRequestStickerReupload {}
+			interface RequestStickerReupload extends IRequestStickerReupload, $ProtoJSON {}
 
 			class RequestStickerReupload implements IRequestStickerReupload {
 				constructor(p?: IRequestStickerReupload);
 				public static create(p?: IRequestStickerReupload): RequestStickerReupload;
 				public static fromObject(d: $ProtoObject): RequestStickerReupload;
-				public static toObject(m: RequestStickerReupload, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<RequestStickerReupload>;
 				public static encode: $ProtoEncode<IRequestStickerReupload>;
 				public static decode: $ProtoDecode<RequestStickerReupload>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IRequestUrlPreview {
@@ -10555,16 +10105,15 @@ export namespace proto {
 				includeHqThumbnail?: (boolean|null);
 			}
 
-			interface RequestUrlPreview extends IRequestUrlPreview {}
+			interface RequestUrlPreview extends IRequestUrlPreview, $ProtoJSON {}
 
 			class RequestUrlPreview implements IRequestUrlPreview {
 				constructor(p?: IRequestUrlPreview);
 				public static create(p?: IRequestUrlPreview): RequestUrlPreview;
 				public static fromObject(d: $ProtoObject): RequestUrlPreview;
-				public static toObject(m: RequestUrlPreview, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<RequestUrlPreview>;
 				public static encode: $ProtoEncode<IRequestUrlPreview>;
 				public static decode: $ProtoDecode<RequestUrlPreview>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ISyncDCollectionFatalRecoveryRequest {
@@ -10572,16 +10121,15 @@ export namespace proto {
 				timestamp?: (Long|null);
 			}
 
-			interface SyncDCollectionFatalRecoveryRequest extends ISyncDCollectionFatalRecoveryRequest {}
+			interface SyncDCollectionFatalRecoveryRequest extends ISyncDCollectionFatalRecoveryRequest, $ProtoJSON {}
 
 			class SyncDCollectionFatalRecoveryRequest implements ISyncDCollectionFatalRecoveryRequest {
 				constructor(p?: ISyncDCollectionFatalRecoveryRequest);
 				public static create(p?: ISyncDCollectionFatalRecoveryRequest): SyncDCollectionFatalRecoveryRequest;
 				public static fromObject(d: $ProtoObject): SyncDCollectionFatalRecoveryRequest;
-				public static toObject(m: SyncDCollectionFatalRecoveryRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SyncDCollectionFatalRecoveryRequest>;
 				public static encode: $ProtoEncode<ISyncDCollectionFatalRecoveryRequest>;
 				public static decode: $ProtoDecode<SyncDCollectionFatalRecoveryRequest>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -10591,16 +10139,15 @@ export namespace proto {
 			peerDataOperationResult?: proto.Message.PeerDataOperationRequestResponseMessage.IPeerDataOperationResult[];
 		}
 
-		interface PeerDataOperationRequestResponseMessage extends IPeerDataOperationRequestResponseMessage {}
+		interface PeerDataOperationRequestResponseMessage extends IPeerDataOperationRequestResponseMessage, $ProtoJSON {}
 
 		class PeerDataOperationRequestResponseMessage implements IPeerDataOperationRequestResponseMessage {
 			constructor(p?: IPeerDataOperationRequestResponseMessage);
 			public static create(p?: IPeerDataOperationRequestResponseMessage): PeerDataOperationRequestResponseMessage;
 			public static fromObject(d: $ProtoObject): PeerDataOperationRequestResponseMessage;
-			public static toObject(m: PeerDataOperationRequestResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PeerDataOperationRequestResponseMessage>;
 			public static encode: $ProtoEncode<IPeerDataOperationRequestResponseMessage>;
 			public static decode: $ProtoDecode<PeerDataOperationRequestResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PeerDataOperationRequestResponseMessage {
@@ -10621,16 +10168,15 @@ export namespace proto {
 				contactRefreshResponse?: (proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.IContactRefreshResponse|null);
 			}
 
-			interface PeerDataOperationResult extends IPeerDataOperationResult {}
+			interface PeerDataOperationResult extends IPeerDataOperationResult, $ProtoJSON {}
 
 			class PeerDataOperationResult implements IPeerDataOperationResult {
 				constructor(p?: IPeerDataOperationResult);
 				public static create(p?: IPeerDataOperationResult): PeerDataOperationResult;
 				public static fromObject(d: $ProtoObject): PeerDataOperationResult;
-				public static toObject(m: PeerDataOperationResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PeerDataOperationResult>;
 				public static encode: $ProtoEncode<IPeerDataOperationResult>;
 				public static decode: $ProtoDecode<PeerDataOperationResult>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace PeerDataOperationResult {
@@ -10641,16 +10187,15 @@ export namespace proto {
 					contacts?: proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.IBizBroadcastInsightsContactState[];
 				}
 
-				interface BizBroadcastInsightsContactListResponse extends IBizBroadcastInsightsContactListResponse {}
+				interface BizBroadcastInsightsContactListResponse extends IBizBroadcastInsightsContactListResponse, $ProtoJSON {}
 
 				class BizBroadcastInsightsContactListResponse implements IBizBroadcastInsightsContactListResponse {
 					constructor(p?: IBizBroadcastInsightsContactListResponse);
 					public static create(p?: IBizBroadcastInsightsContactListResponse): BizBroadcastInsightsContactListResponse;
 					public static fromObject(d: $ProtoObject): BizBroadcastInsightsContactListResponse;
-					public static toObject(m: BizBroadcastInsightsContactListResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<BizBroadcastInsightsContactListResponse>;
 					public static encode: $ProtoEncode<IBizBroadcastInsightsContactListResponse>;
 					public static decode: $ProtoDecode<BizBroadcastInsightsContactListResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IBizBroadcastInsightsContactState {
@@ -10658,16 +10203,15 @@ export namespace proto {
 					state?: (proto.Message.InsightDeliveryState|null);
 				}
 
-				interface BizBroadcastInsightsContactState extends IBizBroadcastInsightsContactState {}
+				interface BizBroadcastInsightsContactState extends IBizBroadcastInsightsContactState, $ProtoJSON {}
 
 				class BizBroadcastInsightsContactState implements IBizBroadcastInsightsContactState {
 					constructor(p?: IBizBroadcastInsightsContactState);
 					public static create(p?: IBizBroadcastInsightsContactState): BizBroadcastInsightsContactState;
 					public static fromObject(d: $ProtoObject): BizBroadcastInsightsContactState;
-					public static toObject(m: BizBroadcastInsightsContactState, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<BizBroadcastInsightsContactState>;
 					public static encode: $ProtoEncode<IBizBroadcastInsightsContactState>;
 					public static decode: $ProtoDecode<BizBroadcastInsightsContactState>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ICompanionCanonicalUserNonceFetchResponse {
@@ -10676,32 +10220,30 @@ export namespace proto {
 					forceRefresh?: (boolean|null);
 				}
 
-				interface CompanionCanonicalUserNonceFetchResponse extends ICompanionCanonicalUserNonceFetchResponse {}
+				interface CompanionCanonicalUserNonceFetchResponse extends ICompanionCanonicalUserNonceFetchResponse, $ProtoJSON {}
 
 				class CompanionCanonicalUserNonceFetchResponse implements ICompanionCanonicalUserNonceFetchResponse {
 					constructor(p?: ICompanionCanonicalUserNonceFetchResponse);
 					public static create(p?: ICompanionCanonicalUserNonceFetchResponse): CompanionCanonicalUserNonceFetchResponse;
 					public static fromObject(d: $ProtoObject): CompanionCanonicalUserNonceFetchResponse;
-					public static toObject(m: CompanionCanonicalUserNonceFetchResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<CompanionCanonicalUserNonceFetchResponse>;
 					public static encode: $ProtoEncode<ICompanionCanonicalUserNonceFetchResponse>;
 					public static decode: $ProtoDecode<CompanionCanonicalUserNonceFetchResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ICompanionMetaNonceFetchResponse {
 					nonce?: (string|null);
 				}
 
-				interface CompanionMetaNonceFetchResponse extends ICompanionMetaNonceFetchResponse {}
+				interface CompanionMetaNonceFetchResponse extends ICompanionMetaNonceFetchResponse, $ProtoJSON {}
 
 				class CompanionMetaNonceFetchResponse implements ICompanionMetaNonceFetchResponse {
 					constructor(p?: ICompanionMetaNonceFetchResponse);
 					public static create(p?: ICompanionMetaNonceFetchResponse): CompanionMetaNonceFetchResponse;
 					public static fromObject(d: $ProtoObject): CompanionMetaNonceFetchResponse;
-					public static toObject(m: CompanionMetaNonceFetchResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<CompanionMetaNonceFetchResponse>;
 					public static encode: $ProtoEncode<ICompanionMetaNonceFetchResponse>;
 					public static decode: $ProtoDecode<CompanionMetaNonceFetchResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IContactRefreshResponse {
@@ -10711,16 +10253,15 @@ export namespace proto {
 					uniqueContactCount?: (number|null);
 				}
 
-				interface ContactRefreshResponse extends IContactRefreshResponse {}
+				interface ContactRefreshResponse extends IContactRefreshResponse, $ProtoJSON {}
 
 				class ContactRefreshResponse implements IContactRefreshResponse {
 					constructor(p?: IContactRefreshResponse);
 					public static create(p?: IContactRefreshResponse): ContactRefreshResponse;
 					public static fromObject(d: $ProtoObject): ContactRefreshResponse;
-					public static toObject(m: ContactRefreshResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<ContactRefreshResponse>;
 					public static encode: $ProtoEncode<IContactRefreshResponse>;
 					public static decode: $ProtoDecode<ContactRefreshResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IFlowResponsesCsvBundle {
@@ -10736,16 +10277,15 @@ export namespace proto {
 					fileLength?: (Long|null);
 				}
 
-				interface FlowResponsesCsvBundle extends IFlowResponsesCsvBundle {}
+				interface FlowResponsesCsvBundle extends IFlowResponsesCsvBundle, $ProtoJSON {}
 
 				class FlowResponsesCsvBundle implements IFlowResponsesCsvBundle {
 					constructor(p?: IFlowResponsesCsvBundle);
 					public static create(p?: IFlowResponsesCsvBundle): FlowResponsesCsvBundle;
 					public static fromObject(d: $ProtoObject): FlowResponsesCsvBundle;
-					public static toObject(m: FlowResponsesCsvBundle, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<FlowResponsesCsvBundle>;
 					public static encode: $ProtoEncode<IFlowResponsesCsvBundle>;
 					public static decode: $ProtoDecode<FlowResponsesCsvBundle>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IFullHistorySyncOnDemandRequestResponse {
@@ -10753,16 +10293,15 @@ export namespace proto {
 					responseCode?: (proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.FullHistorySyncOnDemandResponseCode|null);
 				}
 
-				interface FullHistorySyncOnDemandRequestResponse extends IFullHistorySyncOnDemandRequestResponse {}
+				interface FullHistorySyncOnDemandRequestResponse extends IFullHistorySyncOnDemandRequestResponse, $ProtoJSON {}
 
 				class FullHistorySyncOnDemandRequestResponse implements IFullHistorySyncOnDemandRequestResponse {
 					constructor(p?: IFullHistorySyncOnDemandRequestResponse);
 					public static create(p?: IFullHistorySyncOnDemandRequestResponse): FullHistorySyncOnDemandRequestResponse;
 					public static fromObject(d: $ProtoObject): FullHistorySyncOnDemandRequestResponse;
-					public static toObject(m: FullHistorySyncOnDemandRequestResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<FullHistorySyncOnDemandRequestResponse>;
 					public static encode: $ProtoEncode<IFullHistorySyncOnDemandRequestResponse>;
 					public static decode: $ProtoDecode<FullHistorySyncOnDemandRequestResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				enum FullHistorySyncOnDemandResponseCode {
@@ -10784,16 +10323,15 @@ export namespace proto {
 					canRecover?: (boolean|null);
 				}
 
-				interface HistorySyncChunkRetryResponse extends IHistorySyncChunkRetryResponse {}
+				interface HistorySyncChunkRetryResponse extends IHistorySyncChunkRetryResponse, $ProtoJSON {}
 
 				class HistorySyncChunkRetryResponse implements IHistorySyncChunkRetryResponse {
 					constructor(p?: IHistorySyncChunkRetryResponse);
 					public static create(p?: IHistorySyncChunkRetryResponse): HistorySyncChunkRetryResponse;
 					public static fromObject(d: $ProtoObject): HistorySyncChunkRetryResponse;
-					public static toObject(m: HistorySyncChunkRetryResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<HistorySyncChunkRetryResponse>;
 					public static encode: $ProtoEncode<IHistorySyncChunkRetryResponse>;
 					public static decode: $ProtoDecode<HistorySyncChunkRetryResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				enum HistorySyncChunkRetryResponseCode {
@@ -10816,16 +10354,15 @@ export namespace proto {
 					previewMetadata?: (proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.IPaymentLinkPreviewMetadata|null);
 				}
 
-				interface LinkPreviewResponse extends ILinkPreviewResponse {}
+				interface LinkPreviewResponse extends ILinkPreviewResponse, $ProtoJSON {}
 
 				class LinkPreviewResponse implements ILinkPreviewResponse {
 					constructor(p?: ILinkPreviewResponse);
 					public static create(p?: ILinkPreviewResponse): LinkPreviewResponse;
 					public static fromObject(d: $ProtoObject): LinkPreviewResponse;
-					public static toObject(m: LinkPreviewResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<LinkPreviewResponse>;
 					public static encode: $ProtoEncode<ILinkPreviewResponse>;
 					public static decode: $ProtoDecode<LinkPreviewResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				namespace LinkPreviewResponse {
@@ -10840,16 +10377,15 @@ export namespace proto {
 						thumbHeight?: (number|null);
 					}
 
-					interface LinkPreviewHighQualityThumbnail extends ILinkPreviewHighQualityThumbnail {}
+					interface LinkPreviewHighQualityThumbnail extends ILinkPreviewHighQualityThumbnail, $ProtoJSON {}
 
 					class LinkPreviewHighQualityThumbnail implements ILinkPreviewHighQualityThumbnail {
 						constructor(p?: ILinkPreviewHighQualityThumbnail);
 						public static create(p?: ILinkPreviewHighQualityThumbnail): LinkPreviewHighQualityThumbnail;
 						public static fromObject(d: $ProtoObject): LinkPreviewHighQualityThumbnail;
-						public static toObject(m: LinkPreviewHighQualityThumbnail, o?: $protobuf.IConversionOptions): $ProtoObject;
+						public static toObject: $ProtoToObject<LinkPreviewHighQualityThumbnail>;
 						public static encode: $ProtoEncode<ILinkPreviewHighQualityThumbnail>;
 						public static decode: $ProtoDecode<LinkPreviewHighQualityThumbnail>;
-						public toJSON(): $ProtoObject;
 					}
 
 					interface IPaymentLinkPreviewMetadata {
@@ -10860,16 +10396,15 @@ export namespace proto {
 						currency?: (string|null);
 					}
 
-					interface PaymentLinkPreviewMetadata extends IPaymentLinkPreviewMetadata {}
+					interface PaymentLinkPreviewMetadata extends IPaymentLinkPreviewMetadata, $ProtoJSON {}
 
 					class PaymentLinkPreviewMetadata implements IPaymentLinkPreviewMetadata {
 						constructor(p?: IPaymentLinkPreviewMetadata);
 						public static create(p?: IPaymentLinkPreviewMetadata): PaymentLinkPreviewMetadata;
 						public static fromObject(d: $ProtoObject): PaymentLinkPreviewMetadata;
-						public static toObject(m: PaymentLinkPreviewMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+						public static toObject: $ProtoToObject<PaymentLinkPreviewMetadata>;
 						public static encode: $ProtoEncode<IPaymentLinkPreviewMetadata>;
 						public static decode: $ProtoDecode<PaymentLinkPreviewMetadata>;
-						public toJSON(): $ProtoObject;
 					}
 				}
 
@@ -10877,16 +10412,15 @@ export namespace proto {
 					webMessageInfoBytes?: (Uint8Array|null);
 				}
 
-				interface PlaceholderMessageResendResponse extends IPlaceholderMessageResendResponse {}
+				interface PlaceholderMessageResendResponse extends IPlaceholderMessageResendResponse, $ProtoJSON {}
 
 				class PlaceholderMessageResendResponse implements IPlaceholderMessageResendResponse {
 					constructor(p?: IPlaceholderMessageResendResponse);
 					public static create(p?: IPlaceholderMessageResendResponse): PlaceholderMessageResendResponse;
 					public static fromObject(d: $ProtoObject): PlaceholderMessageResendResponse;
-					public static toObject(m: PlaceholderMessageResendResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<PlaceholderMessageResendResponse>;
 					public static encode: $ProtoEncode<IPlaceholderMessageResendResponse>;
 					public static decode: $ProtoDecode<PlaceholderMessageResendResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface ISyncDSnapshotFatalRecoveryResponse {
@@ -10894,16 +10428,15 @@ export namespace proto {
 					isCompressed?: (boolean|null);
 				}
 
-				interface SyncDSnapshotFatalRecoveryResponse extends ISyncDSnapshotFatalRecoveryResponse {}
+				interface SyncDSnapshotFatalRecoveryResponse extends ISyncDSnapshotFatalRecoveryResponse, $ProtoJSON {}
 
 				class SyncDSnapshotFatalRecoveryResponse implements ISyncDSnapshotFatalRecoveryResponse {
 					constructor(p?: ISyncDSnapshotFatalRecoveryResponse);
 					public static create(p?: ISyncDSnapshotFatalRecoveryResponse): SyncDSnapshotFatalRecoveryResponse;
 					public static fromObject(d: $ProtoObject): SyncDSnapshotFatalRecoveryResponse;
-					public static toObject(m: SyncDSnapshotFatalRecoveryResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<SyncDSnapshotFatalRecoveryResponse>;
 					public static encode: $ProtoEncode<ISyncDSnapshotFatalRecoveryResponse>;
 					public static decode: $ProtoDecode<SyncDSnapshotFatalRecoveryResponse>;
-					public toJSON(): $ProtoObject;
 				}
 
 				interface IWaffleNonceFetchResponse {
@@ -10911,16 +10444,15 @@ export namespace proto {
 					waEntFbid?: (string|null);
 				}
 
-				interface WaffleNonceFetchResponse extends IWaffleNonceFetchResponse {}
+				interface WaffleNonceFetchResponse extends IWaffleNonceFetchResponse, $ProtoJSON {}
 
 				class WaffleNonceFetchResponse implements IWaffleNonceFetchResponse {
 					constructor(p?: IWaffleNonceFetchResponse);
 					public static create(p?: IWaffleNonceFetchResponse): WaffleNonceFetchResponse;
 					public static fromObject(d: $ProtoObject): WaffleNonceFetchResponse;
-					public static toObject(m: WaffleNonceFetchResponse, o?: $protobuf.IConversionOptions): $ProtoObject;
+					public static toObject: $ProtoToObject<WaffleNonceFetchResponse>;
 					public static encode: $ProtoEncode<IWaffleNonceFetchResponse>;
 					public static decode: $ProtoDecode<WaffleNonceFetchResponse>;
-					public toJSON(): $ProtoObject;
 				}
 			}
 		}
@@ -10949,16 +10481,15 @@ export namespace proto {
 			senderTimestampMs?: (Long|null);
 		}
 
-		interface PinInChatMessage extends IPinInChatMessage {}
+		interface PinInChatMessage extends IPinInChatMessage, $ProtoJSON {}
 
 		class PinInChatMessage implements IPinInChatMessage {
 			constructor(p?: IPinInChatMessage);
 			public static create(p?: IPinInChatMessage): PinInChatMessage;
 			public static fromObject(d: $ProtoObject): PinInChatMessage;
-			public static toObject(m: PinInChatMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PinInChatMessage>;
 			public static encode: $ProtoEncode<IPinInChatMessage>;
 			public static decode: $ProtoDecode<PinInChatMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PinInChatMessage {
@@ -10974,16 +10505,15 @@ export namespace proto {
 			type?: (proto.Message.PlaceholderMessage.PlaceholderType|null);
 		}
 
-		interface PlaceholderMessage extends IPlaceholderMessage {}
+		interface PlaceholderMessage extends IPlaceholderMessage, $ProtoJSON {}
 
 		class PlaceholderMessage implements IPlaceholderMessage {
 			constructor(p?: IPlaceholderMessage);
 			public static create(p?: IPlaceholderMessage): PlaceholderMessage;
 			public static fromObject(d: $ProtoObject): PlaceholderMessage;
-			public static toObject(m: PlaceholderMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PlaceholderMessage>;
 			public static encode: $ProtoEncode<IPlaceholderMessage>;
 			public static decode: $ProtoDecode<PlaceholderMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PlaceholderMessage {
@@ -10999,16 +10529,15 @@ export namespace proto {
 			metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
 		}
 
-		interface PollAddOptionMessage extends IPollAddOptionMessage {}
+		interface PollAddOptionMessage extends IPollAddOptionMessage, $ProtoJSON {}
 
 		class PollAddOptionMessage implements IPollAddOptionMessage {
 			constructor(p?: IPollAddOptionMessage);
 			public static create(p?: IPollAddOptionMessage): PollAddOptionMessage;
 			public static fromObject(d: $ProtoObject): PollAddOptionMessage;
-			public static toObject(m: PollAddOptionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollAddOptionMessage>;
 			public static encode: $ProtoEncode<IPollAddOptionMessage>;
 			public static decode: $ProtoDecode<PollAddOptionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum PollContentType {
@@ -11031,16 +10560,15 @@ export namespace proto {
 			allowAddOption?: (boolean|null);
 		}
 
-		interface PollCreationMessage extends IPollCreationMessage {}
+		interface PollCreationMessage extends IPollCreationMessage, $ProtoJSON {}
 
 		class PollCreationMessage implements IPollCreationMessage {
 			constructor(p?: IPollCreationMessage);
 			public static create(p?: IPollCreationMessage): PollCreationMessage;
 			public static fromObject(d: $ProtoObject): PollCreationMessage;
-			public static toObject(m: PollCreationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollCreationMessage>;
 			public static encode: $ProtoEncode<IPollCreationMessage>;
 			public static decode: $ProtoDecode<PollCreationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PollCreationMessage {
@@ -11050,16 +10578,15 @@ export namespace proto {
 				optionHash?: (string|null);
 			}
 
-			interface Option extends IOption {}
+			interface Option extends IOption, $ProtoJSON {}
 
 			class Option implements IOption {
 				constructor(p?: IOption);
 				public static create(p?: IOption): Option;
 				public static fromObject(d: $ProtoObject): Option;
-				public static toObject(m: Option, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Option>;
 				public static encode: $ProtoEncode<IOption>;
 				public static decode: $ProtoDecode<Option>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -11068,16 +10595,15 @@ export namespace proto {
 			encIv?: (Uint8Array|null);
 		}
 
-		interface PollEncValue extends IPollEncValue {}
+		interface PollEncValue extends IPollEncValue, $ProtoJSON {}
 
 		class PollEncValue implements IPollEncValue {
 			constructor(p?: IPollEncValue);
 			public static create(p?: IPollEncValue): PollEncValue;
 			public static fromObject(d: $ProtoObject): PollEncValue;
-			public static toObject(m: PollEncValue, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollEncValue>;
 			public static encode: $ProtoEncode<IPollEncValue>;
 			public static decode: $ProtoDecode<PollEncValue>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollResultSnapshotMessage {
@@ -11087,16 +10613,15 @@ export namespace proto {
 			pollType?: (proto.Message.PollType|null);
 		}
 
-		interface PollResultSnapshotMessage extends IPollResultSnapshotMessage {}
+		interface PollResultSnapshotMessage extends IPollResultSnapshotMessage, $ProtoJSON {}
 
 		class PollResultSnapshotMessage implements IPollResultSnapshotMessage {
 			constructor(p?: IPollResultSnapshotMessage);
 			public static create(p?: IPollResultSnapshotMessage): PollResultSnapshotMessage;
 			public static fromObject(d: $ProtoObject): PollResultSnapshotMessage;
-			public static toObject(m: PollResultSnapshotMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollResultSnapshotMessage>;
 			public static encode: $ProtoEncode<IPollResultSnapshotMessage>;
 			public static decode: $ProtoDecode<PollResultSnapshotMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PollResultSnapshotMessage {
@@ -11106,16 +10631,15 @@ export namespace proto {
 				optionVoteCount?: (Long|null);
 			}
 
-			interface PollVote extends IPollVote {}
+			interface PollVote extends IPollVote, $ProtoJSON {}
 
 			class PollVote implements IPollVote {
 				constructor(p?: IPollVote);
 				public static create(p?: IPollVote): PollVote;
 				public static fromObject(d: $ProtoObject): PollVote;
-				public static toObject(m: PollVote, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PollVote>;
 				public static encode: $ProtoEncode<IPollVote>;
 				public static decode: $ProtoDecode<PollVote>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -11131,16 +10655,15 @@ export namespace proto {
 			senderTimestampMs?: (Long|null);
 		}
 
-		interface PollUpdateMessage extends IPollUpdateMessage {}
+		interface PollUpdateMessage extends IPollUpdateMessage, $ProtoJSON {}
 
 		class PollUpdateMessage implements IPollUpdateMessage {
 			constructor(p?: IPollUpdateMessage);
 			public static create(p?: IPollUpdateMessage): PollUpdateMessage;
 			public static fromObject(d: $ProtoObject): PollUpdateMessage;
-			public static toObject(m: PollUpdateMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollUpdateMessage>;
 			public static encode: $ProtoEncode<IPollUpdateMessage>;
 			public static decode: $ProtoDecode<PollUpdateMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollUpdateMessageMetadata {
@@ -11148,32 +10671,30 @@ export namespace proto {
 			lastEditStanzaId?: (string|null);
 		}
 
-		interface PollUpdateMessageMetadata extends IPollUpdateMessageMetadata {}
+		interface PollUpdateMessageMetadata extends IPollUpdateMessageMetadata, $ProtoJSON {}
 
 		class PollUpdateMessageMetadata implements IPollUpdateMessageMetadata {
 			constructor(p?: IPollUpdateMessageMetadata);
 			public static create(p?: IPollUpdateMessageMetadata): PollUpdateMessageMetadata;
 			public static fromObject(d: $ProtoObject): PollUpdateMessageMetadata;
-			public static toObject(m: PollUpdateMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollUpdateMessageMetadata>;
 			public static encode: $ProtoEncode<IPollUpdateMessageMetadata>;
 			public static decode: $ProtoDecode<PollUpdateMessageMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollVoteMessage {
 			selectedOptions?: Uint8Array[];
 		}
 
-		interface PollVoteMessage extends IPollVoteMessage {}
+		interface PollVoteMessage extends IPollVoteMessage, $ProtoJSON {}
 
 		class PollVoteMessage implements IPollVoteMessage {
 			constructor(p?: IPollVoteMessage);
 			public static create(p?: IPollVoteMessage): PollVoteMessage;
 			public static fromObject(d: $ProtoObject): PollVoteMessage;
-			public static toObject(m: PollVoteMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollVoteMessage>;
 			public static encode: $ProtoEncode<IPollVoteMessage>;
 			public static decode: $ProtoDecode<PollVoteMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IProductMessage {
@@ -11185,16 +10706,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface ProductMessage extends IProductMessage {}
+		interface ProductMessage extends IProductMessage, $ProtoJSON {}
 
 		class ProductMessage implements IProductMessage {
 			constructor(p?: IProductMessage);
 			public static create(p?: IProductMessage): ProductMessage;
 			public static fromObject(d: $ProtoObject): ProductMessage;
-			public static toObject(m: ProductMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ProductMessage>;
 			public static encode: $ProtoEncode<IProductMessage>;
 			public static decode: $ProtoDecode<ProductMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ProductMessage {
@@ -11205,16 +10725,15 @@ export namespace proto {
 				description?: (string|null);
 			}
 
-			interface CatalogSnapshot extends ICatalogSnapshot {}
+			interface CatalogSnapshot extends ICatalogSnapshot, $ProtoJSON {}
 
 			class CatalogSnapshot implements ICatalogSnapshot {
 				constructor(p?: ICatalogSnapshot);
 				public static create(p?: ICatalogSnapshot): CatalogSnapshot;
 				public static fromObject(d: $ProtoObject): CatalogSnapshot;
-				public static toObject(m: CatalogSnapshot, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CatalogSnapshot>;
 				public static encode: $ProtoEncode<ICatalogSnapshot>;
 				public static decode: $ProtoDecode<CatalogSnapshot>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IProductSnapshot {
@@ -11232,16 +10751,15 @@ export namespace proto {
 				signedUrl?: (string|null);
 			}
 
-			interface ProductSnapshot extends IProductSnapshot {}
+			interface ProductSnapshot extends IProductSnapshot, $ProtoJSON {}
 
 			class ProductSnapshot implements IProductSnapshot {
 				constructor(p?: IProductSnapshot);
 				public static create(p?: IProductSnapshot): ProductSnapshot;
 				public static fromObject(d: $ProtoObject): ProductSnapshot;
-				public static toObject(m: ProductSnapshot, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ProductSnapshot>;
 				public static encode: $ProtoEncode<IProductSnapshot>;
 				public static decode: $ProtoDecode<ProductSnapshot>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -11281,16 +10799,15 @@ export namespace proto {
 			sharedDeviceContactHashKeyRequest?: (proto.Message.ISharedDeviceContactHashKeyRequest|null);
 		}
 
-		interface ProtocolMessage extends IProtocolMessage {}
+		interface ProtocolMessage extends IProtocolMessage, $ProtoJSON {}
 
 		class ProtocolMessage implements IProtocolMessage {
 			constructor(p?: IProtocolMessage);
 			public static create(p?: IProtocolMessage): ProtocolMessage;
 			public static fromObject(d: $ProtoObject): ProtocolMessage;
-			public static toObject(m: ProtocolMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ProtocolMessage>;
 			public static encode: $ProtoEncode<IProtocolMessage>;
 			public static decode: $ProtoDecode<ProtocolMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ProtocolMessage {
@@ -11339,16 +10856,15 @@ export namespace proto {
 			text?: (string|null);
 		}
 
-		interface QuestionResponseMessage extends IQuestionResponseMessage {}
+		interface QuestionResponseMessage extends IQuestionResponseMessage, $ProtoJSON {}
 
 		class QuestionResponseMessage implements IQuestionResponseMessage {
 			constructor(p?: IQuestionResponseMessage);
 			public static create(p?: IQuestionResponseMessage): QuestionResponseMessage;
 			public static fromObject(d: $ProtoObject): QuestionResponseMessage;
-			public static toObject(m: QuestionResponseMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<QuestionResponseMessage>;
 			public static encode: $ProtoEncode<IQuestionResponseMessage>;
 			public static decode: $ProtoDecode<QuestionResponseMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IReactionMessage {
@@ -11358,16 +10874,15 @@ export namespace proto {
 			senderTimestampMs?: (Long|null);
 		}
 
-		interface ReactionMessage extends IReactionMessage {}
+		interface ReactionMessage extends IReactionMessage, $ProtoJSON {}
 
 		class ReactionMessage implements IReactionMessage {
 			constructor(p?: IReactionMessage);
 			public static create(p?: IReactionMessage): ReactionMessage;
 			public static fromObject(d: $ProtoObject): ReactionMessage;
-			public static toObject(m: ReactionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ReactionMessage>;
 			public static encode: $ProtoEncode<IReactionMessage>;
 			public static decode: $ProtoDecode<ReactionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRequestPaymentMessage {
@@ -11380,32 +10895,30 @@ export namespace proto {
 			background?: (proto.IPaymentBackground|null);
 		}
 
-		interface RequestPaymentMessage extends IRequestPaymentMessage {}
+		interface RequestPaymentMessage extends IRequestPaymentMessage, $ProtoJSON {}
 
 		class RequestPaymentMessage implements IRequestPaymentMessage {
 			constructor(p?: IRequestPaymentMessage);
 			public static create(p?: IRequestPaymentMessage): RequestPaymentMessage;
 			public static fromObject(d: $ProtoObject): RequestPaymentMessage;
-			public static toObject(m: RequestPaymentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RequestPaymentMessage>;
 			public static encode: $ProtoEncode<IRequestPaymentMessage>;
 			public static decode: $ProtoDecode<RequestPaymentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRequestPhoneNumberMessage {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface RequestPhoneNumberMessage extends IRequestPhoneNumberMessage {}
+		interface RequestPhoneNumberMessage extends IRequestPhoneNumberMessage, $ProtoJSON {}
 
 		class RequestPhoneNumberMessage implements IRequestPhoneNumberMessage {
 			constructor(p?: IRequestPhoneNumberMessage);
 			public static create(p?: IRequestPhoneNumberMessage): RequestPhoneNumberMessage;
 			public static fromObject(d: $ProtoObject): RequestPhoneNumberMessage;
-			public static toObject(m: RequestPhoneNumberMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RequestPhoneNumberMessage>;
 			public static encode: $ProtoEncode<IRequestPhoneNumberMessage>;
 			public static decode: $ProtoDecode<RequestPhoneNumberMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRequestWelcomeMessageMetadata {
@@ -11414,16 +10927,15 @@ export namespace proto {
 			botAgentMetadata?: (proto.IBotAgentMetadata|null);
 		}
 
-		interface RequestWelcomeMessageMetadata extends IRequestWelcomeMessageMetadata {}
+		interface RequestWelcomeMessageMetadata extends IRequestWelcomeMessageMetadata, $ProtoJSON {}
 
 		class RequestWelcomeMessageMetadata implements IRequestWelcomeMessageMetadata {
 			constructor(p?: IRequestWelcomeMessageMetadata);
 			public static create(p?: IRequestWelcomeMessageMetadata): RequestWelcomeMessageMetadata;
 			public static fromObject(d: $ProtoObject): RequestWelcomeMessageMetadata;
-			public static toObject(m: RequestWelcomeMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RequestWelcomeMessageMetadata>;
 			public static encode: $ProtoEncode<IRequestWelcomeMessageMetadata>;
 			public static decode: $ProtoDecode<RequestWelcomeMessageMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace RequestWelcomeMessageMetadata {
@@ -11443,16 +10955,15 @@ export namespace proto {
 			chatJid?: (string|null);
 		}
 
-		interface RootSecretDistributeMessage extends IRootSecretDistributeMessage {}
+		interface RootSecretDistributeMessage extends IRootSecretDistributeMessage, $ProtoJSON {}
 
 		class RootSecretDistributeMessage implements IRootSecretDistributeMessage {
 			constructor(p?: IRootSecretDistributeMessage);
 			public static create(p?: IRootSecretDistributeMessage): RootSecretDistributeMessage;
 			public static fromObject(d: $ProtoObject): RootSecretDistributeMessage;
-			public static toObject(m: RootSecretDistributeMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RootSecretDistributeMessage>;
 			public static encode: $ProtoEncode<IRootSecretDistributeMessage>;
 			public static decode: $ProtoDecode<RootSecretDistributeMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IScheduledCallCreationMessage {
@@ -11461,16 +10972,15 @@ export namespace proto {
 			title?: (string|null);
 		}
 
-		interface ScheduledCallCreationMessage extends IScheduledCallCreationMessage {}
+		interface ScheduledCallCreationMessage extends IScheduledCallCreationMessage, $ProtoJSON {}
 
 		class ScheduledCallCreationMessage implements IScheduledCallCreationMessage {
 			constructor(p?: IScheduledCallCreationMessage);
 			public static create(p?: IScheduledCallCreationMessage): ScheduledCallCreationMessage;
 			public static fromObject(d: $ProtoObject): ScheduledCallCreationMessage;
-			public static toObject(m: ScheduledCallCreationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ScheduledCallCreationMessage>;
 			public static encode: $ProtoEncode<IScheduledCallCreationMessage>;
 			public static decode: $ProtoDecode<ScheduledCallCreationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ScheduledCallCreationMessage {
@@ -11487,16 +10997,15 @@ export namespace proto {
 			editType?: (proto.Message.ScheduledCallEditMessage.EditType|null);
 		}
 
-		interface ScheduledCallEditMessage extends IScheduledCallEditMessage {}
+		interface ScheduledCallEditMessage extends IScheduledCallEditMessage, $ProtoJSON {}
 
 		class ScheduledCallEditMessage implements IScheduledCallEditMessage {
 			constructor(p?: IScheduledCallEditMessage);
 			public static create(p?: IScheduledCallEditMessage): ScheduledCallEditMessage;
 			public static fromObject(d: $ProtoObject): ScheduledCallEditMessage;
-			public static toObject(m: ScheduledCallEditMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ScheduledCallEditMessage>;
 			public static encode: $ProtoEncode<IScheduledCallEditMessage>;
 			public static decode: $ProtoDecode<ScheduledCallEditMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ScheduledCallEditMessage {
@@ -11515,16 +11024,15 @@ export namespace proto {
 			remoteKeyId?: (string|null);
 		}
 
-		interface SecretEncryptedMessage extends ISecretEncryptedMessage {}
+		interface SecretEncryptedMessage extends ISecretEncryptedMessage, $ProtoJSON {}
 
 		class SecretEncryptedMessage implements ISecretEncryptedMessage {
 			constructor(p?: ISecretEncryptedMessage);
 			public static create(p?: ISecretEncryptedMessage): SecretEncryptedMessage;
 			public static fromObject(d: $ProtoObject): SecretEncryptedMessage;
-			public static toObject(m: SecretEncryptedMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SecretEncryptedMessage>;
 			public static encode: $ProtoEncode<ISecretEncryptedMessage>;
 			public static decode: $ProtoDecode<SecretEncryptedMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SecretEncryptedMessage {
@@ -11544,16 +11052,15 @@ export namespace proto {
 			axolotlSenderKeyDistributionMessage?: (Uint8Array|null);
 		}
 
-		interface SenderKeyDistributionMessage extends ISenderKeyDistributionMessage {}
+		interface SenderKeyDistributionMessage extends ISenderKeyDistributionMessage, $ProtoJSON {}
 
 		class SenderKeyDistributionMessage implements ISenderKeyDistributionMessage {
 			constructor(p?: ISenderKeyDistributionMessage);
 			public static create(p?: ISenderKeyDistributionMessage): SenderKeyDistributionMessage;
 			public static fromObject(d: $ProtoObject): SenderKeyDistributionMessage;
-			public static toObject(m: SenderKeyDistributionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SenderKeyDistributionMessage>;
 			public static encode: $ProtoEncode<ISenderKeyDistributionMessage>;
 			public static decode: $ProtoDecode<SenderKeyDistributionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISendPaymentMessage {
@@ -11563,16 +11070,15 @@ export namespace proto {
 			transactionData?: (string|null);
 		}
 
-		interface SendPaymentMessage extends ISendPaymentMessage {}
+		interface SendPaymentMessage extends ISendPaymentMessage, $ProtoJSON {}
 
 		class SendPaymentMessage implements ISendPaymentMessage {
 			constructor(p?: ISendPaymentMessage);
 			public static create(p?: ISendPaymentMessage): SendPaymentMessage;
 			public static fromObject(d: $ProtoObject): SendPaymentMessage;
-			public static toObject(m: SendPaymentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SendPaymentMessage>;
 			public static encode: $ProtoEncode<ISendPaymentMessage>;
 			public static decode: $ProtoDecode<SendPaymentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISharedDeviceContactHashKey {
@@ -11581,16 +11087,15 @@ export namespace proto {
 			keyData?: (Uint8Array|null);
 		}
 
-		interface SharedDeviceContactHashKey extends ISharedDeviceContactHashKey {}
+		interface SharedDeviceContactHashKey extends ISharedDeviceContactHashKey, $ProtoJSON {}
 
 		class SharedDeviceContactHashKey implements ISharedDeviceContactHashKey {
 			constructor(p?: ISharedDeviceContactHashKey);
 			public static create(p?: ISharedDeviceContactHashKey): SharedDeviceContactHashKey;
 			public static fromObject(d: $ProtoObject): SharedDeviceContactHashKey;
-			public static toObject(m: SharedDeviceContactHashKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SharedDeviceContactHashKey>;
 			public static encode: $ProtoEncode<ISharedDeviceContactHashKey>;
 			public static decode: $ProtoDecode<SharedDeviceContactHashKey>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SharedDeviceContactHashKey {
@@ -11606,32 +11111,30 @@ export namespace proto {
 			knownEpoch?: (number|null);
 		}
 
-		interface SharedDeviceContactHashKeyRequest extends ISharedDeviceContactHashKeyRequest {}
+		interface SharedDeviceContactHashKeyRequest extends ISharedDeviceContactHashKeyRequest, $ProtoJSON {}
 
 		class SharedDeviceContactHashKeyRequest implements ISharedDeviceContactHashKeyRequest {
 			constructor(p?: ISharedDeviceContactHashKeyRequest);
 			public static create(p?: ISharedDeviceContactHashKeyRequest): SharedDeviceContactHashKeyRequest;
 			public static fromObject(d: $ProtoObject): SharedDeviceContactHashKeyRequest;
-			public static toObject(m: SharedDeviceContactHashKeyRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SharedDeviceContactHashKeyRequest>;
 			public static encode: $ProtoEncode<ISharedDeviceContactHashKeyRequest>;
 			public static decode: $ProtoDecode<SharedDeviceContactHashKeyRequest>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISharedDeviceContactHashKeyShare {
 			keys?: proto.Message.ISharedDeviceContactHashKey[];
 		}
 
-		interface SharedDeviceContactHashKeyShare extends ISharedDeviceContactHashKeyShare {}
+		interface SharedDeviceContactHashKeyShare extends ISharedDeviceContactHashKeyShare, $ProtoJSON {}
 
 		class SharedDeviceContactHashKeyShare implements ISharedDeviceContactHashKeyShare {
 			constructor(p?: ISharedDeviceContactHashKeyShare);
 			public static create(p?: ISharedDeviceContactHashKeyShare): SharedDeviceContactHashKeyShare;
 			public static fromObject(d: $ProtoObject): SharedDeviceContactHashKeyShare;
-			public static toObject(m: SharedDeviceContactHashKeyShare, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SharedDeviceContactHashKeyShare>;
 			public static encode: $ProtoEncode<ISharedDeviceContactHashKeyShare>;
 			public static decode: $ProtoDecode<SharedDeviceContactHashKeyShare>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISplitPaymentMessage {
@@ -11644,16 +11147,15 @@ export namespace proto {
 			contextInfo?: (proto.IContextInfo|null);
 		}
 
-		interface SplitPaymentMessage extends ISplitPaymentMessage {}
+		interface SplitPaymentMessage extends ISplitPaymentMessage, $ProtoJSON {}
 
 		class SplitPaymentMessage implements ISplitPaymentMessage {
 			constructor(p?: ISplitPaymentMessage);
 			public static create(p?: ISplitPaymentMessage): SplitPaymentMessage;
 			public static fromObject(d: $ProtoObject): SplitPaymentMessage;
-			public static toObject(m: SplitPaymentMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SplitPaymentMessage>;
 			public static encode: $ProtoEncode<ISplitPaymentMessage>;
 			public static decode: $ProtoDecode<SplitPaymentMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISplitPaymentParticipant {
@@ -11662,16 +11164,15 @@ export namespace proto {
 			status?: (proto.Message.SplitPaymentParticipant.SplitPaymentStatus|null);
 		}
 
-		interface SplitPaymentParticipant extends ISplitPaymentParticipant {}
+		interface SplitPaymentParticipant extends ISplitPaymentParticipant, $ProtoJSON {}
 
 		class SplitPaymentParticipant implements ISplitPaymentParticipant {
 			constructor(p?: ISplitPaymentParticipant);
 			public static create(p?: ISplitPaymentParticipant): SplitPaymentParticipant;
 			public static fromObject(d: $ProtoObject): SplitPaymentParticipant;
-			public static toObject(m: SplitPaymentParticipant, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SplitPaymentParticipant>;
 			public static encode: $ProtoEncode<ISplitPaymentParticipant>;
 			public static decode: $ProtoDecode<SplitPaymentParticipant>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SplitPaymentParticipant {
@@ -11687,32 +11188,30 @@ export namespace proto {
 			participantJid?: (string|null);
 		}
 
-		interface SplitPaymentUpdateMessage extends ISplitPaymentUpdateMessage {}
+		interface SplitPaymentUpdateMessage extends ISplitPaymentUpdateMessage, $ProtoJSON {}
 
 		class SplitPaymentUpdateMessage implements ISplitPaymentUpdateMessage {
 			constructor(p?: ISplitPaymentUpdateMessage);
 			public static create(p?: ISplitPaymentUpdateMessage): SplitPaymentUpdateMessage;
 			public static fromObject(d: $ProtoObject): SplitPaymentUpdateMessage;
-			public static toObject(m: SplitPaymentUpdateMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SplitPaymentUpdateMessage>;
 			public static encode: $ProtoEncode<ISplitPaymentUpdateMessage>;
 			public static decode: $ProtoDecode<SplitPaymentUpdateMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStatusLinkPreviewMetadata {
 			style?: (proto.Message.StatusLinkPreviewMetadata.Style|null);
 		}
 
-		interface StatusLinkPreviewMetadata extends IStatusLinkPreviewMetadata {}
+		interface StatusLinkPreviewMetadata extends IStatusLinkPreviewMetadata, $ProtoJSON {}
 
 		class StatusLinkPreviewMetadata implements IStatusLinkPreviewMetadata {
 			constructor(p?: IStatusLinkPreviewMetadata);
 			public static create(p?: IStatusLinkPreviewMetadata): StatusLinkPreviewMetadata;
 			public static fromObject(d: $ProtoObject): StatusLinkPreviewMetadata;
-			public static toObject(m: StatusLinkPreviewMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusLinkPreviewMetadata>;
 			public static encode: $ProtoEncode<IStatusLinkPreviewMetadata>;
 			public static decode: $ProtoDecode<StatusLinkPreviewMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusLinkPreviewMetadata {
@@ -11731,16 +11230,15 @@ export namespace proto {
 			type?: (proto.Message.StatusNotificationMessage.StatusNotificationType|null);
 		}
 
-		interface StatusNotificationMessage extends IStatusNotificationMessage {}
+		interface StatusNotificationMessage extends IStatusNotificationMessage, $ProtoJSON {}
 
 		class StatusNotificationMessage implements IStatusNotificationMessage {
 			constructor(p?: IStatusNotificationMessage);
 			public static create(p?: IStatusNotificationMessage): StatusNotificationMessage;
 			public static fromObject(d: $ProtoObject): StatusNotificationMessage;
-			public static toObject(m: StatusNotificationMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusNotificationMessage>;
 			public static encode: $ProtoEncode<IStatusNotificationMessage>;
 			public static decode: $ProtoDecode<StatusNotificationMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusNotificationMessage {
@@ -11759,16 +11257,15 @@ export namespace proto {
 			text?: (string|null);
 		}
 
-		interface StatusQuestionAnswerMessage extends IStatusQuestionAnswerMessage {}
+		interface StatusQuestionAnswerMessage extends IStatusQuestionAnswerMessage, $ProtoJSON {}
 
 		class StatusQuestionAnswerMessage implements IStatusQuestionAnswerMessage {
 			constructor(p?: IStatusQuestionAnswerMessage);
 			public static create(p?: IStatusQuestionAnswerMessage): StatusQuestionAnswerMessage;
 			public static fromObject(d: $ProtoObject): StatusQuestionAnswerMessage;
-			public static toObject(m: StatusQuestionAnswerMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusQuestionAnswerMessage>;
 			public static encode: $ProtoEncode<IStatusQuestionAnswerMessage>;
 			public static decode: $ProtoDecode<StatusQuestionAnswerMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStatusQuotedMessage {
@@ -11778,16 +11275,15 @@ export namespace proto {
 			originalStatusId?: (proto.IMessageKey|null);
 		}
 
-		interface StatusQuotedMessage extends IStatusQuotedMessage {}
+		interface StatusQuotedMessage extends IStatusQuotedMessage, $ProtoJSON {}
 
 		class StatusQuotedMessage implements IStatusQuotedMessage {
 			constructor(p?: IStatusQuotedMessage);
 			public static create(p?: IStatusQuotedMessage): StatusQuotedMessage;
 			public static fromObject(d: $ProtoObject): StatusQuotedMessage;
-			public static toObject(m: StatusQuotedMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusQuotedMessage>;
 			public static encode: $ProtoEncode<IStatusQuotedMessage>;
 			public static decode: $ProtoDecode<StatusQuotedMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusQuotedMessage {
@@ -11803,16 +11299,15 @@ export namespace proto {
 			type?: (proto.Message.StatusStickerInteractionMessage.StatusStickerType|null);
 		}
 
-		interface StatusStickerInteractionMessage extends IStatusStickerInteractionMessage {}
+		interface StatusStickerInteractionMessage extends IStatusStickerInteractionMessage, $ProtoJSON {}
 
 		class StatusStickerInteractionMessage implements IStatusStickerInteractionMessage {
 			constructor(p?: IStatusStickerInteractionMessage);
 			public static create(p?: IStatusStickerInteractionMessage): StatusStickerInteractionMessage;
 			public static fromObject(d: $ProtoObject): StatusStickerInteractionMessage;
-			public static toObject(m: StatusStickerInteractionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusStickerInteractionMessage>;
 			public static encode: $ProtoEncode<IStatusStickerInteractionMessage>;
 			public static decode: $ProtoDecode<StatusStickerInteractionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusStickerInteractionMessage {
@@ -11849,16 +11344,15 @@ export namespace proto {
 			audioMessage?: (proto.Message.IAudioMessage|null);
 		}
 
-		interface StickerMessage extends IStickerMessage {}
+		interface StickerMessage extends IStickerMessage, $ProtoJSON {}
 
 		class StickerMessage implements IStickerMessage {
 			constructor(p?: IStickerMessage);
 			public static create(p?: IStickerMessage): StickerMessage;
 			public static fromObject(d: $ProtoObject): StickerMessage;
-			public static toObject(m: StickerMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StickerMessage>;
 			public static encode: $ProtoEncode<IStickerMessage>;
 			public static decode: $ProtoDecode<StickerMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStickerPackMessage {
@@ -11886,16 +11380,15 @@ export namespace proto {
 			stickerPackOrigin?: (proto.Message.StickerPackMessage.StickerPackOrigin|null);
 		}
 
-		interface StickerPackMessage extends IStickerPackMessage {}
+		interface StickerPackMessage extends IStickerPackMessage, $ProtoJSON {}
 
 		class StickerPackMessage implements IStickerPackMessage {
 			constructor(p?: IStickerPackMessage);
 			public static create(p?: IStickerPackMessage): StickerPackMessage;
 			public static fromObject(d: $ProtoObject): StickerPackMessage;
-			public static toObject(m: StickerPackMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StickerPackMessage>;
 			public static encode: $ProtoEncode<IStickerPackMessage>;
 			public static decode: $ProtoDecode<StickerPackMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StickerPackMessage {
@@ -11910,16 +11403,15 @@ export namespace proto {
 				premium?: (number|null);
 			}
 
-			interface Sticker extends ISticker {}
+			interface Sticker extends ISticker, $ProtoJSON {}
 
 			class Sticker implements ISticker {
 				constructor(p?: ISticker);
 				public static create(p?: ISticker): Sticker;
 				public static fromObject(d: $ProtoObject): Sticker;
-				public static toObject(m: Sticker, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Sticker>;
 				public static encode: $ProtoEncode<ISticker>;
 				public static decode: $ProtoDecode<Sticker>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum StickerPackOrigin {
@@ -11935,16 +11427,15 @@ export namespace proto {
 			requestTimestamp?: (Long|null);
 		}
 
-		interface StickerSyncRMRMessage extends IStickerSyncRMRMessage {}
+		interface StickerSyncRMRMessage extends IStickerSyncRMRMessage, $ProtoJSON {}
 
 		class StickerSyncRMRMessage implements IStickerSyncRMRMessage {
 			constructor(p?: IStickerSyncRMRMessage);
 			public static create(p?: IStickerSyncRMRMessage): StickerSyncRMRMessage;
 			public static fromObject(d: $ProtoObject): StickerSyncRMRMessage;
-			public static toObject(m: StickerSyncRMRMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StickerSyncRMRMessage>;
 			public static encode: $ProtoEncode<IStickerSyncRMRMessage>;
 			public static decode: $ProtoDecode<StickerSyncRMRMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ITemplateButtonReplyMessage {
@@ -11955,16 +11446,15 @@ export namespace proto {
 			selectedCarouselCardIndex?: (number|null);
 		}
 
-		interface TemplateButtonReplyMessage extends ITemplateButtonReplyMessage {}
+		interface TemplateButtonReplyMessage extends ITemplateButtonReplyMessage, $ProtoJSON {}
 
 		class TemplateButtonReplyMessage implements ITemplateButtonReplyMessage {
 			constructor(p?: ITemplateButtonReplyMessage);
 			public static create(p?: ITemplateButtonReplyMessage): TemplateButtonReplyMessage;
 			public static fromObject(d: $ProtoObject): TemplateButtonReplyMessage;
-			public static toObject(m: TemplateButtonReplyMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TemplateButtonReplyMessage>;
 			public static encode: $ProtoEncode<ITemplateButtonReplyMessage>;
 			public static decode: $ProtoDecode<TemplateButtonReplyMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ITemplateMessage {
@@ -11976,16 +11466,15 @@ export namespace proto {
 			interactiveMessageTemplate?: (proto.Message.IInteractiveMessage|null);
 		}
 
-		interface TemplateMessage extends ITemplateMessage {}
+		interface TemplateMessage extends ITemplateMessage, $ProtoJSON {}
 
 		class TemplateMessage implements ITemplateMessage {
 			constructor(p?: ITemplateMessage);
 			public static create(p?: ITemplateMessage): TemplateMessage;
 			public static fromObject(d: $ProtoObject): TemplateMessage;
-			public static toObject(m: TemplateMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TemplateMessage>;
 			public static encode: $ProtoEncode<ITemplateMessage>;
 			public static decode: $ProtoDecode<TemplateMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace TemplateMessage {
@@ -12001,16 +11490,15 @@ export namespace proto {
 				locationMessage?: (proto.Message.ILocationMessage|null);
 			}
 
-			interface FourRowTemplate extends IFourRowTemplate {}
+			interface FourRowTemplate extends IFourRowTemplate, $ProtoJSON {}
 
 			class FourRowTemplate implements IFourRowTemplate {
 				constructor(p?: IFourRowTemplate);
 				public static create(p?: IFourRowTemplate): FourRowTemplate;
 				public static fromObject(d: $ProtoObject): FourRowTemplate;
-				public static toObject(m: FourRowTemplate, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<FourRowTemplate>;
 				public static encode: $ProtoEncode<IFourRowTemplate>;
 				public static decode: $ProtoDecode<FourRowTemplate>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IHydratedFourRowTemplate {
@@ -12026,16 +11514,15 @@ export namespace proto {
 				locationMessage?: (proto.Message.ILocationMessage|null);
 			}
 
-			interface HydratedFourRowTemplate extends IHydratedFourRowTemplate {}
+			interface HydratedFourRowTemplate extends IHydratedFourRowTemplate, $ProtoJSON {}
 
 			class HydratedFourRowTemplate implements IHydratedFourRowTemplate {
 				constructor(p?: IHydratedFourRowTemplate);
 				public static create(p?: IHydratedFourRowTemplate): HydratedFourRowTemplate;
 				public static fromObject(d: $ProtoObject): HydratedFourRowTemplate;
-				public static toObject(m: HydratedFourRowTemplate, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<HydratedFourRowTemplate>;
 				public static encode: $ProtoEncode<IHydratedFourRowTemplate>;
 				public static decode: $ProtoDecode<HydratedFourRowTemplate>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -12043,16 +11530,15 @@ export namespace proto {
 			fbExperimentId?: (number|null);
 		}
 
-		interface URLMetadata extends IURLMetadata {}
+		interface URLMetadata extends IURLMetadata, $ProtoJSON {}
 
 		class URLMetadata implements IURLMetadata {
 			constructor(p?: IURLMetadata);
 			public static create(p?: IURLMetadata): URLMetadata;
 			public static fromObject(d: $ProtoObject): URLMetadata;
-			public static toObject(m: URLMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<URLMetadata>;
 			public static encode: $ProtoEncode<IURLMetadata>;
 			public static decode: $ProtoDecode<URLMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IVideoEndCard {
@@ -12062,16 +11548,15 @@ export namespace proto {
 			profilePictureUrl?: (string|null);
 		}
 
-		interface VideoEndCard extends IVideoEndCard {}
+		interface VideoEndCard extends IVideoEndCard, $ProtoJSON {}
 
 		class VideoEndCard implements IVideoEndCard {
 			constructor(p?: IVideoEndCard);
 			public static create(p?: IVideoEndCard): VideoEndCard;
 			public static fromObject(d: $ProtoObject): VideoEndCard;
-			public static toObject(m: VideoEndCard, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<VideoEndCard>;
 			public static encode: $ProtoEncode<IVideoEndCard>;
 			public static decode: $ProtoDecode<VideoEndCard>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IVideoMessage {
@@ -12108,16 +11593,15 @@ export namespace proto {
 			dashManifestUrl?: (string|null);
 		}
 
-		interface VideoMessage extends IVideoMessage {}
+		interface VideoMessage extends IVideoMessage, $ProtoJSON {}
 
 		class VideoMessage implements IVideoMessage {
 			constructor(p?: IVideoMessage);
 			public static create(p?: IVideoMessage): VideoMessage;
 			public static fromObject(d: $ProtoObject): VideoMessage;
-			public static toObject(m: VideoMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<VideoMessage>;
 			public static encode: $ProtoEncode<IVideoMessage>;
 			public static decode: $ProtoDecode<VideoMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace VideoMessage {
@@ -12147,16 +11631,15 @@ export namespace proto {
 		legacyMessage?: (proto.ILegacyMessage|null);
 	}
 
-	interface MessageAddOn extends IMessageAddOn {}
+	interface MessageAddOn extends IMessageAddOn, $ProtoJSON {}
 
 	class MessageAddOn implements IMessageAddOn {
 		constructor(p?: IMessageAddOn);
 		public static create(p?: IMessageAddOn): MessageAddOn;
 		public static fromObject(d: $ProtoObject): MessageAddOn;
-		public static toObject(m: MessageAddOn, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageAddOn>;
 		public static encode: $ProtoEncode<IMessageAddOn>;
 		public static decode: $ProtoDecode<MessageAddOn>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MessageAddOn {
@@ -12175,16 +11658,15 @@ export namespace proto {
 		messageAddOnExpiryType?: (proto.MessageContextInfo.MessageAddonExpiryType|null);
 	}
 
-	interface MessageAddOnContextInfo extends IMessageAddOnContextInfo {}
+	interface MessageAddOnContextInfo extends IMessageAddOnContextInfo, $ProtoJSON {}
 
 	class MessageAddOnContextInfo implements IMessageAddOnContextInfo {
 		constructor(p?: IMessageAddOnContextInfo);
 		public static create(p?: IMessageAddOnContextInfo): MessageAddOnContextInfo;
 		public static fromObject(d: $ProtoObject): MessageAddOnContextInfo;
-		public static toObject(m: MessageAddOnContextInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageAddOnContextInfo>;
 		public static encode: $ProtoEncode<IMessageAddOnContextInfo>;
 		public static decode: $ProtoDecode<MessageAddOnContextInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMessageAssociation {
@@ -12193,16 +11675,15 @@ export namespace proto {
 		messageIndex?: (number|null);
 	}
 
-	interface MessageAssociation extends IMessageAssociation {}
+	interface MessageAssociation extends IMessageAssociation, $ProtoJSON {}
 
 	class MessageAssociation implements IMessageAssociation {
 		constructor(p?: IMessageAssociation);
 		public static create(p?: IMessageAssociation): MessageAssociation;
 		public static fromObject(d: $ProtoObject): MessageAssociation;
-		public static toObject(m: MessageAssociation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageAssociation>;
 		public static encode: $ProtoEncode<IMessageAssociation>;
 		public static decode: $ProtoDecode<MessageAssociation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MessageAssociation {
@@ -12256,16 +11737,15 @@ export namespace proto {
 		acp2Setting?: (proto.IACP2Setting|null);
 	}
 
-	interface MessageContextInfo extends IMessageContextInfo {}
+	interface MessageContextInfo extends IMessageContextInfo, $ProtoJSON {}
 
 	class MessageContextInfo implements IMessageContextInfo {
 		constructor(p?: IMessageContextInfo);
 		public static create(p?: IMessageContextInfo): MessageContextInfo;
 		public static fromObject(d: $ProtoObject): MessageContextInfo;
-		public static toObject(m: MessageContextInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageContextInfo>;
 		public static encode: $ProtoEncode<IMessageContextInfo>;
 		public static decode: $ProtoDecode<MessageContextInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MessageContextInfo {
@@ -12283,16 +11763,15 @@ export namespace proto {
 		participant?: (string|null);
 	}
 
-	interface MessageKey extends IMessageKey {}
+	interface MessageKey extends IMessageKey, $ProtoJSON {}
 
 	class MessageKey implements IMessageKey {
 		constructor(p?: IMessageKey);
 		public static create(p?: IMessageKey): MessageKey;
 		public static fromObject(d: $ProtoObject): MessageKey;
-		public static toObject(m: MessageKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageKey>;
 		public static encode: $ProtoEncode<IMessageKey>;
 		public static decode: $ProtoDecode<MessageKey>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMessageSecretMessage {
@@ -12301,16 +11780,15 @@ export namespace proto {
 		encPayload?: (Uint8Array|null);
 	}
 
-	interface MessageSecretMessage extends IMessageSecretMessage {}
+	interface MessageSecretMessage extends IMessageSecretMessage, $ProtoJSON {}
 
 	class MessageSecretMessage implements IMessageSecretMessage {
 		constructor(p?: IMessageSecretMessage);
 		public static create(p?: IMessageSecretMessage): MessageSecretMessage;
 		public static fromObject(d: $ProtoObject): MessageSecretMessage;
-		public static toObject(m: MessageSecretMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageSecretMessage>;
 		public static encode: $ProtoEncode<IMessageSecretMessage>;
 		public static decode: $ProtoDecode<MessageSecretMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMessageText {
@@ -12320,16 +11798,15 @@ export namespace proto {
 		mentions?: proto.IMention[];
 	}
 
-	interface MessageText extends IMessageText {}
+	interface MessageText extends IMessageText, $ProtoJSON {}
 
 	class MessageText implements IMessageText {
 		constructor(p?: IMessageText);
 		public static create(p?: IMessageText): MessageText;
 		public static fromObject(d: $ProtoObject): MessageText;
-		public static toObject(m: MessageText, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessageText>;
 		public static encode: $ProtoEncode<IMessageText>;
 		public static decode: $ProtoDecode<MessageText>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMessagingMailboxPublicData {
@@ -12341,16 +11818,15 @@ export namespace proto {
 		authPk?: (Uint8Array|null);
 	}
 
-	interface MessagingMailboxPublicData extends IMessagingMailboxPublicData {}
+	interface MessagingMailboxPublicData extends IMessagingMailboxPublicData, $ProtoJSON {}
 
 	class MessagingMailboxPublicData implements IMessagingMailboxPublicData {
 		constructor(p?: IMessagingMailboxPublicData);
 		public static create(p?: IMessagingMailboxPublicData): MessagingMailboxPublicData;
 		public static fromObject(d: $ProtoObject): MessagingMailboxPublicData;
-		public static toObject(m: MessagingMailboxPublicData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MessagingMailboxPublicData>;
 		public static encode: $ProtoEncode<IMessagingMailboxPublicData>;
 		public static decode: $ProtoDecode<MessagingMailboxPublicData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosClientConfig {
@@ -12358,16 +11834,15 @@ export namespace proto {
 		preferredMekEncryptionVersion?: (number|null);
 	}
 
-	interface MinosClientConfig extends IMinosClientConfig {}
+	interface MinosClientConfig extends IMinosClientConfig, $ProtoJSON {}
 
 	class MinosClientConfig implements IMinosClientConfig {
 		constructor(p?: IMinosClientConfig);
 		public static create(p?: IMinosClientConfig): MinosClientConfig;
 		public static fromObject(d: $ProtoObject): MinosClientConfig;
-		public static toObject(m: MinosClientConfig, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosClientConfig>;
 		public static encode: $ProtoEncode<IMinosClientConfig>;
 		public static decode: $ProtoDecode<MinosClientConfig>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosCommand {
@@ -12402,16 +11877,15 @@ export namespace proto {
 		decryptSelfMmkDistribution?: (proto.IDecryptSelfMmkDistributionInput|null);
 	}
 
-	interface MinosCommand extends IMinosCommand {}
+	interface MinosCommand extends IMinosCommand, $ProtoJSON {}
 
 	class MinosCommand implements IMinosCommand {
 		constructor(p?: IMinosCommand);
 		public static create(p?: IMinosCommand): MinosCommand;
 		public static fromObject(d: $ProtoObject): MinosCommand;
-		public static toObject(m: MinosCommand, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosCommand>;
 		public static encode: $ProtoEncode<IMinosCommand>;
 		public static decode: $ProtoDecode<MinosCommand>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosDecryptAndVerifyMessageInput {
@@ -12424,16 +11898,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface MinosDecryptAndVerifyMessageInput extends IMinosDecryptAndVerifyMessageInput {}
+	interface MinosDecryptAndVerifyMessageInput extends IMinosDecryptAndVerifyMessageInput, $ProtoJSON {}
 
 	class MinosDecryptAndVerifyMessageInput implements IMinosDecryptAndVerifyMessageInput {
 		constructor(p?: IMinosDecryptAndVerifyMessageInput);
 		public static create(p?: IMinosDecryptAndVerifyMessageInput): MinosDecryptAndVerifyMessageInput;
 		public static fromObject(d: $ProtoObject): MinosDecryptAndVerifyMessageInput;
-		public static toObject(m: MinosDecryptAndVerifyMessageInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosDecryptAndVerifyMessageInput>;
 		public static encode: $ProtoEncode<IMinosDecryptAndVerifyMessageInput>;
 		public static decode: $ProtoDecode<MinosDecryptAndVerifyMessageInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosDecryptAndVerifyMessageResult {
@@ -12441,32 +11914,30 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MinosDecryptAndVerifyMessageResult extends IMinosDecryptAndVerifyMessageResult {}
+	interface MinosDecryptAndVerifyMessageResult extends IMinosDecryptAndVerifyMessageResult, $ProtoJSON {}
 
 	class MinosDecryptAndVerifyMessageResult implements IMinosDecryptAndVerifyMessageResult {
 		constructor(p?: IMinosDecryptAndVerifyMessageResult);
 		public static create(p?: IMinosDecryptAndVerifyMessageResult): MinosDecryptAndVerifyMessageResult;
 		public static fromObject(d: $ProtoObject): MinosDecryptAndVerifyMessageResult;
-		public static toObject(m: MinosDecryptAndVerifyMessageResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosDecryptAndVerifyMessageResult>;
 		public static encode: $ProtoEncode<IMinosDecryptAndVerifyMessageResult>;
 		public static decode: $ProtoDecode<MinosDecryptAndVerifyMessageResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosDecryptAndVerifyMessageSuccess {
 		plaintext?: (Uint8Array|null);
 	}
 
-	interface MinosDecryptAndVerifyMessageSuccess extends IMinosDecryptAndVerifyMessageSuccess {}
+	interface MinosDecryptAndVerifyMessageSuccess extends IMinosDecryptAndVerifyMessageSuccess, $ProtoJSON {}
 
 	class MinosDecryptAndVerifyMessageSuccess implements IMinosDecryptAndVerifyMessageSuccess {
 		constructor(p?: IMinosDecryptAndVerifyMessageSuccess);
 		public static create(p?: IMinosDecryptAndVerifyMessageSuccess): MinosDecryptAndVerifyMessageSuccess;
 		public static fromObject(d: $ProtoObject): MinosDecryptAndVerifyMessageSuccess;
-		public static toObject(m: MinosDecryptAndVerifyMessageSuccess, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosDecryptAndVerifyMessageSuccess>;
 		public static encode: $ProtoEncode<IMinosDecryptAndVerifyMessageSuccess>;
 		public static decode: $ProtoDecode<MinosDecryptAndVerifyMessageSuccess>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosEncryptAndSignMessageInput {
@@ -12478,16 +11949,15 @@ export namespace proto {
 		conf?: (proto.IMinosClientConfig|null);
 	}
 
-	interface MinosEncryptAndSignMessageInput extends IMinosEncryptAndSignMessageInput {}
+	interface MinosEncryptAndSignMessageInput extends IMinosEncryptAndSignMessageInput, $ProtoJSON {}
 
 	class MinosEncryptAndSignMessageInput implements IMinosEncryptAndSignMessageInput {
 		constructor(p?: IMinosEncryptAndSignMessageInput);
 		public static create(p?: IMinosEncryptAndSignMessageInput): MinosEncryptAndSignMessageInput;
 		public static fromObject(d: $ProtoObject): MinosEncryptAndSignMessageInput;
-		public static toObject(m: MinosEncryptAndSignMessageInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosEncryptAndSignMessageInput>;
 		public static encode: $ProtoEncode<IMinosEncryptAndSignMessageInput>;
 		public static decode: $ProtoDecode<MinosEncryptAndSignMessageInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosEncryptAndSignMessageResult {
@@ -12496,16 +11966,15 @@ export namespace proto {
 		version?: (number|null);
 	}
 
-	interface MinosEncryptAndSignMessageResult extends IMinosEncryptAndSignMessageResult {}
+	interface MinosEncryptAndSignMessageResult extends IMinosEncryptAndSignMessageResult, $ProtoJSON {}
 
 	class MinosEncryptAndSignMessageResult implements IMinosEncryptAndSignMessageResult {
 		constructor(p?: IMinosEncryptAndSignMessageResult);
 		public static create(p?: IMinosEncryptAndSignMessageResult): MinosEncryptAndSignMessageResult;
 		public static fromObject(d: $ProtoObject): MinosEncryptAndSignMessageResult;
-		public static toObject(m: MinosEncryptAndSignMessageResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosEncryptAndSignMessageResult>;
 		public static encode: $ProtoEncode<IMinosEncryptAndSignMessageResult>;
 		public static decode: $ProtoDecode<MinosEncryptAndSignMessageResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosMessageMetadata {
@@ -12515,16 +11984,15 @@ export namespace proto {
 		threadId?: (Uint8Array|null);
 	}
 
-	interface MinosMessageMetadata extends IMinosMessageMetadata {}
+	interface MinosMessageMetadata extends IMinosMessageMetadata, $ProtoJSON {}
 
 	class MinosMessageMetadata implements IMinosMessageMetadata {
 		constructor(p?: IMinosMessageMetadata);
 		public static create(p?: IMinosMessageMetadata): MinosMessageMetadata;
 		public static fromObject(d: $ProtoObject): MinosMessageMetadata;
-		public static toObject(m: MinosMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosMessageMetadata>;
 		public static encode: $ProtoEncode<IMinosMessageMetadata>;
 		public static decode: $ProtoDecode<MinosMessageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosOpenEpochInput {
@@ -12536,32 +12004,30 @@ export namespace proto {
 		previousEpochHead?: (Uint8Array|null);
 	}
 
-	interface MinosOpenEpochInput extends IMinosOpenEpochInput {}
+	interface MinosOpenEpochInput extends IMinosOpenEpochInput, $ProtoJSON {}
 
 	class MinosOpenEpochInput implements IMinosOpenEpochInput {
 		constructor(p?: IMinosOpenEpochInput);
 		public static create(p?: IMinosOpenEpochInput): MinosOpenEpochInput;
 		public static fromObject(d: $ProtoObject): MinosOpenEpochInput;
-		public static toObject(m: MinosOpenEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosOpenEpochInput>;
 		public static encode: $ProtoEncode<IMinosOpenEpochInput>;
 		public static decode: $ProtoDecode<MinosOpenEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosOpenEpochResult {
 		minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
 	}
 
-	interface MinosOpenEpochResult extends IMinosOpenEpochResult {}
+	interface MinosOpenEpochResult extends IMinosOpenEpochResult, $ProtoJSON {}
 
 	class MinosOpenEpochResult implements IMinosOpenEpochResult {
 		constructor(p?: IMinosOpenEpochResult);
 		public static create(p?: IMinosOpenEpochResult): MinosOpenEpochResult;
 		public static fromObject(d: $ProtoObject): MinosOpenEpochResult;
-		public static toObject(m: MinosOpenEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosOpenEpochResult>;
 		public static encode: $ProtoEncode<IMinosOpenEpochResult>;
 		public static decode: $ProtoDecode<MinosOpenEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosOpenInitialEpochInput {
@@ -12570,32 +12036,30 @@ export namespace proto {
 		exportRootKey?: (Uint8Array|null);
 	}
 
-	interface MinosOpenInitialEpochInput extends IMinosOpenInitialEpochInput {}
+	interface MinosOpenInitialEpochInput extends IMinosOpenInitialEpochInput, $ProtoJSON {}
 
 	class MinosOpenInitialEpochInput implements IMinosOpenInitialEpochInput {
 		constructor(p?: IMinosOpenInitialEpochInput);
 		public static create(p?: IMinosOpenInitialEpochInput): MinosOpenInitialEpochInput;
 		public static fromObject(d: $ProtoObject): MinosOpenInitialEpochInput;
-		public static toObject(m: MinosOpenInitialEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosOpenInitialEpochInput>;
 		public static encode: $ProtoEncode<IMinosOpenInitialEpochInput>;
 		public static decode: $ProtoDecode<MinosOpenInitialEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosOpenInitialEpochResult {
 		minosSignedEpoch?: (proto.IMinosSignedEpoch|null);
 	}
 
-	interface MinosOpenInitialEpochResult extends IMinosOpenInitialEpochResult {}
+	interface MinosOpenInitialEpochResult extends IMinosOpenInitialEpochResult, $ProtoJSON {}
 
 	class MinosOpenInitialEpochResult implements IMinosOpenInitialEpochResult {
 		constructor(p?: IMinosOpenInitialEpochResult);
 		public static create(p?: IMinosOpenInitialEpochResult): MinosOpenInitialEpochResult;
 		public static fromObject(d: $ProtoObject): MinosOpenInitialEpochResult;
-		public static toObject(m: MinosOpenInitialEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosOpenInitialEpochResult>;
 		public static encode: $ProtoEncode<IMinosOpenInitialEpochResult>;
 		public static decode: $ProtoDecode<MinosOpenInitialEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosSignedEpoch {
@@ -12604,48 +12068,45 @@ export namespace proto {
 		epochHead?: (Uint8Array|null);
 	}
 
-	interface MinosSignedEpoch extends IMinosSignedEpoch {}
+	interface MinosSignedEpoch extends IMinosSignedEpoch, $ProtoJSON {}
 
 	class MinosSignedEpoch implements IMinosSignedEpoch {
 		constructor(p?: IMinosSignedEpoch);
 		public static create(p?: IMinosSignedEpoch): MinosSignedEpoch;
 		public static fromObject(d: $ProtoObject): MinosSignedEpoch;
-		public static toObject(m: MinosSignedEpoch, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosSignedEpoch>;
 		public static encode: $ProtoEncode<IMinosSignedEpoch>;
 		public static decode: $ProtoDecode<MinosSignedEpoch>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosThreadIdFromActThreadIdInput {
 		actThreadId?: (string|null);
 	}
 
-	interface MinosThreadIdFromActThreadIdInput extends IMinosThreadIdFromActThreadIdInput {}
+	interface MinosThreadIdFromActThreadIdInput extends IMinosThreadIdFromActThreadIdInput, $ProtoJSON {}
 
 	class MinosThreadIdFromActThreadIdInput implements IMinosThreadIdFromActThreadIdInput {
 		constructor(p?: IMinosThreadIdFromActThreadIdInput);
 		public static create(p?: IMinosThreadIdFromActThreadIdInput): MinosThreadIdFromActThreadIdInput;
 		public static fromObject(d: $ProtoObject): MinosThreadIdFromActThreadIdInput;
-		public static toObject(m: MinosThreadIdFromActThreadIdInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosThreadIdFromActThreadIdInput>;
 		public static encode: $ProtoEncode<IMinosThreadIdFromActThreadIdInput>;
 		public static decode: $ProtoDecode<MinosThreadIdFromActThreadIdInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosThreadIdFromActThreadIdResult {
 		threadId?: (Uint8Array|null);
 	}
 
-	interface MinosThreadIdFromActThreadIdResult extends IMinosThreadIdFromActThreadIdResult {}
+	interface MinosThreadIdFromActThreadIdResult extends IMinosThreadIdFromActThreadIdResult, $ProtoJSON {}
 
 	class MinosThreadIdFromActThreadIdResult implements IMinosThreadIdFromActThreadIdResult {
 		constructor(p?: IMinosThreadIdFromActThreadIdResult);
 		public static create(p?: IMinosThreadIdFromActThreadIdResult): MinosThreadIdFromActThreadIdResult;
 		public static fromObject(d: $ProtoObject): MinosThreadIdFromActThreadIdResult;
-		public static toObject(m: MinosThreadIdFromActThreadIdResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosThreadIdFromActThreadIdResult>;
 		public static encode: $ProtoEncode<IMinosThreadIdFromActThreadIdResult>;
 		public static decode: $ProtoDecode<MinosThreadIdFromActThreadIdResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosThreadIdFromOneToOneThreadInput {
@@ -12653,32 +12114,30 @@ export namespace proto {
 		selfFbid?: (string|null);
 	}
 
-	interface MinosThreadIdFromOneToOneThreadInput extends IMinosThreadIdFromOneToOneThreadInput {}
+	interface MinosThreadIdFromOneToOneThreadInput extends IMinosThreadIdFromOneToOneThreadInput, $ProtoJSON {}
 
 	class MinosThreadIdFromOneToOneThreadInput implements IMinosThreadIdFromOneToOneThreadInput {
 		constructor(p?: IMinosThreadIdFromOneToOneThreadInput);
 		public static create(p?: IMinosThreadIdFromOneToOneThreadInput): MinosThreadIdFromOneToOneThreadInput;
 		public static fromObject(d: $ProtoObject): MinosThreadIdFromOneToOneThreadInput;
-		public static toObject(m: MinosThreadIdFromOneToOneThreadInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosThreadIdFromOneToOneThreadInput>;
 		public static encode: $ProtoEncode<IMinosThreadIdFromOneToOneThreadInput>;
 		public static decode: $ProtoDecode<MinosThreadIdFromOneToOneThreadInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosThreadIdFromOneToOneThreadResult {
 		threadId?: (Uint8Array|null);
 	}
 
-	interface MinosThreadIdFromOneToOneThreadResult extends IMinosThreadIdFromOneToOneThreadResult {}
+	interface MinosThreadIdFromOneToOneThreadResult extends IMinosThreadIdFromOneToOneThreadResult, $ProtoJSON {}
 
 	class MinosThreadIdFromOneToOneThreadResult implements IMinosThreadIdFromOneToOneThreadResult {
 		constructor(p?: IMinosThreadIdFromOneToOneThreadResult);
 		public static create(p?: IMinosThreadIdFromOneToOneThreadResult): MinosThreadIdFromOneToOneThreadResult;
 		public static fromObject(d: $ProtoObject): MinosThreadIdFromOneToOneThreadResult;
-		public static toObject(m: MinosThreadIdFromOneToOneThreadResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosThreadIdFromOneToOneThreadResult>;
 		public static encode: $ProtoEncode<IMinosThreadIdFromOneToOneThreadResult>;
 		public static decode: $ProtoDecode<MinosThreadIdFromOneToOneThreadResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosValidateEpochInput {
@@ -12687,16 +12146,15 @@ export namespace proto {
 		signatures?: (proto.IEpochSignatures|null);
 	}
 
-	interface MinosValidateEpochInput extends IMinosValidateEpochInput {}
+	interface MinosValidateEpochInput extends IMinosValidateEpochInput, $ProtoJSON {}
 
 	class MinosValidateEpochInput implements IMinosValidateEpochInput {
 		constructor(p?: IMinosValidateEpochInput);
 		public static create(p?: IMinosValidateEpochInput): MinosValidateEpochInput;
 		public static fromObject(d: $ProtoObject): MinosValidateEpochInput;
-		public static toObject(m: MinosValidateEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosValidateEpochInput>;
 		public static encode: $ProtoEncode<IMinosValidateEpochInput>;
 		public static decode: $ProtoDecode<MinosValidateEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosValidateEpochResult {
@@ -12704,16 +12162,15 @@ export namespace proto {
 		errorMessage?: (string|null);
 	}
 
-	interface MinosValidateEpochResult extends IMinosValidateEpochResult {}
+	interface MinosValidateEpochResult extends IMinosValidateEpochResult, $ProtoJSON {}
 
 	class MinosValidateEpochResult implements IMinosValidateEpochResult {
 		constructor(p?: IMinosValidateEpochResult);
 		public static create(p?: IMinosValidateEpochResult): MinosValidateEpochResult;
 		public static fromObject(d: $ProtoObject): MinosValidateEpochResult;
-		public static toObject(m: MinosValidateEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosValidateEpochResult>;
 		public static encode: $ProtoEncode<IMinosValidateEpochResult>;
 		public static decode: $ProtoDecode<MinosValidateEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosVerifySingleEpochInput {
@@ -12721,32 +12178,30 @@ export namespace proto {
 		signature?: (Uint8Array|null);
 	}
 
-	interface MinosVerifySingleEpochInput extends IMinosVerifySingleEpochInput {}
+	interface MinosVerifySingleEpochInput extends IMinosVerifySingleEpochInput, $ProtoJSON {}
 
 	class MinosVerifySingleEpochInput implements IMinosVerifySingleEpochInput {
 		constructor(p?: IMinosVerifySingleEpochInput);
 		public static create(p?: IMinosVerifySingleEpochInput): MinosVerifySingleEpochInput;
 		public static fromObject(d: $ProtoObject): MinosVerifySingleEpochInput;
-		public static toObject(m: MinosVerifySingleEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosVerifySingleEpochInput>;
 		public static encode: $ProtoEncode<IMinosVerifySingleEpochInput>;
 		public static decode: $ProtoDecode<MinosVerifySingleEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMinosVerifySingleEpochResult {
 		valid?: (boolean|null);
 	}
 
-	interface MinosVerifySingleEpochResult extends IMinosVerifySingleEpochResult {}
+	interface MinosVerifySingleEpochResult extends IMinosVerifySingleEpochResult, $ProtoJSON {}
 
 	class MinosVerifySingleEpochResult implements IMinosVerifySingleEpochResult {
 		constructor(p?: IMinosVerifySingleEpochResult);
 		public static create(p?: IMinosVerifySingleEpochResult): MinosVerifySingleEpochResult;
 		public static fromObject(d: $ProtoObject): MinosVerifySingleEpochResult;
-		public static toObject(m: MinosVerifySingleEpochResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MinosVerifySingleEpochResult>;
 		public static encode: $ProtoEncode<IMinosVerifySingleEpochResult>;
 		public static decode: $ProtoDecode<MinosVerifySingleEpochResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMmkDistribution {
@@ -12755,16 +12210,15 @@ export namespace proto {
 		version?: (Long|null);
 	}
 
-	interface MmkDistribution extends IMmkDistribution {}
+	interface MmkDistribution extends IMmkDistribution, $ProtoJSON {}
 
 	class MmkDistribution implements IMmkDistribution {
 		constructor(p?: IMmkDistribution);
 		public static create(p?: IMmkDistribution): MmkDistribution;
 		public static fromObject(d: $ProtoObject): MmkDistribution;
-		public static toObject(m: MmkDistribution, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MmkDistribution>;
 		public static encode: $ProtoEncode<IMmkDistribution>;
 		public static decode: $ProtoDecode<MmkDistribution>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMmkDistributionToDetachedDevice {
@@ -12772,16 +12226,15 @@ export namespace proto {
 		recipDeviceHash?: (Uint8Array|null);
 	}
 
-	interface MmkDistributionToDetachedDevice extends IMmkDistributionToDetachedDevice {}
+	interface MmkDistributionToDetachedDevice extends IMmkDistributionToDetachedDevice, $ProtoJSON {}
 
 	class MmkDistributionToDetachedDevice implements IMmkDistributionToDetachedDevice {
 		constructor(p?: IMmkDistributionToDetachedDevice);
 		public static create(p?: IMmkDistributionToDetachedDevice): MmkDistributionToDetachedDevice;
 		public static fromObject(d: $ProtoObject): MmkDistributionToDetachedDevice;
-		public static toObject(m: MmkDistributionToDetachedDevice, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MmkDistributionToDetachedDevice>;
 		public static encode: $ProtoEncode<IMmkDistributionToDetachedDevice>;
 		public static decode: $ProtoDecode<MmkDistributionToDetachedDevice>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMmkDistributionToMailbox {
@@ -12789,16 +12242,15 @@ export namespace proto {
 		recipMailboxHeadHash?: (Uint8Array|null);
 	}
 
-	interface MmkDistributionToMailbox extends IMmkDistributionToMailbox {}
+	interface MmkDistributionToMailbox extends IMmkDistributionToMailbox, $ProtoJSON {}
 
 	class MmkDistributionToMailbox implements IMmkDistributionToMailbox {
 		constructor(p?: IMmkDistributionToMailbox);
 		public static create(p?: IMmkDistributionToMailbox): MmkDistributionToMailbox;
 		public static fromObject(d: $ProtoObject): MmkDistributionToMailbox;
-		public static toObject(m: MmkDistributionToMailbox, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MmkDistributionToMailbox>;
 		public static encode: $ProtoEncode<IMmkDistributionToMailbox>;
 		public static decode: $ProtoDecode<MmkDistributionToMailbox>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMmkFromDetachedDevice {
@@ -12807,16 +12259,15 @@ export namespace proto {
 		membershipProof?: (proto.IMerkleMembershipProof|null);
 	}
 
-	interface MmkFromDetachedDevice extends IMmkFromDetachedDevice {}
+	interface MmkFromDetachedDevice extends IMmkFromDetachedDevice, $ProtoJSON {}
 
 	class MmkFromDetachedDevice implements IMmkFromDetachedDevice {
 		constructor(p?: IMmkFromDetachedDevice);
 		public static create(p?: IMmkFromDetachedDevice): MmkFromDetachedDevice;
 		public static fromObject(d: $ProtoObject): MmkFromDetachedDevice;
-		public static toObject(m: MmkFromDetachedDevice, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MmkFromDetachedDevice>;
 		public static encode: $ProtoEncode<IMmkFromDetachedDevice>;
 		public static decode: $ProtoDecode<MmkFromDetachedDevice>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMoney {
@@ -12825,16 +12276,15 @@ export namespace proto {
 		currencyCode?: (string|null);
 	}
 
-	interface Money extends IMoney {}
+	interface Money extends IMoney, $ProtoJSON {}
 
 	class Money implements IMoney {
 		constructor(p?: IMoney);
 		public static create(p?: IMoney): Money;
 		public static fromObject(d: $ProtoObject): Money;
-		public static toObject(m: Money, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Money>;
 		public static encode: $ProtoEncode<IMoney>;
 		public static decode: $ProtoDecode<Money>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IMsgOpaqueData {
@@ -12897,16 +12347,15 @@ export namespace proto {
 		qrUrl?: (string|null);
 	}
 
-	interface MsgOpaqueData extends IMsgOpaqueData {}
+	interface MsgOpaqueData extends IMsgOpaqueData, $ProtoJSON {}
 
 	class MsgOpaqueData implements IMsgOpaqueData {
 		constructor(p?: IMsgOpaqueData);
 		public static create(p?: IMsgOpaqueData): MsgOpaqueData;
 		public static fromObject(d: $ProtoObject): MsgOpaqueData;
-		public static toObject(m: MsgOpaqueData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MsgOpaqueData>;
 		public static encode: $ProtoEncode<IMsgOpaqueData>;
 		public static decode: $ProtoDecode<MsgOpaqueData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace MsgOpaqueData {
@@ -12920,16 +12369,15 @@ export namespace proto {
 			jpegThumbnail?: (Uint8Array|null);
 		}
 
-		interface EventLocation extends IEventLocation {}
+		interface EventLocation extends IEventLocation, $ProtoJSON {}
 
 		class EventLocation implements IEventLocation {
 			constructor(p?: IEventLocation);
 			public static create(p?: IEventLocation): EventLocation;
 			public static fromObject(d: $ProtoObject): EventLocation;
-			public static toObject(m: EventLocation, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<EventLocation>;
 			public static encode: $ProtoEncode<IEventLocation>;
 			public static decode: $ProtoDecode<EventLocation>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum PollContentType {
@@ -12944,16 +12392,15 @@ export namespace proto {
 			addOptionMsgKey?: (string|null);
 		}
 
-		interface PollOption extends IPollOption {}
+		interface PollOption extends IPollOption, $ProtoJSON {}
 
 		class PollOption implements IPollOption {
 			constructor(p?: IPollOption);
 			public static create(p?: IPollOption): PollOption;
 			public static fromObject(d: $ProtoObject): PollOption;
-			public static toObject(m: PollOption, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollOption>;
 			public static encode: $ProtoEncode<IPollOption>;
 			public static decode: $ProtoDecode<PollOption>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum PollType {
@@ -12966,32 +12413,30 @@ export namespace proto {
 			optionVoteCount?: (number|null);
 		}
 
-		interface PollVoteSnapshot extends IPollVoteSnapshot {}
+		interface PollVoteSnapshot extends IPollVoteSnapshot, $ProtoJSON {}
 
 		class PollVoteSnapshot implements IPollVoteSnapshot {
 			constructor(p?: IPollVoteSnapshot);
 			public static create(p?: IPollVoteSnapshot): PollVoteSnapshot;
 			public static fromObject(d: $ProtoObject): PollVoteSnapshot;
-			public static toObject(m: PollVoteSnapshot, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollVoteSnapshot>;
 			public static encode: $ProtoEncode<IPollVoteSnapshot>;
 			public static decode: $ProtoDecode<PollVoteSnapshot>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPollVotesSnapshot {
 			pollVotes?: proto.MsgOpaqueData.IPollVoteSnapshot[];
 		}
 
-		interface PollVotesSnapshot extends IPollVotesSnapshot {}
+		interface PollVotesSnapshot extends IPollVotesSnapshot, $ProtoJSON {}
 
 		class PollVotesSnapshot implements IPollVotesSnapshot {
 			constructor(p?: IPollVotesSnapshot);
 			public static create(p?: IPollVotesSnapshot): PollVotesSnapshot;
 			public static fromObject(d: $ProtoObject): PollVotesSnapshot;
-			public static toObject(m: PollVotesSnapshot, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollVotesSnapshot>;
 			public static encode: $ProtoEncode<IPollVotesSnapshot>;
 			public static decode: $ProtoDecode<PollVotesSnapshot>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -13000,16 +12445,15 @@ export namespace proto {
 		quotedMsg?: (proto.IMsgOpaqueData|null);
 	}
 
-	interface MsgRowOpaqueData extends IMsgRowOpaqueData {}
+	interface MsgRowOpaqueData extends IMsgRowOpaqueData, $ProtoJSON {}
 
 	class MsgRowOpaqueData implements IMsgRowOpaqueData {
 		constructor(p?: IMsgRowOpaqueData);
 		public static create(p?: IMsgRowOpaqueData): MsgRowOpaqueData;
 		public static fromObject(d: $ProtoObject): MsgRowOpaqueData;
-		public static toObject(m: MsgRowOpaqueData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<MsgRowOpaqueData>;
 		public static encode: $ProtoEncode<IMsgRowOpaqueData>;
 		public static decode: $ProtoDecode<MsgRowOpaqueData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum MutationProps {
@@ -13113,16 +12557,15 @@ export namespace proto {
 		signature?: (Uint8Array|null);
 	}
 
-	interface NoiseCertificate extends INoiseCertificate {}
+	interface NoiseCertificate extends INoiseCertificate, $ProtoJSON {}
 
 	class NoiseCertificate implements INoiseCertificate {
 		constructor(p?: INoiseCertificate);
 		public static create(p?: INoiseCertificate): NoiseCertificate;
 		public static fromObject(d: $ProtoObject): NoiseCertificate;
-		public static toObject(m: NoiseCertificate, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<NoiseCertificate>;
 		public static encode: $ProtoEncode<INoiseCertificate>;
 		public static decode: $ProtoDecode<NoiseCertificate>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace NoiseCertificate {
@@ -13135,16 +12578,15 @@ export namespace proto {
 			key?: (Uint8Array|null);
 		}
 
-		interface Details extends IDetails {}
+		interface Details extends IDetails, $ProtoJSON {}
 
 		class Details implements IDetails {
 			constructor(p?: IDetails);
 			public static create(p?: IDetails): Details;
 			public static fromObject(d: $ProtoObject): Details;
-			public static toObject(m: Details, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Details>;
 			public static encode: $ProtoEncode<IDetails>;
 			public static decode: $ProtoDecode<Details>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -13152,16 +12594,15 @@ export namespace proto {
 		accountType?: (proto.NonE2EEAttestation.AccountType|null);
 	}
 
-	interface NonE2EEAttestation extends INonE2EEAttestation {}
+	interface NonE2EEAttestation extends INonE2EEAttestation, $ProtoJSON {}
 
 	class NonE2EEAttestation implements INonE2EEAttestation {
 		constructor(p?: INonE2EEAttestation);
 		public static create(p?: INonE2EEAttestation): NonE2EEAttestation;
 		public static fromObject(d: $ProtoObject): NonE2EEAttestation;
-		public static toObject(m: NonE2EEAttestation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<NonE2EEAttestation>;
 		public static encode: $ProtoEncode<INonE2EEAttestation>;
 		public static decode: $ProtoDecode<NonE2EEAttestation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace NonE2EEAttestation {
@@ -13180,16 +12621,15 @@ export namespace proto {
 		participant?: (string|null);
 	}
 
-	interface NotificationMessageInfo extends INotificationMessageInfo {}
+	interface NotificationMessageInfo extends INotificationMessageInfo, $ProtoJSON {}
 
 	class NotificationMessageInfo implements INotificationMessageInfo {
 		constructor(p?: INotificationMessageInfo);
 		public static create(p?: INotificationMessageInfo): NotificationMessageInfo;
 		public static fromObject(d: $ProtoObject): NotificationMessageInfo;
-		public static toObject(m: NotificationMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<NotificationMessageInfo>;
 		public static encode: $ProtoEncode<INotificationMessageInfo>;
 		public static decode: $ProtoDecode<NotificationMessageInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface INotificationSettings {
@@ -13201,16 +12641,15 @@ export namespace proto {
 		callVibrate?: (string|null);
 	}
 
-	interface NotificationSettings extends INotificationSettings {}
+	interface NotificationSettings extends INotificationSettings, $ProtoJSON {}
 
 	class NotificationSettings implements INotificationSettings {
 		constructor(p?: INotificationSettings);
 		public static create(p?: INotificationSettings): NotificationSettings;
 		public static fromObject(d: $ProtoObject): NotificationSettings;
-		public static toObject(m: NotificationSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<NotificationSettings>;
 		public static encode: $ProtoEncode<INotificationSettings>;
 		public static decode: $ProtoDecode<NotificationSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IOrfThreadIdInput {
@@ -13218,16 +12657,15 @@ export namespace proto {
 		threadId?: (string|null);
 	}
 
-	interface OrfThreadIdInput extends IOrfThreadIdInput {}
+	interface OrfThreadIdInput extends IOrfThreadIdInput, $ProtoJSON {}
 
 	class OrfThreadIdInput implements IOrfThreadIdInput {
 		constructor(p?: IOrfThreadIdInput);
 		public static create(p?: IOrfThreadIdInput): OrfThreadIdInput;
 		public static fromObject(d: $ProtoObject): OrfThreadIdInput;
-		public static toObject(m: OrfThreadIdInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<OrfThreadIdInput>;
 		public static encode: $ProtoEncode<IOrfThreadIdInput>;
 		public static decode: $ProtoDecode<OrfThreadIdInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IOrfThreadIdOutput {
@@ -13235,16 +12673,15 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface OrfThreadIdOutput extends IOrfThreadIdOutput {}
+	interface OrfThreadIdOutput extends IOrfThreadIdOutput, $ProtoJSON {}
 
 	class OrfThreadIdOutput implements IOrfThreadIdOutput {
 		constructor(p?: IOrfThreadIdOutput);
 		public static create(p?: IOrfThreadIdOutput): OrfThreadIdOutput;
 		public static fromObject(d: $ProtoObject): OrfThreadIdOutput;
-		public static toObject(m: OrfThreadIdOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<OrfThreadIdOutput>;
 		public static encode: $ProtoEncode<IOrfThreadIdOutput>;
 		public static decode: $ProtoDecode<OrfThreadIdOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPairingRequest {
@@ -13253,16 +12690,15 @@ export namespace proto {
 		advSecret?: (Uint8Array|null);
 	}
 
-	interface PairingRequest extends IPairingRequest {}
+	interface PairingRequest extends IPairingRequest, $ProtoJSON {}
 
 	class PairingRequest implements IPairingRequest {
 		constructor(p?: IPairingRequest);
 		public static create(p?: IPairingRequest): PairingRequest;
 		public static fromObject(d: $ProtoObject): PairingRequest;
-		public static toObject(m: PairingRequest, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PairingRequest>;
 		public static encode: $ProtoEncode<IPairingRequest>;
 		public static decode: $ProtoDecode<PairingRequest>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPastParticipant {
@@ -13271,16 +12707,15 @@ export namespace proto {
 		leaveTs?: (Long|null);
 	}
 
-	interface PastParticipant extends IPastParticipant {}
+	interface PastParticipant extends IPastParticipant, $ProtoJSON {}
 
 	class PastParticipant implements IPastParticipant {
 		constructor(p?: IPastParticipant);
 		public static create(p?: IPastParticipant): PastParticipant;
 		public static fromObject(d: $ProtoObject): PastParticipant;
-		public static toObject(m: PastParticipant, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PastParticipant>;
 		public static encode: $ProtoEncode<IPastParticipant>;
 		public static decode: $ProtoDecode<PastParticipant>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PastParticipant {
@@ -13296,16 +12731,15 @@ export namespace proto {
 		pastParticipants?: proto.IPastParticipant[];
 	}
 
-	interface PastParticipants extends IPastParticipants {}
+	interface PastParticipants extends IPastParticipants, $ProtoJSON {}
 
 	class PastParticipants implements IPastParticipants {
 		constructor(p?: IPastParticipants);
 		public static create(p?: IPastParticipants): PastParticipants;
 		public static fromObject(d: $ProtoObject): PastParticipants;
-		public static toObject(m: PastParticipants, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PastParticipants>;
 		public static encode: $ProtoEncode<IPastParticipants>;
 		public static decode: $ProtoDecode<PastParticipants>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPatchDebugData {
@@ -13322,16 +12756,15 @@ export namespace proto {
 		isSenderPrimary?: (boolean|null);
 	}
 
-	interface PatchDebugData extends IPatchDebugData {}
+	interface PatchDebugData extends IPatchDebugData, $ProtoJSON {}
 
 	class PatchDebugData implements IPatchDebugData {
 		constructor(p?: IPatchDebugData);
 		public static create(p?: IPatchDebugData): PatchDebugData;
 		public static fromObject(d: $ProtoObject): PatchDebugData;
-		public static toObject(m: PatchDebugData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PatchDebugData>;
 		public static encode: $ProtoEncode<IPatchDebugData>;
 		public static decode: $ProtoDecode<PatchDebugData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PatchDebugData {
@@ -13365,16 +12798,15 @@ export namespace proto {
 		type?: (proto.PaymentBackground.Type|null);
 	}
 
-	interface PaymentBackground extends IPaymentBackground {}
+	interface PaymentBackground extends IPaymentBackground, $ProtoJSON {}
 
 	class PaymentBackground implements IPaymentBackground {
 		constructor(p?: IPaymentBackground);
 		public static create(p?: IPaymentBackground): PaymentBackground;
 		public static fromObject(d: $ProtoObject): PaymentBackground;
-		public static toObject(m: PaymentBackground, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PaymentBackground>;
 		public static encode: $ProtoEncode<IPaymentBackground>;
 		public static decode: $ProtoDecode<PaymentBackground>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PaymentBackground {
@@ -13387,16 +12819,15 @@ export namespace proto {
 			directPath?: (string|null);
 		}
 
-		interface MediaData extends IMediaData {}
+		interface MediaData extends IMediaData, $ProtoJSON {}
 
 		class MediaData implements IMediaData {
 			constructor(p?: IMediaData);
 			public static create(p?: IMediaData): MediaData;
 			public static fromObject(d: $ProtoObject): MediaData;
-			public static toObject(m: MediaData, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MediaData>;
 			public static encode: $ProtoEncode<IMediaData>;
 			public static decode: $ProtoDecode<MediaData>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum Type {
@@ -13421,16 +12852,15 @@ export namespace proto {
 		exchangeAmount?: (proto.IMoney|null);
 	}
 
-	interface PaymentInfo extends IPaymentInfo {}
+	interface PaymentInfo extends IPaymentInfo, $ProtoJSON {}
 
 	class PaymentInfo implements IPaymentInfo {
 		constructor(p?: IPaymentInfo);
 		public static create(p?: IPaymentInfo): PaymentInfo;
 		public static fromObject(d: $ProtoObject): PaymentInfo;
-		public static toObject(m: PaymentInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PaymentInfo>;
 		public static encode: $ProtoEncode<IPaymentInfo>;
 		public static decode: $ProtoDecode<PaymentInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PaymentInfo {
@@ -13496,16 +12926,15 @@ export namespace proto {
 		lidJid?: (string|null);
 	}
 
-	interface PhoneNumberToLIDMapping extends IPhoneNumberToLIDMapping {}
+	interface PhoneNumberToLIDMapping extends IPhoneNumberToLIDMapping, $ProtoJSON {}
 
 	class PhoneNumberToLIDMapping implements IPhoneNumberToLIDMapping {
 		constructor(p?: IPhoneNumberToLIDMapping);
 		public static create(p?: IPhoneNumberToLIDMapping): PhoneNumberToLIDMapping;
 		public static fromObject(d: $ProtoObject): PhoneNumberToLIDMapping;
-		public static toObject(m: PhoneNumberToLIDMapping, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PhoneNumberToLIDMapping>;
 		public static encode: $ProtoEncode<IPhoneNumberToLIDMapping>;
 		public static decode: $ProtoDecode<PhoneNumberToLIDMapping>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPhotoChange {
@@ -13514,16 +12943,15 @@ export namespace proto {
 		newPhotoId?: (number|null);
 	}
 
-	interface PhotoChange extends IPhotoChange {}
+	interface PhotoChange extends IPhotoChange, $ProtoJSON {}
 
 	class PhotoChange implements IPhotoChange {
 		constructor(p?: IPhotoChange);
 		public static create(p?: IPhotoChange): PhotoChange;
 		public static fromObject(d: $ProtoObject): PhotoChange;
-		public static toObject(m: PhotoChange, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PhotoChange>;
 		public static encode: $ProtoEncode<IPhotoChange>;
 		public static decode: $ProtoDecode<PhotoChange>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPinInChat {
@@ -13534,16 +12962,15 @@ export namespace proto {
 		messageAddOnContextInfo?: (proto.IMessageAddOnContextInfo|null);
 	}
 
-	interface PinInChat extends IPinInChat {}
+	interface PinInChat extends IPinInChat, $ProtoJSON {}
 
 	class PinInChat implements IPinInChat {
 		constructor(p?: IPinInChat);
 		public static create(p?: IPinInChat): PinInChat;
 		public static fromObject(d: $ProtoObject): PinInChat;
-		public static toObject(m: PinInChat, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PinInChat>;
 		public static encode: $ProtoEncode<IPinInChat>;
 		public static decode: $ProtoDecode<PinInChat>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PinInChat {
@@ -13562,16 +12989,15 @@ export namespace proto {
 		y?: (number|null);
 	}
 
-	interface Point extends IPoint {}
+	interface Point extends IPoint, $ProtoJSON {}
 
 	class Point implements IPoint {
 		constructor(p?: IPoint);
 		public static create(p?: IPoint): Point;
 		public static fromObject(d: $ProtoObject): Point;
-		public static toObject(m: Point, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Point>;
 		public static encode: $ProtoEncode<IPoint>;
 		public static decode: $ProtoDecode<Point>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPollAdditionalMetadata {
@@ -13579,16 +13005,15 @@ export namespace proto {
 		pollNameHashHistory?: proto.PollAdditionalMetadata.IPollNameHashHistoryEntry[];
 	}
 
-	interface PollAdditionalMetadata extends IPollAdditionalMetadata {}
+	interface PollAdditionalMetadata extends IPollAdditionalMetadata, $ProtoJSON {}
 
 	class PollAdditionalMetadata implements IPollAdditionalMetadata {
 		constructor(p?: IPollAdditionalMetadata);
 		public static create(p?: IPollAdditionalMetadata): PollAdditionalMetadata;
 		public static fromObject(d: $ProtoObject): PollAdditionalMetadata;
-		public static toObject(m: PollAdditionalMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PollAdditionalMetadata>;
 		public static encode: $ProtoEncode<IPollAdditionalMetadata>;
 		public static decode: $ProtoDecode<PollAdditionalMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace PollAdditionalMetadata {
@@ -13598,16 +13023,15 @@ export namespace proto {
 			pollNameHash?: (Uint8Array|null);
 		}
 
-		interface PollNameHashHistoryEntry extends IPollNameHashHistoryEntry {}
+		interface PollNameHashHistoryEntry extends IPollNameHashHistoryEntry, $ProtoJSON {}
 
 		class PollNameHashHistoryEntry implements IPollNameHashHistoryEntry {
 			constructor(p?: IPollNameHashHistoryEntry);
 			public static create(p?: IPollNameHashHistoryEntry): PollNameHashHistoryEntry;
 			public static fromObject(d: $ProtoObject): PollNameHashHistoryEntry;
-			public static toObject(m: PollNameHashHistoryEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PollNameHashHistoryEntry>;
 			public static encode: $ProtoEncode<IPollNameHashHistoryEntry>;
 			public static decode: $ProtoDecode<PollNameHashHistoryEntry>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -13616,16 +13040,15 @@ export namespace proto {
 		encIv?: (Uint8Array|null);
 	}
 
-	interface PollEncValue extends IPollEncValue {}
+	interface PollEncValue extends IPollEncValue, $ProtoJSON {}
 
 	class PollEncValue implements IPollEncValue {
 		constructor(p?: IPollEncValue);
 		public static create(p?: IPollEncValue): PollEncValue;
 		public static fromObject(d: $ProtoObject): PollEncValue;
-		public static toObject(m: PollEncValue, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PollEncValue>;
 		public static encode: $ProtoEncode<IPollEncValue>;
 		public static decode: $ProtoDecode<PollEncValue>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPollUpdate {
@@ -13637,16 +13060,15 @@ export namespace proto {
 		metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
 	}
 
-	interface PollUpdate extends IPollUpdate {}
+	interface PollUpdate extends IPollUpdate, $ProtoJSON {}
 
 	class PollUpdate implements IPollUpdate {
 		constructor(p?: IPollUpdate);
 		public static create(p?: IPollUpdate): PollUpdate;
 		public static fromObject(d: $ProtoObject): PollUpdate;
-		public static toObject(m: PollUpdate, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PollUpdate>;
 		public static encode: $ProtoEncode<IPollUpdate>;
 		public static decode: $ProtoDecode<PollUpdate>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPreKeyRecordStructure {
@@ -13655,16 +13077,15 @@ export namespace proto {
 		privateKey?: (Uint8Array|null);
 	}
 
-	interface PreKeyRecordStructure extends IPreKeyRecordStructure {}
+	interface PreKeyRecordStructure extends IPreKeyRecordStructure, $ProtoJSON {}
 
 	class PreKeyRecordStructure implements IPreKeyRecordStructure {
 		constructor(p?: IPreKeyRecordStructure);
 		public static create(p?: IPreKeyRecordStructure): PreKeyRecordStructure;
 		public static fromObject(d: $ProtoObject): PreKeyRecordStructure;
-		public static toObject(m: PreKeyRecordStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PreKeyRecordStructure>;
 		public static encode: $ProtoEncode<IPreKeyRecordStructure>;
 		public static decode: $ProtoDecode<PreKeyRecordStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPreKeySignalMessage {
@@ -13678,32 +13099,30 @@ export namespace proto {
 		kyberCiphertext?: (Uint8Array|null);
 	}
 
-	interface PreKeySignalMessage extends IPreKeySignalMessage {}
+	interface PreKeySignalMessage extends IPreKeySignalMessage, $ProtoJSON {}
 
 	class PreKeySignalMessage implements IPreKeySignalMessage {
 		constructor(p?: IPreKeySignalMessage);
 		public static create(p?: IPreKeySignalMessage): PreKeySignalMessage;
 		public static fromObject(d: $ProtoObject): PreKeySignalMessage;
-		public static toObject(m: PreKeySignalMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PreKeySignalMessage>;
 		public static encode: $ProtoEncode<IPreKeySignalMessage>;
 		public static decode: $ProtoDecode<PreKeySignalMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPremiumMessageInfo {
 		serverCampaignId?: (string|null);
 	}
 
-	interface PremiumMessageInfo extends IPremiumMessageInfo {}
+	interface PremiumMessageInfo extends IPremiumMessageInfo, $ProtoJSON {}
 
 	class PremiumMessageInfo implements IPremiumMessageInfo {
 		constructor(p?: IPremiumMessageInfo);
 		public static create(p?: IPremiumMessageInfo): PremiumMessageInfo;
 		public static fromObject(d: $ProtoObject): PremiumMessageInfo;
-		public static toObject(m: PremiumMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PremiumMessageInfo>;
 		public static encode: $ProtoEncode<IPremiumMessageInfo>;
 		public static decode: $ProtoDecode<PremiumMessageInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPrimaryEphemeralIdentity {
@@ -13711,16 +13130,15 @@ export namespace proto {
 		nonce?: (Uint8Array|null);
 	}
 
-	interface PrimaryEphemeralIdentity extends IPrimaryEphemeralIdentity {}
+	interface PrimaryEphemeralIdentity extends IPrimaryEphemeralIdentity, $ProtoJSON {}
 
 	class PrimaryEphemeralIdentity implements IPrimaryEphemeralIdentity {
 		constructor(p?: IPrimaryEphemeralIdentity);
 		public static create(p?: IPrimaryEphemeralIdentity): PrimaryEphemeralIdentity;
 		public static fromObject(d: $ProtoObject): PrimaryEphemeralIdentity;
-		public static toObject(m: PrimaryEphemeralIdentity, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<PrimaryEphemeralIdentity>;
 		public static encode: $ProtoEncode<IPrimaryEphemeralIdentity>;
 		public static decode: $ProtoDecode<PrimaryEphemeralIdentity>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum PrivacySystemMessage {
@@ -13740,16 +13158,15 @@ export namespace proto {
 		capabilities?: string[];
 	}
 
-	interface ProcessedVideo extends IProcessedVideo {}
+	interface ProcessedVideo extends IProcessedVideo, $ProtoJSON {}
 
 	class ProcessedVideo implements IProcessedVideo {
 		constructor(p?: IProcessedVideo);
 		public static create(p?: IProcessedVideo): ProcessedVideo;
 		public static fromObject(d: $ProtoObject): ProcessedVideo;
-		public static toObject(m: ProcessedVideo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ProcessedVideo>;
 		public static encode: $ProtoEncode<IProcessedVideo>;
 		public static decode: $ProtoDecode<ProcessedVideo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ProcessedVideo {
@@ -13767,16 +13184,15 @@ export namespace proto {
 		commitment?: (proto.ICompanionCommitment|null);
 	}
 
-	interface ProloguePayload extends IProloguePayload {}
+	interface ProloguePayload extends IProloguePayload, $ProtoJSON {}
 
 	class ProloguePayload implements IProloguePayload {
 		constructor(p?: IProloguePayload);
 		public static create(p?: IProloguePayload): ProloguePayload;
 		public static fromObject(d: $ProtoObject): ProloguePayload;
-		public static toObject(m: ProloguePayload, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ProloguePayload>;
 		public static encode: $ProtoEncode<IProloguePayload>;
 		public static decode: $ProtoDecode<ProloguePayload>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IPushname {
@@ -13784,31 +13200,29 @@ export namespace proto {
 		pushname?: (string|null);
 	}
 
-	interface Pushname extends IPushname {}
+	interface Pushname extends IPushname, $ProtoJSON {}
 
 	class Pushname implements IPushname {
 		constructor(p?: IPushname);
 		public static create(p?: IPushname): Pushname;
 		public static fromObject(d: $ProtoObject): Pushname;
-		public static toObject(m: Pushname, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Pushname>;
 		public static encode: $ProtoEncode<IPushname>;
 		public static decode: $ProtoDecode<Pushname>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IQP {
 	}
 
-	interface QP extends IQP {}
+	interface QP extends IQP, $ProtoJSON {}
 
 	class QP implements IQP {
 		constructor(p?: IQP);
 		public static create(p?: IQP): QP;
 		public static fromObject(d: $ProtoObject): QP;
-		public static toObject(m: QP, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<QP>;
 		public static encode: $ProtoEncode<IQP>;
 		public static decode: $ProtoDecode<QP>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace QP {
@@ -13826,16 +13240,15 @@ export namespace proto {
 			clientNotSupportedConfig?: (proto.QP.FilterClientNotSupportedConfig|null);
 		}
 
-		interface Filter extends IFilter {}
+		interface Filter extends IFilter, $ProtoJSON {}
 
 		class Filter implements IFilter {
 			constructor(p?: IFilter);
 			public static create(p?: IFilter): Filter;
 			public static fromObject(d: $ProtoObject): Filter;
-			public static toObject(m: Filter, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Filter>;
 			public static encode: $ProtoEncode<IFilter>;
 			public static decode: $ProtoDecode<Filter>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IFilterClause {
@@ -13844,16 +13257,15 @@ export namespace proto {
 			filters?: proto.QP.IFilter[];
 		}
 
-		interface FilterClause extends IFilterClause {}
+		interface FilterClause extends IFilterClause, $ProtoJSON {}
 
 		class FilterClause implements IFilterClause {
 			constructor(p?: IFilterClause);
 			public static create(p?: IFilterClause): FilterClause;
 			public static fromObject(d: $ProtoObject): FilterClause;
-			public static toObject(m: FilterClause, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FilterClause>;
 			public static encode: $ProtoEncode<IFilterClause>;
 			public static decode: $ProtoDecode<FilterClause>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum FilterClientNotSupportedConfig {
@@ -13866,16 +13278,15 @@ export namespace proto {
 			value?: (string|null);
 		}
 
-		interface FilterParameters extends IFilterParameters {}
+		interface FilterParameters extends IFilterParameters, $ProtoJSON {}
 
 		class FilterParameters implements IFilterParameters {
 			constructor(p?: IFilterParameters);
 			public static create(p?: IFilterParameters): FilterParameters;
 			public static fromObject(d: $ProtoObject): FilterParameters;
-			public static toObject(m: FilterParameters, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FilterParameters>;
 			public static encode: $ProtoEncode<IFilterParameters>;
 			public static decode: $ProtoDecode<FilterParameters>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum FilterResult {
@@ -13890,16 +13301,15 @@ export namespace proto {
 		extractedText?: (string|null);
 	}
 
-	interface QuarantinedMessage extends IQuarantinedMessage {}
+	interface QuarantinedMessage extends IQuarantinedMessage, $ProtoJSON {}
 
 	class QuarantinedMessage implements IQuarantinedMessage {
 		constructor(p?: IQuarantinedMessage);
 		public static create(p?: IQuarantinedMessage): QuarantinedMessage;
 		public static fromObject(d: $ProtoObject): QuarantinedMessage;
-		public static toObject(m: QuarantinedMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<QuarantinedMessage>;
 		public static encode: $ProtoEncode<IQuarantinedMessage>;
 		public static decode: $ProtoDecode<QuarantinedMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IReaction {
@@ -13910,16 +13320,15 @@ export namespace proto {
 		unread?: (boolean|null);
 	}
 
-	interface Reaction extends IReaction {}
+	interface Reaction extends IReaction, $ProtoJSON {}
 
 	class Reaction implements IReaction {
 		constructor(p?: IReaction);
 		public static create(p?: IReaction): Reaction;
 		public static fromObject(d: $ProtoObject): Reaction;
-		public static toObject(m: Reaction, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Reaction>;
 		public static encode: $ProtoEncode<IReaction>;
 		public static decode: $ProtoDecode<Reaction>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRecentEmojiWeight {
@@ -13927,16 +13336,15 @@ export namespace proto {
 		weight?: (number|null);
 	}
 
-	interface RecentEmojiWeight extends IRecentEmojiWeight {}
+	interface RecentEmojiWeight extends IRecentEmojiWeight, $ProtoJSON {}
 
 	class RecentEmojiWeight implements IRecentEmojiWeight {
 		constructor(p?: IRecentEmojiWeight);
 		public static create(p?: IRecentEmojiWeight): RecentEmojiWeight;
 		public static fromObject(d: $ProtoObject): RecentEmojiWeight;
-		public static toObject(m: RecentEmojiWeight, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RecentEmojiWeight>;
 		public static encode: $ProtoEncode<IRecentEmojiWeight>;
 		public static decode: $ProtoDecode<RecentEmojiWeight>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRecordStructure {
@@ -13944,16 +13352,15 @@ export namespace proto {
 		previousSessions?: proto.ISessionStructure[];
 	}
 
-	interface RecordStructure extends IRecordStructure {}
+	interface RecordStructure extends IRecordStructure, $ProtoJSON {}
 
 	class RecordStructure implements IRecordStructure {
 		constructor(p?: IRecordStructure);
 		public static create(p?: IRecordStructure): RecordStructure;
 		public static fromObject(d: $ProtoObject): RecordStructure;
-		public static toObject(m: RecordStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RecordStructure>;
 		public static encode: $ProtoEncode<IRecordStructure>;
 		public static decode: $ProtoDecode<RecordStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IReportable {
@@ -13963,16 +13370,15 @@ export namespace proto {
 		never?: (boolean|null);
 	}
 
-	interface Reportable extends IReportable {}
+	interface Reportable extends IReportable, $ProtoJSON {}
 
 	class Reportable implements IReportable {
 		constructor(p?: IReportable);
 		public static create(p?: IReportable): Reportable;
 		public static fromObject(d: $ProtoObject): Reportable;
-		public static toObject(m: Reportable, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<Reportable>;
 		public static encode: $ProtoEncode<IReportable>;
 		public static decode: $ProtoDecode<Reportable>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IReportingTokenInfo {
@@ -13980,16 +13386,15 @@ export namespace proto {
 		reportingTagTimestamp?: (Long|null);
 	}
 
-	interface ReportingTokenInfo extends IReportingTokenInfo {}
+	interface ReportingTokenInfo extends IReportingTokenInfo, $ProtoJSON {}
 
 	class ReportingTokenInfo implements IReportingTokenInfo {
 		constructor(p?: IReportingTokenInfo);
 		public static create(p?: IReportingTokenInfo): ReportingTokenInfo;
 		public static fromObject(d: $ProtoObject): ReportingTokenInfo;
-		public static toObject(m: ReportingTokenInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ReportingTokenInfo>;
 		public static encode: $ProtoEncode<IReportingTokenInfo>;
 		public static decode: $ProtoDecode<ReportingTokenInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRotateEpochInput {
@@ -14000,16 +13405,15 @@ export namespace proto {
 		members?: proto.IRotateEpochMemberInput[];
 	}
 
-	interface RotateEpochInput extends IRotateEpochInput {}
+	interface RotateEpochInput extends IRotateEpochInput, $ProtoJSON {}
 
 	class RotateEpochInput implements IRotateEpochInput {
 		constructor(p?: IRotateEpochInput);
 		public static create(p?: IRotateEpochInput): RotateEpochInput;
 		public static fromObject(d: $ProtoObject): RotateEpochInput;
-		public static toObject(m: RotateEpochInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RotateEpochInput>;
 		public static encode: $ProtoEncode<IRotateEpochInput>;
 		public static decode: $ProtoDecode<RotateEpochInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRotateEpochMemberEdge {
@@ -14018,16 +13422,15 @@ export namespace proto {
 		deviceEpochHmac?: (Uint8Array|null);
 	}
 
-	interface RotateEpochMemberEdge extends IRotateEpochMemberEdge {}
+	interface RotateEpochMemberEdge extends IRotateEpochMemberEdge, $ProtoJSON {}
 
 	class RotateEpochMemberEdge implements IRotateEpochMemberEdge {
 		constructor(p?: IRotateEpochMemberEdge);
 		public static create(p?: IRotateEpochMemberEdge): RotateEpochMemberEdge;
 		public static fromObject(d: $ProtoObject): RotateEpochMemberEdge;
-		public static toObject(m: RotateEpochMemberEdge, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RotateEpochMemberEdge>;
 		public static encode: $ProtoEncode<IRotateEpochMemberEdge>;
 		public static decode: $ProtoDecode<RotateEpochMemberEdge>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRotateEpochMemberInput {
@@ -14036,16 +13439,15 @@ export namespace proto {
 		devicePublicKey?: (Uint8Array|null);
 	}
 
-	interface RotateEpochMemberInput extends IRotateEpochMemberInput {}
+	interface RotateEpochMemberInput extends IRotateEpochMemberInput, $ProtoJSON {}
 
 	class RotateEpochMemberInput implements IRotateEpochMemberInput {
 		constructor(p?: IRotateEpochMemberInput);
 		public static create(p?: IRotateEpochMemberInput): RotateEpochMemberInput;
 		public static fromObject(d: $ProtoObject): RotateEpochMemberInput;
-		public static toObject(m: RotateEpochMemberInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RotateEpochMemberInput>;
 		public static encode: $ProtoEncode<IRotateEpochMemberInput>;
 		public static decode: $ProtoDecode<RotateEpochMemberInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRotateEpochOutput {
@@ -14059,16 +13461,15 @@ export namespace proto {
 		error?: (string|null);
 	}
 
-	interface RotateEpochOutput extends IRotateEpochOutput {}
+	interface RotateEpochOutput extends IRotateEpochOutput, $ProtoJSON {}
 
 	class RotateEpochOutput implements IRotateEpochOutput {
 		constructor(p?: IRotateEpochOutput);
 		public static create(p?: IRotateEpochOutput): RotateEpochOutput;
 		public static fromObject(d: $ProtoObject): RotateEpochOutput;
-		public static toObject(m: RotateEpochOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RotateEpochOutput>;
 		public static encode: $ProtoEncode<IRotateEpochOutput>;
 		public static decode: $ProtoDecode<RotateEpochOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IRoutingInfo {
@@ -14080,16 +13481,15 @@ export namespace proto {
 		tcpKeepalive?: (boolean|null);
 	}
 
-	interface RoutingInfo extends IRoutingInfo {}
+	interface RoutingInfo extends IRoutingInfo, $ProtoJSON {}
 
 	class RoutingInfo implements IRoutingInfo {
 		constructor(p?: IRoutingInfo);
 		public static create(p?: IRoutingInfo): RoutingInfo;
 		public static fromObject(d: $ProtoObject): RoutingInfo;
-		public static toObject(m: RoutingInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<RoutingInfo>;
 		public static encode: $ProtoEncode<IRoutingInfo>;
 		public static decode: $ProtoDecode<RoutingInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IScheduledMessageMetadata {
@@ -14098,16 +13498,15 @@ export namespace proto {
 		scheduledTime?: (Long|null);
 	}
 
-	interface ScheduledMessageMetadata extends IScheduledMessageMetadata {}
+	interface ScheduledMessageMetadata extends IScheduledMessageMetadata, $ProtoJSON {}
 
 	class ScheduledMessageMetadata implements IScheduledMessageMetadata {
 		constructor(p?: IScheduledMessageMetadata);
 		public static create(p?: IScheduledMessageMetadata): ScheduledMessageMetadata;
 		public static fromObject(d: $ProtoObject): ScheduledMessageMetadata;
-		public static toObject(m: ScheduledMessageMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ScheduledMessageMetadata>;
 		public static encode: $ProtoEncode<IScheduledMessageMetadata>;
 		public static decode: $ProtoDecode<ScheduledMessageMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISenderKeyDistributionMessage {
@@ -14117,16 +13516,15 @@ export namespace proto {
 		signingKey?: (Uint8Array|null);
 	}
 
-	interface SenderKeyDistributionMessage extends ISenderKeyDistributionMessage {}
+	interface SenderKeyDistributionMessage extends ISenderKeyDistributionMessage, $ProtoJSON {}
 
 	class SenderKeyDistributionMessage implements ISenderKeyDistributionMessage {
 		constructor(p?: ISenderKeyDistributionMessage);
 		public static create(p?: ISenderKeyDistributionMessage): SenderKeyDistributionMessage;
 		public static fromObject(d: $ProtoObject): SenderKeyDistributionMessage;
-		public static toObject(m: SenderKeyDistributionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SenderKeyDistributionMessage>;
 		public static encode: $ProtoEncode<ISenderKeyDistributionMessage>;
 		public static decode: $ProtoDecode<SenderKeyDistributionMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISenderKeyMessage {
@@ -14135,32 +13533,30 @@ export namespace proto {
 		ciphertext?: (Uint8Array|null);
 	}
 
-	interface SenderKeyMessage extends ISenderKeyMessage {}
+	interface SenderKeyMessage extends ISenderKeyMessage, $ProtoJSON {}
 
 	class SenderKeyMessage implements ISenderKeyMessage {
 		constructor(p?: ISenderKeyMessage);
 		public static create(p?: ISenderKeyMessage): SenderKeyMessage;
 		public static fromObject(d: $ProtoObject): SenderKeyMessage;
-		public static toObject(m: SenderKeyMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SenderKeyMessage>;
 		public static encode: $ProtoEncode<ISenderKeyMessage>;
 		public static decode: $ProtoDecode<SenderKeyMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISenderKeyRecordStructure {
 		senderKeyStates?: proto.ISenderKeyStateStructure[];
 	}
 
-	interface SenderKeyRecordStructure extends ISenderKeyRecordStructure {}
+	interface SenderKeyRecordStructure extends ISenderKeyRecordStructure, $ProtoJSON {}
 
 	class SenderKeyRecordStructure implements ISenderKeyRecordStructure {
 		constructor(p?: ISenderKeyRecordStructure);
 		public static create(p?: ISenderKeyRecordStructure): SenderKeyRecordStructure;
 		public static fromObject(d: $ProtoObject): SenderKeyRecordStructure;
-		public static toObject(m: SenderKeyRecordStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SenderKeyRecordStructure>;
 		public static encode: $ProtoEncode<ISenderKeyRecordStructure>;
 		public static decode: $ProtoDecode<SenderKeyRecordStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISenderKeyStateStructure {
@@ -14170,16 +13566,15 @@ export namespace proto {
 		senderMessageKeys?: proto.SenderKeyStateStructure.ISenderMessageKey[];
 	}
 
-	interface SenderKeyStateStructure extends ISenderKeyStateStructure {}
+	interface SenderKeyStateStructure extends ISenderKeyStateStructure, $ProtoJSON {}
 
 	class SenderKeyStateStructure implements ISenderKeyStateStructure {
 		constructor(p?: ISenderKeyStateStructure);
 		public static create(p?: ISenderKeyStateStructure): SenderKeyStateStructure;
 		public static fromObject(d: $ProtoObject): SenderKeyStateStructure;
-		public static toObject(m: SenderKeyStateStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SenderKeyStateStructure>;
 		public static encode: $ProtoEncode<ISenderKeyStateStructure>;
 		public static decode: $ProtoDecode<SenderKeyStateStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace SenderKeyStateStructure {
@@ -14189,16 +13584,15 @@ export namespace proto {
 			seed?: (Uint8Array|null);
 		}
 
-		interface SenderChainKey extends ISenderChainKey {}
+		interface SenderChainKey extends ISenderChainKey, $ProtoJSON {}
 
 		class SenderChainKey implements ISenderChainKey {
 			constructor(p?: ISenderChainKey);
 			public static create(p?: ISenderChainKey): SenderChainKey;
 			public static fromObject(d: $ProtoObject): SenderChainKey;
-			public static toObject(m: SenderChainKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SenderChainKey>;
 			public static encode: $ProtoEncode<ISenderChainKey>;
 			public static decode: $ProtoDecode<SenderChainKey>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISenderMessageKey {
@@ -14206,16 +13600,15 @@ export namespace proto {
 			seed?: (Uint8Array|null);
 		}
 
-		interface SenderMessageKey extends ISenderMessageKey {}
+		interface SenderMessageKey extends ISenderMessageKey, $ProtoJSON {}
 
 		class SenderMessageKey implements ISenderMessageKey {
 			constructor(p?: ISenderMessageKey);
 			public static create(p?: ISenderMessageKey): SenderMessageKey;
 			public static fromObject(d: $ProtoObject): SenderMessageKey;
-			public static toObject(m: SenderMessageKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SenderMessageKey>;
 			public static encode: $ProtoEncode<ISenderMessageKey>;
 			public static decode: $ProtoDecode<SenderMessageKey>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISenderSigningKey {
@@ -14223,16 +13616,15 @@ export namespace proto {
 			private?: (Uint8Array|null);
 		}
 
-		interface SenderSigningKey extends ISenderSigningKey {}
+		interface SenderSigningKey extends ISenderSigningKey, $ProtoJSON {}
 
 		class SenderSigningKey implements ISenderSigningKey {
 			constructor(p?: ISenderSigningKey);
 			public static create(p?: ISenderSigningKey): SenderSigningKey;
 			public static fromObject(d: $ProtoObject): SenderSigningKey;
-			public static toObject(m: SenderSigningKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SenderSigningKey>;
 			public static encode: $ProtoEncode<ISenderSigningKey>;
 			public static decode: $ProtoDecode<SenderSigningKey>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -14240,16 +13632,15 @@ export namespace proto {
 		stanzaId?: (string|null);
 	}
 
-	interface ServerErrorReceipt extends IServerErrorReceipt {}
+	interface ServerErrorReceipt extends IServerErrorReceipt, $ProtoJSON {}
 
 	class ServerErrorReceipt implements IServerErrorReceipt {
 		constructor(p?: IServerErrorReceipt);
 		public static create(p?: IServerErrorReceipt): ServerErrorReceipt;
 		public static fromObject(d: $ProtoObject): ServerErrorReceipt;
-		public static toObject(m: ServerErrorReceipt, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ServerErrorReceipt>;
 		public static encode: $ProtoEncode<IServerErrorReceipt>;
 		public static decode: $ProtoDecode<ServerErrorReceipt>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISessionStructure {
@@ -14268,16 +13659,15 @@ export namespace proto {
 		aliceBaseKey?: (Uint8Array|null);
 	}
 
-	interface SessionStructure extends ISessionStructure {}
+	interface SessionStructure extends ISessionStructure, $ProtoJSON {}
 
 	class SessionStructure implements ISessionStructure {
 		constructor(p?: ISessionStructure);
 		public static create(p?: ISessionStructure): SessionStructure;
 		public static fromObject(d: $ProtoObject): SessionStructure;
-		public static toObject(m: SessionStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SessionStructure>;
 		public static encode: $ProtoEncode<ISessionStructure>;
 		public static decode: $ProtoDecode<SessionStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace SessionStructure {
@@ -14289,16 +13679,15 @@ export namespace proto {
 			messageKeys?: proto.SessionStructure.Chain.IMessageKey[];
 		}
 
-		interface Chain extends IChain {}
+		interface Chain extends IChain, $ProtoJSON {}
 
 		class Chain implements IChain {
 			constructor(p?: IChain);
 			public static create(p?: IChain): Chain;
 			public static fromObject(d: $ProtoObject): Chain;
-			public static toObject(m: Chain, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Chain>;
 			public static encode: $ProtoEncode<IChain>;
 			public static decode: $ProtoDecode<Chain>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace Chain {
@@ -14308,16 +13697,15 @@ export namespace proto {
 				key?: (Uint8Array|null);
 			}
 
-			interface ChainKey extends IChainKey {}
+			interface ChainKey extends IChainKey, $ProtoJSON {}
 
 			class ChainKey implements IChainKey {
 				constructor(p?: IChainKey);
 				public static create(p?: IChainKey): ChainKey;
 				public static fromObject(d: $ProtoObject): ChainKey;
-				public static toObject(m: ChainKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<ChainKey>;
 				public static encode: $ProtoEncode<IChainKey>;
 				public static decode: $ProtoDecode<ChainKey>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface IMessageKey {
@@ -14327,16 +13715,15 @@ export namespace proto {
 				iv?: (Uint8Array|null);
 			}
 
-			interface MessageKey extends IMessageKey {}
+			interface MessageKey extends IMessageKey, $ProtoJSON {}
 
 			class MessageKey implements IMessageKey {
 				constructor(p?: IMessageKey);
 				public static create(p?: IMessageKey): MessageKey;
 				public static fromObject(d: $ProtoObject): MessageKey;
-				public static toObject(m: MessageKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<MessageKey>;
 				public static encode: $ProtoEncode<IMessageKey>;
 				public static decode: $ProtoDecode<MessageKey>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -14350,16 +13737,15 @@ export namespace proto {
 			localIdentityKeyPrivate?: (Uint8Array|null);
 		}
 
-		interface PendingKeyExchange extends IPendingKeyExchange {}
+		interface PendingKeyExchange extends IPendingKeyExchange, $ProtoJSON {}
 
 		class PendingKeyExchange implements IPendingKeyExchange {
 			constructor(p?: IPendingKeyExchange);
 			public static create(p?: IPendingKeyExchange): PendingKeyExchange;
 			public static fromObject(d: $ProtoObject): PendingKeyExchange;
-			public static toObject(m: PendingKeyExchange, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PendingKeyExchange>;
 			public static encode: $ProtoEncode<IPendingKeyExchange>;
 			public static decode: $ProtoDecode<PendingKeyExchange>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPendingPreKey {
@@ -14370,16 +13756,15 @@ export namespace proto {
 			kyberCiphertext?: (Uint8Array|null);
 		}
 
-		interface PendingPreKey extends IPendingPreKey {}
+		interface PendingPreKey extends IPendingPreKey, $ProtoJSON {}
 
 		class PendingPreKey implements IPendingPreKey {
 			constructor(p?: IPendingPreKey);
 			public static create(p?: IPendingPreKey): PendingPreKey;
 			public static fromObject(d: $ProtoObject): PendingPreKey;
-			public static toObject(m: PendingPreKey, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PendingPreKey>;
 			public static encode: $ProtoEncode<IPendingPreKey>;
 			public static decode: $ProtoDecode<PendingPreKey>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -14389,16 +13774,15 @@ export namespace proto {
 		sessionTransparencyType?: (proto.SessionTransparencyType|null);
 	}
 
-	interface SessionTransparencyMetadata extends ISessionTransparencyMetadata {}
+	interface SessionTransparencyMetadata extends ISessionTransparencyMetadata, $ProtoJSON {}
 
 	class SessionTransparencyMetadata implements ISessionTransparencyMetadata {
 		constructor(p?: ISessionTransparencyMetadata);
 		public static create(p?: ISessionTransparencyMetadata): SessionTransparencyMetadata;
 		public static fromObject(d: $ProtoObject): SessionTransparencyMetadata;
-		public static toObject(m: SessionTransparencyMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SessionTransparencyMetadata>;
 		public static encode: $ProtoEncode<ISessionTransparencyMetadata>;
 		public static decode: $ProtoDecode<SessionTransparencyMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	enum SessionTransparencyType {
@@ -14413,16 +13797,15 @@ export namespace proto {
 		ciphertext?: (Uint8Array|null);
 	}
 
-	interface SignalMessage extends ISignalMessage {}
+	interface SignalMessage extends ISignalMessage, $ProtoJSON {}
 
 	class SignalMessage implements ISignalMessage {
 		constructor(p?: ISignalMessage);
 		public static create(p?: ISignalMessage): SignalMessage;
 		public static fromObject(d: $ProtoObject): SignalMessage;
-		public static toObject(m: SignalMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SignalMessage>;
 		public static encode: $ProtoEncode<ISignalMessage>;
 		public static decode: $ProtoDecode<SignalMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISignedMmkDistributionFromMailbox {
@@ -14431,16 +13814,15 @@ export namespace proto {
 		fromMailbox?: (proto.IMessagingMailboxPublicData|null);
 	}
 
-	interface SignedMmkDistributionFromMailbox extends ISignedMmkDistributionFromMailbox {}
+	interface SignedMmkDistributionFromMailbox extends ISignedMmkDistributionFromMailbox, $ProtoJSON {}
 
 	class SignedMmkDistributionFromMailbox implements ISignedMmkDistributionFromMailbox {
 		constructor(p?: ISignedMmkDistributionFromMailbox);
 		public static create(p?: ISignedMmkDistributionFromMailbox): SignedMmkDistributionFromMailbox;
 		public static fromObject(d: $ProtoObject): SignedMmkDistributionFromMailbox;
-		public static toObject(m: SignedMmkDistributionFromMailbox, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SignedMmkDistributionFromMailbox>;
 		public static encode: $ProtoEncode<ISignedMmkDistributionFromMailbox>;
 		public static decode: $ProtoDecode<SignedMmkDistributionFromMailbox>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISignedPreKeyRecordStructure {
@@ -14451,16 +13833,15 @@ export namespace proto {
 		timestamp?: (Long|null);
 	}
 
-	interface SignedPreKeyRecordStructure extends ISignedPreKeyRecordStructure {}
+	interface SignedPreKeyRecordStructure extends ISignedPreKeyRecordStructure, $ProtoJSON {}
 
 	class SignedPreKeyRecordStructure implements ISignedPreKeyRecordStructure {
 		constructor(p?: ISignedPreKeyRecordStructure);
 		public static create(p?: ISignedPreKeyRecordStructure): SignedPreKeyRecordStructure;
 		public static fromObject(d: $ProtoObject): SignedPreKeyRecordStructure;
-		public static toObject(m: SignedPreKeyRecordStructure, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SignedPreKeyRecordStructure>;
 		public static encode: $ProtoEncode<ISignedPreKeyRecordStructure>;
 		public static decode: $ProtoDecode<SignedPreKeyRecordStructure>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IStatusAttribution {
@@ -14474,16 +13855,15 @@ export namespace proto {
 		aiCreatedAttribution?: (proto.StatusAttribution.IAiCreatedAttribution|null);
 	}
 
-	interface StatusAttribution extends IStatusAttribution {}
+	interface StatusAttribution extends IStatusAttribution, $ProtoJSON {}
 
 	class StatusAttribution implements IStatusAttribution {
 		constructor(p?: IStatusAttribution);
 		public static create(p?: IStatusAttribution): StatusAttribution;
 		public static fromObject(d: $ProtoObject): StatusAttribution;
-		public static toObject(m: StatusAttribution, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<StatusAttribution>;
 		public static encode: $ProtoEncode<IStatusAttribution>;
 		public static decode: $ProtoDecode<StatusAttribution>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace StatusAttribution {
@@ -14492,16 +13872,15 @@ export namespace proto {
 			source?: (proto.StatusAttribution.AiCreatedAttribution.Source|null);
 		}
 
-		interface AiCreatedAttribution extends IAiCreatedAttribution {}
+		interface AiCreatedAttribution extends IAiCreatedAttribution, $ProtoJSON {}
 
 		class AiCreatedAttribution implements IAiCreatedAttribution {
 			constructor(p?: IAiCreatedAttribution);
 			public static create(p?: IAiCreatedAttribution): AiCreatedAttribution;
 			public static fromObject(d: $ProtoObject): AiCreatedAttribution;
-			public static toObject(m: AiCreatedAttribution, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AiCreatedAttribution>;
 			public static encode: $ProtoEncode<IAiCreatedAttribution>;
 			public static decode: $ProtoDecode<AiCreatedAttribution>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AiCreatedAttribution {
@@ -14519,16 +13898,15 @@ export namespace proto {
 			actionFallbackUrl?: (string|null);
 		}
 
-		interface ExternalShare extends IExternalShare {}
+		interface ExternalShare extends IExternalShare, $ProtoJSON {}
 
 		class ExternalShare implements IExternalShare {
 			constructor(p?: IExternalShare);
 			public static create(p?: IExternalShare): ExternalShare;
 			public static fromObject(d: $ProtoObject): ExternalShare;
-			public static toObject(m: ExternalShare, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ExternalShare>;
 			public static encode: $ProtoEncode<IExternalShare>;
 			public static decode: $ProtoDecode<ExternalShare>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace ExternalShare {
@@ -14555,16 +13933,15 @@ export namespace proto {
 			authorJid?: (string|null);
 		}
 
-		interface GroupStatus extends IGroupStatus {}
+		interface GroupStatus extends IGroupStatus, $ProtoJSON {}
 
 		class GroupStatus implements IGroupStatus {
 			constructor(p?: IGroupStatus);
 			public static create(p?: IGroupStatus): GroupStatus;
 			public static fromObject(d: $ProtoObject): GroupStatus;
-			public static toObject(m: GroupStatus, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<GroupStatus>;
 			public static encode: $ProtoEncode<IGroupStatus>;
 			public static decode: $ProtoDecode<GroupStatus>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMusic {
@@ -14576,32 +13953,30 @@ export namespace proto {
 			isExplicit?: (boolean|null);
 		}
 
-		interface Music extends IMusic {}
+		interface Music extends IMusic, $ProtoJSON {}
 
 		class Music implements IMusic {
 			constructor(p?: IMusic);
 			public static create(p?: IMusic): Music;
 			public static fromObject(d: $ProtoObject): Music;
-			public static toObject(m: Music, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Music>;
 			public static encode: $ProtoEncode<IMusic>;
 			public static decode: $ProtoDecode<Music>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRLAttribution {
 			source?: (proto.StatusAttribution.RLAttribution.Source|null);
 		}
 
-		interface RLAttribution extends IRLAttribution {}
+		interface RLAttribution extends IRLAttribution, $ProtoJSON {}
 
 		class RLAttribution implements IRLAttribution {
 			constructor(p?: IRLAttribution);
 			public static create(p?: IRLAttribution): RLAttribution;
 			public static fromObject(d: $ProtoObject): RLAttribution;
-			public static toObject(m: RLAttribution, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RLAttribution>;
 			public static encode: $ProtoEncode<IRLAttribution>;
 			public static decode: $ProtoDecode<RLAttribution>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace RLAttribution {
@@ -14619,16 +13994,15 @@ export namespace proto {
 			metadata?: (proto.StatusAttribution.StatusReshare.IMetadata|null);
 		}
 
-		interface StatusReshare extends IStatusReshare {}
+		interface StatusReshare extends IStatusReshare, $ProtoJSON {}
 
 		class StatusReshare implements IStatusReshare {
 			constructor(p?: IStatusReshare);
 			public static create(p?: IStatusReshare): StatusReshare;
 			public static fromObject(d: $ProtoObject): StatusReshare;
-			public static toObject(m: StatusReshare, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusReshare>;
 			public static encode: $ProtoEncode<IStatusReshare>;
 			public static decode: $ProtoDecode<StatusReshare>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusReshare {
@@ -14640,16 +14014,15 @@ export namespace proto {
 				hasMultipleReshares?: (boolean|null);
 			}
 
-			interface Metadata extends IMetadata {}
+			interface Metadata extends IMetadata, $ProtoJSON {}
 
 			class Metadata implements IMetadata {
 				constructor(p?: IMetadata);
 				public static create(p?: IMetadata): Metadata;
 				public static fromObject(d: $ProtoObject): Metadata;
-				public static toObject(m: Metadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Metadata>;
 				public static encode: $ProtoEncode<IMetadata>;
 				public static decode: $ProtoDecode<Metadata>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum Source {
@@ -14682,16 +14055,15 @@ export namespace proto {
 		quotedStatus?: (proto.IMessage|null);
 	}
 
-	interface StatusMentionMessage extends IStatusMentionMessage {}
+	interface StatusMentionMessage extends IStatusMentionMessage, $ProtoJSON {}
 
 	class StatusMentionMessage implements IStatusMentionMessage {
 		constructor(p?: IStatusMentionMessage);
 		public static create(p?: IStatusMentionMessage): StatusMentionMessage;
 		public static fromObject(d: $ProtoObject): StatusMentionMessage;
-		public static toObject(m: StatusMentionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<StatusMentionMessage>;
 		public static encode: $ProtoEncode<IStatusMentionMessage>;
 		public static decode: $ProtoDecode<StatusMentionMessage>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IStatusPSA {
@@ -14699,16 +14071,15 @@ export namespace proto {
 		campaignExpirationTimestamp?: (Long|null);
 	}
 
-	interface StatusPSA extends IStatusPSA {}
+	interface StatusPSA extends IStatusPSA, $ProtoJSON {}
 
 	class StatusPSA implements IStatusPSA {
 		constructor(p?: IStatusPSA);
 		public static create(p?: IStatusPSA): StatusPSA;
 		public static fromObject(d: $ProtoObject): StatusPSA;
-		public static toObject(m: StatusPSA, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<StatusPSA>;
 		public static encode: $ProtoEncode<IStatusPSA>;
 		public static decode: $ProtoDecode<StatusPSA>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IStickerMetadata {
@@ -14728,16 +14099,15 @@ export namespace proto {
 		isAvatarSticker?: (boolean|null);
 	}
 
-	interface StickerMetadata extends IStickerMetadata {}
+	interface StickerMetadata extends IStickerMetadata, $ProtoJSON {}
 
 	class StickerMetadata implements IStickerMetadata {
 		constructor(p?: IStickerMetadata);
 		public static create(p?: IStickerMetadata): StickerMetadata;
 		public static fromObject(d: $ProtoObject): StickerMetadata;
-		public static toObject(m: StickerMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<StickerMetadata>;
 		public static encode: $ProtoEncode<IStickerMetadata>;
 		public static decode: $ProtoDecode<StickerMetadata>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISubProtocol {
@@ -14745,16 +14115,15 @@ export namespace proto {
 		version?: (number|null);
 	}
 
-	interface SubProtocol extends ISubProtocol {}
+	interface SubProtocol extends ISubProtocol, $ProtoJSON {}
 
 	class SubProtocol implements ISubProtocol {
 		constructor(p?: ISubProtocol);
 		public static create(p?: ISubProtocol): SubProtocol;
 		public static fromObject(d: $ProtoObject): SubProtocol;
-		public static toObject(m: SubProtocol, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SubProtocol>;
 		public static encode: $ProtoEncode<ISubProtocol>;
 		public static decode: $ProtoDecode<SubProtocol>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncActionData {
@@ -14764,16 +14133,15 @@ export namespace proto {
 		version?: (number|null);
 	}
 
-	interface SyncActionData extends ISyncActionData {}
+	interface SyncActionData extends ISyncActionData, $ProtoJSON {}
 
 	class SyncActionData implements ISyncActionData {
 		constructor(p?: ISyncActionData);
 		public static create(p?: ISyncActionData): SyncActionData;
 		public static fromObject(d: $ProtoObject): SyncActionData;
-		public static toObject(m: SyncActionData, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncActionData>;
 		public static encode: $ProtoEncode<ISyncActionData>;
 		public static decode: $ProtoDecode<SyncActionData>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncActionValue {
@@ -14866,16 +14234,15 @@ export namespace proto {
 		businessFolderActivationAction?: (proto.SyncActionValue.IBusinessFolderActivationAction|null);
 	}
 
-	interface SyncActionValue extends ISyncActionValue {}
+	interface SyncActionValue extends ISyncActionValue, $ProtoJSON {}
 
 	class SyncActionValue implements ISyncActionValue {
 		constructor(p?: ISyncActionValue);
 		public static create(p?: ISyncActionValue): SyncActionValue;
 		public static fromObject(d: $ProtoObject): SyncActionValue;
-		public static toObject(m: SyncActionValue, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncActionValue>;
 		public static encode: $ProtoEncode<ISyncActionValue>;
 		public static decode: $ProtoDecode<SyncActionValue>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace SyncActionValue {
@@ -14886,48 +14253,45 @@ export namespace proto {
 			isDeleted?: (boolean|null);
 		}
 
-		interface AgentAction extends IAgentAction {}
+		interface AgentAction extends IAgentAction, $ProtoJSON {}
 
 		class AgentAction implements IAgentAction {
 			constructor(p?: IAgentAction);
 			public static create(p?: IAgentAction): AgentAction;
 			public static fromObject(d: $ProtoObject): AgentAction;
-			public static toObject(m: AgentAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AgentAction>;
 			public static encode: $ProtoEncode<IAgentAction>;
 			public static decode: $ProtoDecode<AgentAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAiThreadRenameAction {
 			newTitle?: (string|null);
 		}
 
-		interface AiThreadRenameAction extends IAiThreadRenameAction {}
+		interface AiThreadRenameAction extends IAiThreadRenameAction, $ProtoJSON {}
 
 		class AiThreadRenameAction implements IAiThreadRenameAction {
 			constructor(p?: IAiThreadRenameAction);
 			public static create(p?: IAiThreadRenameAction): AiThreadRenameAction;
 			public static fromObject(d: $ProtoObject): AiThreadRenameAction;
-			public static toObject(m: AiThreadRenameAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AiThreadRenameAction>;
 			public static encode: $ProtoEncode<IAiThreadRenameAction>;
 			public static decode: $ProtoDecode<AiThreadRenameAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAndroidUnsupportedActions {
 			allowed?: (boolean|null);
 		}
 
-		interface AndroidUnsupportedActions extends IAndroidUnsupportedActions {}
+		interface AndroidUnsupportedActions extends IAndroidUnsupportedActions, $ProtoJSON {}
 
 		class AndroidUnsupportedActions implements IAndroidUnsupportedActions {
 			constructor(p?: IAndroidUnsupportedActions);
 			public static create(p?: IAndroidUnsupportedActions): AndroidUnsupportedActions;
 			public static fromObject(d: $ProtoObject): AndroidUnsupportedActions;
-			public static toObject(m: AndroidUnsupportedActions, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AndroidUnsupportedActions>;
 			public static encode: $ProtoEncode<IAndroidUnsupportedActions>;
 			public static decode: $ProtoDecode<AndroidUnsupportedActions>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IArchiveChatAction {
@@ -14935,32 +14299,30 @@ export namespace proto {
 			messageRange?: (proto.SyncActionValue.ISyncActionMessageRange|null);
 		}
 
-		interface ArchiveChatAction extends IArchiveChatAction {}
+		interface ArchiveChatAction extends IArchiveChatAction, $ProtoJSON {}
 
 		class ArchiveChatAction implements IArchiveChatAction {
 			constructor(p?: IArchiveChatAction);
 			public static create(p?: IArchiveChatAction): ArchiveChatAction;
 			public static fromObject(d: $ProtoObject): ArchiveChatAction;
-			public static toObject(m: ArchiveChatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ArchiveChatAction>;
 			public static encode: $ProtoEncode<IArchiveChatAction>;
 			public static decode: $ProtoDecode<ArchiveChatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAutoOrganizeBusinessChatSetting {
 			autoOrganize?: (boolean|null);
 		}
 
-		interface AutoOrganizeBusinessChatSetting extends IAutoOrganizeBusinessChatSetting {}
+		interface AutoOrganizeBusinessChatSetting extends IAutoOrganizeBusinessChatSetting, $ProtoJSON {}
 
 		class AutoOrganizeBusinessChatSetting implements IAutoOrganizeBusinessChatSetting {
 			constructor(p?: IAutoOrganizeBusinessChatSetting);
 			public static create(p?: IAutoOrganizeBusinessChatSetting): AutoOrganizeBusinessChatSetting;
 			public static fromObject(d: $ProtoObject): AutoOrganizeBusinessChatSetting;
-			public static toObject(m: AutoOrganizeBusinessChatSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AutoOrganizeBusinessChatSetting>;
 			public static encode: $ProtoEncode<IAutoOrganizeBusinessChatSetting>;
 			public static decode: $ProtoDecode<AutoOrganizeBusinessChatSetting>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IAvatarUpdatedAction {
@@ -14968,16 +14330,15 @@ export namespace proto {
 			recentAvatarStickers?: proto.SyncActionValue.IStickerAction[];
 		}
 
-		interface AvatarUpdatedAction extends IAvatarUpdatedAction {}
+		interface AvatarUpdatedAction extends IAvatarUpdatedAction, $ProtoJSON {}
 
 		class AvatarUpdatedAction implements IAvatarUpdatedAction {
 			constructor(p?: IAvatarUpdatedAction);
 			public static create(p?: IAvatarUpdatedAction): AvatarUpdatedAction;
 			public static fromObject(d: $ProtoObject): AvatarUpdatedAction;
-			public static toObject(m: AvatarUpdatedAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<AvatarUpdatedAction>;
 			public static encode: $ProtoEncode<IAvatarUpdatedAction>;
 			public static decode: $ProtoDecode<AvatarUpdatedAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace AvatarUpdatedAction {
@@ -14995,16 +14356,15 @@ export namespace proto {
 			updatedAtMs?: (Long|null);
 		}
 
-		interface BizAISettingsNudgeAction extends IBizAISettingsNudgeAction {}
+		interface BizAISettingsNudgeAction extends IBizAISettingsNudgeAction, $ProtoJSON {}
 
 		class BizAISettingsNudgeAction implements IBizAISettingsNudgeAction {
 			constructor(p?: IBizAISettingsNudgeAction);
 			public static create(p?: IBizAISettingsNudgeAction): BizAISettingsNudgeAction;
 			public static fromObject(d: $ProtoObject): BizAISettingsNudgeAction;
-			public static toObject(m: BizAISettingsNudgeAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BizAISettingsNudgeAction>;
 			public static encode: $ProtoEncode<IBizAISettingsNudgeAction>;
 			public static decode: $ProtoDecode<BizAISettingsNudgeAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace BizAISettingsNudgeAction {
@@ -15024,16 +14384,15 @@ export namespace proto {
 			isSent?: (boolean|null);
 		}
 
-		interface BotWelcomeRequestAction extends IBotWelcomeRequestAction {}
+		interface BotWelcomeRequestAction extends IBotWelcomeRequestAction, $ProtoJSON {}
 
 		class BotWelcomeRequestAction implements IBotWelcomeRequestAction {
 			constructor(p?: IBotWelcomeRequestAction);
 			public static create(p?: IBotWelcomeRequestAction): BotWelcomeRequestAction;
 			public static fromObject(d: $ProtoObject): BotWelcomeRequestAction;
-			public static toObject(m: BotWelcomeRequestAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BotWelcomeRequestAction>;
 			public static encode: $ProtoEncode<IBotWelcomeRequestAction>;
 			public static decode: $ProtoDecode<BotWelcomeRequestAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBroadcastListParticipant {
@@ -15041,48 +14400,45 @@ export namespace proto {
 			pnJid?: (string|null);
 		}
 
-		interface BroadcastListParticipant extends IBroadcastListParticipant {}
+		interface BroadcastListParticipant extends IBroadcastListParticipant, $ProtoJSON {}
 
 		class BroadcastListParticipant implements IBroadcastListParticipant {
 			constructor(p?: IBroadcastListParticipant);
 			public static create(p?: IBroadcastListParticipant): BroadcastListParticipant;
 			public static fromObject(d: $ProtoObject): BroadcastListParticipant;
-			public static toObject(m: BroadcastListParticipant, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BroadcastListParticipant>;
 			public static encode: $ProtoEncode<IBroadcastListParticipant>;
 			public static decode: $ProtoDecode<BroadcastListParticipant>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBubbleLockMessageAction {
 			locked?: (boolean|null);
 		}
 
-		interface BubbleLockMessageAction extends IBubbleLockMessageAction {}
+		interface BubbleLockMessageAction extends IBubbleLockMessageAction, $ProtoJSON {}
 
 		class BubbleLockMessageAction implements IBubbleLockMessageAction {
 			constructor(p?: IBubbleLockMessageAction);
 			public static create(p?: IBubbleLockMessageAction): BubbleLockMessageAction;
 			public static fromObject(d: $ProtoObject): BubbleLockMessageAction;
-			public static toObject(m: BubbleLockMessageAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BubbleLockMessageAction>;
 			public static encode: $ProtoEncode<IBubbleLockMessageAction>;
 			public static decode: $ProtoDecode<BubbleLockMessageAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBusinessBroadcastAssociationAction {
 			deleted?: (boolean|null);
 		}
 
-		interface BusinessBroadcastAssociationAction extends IBusinessBroadcastAssociationAction {}
+		interface BusinessBroadcastAssociationAction extends IBusinessBroadcastAssociationAction, $ProtoJSON {}
 
 		class BusinessBroadcastAssociationAction implements IBusinessBroadcastAssociationAction {
 			constructor(p?: IBusinessBroadcastAssociationAction);
 			public static create(p?: IBusinessBroadcastAssociationAction): BusinessBroadcastAssociationAction;
 			public static fromObject(d: $ProtoObject): BusinessBroadcastAssociationAction;
-			public static toObject(m: BusinessBroadcastAssociationAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessBroadcastAssociationAction>;
 			public static encode: $ProtoEncode<IBusinessBroadcastAssociationAction>;
 			public static decode: $ProtoDecode<BusinessBroadcastAssociationAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBusinessBroadcastCampaignAction {
@@ -15099,16 +14455,15 @@ export namespace proto {
 			customAudienceFbid?: (string|null);
 		}
 
-		interface BusinessBroadcastCampaignAction extends IBusinessBroadcastCampaignAction {}
+		interface BusinessBroadcastCampaignAction extends IBusinessBroadcastCampaignAction, $ProtoJSON {}
 
 		class BusinessBroadcastCampaignAction implements IBusinessBroadcastCampaignAction {
 			constructor(p?: IBusinessBroadcastCampaignAction);
 			public static create(p?: IBusinessBroadcastCampaignAction): BusinessBroadcastCampaignAction;
 			public static fromObject(d: $ProtoObject): BusinessBroadcastCampaignAction;
-			public static toObject(m: BusinessBroadcastCampaignAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessBroadcastCampaignAction>;
 			public static encode: $ProtoEncode<IBusinessBroadcastCampaignAction>;
 			public static decode: $ProtoDecode<BusinessBroadcastCampaignAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		enum BusinessBroadcastCampaignBBProStatus {
@@ -15140,16 +14495,15 @@ export namespace proto {
 			quickReplyCount?: (number|null);
 		}
 
-		interface BusinessBroadcastInsightsAction extends IBusinessBroadcastInsightsAction {}
+		interface BusinessBroadcastInsightsAction extends IBusinessBroadcastInsightsAction, $ProtoJSON {}
 
 		class BusinessBroadcastInsightsAction implements IBusinessBroadcastInsightsAction {
 			constructor(p?: IBusinessBroadcastInsightsAction);
 			public static create(p?: IBusinessBroadcastInsightsAction): BusinessBroadcastInsightsAction;
 			public static fromObject(d: $ProtoObject): BusinessBroadcastInsightsAction;
-			public static toObject(m: BusinessBroadcastInsightsAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessBroadcastInsightsAction>;
 			public static encode: $ProtoEncode<IBusinessBroadcastInsightsAction>;
 			public static decode: $ProtoDecode<BusinessBroadcastInsightsAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBusinessBroadcastListAction {
@@ -15161,112 +14515,105 @@ export namespace proto {
 			customAudienceFbid?: (string|null);
 		}
 
-		interface BusinessBroadcastListAction extends IBusinessBroadcastListAction {}
+		interface BusinessBroadcastListAction extends IBusinessBroadcastListAction, $ProtoJSON {}
 
 		class BusinessBroadcastListAction implements IBusinessBroadcastListAction {
 			constructor(p?: IBusinessBroadcastListAction);
 			public static create(p?: IBusinessBroadcastListAction): BusinessBroadcastListAction;
 			public static fromObject(d: $ProtoObject): BusinessBroadcastListAction;
-			public static toObject(m: BusinessBroadcastListAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessBroadcastListAction>;
 			public static encode: $ProtoEncode<IBusinessBroadcastListAction>;
 			public static decode: $ProtoDecode<BusinessBroadcastListAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IBusinessFolderActivationAction {
 			activated?: (boolean|null);
 		}
 
-		interface BusinessFolderActivationAction extends IBusinessFolderActivationAction {}
+		interface BusinessFolderActivationAction extends IBusinessFolderActivationAction, $ProtoJSON {}
 
 		class BusinessFolderActivationAction implements IBusinessFolderActivationAction {
 			constructor(p?: IBusinessFolderActivationAction);
 			public static create(p?: IBusinessFolderActivationAction): BusinessFolderActivationAction;
 			public static fromObject(d: $ProtoObject): BusinessFolderActivationAction;
-			public static toObject(m: BusinessFolderActivationAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<BusinessFolderActivationAction>;
 			public static encode: $ProtoEncode<IBusinessFolderActivationAction>;
 			public static decode: $ProtoDecode<BusinessFolderActivationAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICallLogAction {
 			callLogRecord?: (proto.ICallLogRecord|null);
 		}
 
-		interface CallLogAction extends ICallLogAction {}
+		interface CallLogAction extends ICallLogAction, $ProtoJSON {}
 
 		class CallLogAction implements ICallLogAction {
 			constructor(p?: ICallLogAction);
 			public static create(p?: ICallLogAction): CallLogAction;
 			public static fromObject(d: $ProtoObject): CallLogAction;
-			public static toObject(m: CallLogAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CallLogAction>;
 			public static encode: $ProtoEncode<ICallLogAction>;
 			public static decode: $ProtoDecode<CallLogAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatAssignmentAction {
 			deviceAgentId?: (string|null);
 		}
 
-		interface ChatAssignmentAction extends IChatAssignmentAction {}
+		interface ChatAssignmentAction extends IChatAssignmentAction, $ProtoJSON {}
 
 		class ChatAssignmentAction implements IChatAssignmentAction {
 			constructor(p?: IChatAssignmentAction);
 			public static create(p?: IChatAssignmentAction): ChatAssignmentAction;
 			public static fromObject(d: $ProtoObject): ChatAssignmentAction;
-			public static toObject(m: ChatAssignmentAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatAssignmentAction>;
 			public static encode: $ProtoEncode<IChatAssignmentAction>;
 			public static decode: $ProtoDecode<ChatAssignmentAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IChatAssignmentOpenedStatusAction {
 			chatOpened?: (boolean|null);
 		}
 
-		interface ChatAssignmentOpenedStatusAction extends IChatAssignmentOpenedStatusAction {}
+		interface ChatAssignmentOpenedStatusAction extends IChatAssignmentOpenedStatusAction, $ProtoJSON {}
 
 		class ChatAssignmentOpenedStatusAction implements IChatAssignmentOpenedStatusAction {
 			constructor(p?: IChatAssignmentOpenedStatusAction);
 			public static create(p?: IChatAssignmentOpenedStatusAction): ChatAssignmentOpenedStatusAction;
 			public static fromObject(d: $ProtoObject): ChatAssignmentOpenedStatusAction;
-			public static toObject(m: ChatAssignmentOpenedStatusAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ChatAssignmentOpenedStatusAction>;
 			public static encode: $ProtoEncode<IChatAssignmentOpenedStatusAction>;
 			public static decode: $ProtoDecode<ChatAssignmentOpenedStatusAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IClearChatAction {
 			messageRange?: (proto.SyncActionValue.ISyncActionMessageRange|null);
 		}
 
-		interface ClearChatAction extends IClearChatAction {}
+		interface ClearChatAction extends IClearChatAction, $ProtoJSON {}
 
 		class ClearChatAction implements IClearChatAction {
 			constructor(p?: IClearChatAction);
 			public static create(p?: IClearChatAction): ClearChatAction;
 			public static fromObject(d: $ProtoObject): ClearChatAction;
-			public static toObject(m: ClearChatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ClearChatAction>;
 			public static encode: $ProtoEncode<IClearChatAction>;
 			public static decode: $ProtoDecode<ClearChatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICoexV2VersionAction {
 			version?: (Long|null);
 		}
 
-		interface CoexV2VersionAction extends ICoexV2VersionAction {}
+		interface CoexV2VersionAction extends ICoexV2VersionAction, $ProtoJSON {}
 
 		class CoexV2VersionAction implements ICoexV2VersionAction {
 			constructor(p?: ICoexV2VersionAction);
 			public static create(p?: ICoexV2VersionAction): CoexV2VersionAction;
 			public static fromObject(d: $ProtoObject): CoexV2VersionAction;
-			public static toObject(m: CoexV2VersionAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CoexV2VersionAction>;
 			public static encode: $ProtoEncode<ICoexV2VersionAction>;
 			public static decode: $ProtoDecode<CoexV2VersionAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IContactAction {
@@ -15278,64 +14625,60 @@ export namespace proto {
 			username?: (string|null);
 		}
 
-		interface ContactAction extends IContactAction {}
+		interface ContactAction extends IContactAction, $ProtoJSON {}
 
 		class ContactAction implements IContactAction {
 			constructor(p?: IContactAction);
 			public static create(p?: IContactAction): ContactAction;
 			public static fromObject(d: $ProtoObject): ContactAction;
-			public static toObject(m: ContactAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactAction>;
 			public static encode: $ProtoEncode<IContactAction>;
 			public static decode: $ProtoDecode<ContactAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IContactManagerMetadataAction {
 			isHidden?: (boolean|null);
 		}
 
-		interface ContactManagerMetadataAction extends IContactManagerMetadataAction {}
+		interface ContactManagerMetadataAction extends IContactManagerMetadataAction, $ProtoJSON {}
 
 		class ContactManagerMetadataAction implements IContactManagerMetadataAction {
 			constructor(p?: IContactManagerMetadataAction);
 			public static create(p?: IContactManagerMetadataAction): ContactManagerMetadataAction;
 			public static fromObject(d: $ProtoObject): ContactManagerMetadataAction;
-			public static toObject(m: ContactManagerMetadataAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ContactManagerMetadataAction>;
 			public static encode: $ProtoEncode<IContactManagerMetadataAction>;
 			public static decode: $ProtoDecode<ContactManagerMetadataAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICtwaMessageReceivedAction {
 			isCtwaMessageReceived?: (boolean|null);
 		}
 
-		interface CtwaMessageReceivedAction extends ICtwaMessageReceivedAction {}
+		interface CtwaMessageReceivedAction extends ICtwaMessageReceivedAction, $ProtoJSON {}
 
 		class CtwaMessageReceivedAction implements ICtwaMessageReceivedAction {
 			constructor(p?: ICtwaMessageReceivedAction);
 			public static create(p?: ICtwaMessageReceivedAction): CtwaMessageReceivedAction;
 			public static fromObject(d: $ProtoObject): CtwaMessageReceivedAction;
-			public static toObject(m: CtwaMessageReceivedAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CtwaMessageReceivedAction>;
 			public static encode: $ProtoEncode<ICtwaMessageReceivedAction>;
 			public static decode: $ProtoDecode<CtwaMessageReceivedAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICtwaPerCustomerDataSharingAction {
 			isCtwaPerCustomerDataSharingEnabled?: (boolean|null);
 		}
 
-		interface CtwaPerCustomerDataSharingAction extends ICtwaPerCustomerDataSharingAction {}
+		interface CtwaPerCustomerDataSharingAction extends ICtwaPerCustomerDataSharingAction, $ProtoJSON {}
 
 		class CtwaPerCustomerDataSharingAction implements ICtwaPerCustomerDataSharingAction {
 			constructor(p?: ICtwaPerCustomerDataSharingAction);
 			public static create(p?: ICtwaPerCustomerDataSharingAction): CtwaPerCustomerDataSharingAction;
 			public static fromObject(d: $ProtoObject): CtwaPerCustomerDataSharingAction;
-			public static toObject(m: CtwaPerCustomerDataSharingAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CtwaPerCustomerDataSharingAction>;
 			public static encode: $ProtoEncode<ICtwaPerCustomerDataSharingAction>;
 			public static decode: $ProtoDecode<CtwaPerCustomerDataSharingAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICustomerDataAction {
@@ -15352,16 +14695,15 @@ export namespace proto {
 			modifiedAt?: (Long|null);
 		}
 
-		interface CustomerDataAction extends ICustomerDataAction {}
+		interface CustomerDataAction extends ICustomerDataAction, $ProtoJSON {}
 
 		class CustomerDataAction implements ICustomerDataAction {
 			constructor(p?: ICustomerDataAction);
 			public static create(p?: ICustomerDataAction): CustomerDataAction;
 			public static fromObject(d: $ProtoObject): CustomerDataAction;
-			public static toObject(m: CustomerDataAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CustomerDataAction>;
 			public static encode: $ProtoEncode<ICustomerDataAction>;
 			public static decode: $ProtoDecode<CustomerDataAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICustomPaymentMethod {
@@ -15371,16 +14713,15 @@ export namespace proto {
 			metadata?: proto.SyncActionValue.ICustomPaymentMethodMetadata[];
 		}
 
-		interface CustomPaymentMethod extends ICustomPaymentMethod {}
+		interface CustomPaymentMethod extends ICustomPaymentMethod, $ProtoJSON {}
 
 		class CustomPaymentMethod implements ICustomPaymentMethod {
 			constructor(p?: ICustomPaymentMethod);
 			public static create(p?: ICustomPaymentMethod): CustomPaymentMethod;
 			public static fromObject(d: $ProtoObject): CustomPaymentMethod;
-			public static toObject(m: CustomPaymentMethod, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CustomPaymentMethod>;
 			public static encode: $ProtoEncode<ICustomPaymentMethod>;
 			public static decode: $ProtoDecode<CustomPaymentMethod>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICustomPaymentMethodMetadata {
@@ -15388,48 +14729,45 @@ export namespace proto {
 			value?: (string|null);
 		}
 
-		interface CustomPaymentMethodMetadata extends ICustomPaymentMethodMetadata {}
+		interface CustomPaymentMethodMetadata extends ICustomPaymentMethodMetadata, $ProtoJSON {}
 
 		class CustomPaymentMethodMetadata implements ICustomPaymentMethodMetadata {
 			constructor(p?: ICustomPaymentMethodMetadata);
 			public static create(p?: ICustomPaymentMethodMetadata): CustomPaymentMethodMetadata;
 			public static fromObject(d: $ProtoObject): CustomPaymentMethodMetadata;
-			public static toObject(m: CustomPaymentMethodMetadata, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CustomPaymentMethodMetadata>;
 			public static encode: $ProtoEncode<ICustomPaymentMethodMetadata>;
 			public static decode: $ProtoDecode<CustomPaymentMethodMetadata>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ICustomPaymentMethodsAction {
 			customPaymentMethods?: proto.SyncActionValue.ICustomPaymentMethod[];
 		}
 
-		interface CustomPaymentMethodsAction extends ICustomPaymentMethodsAction {}
+		interface CustomPaymentMethodsAction extends ICustomPaymentMethodsAction, $ProtoJSON {}
 
 		class CustomPaymentMethodsAction implements ICustomPaymentMethodsAction {
 			constructor(p?: ICustomPaymentMethodsAction);
 			public static create(p?: ICustomPaymentMethodsAction): CustomPaymentMethodsAction;
 			public static fromObject(d: $ProtoObject): CustomPaymentMethodsAction;
-			public static toObject(m: CustomPaymentMethodsAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CustomPaymentMethodsAction>;
 			public static encode: $ProtoEncode<ICustomPaymentMethodsAction>;
 			public static decode: $ProtoDecode<CustomPaymentMethodsAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDeleteChatAction {
 			messageRange?: (proto.SyncActionValue.ISyncActionMessageRange|null);
 		}
 
-		interface DeleteChatAction extends IDeleteChatAction {}
+		interface DeleteChatAction extends IDeleteChatAction, $ProtoJSON {}
 
 		class DeleteChatAction implements IDeleteChatAction {
 			constructor(p?: IDeleteChatAction);
 			public static create(p?: IDeleteChatAction): DeleteChatAction;
 			public static fromObject(d: $ProtoObject): DeleteChatAction;
-			public static toObject(m: DeleteChatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DeleteChatAction>;
 			public static encode: $ProtoEncode<IDeleteChatAction>;
 			public static decode: $ProtoDecode<DeleteChatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDeleteIndividualCallLogAction {
@@ -15437,16 +14775,15 @@ export namespace proto {
 			isIncoming?: (boolean|null);
 		}
 
-		interface DeleteIndividualCallLogAction extends IDeleteIndividualCallLogAction {}
+		interface DeleteIndividualCallLogAction extends IDeleteIndividualCallLogAction, $ProtoJSON {}
 
 		class DeleteIndividualCallLogAction implements IDeleteIndividualCallLogAction {
 			constructor(p?: IDeleteIndividualCallLogAction);
 			public static create(p?: IDeleteIndividualCallLogAction): DeleteIndividualCallLogAction;
 			public static fromObject(d: $ProtoObject): DeleteIndividualCallLogAction;
-			public static toObject(m: DeleteIndividualCallLogAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DeleteIndividualCallLogAction>;
 			public static encode: $ProtoEncode<IDeleteIndividualCallLogAction>;
 			public static decode: $ProtoDecode<DeleteIndividualCallLogAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDeleteMessageForMeAction {
@@ -15454,64 +14791,60 @@ export namespace proto {
 			messageTimestamp?: (Long|null);
 		}
 
-		interface DeleteMessageForMeAction extends IDeleteMessageForMeAction {}
+		interface DeleteMessageForMeAction extends IDeleteMessageForMeAction, $ProtoJSON {}
 
 		class DeleteMessageForMeAction implements IDeleteMessageForMeAction {
 			constructor(p?: IDeleteMessageForMeAction);
 			public static create(p?: IDeleteMessageForMeAction): DeleteMessageForMeAction;
 			public static fromObject(d: $ProtoObject): DeleteMessageForMeAction;
-			public static toObject(m: DeleteMessageForMeAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DeleteMessageForMeAction>;
 			public static encode: $ProtoEncode<IDeleteMessageForMeAction>;
 			public static decode: $ProtoDecode<DeleteMessageForMeAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IDetectedOutcomesStatusAction {
 			isEnabled?: (boolean|null);
 		}
 
-		interface DetectedOutcomesStatusAction extends IDetectedOutcomesStatusAction {}
+		interface DetectedOutcomesStatusAction extends IDetectedOutcomesStatusAction, $ProtoJSON {}
 
 		class DetectedOutcomesStatusAction implements IDetectedOutcomesStatusAction {
 			constructor(p?: IDetectedOutcomesStatusAction);
 			public static create(p?: IDetectedOutcomesStatusAction): DetectedOutcomesStatusAction;
 			public static fromObject(d: $ProtoObject): DetectedOutcomesStatusAction;
-			public static toObject(m: DetectedOutcomesStatusAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<DetectedOutcomesStatusAction>;
 			public static encode: $ProtoEncode<IDetectedOutcomesStatusAction>;
 			public static decode: $ProtoDecode<DetectedOutcomesStatusAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IExternalWebBetaAction {
 			isOptIn?: (boolean|null);
 		}
 
-		interface ExternalWebBetaAction extends IExternalWebBetaAction {}
+		interface ExternalWebBetaAction extends IExternalWebBetaAction, $ProtoJSON {}
 
 		class ExternalWebBetaAction implements IExternalWebBetaAction {
 			constructor(p?: IExternalWebBetaAction);
 			public static create(p?: IExternalWebBetaAction): ExternalWebBetaAction;
 			public static fromObject(d: $ProtoObject): ExternalWebBetaAction;
-			public static toObject(m: ExternalWebBetaAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ExternalWebBetaAction>;
 			public static encode: $ProtoEncode<IExternalWebBetaAction>;
 			public static decode: $ProtoDecode<ExternalWebBetaAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IFavoritesAction {
 			favorites?: proto.SyncActionValue.FavoritesAction.IFavorite[];
 		}
 
-		interface FavoritesAction extends IFavoritesAction {}
+		interface FavoritesAction extends IFavoritesAction, $ProtoJSON {}
 
 		class FavoritesAction implements IFavoritesAction {
 			constructor(p?: IFavoritesAction);
 			public static create(p?: IFavoritesAction): FavoritesAction;
 			public static fromObject(d: $ProtoObject): FavoritesAction;
-			public static toObject(m: FavoritesAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<FavoritesAction>;
 			public static encode: $ProtoEncode<IFavoritesAction>;
 			public static decode: $ProtoDecode<FavoritesAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace FavoritesAction {
@@ -15520,16 +14853,15 @@ export namespace proto {
 				id?: (string|null);
 			}
 
-			interface Favorite extends IFavorite {}
+			interface Favorite extends IFavorite, $ProtoJSON {}
 
 			class Favorite implements IFavorite {
 				constructor(p?: IFavorite);
 				public static create(p?: IFavorite): Favorite;
 				public static fromObject(d: $ProtoObject): Favorite;
-				public static toObject(m: Favorite, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Favorite>;
 				public static encode: $ProtoEncode<IFavorite>;
 				public static decode: $ProtoDecode<Favorite>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -15538,16 +14870,15 @@ export namespace proto {
 			agmId?: (string|null);
 		}
 
-		interface InteractiveMessageAction extends IInteractiveMessageAction {}
+		interface InteractiveMessageAction extends IInteractiveMessageAction, $ProtoJSON {}
 
 		class InteractiveMessageAction implements IInteractiveMessageAction {
 			constructor(p?: IInteractiveMessageAction);
 			public static create(p?: IInteractiveMessageAction): InteractiveMessageAction;
 			public static fromObject(d: $ProtoObject): InteractiveMessageAction;
-			public static toObject(m: InteractiveMessageAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<InteractiveMessageAction>;
 			public static encode: $ProtoEncode<IInteractiveMessageAction>;
 			public static decode: $ProtoDecode<InteractiveMessageAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace InteractiveMessageAction {
@@ -15561,16 +14892,15 @@ export namespace proto {
 			expiredKeyEpoch?: (number|null);
 		}
 
-		interface KeyExpiration extends IKeyExpiration {}
+		interface KeyExpiration extends IKeyExpiration, $ProtoJSON {}
 
 		class KeyExpiration implements IKeyExpiration {
 			constructor(p?: IKeyExpiration);
 			public static create(p?: IKeyExpiration): KeyExpiration;
 			public static fromObject(d: $ProtoObject): KeyExpiration;
-			public static toObject(m: KeyExpiration, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<KeyExpiration>;
 			public static encode: $ProtoEncode<IKeyExpiration>;
 			public static decode: $ProtoDecode<KeyExpiration>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILabelAssociationAction {
@@ -15578,16 +14908,15 @@ export namespace proto {
 			modelMetaData?: (string|null);
 		}
 
-		interface LabelAssociationAction extends ILabelAssociationAction {}
+		interface LabelAssociationAction extends ILabelAssociationAction, $ProtoJSON {}
 
 		class LabelAssociationAction implements ILabelAssociationAction {
 			constructor(p?: ILabelAssociationAction);
 			public static create(p?: ILabelAssociationAction): LabelAssociationAction;
 			public static fromObject(d: $ProtoObject): LabelAssociationAction;
-			public static toObject(m: LabelAssociationAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LabelAssociationAction>;
 			public static encode: $ProtoEncode<ILabelAssociationAction>;
 			public static decode: $ProtoDecode<LabelAssociationAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILabelEditAction {
@@ -15602,16 +14931,15 @@ export namespace proto {
 			muteEndTimeMs?: (Long|null);
 		}
 
-		interface LabelEditAction extends ILabelEditAction {}
+		interface LabelEditAction extends ILabelEditAction, $ProtoJSON {}
 
 		class LabelEditAction implements ILabelEditAction {
 			constructor(p?: ILabelEditAction);
 			public static create(p?: ILabelEditAction): LabelEditAction;
 			public static fromObject(d: $ProtoObject): LabelEditAction;
-			public static toObject(m: LabelEditAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LabelEditAction>;
 			public static encode: $ProtoEncode<ILabelEditAction>;
 			public static decode: $ProtoDecode<LabelEditAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace LabelEditAction {
@@ -15643,32 +14971,30 @@ export namespace proto {
 			sortedLabelIds?: number[];
 		}
 
-		interface LabelReorderingAction extends ILabelReorderingAction {}
+		interface LabelReorderingAction extends ILabelReorderingAction, $ProtoJSON {}
 
 		class LabelReorderingAction implements ILabelReorderingAction {
 			constructor(p?: ILabelReorderingAction);
 			public static create(p?: ILabelReorderingAction): LabelReorderingAction;
 			public static fromObject(d: $ProtoObject): LabelReorderingAction;
-			public static toObject(m: LabelReorderingAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LabelReorderingAction>;
 			public static encode: $ProtoEncode<ILabelReorderingAction>;
 			public static decode: $ProtoDecode<LabelReorderingAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILabelSublistAction {
 			subListId?: (number|null);
 		}
 
-		interface LabelSublistAction extends ILabelSublistAction {}
+		interface LabelSublistAction extends ILabelSublistAction, $ProtoJSON {}
 
 		class LabelSublistAction implements ILabelSublistAction {
 			constructor(p?: ILabelSublistAction);
 			public static create(p?: ILabelSublistAction): LabelSublistAction;
 			public static fromObject(d: $ProtoObject): LabelSublistAction;
-			public static toObject(m: LabelSublistAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LabelSublistAction>;
 			public static encode: $ProtoEncode<ILabelSublistAction>;
 			public static decode: $ProtoDecode<LabelSublistAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILidContactAction {
@@ -15677,48 +15003,45 @@ export namespace proto {
 			username?: (string|null);
 		}
 
-		interface LidContactAction extends ILidContactAction {}
+		interface LidContactAction extends ILidContactAction, $ProtoJSON {}
 
 		class LidContactAction implements ILidContactAction {
 			constructor(p?: ILidContactAction);
 			public static create(p?: ILidContactAction): LidContactAction;
 			public static fromObject(d: $ProtoObject): LidContactAction;
-			public static toObject(m: LidContactAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LidContactAction>;
 			public static encode: $ProtoEncode<ILidContactAction>;
 			public static decode: $ProtoDecode<LidContactAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILocaleSetting {
 			locale?: (string|null);
 		}
 
-		interface LocaleSetting extends ILocaleSetting {}
+		interface LocaleSetting extends ILocaleSetting, $ProtoJSON {}
 
 		class LocaleSetting implements ILocaleSetting {
 			constructor(p?: ILocaleSetting);
 			public static create(p?: ILocaleSetting): LocaleSetting;
 			public static fromObject(d: $ProtoObject): LocaleSetting;
-			public static toObject(m: LocaleSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LocaleSetting>;
 			public static encode: $ProtoEncode<ILocaleSetting>;
 			public static decode: $ProtoDecode<LocaleSetting>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ILockChatAction {
 			locked?: (boolean|null);
 		}
 
-		interface LockChatAction extends ILockChatAction {}
+		interface LockChatAction extends ILockChatAction, $ProtoJSON {}
 
 		class LockChatAction implements ILockChatAction {
 			constructor(p?: ILockChatAction);
 			public static create(p?: ILockChatAction): LockChatAction;
 			public static fromObject(d: $ProtoObject): LockChatAction;
-			public static toObject(m: LockChatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<LockChatAction>;
 			public static encode: $ProtoEncode<ILockChatAction>;
 			public static decode: $ProtoDecode<LockChatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMaibaAIFeaturesControlAction {
@@ -15726,16 +15049,15 @@ export namespace proto {
 			aiReplyMode?: (proto.SyncActionValue.MaibaAIFeaturesControlAction.MaibaAIReplyMode|null);
 		}
 
-		interface MaibaAIFeaturesControlAction extends IMaibaAIFeaturesControlAction {}
+		interface MaibaAIFeaturesControlAction extends IMaibaAIFeaturesControlAction, $ProtoJSON {}
 
 		class MaibaAIFeaturesControlAction implements IMaibaAIFeaturesControlAction {
 			constructor(p?: IMaibaAIFeaturesControlAction);
 			public static create(p?: IMaibaAIFeaturesControlAction): MaibaAIFeaturesControlAction;
 			public static fromObject(d: $ProtoObject): MaibaAIFeaturesControlAction;
-			public static toObject(m: MaibaAIFeaturesControlAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MaibaAIFeaturesControlAction>;
 			public static encode: $ProtoEncode<IMaibaAIFeaturesControlAction>;
 			public static decode: $ProtoDecode<MaibaAIFeaturesControlAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace MaibaAIFeaturesControlAction {
@@ -15758,16 +15080,15 @@ export namespace proto {
 			messageRange?: (proto.SyncActionValue.ISyncActionMessageRange|null);
 		}
 
-		interface MarkChatAsReadAction extends IMarkChatAsReadAction {}
+		interface MarkChatAsReadAction extends IMarkChatAsReadAction, $ProtoJSON {}
 
 		class MarkChatAsReadAction implements IMarkChatAsReadAction {
 			constructor(p?: IMarkChatAsReadAction);
 			public static create(p?: IMarkChatAsReadAction): MarkChatAsReadAction;
 			public static fromObject(d: $ProtoObject): MarkChatAsReadAction;
-			public static toObject(m: MarkChatAsReadAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MarkChatAsReadAction>;
 			public static encode: $ProtoEncode<IMarkChatAsReadAction>;
 			public static decode: $ProtoDecode<MarkChatAsReadAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMarketingMessageAction {
@@ -15780,16 +15101,15 @@ export namespace proto {
 			mediaId?: (string|null);
 		}
 
-		interface MarketingMessageAction extends IMarketingMessageAction {}
+		interface MarketingMessageAction extends IMarketingMessageAction, $ProtoJSON {}
 
 		class MarketingMessageAction implements IMarketingMessageAction {
 			constructor(p?: IMarketingMessageAction);
 			public static create(p?: IMarketingMessageAction): MarketingMessageAction;
 			public static fromObject(d: $ProtoObject): MarketingMessageAction;
-			public static toObject(m: MarketingMessageAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MarketingMessageAction>;
 			public static encode: $ProtoEncode<IMarketingMessageAction>;
 			public static decode: $ProtoDecode<MarketingMessageAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace MarketingMessageAction {
@@ -15803,16 +15123,15 @@ export namespace proto {
 			repliedCount?: (number|null);
 		}
 
-		interface MarketingMessageBroadcastAction extends IMarketingMessageBroadcastAction {}
+		interface MarketingMessageBroadcastAction extends IMarketingMessageBroadcastAction, $ProtoJSON {}
 
 		class MarketingMessageBroadcastAction implements IMarketingMessageBroadcastAction {
 			constructor(p?: IMarketingMessageBroadcastAction);
 			public static create(p?: IMarketingMessageBroadcastAction): MarketingMessageBroadcastAction;
 			public static fromObject(d: $ProtoObject): MarketingMessageBroadcastAction;
-			public static toObject(m: MarketingMessageBroadcastAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MarketingMessageBroadcastAction>;
 			public static encode: $ProtoEncode<IMarketingMessageBroadcastAction>;
 			public static decode: $ProtoDecode<MarketingMessageBroadcastAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IMerchantPaymentPartnerAction {
@@ -15822,16 +15141,15 @@ export namespace proto {
 			credentialId?: (string|null);
 		}
 
-		interface MerchantPaymentPartnerAction extends IMerchantPaymentPartnerAction {}
+		interface MerchantPaymentPartnerAction extends IMerchantPaymentPartnerAction, $ProtoJSON {}
 
 		class MerchantPaymentPartnerAction implements IMerchantPaymentPartnerAction {
 			constructor(p?: IMerchantPaymentPartnerAction);
 			public static create(p?: IMerchantPaymentPartnerAction): MerchantPaymentPartnerAction;
 			public static fromObject(d: $ProtoObject): MerchantPaymentPartnerAction;
-			public static toObject(m: MerchantPaymentPartnerAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MerchantPaymentPartnerAction>;
 			public static encode: $ProtoEncode<IMerchantPaymentPartnerAction>;
 			public static decode: $ProtoDecode<MerchantPaymentPartnerAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace MerchantPaymentPartnerAction {
@@ -15847,16 +15165,15 @@ export namespace proto {
 			musicUserIdMap?: ({ [k: string]: string }|null);
 		}
 
-		interface MusicUserIdAction extends IMusicUserIdAction {}
+		interface MusicUserIdAction extends IMusicUserIdAction, $ProtoJSON {}
 
 		class MusicUserIdAction implements IMusicUserIdAction {
 			constructor(p?: IMusicUserIdAction);
 			public static create(p?: IMusicUserIdAction): MusicUserIdAction;
 			public static fromObject(d: $ProtoObject): MusicUserIdAction;
-			public static toObject(m: MusicUserIdAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MusicUserIdAction>;
 			public static encode: $ProtoEncode<IMusicUserIdAction>;
 			public static decode: $ProtoDecode<MusicUserIdAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace MusicUserIdAction {
@@ -15866,16 +15183,15 @@ export namespace proto {
 				value?: (string|null);
 			}
 
-			interface MusicUserIdMapEntry extends IMusicUserIdMapEntry {}
+			interface MusicUserIdMapEntry extends IMusicUserIdMapEntry, $ProtoJSON {}
 
 			class MusicUserIdMapEntry implements IMusicUserIdMapEntry {
 				constructor(p?: IMusicUserIdMapEntry);
 				public static create(p?: IMusicUserIdMapEntry): MusicUserIdMapEntry;
 				public static fromObject(d: $ProtoObject): MusicUserIdMapEntry;
-				public static toObject(m: MusicUserIdMapEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<MusicUserIdMapEntry>;
 				public static encode: $ProtoEncode<IMusicUserIdMapEntry>;
 				public static decode: $ProtoDecode<MusicUserIdMapEntry>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -15886,48 +15202,45 @@ export namespace proto {
 			muteEveryoneMentionEndTimestamp?: (Long|null);
 		}
 
-		interface MuteAction extends IMuteAction {}
+		interface MuteAction extends IMuteAction, $ProtoJSON {}
 
 		class MuteAction implements IMuteAction {
 			constructor(p?: IMuteAction);
 			public static create(p?: IMuteAction): MuteAction;
 			public static fromObject(d: $ProtoObject): MuteAction;
-			public static toObject(m: MuteAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<MuteAction>;
 			public static encode: $ProtoEncode<IMuteAction>;
 			public static decode: $ProtoDecode<MuteAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface INctSaltSyncAction {
 			salt?: (Uint8Array|null);
 		}
 
-		interface NctSaltSyncAction extends INctSaltSyncAction {}
+		interface NctSaltSyncAction extends INctSaltSyncAction, $ProtoJSON {}
 
 		class NctSaltSyncAction implements INctSaltSyncAction {
 			constructor(p?: INctSaltSyncAction);
 			public static create(p?: INctSaltSyncAction): NctSaltSyncAction;
 			public static fromObject(d: $ProtoObject): NctSaltSyncAction;
-			public static toObject(m: NctSaltSyncAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NctSaltSyncAction>;
 			public static encode: $ProtoEncode<INctSaltSyncAction>;
 			public static decode: $ProtoDecode<NctSaltSyncAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface INewsletterSavedInterestsAction {
 			newsletterSavedInterests?: (string|null);
 		}
 
-		interface NewsletterSavedInterestsAction extends INewsletterSavedInterestsAction {}
+		interface NewsletterSavedInterestsAction extends INewsletterSavedInterestsAction, $ProtoJSON {}
 
 		class NewsletterSavedInterestsAction implements INewsletterSavedInterestsAction {
 			constructor(p?: INewsletterSavedInterestsAction);
 			public static create(p?: INewsletterSavedInterestsAction): NewsletterSavedInterestsAction;
 			public static fromObject(d: $ProtoObject): NewsletterSavedInterestsAction;
-			public static toObject(m: NewsletterSavedInterestsAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NewsletterSavedInterestsAction>;
 			public static encode: $ProtoEncode<INewsletterSavedInterestsAction>;
 			public static decode: $ProtoDecode<NewsletterSavedInterestsAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface INoteEditAction {
@@ -15938,16 +15251,15 @@ export namespace proto {
 			unstructuredContent?: (string|null);
 		}
 
-		interface NoteEditAction extends INoteEditAction {}
+		interface NoteEditAction extends INoteEditAction, $ProtoJSON {}
 
 		class NoteEditAction implements INoteEditAction {
 			constructor(p?: INoteEditAction);
 			public static create(p?: INoteEditAction): NoteEditAction;
 			public static fromObject(d: $ProtoObject): NoteEditAction;
-			public static toObject(m: NoteEditAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NoteEditAction>;
 			public static encode: $ProtoEncode<INoteEditAction>;
 			public static decode: $ProtoDecode<NoteEditAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace NoteEditAction {
@@ -15962,16 +15274,15 @@ export namespace proto {
 			notificationActivitySetting?: (proto.SyncActionValue.NotificationActivitySettingAction.NotificationActivitySetting|null);
 		}
 
-		interface NotificationActivitySettingAction extends INotificationActivitySettingAction {}
+		interface NotificationActivitySettingAction extends INotificationActivitySettingAction, $ProtoJSON {}
 
 		class NotificationActivitySettingAction implements INotificationActivitySettingAction {
 			constructor(p?: INotificationActivitySettingAction);
 			public static create(p?: INotificationActivitySettingAction): NotificationActivitySettingAction;
 			public static fromObject(d: $ProtoObject): NotificationActivitySettingAction;
-			public static toObject(m: NotificationActivitySettingAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NotificationActivitySettingAction>;
 			public static encode: $ProtoEncode<INotificationActivitySettingAction>;
 			public static decode: $ProtoDecode<NotificationActivitySettingAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace NotificationActivitySettingAction {
@@ -15988,16 +15299,15 @@ export namespace proto {
 			acknowledged?: (boolean|null);
 		}
 
-		interface NuxAction extends INuxAction {}
+		interface NuxAction extends INuxAction, $ProtoJSON {}
 
 		class NuxAction implements INuxAction {
 			constructor(p?: INuxAction);
 			public static create(p?: INuxAction): NuxAction;
 			public static fromObject(d: $ProtoObject): NuxAction;
-			public static toObject(m: NuxAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<NuxAction>;
 			public static encode: $ProtoEncode<INuxAction>;
 			public static decode: $ProtoDecode<NuxAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IOutContactAction {
@@ -16005,32 +15315,30 @@ export namespace proto {
 			firstName?: (string|null);
 		}
 
-		interface OutContactAction extends IOutContactAction {}
+		interface OutContactAction extends IOutContactAction, $ProtoJSON {}
 
 		class OutContactAction implements IOutContactAction {
 			constructor(p?: IOutContactAction);
 			public static create(p?: IOutContactAction): OutContactAction;
 			public static fromObject(d: $ProtoObject): OutContactAction;
-			public static toObject(m: OutContactAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<OutContactAction>;
 			public static encode: $ProtoEncode<IOutContactAction>;
 			public static decode: $ProtoDecode<OutContactAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPaymentInfoAction {
 			cpi?: (string|null);
 		}
 
-		interface PaymentInfoAction extends IPaymentInfoAction {}
+		interface PaymentInfoAction extends IPaymentInfoAction, $ProtoJSON {}
 
 		class PaymentInfoAction implements IPaymentInfoAction {
 			constructor(p?: IPaymentInfoAction);
 			public static create(p?: IPaymentInfoAction): PaymentInfoAction;
 			public static fromObject(d: $ProtoObject): PaymentInfoAction;
-			public static toObject(m: PaymentInfoAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentInfoAction>;
 			public static encode: $ProtoEncode<IPaymentInfoAction>;
 			public static decode: $ProtoDecode<PaymentInfoAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPaymentTosAction {
@@ -16038,16 +15346,15 @@ export namespace proto {
 			accepted?: (boolean|null);
 		}
 
-		interface PaymentTosAction extends IPaymentTosAction {}
+		interface PaymentTosAction extends IPaymentTosAction, $ProtoJSON {}
 
 		class PaymentTosAction implements IPaymentTosAction {
 			constructor(p?: IPaymentTosAction);
 			public static create(p?: IPaymentTosAction): PaymentTosAction;
 			public static fromObject(d: $ProtoObject): PaymentTosAction;
-			public static toObject(m: PaymentTosAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PaymentTosAction>;
 			public static encode: $ProtoEncode<IPaymentTosAction>;
 			public static decode: $ProtoDecode<PaymentTosAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PaymentTosAction {
@@ -16061,128 +15368,120 @@ export namespace proto {
 			pinned?: (boolean|null);
 		}
 
-		interface PinAction extends IPinAction {}
+		interface PinAction extends IPinAction, $ProtoJSON {}
 
 		class PinAction implements IPinAction {
 			constructor(p?: IPinAction);
 			public static create(p?: IPinAction): PinAction;
 			public static fromObject(d: $ProtoObject): PinAction;
-			public static toObject(m: PinAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PinAction>;
 			public static encode: $ProtoEncode<IPinAction>;
 			public static decode: $ProtoDecode<PinAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPnForLidChatAction {
 			pnJid?: (string|null);
 		}
 
-		interface PnForLidChatAction extends IPnForLidChatAction {}
+		interface PnForLidChatAction extends IPnForLidChatAction, $ProtoJSON {}
 
 		class PnForLidChatAction implements IPnForLidChatAction {
 			constructor(p?: IPnForLidChatAction);
 			public static create(p?: IPnForLidChatAction): PnForLidChatAction;
 			public static fromObject(d: $ProtoObject): PnForLidChatAction;
-			public static toObject(m: PnForLidChatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PnForLidChatAction>;
 			public static encode: $ProtoEncode<IPnForLidChatAction>;
 			public static decode: $ProtoDecode<PnForLidChatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrimaryFeature {
 			flags?: string[];
 		}
 
-		interface PrimaryFeature extends IPrimaryFeature {}
+		interface PrimaryFeature extends IPrimaryFeature, $ProtoJSON {}
 
 		class PrimaryFeature implements IPrimaryFeature {
 			constructor(p?: IPrimaryFeature);
 			public static create(p?: IPrimaryFeature): PrimaryFeature;
 			public static fromObject(d: $ProtoObject): PrimaryFeature;
-			public static toObject(m: PrimaryFeature, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrimaryFeature>;
 			public static encode: $ProtoEncode<IPrimaryFeature>;
 			public static decode: $ProtoDecode<PrimaryFeature>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrimaryVersionAction {
 			version?: (string|null);
 		}
 
-		interface PrimaryVersionAction extends IPrimaryVersionAction {}
+		interface PrimaryVersionAction extends IPrimaryVersionAction, $ProtoJSON {}
 
 		class PrimaryVersionAction implements IPrimaryVersionAction {
 			constructor(p?: IPrimaryVersionAction);
 			public static create(p?: IPrimaryVersionAction): PrimaryVersionAction;
 			public static fromObject(d: $ProtoObject): PrimaryVersionAction;
-			public static toObject(m: PrimaryVersionAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrimaryVersionAction>;
 			public static encode: $ProtoEncode<IPrimaryVersionAction>;
 			public static decode: $ProtoDecode<PrimaryVersionAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrivacySettingChannelsPersonalisedRecommendationAction {
 			isUserOptedOut?: (boolean|null);
 		}
 
-		interface PrivacySettingChannelsPersonalisedRecommendationAction extends IPrivacySettingChannelsPersonalisedRecommendationAction {}
+		interface PrivacySettingChannelsPersonalisedRecommendationAction extends IPrivacySettingChannelsPersonalisedRecommendationAction, $ProtoJSON {}
 
 		class PrivacySettingChannelsPersonalisedRecommendationAction implements IPrivacySettingChannelsPersonalisedRecommendationAction {
 			constructor(p?: IPrivacySettingChannelsPersonalisedRecommendationAction);
 			public static create(p?: IPrivacySettingChannelsPersonalisedRecommendationAction): PrivacySettingChannelsPersonalisedRecommendationAction;
 			public static fromObject(d: $ProtoObject): PrivacySettingChannelsPersonalisedRecommendationAction;
-			public static toObject(m: PrivacySettingChannelsPersonalisedRecommendationAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrivacySettingChannelsPersonalisedRecommendationAction>;
 			public static encode: $ProtoEncode<IPrivacySettingChannelsPersonalisedRecommendationAction>;
 			public static decode: $ProtoDecode<PrivacySettingChannelsPersonalisedRecommendationAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrivacySettingDisableLinkPreviewsAction {
 			isPreviewsDisabled?: (boolean|null);
 		}
 
-		interface PrivacySettingDisableLinkPreviewsAction extends IPrivacySettingDisableLinkPreviewsAction {}
+		interface PrivacySettingDisableLinkPreviewsAction extends IPrivacySettingDisableLinkPreviewsAction, $ProtoJSON {}
 
 		class PrivacySettingDisableLinkPreviewsAction implements IPrivacySettingDisableLinkPreviewsAction {
 			constructor(p?: IPrivacySettingDisableLinkPreviewsAction);
 			public static create(p?: IPrivacySettingDisableLinkPreviewsAction): PrivacySettingDisableLinkPreviewsAction;
 			public static fromObject(d: $ProtoObject): PrivacySettingDisableLinkPreviewsAction;
-			public static toObject(m: PrivacySettingDisableLinkPreviewsAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrivacySettingDisableLinkPreviewsAction>;
 			public static encode: $ProtoEncode<IPrivacySettingDisableLinkPreviewsAction>;
 			public static decode: $ProtoDecode<PrivacySettingDisableLinkPreviewsAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrivacySettingRelayAllCalls {
 			isEnabled?: (boolean|null);
 		}
 
-		interface PrivacySettingRelayAllCalls extends IPrivacySettingRelayAllCalls {}
+		interface PrivacySettingRelayAllCalls extends IPrivacySettingRelayAllCalls, $ProtoJSON {}
 
 		class PrivacySettingRelayAllCalls implements IPrivacySettingRelayAllCalls {
 			constructor(p?: IPrivacySettingRelayAllCalls);
 			public static create(p?: IPrivacySettingRelayAllCalls): PrivacySettingRelayAllCalls;
 			public static fromObject(d: $ProtoObject): PrivacySettingRelayAllCalls;
-			public static toObject(m: PrivacySettingRelayAllCalls, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrivacySettingRelayAllCalls>;
 			public static encode: $ProtoEncode<IPrivacySettingRelayAllCalls>;
 			public static decode: $ProtoDecode<PrivacySettingRelayAllCalls>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IPrivateProcessingSettingAction {
 			privateProcessingStatus?: (proto.SyncActionValue.PrivateProcessingSettingAction.PrivateProcessingStatus|null);
 		}
 
-		interface PrivateProcessingSettingAction extends IPrivateProcessingSettingAction {}
+		interface PrivateProcessingSettingAction extends IPrivateProcessingSettingAction, $ProtoJSON {}
 
 		class PrivateProcessingSettingAction implements IPrivateProcessingSettingAction {
 			constructor(p?: IPrivateProcessingSettingAction);
 			public static create(p?: IPrivateProcessingSettingAction): PrivateProcessingSettingAction;
 			public static fromObject(d: $ProtoObject): PrivateProcessingSettingAction;
-			public static toObject(m: PrivateProcessingSettingAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PrivateProcessingSettingAction>;
 			public static encode: $ProtoEncode<IPrivateProcessingSettingAction>;
 			public static decode: $ProtoDecode<PrivateProcessingSettingAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace PrivateProcessingSettingAction {
@@ -16198,16 +15497,15 @@ export namespace proto {
 			name?: (string|null);
 		}
 
-		interface PushNameSetting extends IPushNameSetting {}
+		interface PushNameSetting extends IPushNameSetting, $ProtoJSON {}
 
 		class PushNameSetting implements IPushNameSetting {
 			constructor(p?: IPushNameSetting);
 			public static create(p?: IPushNameSetting): PushNameSetting;
 			public static fromObject(d: $ProtoObject): PushNameSetting;
-			public static toObject(m: PushNameSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<PushNameSetting>;
 			public static encode: $ProtoEncode<IPushNameSetting>;
 			public static decode: $ProtoDecode<PushNameSetting>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IQuickReplyAction {
@@ -16219,48 +15517,45 @@ export namespace proto {
 			associatedLabelIds?: string[];
 		}
 
-		interface QuickReplyAction extends IQuickReplyAction {}
+		interface QuickReplyAction extends IQuickReplyAction, $ProtoJSON {}
 
 		class QuickReplyAction implements IQuickReplyAction {
 			constructor(p?: IQuickReplyAction);
 			public static create(p?: IQuickReplyAction): QuickReplyAction;
 			public static fromObject(d: $ProtoObject): QuickReplyAction;
-			public static toObject(m: QuickReplyAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<QuickReplyAction>;
 			public static encode: $ProtoEncode<IQuickReplyAction>;
 			public static decode: $ProtoDecode<QuickReplyAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRecentEmojiWeightsAction {
 			weights?: proto.IRecentEmojiWeight[];
 		}
 
-		interface RecentEmojiWeightsAction extends IRecentEmojiWeightsAction {}
+		interface RecentEmojiWeightsAction extends IRecentEmojiWeightsAction, $ProtoJSON {}
 
 		class RecentEmojiWeightsAction implements IRecentEmojiWeightsAction {
 			constructor(p?: IRecentEmojiWeightsAction);
 			public static create(p?: IRecentEmojiWeightsAction): RecentEmojiWeightsAction;
 			public static fromObject(d: $ProtoObject): RecentEmojiWeightsAction;
-			public static toObject(m: RecentEmojiWeightsAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RecentEmojiWeightsAction>;
 			public static encode: $ProtoEncode<IRecentEmojiWeightsAction>;
 			public static decode: $ProtoDecode<RecentEmojiWeightsAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IRemoveRecentStickerAction {
 			lastStickerSentTs?: (Long|null);
 		}
 
-		interface RemoveRecentStickerAction extends IRemoveRecentStickerAction {}
+		interface RemoveRecentStickerAction extends IRemoveRecentStickerAction, $ProtoJSON {}
 
 		class RemoveRecentStickerAction implements IRemoveRecentStickerAction {
 			constructor(p?: IRemoveRecentStickerAction);
 			public static create(p?: IRemoveRecentStickerAction): RemoveRecentStickerAction;
 			public static fromObject(d: $ProtoObject): RemoveRecentStickerAction;
-			public static toObject(m: RemoveRecentStickerAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<RemoveRecentStickerAction>;
 			public static encode: $ProtoEncode<IRemoveRecentStickerAction>;
 			public static decode: $ProtoDecode<RemoveRecentStickerAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISettingsSyncAction {
@@ -16300,16 +15595,15 @@ export namespace proto {
 			stockWallpaperImageId?: (string|null);
 		}
 
-		interface SettingsSyncAction extends ISettingsSyncAction {}
+		interface SettingsSyncAction extends ISettingsSyncAction, $ProtoJSON {}
 
 		class SettingsSyncAction implements ISettingsSyncAction {
 			constructor(p?: ISettingsSyncAction);
 			public static create(p?: ISettingsSyncAction): SettingsSyncAction;
 			public static fromObject(d: $ProtoObject): SettingsSyncAction;
-			public static toObject(m: SettingsSyncAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SettingsSyncAction>;
 			public static encode: $ProtoEncode<ISettingsSyncAction>;
 			public static decode: $ProtoDecode<SettingsSyncAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SettingsSyncAction {
@@ -16378,48 +15672,45 @@ export namespace proto {
 			allowed?: (boolean|null);
 		}
 
-		interface SharedDeviceAllowlistAction extends ISharedDeviceAllowlistAction {}
+		interface SharedDeviceAllowlistAction extends ISharedDeviceAllowlistAction, $ProtoJSON {}
 
 		class SharedDeviceAllowlistAction implements ISharedDeviceAllowlistAction {
 			constructor(p?: ISharedDeviceAllowlistAction);
 			public static create(p?: ISharedDeviceAllowlistAction): SharedDeviceAllowlistAction;
 			public static fromObject(d: $ProtoObject): SharedDeviceAllowlistAction;
-			public static toObject(m: SharedDeviceAllowlistAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SharedDeviceAllowlistAction>;
 			public static encode: $ProtoEncode<ISharedDeviceAllowlistAction>;
 			public static decode: $ProtoDecode<SharedDeviceAllowlistAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStarAction {
 			starred?: (boolean|null);
 		}
 
-		interface StarAction extends IStarAction {}
+		interface StarAction extends IStarAction, $ProtoJSON {}
 
 		class StarAction implements IStarAction {
 			constructor(p?: IStarAction);
 			public static create(p?: IStarAction): StarAction;
 			public static fromObject(d: $ProtoObject): StarAction;
-			public static toObject(m: StarAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StarAction>;
 			public static encode: $ProtoEncode<IStarAction>;
 			public static decode: $ProtoDecode<StarAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStatusPostOptInNotificationPreferencesAction {
 			enabled?: (boolean|null);
 		}
 
-		interface StatusPostOptInNotificationPreferencesAction extends IStatusPostOptInNotificationPreferencesAction {}
+		interface StatusPostOptInNotificationPreferencesAction extends IStatusPostOptInNotificationPreferencesAction, $ProtoJSON {}
 
 		class StatusPostOptInNotificationPreferencesAction implements IStatusPostOptInNotificationPreferencesAction {
 			constructor(p?: IStatusPostOptInNotificationPreferencesAction);
 			public static create(p?: IStatusPostOptInNotificationPreferencesAction): StatusPostOptInNotificationPreferencesAction;
 			public static fromObject(d: $ProtoObject): StatusPostOptInNotificationPreferencesAction;
-			public static toObject(m: StatusPostOptInNotificationPreferencesAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusPostOptInNotificationPreferencesAction>;
 			public static encode: $ProtoEncode<IStatusPostOptInNotificationPreferencesAction>;
 			public static decode: $ProtoDecode<StatusPostOptInNotificationPreferencesAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IStatusPrivacyAction {
@@ -16431,16 +15722,15 @@ export namespace proto {
 			modes?: proto.SyncActionValue.StatusPrivacyAction.StatusDistributionMode[];
 		}
 
-		interface StatusPrivacyAction extends IStatusPrivacyAction {}
+		interface StatusPrivacyAction extends IStatusPrivacyAction, $ProtoJSON {}
 
 		class StatusPrivacyAction implements IStatusPrivacyAction {
 			constructor(p?: IStatusPrivacyAction);
 			public static create(p?: IStatusPrivacyAction): StatusPrivacyAction;
 			public static fromObject(d: $ProtoObject): StatusPrivacyAction;
-			public static toObject(m: StatusPrivacyAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StatusPrivacyAction>;
 			public static encode: $ProtoEncode<IStatusPrivacyAction>;
 			public static decode: $ProtoDecode<StatusPrivacyAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace StatusPrivacyAction {
@@ -16453,16 +15743,15 @@ export namespace proto {
 				userJid?: string[];
 			}
 
-			interface CustomList extends ICustomList {}
+			interface CustomList extends ICustomList, $ProtoJSON {}
 
 			class CustomList implements ICustomList {
 				constructor(p?: ICustomList);
 				public static create(p?: ICustomList): CustomList;
 				public static fromObject(d: $ProtoObject): CustomList;
-				public static toObject(m: CustomList, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<CustomList>;
 				public static encode: $ProtoEncode<ICustomList>;
 				public static decode: $ProtoDecode<CustomList>;
-				public toJSON(): $ProtoObject;
 			}
 
 			enum StatusDistributionMode {
@@ -16490,16 +15779,15 @@ export namespace proto {
 			isAvatarSticker?: (boolean|null);
 		}
 
-		interface StickerAction extends IStickerAction {}
+		interface StickerAction extends IStickerAction, $ProtoJSON {}
 
 		class StickerAction implements IStickerAction {
 			constructor(p?: IStickerAction);
 			public static create(p?: IStickerAction): StickerAction;
 			public static fromObject(d: $ProtoObject): StickerAction;
-			public static toObject(m: StickerAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<StickerAction>;
 			public static encode: $ProtoEncode<IStickerAction>;
 			public static decode: $ProtoDecode<StickerAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISubscriptionAction {
@@ -16508,16 +15796,15 @@ export namespace proto {
 			expirationDate?: (Long|null);
 		}
 
-		interface SubscriptionAction extends ISubscriptionAction {}
+		interface SubscriptionAction extends ISubscriptionAction, $ProtoJSON {}
 
 		class SubscriptionAction implements ISubscriptionAction {
 			constructor(p?: ISubscriptionAction);
 			public static create(p?: ISubscriptionAction): SubscriptionAction;
 			public static fromObject(d: $ProtoObject): SubscriptionAction;
-			public static toObject(m: SubscriptionAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SubscriptionAction>;
 			public static encode: $ProtoEncode<ISubscriptionAction>;
 			public static decode: $ProtoDecode<SubscriptionAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISubscriptionsSyncV2Action {
@@ -16525,16 +15812,15 @@ export namespace proto {
 			paidFeature?: proto.SyncActionValue.SubscriptionsSyncV2Action.IPaidFeature[];
 		}
 
-		interface SubscriptionsSyncV2Action extends ISubscriptionsSyncV2Action {}
+		interface SubscriptionsSyncV2Action extends ISubscriptionsSyncV2Action, $ProtoJSON {}
 
 		class SubscriptionsSyncV2Action implements ISubscriptionsSyncV2Action {
 			constructor(p?: ISubscriptionsSyncV2Action);
 			public static create(p?: ISubscriptionsSyncV2Action): SubscriptionsSyncV2Action;
 			public static fromObject(d: $ProtoObject): SubscriptionsSyncV2Action;
-			public static toObject(m: SubscriptionsSyncV2Action, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SubscriptionsSyncV2Action>;
 			public static encode: $ProtoEncode<ISubscriptionsSyncV2Action>;
 			public static decode: $ProtoDecode<SubscriptionsSyncV2Action>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace SubscriptionsSyncV2Action {
@@ -16546,16 +15832,15 @@ export namespace proto {
 				expirationTime?: (Long|null);
 			}
 
-			interface PaidFeature extends IPaidFeature {}
+			interface PaidFeature extends IPaidFeature, $ProtoJSON {}
 
 			class PaidFeature implements IPaidFeature {
 				constructor(p?: IPaidFeature);
 				public static create(p?: IPaidFeature): PaidFeature;
 				public static fromObject(d: $ProtoObject): PaidFeature;
-				public static toObject(m: PaidFeature, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<PaidFeature>;
 				public static encode: $ProtoEncode<IPaidFeature>;
 				public static decode: $ProtoDecode<PaidFeature>;
-				public toJSON(): $ProtoObject;
 			}
 
 			interface ISubscriptionInfo {
@@ -16569,16 +15854,15 @@ export namespace proto {
 				creationTime?: (Long|null);
 			}
 
-			interface SubscriptionInfo extends ISubscriptionInfo {}
+			interface SubscriptionInfo extends ISubscriptionInfo, $ProtoJSON {}
 
 			class SubscriptionInfo implements ISubscriptionInfo {
 				constructor(p?: ISubscriptionInfo);
 				public static create(p?: ISubscriptionInfo): SubscriptionInfo;
 				public static fromObject(d: $ProtoObject): SubscriptionInfo;
-				public static toObject(m: SubscriptionInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<SubscriptionInfo>;
 				public static encode: $ProtoEncode<ISubscriptionInfo>;
 				public static decode: $ProtoDecode<SubscriptionInfo>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 
@@ -16587,16 +15871,15 @@ export namespace proto {
 			timestamp?: (Long|null);
 		}
 
-		interface SyncActionMessage extends ISyncActionMessage {}
+		interface SyncActionMessage extends ISyncActionMessage, $ProtoJSON {}
 
 		class SyncActionMessage implements ISyncActionMessage {
 			constructor(p?: ISyncActionMessage);
 			public static create(p?: ISyncActionMessage): SyncActionMessage;
 			public static fromObject(d: $ProtoObject): SyncActionMessage;
-			public static toObject(m: SyncActionMessage, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SyncActionMessage>;
 			public static encode: $ProtoEncode<ISyncActionMessage>;
 			public static decode: $ProtoDecode<SyncActionMessage>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ISyncActionMessageRange {
@@ -16605,96 +15888,90 @@ export namespace proto {
 			messages?: proto.SyncActionValue.ISyncActionMessage[];
 		}
 
-		interface SyncActionMessageRange extends ISyncActionMessageRange {}
+		interface SyncActionMessageRange extends ISyncActionMessageRange, $ProtoJSON {}
 
 		class SyncActionMessageRange implements ISyncActionMessageRange {
 			constructor(p?: ISyncActionMessageRange);
 			public static create(p?: ISyncActionMessageRange): SyncActionMessageRange;
 			public static fromObject(d: $ProtoObject): SyncActionMessageRange;
-			public static toObject(m: SyncActionMessageRange, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<SyncActionMessageRange>;
 			public static encode: $ProtoEncode<ISyncActionMessageRange>;
 			public static decode: $ProtoDecode<SyncActionMessageRange>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IThreadPinAction {
 			pinned?: (boolean|null);
 		}
 
-		interface ThreadPinAction extends IThreadPinAction {}
+		interface ThreadPinAction extends IThreadPinAction, $ProtoJSON {}
 
 		class ThreadPinAction implements IThreadPinAction {
 			constructor(p?: IThreadPinAction);
 			public static create(p?: IThreadPinAction): ThreadPinAction;
 			public static fromObject(d: $ProtoObject): ThreadPinAction;
-			public static toObject(m: ThreadPinAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<ThreadPinAction>;
 			public static encode: $ProtoEncode<IThreadPinAction>;
 			public static decode: $ProtoDecode<ThreadPinAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface ITimeFormatAction {
 			isTwentyFourHourFormatEnabled?: (boolean|null);
 		}
 
-		interface TimeFormatAction extends ITimeFormatAction {}
+		interface TimeFormatAction extends ITimeFormatAction, $ProtoJSON {}
 
 		class TimeFormatAction implements ITimeFormatAction {
 			constructor(p?: ITimeFormatAction);
 			public static create(p?: ITimeFormatAction): TimeFormatAction;
 			public static fromObject(d: $ProtoObject): TimeFormatAction;
-			public static toObject(m: TimeFormatAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TimeFormatAction>;
 			public static encode: $ProtoEncode<ITimeFormatAction>;
 			public static decode: $ProtoDecode<TimeFormatAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IUGCBot {
 			definition?: (Uint8Array|null);
 		}
 
-		interface UGCBot extends IUGCBot {}
+		interface UGCBot extends IUGCBot, $ProtoJSON {}
 
 		class UGCBot implements IUGCBot {
 			constructor(p?: IUGCBot);
 			public static create(p?: IUGCBot): UGCBot;
 			public static fromObject(d: $ProtoObject): UGCBot;
-			public static toObject(m: UGCBot, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UGCBot>;
 			public static encode: $ProtoEncode<IUGCBot>;
 			public static decode: $ProtoDecode<UGCBot>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IUnarchiveChatsSetting {
 			unarchiveChats?: (boolean|null);
 		}
 
-		interface UnarchiveChatsSetting extends IUnarchiveChatsSetting {}
+		interface UnarchiveChatsSetting extends IUnarchiveChatsSetting, $ProtoJSON {}
 
 		class UnarchiveChatsSetting implements IUnarchiveChatsSetting {
 			constructor(p?: IUnarchiveChatsSetting);
 			public static create(p?: IUnarchiveChatsSetting): UnarchiveChatsSetting;
 			public static fromObject(d: $ProtoObject): UnarchiveChatsSetting;
-			public static toObject(m: UnarchiveChatsSetting, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UnarchiveChatsSetting>;
 			public static encode: $ProtoEncode<IUnarchiveChatsSetting>;
 			public static decode: $ProtoDecode<UnarchiveChatsSetting>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IUsernameChatStartModeAction {
 			chatStartMode?: (proto.SyncActionValue.UsernameChatStartModeAction.ChatStartMode|null);
 		}
 
-		interface UsernameChatStartModeAction extends IUsernameChatStartModeAction {}
+		interface UsernameChatStartModeAction extends IUsernameChatStartModeAction, $ProtoJSON {}
 
 		class UsernameChatStartModeAction implements IUsernameChatStartModeAction {
 			constructor(p?: IUsernameChatStartModeAction);
 			public static create(p?: IUsernameChatStartModeAction): UsernameChatStartModeAction;
 			public static fromObject(d: $ProtoObject): UsernameChatStartModeAction;
-			public static toObject(m: UsernameChatStartModeAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UsernameChatStartModeAction>;
 			public static encode: $ProtoEncode<IUsernameChatStartModeAction>;
 			public static decode: $ProtoDecode<UsernameChatStartModeAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace UsernameChatStartModeAction {
@@ -16709,32 +15986,30 @@ export namespace proto {
 			muted?: (boolean|null);
 		}
 
-		interface UserStatusMuteAction extends IUserStatusMuteAction {}
+		interface UserStatusMuteAction extends IUserStatusMuteAction, $ProtoJSON {}
 
 		class UserStatusMuteAction implements IUserStatusMuteAction {
 			constructor(p?: IUserStatusMuteAction);
 			public static create(p?: IUserStatusMuteAction): UserStatusMuteAction;
 			public static fromObject(d: $ProtoObject): UserStatusMuteAction;
-			public static toObject(m: UserStatusMuteAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UserStatusMuteAction>;
 			public static encode: $ProtoEncode<IUserStatusMuteAction>;
 			public static decode: $ProtoDecode<UserStatusMuteAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IWaffleAccountLinkStateAction {
 			linkState?: (proto.SyncActionValue.WaffleAccountLinkStateAction.AccountLinkState|null);
 		}
 
-		interface WaffleAccountLinkStateAction extends IWaffleAccountLinkStateAction {}
+		interface WaffleAccountLinkStateAction extends IWaffleAccountLinkStateAction, $ProtoJSON {}
 
 		class WaffleAccountLinkStateAction implements IWaffleAccountLinkStateAction {
 			constructor(p?: IWaffleAccountLinkStateAction);
 			public static create(p?: IWaffleAccountLinkStateAction): WaffleAccountLinkStateAction;
 			public static fromObject(d: $ProtoObject): WaffleAccountLinkStateAction;
-			public static toObject(m: WaffleAccountLinkStateAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<WaffleAccountLinkStateAction>;
 			public static encode: $ProtoEncode<IWaffleAccountLinkStateAction>;
 			public static decode: $ProtoDecode<WaffleAccountLinkStateAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace WaffleAccountLinkStateAction {
@@ -16750,32 +16025,30 @@ export namespace proto {
 			identifier?: (string|null);
 		}
 
-		interface WamoUserIdentifierAction extends IWamoUserIdentifierAction {}
+		interface WamoUserIdentifierAction extends IWamoUserIdentifierAction, $ProtoJSON {}
 
 		class WamoUserIdentifierAction implements IWamoUserIdentifierAction {
 			constructor(p?: IWamoUserIdentifierAction);
 			public static create(p?: IWamoUserIdentifierAction): WamoUserIdentifierAction;
 			public static fromObject(d: $ProtoObject): WamoUserIdentifierAction;
-			public static toObject(m: WamoUserIdentifierAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<WamoUserIdentifierAction>;
 			public static encode: $ProtoEncode<IWamoUserIdentifierAction>;
 			public static decode: $ProtoDecode<WamoUserIdentifierAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IWASARootSecretAction {
 			secrets?: proto.SyncActionValue.WASARootSecretAction.IRootSecretEntry[];
 		}
 
-		interface WASARootSecretAction extends IWASARootSecretAction {}
+		interface WASARootSecretAction extends IWASARootSecretAction, $ProtoJSON {}
 
 		class WASARootSecretAction implements IWASARootSecretAction {
 			constructor(p?: IWASARootSecretAction);
 			public static create(p?: IWASARootSecretAction): WASARootSecretAction;
 			public static fromObject(d: $ProtoObject): WASARootSecretAction;
-			public static toObject(m: WASARootSecretAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<WASARootSecretAction>;
 			public static encode: $ProtoEncode<IWASARootSecretAction>;
 			public static decode: $ProtoDecode<WASARootSecretAction>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace WASARootSecretAction {
@@ -16787,16 +16060,15 @@ export namespace proto {
 				status?: (proto.SyncActionValue.WASARootSecretAction.RootSecretEntry.Status|null);
 			}
 
-			interface RootSecretEntry extends IRootSecretEntry {}
+			interface RootSecretEntry extends IRootSecretEntry, $ProtoJSON {}
 
 			class RootSecretEntry implements IRootSecretEntry {
 				constructor(p?: IRootSecretEntry);
 				public static create(p?: IRootSecretEntry): RootSecretEntry;
 				public static fromObject(d: $ProtoObject): RootSecretEntry;
-				public static toObject(m: RootSecretEntry, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<RootSecretEntry>;
 				public static encode: $ProtoEncode<IRootSecretEntry>;
 				public static decode: $ProtoDecode<RootSecretEntry>;
-				public toJSON(): $ProtoObject;
 			}
 
 			namespace RootSecretEntry {
@@ -16813,16 +16085,15 @@ export namespace proto {
 		blob?: (Uint8Array|null);
 	}
 
-	interface SyncdIndex extends ISyncdIndex {}
+	interface SyncdIndex extends ISyncdIndex, $ProtoJSON {}
 
 	class SyncdIndex implements ISyncdIndex {
 		constructor(p?: ISyncdIndex);
 		public static create(p?: ISyncdIndex): SyncdIndex;
 		public static fromObject(d: $ProtoObject): SyncdIndex;
-		public static toObject(m: SyncdIndex, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdIndex>;
 		public static encode: $ProtoEncode<ISyncdIndex>;
 		public static decode: $ProtoDecode<SyncdIndex>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdMutation {
@@ -16830,16 +16101,15 @@ export namespace proto {
 		record?: (proto.ISyncdRecord|null);
 	}
 
-	interface SyncdMutation extends ISyncdMutation {}
+	interface SyncdMutation extends ISyncdMutation, $ProtoJSON {}
 
 	class SyncdMutation implements ISyncdMutation {
 		constructor(p?: ISyncdMutation);
 		public static create(p?: ISyncdMutation): SyncdMutation;
 		public static fromObject(d: $ProtoObject): SyncdMutation;
-		public static toObject(m: SyncdMutation, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdMutation>;
 		public static encode: $ProtoEncode<ISyncdMutation>;
 		public static decode: $ProtoDecode<SyncdMutation>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace SyncdMutation {
@@ -16854,16 +16124,15 @@ export namespace proto {
 		mutations?: proto.ISyncdMutation[];
 	}
 
-	interface SyncdMutations extends ISyncdMutations {}
+	interface SyncdMutations extends ISyncdMutations, $ProtoJSON {}
 
 	class SyncdMutations implements ISyncdMutations {
 		constructor(p?: ISyncdMutations);
 		public static create(p?: ISyncdMutations): SyncdMutations;
 		public static fromObject(d: $ProtoObject): SyncdMutations;
-		public static toObject(m: SyncdMutations, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdMutations>;
 		public static encode: $ProtoEncode<ISyncdMutations>;
 		public static decode: $ProtoDecode<SyncdMutations>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdPatch {
@@ -16878,16 +16147,15 @@ export namespace proto {
 		clientDebugData?: (Uint8Array|null);
 	}
 
-	interface SyncdPatch extends ISyncdPatch {}
+	interface SyncdPatch extends ISyncdPatch, $ProtoJSON {}
 
 	class SyncdPatch implements ISyncdPatch {
 		constructor(p?: ISyncdPatch);
 		public static create(p?: ISyncdPatch): SyncdPatch;
 		public static fromObject(d: $ProtoObject): SyncdPatch;
-		public static toObject(m: SyncdPatch, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdPatch>;
 		public static encode: $ProtoEncode<ISyncdPatch>;
 		public static decode: $ProtoDecode<SyncdPatch>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdPlainTextRecord {
@@ -16896,16 +16164,15 @@ export namespace proto {
 		mac?: (Uint8Array|null);
 	}
 
-	interface SyncdPlainTextRecord extends ISyncdPlainTextRecord {}
+	interface SyncdPlainTextRecord extends ISyncdPlainTextRecord, $ProtoJSON {}
 
 	class SyncdPlainTextRecord implements ISyncdPlainTextRecord {
 		constructor(p?: ISyncdPlainTextRecord);
 		public static create(p?: ISyncdPlainTextRecord): SyncdPlainTextRecord;
 		public static fromObject(d: $ProtoObject): SyncdPlainTextRecord;
-		public static toObject(m: SyncdPlainTextRecord, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdPlainTextRecord>;
 		public static encode: $ProtoEncode<ISyncdPlainTextRecord>;
 		public static decode: $ProtoDecode<SyncdPlainTextRecord>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdRecord {
@@ -16914,16 +16181,15 @@ export namespace proto {
 		keyId?: (proto.IKeyId|null);
 	}
 
-	interface SyncdRecord extends ISyncdRecord {}
+	interface SyncdRecord extends ISyncdRecord, $ProtoJSON {}
 
 	class SyncdRecord implements ISyncdRecord {
 		constructor(p?: ISyncdRecord);
 		public static create(p?: ISyncdRecord): SyncdRecord;
 		public static fromObject(d: $ProtoObject): SyncdRecord;
-		public static toObject(m: SyncdRecord, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdRecord>;
 		public static encode: $ProtoEncode<ISyncdRecord>;
 		public static decode: $ProtoDecode<SyncdRecord>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdSnapshot {
@@ -16933,16 +16199,15 @@ export namespace proto {
 		keyId?: (proto.IKeyId|null);
 	}
 
-	interface SyncdSnapshot extends ISyncdSnapshot {}
+	interface SyncdSnapshot extends ISyncdSnapshot, $ProtoJSON {}
 
 	class SyncdSnapshot implements ISyncdSnapshot {
 		constructor(p?: ISyncdSnapshot);
 		public static create(p?: ISyncdSnapshot): SyncdSnapshot;
 		public static fromObject(d: $ProtoObject): SyncdSnapshot;
-		public static toObject(m: SyncdSnapshot, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdSnapshot>;
 		public static encode: $ProtoEncode<ISyncdSnapshot>;
 		public static decode: $ProtoDecode<SyncdSnapshot>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdSnapshotRecovery {
@@ -16952,48 +16217,45 @@ export namespace proto {
 		collectionLthash?: (Uint8Array|null);
 	}
 
-	interface SyncdSnapshotRecovery extends ISyncdSnapshotRecovery {}
+	interface SyncdSnapshotRecovery extends ISyncdSnapshotRecovery, $ProtoJSON {}
 
 	class SyncdSnapshotRecovery implements ISyncdSnapshotRecovery {
 		constructor(p?: ISyncdSnapshotRecovery);
 		public static create(p?: ISyncdSnapshotRecovery): SyncdSnapshotRecovery;
 		public static fromObject(d: $ProtoObject): SyncdSnapshotRecovery;
-		public static toObject(m: SyncdSnapshotRecovery, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdSnapshotRecovery>;
 		public static encode: $ProtoEncode<ISyncdSnapshotRecovery>;
 		public static decode: $ProtoDecode<SyncdSnapshotRecovery>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdValue {
 		blob?: (Uint8Array|null);
 	}
 
-	interface SyncdValue extends ISyncdValue {}
+	interface SyncdValue extends ISyncdValue, $ProtoJSON {}
 
 	class SyncdValue implements ISyncdValue {
 		constructor(p?: ISyncdValue);
 		public static create(p?: ISyncdValue): SyncdValue;
 		public static fromObject(d: $ProtoObject): SyncdValue;
-		public static toObject(m: SyncdValue, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdValue>;
 		public static encode: $ProtoEncode<ISyncdValue>;
 		public static decode: $ProtoDecode<SyncdValue>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ISyncdVersion {
 		version?: (Long|null);
 	}
 
-	interface SyncdVersion extends ISyncdVersion {}
+	interface SyncdVersion extends ISyncdVersion, $ProtoJSON {}
 
 	class SyncdVersion implements ISyncdVersion {
 		constructor(p?: ISyncdVersion);
 		public static create(p?: ISyncdVersion): SyncdVersion;
 		public static fromObject(d: $ProtoObject): SyncdVersion;
-		public static toObject(m: SyncdVersion, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<SyncdVersion>;
 		public static encode: $ProtoEncode<ISyncdVersion>;
 		public static decode: $ProtoDecode<SyncdVersion>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ITapLinkAction {
@@ -17001,16 +16263,15 @@ export namespace proto {
 		tapUrl?: (string|null);
 	}
 
-	interface TapLinkAction extends ITapLinkAction {}
+	interface TapLinkAction extends ITapLinkAction, $ProtoJSON {}
 
 	class TapLinkAction implements ITapLinkAction {
 		constructor(p?: ITapLinkAction);
 		public static create(p?: ITapLinkAction): TapLinkAction;
 		public static fromObject(d: $ProtoObject): TapLinkAction;
-		public static toObject(m: TapLinkAction, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<TapLinkAction>;
 		public static encode: $ProtoEncode<ITapLinkAction>;
 		public static decode: $ProtoDecode<TapLinkAction>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface ITemplateButton {
@@ -17020,16 +16281,15 @@ export namespace proto {
 		callButton?: (proto.TemplateButton.ICallButton|null);
 	}
 
-	interface TemplateButton extends ITemplateButton {}
+	interface TemplateButton extends ITemplateButton, $ProtoJSON {}
 
 	class TemplateButton implements ITemplateButton {
 		constructor(p?: ITemplateButton);
 		public static create(p?: ITemplateButton): TemplateButton;
 		public static fromObject(d: $ProtoObject): TemplateButton;
-		public static toObject(m: TemplateButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<TemplateButton>;
 		public static encode: $ProtoEncode<ITemplateButton>;
 		public static decode: $ProtoDecode<TemplateButton>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace TemplateButton {
@@ -17039,16 +16299,15 @@ export namespace proto {
 			phoneNumber?: (proto.Message.IHighlyStructuredMessage|null);
 		}
 
-		interface CallButton extends ICallButton {}
+		interface CallButton extends ICallButton, $ProtoJSON {}
 
 		class CallButton implements ICallButton {
 			constructor(p?: ICallButton);
 			public static create(p?: ICallButton): CallButton;
 			public static fromObject(d: $ProtoObject): CallButton;
-			public static toObject(m: CallButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<CallButton>;
 			public static encode: $ProtoEncode<ICallButton>;
 			public static decode: $ProtoDecode<CallButton>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IQuickReplyButton {
@@ -17056,16 +16315,15 @@ export namespace proto {
 			id?: (string|null);
 		}
 
-		interface QuickReplyButton extends IQuickReplyButton {}
+		interface QuickReplyButton extends IQuickReplyButton, $ProtoJSON {}
 
 		class QuickReplyButton implements IQuickReplyButton {
 			constructor(p?: IQuickReplyButton);
 			public static create(p?: IQuickReplyButton): QuickReplyButton;
 			public static fromObject(d: $ProtoObject): QuickReplyButton;
-			public static toObject(m: QuickReplyButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<QuickReplyButton>;
 			public static encode: $ProtoEncode<IQuickReplyButton>;
 			public static decode: $ProtoDecode<QuickReplyButton>;
-			public toJSON(): $ProtoObject;
 		}
 
 		interface IURLButton {
@@ -17073,16 +16331,15 @@ export namespace proto {
 			url?: (proto.Message.IHighlyStructuredMessage|null);
 		}
 
-		interface URLButton extends IURLButton {}
+		interface URLButton extends IURLButton, $ProtoJSON {}
 
 		class URLButton implements IURLButton {
 			constructor(p?: IURLButton);
 			public static create(p?: IURLButton): URLButton;
 			public static fromObject(d: $ProtoObject): URLButton;
-			public static toObject(m: URLButton, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<URLButton>;
 			public static encode: $ProtoEncode<IURLButton>;
 			public static decode: $ProtoDecode<URLButton>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -17091,16 +16348,15 @@ export namespace proto {
 		threadKey?: (proto.IMessageKey|null);
 	}
 
-	interface ThreadID extends IThreadID {}
+	interface ThreadID extends IThreadID, $ProtoJSON {}
 
 	class ThreadID implements IThreadID {
 		constructor(p?: IThreadID);
 		public static create(p?: IThreadID): ThreadID;
 		public static fromObject(d: $ProtoObject): ThreadID;
-		public static toObject(m: ThreadID, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<ThreadID>;
 		public static encode: $ProtoEncode<IThreadID>;
 		public static decode: $ProtoDecode<ThreadID>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace ThreadID {
@@ -17118,16 +16374,15 @@ export namespace proto {
 		associationType?: (proto.MessageAssociation.AssociationType|null);
 	}
 
-	interface UnCountedAssociatedMessageList extends IUnCountedAssociatedMessageList {}
+	interface UnCountedAssociatedMessageList extends IUnCountedAssociatedMessageList, $ProtoJSON {}
 
 	class UnCountedAssociatedMessageList implements IUnCountedAssociatedMessageList {
 		constructor(p?: IUnCountedAssociatedMessageList);
 		public static create(p?: IUnCountedAssociatedMessageList): UnCountedAssociatedMessageList;
 		public static fromObject(d: $ProtoObject): UnCountedAssociatedMessageList;
-		public static toObject(m: UnCountedAssociatedMessageList, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<UnCountedAssociatedMessageList>;
 		public static encode: $ProtoEncode<IUnCountedAssociatedMessageList>;
 		public static decode: $ProtoDecode<UnCountedAssociatedMessageList>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IUnCountedAssociatedMessageListWithMessageBytes {
@@ -17135,32 +16390,30 @@ export namespace proto {
 		parentMessage?: (proto.IMessageKey|null);
 	}
 
-	interface UnCountedAssociatedMessageListWithMessageBytes extends IUnCountedAssociatedMessageListWithMessageBytes {}
+	interface UnCountedAssociatedMessageListWithMessageBytes extends IUnCountedAssociatedMessageListWithMessageBytes, $ProtoJSON {}
 
 	class UnCountedAssociatedMessageListWithMessageBytes implements IUnCountedAssociatedMessageListWithMessageBytes {
 		constructor(p?: IUnCountedAssociatedMessageListWithMessageBytes);
 		public static create(p?: IUnCountedAssociatedMessageListWithMessageBytes): UnCountedAssociatedMessageListWithMessageBytes;
 		public static fromObject(d: $ProtoObject): UnCountedAssociatedMessageListWithMessageBytes;
-		public static toObject(m: UnCountedAssociatedMessageListWithMessageBytes, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<UnCountedAssociatedMessageListWithMessageBytes>;
 		public static encode: $ProtoEncode<IUnCountedAssociatedMessageListWithMessageBytes>;
 		public static decode: $ProtoDecode<UnCountedAssociatedMessageListWithMessageBytes>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IUrlTrackingMap {
 		urlTrackingMapElements?: proto.UrlTrackingMap.IUrlTrackingMapElement[];
 	}
 
-	interface UrlTrackingMap extends IUrlTrackingMap {}
+	interface UrlTrackingMap extends IUrlTrackingMap, $ProtoJSON {}
 
 	class UrlTrackingMap implements IUrlTrackingMap {
 		constructor(p?: IUrlTrackingMap);
 		public static create(p?: IUrlTrackingMap): UrlTrackingMap;
 		public static fromObject(d: $ProtoObject): UrlTrackingMap;
-		public static toObject(m: UrlTrackingMap, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<UrlTrackingMap>;
 		public static encode: $ProtoEncode<IUrlTrackingMap>;
 		public static decode: $ProtoDecode<UrlTrackingMap>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace UrlTrackingMap {
@@ -17172,16 +16425,15 @@ export namespace proto {
 			cardIndex?: (number|null);
 		}
 
-		interface UrlTrackingMapElement extends IUrlTrackingMapElement {}
+		interface UrlTrackingMapElement extends IUrlTrackingMapElement, $ProtoJSON {}
 
 		class UrlTrackingMapElement implements IUrlTrackingMapElement {
 			constructor(p?: IUrlTrackingMapElement);
 			public static create(p?: IUrlTrackingMapElement): UrlTrackingMapElement;
 			public static fromObject(d: $ProtoObject): UrlTrackingMapElement;
-			public static toObject(m: UrlTrackingMapElement, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<UrlTrackingMapElement>;
 			public static encode: $ProtoEncode<IUrlTrackingMapElement>;
 			public static decode: $ProtoDecode<UrlTrackingMapElement>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -17192,16 +16444,15 @@ export namespace proto {
 		transformedData?: (Uint8Array|null);
 	}
 
-	interface UserPassword extends IUserPassword {}
+	interface UserPassword extends IUserPassword, $ProtoJSON {}
 
 	class UserPassword implements IUserPassword {
 		constructor(p?: IUserPassword);
 		public static create(p?: IUserPassword): UserPassword;
 		public static fromObject(d: $ProtoObject): UserPassword;
-		public static toObject(m: UserPassword, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<UserPassword>;
 		public static encode: $ProtoEncode<IUserPassword>;
 		public static decode: $ProtoDecode<UserPassword>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace UserPassword {
@@ -17222,16 +16473,15 @@ export namespace proto {
 			value?: (proto.UserPassword.TransformerArg.IValue|null);
 		}
 
-		interface TransformerArg extends ITransformerArg {}
+		interface TransformerArg extends ITransformerArg, $ProtoJSON {}
 
 		class TransformerArg implements ITransformerArg {
 			constructor(p?: ITransformerArg);
 			public static create(p?: ITransformerArg): TransformerArg;
 			public static fromObject(d: $ProtoObject): TransformerArg;
-			public static toObject(m: TransformerArg, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<TransformerArg>;
 			public static encode: $ProtoEncode<ITransformerArg>;
 			public static decode: $ProtoDecode<TransformerArg>;
-			public toJSON(): $ProtoObject;
 		}
 
 		namespace TransformerArg {
@@ -17241,16 +16491,15 @@ export namespace proto {
 				asUnsignedInteger?: (number|null);
 			}
 
-			interface Value extends IValue {}
+			interface Value extends IValue, $ProtoJSON {}
 
 			class Value implements IValue {
 				constructor(p?: IValue);
 				public static create(p?: IValue): Value;
 				public static fromObject(d: $ProtoObject): Value;
-				public static toObject(m: Value, o?: $protobuf.IConversionOptions): $ProtoObject;
+				public static toObject: $ProtoToObject<Value>;
 				public static encode: $ProtoEncode<IValue>;
 				public static decode: $ProtoDecode<Value>;
-				public toJSON(): $ProtoObject;
 			}
 		}
 	}
@@ -17264,16 +16513,15 @@ export namespace proto {
 		deliveredDeviceJid?: string[];
 	}
 
-	interface UserReceipt extends IUserReceipt {}
+	interface UserReceipt extends IUserReceipt, $ProtoJSON {}
 
 	class UserReceipt implements IUserReceipt {
 		constructor(p?: IUserReceipt);
 		public static create(p?: IUserReceipt): UserReceipt;
 		public static fromObject(d: $ProtoObject): UserReceipt;
-		public static toObject(m: UserReceipt, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<UserReceipt>;
 		public static encode: $ProtoEncode<IUserReceipt>;
 		public static decode: $ProtoDecode<UserReceipt>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IVerifiedNameCertificate {
@@ -17282,16 +16530,15 @@ export namespace proto {
 		serverSignature?: (Uint8Array|null);
 	}
 
-	interface VerifiedNameCertificate extends IVerifiedNameCertificate {}
+	interface VerifiedNameCertificate extends IVerifiedNameCertificate, $ProtoJSON {}
 
 	class VerifiedNameCertificate implements IVerifiedNameCertificate {
 		constructor(p?: IVerifiedNameCertificate);
 		public static create(p?: IVerifiedNameCertificate): VerifiedNameCertificate;
 		public static fromObject(d: $ProtoObject): VerifiedNameCertificate;
-		public static toObject(m: VerifiedNameCertificate, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<VerifiedNameCertificate>;
 		public static encode: $ProtoEncode<IVerifiedNameCertificate>;
 		public static decode: $ProtoDecode<VerifiedNameCertificate>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace VerifiedNameCertificate {
@@ -17304,16 +16551,15 @@ export namespace proto {
 			issueTime?: (Long|null);
 		}
 
-		interface Details extends IDetails {}
+		interface Details extends IDetails, $ProtoJSON {}
 
 		class Details implements IDetails {
 			constructor(p?: IDetails);
 			public static create(p?: IDetails): Details;
 			public static fromObject(d: $ProtoObject): Details;
-			public static toObject(m: Details, o?: $protobuf.IConversionOptions): $ProtoObject;
+			public static toObject: $ProtoToObject<Details>;
 			public static encode: $ProtoEncode<IDetails>;
 			public static decode: $ProtoDecode<Details>;
-			public toJSON(): $ProtoObject;
 		}
 	}
 
@@ -17327,16 +16573,15 @@ export namespace proto {
 		encryptedSecretValues?: (proto.IEncryptedSecretValuesOutput|null);
 	}
 
-	interface VirtualDeviceOutput extends IVirtualDeviceOutput {}
+	interface VirtualDeviceOutput extends IVirtualDeviceOutput, $ProtoJSON {}
 
 	class VirtualDeviceOutput implements IVirtualDeviceOutput {
 		constructor(p?: IVirtualDeviceOutput);
 		public static create(p?: IVirtualDeviceOutput): VirtualDeviceOutput;
 		public static fromObject(d: $ProtoObject): VirtualDeviceOutput;
-		public static toObject(m: VirtualDeviceOutput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<VirtualDeviceOutput>;
 		public static encode: $ProtoEncode<IVirtualDeviceOutput>;
 		public static decode: $ProtoDecode<VirtualDeviceOutput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWallpaperSettings {
@@ -17345,16 +16590,15 @@ export namespace proto {
 		isGenAi?: (boolean|null);
 	}
 
-	interface WallpaperSettings extends IWallpaperSettings {}
+	interface WallpaperSettings extends IWallpaperSettings, $ProtoJSON {}
 
 	class WallpaperSettings implements IWallpaperSettings {
 		constructor(p?: IWallpaperSettings);
 		public static create(p?: IWallpaperSettings): WallpaperSettings;
 		public static fromObject(d: $ProtoObject): WallpaperSettings;
-		public static toObject(m: WallpaperSettings, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WallpaperSettings>;
 		public static encode: $ProtoEncode<IWallpaperSettings>;
 		public static decode: $ProtoDecode<WallpaperSettings>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWebFeatures {
@@ -17405,16 +16649,15 @@ export namespace proto {
 		noDeleteMessageTimeLimit?: (proto.WebFeatures.Flag|null);
 	}
 
-	interface WebFeatures extends IWebFeatures {}
+	interface WebFeatures extends IWebFeatures, $ProtoJSON {}
 
 	class WebFeatures implements IWebFeatures {
 		constructor(p?: IWebFeatures);
 		public static create(p?: IWebFeatures): WebFeatures;
 		public static fromObject(d: $ProtoObject): WebFeatures;
-		public static toObject(m: WebFeatures, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WebFeatures>;
 		public static encode: $ProtoEncode<IWebFeatures>;
 		public static decode: $ProtoDecode<WebFeatures>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace WebFeatures {
@@ -17507,16 +16750,15 @@ export namespace proto {
 		decisionSources?: string[];
 	}
 
-	interface WebMessageInfo extends IWebMessageInfo {}
+	interface WebMessageInfo extends IWebMessageInfo, $ProtoJSON {}
 
 	class WebMessageInfo implements IWebMessageInfo {
 		constructor(p?: IWebMessageInfo);
 		public static create(p?: IWebMessageInfo): WebMessageInfo;
 		public static fromObject(d: $ProtoObject): WebMessageInfo;
-		public static toObject(m: WebMessageInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WebMessageInfo>;
 		public static encode: $ProtoEncode<IWebMessageInfo>;
 		public static decode: $ProtoDecode<WebMessageInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	namespace WebMessageInfo {
@@ -17778,16 +17020,15 @@ export namespace proto {
 		messageBytes?: (Uint8Array|null);
 	}
 
-	interface WebMessageInfoWithMessageBytes extends IWebMessageInfoWithMessageBytes {}
+	interface WebMessageInfoWithMessageBytes extends IWebMessageInfoWithMessageBytes, $ProtoJSON {}
 
 	class WebMessageInfoWithMessageBytes implements IWebMessageInfoWithMessageBytes {
 		constructor(p?: IWebMessageInfoWithMessageBytes);
 		public static create(p?: IWebMessageInfoWithMessageBytes): WebMessageInfoWithMessageBytes;
 		public static fromObject(d: $ProtoObject): WebMessageInfoWithMessageBytes;
-		public static toObject(m: WebMessageInfoWithMessageBytes, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WebMessageInfoWithMessageBytes>;
 		public static encode: $ProtoEncode<IWebMessageInfoWithMessageBytes>;
 		public static decode: $ProtoDecode<WebMessageInfoWithMessageBytes>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWebNotificationsInfo {
@@ -17797,80 +17038,75 @@ export namespace proto {
 		notifyMessages?: proto.IWebMessageInfo[];
 	}
 
-	interface WebNotificationsInfo extends IWebNotificationsInfo {}
+	interface WebNotificationsInfo extends IWebNotificationsInfo, $ProtoJSON {}
 
 	class WebNotificationsInfo implements IWebNotificationsInfo {
 		constructor(p?: IWebNotificationsInfo);
 		public static create(p?: IWebNotificationsInfo): WebNotificationsInfo;
 		public static fromObject(d: $ProtoObject): WebNotificationsInfo;
-		public static toObject(m: WebNotificationsInfo, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WebNotificationsInfo>;
 		public static encode: $ProtoEncode<IWebNotificationsInfo>;
 		public static decode: $ProtoDecode<WebNotificationsInfo>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWrapTransportSigningPublicKeyInput {
 		keyBytes?: (Uint8Array|null);
 	}
 
-	interface WrapTransportSigningPublicKeyInput extends IWrapTransportSigningPublicKeyInput {}
+	interface WrapTransportSigningPublicKeyInput extends IWrapTransportSigningPublicKeyInput, $ProtoJSON {}
 
 	class WrapTransportSigningPublicKeyInput implements IWrapTransportSigningPublicKeyInput {
 		constructor(p?: IWrapTransportSigningPublicKeyInput);
 		public static create(p?: IWrapTransportSigningPublicKeyInput): WrapTransportSigningPublicKeyInput;
 		public static fromObject(d: $ProtoObject): WrapTransportSigningPublicKeyInput;
-		public static toObject(m: WrapTransportSigningPublicKeyInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WrapTransportSigningPublicKeyInput>;
 		public static encode: $ProtoEncode<IWrapTransportSigningPublicKeyInput>;
 		public static decode: $ProtoDecode<WrapTransportSigningPublicKeyInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWrapTransportSigningPublicKeyResult {
 		prefixedKey?: (Uint8Array|null);
 	}
 
-	interface WrapTransportSigningPublicKeyResult extends IWrapTransportSigningPublicKeyResult {}
+	interface WrapTransportSigningPublicKeyResult extends IWrapTransportSigningPublicKeyResult, $ProtoJSON {}
 
 	class WrapTransportSigningPublicKeyResult implements IWrapTransportSigningPublicKeyResult {
 		constructor(p?: IWrapTransportSigningPublicKeyResult);
 		public static create(p?: IWrapTransportSigningPublicKeyResult): WrapTransportSigningPublicKeyResult;
 		public static fromObject(d: $ProtoObject): WrapTransportSigningPublicKeyResult;
-		public static toObject(m: WrapTransportSigningPublicKeyResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WrapTransportSigningPublicKeyResult>;
 		public static encode: $ProtoEncode<IWrapTransportSigningPublicKeyResult>;
 		public static decode: $ProtoDecode<WrapTransportSigningPublicKeyResult>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWrapTransportSigningSecretKeyInput {
 		keyBytes?: (Uint8Array|null);
 	}
 
-	interface WrapTransportSigningSecretKeyInput extends IWrapTransportSigningSecretKeyInput {}
+	interface WrapTransportSigningSecretKeyInput extends IWrapTransportSigningSecretKeyInput, $ProtoJSON {}
 
 	class WrapTransportSigningSecretKeyInput implements IWrapTransportSigningSecretKeyInput {
 		constructor(p?: IWrapTransportSigningSecretKeyInput);
 		public static create(p?: IWrapTransportSigningSecretKeyInput): WrapTransportSigningSecretKeyInput;
 		public static fromObject(d: $ProtoObject): WrapTransportSigningSecretKeyInput;
-		public static toObject(m: WrapTransportSigningSecretKeyInput, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WrapTransportSigningSecretKeyInput>;
 		public static encode: $ProtoEncode<IWrapTransportSigningSecretKeyInput>;
 		public static decode: $ProtoDecode<WrapTransportSigningSecretKeyInput>;
-		public toJSON(): $ProtoObject;
 	}
 
 	interface IWrapTransportSigningSecretKeyResult {
 		prefixedKey?: (Uint8Array|null);
 	}
 
-	interface WrapTransportSigningSecretKeyResult extends IWrapTransportSigningSecretKeyResult {}
+	interface WrapTransportSigningSecretKeyResult extends IWrapTransportSigningSecretKeyResult, $ProtoJSON {}
 
 	class WrapTransportSigningSecretKeyResult implements IWrapTransportSigningSecretKeyResult {
 		constructor(p?: IWrapTransportSigningSecretKeyResult);
 		public static create(p?: IWrapTransportSigningSecretKeyResult): WrapTransportSigningSecretKeyResult;
 		public static fromObject(d: $ProtoObject): WrapTransportSigningSecretKeyResult;
-		public static toObject(m: WrapTransportSigningSecretKeyResult, o?: $protobuf.IConversionOptions): $ProtoObject;
+		public static toObject: $ProtoToObject<WrapTransportSigningSecretKeyResult>;
 		public static encode: $ProtoEncode<IWrapTransportSigningSecretKeyResult>;
 		public static decode: $ProtoDecode<WrapTransportSigningSecretKeyResult>;
-		public toJSON(): $ProtoObject;
 	}
 	export type IAdvDeviceIdentity = IADVDeviceIdentity;
 	export type AdvDeviceIdentity = ADVDeviceIdentity;

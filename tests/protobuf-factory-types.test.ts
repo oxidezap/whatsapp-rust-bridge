@@ -24,6 +24,7 @@ type Eq<A,B> = (<T>()=>T extends A?1:2) extends (<T>()=>T extends B?1:2)?true:fa
 type Assert<T extends true> = T;
 interface Writer { finish(): Uint8Array }
 type Encode<I> = {encode(m:I,w?:Writer):Writer}["encode"];
+type ToObject<C> = {toObject(m:C,o?:{[k:string]:any}):{[k:string]:any}}["toObject"];
 type Decode<C> = {decode(r:BinaryReader|Uint8Array,l?:number):C}["decode"];
 ${classes.map((path, index) => {
   const name = path.join(".");
@@ -33,6 +34,8 @@ type Keys${index} = Assert<Eq<keyof ${name}, keyof ${input}|"toJSON">>;
 type Fields${index} = Assert<Eq<Pick<${name},keyof ${input}>,${input}>>;
 type Constructor${index} = Assert<Eq<ConstructorParameters<typeof ${name}>,[p?:${input}|undefined]>>;
 type Encoder${index} = Assert<Eq<typeof ${name}.encode,Encode<${input}>>>;
+type Converter${index} = Assert<Eq<typeof ${name}.toObject,ToObject<${name}>>>;
+type JSON${index} = Assert<Eq<${name}["toJSON"],()=>{[k:string]:any}>>;
 type Decoder${index} = Assert<Eq<typeof ${name}.decode,Decode<${name}>>>;
 const create${index}: (p?:${input})=>${name} = ${name}.create;
 const from${index}: (d:{[k:string]:any})=>${name} = ${name}.fromObject;
