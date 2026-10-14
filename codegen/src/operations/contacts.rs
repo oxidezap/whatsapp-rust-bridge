@@ -202,12 +202,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jids: Vec<String>,
                 ) -> Result<JsValue, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed_jids: Vec<Jid> = jids
-                    .iter()
-                    .map(|j| parse_jid(j))
-                    .collect::<Result<Vec<_>, _>>()?;
-            }))],
+            inputs: vec![Input::Jids {
+                binding: parse_quote!(parsed_jids),
+                value: parse_quote!(jids),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -273,15 +271,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.mex().get_username()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(own),
-                body: parse_quote!({
-                    to_ts_opt(own.map(|own| crate::result_types::OwnUsernameResult {
-                        username: own.username,
-                        state: own.state,
-                        key: own.key,
-                    }))
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::OwnUsername,
+                envelope: Envelope::Optional,
             },
         },
         Operation {
@@ -300,11 +292,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().set_profile_picture(img_data)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    to_ts(crate::result_types::ProfilePictureResult { id: result.id })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::ProfilePicture,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -322,11 +312,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().remove_profile_picture()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    to_ts(crate::result_types::ProfilePictureResult { id: result.id })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::ProfilePicture,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -368,11 +356,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             call: parse_quote!(client.execute(
                 wacore::iq::contacts::SetProfilePictureSpec::set_group(&target, img_data,)
             )),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(result),
-                body: parse_quote!({
-                    to_ts(crate::result_types::ProfilePictureResult { id: result.id })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::ProfilePicture,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -449,19 +435,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.blocking().get_blocklist()),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(entries),
-                body: parse_quote!({
-                    to_ts_vec(
-                        entries
-                            .iter()
-                            .map(|e| crate::result_types::BlocklistEntryResult {
-                                jid: e.jid.to_string(),
-                                timestamp: e.timestamp.map(|v| v as f64),
-                            })
-                            .collect(),
-                    )
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::BlocklistEntry,
+                envelope: Envelope::List,
             },
         },
         Operation {
@@ -591,29 +567,17 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jids: Vec<String>,
                 ) -> Result<Vec<Ts<crate::result_types::FetchStatusResult>>, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed_jids: Vec<Jid> = jids
-                    .iter()
-                    .map(|s| parse_jid(s))
-                    .collect::<Result<_, _>>()?;
-            }))],
+            inputs: vec![Input::Jids {
+                binding: parse_quote!(parsed_jids),
+                value: parse_quote!(jids),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().get_user_info(&parsed_jids)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(infos),
-                body: parse_quote!({
-                    to_ts_vec(
-                        infos
-                            .values()
-                            .map(|info| crate::result_types::FetchStatusResult {
-                                jid: info.jid.to_string(),
-                                status: info.status.clone(),
-                            })
-                            .collect(),
-                    )
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::FetchStatus,
+                envelope: Envelope::Values,
             },
         },
         Operation {

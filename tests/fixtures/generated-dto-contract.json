@@ -1,0 +1,175 @@
+{
+  "bridgeRevision": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
+  "coreRevision": "6f7a62296242f5dab8967431bd1c6528c1339efe",
+  "types": {
+    "NewsletterAdminProfileResult": [
+      "id?: string;",
+      "name: string;",
+      "pictureId?: string;",
+      "pictureDirectPath?: string;"
+    ],
+    "NewsletterAdminInfoResult": [
+      "adminCount?: number;",
+      "adminProfile?: NewsletterAdminProfileResult;",
+      "adminProfilesEnabled?: boolean;"
+    ],
+    "NewsletterReactionCountResult": [
+      "code: string;",
+      "count: number;"
+    ],
+    "OwnUsernameResult": [
+      "username?: string;",
+      "state?: string;",
+      "key?: string;"
+    ],
+    "BlocklistEntryResult": [
+      "jid: string;",
+      "timestamp?: number;"
+    ],
+    "FetchStatusResult": [
+      "jid: string;",
+      "status?: string;"
+    ],
+    "MediaConnResult": [
+      "auth: string;",
+      "ttl: number;",
+      "hosts: MediaHost[];"
+    ],
+    "MediaHost": [
+      "hostname: string;"
+    ],
+    "PriceResult": [
+      "amount1000: string;",
+      "currency?: string;"
+    ],
+    "SalePriceResult": [
+      "price: PriceResult;",
+      "startDate?: string;",
+      "endDate?: string;"
+    ],
+    "ProductImageResult": [
+      "id?: string;",
+      "requestImageUrl?: string;",
+      "originalImageUrl?: string;"
+    ],
+    "ProductVideoResult": [
+      "id?: string;",
+      "originalVideoUrl?: string;",
+      "thumbnailUrl?: string;"
+    ],
+    "ImporterAddressResult": [
+      "street1?: string;",
+      "street2?: string;",
+      "city?: string;",
+      "region?: string;",
+      "postalCode?: string;",
+      "countryCode?: string;"
+    ],
+    "VariantPropertyResult": [
+      "name?: string;",
+      "value?: string;"
+    ],
+    "OrderPriceDetailsResult": [
+      "currency?: string;",
+      "subtotal?: PriceResult;",
+      "total?: PriceResult;"
+    ],
+    "OrderProductResult": [
+      "id?: string;",
+      "name?: string;",
+      "price?: PriceResult;",
+      "quantity?: number;",
+      "images: ProductImageResult[];",
+      "variantProperties: VariantPropertyResult[];"
+    ],
+    "OrderResult": [
+      "products: OrderProductResult[];",
+      "priceDetails?: OrderPriceDetailsResult;",
+      "creationTimestamp?: number;"
+    ],
+    "ProductResult": [
+      "id: string;",
+      "retailerId?: string;",
+      "name?: string;",
+      "description?: string;",
+      "url?: string;",
+      "shimmedUrl?: string;",
+      "price?: PriceResult;",
+      "salePrice?: SalePriceResult;",
+      "isHidden?: boolean;",
+      "isSanctioned?: boolean;",
+      "maxAvailable?: number;",
+      "availability?: string;",
+      "reviewStatus?: string;",
+      "canAppeal?: boolean;",
+      "belongsTo?: boolean;",
+      "images: ProductImageResult[];",
+      "videos: ProductVideoResult[];",
+      "complianceCategory?: string;",
+      "countryCodeOrigin?: string;",
+      "importerName?: string;",
+      "importerAddress?: ImporterAddressResult;"
+    ],
+    "CatalogResult": [
+      "products: ProductResult[];",
+      "afterCursor?: string;",
+      "beforeCursor?: string;"
+    ],
+    "CollectionResult": [
+      "id?: string;",
+      "name?: string;",
+      "products: ProductResult[];",
+      "reviewStatus?: string;",
+      "canAppeal?: boolean;",
+      "rejectReason?: string;",
+      "commerceUrl?: string;"
+    ],
+    "CollectionsResult": [
+      "collections: CollectionResult[];",
+      "afterCursor?: string;"
+    ],
+    "BusinessCategoryResult": [
+      "id: string;",
+      "name: string;"
+    ],
+    "BusinessHoursConfigResult": [
+      "dayOfWeek: string;",
+      "mode: string;",
+      "openTime?: number;",
+      "closeTime?: number;"
+    ],
+    "BusinessHoursResult": [
+      "timezone?: string;",
+      "businessConfig?: BusinessHoursConfigResult[];"
+    ],
+    "BusinessProfileResult": [
+      "wid?: string;",
+      "description: string;",
+      "email?: string;",
+      "website: string[];",
+      "categories: BusinessCategoryResult[];",
+      "address?: string;",
+      "businessHours: BusinessHoursResult;"
+    ],
+    "MembershipRequestResult": [
+      "jid: string;",
+      "requestTime?: number;"
+    ],
+    "CommunitySubgroupResult": [
+      "id: string;",
+      "subject: string;",
+      "participantCount?: number;",
+      "creation?: number;",
+      "owner?: string;",
+      "isDefaultSubGroup: boolean;",
+      "isGeneralChat: boolean;"
+    ],
+    "SignalSessionInfoResult": [
+      "baseKey: Uint8Array;",
+      "registrationId: number;"
+    ],
+    "ProfilePictureResult": [
+      "id: string;"
+    ]
+  }
+}

@@ -114,9 +114,12 @@ pub(super) fn catalog() -> Vec<Operation> {
             signature: parse_quote!(
                 async fn wait_for_socket(&self, timeout_ms: f64) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
-            }))],
+            inputs: vec![Input::Timeout {
+                binding: parse_quote!(timeout),
+                field: parse_quote!("timeoutMs"),
+                value: parse_quote!(timeout_ms),
+                optional: false,
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
@@ -137,9 +140,12 @@ pub(super) fn catalog() -> Vec<Operation> {
                     timeout_ms: f64,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
-            }))],
+            inputs: vec![Input::Timeout {
+                binding: parse_quote!(timeout),
+                field: parse_quote!("timeoutMs"),
+                value: parse_quote!(timeout_ms),
+                optional: false,
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ThisSocket),

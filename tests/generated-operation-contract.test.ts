@@ -45,3 +45,22 @@ test("generated operations preserve the published method contracts", () => {
     expect(methods[0]!.getText(source).replace(/\s+/g, " "), name).toBe(signature);
   }
 });
+
+// Capture comes from the compiled pre-refactor bridge, independently of schemas.
+test("generated DTOs preserve field types, optionality and binary declarations", () => {
+  const baseline = JSON.parse(readFileSync(join(import.meta.dir, "fixtures/generated-dto-contract.json"), "utf8")) as {types: Record<string, string[]>};
+  const source = ts.createSourceFile("bridge.d.ts", readFileSync(join(import.meta.dir, "../pkg/whatsapp_rust_bridge.d.ts"), "utf8"), ts.ScriptTarget.Latest, true);
+  for (const [name, fields] of Object.entries(baseline.types)) {
+    const declarations = source.statements.filter((node): node is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(node) && node.name.text === name);
+    expect(declarations.length, name).toBe(1);
+    expect(declarations[0]!.members.map(member => member.getText(source).replace(/\s+/g, " ")), name).toEqual(fields);
+  }
+});
+
+test("generated event callbacks preserve required and optional public signatures", () => {
+  const baseline = JSON.parse(readFileSync(join(import.meta.dir, "fixtures/generated-event-contract.json"), "utf8")) as {members: Record<string,string>};
+  const source=ts.createSourceFile("bridge.d.ts",readFileSync(join(import.meta.dir,"../pkg/whatsapp_rust_bridge.d.ts"),"utf8"),ts.ScriptTarget.Latest,true);
+  const declarations=source.statements.filter((node): node is ts.InterfaceDeclaration=>ts.isInterfaceDeclaration(node)&&node.name.text==="WhatsAppEventCallbacks");
+  expect(declarations.length).toBe(1);
+  expect(Object.fromEntries(declarations[0]!.members.map(member=>[member.name!.getText(source),member.getText(source).replace(/\s+/g," ")]))).toEqual(baseline.members);
+});

@@ -121,7 +121,7 @@ impl WasmWhatsAppClient {
     ) -> Result<bool, crate::errors::BridgeError> {
         let parsed: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|j| parse_jid(j))
+            .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let boundary_result = client.signal().assert_sessions(&parsed).await;
@@ -142,7 +142,7 @@ impl WasmWhatsAppClient {
     ) -> Result<JsValue, crate::errors::BridgeError> {
         let parsed: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|j| parse_jid(j))
+            .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let devices = client.signal().get_user_devices(&parsed).await?;
@@ -388,13 +388,8 @@ impl WasmWhatsAppClient {
     {
         let parsed = parse_jid(jid)?;
         let client = self.client.unwaited(Unwaited::Local);
-        let boundary_result = client.signal().session_info(&parsed).await;
-        to_ts_opt(
-            boundary_result?.map(|info| crate::result_types::SignalSessionInfoResult {
-                base_key: info.base_key,
-                registration_id: info.registration_id,
-            }),
-        )
+        let value = client.signal().session_info(&parsed).await?;
+        to_ts_opt(value.map(crate::result_types::project_signal_session_info))
     }
     #[doc = r" Add linked-identifier mappings through one durable core batch."]
     # [wasm_bindgen (js_name = addLidPnMappings)]
@@ -468,7 +463,7 @@ impl WasmWhatsAppClient {
     ) -> Result<(), crate::errors::BridgeError> {
         let parsed: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|j| parse_jid(j))
+            .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.unwaited(Unwaited::Local);
         client

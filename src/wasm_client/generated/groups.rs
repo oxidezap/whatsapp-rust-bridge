@@ -136,10 +136,10 @@ impl WasmWhatsAppClient {
         subgroup_jids: Vec<String>,
     ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
         let parent = parse_jid(parent_jid)?;
-        let subgroups = subgroup_jids
+        let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
             .iter()
-            .map(|subgroup| parse_jid(subgroup))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|jid| parse_jid(jid))
+            .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let result = client
             .community()
@@ -159,10 +159,10 @@ impl WasmWhatsAppClient {
         remove_orphan_members: bool,
     ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
         let parent = parse_jid(parent_jid)?;
-        let subgroups = subgroup_jids
+        let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
             .iter()
-            .map(|subgroup| parse_jid(subgroup))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|jid| parse_jid(jid))
+            .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let result = client
             .community()
@@ -182,19 +182,11 @@ impl WasmWhatsAppClient {
     {
         let parent = parse_jid(parent_jid)?;
         let client = self.client.online().await?;
-        let groups = client.community().get_subgroups(&parent).await?;
+        let value = client.community().get_subgroups(&parent).await?;
         to_ts_vec(
-            groups
+            value
                 .into_iter()
-                .map(|group| crate::result_types::CommunitySubgroupResult {
-                    id: group.id.to_string(),
-                    subject: group.subject,
-                    participant_count: group.participant_count.map(f64::from),
-                    creation: group.creation.map(|value| value as f64),
-                    owner: group.owner.map(|value| value.to_string()),
-                    is_default_sub_group: group.is_default_sub_group,
-                    is_general_chat: group.is_general_chat,
-                })
+                .map(crate::result_types::project_community_subgroup)
                 .collect(),
         )
     }
@@ -262,13 +254,11 @@ impl WasmWhatsAppClient {
     {
         let group_jid = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let list = client.groups().get_membership_requests(&group_jid).await?;
+        let value = client.groups().get_membership_requests(&group_jid).await?;
         to_ts_vec(
-            list.iter()
-                .map(|r| crate::result_types::MembershipRequestResult {
-                    jid: r.jid.to_string(),
-                    request_time: r.request_time.map(|t| t as f64),
-                })
+            value
+                .iter()
+                .map(crate::result_types::project_membership_request)
                 .collect(),
         )
     }
@@ -357,10 +347,10 @@ impl WasmWhatsAppClient {
         participants: Vec<String>,
         parent_jid: &str,
     ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let participants = participants
+        let participants: Vec<wacore_binary::jid::Jid> = participants
             .iter()
-            .map(|participant| parse_jid(participant))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|jid| parse_jid(jid))
+            .collect::<Result<_, _>>()?;
         let parent = parse_jid(parent_jid)?;
         let client = self.client.online().await?;
         let result = client
@@ -461,10 +451,10 @@ impl WasmWhatsAppClient {
         let action = from_js_input::<crate::result_types::GroupRequestAction>("action", action)?;
         use crate::result_types::GroupRequestAction;
         let group_jid = parse_jid(jid)?;
-        let participant_jids: Vec<Jid> = participants
+        let participant_jids: Vec<wacore_binary::jid::Jid> = participants
             .iter()
-            .map(|s| parse_jid(s))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|jid| parse_jid(jid))
+            .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let responses = match action {
             GroupRequestAction::Approve => {

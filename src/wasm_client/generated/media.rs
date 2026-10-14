@@ -15,18 +15,8 @@ impl WasmWhatsAppClient {
         } else {
             self.client.unwaited(Unwaited::Cached)
         };
-        let conn = client.refresh_media_conn(force).await?;
-        to_ts(crate::result_types::MediaConnResult {
-            auth: conn.auth.clone(),
-            ttl: conn.ttl as f64,
-            hosts: conn
-                .hosts
-                .iter()
-                .map(|h| crate::result_types::MediaHost {
-                    hostname: h.hostname.clone(),
-                })
-                .collect(),
-        })
+        let value = client.refresh_media_conn(force).await?;
+        to_ts(crate::result_types::project_media_conn(&value))
     }
     #[doc = r" Download and decrypt media from raw parameters."]
     #[doc = r""]

@@ -40,10 +40,10 @@ pub(super) fn catalog() -> Vec<Operation> {
             signature: parse_quote!(
                 async fn send_node(&self, node_js: JsBinaryNode) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let node_js: JsValue = node_js.into();
-                let node = js_to_node(&node_js)?;
-            }))],
+            inputs: vec![Input::Node {
+                binding: parse_quote!(node),
+                input: parse_quote!(node_js),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Opaque),
@@ -87,10 +87,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     stanza_js: JsBinaryNode,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let stanza_js: JsValue = stanza_js.into();
-                let stanza = js_to_node(&stanza_js)?;
-            }))],
+            inputs: vec![Input::Node {
+                binding: parse_quote!(stanza),
+                input: parse_quote!(stanza_js),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::ConnectionBound),
@@ -193,12 +193,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     _force: bool,
                 ) -> Result<bool, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed: Vec<wacore_binary::jid::Jid> = jids
-                    .iter()
-                    .map(|j| parse_jid(j))
-                    .collect::<Result<_, _>>()?;
-            }))],
+            inputs: vec![Input::Jids {
+                binding: parse_quote!(parsed),
+                value: parse_quote!(jids),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
@@ -228,12 +226,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     _ignore_zero_devices: bool,
                 ) -> Result<JsValue, crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed: Vec<wacore_binary::jid::Jid> = jids
-                    .iter()
-                    .map(|j| parse_jid(j))
-                    .collect::<Result<_, _>>()?;
-            }))],
+            inputs: vec![Input::Jids {
+                binding: parse_quote!(parsed),
+                value: parse_quote!(jids),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
@@ -678,19 +674,12 @@ pub(super) fn catalog() -> Vec<Operation> {
                 value: parse_quote!(jid),
             }],
             boundary: Boundary::AsyncBorrowed,
-            evaluation: Evaluation::Await,
+            evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.signal().session_info(&parsed)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(boundary_result),
-                body: parse_quote!({
-                    to_ts_opt(boundary_result?.map(|info| {
-                        crate::result_types::SignalSessionInfoResult {
-                            base_key: info.base_key,
-                            registration_id: info.registration_id,
-                        }
-                    }))
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::SignalSessionInfo,
+                envelope: Envelope::Optional,
             },
         },
         Operation {
@@ -811,12 +800,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jids: Vec<String>,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            inputs: vec![Input::Convert(parse_quote!({
-                let parsed: Vec<wacore_binary::jid::Jid> = jids
-                    .iter()
-                    .map(|j| parse_jid(j))
-                    .collect::<Result<_, _>>()?;
-            }))],
+            inputs: vec![Input::Jids {
+                binding: parse_quote!(parsed),
+                value: parse_quote!(jids),
+            }],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),

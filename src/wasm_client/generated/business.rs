@@ -10,8 +10,12 @@ impl WasmWhatsAppClient {
     {
         let target_jid = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let profile = client.get_business_profile(&target_jid).await?;
-        to_ts_opt(profile.map(|p| business_profile_to_result(&p)))
+        let value = client.get_business_profile(&target_jid).await?;
+        to_ts_opt(
+            value
+                .as_ref()
+                .map(crate::result_types::project_business_profile),
+        )
     }
     #[doc = r" Look up an order's line items and totals."]
     #[doc = r""]
@@ -26,39 +30,11 @@ impl WasmWhatsAppClient {
     ) -> Result<Ts<crate::result_types::OrderResult>, crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let order = client
+        let value = client
             .business()
             .get_order(&target, order_id, token)
             .await?;
-        to_ts(crate::result_types::OrderResult {
-            products: order
-                .products
-                .iter()
-                .map(|product| crate::result_types::OrderProductResult {
-                    id: product.id.clone(),
-                    name: product.name.clone(),
-                    price: product.price.as_ref().map(price_to_result),
-                    quantity: product.quantity.map(|q| q as f64),
-                    images: product.images.iter().map(product_image_to_result).collect(),
-                    variant_properties: product
-                        .variant_properties
-                        .iter()
-                        .map(|v| crate::result_types::VariantPropertyResult {
-                            name: v.name.clone(),
-                            value: v.value.clone(),
-                        })
-                        .collect(),
-                })
-                .collect(),
-            price_details: order.price_details.as_ref().map(|details| {
-                crate::result_types::OrderPriceDetailsResult {
-                    currency: details.currency.clone(),
-                    subtotal: details.subtotal.as_ref().map(price_to_result),
-                    total: details.total.as_ref().map(price_to_result),
-                }
-            }),
-            creation_timestamp: order.creation_timestamp.map(|t| t as f64),
-        })
+        to_ts(crate::result_types::project_order(&value))
     }
     #[doc = r" Remove the business profile's cover photo, by the `fbid` it was set with."]
     # [wasm_bindgen (js_name = removeBusinessCoverPhoto)]
@@ -104,12 +80,8 @@ impl WasmWhatsAppClient {
         }
         opts.after = input.after;
         let client = self.client.online().await?;
-        let catalog = client.business().get_catalog(&target, &opts).await?;
-        to_ts(crate::result_types::CatalogResult {
-            products: catalog.products.iter().map(product_to_result).collect(),
-            after_cursor: catalog.after_cursor.clone(),
-            before_cursor: catalog.before_cursor.clone(),
-        })
+        let value = client.business().get_catalog(&target, &opts).await?;
+        to_ts(crate::result_types::project_catalog(&value))
     }
     #[doc = r" Fetch one page of a business's product collections, each with its first"]
     #[doc = r" products inline."]
@@ -141,23 +113,8 @@ impl WasmWhatsAppClient {
         }
         opts.after = input.after;
         let client = self.client.online().await?;
-        let collections = client.business().get_collections(&target, &opts).await?;
-        to_ts(crate::result_types::CollectionsResult {
-            collections: collections
-                .collections
-                .iter()
-                .map(|collection| crate::result_types::CollectionResult {
-                    id: collection.id.clone(),
-                    name: collection.name.clone(),
-                    products: collection.products.iter().map(product_to_result).collect(),
-                    review_status: collection.review_status.clone(),
-                    can_appeal: collection.can_appeal,
-                    reject_reason: collection.reject_reason.clone(),
-                    commerce_url: collection.commerce_url.clone(),
-                })
-                .collect(),
-            after_cursor: collections.after_cursor.clone(),
-        })
+        let value = client.business().get_collections(&target, &opts).await?;
+        to_ts(crate::result_types::project_collections(&value))
     }
     #[doc = r" Apply a delta to the account's own business profile."]
     #[doc = r""]

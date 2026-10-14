@@ -374,13 +374,6 @@ pub enum ProtocolTerminalReasonResult {
     Unknown { detail: String },
 }
 
-/// Result from `updateProfilePicture` or `removeProfilePicture`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct ProfilePictureResult {
-    pub id: String,
-}
-
 /// Result from `profilePictureUrl`.
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -391,15 +384,6 @@ pub struct ProfilePictureInfo {
     pub direct_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hash: Option<String>,
-}
-
-/// A single entry from `fetchBlocklist`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct BlocklistEntryResult {
-    pub jid: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<f64>,
 }
 
 /// A single entry from `fetchUserInfo`.
@@ -450,20 +434,6 @@ pub struct ParticipantChangeResult {
 pub struct ParticipantAddRequestResult {
     pub code: String,
     pub expiration: f64,
-}
-
-/// A single media host from `getMediaConn`.
-#[derive(Serialize, Tsify)]
-pub struct MediaHost {
-    pub hostname: String,
-}
-
-/// Result from `getMediaConn`.
-#[derive(Serialize, Tsify)]
-pub struct MediaConnResult {
-    pub auth: String,
-    pub ttl: f64,
-    pub hosts: Vec<MediaHost>,
 }
 
 /// Result from `uploadMedia`.
@@ -534,16 +504,6 @@ pub struct SignalSessionBundleInput {
     pub signed_pre_key: SignalSignedPreKeyInput,
     #[tsify(optional)]
     pub pre_key: Option<SignalPreKeyInput>,
-}
-
-/// Read-only information from a currently open pairwise session.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct SignalSessionInfoResult {
-    #[tsify(type = "Uint8Array")]
-    #[serde(with = "serde_bytes")]
-    pub base_key: Vec<u8>,
-    pub registration_id: u32,
 }
 
 /// One linked-identifier to phone-number mapping supplied by the host.
@@ -659,33 +619,6 @@ pub enum UsernameLookupResult {
         #[serde(skip_serializing_if = "Option::is_none")]
         verified_name: Option<String>,
     },
-}
-
-/// Result from `getUsername`: this account's own Meta username.
-///
-/// Every field is optional because the server omits the ones that do not
-/// apply. An account with no username at all comes back as `null` from the
-/// method rather than as an all-absent object.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct OwnUsernameResult {
-    /// The handle, without the display-only `@` prefix.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-    /// `ACTIVE` or `RESERVED`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state: Option<String>,
-    /// The numeric username key that guards lookups of this account by handle.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub key: Option<String>,
-}
-
-/// Result from `fetchStatus`.
-#[derive(Serialize, Tsify)]
-pub struct FetchStatusResult {
-    pub jid: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
 }
 
 /// Group participant info as returned from `getGroupMetadata` / cached group
@@ -933,31 +866,6 @@ pub struct CoreAllocationSnapshotResult {
     pub net_bytes: f64,
 }
 
-/// Result from `groupRequestParticipantsList`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct MembershipRequestResult {
-    pub jid: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub request_time: Option<f64>,
-}
-
-/// A subgroup returned by a parent-group metadata query.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct CommunitySubgroupResult {
-    pub id: String,
-    pub subject: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub participant_count: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub creation: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
-    pub is_default_sub_group: bool,
-    pub is_general_chat: bool,
-}
-
 /// One failed parent/subgroup relationship mutation.
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -972,270 +880,6 @@ pub struct CommunityLinkFailureResult {
 pub struct CommunityLinkResult {
     pub succeeded: Vec<String>,
     pub failed: Vec<CommunityLinkFailureResult>,
-}
-
-/// Result from `getBusinessProfile`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct BusinessProfileResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub wid: Option<String>,
-    pub description: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    pub website: Vec<String>,
-    pub categories: Vec<BusinessCategoryResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<String>,
-    pub business_hours: BusinessHoursResult,
-}
-
-/// Business category info.
-#[derive(Serialize, Tsify)]
-pub struct BusinessCategoryResult {
-    pub id: String,
-    pub name: String,
-}
-
-/// Business hours.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct BusinessHoursResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timezone: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub business_config: Option<Vec<BusinessHoursConfigResult>>,
-}
-
-/// Business hours config for a day.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct BusinessHoursConfigResult {
-    pub day_of_week: String,
-    pub mode: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub open_time: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub close_time: Option<f64>,
-}
-
-// ---------------------------------------------------------------------------
-// Business catalog
-// ---------------------------------------------------------------------------
-
-/// A price, in thousandths of the currency's main unit.
-///
-/// WhatsApp scales money by 1000, not 100, and the protobuf field is an
-/// `int64`. `amount1000` therefore crosses as a **string**: a `number` is exact
-/// only below 2^53, and a large order would be silently wrong rather than
-/// rejected. Dividing by 1000 for display is the consumer's decision.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct PriceResult {
-    /// Thousandths of one currency unit: `"1990"` is 1.99 in `currency`.
-    pub amount_1000: String,
-    /// ISO 4217 code. Absent when the server sends a price without one.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<String>,
-}
-
-/// A sale price and the window it applies to.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct SalePriceResult {
-    pub price: PriceResult,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub start_date: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub end_date: Option<String>,
-}
-
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct ProductImageResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub request_image_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub original_image_url: Option<String>,
-}
-
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct ProductVideoResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub original_video_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub thumbnail_url: Option<String>,
-}
-
-/// A postal address, as sent for a product's importer of record.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct ImporterAddressResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub street1: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub street2: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub region: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub postal_code: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country_code: Option<String>,
-}
-
-/// A catalog product. Only `id` is guaranteed; the server omits rather than
-/// blanks, so an absent name is absent, not `""`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct ProductResult {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub retailer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    /// The link-shimmed form of `url`, carried alongside it rather than
-    /// instead. Which to open is a consumer's call.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub shimmed_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<PriceResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sale_price: Option<SalePriceResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_hidden: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_sanctioned: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_available: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub availability: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub review_status: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub can_appeal: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub belongs_to: Option<bool>,
-    pub images: Vec<ProductImageResult>,
-    pub videos: Vec<ProductVideoResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub compliance_category: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country_code_origin: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub importer_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub importer_address: Option<ImporterAddressResult>,
-}
-
-/// One page of a business catalog.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct CatalogResult {
-    pub products: Vec<ProductResult>,
-    /// Feed back as `after` for the next page; absent on the last one.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub after_cursor: Option<String>,
-    /// Carried by the response, though the catalog query takes only `after`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub before_cursor: Option<String>,
-}
-
-/// A named group of products within a catalog.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// A prefix, and it says so only by its length: the collections query
-    /// carries no per-collection cursor, so `products.length === itemLimit`
-    /// means more may exist.
-    pub products: Vec<ProductResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub review_status: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub can_appeal: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reject_reason: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub commerce_url: Option<String>,
-}
-
-/// One page of a business's collections.
-///
-/// Forward cursor only — the collections paging object has no `before`, and
-/// the asymmetry with the catalog is the wire's, not an oversight.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionsResult {
-    pub collections: Vec<CollectionResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub after_cursor: Option<String>,
-}
-
-/// One dimension of a chosen product variant, e.g. `Size` / `Large`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct VariantPropertyResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
-}
-
-/// A line item on an order: a snapshot, so the price is what was quoted when
-/// the order was placed.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderProductResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<PriceResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub quantity: Option<f64>,
-    pub images: Vec<ProductImageResult>,
-    /// Empty for a product with no variants. Without it a variant order cannot
-    /// be fulfilled: id, name and price are shared across one listing's
-    /// variants.
-    pub variant_properties: Vec<VariantPropertyResult>,
-}
-
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderPriceDetailsResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtotal: Option<PriceResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total: Option<PriceResult>,
-}
-
-/// Result from `getOrder`.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderResult {
-    pub products: Vec<OrderProductResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price_details: Option<OrderPriceDetailsResult>,
-    /// Unix seconds, as sent.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub creation_timestamp: Option<f64>,
 }
 
 /// Options for `getCatalog`. Omitted fields take the core's own defaults; no
@@ -1343,43 +987,6 @@ pub struct NewsletterFollowerResult {
     pub follow_time: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub admin_profile: Option<NewsletterAdminProfileResult>,
-}
-
-/// An admin's published profile on a newsletter.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct NewsletterAdminProfileResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub picture_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub picture_direct_path: Option<String>,
-}
-
-/// Result from `newsletterAdminInfo`.
-///
-/// `adminCount` has no query of its own — it rides along with the admin
-/// profile. Absent means the server withheld it (it answers only admins and
-/// owners), never zero.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct NewsletterAdminInfoResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub admin_count: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub admin_profile: Option<NewsletterAdminProfileResult>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub admin_profiles_enabled: Option<bool>,
-}
-
-/// A reaction tally on a newsletter message.
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct NewsletterReactionCountResult {
-    pub code: String,
-    pub count: f64,
 }
 
 /// One message from `newsletterMessages`.
@@ -1537,4 +1144,49 @@ pub struct NewChatMessageCappingResult {
     pub server_sent_timestamp: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remaining_quota: Option<f64>,
+}
+
+include!("wasm_client/generated/projections.rs");
+
+#[cfg(all(test, feature = "client-business"))]
+mod generated_projection_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn generated_money_and_nested_absence_preserve_values() {
+        let price = whatsapp_rust::features::Price {
+            amount_1000: i64::MAX,
+            currency: None,
+        };
+        let serialized = serde_json::to_value(project_price(&price)).unwrap();
+        assert_eq!(
+            serialized,
+            serde_json::json!({"amount1000": "9223372036854775807"})
+        );
+        let mut hours = whatsapp_rust::wacore::iq::business::BusinessHours::default();
+        assert_eq!(
+            serde_json::to_value(project_business_hours(&hours)).unwrap(),
+            serde_json::json!({})
+        );
+        hours.business_config = Some(vec![]);
+        assert_eq!(
+            serde_json::to_value(project_business_hours(&hours)).unwrap(),
+            serde_json::json!({"businessConfig": []})
+        );
+    }
+
+    #[cfg(feature = "client-signal")]
+    #[test]
+    fn generated_binary_projection_serializes_as_uint8array() {
+        let source = whatsapp_rust::features::SignalSessionInfo {
+            base_key: vec![0, 128, 255],
+            registration_id: u32::MAX,
+        };
+        let value = serde_wasm_bindgen::to_value(&project_signal_session_info(source)).unwrap();
+        let bytes = js_sys::Reflect::get(&value, &"baseKey".into()).unwrap();
+        use wasm_bindgen::JsCast as _;
+        assert!(bytes.is_instance_of::<js_sys::Uint8Array>());
+        assert_eq!(js_sys::Uint8Array::new(&bytes).to_vec(), [0, 128, 255]);
+    }
 }

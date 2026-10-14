@@ -238,12 +238,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(parent),
                     value: parse_quote!(parent_jid),
                 },
-                Input::Convert(parse_quote!({
-                    let subgroups = subgroup_jids
-                        .iter()
-                        .map(|subgroup| parse_jid(subgroup))
-                        .collect::<Result<Vec<_>, _>>()?;
-                })),
+                Input::Jids {
+                    binding: parse_quote!(subgroups),
+                    value: parse_quote!(subgroup_jids),
+                },
             ],
             admission: Admission::Online,
             call: parse_quote!(client.community().link_subgroups(parent, &subgroups)),
@@ -275,12 +273,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(parent),
                     value: parse_quote!(parent_jid),
                 },
-                Input::Convert(parse_quote!({
-                    let subgroups = subgroup_jids
-                        .iter()
-                        .map(|subgroup| parse_jid(subgroup))
-                        .collect::<Result<Vec<_>, _>>()?;
-                })),
+                Input::Jids {
+                    binding: parse_quote!(subgroups),
+                    value: parse_quote!(subgroup_jids),
+                },
             ],
             admission: Admission::Online,
             call: parse_quote!(client.community().unlink_subgroups(
@@ -315,22 +311,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.community().get_subgroups(&parent)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(groups),
-                expression: parse_quote!(to_ts_vec(
-                    groups
-                        .into_iter()
-                        .map(|group| crate::result_types::CommunitySubgroupResult {
-                            id: group.id.to_string(),
-                            subject: group.subject,
-                            participant_count: group.participant_count.map(f64::from),
-                            creation: group.creation.map(|value| value as f64),
-                            owner: group.owner.map(|value| value.to_string()),
-                            is_default_sub_group: group.is_default_sub_group,
-                            is_general_chat: group.is_general_chat,
-                        })
-                        .collect(),
-                )),
+            output: ReturnAdapter::Dto {
+                projection: Projection::CommunitySubgroup,
+                envelope: Envelope::List,
             },
         },
         Operation {
@@ -464,16 +447,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.groups().get_membership_requests(&group_jid)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(list),
-                expression: parse_quote!(to_ts_vec(
-                    list.iter()
-                        .map(|r| crate::result_types::MembershipRequestResult {
-                            jid: r.jid.to_string(),
-                            request_time: r.request_time.map(|t| t as f64),
-                        })
-                        .collect(),
-                )),
+            output: ReturnAdapter::Dto {
+                projection: Projection::MembershipRequest,
+                envelope: Envelope::List,
             },
         },
         Operation {
@@ -626,12 +602,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
             inputs: vec![
-                Input::Convert(parse_quote!({
-                    let participants = participants
-                        .iter()
-                        .map(|participant| parse_jid(participant))
-                        .collect::<Result<Vec<_>, _>>()?;
-                })),
+                Input::Jids {
+                    binding: parse_quote!(participants),
+                    value: parse_quote!(participants),
+                },
                 Input::Jid {
                     binding: parse_quote!(parent),
                     value: parse_quote!(parent_jid),
@@ -836,12 +810,10 @@ pub(super) fn catalog() -> Vec<Operation> {
                     binding: parse_quote!(group_jid),
                     value: parse_quote!(jid),
                 },
-                Input::Convert(parse_quote!({
-                    let participant_jids: Vec<Jid> = participants
-                        .iter()
-                        .map(|s| parse_jid(s))
-                        .collect::<Result<Vec<_>, _>>()?;
-                })),
+                Input::Jids {
+                    binding: parse_quote!(participant_jids),
+                    value: parse_quote!(participants),
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Immediate,

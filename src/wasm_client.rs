@@ -429,107 +429,6 @@ export interface WhatsAppClientConfig {
   onEvent?: WhatsAppEventHandler;
 }
 
-/**
- * Typed event sink. Message and history-sync events cross the boundary as
- * protobuf wire bytes only: the host decodes them with its own codec, so the
- * bridge never materializes an intermediate reflected JS tree (and never
- * compiles the Rust->JS serializers for those proto graphs). A handler that
- * omits `onMessageBatch`/`onHistorySyncBatch` has those events dropped with an
- * error log; every other event kind continues through `onEvent`.
- */
-export interface WhatsAppEventCallbacks {
-  onEvent(event: WhatsAppEvent): void;
-  /**
-   * Protobuf-wire message path. The bridge packs a bounded ordered group of
-   * messages — payloads and metadata alike — into one flat buffer. Decode it
-   * with `decodeMessageWireBatch`.
-   *
-   * Decode every batch, exactly once, in the order it arrives, before calling
-   * back into the client: addresses and push names repeat, so a batch defines
-   * them once and later batches reference the table the decoder is holding.
-   * A batch skipped or decoded out of order leaves that table describing a
-   * history the records do not have.
-   *
-   * The return type is `void` and TypeScript lets an `async` method satisfy
-   * it, so this is checked rather than trusted: a callback that hands back
-   * anything promise-like has not decoded inside its call, and the bridge
-   * gives up the cross-batch table for the rest of the session — every batch
-   * then carries every value it names, which decodes the same in any order.
-   * Keeping the buffer is fine; decoding it later is what costs the table.
-   *
-   * The check runs after the batch has been handed over, so the batch that
-   * revealed the violation is the one it cannot save: decoded after a later
-   * one, it reads that one's table. Every batch after it is safe whenever it
-   * is decoded.
-   */
-  onMessageBatch(batch: MessageWireBatch): void;
-  /**
-   * Optional host-interest filter for conversation records. When present, the
-   * bridge still walks every history payload and emits its final metadata, but
-   * materializes conversation wire bytes only for the listed numeric sync
-   * types. Omit it for the backward-compatible "all types" behavior.
-   */
-  historySyncConversationTypes?: readonly number[];
-  /**
-   * Protobuf-wire history-sync path. Conversation entries cross as wire bytes
-   * and the non-conversation remainder (pushnames, mappings, settings, ...)
-   * crosses as one encoded `proto.HistorySync` payload in `remainderData`.
-   * Return the number of malformed entries skipped by the host, if any.
-   */
-  onHistorySyncBatch(batch: HistorySyncWireBatch): number | void;
-  /**
-   * Optional packed receipt path: adjacent `receipt` events coalesce into one
-   * flat buffer (decode with `decodeReceiptWireBatch`) instead of one
-   * reflected object per event. Without it, receipts use `onEvent`.
-   * Decode the batch fully before calling back into the client: the reader
-   * walks the buffer in order and shares cached JID objects across events.
-   */
-  onReceiptBatch?(batch: ReceiptWireBatch): void;
-  /**
-   * Optional packed server-ack path, analogous to `onReceiptBatch`; decode
-   * with `decodeServerAckWireBatch`. Without it, acks use `onEvent`.
-   */
-  onServerAckBatch?(batch: ServerAckWireBatch): void;
-  /**
-   * Borrowing form of `onReceiptBatch`, and the whole of the opt-in: declaring
-   * it replaces `onReceiptBatch` as the receipt sink and lets the bridge hand
-   * every batch out of one buffer it reuses.
-   *
-   * The batch is therefore a window on shared memory, valid ONLY for the
-   * synchronous duration of the call: implementations MUST decode or copy it
-   * before returning, and MUST NOT retain it, pass it to an async consumer, or
-   * return a Promise. `decodeReceiptWireBatch` satisfies that on its own, since
-   * it materializes every field and keeps no view over the buffer, so the usual
-   * body is a decode plus whatever the host does with the result. A callback
-   * caught handing back something promise-like, or letting an exception escape,
-   * drops every borrowing callback of every packed kind back to a buffer per
-   * batch for the rest of the session, before the buffer is reused, so the
-   * window it kept stays intact.
-   *
-   * `onReceiptBatch` remains the copying path for every host that does not opt
-   * in, and a batch too large for the shared buffer gets its own regardless.
-   * There is no borrowing form of `onMessageBatch`: `decodeMessageWireBatch`
-   * returns views over the batch, so reuse there would alias the decoded result
-   * and not just the buffer.
-   */
-  onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;
-  /** Borrowing form of `onServerAckBatch`, under the contract above. */
-  onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;
-  /**
-   * Optional coalescing path. A live message produces up to three batches (its
-   * own, its receipt, its ack); with this method the ones the dispatch loop
-   * already holds cross together as one envelope of tagged segments instead of
-   * one crossing each. Split it with `decodeEventWireEnvelope` and hand each
-   * segment to the codec its kind names, in order. Nothing is ever held back
-   * waiting for a companion event, so a batch with no company still arrives
-   * through its own callback above, in the buffer that callback negotiated.
-   *
-   * There is no borrowing form, for the reason `onMessageBatch` has none: an
-   * envelope may carry a message segment, whose decode returns views over the
-   * buffer.
-   */
-  onEventBatch?(batch: EventWireEnvelope): void;
-}
 
 /**
  * A packed batch is one flat buffer: header, records and string bytes. Decode it
@@ -738,14 +637,8 @@ const HISTORY_SYNC_BATCH_MAX_CONVERSATIONS: usize = 16;
 /// small enough. A single larger conversation remains indivisible and is sent
 /// alone; the count ceiling still bounds tiny-entry callback latency.
 const HISTORY_SYNC_BATCH_MAX_BYTES: usize = crate::WASM_PAGE_BYTES;
-const EVENT_CALLBACK_METHOD: &str = "onEvent";
-const MESSAGE_BATCH_CALLBACK_METHOD: &str = "onMessageBatch";
-const HISTORY_SYNC_BATCH_CALLBACK_METHOD: &str = "onHistorySyncBatch";
-const RECEIPT_BATCH_CALLBACK_METHOD: &str = "onReceiptBatch";
-const SERVER_ACK_BATCH_CALLBACK_METHOD: &str = "onServerAckBatch";
-const RECEIPT_BATCH_BORROWED_CALLBACK_METHOD: &str = "onReceiptBatchBorrowed";
-const SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD: &str = "onServerAckBatchBorrowed";
-const EVENT_BATCH_CALLBACK_METHOD: &str = "onEventBatch";
+include!("wasm_client/generated/events.rs");
+
 const HISTORY_SYNC_CONVERSATION_TYPES_FIELD: &str = "historySyncConversationTypes";
 
 #[inline]
@@ -887,90 +780,7 @@ impl PackedBatchChannelState {
     }
 }
 
-/// Parsed once at client creation so the hot dispatch loop never performs
-/// reflective method lookup. A plain function is the legacy control-plane
-/// shape; message and history-sync delivery requires the object form with the
-/// wire-batch methods (their events are dropped with an error log otherwise).
-struct JsEventCallbacks {
-    receiver: JsValue,
-    on_event: js_sys::Function,
-    on_message_batch: Option<js_sys::Function>,
-    on_history_sync_batch: Option<js_sys::Function>,
-    receipt_channel: PackedBatchChannelState,
-    server_ack_channel: PackedBatchChannelState,
-    on_event_batch: Option<js_sys::Function>,
-    /// Bitset of host-requested numeric sync types; `None` preserves the legacy
-    /// behavior of materializing conversations for every type.
-    history_sync_conversation_types: Option<u128>,
-}
-
 impl JsEventCallbacks {
-    fn from_js(value: JsValue) -> Result<Self, crate::errors::BridgeError> {
-        if value.is_function() {
-            return Ok(Self {
-                receiver: JsValue::NULL,
-                on_event: value.unchecked_into(),
-                on_message_batch: None,
-                on_history_sync_batch: None,
-                receipt_channel: PackedBatchChannelState::default(),
-                server_ack_channel: PackedBatchChannelState::default(),
-                on_event_batch: None,
-                history_sync_conversation_types: None,
-            });
-        }
-
-        if !value.is_object() || value.is_null() {
-            return Err(crate::errors::invalid_arg(
-                "on_event",
-                "must be a function or an object with an onEvent method",
-            ));
-        }
-
-        let on_event = js_sys::Reflect::get(&value, &EVENT_CALLBACK_METHOD.into())
-            .map_err(|_| {
-                crate::errors::invalid_arg("on_event", "could not read the onEvent method")
-            })?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| crate::errors::invalid_arg("on_event.onEvent", "must be a function"))?;
-
-        let on_message_batch = Self::optional_method(&value, MESSAGE_BATCH_CALLBACK_METHOD)?;
-        let on_history_sync_batch =
-            Self::optional_method(&value, HISTORY_SYNC_BATCH_CALLBACK_METHOD)?;
-        let receipt_channel = PackedBatchChannelState {
-            copying: Self::optional_method(&value, RECEIPT_BATCH_CALLBACK_METHOD)?,
-            borrowing: Self::optional_method(&value, RECEIPT_BATCH_BORROWED_CALLBACK_METHOD)?,
-        };
-        let server_ack_channel = PackedBatchChannelState {
-            copying: Self::optional_method(&value, SERVER_ACK_BATCH_CALLBACK_METHOD)?,
-            borrowing: Self::optional_method(&value, SERVER_ACK_BATCH_BORROWED_CALLBACK_METHOD)?,
-        };
-        let on_event_batch = Self::optional_method(&value, EVENT_BATCH_CALLBACK_METHOD)?;
-        let history_sync_conversation_types =
-            Self::optional_history_sync_conversation_types(&value)?;
-        // Surface the contract gap at registration time: dispatch drops these
-        // events later, and a host that only learns from per-event error logs
-        // under load has a much worse debugging experience.
-        if on_message_batch.is_none() {
-            log::warn!("event callbacks lack onMessageBatch; message events will be dropped");
-        }
-        if on_history_sync_batch.is_none() {
-            log::warn!(
-                "event callbacks lack onHistorySyncBatch; history-sync events will be dropped"
-            );
-        }
-
-        Ok(Self {
-            receiver: value,
-            on_event,
-            on_message_batch,
-            on_history_sync_batch,
-            receipt_channel,
-            server_ack_channel,
-            on_event_batch,
-            history_sync_conversation_types,
-        })
-    }
-
     fn optional_history_sync_conversation_types(
         receiver: &JsValue,
     ) -> Result<Option<u128>, crate::errors::BridgeError> {
@@ -1009,24 +819,6 @@ impl JsEventCallbacks {
             types |= 1u128 << value as u32;
         }
         Ok(Some(types))
-    }
-
-    fn optional_method(
-        receiver: &JsValue,
-        method: &'static str,
-    ) -> Result<Option<js_sys::Function>, crate::errors::BridgeError> {
-        let value = js_sys::Reflect::get(receiver, &method.into()).map_err(|_| {
-            crate::errors::invalid_arg(
-                "on_event",
-                format!("could not read the optional {method} method"),
-            )
-        })?;
-        if value.is_null() || value.is_undefined() {
-            return Ok(None);
-        }
-        value.dyn_into::<js_sys::Function>().map(Some).map_err(|_| {
-            crate::errors::invalid_arg(format!("on_event.{method}"), "must be a function")
-        })
     }
 
     fn call_event(&self, event: &JsValue) -> Result<JsValue, JsValue> {
@@ -1080,18 +872,6 @@ impl JsEventCallbacks {
             Event::Receipt(_) => self.receipt_channel.is_registered(),
             Event::ServerAck(_) => self.server_ack_channel.is_registered(),
             _ => false,
-        }
-    }
-
-    /// The delivery a lone segment falls back to, which is the one it would
-    /// have used had the run never been buffered.
-    fn channel_of_kind(&self, kind: u32) -> Option<(&'static str, &PackedBatchChannelState)> {
-        match kind {
-            EVENT_SEGMENT_KIND_RECEIPT => Some((ReceiptWireBatch::KIND, &self.receipt_channel)),
-            EVENT_SEGMENT_KIND_SERVER_ACK => {
-                Some((ServerAckWireBatch::KIND, &self.server_ack_channel))
-            }
-            _ => None,
         }
     }
 
@@ -1475,18 +1255,6 @@ async fn dispatch_event_to_js(
 /// `wire_batch` stay independent of the callbacks owner.
 trait PackedBatchChannel: PackedEventBatch {
     fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState;
-}
-
-impl PackedBatchChannel for ReceiptWireBatch {
-    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
-        &callbacks.receipt_channel
-    }
-}
-
-impl PackedBatchChannel for ServerAckWireBatch {
-    fn channel(callbacks: &JsEventCallbacks) -> &PackedBatchChannelState {
-        &callbacks.server_ack_channel
-    }
 }
 
 /// Coalesce an adjacent same-kind run into packed batches. The cross-kind
@@ -3856,17 +3624,6 @@ async fn send_status_message_with_options(
     Ok(result.message_id.into_string())
 }
 
-fn admin_profile_to_result(
-    profile: &whatsapp_rust::features::NewsletterAdminProfile,
-) -> crate::result_types::NewsletterAdminProfileResult {
-    crate::result_types::NewsletterAdminProfileResult {
-        id: profile.id.clone(),
-        name: profile.name.clone(),
-        picture_id: profile.picture_id.clone(),
-        picture_direct_path: profile.picture_direct_path.clone(),
-    }
-}
-
 /// The JS spelling of a core enum, written down here rather than taken from
 /// `Debug`.
 ///
@@ -4014,111 +3771,6 @@ mod enum_string_tests {
         use wacore::types::events::ConnectFailureReason as R;
 
         assert_eq!(connect_failure_reason_str(&R::Unknown(499)), "Unknown(499)");
-    }
-}
-
-/// Money crosses as a string: `amount_1000` is an i64 and a JS number is exact
-/// only below 2^53, so a large order would come out silently wrong.
-fn price_to_result(price: &whatsapp_rust::features::Price) -> crate::result_types::PriceResult {
-    crate::result_types::PriceResult {
-        amount_1000: price.amount_1000.to_string(),
-        currency: price.currency.clone(),
-    }
-}
-
-fn product_image_to_result(
-    image: &whatsapp_rust::features::ProductImage,
-) -> crate::result_types::ProductImageResult {
-    crate::result_types::ProductImageResult {
-        id: image.id.clone(),
-        request_image_url: image.request_image_url.clone(),
-        original_image_url: image.original_image_url.clone(),
-    }
-}
-
-fn product_to_result(
-    product: &whatsapp_rust::features::Product,
-) -> crate::result_types::ProductResult {
-    crate::result_types::ProductResult {
-        id: product.id.clone(),
-        retailer_id: product.retailer_id.clone(),
-        name: product.name.clone(),
-        description: product.description.clone(),
-        url: product.url.clone(),
-        shimmed_url: product.shimmed_url.clone(),
-        price: product.price.as_ref().map(price_to_result),
-        sale_price: product
-            .sale_price
-            .as_ref()
-            .map(|sale| crate::result_types::SalePriceResult {
-                price: price_to_result(&sale.price),
-                start_date: sale.start_date.clone(),
-                end_date: sale.end_date.clone(),
-            }),
-        is_hidden: product.is_hidden,
-        is_sanctioned: product.is_sanctioned,
-        max_available: product.max_available.map(|v| v as f64),
-        availability: product.availability.as_ref().map(|a| a.as_str().to_owned()),
-        review_status: product.review_status.clone(),
-        can_appeal: product.can_appeal,
-        belongs_to: product.belongs_to,
-        images: product.images.iter().map(product_image_to_result).collect(),
-        videos: product
-            .videos
-            .iter()
-            .map(|video| crate::result_types::ProductVideoResult {
-                id: video.id.clone(),
-                original_video_url: video.original_video_url.clone(),
-                thumbnail_url: video.thumbnail_url.clone(),
-            })
-            .collect(),
-        compliance_category: product.compliance_category.clone(),
-        country_code_origin: product.country_code_origin.clone(),
-        importer_name: product.importer_name.clone(),
-        importer_address: product.importer_address.as_ref().map(|address| {
-            crate::result_types::ImporterAddressResult {
-                street1: address.street1.clone(),
-                street2: address.street2.clone(),
-                city: address.city.clone(),
-                region: address.region.clone(),
-                postal_code: address.postal_code.clone(),
-                country_code: address.country_code.clone(),
-            }
-        }),
-    }
-}
-
-fn business_profile_to_result(
-    p: &wacore::iq::business::BusinessProfile,
-) -> crate::result_types::BusinessProfileResult {
-    crate::result_types::BusinessProfileResult {
-        wid: p.wid.as_ref().map(|j| j.to_string()),
-        description: p.description.clone(),
-        email: p.email.clone(),
-        website: p.website.clone(),
-        categories: p
-            .categories
-            .iter()
-            .map(|c| crate::result_types::BusinessCategoryResult {
-                id: c.id.clone(),
-                name: c.name.clone(),
-            })
-            .collect(),
-        address: p.address.clone(),
-        business_hours: crate::result_types::BusinessHoursResult {
-            timezone: p.business_hours.timezone.clone(),
-            business_config: p.business_hours.business_config.as_ref().map(|configs| {
-                configs
-                    .iter()
-                    .map(|c| crate::result_types::BusinessHoursConfigResult {
-                        day_of_week: c.day_of_week.to_string(),
-                        mode: c.mode.to_string(),
-                        open_time: c.open_time.map(f64::from),
-                        close_time: c.close_time.map(f64::from),
-                    })
-                    .collect()
-            }),
-        },
     }
 }
 
@@ -5628,6 +5280,63 @@ mod event_coverage_tests {
         assert!(
             stale.is_empty(),
             "{stale:?} name no variant of the core's `Event`"
+        );
+    }
+}
+
+#[cfg(test)]
+mod generated_event_registration_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn generated_event_getters_preserve_order_and_strict_optional_errors() {
+        let value=js_sys::eval(r#"(() => {
+            const reads=[],target={reads};
+            for(const name of ['onEvent','onMessageBatch','onHistorySyncBatch','onReceiptBatch','onReceiptBatchBorrowed','onServerAckBatch','onServerAckBatchBorrowed','onEventBatch']) {
+                Object.defineProperty(target,name,{get(){reads.push(name);return ()=>{};}});
+            }
+            Object.defineProperty(target,'historySyncConversationTypes',{get(){reads.push('historySyncConversationTypes');return [];}});
+            return target;
+        })()"#).unwrap();
+        let callbacks = JsEventCallbacks::from_js(value.clone()).unwrap();
+        assert_eq!(callbacks.receiver, value);
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(
+            reads,
+            [
+                "onEvent",
+                "onMessageBatch",
+                "onHistorySyncBatch",
+                "onReceiptBatch",
+                "onReceiptBatchBorrowed",
+                "onServerAckBatch",
+                "onServerAckBatchBorrowed",
+                "onEventBatch",
+                "historySyncConversationTypes"
+            ]
+        );
+        let value = js_sys::eval(
+            "({onEvent(){},get onReceiptBatch(){throw new Error('strict optional');}})",
+        )
+        .unwrap();
+        let error = JsEventCallbacks::from_js(value).err().unwrap();
+        assert!(
+            matches!(error,crate::errors::BridgeError::InvalidArgument{field,reason} if field=="on_event" && reason=="could not read the optional onReceiptBatch method")
+        );
+        let value = js_sys::eval("({onEvent(){},onReceiptBatch:42})").unwrap();
+        let error = JsEventCallbacks::from_js(value).err().unwrap();
+        assert!(
+            matches!(error,crate::errors::BridgeError::InvalidArgument{field,reason} if field=="on_event.onReceiptBatch" && reason=="must be a function")
+        );
+        let callback = js_sys::Function::new_no_args("");
+        assert!(
+            JsEventCallbacks::from_js(callback.into())
+                .unwrap()
+                .receiver
+                .is_null()
         );
     }
 }

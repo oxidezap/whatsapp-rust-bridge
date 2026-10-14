@@ -227,12 +227,8 @@ impl WasmWhatsAppClient {
     {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let info = client.newsletter().get_admin_info(&target).await?;
-        to_ts(crate::result_types::NewsletterAdminInfoResult {
-            admin_count: info.admin_count.map(f64::from),
-            admin_profile: info.admin_profile.as_ref().map(admin_profile_to_result),
-            admin_profiles_enabled: info.admin_profiles_enabled,
-        })
+        let value = client.newsletter().get_admin_info(&target).await?;
+        to_ts(crate::result_types::project_newsletter_admin_info(&value))
     }
     #[doc = r" Fetch up to `count` followers of a newsletter."]
     #[doc = r""]
@@ -258,7 +254,10 @@ impl WasmWhatsAppClient {
                     username: follower.username.clone(),
                     role: follower.role.as_ref().map(newsletter_role_str),
                     follow_time: follower.follow_time.map(|v| v as f64),
-                    admin_profile: follower.admin_profile.as_ref().map(admin_profile_to_result),
+                    admin_profile: follower
+                        .admin_profile
+                        .as_ref()
+                        .map(crate::result_types::project_newsletter_admin_profile),
                 })
                 .collect(),
         )
@@ -327,7 +326,10 @@ impl WasmWhatsAppClient {
                         .as_ref()
                         .map(|v| v.as_str().to_owned()),
                     is_wamo_sub: message.is_wamo_sub,
-                    admin_profile: message.admin_profile.as_ref().map(admin_profile_to_result),
+                    admin_profile: message
+                        .admin_profile
+                        .as_ref()
+                        .map(crate::result_types::project_newsletter_admin_profile),
                     rcat: message.rcat.clone().map(serde_bytes::ByteBuf::from),
                     message: message
                         .message
@@ -336,10 +338,7 @@ impl WasmWhatsAppClient {
                     reactions: message
                         .reactions
                         .iter()
-                        .map(|r| crate::result_types::NewsletterReactionCountResult {
-                            code: r.code.clone(),
-                            count: r.count as f64,
-                        })
+                        .map(crate::result_types::project_newsletter_reaction_count)
                         .collect(),
                 })
                 .collect(),

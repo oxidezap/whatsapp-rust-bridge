@@ -21,11 +21,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.get_business_profile(&target_jid)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(profile),
-                expression: parse_quote!(to_ts_opt(
-                    profile.map(|p| business_profile_to_result(&p))
-                )),
+            output: ReturnAdapter::Dto {
+                projection: Projection::BusinessProfile,
+                envelope: Envelope::Optional,
             },
         },
         Operation {
@@ -52,37 +50,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             }],
             admission: Admission::Online,
             call: parse_quote!(client.business().get_order(&target, order_id, token)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(order),
-                expression: parse_quote!(to_ts(crate::result_types::OrderResult {
-                    products: order
-                        .products
-                        .iter()
-                        .map(|product| crate::result_types::OrderProductResult {
-                            id: product.id.clone(),
-                            name: product.name.clone(),
-                            price: product.price.as_ref().map(price_to_result),
-                            quantity: product.quantity.map(|q| q as f64),
-                            images: product.images.iter().map(product_image_to_result).collect(),
-                            variant_properties: product
-                                .variant_properties
-                                .iter()
-                                .map(|v| crate::result_types::VariantPropertyResult {
-                                    name: v.name.clone(),
-                                    value: v.value.clone(),
-                                })
-                                .collect(),
-                        })
-                        .collect(),
-                    price_details: order.price_details.as_ref().map(|details| {
-                        crate::result_types::OrderPriceDetailsResult {
-                            currency: details.currency.clone(),
-                            subtotal: details.subtotal.as_ref().map(price_to_result),
-                            total: details.total.as_ref().map(price_to_result),
-                        }
-                    }),
-                    creation_timestamp: order.creation_timestamp.map(|t| t as f64),
-                })),
+            output: ReturnAdapter::Dto {
+                projection: Projection::Order,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -152,15 +122,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.business().get_catalog(&target, &opts)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(catalog),
-                body: parse_quote!({
-                    to_ts(crate::result_types::CatalogResult {
-                        products: catalog.products.iter().map(product_to_result).collect(),
-                        after_cursor: catalog.after_cursor.clone(),
-                        before_cursor: catalog.before_cursor.clone(),
-                    })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::Catalog,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -210,30 +174,9 @@ pub(super) fn catalog() -> Vec<Operation> {
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.business().get_collections(&target, &opts)),
-            output: ReturnAdapter::ProjectBlock {
-                binding: parse_quote!(collections),
-                body: parse_quote!({
-                    to_ts(crate::result_types::CollectionsResult {
-                        collections: collections
-                            .collections
-                            .iter()
-                            .map(|collection| crate::result_types::CollectionResult {
-                                id: collection.id.clone(),
-                                name: collection.name.clone(),
-                                products: collection
-                                    .products
-                                    .iter()
-                                    .map(product_to_result)
-                                    .collect(),
-                                review_status: collection.review_status.clone(),
-                                can_appeal: collection.can_appeal,
-                                reject_reason: collection.reject_reason.clone(),
-                                commerce_url: collection.commerce_url.clone(),
-                            })
-                            .collect(),
-                        after_cursor: collections.after_cursor.clone(),
-                    })
-                }),
+            output: ReturnAdapter::Dto {
+                projection: Projection::Collections,
+                envelope: Envelope::Value,
             },
         },
         Operation {

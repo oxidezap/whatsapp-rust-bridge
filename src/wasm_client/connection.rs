@@ -198,107 +198,6 @@ impl WasmWhatsAppClient {
             }
         })
     }
-
-    fn prepare_disconnect(
-        &self,
-    ) -> impl std::future::Future<Output = Result<JsValue, JsValue>> + use<> + 'static {
-        let admission = self.teardown_gate.admit();
-        if matches!(&admission, TeardownAdmission::Waiting(_)) {
-            self.transport_callback_state.cancel_disconnect_wait();
-        }
-        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
-        let teardown_gate = self.teardown_gate.clone();
-        let teardown_kind = self.teardown_kind.clone();
-        let saver_handle = self.saver_handle.clone();
-        let connection_handle = self.connection_handle.clone();
-        let connection_established = self.connection_established.clone();
-        let sync_worker_handle = self.sync_worker_handle.clone();
-
-        async move {
-            match admission {
-                TeardownAdmission::Owner => {
-                    teardown_kind.store(TEARDOWN_DISCONNECT, std::sync::atomic::Ordering::Release);
-                }
-                TeardownAdmission::Waiting(waiter) => {
-                    let _ = waiter.await;
-                    return Ok(JsValue::UNDEFINED);
-                }
-                TeardownAdmission::Complete => return Ok(JsValue::UNDEFINED),
-            }
-
-            client.shutdown().await;
-            abort_teardown_task(&saver_handle);
-            if !connection_established.load(std::sync::atomic::Ordering::Acquire) {
-                abort_teardown_task(&connection_handle);
-            }
-            abort_teardown_task(&sync_worker_handle);
-            teardown_gate.complete();
-            Ok(JsValue::UNDEFINED)
-        }
-    }
-
-    fn prepare_logout(
-        &self,
-    ) -> impl std::future::Future<Output = Result<JsValue, JsValue>> + use<> + 'static {
-        let teardown_gate = self.teardown_gate.clone();
-        let admission = teardown_gate.admit();
-        if matches!(&admission, TeardownAdmission::Waiting(_)) {
-            self.transport_callback_state.cancel_disconnect_wait();
-        }
-        let owns_teardown = matches!(&admission, TeardownAdmission::Owner);
-        if owns_teardown {
-            self.teardown_kind
-                .store(TEARDOWN_LOGOUT, std::sync::atomic::Ordering::Release);
-        }
-        let client = self.client.unwaited(Unwaited::ThisSocket).clone();
-        let teardown_kind = self.teardown_kind.clone();
-        let saver_handle = self.saver_handle.clone();
-        let sync_worker_handle = self.sync_worker_handle.clone();
-        let run_handle = self.run_handle.clone();
-        let connection_handle = self.connection_handle.clone();
-        let connection_established = self.connection_established.clone();
-
-        async move {
-            match admission {
-                TeardownAdmission::Owner => {}
-                TeardownAdmission::Waiting(waiter) => {
-                    let _ = waiter.await;
-                    if teardown_kind.load(std::sync::atomic::Ordering::Acquire) == TEARDOWN_LOGOUT {
-                        return Ok(JsValue::UNDEFINED);
-                    }
-                    return Err(bridge_error_to_js_value(
-                        &crate::errors::BridgeError::NotConnected,
-                    ));
-                }
-                TeardownAdmission::Complete => {
-                    if teardown_kind.load(std::sync::atomic::Ordering::Acquire) == TEARDOWN_LOGOUT {
-                        return Ok(JsValue::UNDEFINED);
-                    }
-                    return Err(bridge_error_to_js_value(
-                        &crate::errors::BridgeError::NotConnected,
-                    ));
-                }
-            }
-            debug_assert_eq!(
-                teardown_kind.load(std::sync::atomic::Ordering::Acquire),
-                TEARDOWN_LOGOUT
-            );
-            client.logout().await;
-            abort_teardown_task(&saver_handle);
-            abort_teardown_task(&sync_worker_handle);
-            // The core shutdown lets supervision and an established reader
-            // publish their normal terminal outcomes. A pending handshake has
-            // no transport to finish and must be aborted instead.
-            detach_teardown_task(&run_handle);
-            if connection_established.load(std::sync::atomic::Ordering::Acquire) {
-                detach_teardown_task(&connection_handle);
-            } else {
-                abort_teardown_task(&connection_handle);
-            }
-            teardown_gate.complete();
-            Ok(JsValue::UNDEFINED)
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -810,3 +709,5 @@ mod run_completion_tests {
 }
 
 include!("generated/connection.rs");
+
+include!("generated/teardown.rs");

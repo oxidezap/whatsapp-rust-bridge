@@ -133,10 +133,10 @@ impl WasmWhatsAppClient {
         &self,
         jids: Vec<String>,
     ) -> Result<JsValue, crate::errors::BridgeError> {
-        let parsed_jids: Vec<Jid> = jids
+        let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|j| parse_jid(j))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|jid| parse_jid(jid))
+            .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
         let result = client.contacts().get_user_info(&parsed_jids).await?;
         let obj = js_sys::Object::new();
@@ -178,12 +178,8 @@ impl WasmWhatsAppClient {
     ) -> Result<Option<Ts<crate::result_types::OwnUsernameResult>>, crate::errors::BridgeError>
     {
         let client = self.client.online().await?;
-        let own = client.mex().get_username().await?;
-        to_ts_opt(own.map(|own| crate::result_types::OwnUsernameResult {
-            username: own.username,
-            state: own.state,
-            key: own.key,
-        }))
+        let value = client.mex().get_username().await?;
+        to_ts_opt(value.map(crate::result_types::project_own_username))
     }
     #[doc = r" Set the profile picture for the logged-in user."]
     # [wasm_bindgen (js_name = updateProfilePicture)]
@@ -192,8 +188,8 @@ impl WasmWhatsAppClient {
         img_data: Vec<u8>,
     ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let result = client.profile().set_profile_picture(img_data).await?;
-        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
+        let value = client.profile().set_profile_picture(img_data).await?;
+        to_ts(crate::result_types::project_profile_picture(value))
     }
     #[doc = r" Remove the profile picture for the logged-in user."]
     # [wasm_bindgen (js_name = removeProfilePicture)]
@@ -201,8 +197,8 @@ impl WasmWhatsAppClient {
         &self,
     ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
         let client = self.client.online().await?;
-        let result = client.profile().remove_profile_picture().await?;
-        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
+        let value = client.profile().remove_profile_picture().await?;
+        to_ts(crate::result_types::project_profile_picture(value))
     }
     #[doc = r" Set the profile picture for a group the user administers."]
     #[doc = r""]
@@ -224,12 +220,12 @@ impl WasmWhatsAppClient {
             ));
         }
         let client = self.client.online().await?;
-        let result = client
+        let value = client
             .execute(wacore::iq::contacts::SetProfilePictureSpec::set_group(
                 &target, img_data,
             ))
             .await?;
-        to_ts(crate::result_types::ProfilePictureResult { id: result.id })
+        to_ts(crate::result_types::project_profile_picture(value))
     }
     #[doc = r" Remove a group's profile picture."]
     # [wasm_bindgen (js_name = removeGroupProfilePicture)]
@@ -273,14 +269,11 @@ impl WasmWhatsAppClient {
     ) -> Result<Vec<Ts<crate::result_types::BlocklistEntryResult>>, crate::errors::BridgeError>
     {
         let client = self.client.online().await?;
-        let entries = client.blocking().get_blocklist().await?;
+        let value = client.blocking().get_blocklist().await?;
         to_ts_vec(
-            entries
+            value
                 .iter()
-                .map(|e| crate::result_types::BlocklistEntryResult {
-                    jid: e.jid.to_string(),
-                    timestamp: e.timestamp.map(|v| v as f64),
-                })
+                .map(crate::result_types::project_blocklist_entry)
                 .collect(),
         )
     }
@@ -357,19 +350,16 @@ impl WasmWhatsAppClient {
         &self,
         jids: Vec<String>,
     ) -> Result<Vec<Ts<crate::result_types::FetchStatusResult>>, crate::errors::BridgeError> {
-        let parsed_jids: Vec<Jid> = jids
+        let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
             .iter()
-            .map(|s| parse_jid(s))
+            .map(|jid| parse_jid(jid))
             .collect::<Result<_, _>>()?;
         let client = self.client.online().await?;
-        let infos = client.contacts().get_user_info(&parsed_jids).await?;
+        let value = client.contacts().get_user_info(&parsed_jids).await?;
         to_ts_vec(
-            infos
+            value
                 .values()
-                .map(|info| crate::result_types::FetchStatusResult {
-                    jid: info.jid.to_string(),
-                    status: info.status.clone(),
-                })
+                .map(crate::result_types::project_fetch_status)
                 .collect(),
         )
     }

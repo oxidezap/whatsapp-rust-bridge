@@ -1,5 +1,6 @@
 //! Compile-time bindings for the concrete client operations. The catalog owns
 //! admission and boundary projections; Rust still checks every emitted call.
+use crate::projections::{Envelope, Projection};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use std::collections::BTreeSet;
@@ -32,6 +33,25 @@ pub struct Operation {
 }
 
 enum Input {
+    Jids {
+        binding: Ident,
+        value: Expr,
+    },
+    Into {
+        binding: Ident,
+        ty: syn::Type,
+        value: Expr,
+    },
+    Node {
+        binding: Ident,
+        input: Ident,
+    },
+    Timeout {
+        binding: Ident,
+        field: syn::LitStr,
+        value: Expr,
+        optional: bool,
+    },
     Jid {
         binding: Ident,
         value: Expr,
@@ -62,6 +82,27 @@ enum Input {
 impl Input {
     fn emit(&self) -> TokenStream {
         match self {
+            Self::Jids { binding, value } => {
+                quote!(let #binding:Vec<wacore_binary::jid::Jid>=#value.iter().map(|jid|parse_jid(jid)).collect::<Result<_,_>>()?;)
+            }
+            Self::Into { binding, ty, value } => quote!(let #binding:#ty=#value.into();),
+            Self::Node { binding, input } => {
+                quote!(let #input:JsValue=#input.into();let #binding=js_to_node(&#input)?;)
+            }
+            Self::Timeout {
+                binding,
+                field,
+                value,
+                optional,
+            } => {
+                let helper = if *optional {
+                    parse_quote!(parse_optional_timeout_ms)
+                } else {
+                    parse_quote!(parse_timeout_ms)
+                };
+                let helper: Ident = helper;
+                quote!(let #binding=#helper(#field,#value)?;)
+            }
             Self::Jid { binding, value } => quote!(let #binding = parse_jid(#value)?;),
             Self::Decode {
                 binding,
@@ -139,11 +180,21 @@ enum Unwaited {
 }
 
 enum ReturnAdapter {
+    Dto {
+        projection: Projection,
+        envelope: Envelope,
+    },
     MapError,
     Direct,
     Unit,
-    ProjectBlock { binding: syn::Pat, body: Block },
-    Project { binding: Ident, expression: Expr },
+    ProjectBlock {
+        binding: syn::Pat,
+        body: Block,
+    },
+    Project {
+        binding: Ident,
+        expression: Expr,
+    },
 }
 
 fn attributes(tokens: TokenStream) -> Vec<Attribute> {
@@ -380,6 +431,37 @@ impl<'ast> Visit<'ast> for BoundaryAccess {
 impl AdmissionAdapter {
     fn validate(&self, operation: &Operation) -> Result<(), String> {
         let name = operation.signature.ident.to_string();
+        let expected: Option<Expr> = match self {
+            Self::Lifecycle => Some(match name.as_str() {
+                "run" => parse_quote!(self.execute_run()),
+                "connect" => parse_quote!(self.prepare_connect()),
+                "disconnect" => parse_quote!(self.prepare_disconnect()),
+                "logout" => parse_quote!(self.prepare_logout()),
+                "wait_for_run_completion" => parse_quote!(self.prepare_wait_for_run_completion()),
+                _ => return Err("unknown lifecycle adapter".into()),
+            }),
+            Self::StreamEncryption => Some(parse_quote!(encrypt_stream(input, output, mt))),
+            Self::StreamingRetry => Some(parse_quote!(upload_encrypted_stream(
+                &self.client,
+                get_body,
+                media_key,
+                file_sha256,
+                file_enc_sha256,
+                file_length,
+                mt
+            ))),
+            Self::RawForwarding => {
+                Some(parse_quote!(self.execute_set_raw_node_forwarding(enabled)))
+            }
+            _ => None,
+        };
+        if let Some(expected) = expected
+            && expected.to_token_stream().to_string()
+                != operation.call.to_token_stream().to_string()
+        {
+            return Err("registered adapter invocation differs from its declared contract".into());
+        }
+
         let allowed: &[&str] = match self {
             Self::Lifecycle => &[
                 "run",
@@ -492,6 +574,13 @@ impl Operation {
             });
         }
         let output = match &self.output {
+            ReturnAdapter::Dto {
+                projection,
+                envelope,
+            } => {
+                let output = projection.envelope(*envelope, quote!(value));
+                quote!(let value = #projected_call; #output)
+            }
             ReturnAdapter::MapError => {
                 quote!(#call.map_err(crate::errors::BridgeError::from))
             }

@@ -24,19 +24,9 @@ pub(super) fn catalog() -> Vec<Operation> {
                 otherwise: Unwaited::Cached,
             },
             call: parse_quote!(client.refresh_media_conn(force)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(conn),
-                expression: parse_quote!(to_ts(crate::result_types::MediaConnResult {
-                    auth: conn.auth.clone(),
-                    ttl: conn.ttl as f64,
-                    hosts: conn
-                        .hosts
-                        .iter()
-                        .map(|h| crate::result_types::MediaHost {
-                            hostname: h.hostname.clone(),
-                        })
-                        .collect(),
-                })),
+            output: ReturnAdapter::Dto {
+                projection: Projection::MediaConn,
+                envelope: Envelope::Value,
             },
         },
         Operation {
@@ -65,9 +55,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("media_type"),
                     value: parse_quote!(media_type),
                 },
-                Input::Convert(parse_quote!({
-                    let mt: wacore::download::MediaType = media_type.into();
-                })),
+                Input::Into {
+                    binding: parse_quote!(mt),
+                    ty: parse_quote!(wacore::download::MediaType),
+                    value: parse_quote!(media_type),
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -109,9 +101,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("media_type"),
                     value: parse_quote!(media_type),
                 },
-                Input::Convert(parse_quote!({
-                    let mt: wacore::download::MediaType = media_type.into();
-                })),
+                Input::Into {
+                    binding: parse_quote!(mt),
+                    ty: parse_quote!(wacore::download::MediaType),
+                    value: parse_quote!(media_type),
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::AwaitFallible,
@@ -281,9 +275,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("media_type"),
                     value: parse_quote!(media_type),
                 },
-                Input::Convert(parse_quote!({
-                    let mt: wacore::download::MediaType = media_type.into();
-                })),
+                Input::Into {
+                    binding: parse_quote!(mt),
+                    ty: parse_quote!(wacore::download::MediaType),
+                    value: parse_quote!(media_type),
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
@@ -318,9 +314,11 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("media_type"),
                     value: parse_quote!(media_type),
                 },
-                Input::Convert(parse_quote!({
-                    let mt: wacore::download::MediaType = media_type.into();
-                })),
+                Input::Into {
+                    binding: parse_quote!(mt),
+                    ty: parse_quote!(wacore::download::MediaType),
+                    value: parse_quote!(media_type),
+                },
             ],
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
