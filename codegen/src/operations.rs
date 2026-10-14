@@ -600,6 +600,84 @@ pub fn emit(domain: &Domain) -> TokenStream {
 mod tests {
     use super::*;
 
+    struct TemporaryFixture {
+        root: std::path::PathBuf,
+        crate_name: &'static str,
+    }
+
+    impl TemporaryFixture {
+        fn new(crate_name: &'static str) -> Self {
+            static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+            loop {
+                let sequence = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let root = std::env::temp_dir().join(format!(
+                    "bridge-codegen-{crate_name}-{}-{sequence}",
+                    std::process::id()
+                ));
+                match std::fs::create_dir(&root) {
+                    Ok(()) => return Self { root, crate_name },
+                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                    Err(error) => panic!("create fixture directory: {error}"),
+                }
+            }
+        }
+    }
+
+    impl Drop for TemporaryFixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
+
+    fn compile_and_run_fixture(fixture: TemporaryFixture, source: &str) {
+        let path = fixture.root.join("fixture.rs");
+        let binary = fixture.root.join("fixture");
+        std::fs::write(&path, source).unwrap();
+        let compiler = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let compiled = std::process::Command::new(compiler)
+            .args(["--edition=2024", "--crate-name", fixture.crate_name])
+            .arg(&path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let result = std::process::Command::new(&binary).output().unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+    }
+
+    #[test]
+    fn fixture_directory_is_removed_when_compilation_fails() {
+        let fixture = TemporaryFixture::new("invalid_fixture");
+        let path = fixture.root.clone();
+        let failed = std::panic::catch_unwind(|| {
+            compile_and_run_fixture(
+                fixture,
+                "compile_error!(\"intentional fixture failure\"); fn main() {}",
+            );
+        });
+        let failure = failed.expect_err("invalid fixture unexpectedly compiled");
+        let diagnostic = failure
+            .downcast_ref::<String>()
+            .expect("compiler diagnostic");
+        assert!(
+            diagnostic.contains("intentional fixture failure"),
+            "{diagnostic}"
+        );
+        assert!(
+            !path.exists(),
+            "compile failure leaked its fixture directory"
+        );
+    }
+
     #[test]
     fn duplicate_exports_cannot_silently_replace_an_operation() {
         let mut domains = catalog();
@@ -705,31 +783,7 @@ mod tests {
             fixture,
             quote!(#(#methods)*)
         );
-        let root = std::env::temp_dir().join(format!("bridge-receipts-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let path = root.join("receipt.rs");
-        let binary = root.join("receipt");
-        std::fs::write(&path, source).unwrap();
-        let compiler = std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into());
-        let compiled = std::process::Command::new(compiler)
-            .args(["--edition=2024", "--crate-name=receipt_fixture"])
-            .arg(&path)
-            .arg("-o")
-            .arg(&binary)
-            .output()
-            .unwrap();
-        assert!(
-            compiled.status.success(),
-            "{}",
-            String::from_utf8_lossy(&compiled.stderr)
-        );
-        let result = std::process::Command::new(&binary).output().unwrap();
-        let _ = std::fs::remove_dir_all(&root);
-        assert!(
-            result.status.success(),
-            "{}",
-            String::from_utf8_lossy(&result.stderr)
-        );
+        compile_and_run_fixture(TemporaryFixture::new("receipt_fixture"), &source);
     }
 
     #[test]
@@ -805,29 +859,6 @@ mod tests {
             panic!("generated send result codec")
         };
         source = source.replace("__MESSAGE_ID__", &codec.emit(quote!(result)).to_string());
-        let root = std::env::temp_dir().join(format!("bridge-codecs-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let path = root.join("codecs.rs");
-        let binary = root.join("codecs");
-        std::fs::write(&path, source).unwrap();
-        let compiled = std::process::Command::new("rustc")
-            .args(["--edition", "2024", "--crate-name", "codec_fixture"])
-            .arg(&path)
-            .arg("-o")
-            .arg(&binary)
-            .output()
-            .unwrap();
-        assert!(
-            compiled.status.success(),
-            "{}",
-            String::from_utf8_lossy(&compiled.stderr)
-        );
-        let result = std::process::Command::new(&binary).output().unwrap();
-        let _ = std::fs::remove_dir_all(&root);
-        assert!(
-            result.status.success(),
-            "{}",
-            String::from_utf8_lossy(&result.stderr)
-        );
+        compile_and_run_fixture(TemporaryFixture::new("codec_fixture"), &source);
     }
 }
