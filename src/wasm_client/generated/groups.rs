@@ -122,8 +122,11 @@ impl WasmWhatsAppClient {
     pub async fn deactivate_community(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
         let target = parse_jid(jid)?;
         let client = self.client.online().await?;
-        let result = client.community().deactivate(target).await?;
-        Ok(())
+        client
+            .community()
+            .deactivate(target)
+            .await
+            .map_err(crate::errors::BridgeError::from)
     }
     #[doc = r" Link existing groups to a parent group."]
     # [wasm_bindgen (js_name = linkCommunitySubgroups)]

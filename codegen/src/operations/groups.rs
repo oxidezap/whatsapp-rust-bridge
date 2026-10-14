@@ -156,10 +156,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             }),
             admission: Admission::Online,
             call: parse_quote!(client.community().deactivate(target)),
-            output: ReturnAdapter::Project {
-                binding: parse_quote!(result),
-                expression: parse_quote!(Ok(())),
-            },
+            output: ReturnAdapter::MapError,
         },
         Operation {
             attributes: attributes(quote!(/// Link existing groups to a parent group.
