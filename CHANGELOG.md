@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.0...v0.26.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for media budgets and local runtimes ([#149](https://github.com/oxidezap/whatsapp-rust-bridge/issues/149)) ([b933c2a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/b933c2a5f8203c7e47122d4b2da0519aadddfc2e))
+
 ## [0.26.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.25.0...v0.26.0) (2026-10-14)
 
 
