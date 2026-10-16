@@ -81,7 +81,7 @@ test("owned download preparation names the malformed metadata for both download 
   }
 });
 
-test("both download APIs still accept a buffered HTTP adapter without byte limits", async () => {
+test("buffered download APIs reach the offline session check without a byte policy rejection", async () => {
   let requests = 0;
   const value = await createWhatsAppClient(
     { connect() {}, send() {}, disconnect() {} },
@@ -92,12 +92,10 @@ test("both download APIs still accept a buffered HTTP adapter without byte limit
   );
   const args = ["/path", new Uint8Array(32), new Uint8Array(32), new Uint8Array(32), 1, "image"] as const;
   try {
-    await expect(value.downloadMedia(...args)).rejects.toBeDefined();
-    expect(requests).toBeGreaterThan(0);
-    requests = 0;
+    await expect(value.downloadMedia(...args)).rejects.toMatchObject({ kind: "not-connected" });
     const stream = value.downloadMediaStream(...args);
-    await expect(stream.getReader().read()).rejects.toBeDefined();
-    expect(requests).toBeGreaterThan(0);
+    await expect(stream.getReader().read()).rejects.toContain("failed to obtain media session");
+    expect(requests).toBe(0);
   } finally {
     value.free();
   }
