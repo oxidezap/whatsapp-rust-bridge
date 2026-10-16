@@ -240,12 +240,19 @@ impl BridgeError {
                 }
             }
             // ── Generic wrapper: remember first hit, keep walking ────────
-            else if storage_fallback.is_none()
-                && let Some(se) = c.downcast_ref::<wacore::store::error::StoreError>()
-            {
-                storage_fallback = Some(BridgeError::Storage {
-                    operation: se.to_string(),
-                });
+            else if let Some(se) = c.downcast_ref::<wacore::store::error::StoreError>() {
+                let storage = BridgeError::Storage {
+                    operation: display_chain(se),
+                };
+                if matches!(
+                    se,
+                    wacore::store::error::StoreError::RetriesExhausted { .. }
+                ) {
+                    return storage;
+                }
+                if storage_fallback.is_none() {
+                    storage_fallback = Some(storage);
+                }
             }
 
             cur = c.source();
@@ -1880,5 +1887,41 @@ mod tests {
             }
             other => panic!("expected Storage, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn exhausted_storage_retries_keep_attempts_and_last_cause() {
+        let error = wacore::store::error::StoreError::RetriesExhausted {
+            op: "flush".into(),
+            attempts: 4,
+            source: Box::new(std::io::Error::other("database locked")),
+        };
+        let bridge = BridgeError::from_error_chain(&error);
+        let payload = payload_of(&bridge);
+        assert_eq!(payload["kind"], "storage");
+        assert_eq!(
+            payload["operation"],
+            "database operation 'flush' exhausted retries after 4 attempts: database locked"
+        );
+    }
+
+    #[test]
+    fn nested_exhausted_retries_keep_known_callback_diagnostics() {
+        use wacore::store::error::StoreError;
+        let error = StoreError::Database(Box::new(StoreError::RetriesExhausted {
+            op: "flush".into(),
+            attempts: 4,
+            source: Box::new(crate::js_backend::JsCallbackError {
+                context: "setMany",
+                message: "database locked".into(),
+            }),
+        }));
+        let bridge = BridgeError::from_error_chain(&error);
+        let payload = payload_of(&bridge);
+        assert_eq!(payload["kind"], "storage");
+        assert_eq!(
+            payload["operation"],
+            "database operation 'flush' exhausted retries after 4 attempts: JS setMany: database locked"
+        );
     }
 }

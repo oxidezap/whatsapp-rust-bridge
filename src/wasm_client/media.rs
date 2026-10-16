@@ -25,7 +25,9 @@ fn download_stream(
     )
     .map_err(crate::errors::download_preparation_error)?;
     Ok(buffered_download_stream(async move {
-        client.download(&params).await
+        client
+            .download(&params, whatsapp_rust::download::DownloadLimits::default())
+            .await
     }))
 }
 

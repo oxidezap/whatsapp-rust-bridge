@@ -25,6 +25,7 @@ use futures::channel::oneshot;
 use log::info;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
@@ -2323,16 +2324,18 @@ pub async fn create_whatsapp_client(
         let instrument = Arc::new(crate::memory_profile::CoreTaskInstrument::new(
             meter.clone(),
         )) as Arc<dyn wacore::stats::TaskInstrument>;
+        // The core runtime contract requires Arc even for local WASM executors.
+        #[allow(clippy::arc_with_non_send_sync)]
         let metered_runtime = Arc::new(wacore::stats::InstrumentedRuntime::new(
             base_runtime,
             instrument,
         )) as Arc<dyn wacore::runtime::Runtime>;
-        (
-            Arc::new(crate::memory_profile::TraceContextRuntime::new(
-                metered_runtime,
-            )),
-            Some(meter),
-        )
+        // The decorator crosses the same Arc<dyn Runtime> core boundary.
+        #[allow(clippy::arc_with_non_send_sync)]
+        let runtime = Arc::new(crate::memory_profile::TraceContextRuntime::new(
+            metered_runtime,
+        ));
+        (runtime, Some(meter))
     };
     #[cfg(not(feature = "memory-profiling"))]
     let (runtime, alloc_meter): (
@@ -2420,11 +2423,11 @@ pub async fn create_whatsapp_client(
         runtime,
         run_observation: Arc::new(Mutex::new(RunObservation::default())),
         sync_rx: Some(sync_rx),
-        saver_handle: Arc::new(Mutex::new(Some(saver_handle))),
-        run_handle: Arc::new(Mutex::new(None)),
-        connection_handle: Arc::new(Mutex::new(None)),
+        saver_handle: Rc::new(RefCell::new(Some(saver_handle))),
+        run_handle: Rc::new(RefCell::new(None)),
+        connection_handle: Rc::new(RefCell::new(None)),
         connection_established: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        sync_worker_handle: Arc::new(Mutex::new(None)),
+        sync_worker_handle: Rc::new(RefCell::new(None)),
         _event_subscription: event_subscription,
         raw_node_lease: Mutex::new(None),
         teardown_gate: Arc::new(TeardownGate::new()),
@@ -2775,19 +2778,19 @@ pub struct WasmWhatsAppClient {
     /// Handle to the bridge-owned background saver task. Aborted on
     /// `disconnect()` so the in-flight 5s `sleep` doesn't keep the Node.js
     /// event loop alive.
-    saver_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
+    saver_handle: Rc<RefCell<Option<wacore::runtime::AbortHandle>>>,
     /// Spawned by `run()`; aborted on `Drop` so a `free()` without prior
     /// `disconnect()` doesn't leave the loop polling against the dropped
     /// wrapper.
-    run_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
+    run_handle: Rc<RefCell<Option<wacore::runtime::AbortHandle>>>,
     /// Spawned by `connect()` to read the single connection it established.
     /// Aborted on `Drop` for the same reason as `run_handle`.
-    connection_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
+    connection_handle: Rc<RefCell<Option<wacore::runtime::AbortHandle>>>,
     /// Whether the manual `connect()` task completed its handshake. A pending
     /// handshake is aborted by the explicit disconnect barrier; an established
     /// reader is allowed to observe the core's normal shutdown.
     connection_established: Arc<std::sync::atomic::AtomicBool>,
-    sync_worker_handle: Arc<Mutex<Option<wacore::runtime::AbortHandle>>>,
+    sync_worker_handle: Rc<RefCell<Option<wacore::runtime::AbortHandle>>>,
     /// Ownership token for the JS event sink. Dropping the wrapper removes the
     /// handler from the core event bus.
     _event_subscription: Option<wacore::types::events::Subscription>,
@@ -2854,7 +2857,8 @@ impl Drop for WasmWhatsAppClient {
                 &self.connection_handle,
                 &self.sync_worker_handle,
             ] {
-                if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+                let handle = slot.borrow_mut().take();
+                if let Some(handle) = handle {
                     handle.abort();
                 }
             }

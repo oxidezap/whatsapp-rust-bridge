@@ -80,3 +80,23 @@ test("owned download preparation names the malformed metadata for both download 
     value.free();
   }
 });
+
+test("buffered download APIs reach the offline session check without a byte policy rejection", async () => {
+  let requests = 0;
+  const value = await createWhatsAppClient(
+    { connect() {}, send() {}, disconnect() {} },
+    { async execute() {
+      requests++;
+      return { statusCode: 404, body: new Uint8Array() };
+    } },
+  );
+  const args = ["/path", new Uint8Array(32), new Uint8Array(32), new Uint8Array(32), 1, "image"] as const;
+  try {
+    await expect(value.downloadMedia(...args)).rejects.toMatchObject({ kind: "not-connected" });
+    const stream = value.downloadMediaStream(...args);
+    await expect(stream.getReader().read()).rejects.toContain("failed to obtain media session");
+    expect(requests).toBe(0);
+  } finally {
+    value.free();
+  }
+});

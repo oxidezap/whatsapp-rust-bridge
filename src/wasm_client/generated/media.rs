@@ -46,6 +46,7 @@ impl WasmWhatsAppClient {
                     mt,
                 )
                 .map_err(crate::errors::download_preparation_error)?,
+                whatsapp_rust::download::DownloadLimits::default(),
             )
             .await?;
         Ok(js_sys::Uint8Array::from(value.as_slice()))
