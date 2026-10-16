@@ -6,14 +6,16 @@
 
 use super::*;
 
-fn abort_teardown_task(slot: &Arc<Mutex<Option<wacore::runtime::AbortHandle>>>) {
-    if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+fn abort_teardown_task(slot: &Rc<RefCell<Option<wacore::runtime::AbortHandle>>>) {
+    let handle = slot.borrow_mut().take();
+    if let Some(handle) = handle {
         handle.abort();
     }
 }
 
-fn detach_teardown_task(slot: &Arc<Mutex<Option<wacore::runtime::AbortHandle>>>) {
-    if let Some(handle) = slot.lock().unwrap_or_else(|e| e.into_inner()).take() {
+fn detach_teardown_task(slot: &Rc<RefCell<Option<wacore::runtime::AbortHandle>>>) {
+    let handle = slot.borrow_mut().take();
+    if let Some(handle) = handle {
         handle.detach();
     }
 }
@@ -39,10 +41,7 @@ impl WasmWhatsAppClient {
                 }
                 info!("Sync worker shutting down.");
             }));
-            *self
-                .sync_worker_handle
-                .lock()
-                .unwrap_or_else(|e| e.into_inner()) = Some(handle);
+            *self.sync_worker_handle.borrow_mut() = Some(handle);
         }
 
         // The generation is claimed here, before the task is spawned, so a
@@ -75,7 +74,7 @@ impl WasmWhatsAppClient {
             }
             info!("Client run loop exited.");
         }));
-        *self.run_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
+        *self.run_handle.borrow_mut() = Some(handle);
 
         Ok(())
     }
@@ -137,12 +136,7 @@ impl WasmWhatsAppClient {
     fn prepare_connect(
         &self,
     ) -> impl std::future::Future<Output = Result<JsValue, JsValue>> + use<> + 'static {
-        if self
-            .connection_handle
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .is_some()
-        {
+        if self.connection_handle.borrow().is_some() {
             return futures::future::Either::Left(async {
                 Err(bridge_error_to_js_value(&crate::errors::invalid_arg(
                     "connect",
@@ -178,7 +172,7 @@ impl WasmWhatsAppClient {
         }));
         // Publish the abort handle before waiting for the handshake. A host
         // can free a client while transport.connect() is still pending.
-        *connection_handle.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
+        *connection_handle.borrow_mut() = Some(handle);
 
         futures::future::Either::Right(async move {
             let handshake = handshake_rx
@@ -230,6 +224,29 @@ use crate::result_types::{handshake_failure_to_result, noise_handshake_failure_t
 mod run_completion_tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn local_task_slot_releases_its_borrow_before_cancellation() {
+        let slot = Rc::new(RefCell::new(None));
+        let weak = Rc::downgrade(&slot);
+        let cancellations = Rc::new(std::cell::Cell::new(0));
+        let observed = cancellations.clone();
+        *slot.borrow_mut() = Some(wacore::runtime::AbortHandle::new(move || {
+            assert!(weak.upgrade().unwrap().borrow_mut().is_none());
+            observed.set(observed.get() + 1);
+        }));
+        abort_teardown_task(&slot);
+        abort_teardown_task(&slot);
+        assert_eq!(cancellations.get(), 1);
+
+        let observed = cancellations.clone();
+        *slot.borrow_mut() = Some(wacore::runtime::AbortHandle::new(move || {
+            observed.set(observed.get() + 1);
+        }));
+        detach_teardown_task(&slot);
+        assert!(slot.borrow().is_none());
+        assert_eq!(cancellations.get(), 1);
+    }
 
     fn payload_of(result: &crate::result_types::RunCompletionResult) -> serde_json::Value {
         serde_json::to_value(result).expect("a run completion result serializes")
