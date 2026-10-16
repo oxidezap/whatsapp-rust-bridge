@@ -244,7 +244,7 @@ impl BridgeError {
                 && let Some(se) = c.downcast_ref::<wacore::store::error::StoreError>()
             {
                 storage_fallback = Some(BridgeError::Storage {
-                    operation: se.to_string(),
+                    operation: display_chain(se),
                 });
             }
 
@@ -1880,5 +1880,21 @@ mod tests {
             }
             other => panic!("expected Storage, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn exhausted_storage_retries_keep_attempts_and_last_cause() {
+        let error = wacore::store::error::StoreError::RetriesExhausted {
+            op: "flush".into(),
+            attempts: 4,
+            source: Box::new(std::io::Error::other("database locked")),
+        };
+        let bridge = BridgeError::from_error_chain(&error);
+        let payload = payload_of(&bridge);
+        assert_eq!(payload["kind"], "storage");
+        assert_eq!(
+            payload["operation"],
+            "database operation 'flush' exhausted retries after 4 attempts: database locked"
+        );
     }
 }

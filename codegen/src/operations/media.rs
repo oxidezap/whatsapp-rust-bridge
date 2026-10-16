@@ -74,7 +74,8 @@ pub(super) fn catalog() -> Vec<Operation> {
                         file_length as u64,
                         mt,
                     )
-                    .map_err(crate::errors::download_preparation_error)?
+                    .map_err(crate::errors::download_preparation_error)?,
+                    whatsapp_rust::download::DownloadLimits::default(),
                 )
             ),
             output: ReturnAdapter::Codec(OutputCodec::Value {

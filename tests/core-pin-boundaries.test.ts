@@ -80,3 +80,25 @@ test("owned download preparation names the malformed metadata for both download 
     value.free();
   }
 });
+
+test("both download APIs still accept a buffered HTTP adapter without byte limits", async () => {
+  let requests = 0;
+  const value = await createWhatsAppClient(
+    { connect() {}, send() {}, disconnect() {} },
+    { async execute() {
+      requests++;
+      return { statusCode: 404, body: new Uint8Array() };
+    } },
+  );
+  const args = ["/path", new Uint8Array(32), new Uint8Array(32), new Uint8Array(32), 1, "image"] as const;
+  try {
+    await expect(value.downloadMedia(...args)).rejects.toBeDefined();
+    expect(requests).toBeGreaterThan(0);
+    requests = 0;
+    const stream = value.downloadMediaStream(...args);
+    await expect(stream.getReader().read()).rejects.toBeDefined();
+    expect(requests).toBeGreaterThan(0);
+  } finally {
+    value.free();
+  }
+});
