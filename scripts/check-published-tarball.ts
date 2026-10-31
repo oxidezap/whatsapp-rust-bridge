@@ -304,6 +304,13 @@ try {
     }
   }
 
+  writeFileSync(join(smokeDir, "voip-playout.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-playout.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    const playout = await run([runtime, "voip-playout.mjs"], smokeDir, 10_000);
+    check(playout.exit === 0 && playout.output.includes("duplex PCM, timed playout and video delivered"), `isolated VoIP playout: ${runtime}`);
+    if (playout.exit !== 0) console.error(playout.output);
+  }
+
   const isolatedPackageJson = join(
     SCRATCH,
     "bundler",

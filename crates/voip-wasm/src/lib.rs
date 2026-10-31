@@ -20,6 +20,12 @@
 //! The engine's outputs fan back out as pushes in [`call`]: decoded PCM,
 //! encoded packets, video units, events, stats, and the terminal close.
 
+#[cfg(target_arch = "wasm32")]
+use wacore as clock_core;
+#[cfg(target_arch = "wasm32")]
+#[path = "../../../src/js_time.rs"]
+mod js_time;
+
 mod call;
 mod mlow;
 mod relay;
@@ -146,6 +152,10 @@ pub fn init(abi_major: u32, abi_minor: u32) -> Result<js_sys::Uint8Array, JsValu
         u8::try_from(abi_minor).map_err(|_| JsValue::from_str("voip ABI minor out of range"))?;
     let agreed = voip_abi::negotiate(peer_major, peer_minor, ABI_MINOR)
         .map_err(|e| JsValue::from_str(&format!("voip ABI handshake refused: {e}")))?;
+    // Each WASM instance owns independent wacore clock statics. Install before
+    // any session can create playout, pacing, or protocol deadlines.
+    #[cfg(target_arch = "wasm32")]
+    js_time::init_time_provider();
     if let Ok(mut st) = state().lock() {
         st.agreed_minor = Some(agreed.minor);
         st.agreed_capabilities =
@@ -788,6 +798,26 @@ mod lifecycle_tests {
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test(async)]
+    async fn init_installs_instance_local_wall_and_monotonic_clocks() {
+        init(1, 1).unwrap();
+        let wall = wacore::time::now_millis();
+        let start = wacore::time::Instant::now();
+        assert!(wall > 1_700_000_000_000, "wall clock is not the epoch fallback");
+        runtime::set_timeout_future(25).await;
+        assert!(wacore::time::now_millis() > wall);
+        assert!(start.elapsed() >= std::time::Duration::from_millis(15));
+        assert!(
+            wacore::time::Instant::now().saturating_duration_since(
+                start + std::time::Duration::from_millis(10)
+            ) > std::time::Duration::ZERO,
+            "a real monotonic deadline expires"
+        );
+        // Repeated negotiation preserves the existing instance clock.
+        init(1, 1).unwrap();
+        assert!(start.elapsed() >= std::time::Duration::from_millis(15));
+    }
 
     #[wasm_bindgen_test(async)]
     async fn a_cancelled_open_closes_its_late_relay_without_installing_a_call() {

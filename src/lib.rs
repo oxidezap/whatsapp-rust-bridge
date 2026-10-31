@@ -69,6 +69,7 @@ pub(crate) use wasm_send_sync;
 use serde::Serialize;
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
+use whatsapp_rust::wacore as clock_core;
 
 /// Enabled features in this build.
 /// Use this to check feature availability at runtime before calling feature-gated functions.
