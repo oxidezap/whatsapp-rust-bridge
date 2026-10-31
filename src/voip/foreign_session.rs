@@ -13,6 +13,7 @@ use std::sync::{
 
 use async_channel::{Receiver, Sender};
 use async_trait::async_trait;
+use futures::FutureExt;
 use futures::channel::oneshot;
 use voip_abi as abi;
 use whatsapp_rust::voip_control as vc;
@@ -43,6 +44,9 @@ pub struct ForeignVoipSession {
     commands_rx: Receiver<CommandEnvelope>,
     queued_command_bytes: Arc<AtomicUsize>,
     pending_epoch: Mutex<Option<u32>>,
+    engine_reserved: AtomicBool,
+    opening: AtomicBool,
+    pending_cancel: Mutex<Option<futures::future::Shared<oneshot::Receiver<()>>>>,
     opened: AtomicBool,
     initial_muted: AtomicBool,
     video_sink_dropped: AtomicU32,
@@ -99,6 +103,9 @@ impl ForeignVoipSession {
             commands_rx,
             queued_command_bytes: Arc::new(AtomicUsize::new(0)),
             pending_epoch: Mutex::new(None),
+            engine_reserved: AtomicBool::new(false),
+            opening: AtomicBool::new(false),
+            pending_cancel: Mutex::new(None),
             opened: AtomicBool::new(false),
             initial_muted: AtomicBool::new(false),
             video_sink_dropped: AtomicU32::new(0),
@@ -112,6 +119,42 @@ impl ForeignVoipSession {
             pump_handles: Mutex::new(Vec::new()),
             on_closed: Mutex::new(None),
         }
+    }
+
+    pub(super) fn engine_reserved(&self) -> bool {
+        self.engine_reserved.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn mark_engine_reserved(&self) {
+        self.engine_reserved.store(true, Ordering::SeqCst);
+    }
+
+    pub(super) async fn begin_open_attempt(&self) -> Result<(), vc::MediaSetupError> {
+        let pending = self.pending_cancel.lock().unwrap().clone();
+        if let Some(pending) = pending {
+            let _ = pending.await;
+        }
+        if self.is_closed()
+            || self.opened.load(Ordering::SeqCst)
+            || self.opening.swap(true, Ordering::SeqCst)
+        {
+            return Err(vc::MediaSetupError::Backend(
+                "session is closed or already opening/open".to_owned(),
+            ));
+        }
+        *self.open_failure.lock().unwrap() = None;
+        self.open_waker.lock().unwrap().take();
+        Ok(())
+    }
+
+    pub(super) fn finish_open_attempt(&self) {
+        self.opening.store(false, Ordering::SeqCst);
+    }
+
+    pub(super) fn track_cancel(&self) -> oneshot::Sender<()> {
+        let (sender, receiver) = oneshot::channel();
+        *self.pending_cancel.lock().unwrap() = Some(receiver.shared());
+        sender
     }
 
     pub(super) fn set_on_closed(&self, hook: vc::VideoTeardownHook) {

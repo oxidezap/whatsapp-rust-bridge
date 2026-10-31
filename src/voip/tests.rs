@@ -37,7 +37,9 @@ struct FakeState {
     hello_minor: u8,
     early_video: Option<abi::VideoFrameDto>,
     begin: BeginAnswer,
+    cancel_gate: Option<js_sys::Promise>,
     fail_reserve: bool,
+    reservations: Mutex<std::collections::HashSet<u32>>,
     command_busy: std::sync::atomic::AtomicUsize,
     command_accepted: Mutex<Option<futures::channel::oneshot::Sender<()>>>,
 }
@@ -58,7 +60,14 @@ impl FakeState {
                 resp
             }
             abi::Opcode::Reserve => {
-                if self.fail_reserve {
+                let request = abi::ReserveRequest::decode(&frame.payload).unwrap();
+                if self.fail_reserve
+                    || !self
+                        .reservations
+                        .lock()
+                        .unwrap()
+                        .insert(request.session.handle)
+                {
                     abi::Frame::fail(frame, abi::AbiErrorCode::Busy, Some("taken"))
                 } else {
                     abi::Frame::respond(frame, Vec::new())
@@ -143,7 +152,14 @@ impl FakeState {
                 }
                 abi::Frame::respond(frame, Vec::new())
             }
-            abi::Opcode::Close => abi::Frame::respond(frame, Vec::new()),
+            abi::Opcode::Close => {
+                let request = abi::CloseRequest::decode(&frame.payload).unwrap();
+                self.reservations
+                    .lock()
+                    .unwrap()
+                    .remove(&request.session.handle);
+                abi::Frame::respond(frame, Vec::new())
+            }
             _ => abi::Frame::fail(frame, abi::AbiErrorCode::NotSupported, None),
         }
     }
@@ -170,7 +186,16 @@ fn fake_callbacks(state: Arc<Mutex<FakeState>>) -> VoipBackendCallbacks {
                 .unwrap()
                 .push((frame.opcode.as_u8(), frame.payload.clone()));
             let raw = st.answer(&frame).encode();
-            js_sys::Promise::resolve(&JsValue::from(js_sys::Uint8Array::from(raw.as_slice())))
+            let raw = JsValue::from(js_sys::Uint8Array::from(raw.as_slice()));
+            if frame.opcode == abi::Opcode::CancelOpen
+                && let Some(gate) = st.cancel_gate.clone()
+            {
+                return wasm_bindgen_futures::future_to_promise(async move {
+                    wasm_bindgen_futures::JsFuture::from(gate).await?;
+                    Ok(raw)
+                });
+            }
+            js_sys::Promise::resolve(&raw)
         }
     }) as Box<dyn FnMut(JsValue) -> js_sys::Promise>);
 
@@ -267,7 +292,9 @@ fn fake_state() -> Arc<Mutex<FakeState>> {
         hello_minor: abi::ABI_MINOR,
         early_video: None,
         begin: BeginAnswer::Ack,
+        cancel_gate: None,
         fail_reserve: false,
+        reservations: Mutex::new(std::collections::HashSet::new()),
         command_busy: std::sync::atomic::AtomicUsize::new(0),
         command_accepted: Mutex::new(None),
     }))
@@ -476,12 +503,57 @@ async fn reserve_refused_is_setup() {
 }
 
 #[test]
+async fn retry_failed_open_reuses_the_engine_reservation_and_clears_failure() {
+    use vc::VoipMediaBackend;
+    for answer in [
+        BeginAnswer::Error(abi::AbiErrorCode::Transport, Some("dial refused".into())),
+        BeginAnswer::AckThenSetupFailure,
+        BeginAnswer::AckThenSilence,
+    ] {
+        let state = fake_state();
+        state.lock().unwrap().begin = answer;
+        let (backend, seen) =
+            backend_with(state.clone(), Some(std::time::Duration::from_millis(100)));
+        let key = test_key(9);
+        let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+        assert!(
+            backend
+                .open(test_spec(key.clone()), test_ctx())
+                .await
+                .is_err()
+        );
+        state.lock().unwrap().begin = BeginAnswer::Ack;
+        backend
+            .open(test_spec(key), test_ctx())
+            .await
+            .expect("retry reaches OPEN on the same reservation");
+        let opcodes = seen_opcodes(&seen);
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|&&op| op == abi::Opcode::Reserve.as_u8())
+                .count(),
+            1
+        );
+        assert_eq!(
+            opcodes
+                .iter()
+                .filter(|&&op| op == abi::Opcode::BeginOpen.as_u8())
+                .count(),
+            2
+        );
+        session.close(vc::MediaCloseReason::Local);
+        sleep_ms(5).await;
+    }
+}
+
+#[test]
 async fn cancel_sent_when_open_dropped() {
     use vc::VoipMediaBackend;
 
     let state = fake_state();
     state.lock().unwrap().begin = BeginAnswer::AckThenSilence;
-    let (backend, seen) = backend_with(state, None);
+    let (backend, seen) = backend_with(state.clone(), None);
     let backend = std::rc::Rc::new(backend);
 
     let key = test_key(2);
@@ -503,6 +575,9 @@ async fn cancel_sent_when_open_dropped() {
     assert!(seen_opcodes(&seen).contains(&abi::Opcode::BeginOpen.as_u8()));
 
     // Walking away cancels the in-flight open: the guard's Drop sends it.
+    let mut resolve_cancel = None;
+    let gate = js_sys::Promise::new(&mut |resolve, _| resolve_cancel = Some(resolve));
+    state.lock().unwrap().cancel_gate = Some(gate);
     guard.abort();
     for _ in 0..100 {
         if seen_opcodes(&seen).contains(&abi::Opcode::CancelOpen.as_u8()) {
@@ -511,6 +586,29 @@ async fn cancel_sent_when_open_dropped() {
         sleep_ms(2).await;
     }
     assert!(seen_opcodes(&seen).contains(&abi::Opcode::CancelOpen.as_u8()));
+    state.lock().unwrap().begin = BeginAnswer::Ack;
+    let retry = backend.open(test_spec(test_key(2)), test_ctx());
+    futures::pin_mut!(retry);
+    assert!(futures::poll!(retry.as_mut()).is_pending());
+    assert_eq!(
+        seen_opcodes(&seen)
+            .iter()
+            .filter(|&&op| op == abi::Opcode::BeginOpen.as_u8())
+            .count(),
+        1,
+        "retry must not race the previous CANCEL_OPEN"
+    );
+    resolve_cancel.unwrap().call0(&JsValue::UNDEFINED).unwrap();
+    retry
+        .await
+        .expect("cancelled open can retry after its cancellation completes");
+    assert_eq!(
+        seen_opcodes(&seen)
+            .iter()
+            .filter(|&&op| op == abi::Opcode::Reserve.as_u8())
+            .count(),
+        1
+    );
     // Close what the aborted open attached. The `CLOSE` send is detached
     // behind the spawn drain, so wait until it crossed: returning first
     // would let this test's teardown bleed into the next test's window.

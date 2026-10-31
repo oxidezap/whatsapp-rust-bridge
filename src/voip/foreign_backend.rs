@@ -343,23 +343,37 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
                 Some("media mode not negotiated"),
             ));
         }
+        whatsapp_rust::wacore::runtime::timeout(
+            &*self.inner.runtime,
+            self.inner.ceiling,
+            session.begin_open_attempt(),
+        )
+        .await
+        .map_err(|_| {
+            vc::MediaSetupError::Connect(
+                "voip plugin did not finish prior cancellation within the dial ceiling".to_owned(),
+            )
+        })??;
+        let mut guard = OpenGuard::new(session.clone(), self.inner.clone());
         let mut ctx = ctx;
         session.prepare_teardown(ctx.video_teardown.take());
         let params = conv::params_from_spec(&spec, &session.ctx_bits(&ctx, spec.enable_video))?;
-        let mut guard = OpenGuard::new(session.clone(), self.inner.clone());
         session.prepare_sinks(&spec.audio.format, &ctx);
 
-        let reserve = abi::ReserveRequest {
-            session: session.session_id(),
-            call_id: spec.key.call_id.clone(),
-            direction: conv::map_direction(session.direction()).ok_or_else(|| {
-                vc::MediaSetupError::Backend("call direction this bridge predates".to_owned())
-            })?,
-        };
-        self.inner
-            .request(abi::Opcode::Reserve, reserve.encode())
-            .await
-            .map_err(|e| e.into_setup("reserve"))?;
+        if !session.engine_reserved() {
+            let reserve = abi::ReserveRequest {
+                session: session.session_id(),
+                call_id: spec.key.call_id.clone(),
+                direction: conv::map_direction(session.direction()).ok_or_else(|| {
+                    vc::MediaSetupError::Backend("call direction this bridge predates".to_owned())
+                })?,
+            };
+            self.inner
+                .request(abi::Opcode::Reserve, reserve.encode())
+                .await
+                .map_err(|e| e.into_setup("reserve"))?;
+            session.mark_engine_reserved();
+        }
 
         let begin = abi::BeginOpenRequest {
             session: session.session_id(),
@@ -416,7 +430,9 @@ impl OpenGuard {
     }
 
     fn disarm(&mut self) {
-        self.session = None;
+        if let Some(session) = self.session.take() {
+            session.finish_open_attempt();
+        }
     }
 }
 
@@ -425,6 +441,8 @@ impl Drop for OpenGuard {
         let Some(session) = self.session.take() else {
             return;
         };
+        let cancelled = session.track_cancel();
+        session.finish_open_attempt();
         let inner = self.inner.clone();
         let runtime = inner.runtime.clone();
         // Detached: the guard is gone by definition here, and dropping the
@@ -444,6 +462,7 @@ impl Drop for OpenGuard {
                         e.into_setup("cancel open")
                     ),
                 }
+                let _ = cancelled.send(());
             }))
             .detach();
     }
