@@ -51,11 +51,14 @@ impl WasmWhatsAppClient {
         let operation_client = self.client.clone();
         let cancelled = self.client.operation_cancellation();
         client_operation(cancelled, async move {
-            let result: Result<(), crate::errors::BridgeError> = Ok((async move {
-                let client = operation_client.unwaited(Unwaited::ThisSocket);
-                client.reconnect_immediately().await
-            })
-            .await);
+            let result: Result<(), crate::errors::BridgeError> = {
+                (async move {
+                    let client = operation_client.unwaited(Unwaited::ThisSocket);
+                    client.reconnect_immediately().await
+                })
+                .await;
+                Ok(())
+            };
             result
                 .map(|value| {
                     let _ = &value;
@@ -235,16 +238,19 @@ impl WasmWhatsAppClient {
         let operation_client = self.client.clone();
         let cancelled = self.client.operation_cancellation();
         client_operation(cancelled, async move {
-            let result: Result<(), crate::errors::BridgeError> = Ok((async move {
-                let client = operation_client.unwaited(Unwaited::Local);
-                client
-                    .persistence_manager()
-                    .process_command(whatsapp_rust::wacore::store::DeviceCommand::SetPushName(
-                        name,
-                    ))
-                    .await
-            })
-            .await);
+            let result: Result<(), crate::errors::BridgeError> = {
+                (async move {
+                    let client = operation_client.unwaited(Unwaited::Local);
+                    client
+                        .persistence_manager()
+                        .process_command(whatsapp_rust::wacore::store::DeviceCommand::SetPushName(
+                            name,
+                        ))
+                        .await
+                })
+                .await;
+                Ok(())
+            };
             result
                 .map(|value| {
                     let _ = &value;

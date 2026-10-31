@@ -260,7 +260,7 @@ fn js_name(attributes: &[Attribute]) -> Result<String, String> {
                     let _: syn::LitStr = meta.value()?.parse()?;
                     Ok(())
                 } else if meta.path.is_ident("skip_typescript") {
-                    Ok(())
+                    Err(meta.error("operation declarations must be generated, not hidden"))
                 } else {
                     Err(meta.error("declare other boundary attributes on the explicit adapter"))
                 }
@@ -805,6 +805,19 @@ mod tests {
             quote!(#(#methods)*)
         );
         compile_and_run_fixture(TemporaryFixture::new("receipt_fixture"), &source);
+    }
+
+    #[test]
+    fn an_operation_cannot_hide_from_the_published_contract_sweep() {
+        let mut domains = catalog();
+        domains[0].operations[0]
+            .attributes
+            .push(parse_quote!(#[wasm_bindgen(skip_typescript)]));
+        assert!(
+            validate(&domains)
+                .unwrap_err()
+                .contains("operation declarations must be generated")
+        );
     }
 
     #[test]

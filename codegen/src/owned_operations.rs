@@ -27,7 +27,8 @@ pub fn lower(tokens: TokenStream, alias: bool, declared_result: Option<String>) 
             }
         }
     };
-    let conversion = if matches!(&value_type, syn::Type::Tuple(t) if t.elems.is_empty()) {
+    let unit = matches!(&value_type, syn::Type::Tuple(t) if t.elems.is_empty());
+    let conversion = if unit {
         quote!(JsValue::UNDEFINED)
     } else {
         quote!(value.into())
@@ -89,6 +90,8 @@ pub fn lower(tokens: TokenStream, alias: bool, declared_result: Option<String>) 
     let capture = capture_client.then(|| quote!(let operation_client = self.client.clone();));
     let future = if fallible {
         quote!((async move #body).await)
+    } else if unit {
+        quote!({ (async move #body).await; Ok(()) })
     } else {
         quote!(Ok((async move #body).await))
     };
