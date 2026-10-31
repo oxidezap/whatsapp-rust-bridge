@@ -706,6 +706,8 @@ export type CallMediaEventKind =
   | "audio-codec-source-fixed"
   | "video-upgrade-requested"
   | "video-state-changed"
+  /** Request a keyframe from the host encoder and submit it with callPushVideo. */
+  | "video-keyframe-needed"
   | "ended";
 
 export interface CallMediaEvent {

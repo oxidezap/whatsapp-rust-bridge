@@ -2619,11 +2619,8 @@ fn call_event_object(call_id: &str, kind: &str) -> Result<js_sys::Object, JsValu
     Ok(event)
 }
 
-/// Translate one engine event for the host. Only the encoded-audio 1:1
-/// subset crosses: group, video, reaction and RTCP events belong to later
-/// slices, and an undrained queue would otherwise evict what the host asked
-/// for. Anything unmapped is dropped with a debug log, never collapsed into
-/// a neighbour's name.
+/// Translate media diagnostics and encoder control requests for the host.
+/// Events without a declared host shape are dropped with a debug log.
 fn translate_call_event(call_id: &str, event: &CallEvent) -> Option<JsValue> {
     let num = |event: &js_sys::Object, key: &str, value: f64| {
         js_sys::Reflect::set(event, &key.into(), &value.into())
@@ -2632,6 +2629,9 @@ fn translate_call_event(call_id: &str, event: &CallEvent) -> Option<JsValue> {
         js_sys::Reflect::set(event, &key.into(), &value.into())
     };
     let translated = match event {
+        CallEvent::VideoKeyframeNeeded => {
+            call_event_object(call_id, "video-keyframe-needed").ok()?
+        }
         CallEvent::RelayAllocated => call_event_object(call_id, "relay-allocated").ok()?,
         CallEvent::RelayAllocateFailed(code) => {
             let event = call_event_object(call_id, "relay-allocate-failed").ok()?;
@@ -3283,6 +3283,23 @@ mod call_media_tests {
     /// else is dropped rather than renamed.
     #[test]
     fn engine_events_cross_typed_or_not_at_all() {
+        let keyframe = translate_call_event("CALL-VIDEO", &CallEvent::VideoKeyframeNeeded)
+            .expect("the host encoder receives the keyframe request");
+        assert_eq!(
+            js_sys::Reflect::get(&keyframe, &"kind".into())
+                .unwrap()
+                .as_string()
+                .as_deref(),
+            Some("video-keyframe-needed")
+        );
+        assert_eq!(
+            js_sys::Reflect::get(&keyframe, &"callId".into())
+                .unwrap()
+                .as_string()
+                .as_deref(),
+            Some("CALL-VIDEO")
+        );
+
         let allocated = translate_call_event("CALL-1", &CallEvent::RelayAllocated)
             .expect("relay-allocated crosses");
         let kind =
