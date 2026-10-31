@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.1...v0.26.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies and toolchains to latest stable ([#154](https://github.com/oxidezap/whatsapp-rust-bridge/issues/154)) ([6425d45](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6425d45fff28211061f22c61b2a65365217bde55))
+
 ## [0.26.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.0...v0.26.1) (2026-10-16)
 
 
