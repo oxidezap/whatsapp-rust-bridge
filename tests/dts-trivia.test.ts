@@ -89,7 +89,7 @@ async function exported(declaration: string) {
 
 async function diagnostics(declaration: string, consumer: string, exact: boolean) {
   const errors = await ts.diagnostics(projectFiles(declaration, consumer),
-    { ...OPTIONS, exactOptionalPropertyTypes: exact });
+    { ...OPTIONS, exactOptionalPropertyTypes: exact }, true);
   return errors.map(error => ({ code: error.code, message: error.text }));
 }
 

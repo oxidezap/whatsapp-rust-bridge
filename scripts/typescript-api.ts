@@ -39,11 +39,17 @@ export async function withProject<T>(files: Record<string, string | undefined>, 
   }
 }
 
-export async function diagnostics(files: Record<string, string | undefined>, options: Record<string, unknown>) {
-  return withProject(files, options, async ({ program }) => [
-    ...await program.getConfigFileParsingDiagnostics(),
-    ...await program.getGlobalDiagnostics(),
-    ...await program.getSyntacticDiagnostics(),
-    ...await program.getSemanticDiagnostics(),
-  ]);
+export async function diagnostics(files: Record<string, string | undefined>, options: Record<string, unknown>, authoredOnly = false) {
+  return withProject(files, options, async ({ program }) => {
+    const roots = authoredOnly ? Object.keys(files) : [undefined];
+    const errors = [
+      ...await program.getConfigFileParsingDiagnostics(),
+      ...await program.getProgramDiagnostics(),
+      ...await program.getGlobalDiagnostics(),
+    ];
+    for (const file of roots) {
+      errors.push(...await program.getSyntacticDiagnostics(file), ...await program.getSemanticDiagnostics(file));
+    }
+    return errors;
+  });
 }
