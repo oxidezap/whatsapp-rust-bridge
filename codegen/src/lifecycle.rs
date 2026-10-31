@@ -146,7 +146,8 @@ impl Teardown {
                     TeardownAdmission::Complete=>return #completion,
                 }
                 #assert_owner
-                client.#action().await;
+                // The JS teardown contract resolves void; core reports are not exported here.
+                let _ = client.#action().await;
                 #(#tasks)*
                 teardown_gate.complete();
                 Ok(JsValue::UNDEFINED)

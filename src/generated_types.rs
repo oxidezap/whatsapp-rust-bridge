@@ -352,6 +352,8 @@ export interface ContactUpdated {
   timestamp: string;
 }
 
+export type CreateDisappearingTrigger = "chat_settings" | "account_settings" | "bulk_change" | "unknown_groups";
+
 export type DayOfWeek = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | string;
 
 /** The `decrypt-fail` attribute of an `<enc>` node.  `Hide` is the server asking that a failure to decrypt this stanza not be surfaced to the user.  Generated from `DecryptFailType` in `WAWebBackendJobs.flow`. */
@@ -617,6 +619,8 @@ export interface FavoritesUpdate {
   from_full_sync: boolean;
 }
 
+export type GroupAddReason = "invite" | "accept" | "linked_group_join" | "auto_add" | "default_subgroup_admin_add" | "default_sub_group_promote" | "invite_auto_add" | "general_chat_auto_add";
+
 /** Review state for an appeal on a suspended group. */
 export type GroupAppealStatus = "approved" | "in_review" | "none" | "rejected";
 
@@ -643,6 +647,8 @@ export interface GroupCallParticipant {
   jid: Jid;
   state?: string | null;
   participant_type?: string | null;
+  /** The service's NACK code for this entry (`<user error="...">`), reported per participant. It is a different fact from the ack's own status: a `207` ack serves the call while individual participants fail, so the two are kept apart rather than conflated. */
+  error?: number | null;
   devices: GroupCallDevice[];
 }
 
@@ -685,10 +691,17 @@ export interface GroupCallUpdate {
   relay?: GroupCallRelay | null;
 }
 
+/** The CREATE reason vocabulary differs from ADD: `accept` is not in its table. */
+export type GroupCreateReason = "invite" | "linked_group_join" | "auto_add" | "default_subgroup_admin_add" | "default_sub_group_promote" | "invite_auto_add" | "general_chat_auto_add";
+
+export type GroupDeleteReason = "integrity_delete_parent" | "delete_parent";
+
 /** Delivery state for history shared with a newly joined participant. */
 export type GroupHistorySentState = "HISTORY_NOT_SENT" | "HISTORY_SENT" | "NOTICE_SENT";
 
-/** All possible group notification action types.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
+export type GroupLinkKind = "sub_group_link" | "parent_group_link" | "sibling_group_link";
+
+/** Group notification actions recognized by this snapshot.  Use the associated factory builders for named-field actions, and match them with `..`. Match the enum with a fallback arm for future typed actions. `Unknown` preserves an unrecognized wire tag; it is distinct from a future Rust variant added to this enum.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
 export type GroupNotificationAction =
   | { type: "add"; participants: GroupParticipantInfo[]; reason?: string | null }
   | { type: "remove"; participants: GroupParticipantInfo[]; reason?: string | null }
@@ -735,7 +748,7 @@ export type GroupNotificationAction =
   | { type: "change_number"; new_owner?: Jid | null; sub_group_suggestions: Jid[] }
   | { type: string; tag: string };
 
-/** Participant info extracted from `<participant>` child elements.  Wire format: ```xml <participant jid="..." type="..." lid="..." phone_number="..." username="..." display_name="..." join_time="..."/> ```  `display_name` is the server-rendered label (e.g. `"+55∙∙∙∙∙∙∙∙∙79"` when the requester is not in the participant's contacts). `type` flags admin/superadmin tier; LID-addressed groups also carry `lid` and `username`. WA Web's `WAWebHandleGroupNotification` y() reads all of these into the participant model so the UI can render notifications and patch admin caches without resolving the contact locally. */
+/** Participant info extracted from `<participant>` child elements.  Construct fixtures with [`Self::builder`], supplying `jid` and any optional metadata. External patterns must include `..` to permit future metadata.  Wire format: ```xml <participant jid="..." type="..." lid="..." phone_number="..." username="..." display_name="..." join_time="..."/> ```  `display_name` is the server-rendered label (e.g. `"+55∙∙∙∙∙∙∙∙∙79"` when the requester is not in the participant's contacts). `type` flags admin/superadmin tier; LID-addressed groups also carry `lid` and `username`. WA Web's `WAWebHandleGroupNotification` y() reads all of these into the participant model so the UI can render notifications and patch admin caches without resolving the contact locally. */
 export interface GroupParticipantInfo {
   jid: Jid;
   phone_number?: Jid | null;
@@ -759,6 +772,8 @@ export type GroupParticipantType = "superadmin" | "admin" | "participant";
 /** Query request type. */
 export type GroupQueryRequestType = "interactive";
 
+export type GroupRemoveReason = "default_sub_group_demote";
+
 export interface GroupRoutingInfo {
   participants: Jid[];
   addressing_mode: AddressingMode;
@@ -767,6 +782,8 @@ export interface GroupRoutingInfo {
   /** LID→PN mappings, sorted by the LID user part, looked up by binary search. Used for device queries, since LID usync requests may not work reliably.  A sorted slice rather than a `HashMap`: a 1024-member group needs 2048 hashbrown buckets, so roughly half the map's bytes were empty slots, and the entries are read far more often than they are written (member changes arrive on notifications; lookups run once per participant per send). Serialized as the `lid_to_pn_map` object the previous layout wrote, so the persisted `group_metadata` blob is unchanged. */
   lid_to_pn_map: Record<string, Jid>;
 }
+
+export type GroupUnlinkKind = "sub_group_unlink" | "parent_group_unlink" | "sibling_group_unlink" | "delete_parent_group_unlink" | "integrity_parent_group_unlink" | "integrity_sub_group_unlink";
 
 /** Group update notification.  Emitted for each action in a `<notification type="w:gp2">` stanza. A single notification may produce multiple `GroupUpdate` events (one per action). */
 export interface GroupUpdate {
@@ -1197,6 +1214,12 @@ export type NewsletterMessageType = "text" | "media" | "poll" | "reaction" | "re
 /** The `questiontype` attribute in newsletter `<meta>`.  This small closed set is kept forward-compatible for future question variants. */
 export type NewsletterQuestionType = "question" | "reply" | string;
 
+/** Normalized discriminants are separate from the owned payload union. Each string has one WireEnum definition; physical wire dispatch uses the existing GroupNotificationActionTag enum, including its deliberately collapsed aliases. */
+export type NormalizedGroupActionType = "create" | "add" | "delete" | "remove" | "promote" | "demote" | "linked_group_promote" | "linked_group_demote" | "modify" | "subject" | "desc_add" | "desc_remove" | "suspend" | "restrict" | "announce" | "no_frequently_forwarded" | "invite" | "ephemeral" | "revoke_invite" | "growth_locked" | "growth_unlocked" | "sub_group_link" | "parent_group_link" | "sibling_group_link" | "sub_group_unlink" | "parent_group_unlink" | "sibling_group_unlink" | "delete_parent_group_unlink" | "integrity_parent_group_unlink" | "integrity_sub_group_unlink" | "membership_approval_mode" | "membership_approval_request" | "allow_admin_reports" | "admin_report_received" | "created_membership_requests" | "revoked_membership_requests" | "allow_non_admin_sub_group_creation" | "created_subgroup_suggestion" | "revoked_sub_group_suggestions" | "subgroup_suggestions_change_number" | "member_add_mode" | "general_chat_auto_add_disabled" | "group_safety_check";
+
+/** Internal normalized values from WAWebRequestMethodType, distinct from wire request_method strings used by the established public adapter enum. */
+export type NormalizedMembershipRequestMethod = "NonAdminAdd" | "InviteLink" | "LinkedGroupJoin";
+
 /** The `type` attribute of an incoming `<notification>`.  Every value WA Web routes. This client handles a subset and forwards the rest as a raw event, so a variant here is a value the protocol carries, not a promise that anything acts on it. */
 export type NotificationType = "account_sync" | "business" | "companion_reg_refresh" | "contacts" | "crsc_continuation" | "devices" | "digital_commerce_subscription" | "disappearing_mode" | "encrypt" | "fb:update" | "hosted" | "link_code_companion_reg" | "mediaretry" | "mex" | "newsletter" | "passkey_prologue_request" | "pay" | "picture" | "privacy_token" | "psa" | "registration" | "server" | "server_sync" | "status" | "w:gp2" | "w:growth" | "waffle";
 
@@ -1412,6 +1435,8 @@ export interface RemoveRecentStickerUpdate {
   action: import('./proto-types').proto.SyncActionValue.IRemoveRecentStickerAction;
   from_full_sync: boolean;
 }
+
+export type RevokedSuggestionReason = "approved" | "rejected" | "cancelled";
 
 /** Parsed screen-share state for one participant. */
 export interface ScreenShare {

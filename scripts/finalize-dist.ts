@@ -58,7 +58,7 @@ const isDistFile = (relPath: string): boolean => {
 for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const before = readFileSync(path, "utf8");
-  const { text: rewritten } = rewriteDtsSpecifiers(before, file, isDistFile);
+  const { text: rewritten } = await rewriteDtsSpecifiers(before, file, isDistFile);
   const after = file === "proto-types.d.ts"
     ? compactDeclarationTrivia(rewritten)
     : rewritten;
@@ -71,7 +71,7 @@ for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
 for (const file of readdirSync(DIST).filter((name) => name.endsWith(".d.ts"))) {
   const path = join(DIST, file);
   const text = readFileSync(path, "utf8");
-  const { text: again } = rewriteDtsSpecifiers(text, file, isDistFile);
+  const { text: again } = await rewriteDtsSpecifiers(text, file, isDistFile);
   if (again !== text) {
     throw new Error(
       `dist/${file} still has an unrewritten relative import — update finalize-dist.ts`,

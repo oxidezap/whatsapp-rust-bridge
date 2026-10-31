@@ -201,12 +201,23 @@ pub(super) fn catalog() -> Vec<Operation> {
             boundary: Boundary::AsyncBorrowed,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
-            call: parse_quote!(client.chat_actions().clear_chat(
-                &chat_jid,
-                delete_starred,
-                delete_media,
-                None
-            )),
+            call: parse_quote!(
+                client.chat_actions().clear_chat_with_options(
+                    &chat_jid,
+                    whatsapp_rust::ClearChatOptions::default()
+                        .with_starred_messages(if delete_starred {
+                            whatsapp_rust::StarredMessages::Delete
+                        } else {
+                            whatsapp_rust::StarredMessages::Keep
+                        })
+                        .with_media(if delete_media {
+                            whatsapp_rust::MediaDeletion::Delete
+                        } else {
+                            whatsapp_rust::MediaDeletion::Keep
+                        }),
+                    None
+                )
+            ),
             output: ReturnAdapter::MapError,
         },
         Operation {

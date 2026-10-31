@@ -26,7 +26,7 @@ impl JsCacheStoreAdapter {
 
 async fn resolve_promise(val: JsValue) -> Result<JsValue, anyhow::Error> {
     if val.is_instance_of::<Promise>() {
-        let promise = Promise::unchecked_from_js(val);
+        let promise = Promise::<JsValue>::unchecked_from_js(val);
         JsFuture::from(promise)
             .await
             .map_err(|e| anyhow::anyhow!("JS cache store error: {e:?}"))

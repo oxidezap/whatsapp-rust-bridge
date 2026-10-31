@@ -42,8 +42,8 @@ export type S = "./string-lookalike";
 declare const s: "./const-lookalike";
 `;
 
-test("supported specifier forms resolve, lookalikes do not move", () => {
-  const { text, edits } = rewriteDtsSpecifiers(FIXTURE, "fixture.d.ts", exists);
+test("supported specifier forms resolve, lookalikes do not move", async () => {
+  const { text, edits } = await rewriteDtsSpecifiers(FIXTURE, "fixture.d.ts", exists);
 
   for (const [from, to] of [
     ["./plain", "./plain.js"],
@@ -68,14 +68,14 @@ test("supported specifier forms resolve, lookalikes do not move", () => {
   expect(edits).toHaveLength(7);
 });
 
-test("the rewrite is idempotent", () => {
-  const once = rewriteDtsSpecifiers(FIXTURE, "fixture.d.ts", exists).text;
-  const twice = rewriteDtsSpecifiers(once, "fixture.d.ts", exists);
+test("the rewrite is idempotent", async () => {
+  const once = (await rewriteDtsSpecifiers(FIXTURE, "fixture.d.ts", exists)).text;
+  const twice = await rewriteDtsSpecifiers(once, "fixture.d.ts", exists);
   expect(twice.text).toBe(once);
   expect(twice.edits).toEqual([]);
 });
 
-test("bare packages and exact files are left alone", () => {
+test("bare packages and exact files are left alone", async () => {
   expect(fixModuleSpecifier("@bufbuild/protobuf/wire", exists)).toBeNull();
   expect(fixModuleSpecifier("node:buffer", exists)).toBeNull();
   expect(fixModuleSpecifier("./ok.js", exists)).toBeNull();
@@ -86,7 +86,7 @@ test("bare packages and exact files are left alone", () => {
   ).toBeNull();
 });
 
-test("a relative specifier that names nothing stops the build", () => {
+test("a relative specifier that names nothing stops the build", async () => {
   expect(() => fixModuleSpecifier("./missing", exists)).toThrow(
     /names nothing in dist/,
   );

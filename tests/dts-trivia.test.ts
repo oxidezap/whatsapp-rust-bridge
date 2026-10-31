@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import ts from "typescript";
+import * as ts from "../scripts/typescript-api";
 import { compactDeclarationTrivia } from "../scripts/dts-trivia";
 
 const FIXTURE = `/** Long documentation stays here. */
@@ -27,9 +27,9 @@ export namespace proto {
 `;
 
 function commentTokens(text: string) {
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, text);
+  const scanner = ts.createScanner(false, ts.LanguageVariant.Standard, text);
   const comments: string[] = [];
-  for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFileToken; kind = scanner.scan()) {
+  for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) {
     if (kind === ts.SyntaxKind.SingleLineCommentTrivia || kind === ts.SyntaxKind.MultiLineCommentTrivia) {
       comments.push(scanner.getTokenText());
     }
@@ -37,11 +37,13 @@ function commentTokens(text: string) {
   return comments;
 }
 
-function fingerprint(text: string, aliases: ReadonlyMap<string, string>) {
-  const file = ts.createSourceFile("surface.d.ts", text, ts.ScriptTarget.Latest, true);
-  const bodies = new Map([...aliases].map(([name, body]) => [name,
-    (ts.createSourceFile("alias.d.ts", `type X=${body};`, ts.ScriptTarget.Latest, true)
-      .statements[0] as ts.TypeAliasDeclaration).type]));
+async function fingerprint(text: string, aliases: ReadonlyMap<string, string>) {
+  const file = await ts.createSourceFile("surface.d.ts", text);
+  const bodies = new Map<string, ts.TypeNode>();
+  for (const [name, body] of aliases) {
+    const alias = await ts.createSourceFile("alias.d.ts", `type X=${body};`);
+    bodies.set(name, (alias.statements[0] as ts.TypeAliasDeclaration).type);
+  }
   function visit(node: ts.Node): unknown {
     if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName) && bodies.has(node.typeName.text)) {
       return visit(bodies.get(node.typeName.text)!);
@@ -64,110 +66,78 @@ function fingerprint(text: string, aliases: ReadonlyMap<string, string>) {
   return visit(file);
 }
 
-function program(declaration: string, consumer = "", exactOptionalPropertyTypes = false) {
+function projectFiles(declaration: string, consumer = "") {
   const dir = resolve("tests/fixtures/.dts-compact-virtual");
-  const declarationPath = `${dir}/proto-types.d.ts`;
-  const consumerPath = `${dir}/consumer.ts`;
-  const virtual = new Map([[declarationPath, declaration], [consumerPath, consumer]]);
-  const options: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES2022,
-    module: ts.ModuleKind.NodeNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    strict: true,
-    skipLibCheck: false,
-    exactOptionalPropertyTypes,
-    noEmit: true,
-    types: [],
-  };
-  const host = ts.createCompilerHost(options);
-  const read = host.readFile;
-  const exists = host.fileExists;
-  const directoryExists = host.directoryExists!;
-  host.readFile = name => virtual.get(name) ?? read(name);
-  host.fileExists = name => virtual.has(name) || exists(name);
-  host.directoryExists = name => name === dir || directoryExists(name);
-  host.getSourceFile = (name, languageVersion) => {
-    const text = host.readFile(name);
-    return text === undefined ? undefined : ts.createSourceFile(name, text, languageVersion, true);
-  };
-  const result = ts.createProgram([declarationPath, consumerPath], options, host);
-  return { result, declarationPath, consumerPath };
+  return { [`${dir}/proto-types.d.ts`]: declaration, [`${dir}/consumer.ts`]: consumer };
+}
+const OPTIONS = { target: "es2022", module: "nodenext", moduleResolution: "nodenext",
+  strict: true, skipLibCheck: false, noEmit: true, types: [] };
+
+async function exported(declaration: string) {
+  const files = projectFiles(declaration);
+  return ts.withProject(files, OPTIONS, async ({ program, checker }) => {
+    const source = (await program.getSourceFile(Object.keys(files)[0]))!;
+    const symbol = (await checker.getSymbolAtLocation(source))!;
+    const exports = await checker.getExportsOfModule(symbol);
+    const entries = await Promise.all(exports.map(async symbol => {
+      const target = symbol.flags & ts.SymbolFlags.Alias ? await checker.getAliasedSymbol(symbol) : symbol;
+      return [symbol.name, target.flags];
+    }));
+    return entries.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  });
 }
 
-function exported(declaration: string) {
-  const { result, declarationPath } = program(declaration);
-  const checker = result.getTypeChecker();
-  const source = result.getSourceFile(declarationPath)!;
-  return checker.getExportsOfModule(checker.getSymbolAtLocation(source)!).map(symbol => {
-    const target = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-    return [symbol.name, target.flags];
-  }).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+async function diagnostics(declaration: string, consumer: string, exact: boolean) {
+  const errors = await ts.diagnostics(projectFiles(declaration, consumer),
+    { ...OPTIONS, exactOptionalPropertyTypes: exact });
+  return errors.map(error => ({ code: error.code, message: error.text }));
 }
 
-function diagnostics(declaration: string, consumer: string, exact: boolean) {
-  const { result, declarationPath, consumerPath } = program(declaration, consumer, exact);
-  // Check both authored roots, plus global/options errors, with skipLibCheck false.
-  // Rechecking TypeScript's immutable stdlib per variant adds no compactor coverage.
-  const roots = [declarationPath, consumerPath].map(path => result.getSourceFile(path)!);
-  const errors = [
-    ...result.getOptionsDiagnostics(),
-    ...result.getGlobalDiagnostics(),
-    ...roots.flatMap(source => [
-      ...result.getSyntacticDiagnostics(source),
-      ...result.getSemanticDiagnostics(source),
-    ]),
-  ];
-  return errors.map(diagnostic => ({
-    code: diagnostic.code,
-    message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-  }));
-}
-
-test("interpolated template text survives trivia compaction, including nested tails", () => {
+test("interpolated template text survives trivia compaction, including nested tails", async () => {
   const original = 'export type T = `a${string} b`;\n' +
     'export type Nested = ` a${`inside ${string} x`} \\t${number}\\n tail `;\n';
   const compact = compactDeclarationTrivia(original);
-  expect(fingerprint(compact, new Map())).toEqual(fingerprint(original, new Map()));
+  expect(await fingerprint(compact, new Map())).toEqual(await fingerprint(original, new Map()));
   expect(compactDeclarationTrivia(compact)).toBe(compact);
 });
 
-test("trivia retains comment bytes, literals and newline-sensitive signatures", () => {
+test("trivia retains comment bytes, literals and newline-sensitive signatures", async () => {
   const original = `// leading directive\n/** doc */\nexport interface X {\n  value: "a b";\n  f(): void\n  g(): void\n}\n`;
   const compact = compactDeclarationTrivia(original);
   expect(commentTokens(compact)).toEqual(commentTokens(original));
   expect(compact).toContain('"a b"');
-  expect(fingerprint(compact, new Map())).toEqual(fingerprint(original, new Map()));
+  expect(await fingerprint(compact, new Map())).toEqual(await fingerprint(original, new Map()));
 });
 
-test("actual published declarations retain own AST/docs, specifiers and idempotence", () => {
+test("actual published declarations retain own AST/docs, specifiers and idempotence", async () => {
   for (const name of ["proto-types.d.ts", "whatsapp_rust_bridge.d.ts"]) {
     const path = `dist/${name}`;
     expect(existsSync(path), `${path} is absent — run \`bun run build\` first`).toBe(true);
     const original = readFileSync(path, "utf8");
     const candidate = compactDeclarationTrivia(original);
     expect(commentTokens(candidate)).toEqual(commentTokens(original));
-    expect(fingerprint(candidate, new Map())).toEqual(fingerprint(original, new Map()));
+    expect(await fingerprint(candidate, new Map())).toEqual(await fingerprint(original, new Map()));
     expect(compactDeclarationTrivia(candidate)).toBe(candidate);
   }
 });
 
-test("ambient Long/protobuf/proto exports retain kinds without adding bindings", () => {
+test("ambient Long/protobuf/proto exports retain kinds without adding bindings", async () => {
   const candidate = { text: compactDeclarationTrivia(FIXTURE) };
-  expect(exported(candidate.text)).toEqual(exported(FIXTURE));
-  expect(exported(candidate.text).map(([name]) => name)).toEqual(["$protobuf", "Long", "proto"]);
+  expect(await exported(candidate.text)).toEqual(await exported(FIXTURE));
+  expect((await exported(candidate.text)).map(([name]) => name)).toEqual(["$protobuf", "Long", "proto"]);
 });
 
-test("strict comparisons diagnose both broken declarations and invalid consumer assignments", () => {
+test("strict comparisons diagnose both broken declarations and invalid consumer assignments", async () => {
   for (const exact of [false, true]) {
-    expect(diagnostics(FIXTURE + "\nexport type Broken = MissingType;\n", "", exact)
+    expect((await diagnostics(FIXTURE + "\nexport type Broken = MissingType;\n", "", exact))
       .some(error => error.code === 2304)).toBe(true);
-    expect(diagnostics(FIXTURE,
-      'import { proto } from "./proto-types.js"; new proto.Account().lid = 7;', exact)
+    expect((await diagnostics(FIXTURE,
+      'import { proto } from "./proto-types.js"; new proto.Account().lid = 7;', exact))
       .some(error => error.code === 2322)).toBe(true);
   }
 });
 
-test("ordinary own-property and augmentation consumers remain strict in both exactOptional modes", () => {
+test("ordinary own-property and augmentation consumers remain strict in both exactOptional modes", async () => {
   const candidate = { text: compactDeclarationTrivia(FIXTURE) };
   const consumer = `import { proto, Long } from "./proto-types.js";
 declare module "./proto-types.js" { namespace proto {
@@ -183,12 +153,12 @@ instance.extra;
 const long: Long = 1;
 `;
   for (const exact of [false, true]) {
-    expect(diagnostics(FIXTURE, consumer, exact)).toEqual([]);
-    expect(diagnostics(candidate.text, consumer, exact)).toEqual([]);
+    expect((await diagnostics(FIXTURE, consumer, exact))).toEqual([]);
+    expect((await diagnostics(candidate.text, consumer, exact))).toEqual([]);
   }
 });
 
-test("adding alias-like namespace names cannot shadow previously public field types", () => {
+test("adding alias-like namespace names cannot shadow previously public field types", async () => {
   const candidate = { text: compactDeclarationTrivia(FIXTURE) };
   const alias = "_D0";
   const consumer = `import { proto } from "./proto-types.js";
@@ -197,10 +167,10 @@ const input: proto.IAccount = { lid: "lid", username: "name", country: "country"
 const instance = new proto.Account(input);
 const value: string | null | undefined = instance.lid;
 `;
-  const outcomes = [false, true].map(exact => ({ exact,
-    original: diagnostics(FIXTURE, consumer, exact),
-    candidate: diagnostics(candidate.text, consumer, exact),
-  }));
+  const outcomes = await Promise.all([false, true].map(async exact => ({ exact,
+    original: await diagnostics(FIXTURE, consumer, exact),
+    candidate: await diagnostics(candidate.text, consumer, exact),
+  })));
   for (const outcome of outcomes) {
     expect(outcome.original).toEqual([]);
     expect(outcome.candidate).toEqual(outcome.original);

@@ -25,7 +25,7 @@ impl WasmWhatsAppClient {
                 }
                 TeardownAdmission::Complete => return Ok(JsValue::UNDEFINED),
             }
-            client.shutdown().await;
+            let _ = client.shutdown().await;
             abort_teardown_task(&saver_handle);
             if !connection_established.load(std::sync::atomic::Ordering::Acquire) {
                 abort_teardown_task(&connection_handle);
@@ -85,7 +85,7 @@ impl WasmWhatsAppClient {
                 teardown_kind.load(std::sync::atomic::Ordering::Acquire),
                 TEARDOWN_LOGOUT
             );
-            client.logout().await;
+            let _ = client.logout().await;
             abort_teardown_task(&saver_handle);
             abort_teardown_task(&sync_worker_handle);
             detach_teardown_task(&run_handle);
