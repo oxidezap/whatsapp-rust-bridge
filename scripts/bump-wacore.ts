@@ -63,16 +63,20 @@ function defaultRunner(command: string, args: string[]): Promise<{ stdout: strin
 }
 
 const REV_RE = /rev\s*=\s*"([^"]*)"/;
+const INHERITED_CORE_RE = /^\s*whatsapp-rust\s*=\s*\{\s*workspace\s*=\s*true\s*\}\s*(?:#.*)?$/;
 
 /**
  * Rewrite only the `rev` value on the core dependency line. A missing line,
- * a second core line, or a line with no `rev` fails instead of guessing,
+ * a second concrete core line, or a line with no `rev` fails instead of guessing,
  * so unrelated manifest content is never touched. Rewriting the SHA that
  * is already pinned is a valid idempotent no-op.
  */
 export function rewritePin(manifest: string, sha: string): string {
   const lines = manifest.split("\n");
-  const hits = lines.filter((line) => /^\s*whatsapp-rust\s*=/.test(line));
+  // Workspace inheritance refers to the shared dependency without owning its pin.
+  const hits = lines.filter((line) =>
+    /^\s*whatsapp-rust\s*=/.test(line) && !INHERITED_CORE_RE.test(line)
+  );
   if (hits.length !== 1) {
     throw new Error(
       `bump:wacore expected exactly one ${CORE_PACKAGE} dependency line, found ${hits.length}`
