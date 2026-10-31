@@ -39,9 +39,11 @@ test("generated operations preserve the published method contracts", async () =>
   for (const [name, signature] of Object.entries(baseline.signatures)) {
     const methods = client!.members.filter((member) => member.name?.getText(source) === name);
     expect(methods.length, name).toBe(1);
-    const expected = name === "deleteMessageForMe"
+    const legacy = name === "deleteMessageForMe"
       ? signature.replace("): Promise", ", participant?: string | null): Promise")
       : signature;
+    // wasm-bindgen 0.2.130 also accepts JS arrays for borrowed byte-slice inputs.
+    const expected = legacy.replace(/(\w+: Uint8Array)(?=[,)])/g, "$1 | number[]");
     expect(methods[0]!.getText(source).replace(/\s+/g, " "), name).toBe(expected);
   }
 });

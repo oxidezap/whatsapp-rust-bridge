@@ -39,13 +39,14 @@ const manifest = JSON.parse(
   readFileSync(join(ROOT, "package.json"), "utf8"),
 ) as Manifest;
 
+let failed = false;
+
 check(
-  manifest.dependencies?.["@bufbuild/protobuf"] === "^2.14.1",
+  manifest.dependencies?.["@bufbuild/protobuf"] === "^2.16.0",
   "package.json declares @bufbuild/protobuf for published declaration resolution",
 );
 
 const SCRATCH = mkdtempSync(join(tmpdir(), "published-tarball-"));
-let failed = false;
 
 interface RunResult {
   exit: number;
