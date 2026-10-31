@@ -1,0 +1,18 @@
+{
+  "bridgeRevision": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
+  "members": {
+    "onEvent": "onEvent(event: WhatsAppEvent): void;",
+    "onMessageBatch": "onMessageBatch(batch: MessageWireBatch): void;",
+    "historySyncConversationTypes": "historySyncConversationTypes?: readonly number[];",
+    "onHistorySyncBatch": "onHistorySyncBatch(batch: HistorySyncWireBatch): number | void;",
+    "onReceiptBatch": "onReceiptBatch?(batch: ReceiptWireBatch): void;",
+    "onServerAckBatch": "onServerAckBatch?(batch: ServerAckWireBatch): void;",
+    "onReceiptBatchBorrowed": "onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;",
+    "onServerAckBatchBorrowed": "onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;",
+    "onEventBatch": "onEventBatch?(batch: EventWireEnvelope): void;",
+    "onCallAudio": "onCallAudio?(frame: CallAudioFrame): void;",
+    "onCallEvent": "onCallEvent?(event: CallMediaEvent): void;",
+    "onCallVideo": "onCallVideo?(frame: CallVideoFrame): void;",
+    "onCallPcm": "onCallPcm?(frame: CallPcmFrame): void;"
+  }
+}

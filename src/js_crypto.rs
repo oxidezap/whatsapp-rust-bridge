@@ -64,64 +64,9 @@ const AES_CBC_BLOCK_BYTES: usize = 16;
 const GCM_AUTH_TAG_BYTES: usize = 16;
 const HMAC_SHA256_BYTES: usize = 32;
 
-#[wasm_bindgen(typescript_custom_section)]
-const TS_CRYPTO: &str = r#"
-/**
- * Native crypto callbacks installed via `initWasmEngine` for large AES operations.
- * Supply an implementation backed by the host platform's native crypto API.
- */
-export interface JsCryptoCallbacks {
-    aesCbc256Encrypt(key: Uint8Array, iv: Uint8Array, plaintext: Uint8Array): Uint8Array;
-    aesCbc256Decrypt(key: Uint8Array, iv: Uint8Array, ciphertext: Uint8Array): Uint8Array;
-    aesGcm256Encrypt(key: Uint8Array, nonce: Uint8Array, aad: Uint8Array, plaintext: Uint8Array): Uint8Array;
-    aesGcm256Decrypt(key: Uint8Array, nonce: Uint8Array, aad: Uint8Array, ciphertextWithTag: Uint8Array): Uint8Array;
-    hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array;
-    hmacSha256TwoPart?(key: Uint8Array, first: Uint8Array, second: Uint8Array): Uint8Array;
-}
-"#;
-
-/// Adapter that stores raw JS function handles and dispatches to them.
-pub struct JsCryptoAdapter {
-    aes_cbc_encrypt: js_sys::Function,
-    aes_cbc_decrypt: js_sys::Function,
-    aes_gcm_encrypt: js_sys::Function,
-    aes_gcm_decrypt: js_sys::Function,
-    hmac_sha256: js_sys::Function,
-    hmac_sha256_two_part: Option<js_sys::Function>,
-}
+generated_crypto_callbacks!();
 
 crate::wasm_send_sync!(JsCryptoAdapter);
-
-impl JsCryptoAdapter {
-    pub fn from_js(obj: &JsValue) -> Result<Self, JsValue> {
-        fn extract(obj: &JsValue, name: &str) -> Result<js_sys::Function, JsValue> {
-            js_sys::Reflect::get(obj, &JsValue::from_str(name))?
-                .dyn_into::<js_sys::Function>()
-                .map_err(|_| JsValue::from_str(&format!("crypto.{name} must be a function")))
-        }
-        fn extract_optional(
-            obj: &JsValue,
-            name: &str,
-        ) -> Result<Option<js_sys::Function>, JsValue> {
-            let value = js_sys::Reflect::get(obj, &JsValue::from_str(name))?;
-            if value.is_null() || value.is_undefined() {
-                return Ok(None);
-            }
-            value
-                .dyn_into::<js_sys::Function>()
-                .map(Some)
-                .map_err(|_| JsValue::from_str(&format!("crypto.{name} must be a function")))
-        }
-        Ok(Self {
-            aes_cbc_encrypt: extract(obj, "aesCbc256Encrypt")?,
-            aes_cbc_decrypt: extract(obj, "aesCbc256Decrypt")?,
-            aes_gcm_encrypt: extract(obj, "aesGcm256Encrypt")?,
-            aes_gcm_decrypt: extract(obj, "aesGcm256Decrypt")?,
-            hmac_sha256: extract(obj, "hmacSha256")?,
-            hmac_sha256_two_part: extract_optional(obj, "hmacSha256TwoPart")?,
-        })
-    }
-}
 
 /// Append the bytes of a JS `Uint8Array` to `out` without pre-zeroing the tail.
 ///
@@ -561,6 +506,71 @@ mod tests {
         assert_eq!(
             gcm_plaintext_len(NATIVE_GCM_MIN_BYTES + GCM_AUTH_TAG_BYTES),
             NATIVE_GCM_MIN_BYTES
+        );
+    }
+}
+
+#[cfg(test)]
+mod generated_host_callback_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    #[test]
+    fn registration_keeps_getter_order_and_required_throw_identity() {
+        let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};
+            for(const name of ["aesCbc256Encrypt", "aesCbc256Decrypt", "aesGcm256Encrypt", "aesGcm256Decrypt", "hmacSha256", "hmacSha256TwoPart"]) Object.defineProperty(obj,name,{get(){reads.push(name);return ()=>{};}});
+            return obj; })()"#).unwrap();
+        JsCryptoAdapter::from_js(&value).unwrap();
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(
+            reads,
+            vec![
+                "aesCbc256Encrypt",
+                "aesCbc256Decrypt",
+                "aesGcm256Encrypt",
+                "aesGcm256Decrypt",
+                "hmacSha256",
+                "hmacSha256TwoPart"
+            ]
+        );
+        let value=js_sys::eval(r#"(() => {const marker={marker:true}; return {marker,get aesCbc256Encrypt(){throw marker;}};})()"#).unwrap();
+        let marker = js_sys::Reflect::get(&value, &"marker".into()).unwrap();
+        let error = JsCryptoAdapter::from_js(&value).err().unwrap();
+        assert_eq!(error, marker);
+        let value = js_sys::eval(r#"({aesCbc256Encrypt:42})"#).unwrap();
+        let error = JsCryptoAdapter::from_js(&value).err().unwrap();
+        assert_eq!(
+            error.as_string().unwrap(),
+            "crypto.aesCbc256Encrypt must be a function"
+        );
+    }
+    #[test]
+    fn optional_crypto_callbacks_reject_invalid_values_and_propagate_getter_throws() {
+        let value=js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(){},hmacSha256TwoPart:42})").unwrap();
+        assert_eq!(
+            JsCryptoAdapter::from_js(&value)
+                .err()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            "crypto.hmacSha256TwoPart must be a function"
+        );
+        js_sys::Reflect::delete_property(
+            &value.clone().unchecked_into::<js_sys::Object>(),
+            &"hmacSha256TwoPart".into(),
+        )
+        .unwrap();
+        assert!(
+            JsCryptoAdapter::from_js(&value)
+                .unwrap()
+                .hmac_sha256_two_part
+                .is_none()
+        );
+        let value=js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(){},get hmacSha256TwoPart(){throw 17;}})").unwrap();
+        assert_eq!(
+            JsCryptoAdapter::from_js(&value).err().unwrap().as_f64(),
+            Some(17.0)
         );
     }
 }

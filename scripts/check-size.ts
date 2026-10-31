@@ -47,6 +47,7 @@ import { packedContents } from "./pack";
 // PR #115 wired engine measured 10.97 MB unpacked; same headroom over the new floor.
 const MAX_UNPACKED_BYTES = 11_500_000;
 
+
 const { files, unpackedSize: total } = packedContents();
 
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;

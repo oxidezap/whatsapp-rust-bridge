@@ -57,6 +57,8 @@ export interface ArchiveUpdate {
   /** The chat being archived or unarchived. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IArchiveChatAction;
   from_full_sync: boolean;
 }
@@ -141,7 +143,7 @@ export interface CachedServerCertChain {
   signature_verified: boolean;
 }
 
-/** Fields kept per-variant (not a shared `BasicCallMeta`) so the `serde` shape mirrors the stanza 1:1 for downstream JS consumers. */
+/** Fields kept per-variant (not a shared `BasicCallMeta`) so the `serde` shape mirrors the stanza 1:1 for downstream JS consumers.  Use [`Self::wire_tag`] for the action's exact wire string (for example, `"offer_notice"` or `"relaylatency"`), replacing the removed `action_kind` alias. The serialized `type` discriminator uses that same string. */
 export type CallAction =
   | { type: "offer"; call_id: string; call_creator: Jid; caller_pn?: Jid | null; caller_country_code?: string | null; device_class?: string | null; joinable: boolean; is_video: boolean; audio: CallAudioCodec[]; group_jid?: Jid | null }
   | { type: "offer_notice"; call_id: string; call_creator: Jid; is_video: boolean; is_group: boolean }
@@ -204,7 +206,23 @@ export interface CallLinkPreview {
   is_admin: boolean;
 }
 
-/** A call placed or received on the primary device, synced through app state.  The only channel that carries a call the companion never saw signalling for: a call placed on the phone puts nothing on this socket, so [`Event::IncomingCall`] and friends cannot see it. */
+/** A call record from the phone's pairing-time compressed history (field 13).  The record is shared with [`CallLogSync`], but history has no mutation index, mutation write time or app-state full-sync flag. This event is delivered in record wire order after the chunk's internal harvest and legacy [`Event::HistorySync`], so the new burst cannot displace that chunk in a bounded mailbox. Local retention limits may suppress all typed calls for an over-budget chunk; the raw lazy history remains available for recovery. It promises neither cross-chunk ordering nor dedup: replayed chunks can emit the same calls again. Consumers may upsert using the record's optional call identifier and creator.  ``` use wacore::types::events::{CallLogHistory, Event, EventInterest, EventKind}; let interest = EventInterest::of(&[EventKind::CallLogHistory]); assert!(interest.wants(EventKind::CallLogHistory)); fn placed(event: &Event) -> Option<bool> { match event { Event::CallLogHistory(call) => call.from_me, _ => None, } } let event = Event::CallLogHistory(CallLogHistory::builder().record(Box::default()).build()); assert_eq!(placed(&event), None); ``` */
+export interface CallLogHistory {
+  /** Who started the call, parsed only from `record.call_creator_jid`. Absent or unparseable creators stay unknown; raw text stays in `record`. */
+  call_creator_jid?: Jid | null;
+  /** Whether this account placed the call, comparing the creator against the chunk's fixed canonical PN/LID snapshot. `None` for an unknown creator or when neither account identity is available. `record.is_incoming` is never used to invent a direction. */
+  from_me?: boolean | null;
+  /** The call's own `record.start_time` (Unix seconds), not a mutation's write time. `None` when absent or out of range, without a now fallback. */
+  timestamp?: string | null;
+  /** All observed optional fields, outcomes and participants, unmodified. */
+  record: import('./proto-types').proto.ICallLogRecord;
+  /** History notification's sync type, not app-state full-sync provenance. */
+  sync_type?: number | null;
+  /** History notification's chunk order, if supplied by the phone. */
+  chunk_order?: number | null;
+}
+
+/** A call placed or received on the primary device, synced through app state.  Together with [`CallLogHistory`], carries calls the companion never saw signalling for: a call placed on the phone puts nothing on this socket, so [`Event::IncomingCall`] and friends cannot see it. */
 export interface CallLogSync {
   /** Who started the call, from the mutation's index.  The index rather than the record: `record.call_creator_jid` is optional and WA Web leaves it unset for calls it received none for, while it fills the index in either way — falling back to this account for a call it placed, or to the peer for one it took. */
   call_creator_jid: Jid;
@@ -224,8 +242,11 @@ export type CappingMvStatus = "NOT_ELIGIBLE" | "NOT_ACTIVE" | "ACTIVE" | "ACTIVE
 /** Eligibility for the one-time extension that lifts the cap for a cycle. */
 export type CappingOteStatus = "NOT_ELIGIBLE" | "ELIGIBLE" | "ACTIVE_IN_CURRENT_CYCLE" | "EXHAUSTED" | string;
 
-/** Where the account stands against the cap. */
+/** Where the account stands against the cap. Unknown wire values are preserved by all capping classifications. Consumers must allow additional recognized variants in future releases.  ``` use whatsapp_rust::{CappingStatus, CappingOteStatus, CappingMvStatus}; let status = CappingStatus::from("FUTURE_CAP"); match &status { CappingStatus::Other(value) => assert_eq!(value, "FUTURE_CAP"), _ => panic!("unexpected classification"), } assert_eq!(status.as_str(), "FUTURE_CAP"); assert_eq!(CappingOteStatus::from("FUTURE_OTE").as_str(), "FUTURE_OTE"); assert_eq!(CappingMvStatus::from("FUTURE_MV").as_str(), "FUTURE_MV"); ``` */
 export type CappingStatus = "NONE" | "FIRST_WARNING" | "SECOND_WARNING" | "CAPPED" | string;
+
+/** Activity within one chat, independently of global availability.  Serde names describe activity, not literal stanza tags. Recording audio projects to `<composing media="audio"/>`; idle projects to `<paused/>`. */
+export type ChatActivity = "typing" | "recording_audio" | "idle";
 
 /** Identifies a specific message within a chat. */
 export interface ChatMessageId {
@@ -233,18 +254,10 @@ export interface ChatMessageId {
   id: string;
 }
 
-export type ChatPresence = "composing" | "paused";
-
-export type ChatPresenceMedia = "" | "audio";
-
 export interface ChatPresenceUpdate {
   source: MessageSource;
-  state: ChatPresence;
-  media: ChatPresenceMedia;
+  state: ChatActivity;
 }
-
-/** Chat state type for typing indicators. */
-export type ChatStateType = "composing" | "recording" | "paused";
 
 /** A chat's messages were cleared (kept) on a linked device. */
 export interface ClearChatUpdate {
@@ -254,7 +267,10 @@ export interface ClearChatUpdate {
   delete_starred: boolean;
   /** From the index, not the proto. */
   delete_media: boolean;
+  /** When the mutation was made, not which messages it covers: that bound is `action.message_range`. WA Web's `WAWebClearChatSync` reads the timestamp only to keep messages starred after it. */
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IClearChatAction;
   from_full_sync: boolean;
 }
@@ -308,6 +324,8 @@ export interface ContactRemoved {
   /** The contact that is no longer saved. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   from_full_sync: boolean;
 }
 
@@ -321,6 +339,8 @@ export interface ContactUpdate {
   /** The chat/contact this sync action applies to. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IContactAction;
   from_full_sync: boolean;
 }
@@ -331,6 +351,8 @@ export interface ContactUpdated {
   jid: Jid;
   timestamp: string;
 }
+
+export type CreateDisappearingTrigger = "chat_settings" | "account_settings" | "bulk_change" | "unknown_groups";
 
 export type DayOfWeek = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | string;
 
@@ -356,7 +378,10 @@ export interface DeleteChatUpdate {
   jid: Jid;
   /** From the index, not the proto — DeleteChatAction only has messageRange. */
   delete_media: boolean;
+  /** When the mutation was made, not which messages it covers: that bound is `action.message_range`, and WA Web's `WAWebDeleteChatSync` deletes by it without reading this timestamp. */
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IDeleteChatAction;
   from_full_sync: boolean;
 }
@@ -368,6 +393,8 @@ export interface DeleteMessageForMeUpdate {
   message_id: string;
   from_me: boolean;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IDeleteMessageForMeAction;
   from_full_sync: boolean;
 }
@@ -400,6 +427,8 @@ export interface Device {
   server_has_prekeys: boolean;
   /** NCT salt provisioned by the server via app state sync or history sync. */
   nct_salt?: Uint8Array | null;
+  /** Last authoritative status audience received from app-state sync. `None` means unknown, not "all contacts". Keep the protobuf intact so newer modes and custom lists are never silently widened to a default. */
+  status_privacy?: import('./proto-types').proto.SyncActionValue.IStatusPrivacyAction | null;
   /** Server cert chain cached from the last successful XX (or XX-fallback) handshake. Enables Noise IK on the next connect by exposing `leaf.key` as the server's static public key, and lets us reject stale entries via `not_after` before even attempting IK. Only chains whose signatures were checked (`signature_verified`) authorize IK; `None` — or an unmarked legacy record — forces XX on the next connect. */
   server_cert_chain?: CachedServerCertChain | null;
   /** Login counter sent as `ClientPayload.lc` on every login. WA Web's `WAWebUserPrefsGeneral.getLoginCounter()` reads (and bumps) this from localStorage on each connect; the server uses it as an anti-abuse signal. Persisted so it survives restarts. */
@@ -569,8 +598,28 @@ export interface EncDecryptFailed {
 /** Why one `<enc>` produced no plaintext.  Every variant names a branch the receive path actually takes; there is no catch-all "other" standing in for code nobody wrote. New branches append new variants, so this is `#[non_exhaustive]` and a match on it needs a `_` arm.  This is the client's own classification of where *it* stopped, not something the server sends and not a statement about the sender's copy. Two builds can classify the same ciphertext differently as branches are refined; the pairing of a reason with a specific `<enc>` is the stable part, the exact variant is not. */
 export type EncDecryptFailureReason = "MalformedNode" | "UnsupportedEncType" | "MalformedCiphertext" | "NoSession" | "NoSenderKey" | "UnknownPreKey" | "UntrustedIdentity" | "BadMac" | "InvalidMessage" | "NoMessageSecret" | "LocalCryptoFailure" | "SignalError" | "StorageFailure" | "PlaintextUnusable" | "NotAttempted";
 
-/** The `mediatype` attribute of an `<enc>` node.  A hint about the payload the ciphertext carries, available before the decryption that would reveal it. It is the sender's claim and nothing checks it against the decrypted message.  Generated from `EncMediaType` in `WAWebBackendJobs.flow`. */
-export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | string;
+/** The `mediatype` attribute of an `<enc>` node.  A hint about the payload the ciphertext carries, available before the decryption that would reveal it. It is the sender's claim and nothing checks it against the decrypted message.  Generated from `EncMediaType` in `WAWebBackendJobs.flow`.  Keep a wildcard when matching: future wire values can gain named variants. */
+export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | "music" | string;
+
+/** A sticker was favorited or unfavorited on a linked device (`favoriteSticker`). Unfavoriting is the same `Set` with `action.is_favorite == Some(false)`; the event is only emitted when the flag is present. */
+export interface FavoriteStickerUpdate {
+  /** WA Web's sticker `filehash` (the index key): the base64 SHA-256 of the decrypted sticker file. */
+  filehash: string;
+  timestamp: string;
+  /** `is_favorite` plus the media fields (`direct_path`, `media_key`, `file_enc_sha256`, `mimetype`, `width`, `height`) needed to download a newly favorited sticker. */
+  action: import('./proto-types').proto.SyncActionValue.IStickerAction;
+  from_full_sync: boolean;
+}
+
+/** The favorite chats list changed on a linked device (`favorites`).  Each mutation carries the whole list, not a delta: it replaces whatever the application held before, and an empty list means no favorites. */
+export interface FavoritesUpdate {
+  timestamp: string;
+  /** `favorites`, in the order the phone shows them; each entry's `id` is a chat JID string. */
+  action: import('./proto-types').proto.SyncActionValue.IFavoritesAction;
+  from_full_sync: boolean;
+}
+
+export type GroupAddReason = "invite" | "accept" | "linked_group_join" | "auto_add" | "default_subgroup_admin_add" | "default_sub_group_promote" | "invite_auto_add" | "general_chat_auto_add";
 
 /** Review state for an appeal on a suspended group. */
 export type GroupAppealStatus = "approved" | "in_review" | "none" | "rejected";
@@ -598,6 +647,8 @@ export interface GroupCallParticipant {
   jid: Jid;
   state?: string | null;
   participant_type?: string | null;
+  /** The service's NACK code for this entry (`<user error="...">`), reported per participant. It is a different fact from the ack's own status: a `207` ack serves the call while individual participants fail, so the two are kept apart rather than conflated. */
+  error?: number | null;
   devices: GroupCallDevice[];
 }
 
@@ -640,19 +691,17 @@ export interface GroupCallUpdate {
   relay?: GroupCallRelay | null;
 }
 
+/** The CREATE reason vocabulary differs from ADD: `accept` is not in its table. */
+export type GroupCreateReason = "invite" | "linked_group_join" | "auto_add" | "default_subgroup_admin_add" | "default_sub_group_promote" | "invite_auto_add" | "general_chat_auto_add";
+
+export type GroupDeleteReason = "integrity_delete_parent" | "delete_parent";
+
 /** Delivery state for history shared with a newly joined participant. */
 export type GroupHistorySentState = "HISTORY_NOT_SENT" | "HISTORY_SENT" | "NOTICE_SENT";
 
-export interface GroupInfo {
-  participants: Jid[];
-  addressing_mode: AddressingMode;
-  /** Whether this group is a Community Announcement Group (WA Web `isCag`, derived from `default_sub_group`). `None` means the persisted blob predates the field, so the answer is unknown and callers must re-query. */
-  is_community_announce?: boolean | null;
-  /** LID→PN mappings, sorted by the LID user part, looked up by binary search. Used for device queries, since LID usync requests may not work reliably.  A sorted slice rather than a `HashMap`: a 1024-member group needs 2048 hashbrown buckets, so roughly half the map's bytes were empty slots, and the entries are read far more often than they are written (member changes arrive on notifications; lookups run once per participant per send). Serialized as the `lid_to_pn_map` object the previous layout wrote, so the persisted `group_metadata` blob is unchanged. */
-  lid_to_pn_map: Record<string, Jid>;
-}
+export type GroupLinkKind = "sub_group_link" | "parent_group_link" | "sibling_group_link";
 
-/** All possible group notification action types.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
+/** Group notification actions recognized by this snapshot.  Use the associated factory builders for named-field actions, and match them with `..`. Match the enum with a fallback arm for future typed actions. `Unknown` preserves an unrecognized wire tag; it is distinct from a future Rust variant added to this enum.  Maps 1:1 to `GROUP_NOTIFICATION_TAG` child element tags from WhatsApp Web.  The `#[wire = "..."]` attribute is the SINGLE source of truth for each variant's wire tag: the JSON discriminator (via the auto-derived `Serialize`), the parser dispatch (via the auto-generated sibling `GroupNotificationActionTag` enum), and `wire_tag()` / `tag_name()` all read from the same table. */
 export type GroupNotificationAction =
   | { type: "add"; participants: GroupParticipantInfo[]; reason?: string | null }
   | { type: "remove"; participants: GroupParticipantInfo[]; reason?: string | null }
@@ -699,7 +748,7 @@ export type GroupNotificationAction =
   | { type: "change_number"; new_owner?: Jid | null; sub_group_suggestions: Jid[] }
   | { type: string; tag: string };
 
-/** Participant info extracted from `<participant>` child elements.  Wire format: ```xml <participant jid="..." type="..." lid="..." phone_number="..." username="..." display_name="..." join_time="..."/> ```  `display_name` is the server-rendered label (e.g. `"+55∙∙∙∙∙∙∙∙∙79"` when the requester is not in the participant's contacts). `type` flags admin/superadmin tier; LID-addressed groups also carry `lid` and `username`. WA Web's `WAWebHandleGroupNotification` y() reads all of these into the participant model so the UI can render notifications and patch admin caches without resolving the contact locally. */
+/** Participant info extracted from `<participant>` child elements.  Construct fixtures with [`Self::builder`], supplying `jid` and any optional metadata. External patterns must include `..` to permit future metadata.  Wire format: ```xml <participant jid="..." type="..." lid="..." phone_number="..." username="..." display_name="..." join_time="..."/> ```  `display_name` is the server-rendered label (e.g. `"+55∙∙∙∙∙∙∙∙∙79"` when the requester is not in the participant's contacts). `type` flags admin/superadmin tier; LID-addressed groups also carry `lid` and `username`. WA Web's `WAWebHandleGroupNotification` y() reads all of these into the participant model so the UI can render notifications and patch admin caches without resolving the contact locally. */
 export interface GroupParticipantInfo {
   jid: Jid;
   phone_number?: Jid | null;
@@ -722,6 +771,19 @@ export type GroupParticipantType = "superadmin" | "admin" | "participant";
 
 /** Query request type. */
 export type GroupQueryRequestType = "interactive";
+
+export type GroupRemoveReason = "default_sub_group_demote";
+
+export interface GroupRoutingInfo {
+  participants: Jid[];
+  addressing_mode: AddressingMode;
+  /** Whether this group is a Community Announcement Group (WA Web `isCag`, derived from `default_sub_group`). `None` means the persisted blob predates the field, so the answer is unknown and callers must re-query. */
+  is_community_announce?: boolean | null;
+  /** LID→PN mappings, sorted by the LID user part, looked up by binary search. Used for device queries, since LID usync requests may not work reliably.  A sorted slice rather than a `HashMap`: a 1024-member group needs 2048 hashbrown buckets, so roughly half the map's bytes were empty slots, and the entries are read far more often than they are written (member changes arrive on notifications; lookups run once per participant per send). Serialized as the `lid_to_pn_map` object the previous layout wrote, so the persisted `group_metadata` blob is unchanged. */
+  lid_to_pn_map: Record<string, Jid>;
+}
+
+export type GroupUnlinkKind = "sub_group_unlink" | "parent_group_unlink" | "sibling_group_unlink" | "delete_parent_group_unlink" | "integrity_parent_group_unlink" | "integrity_sub_group_unlink";
 
 /** Group update notification.  Emitted for each action in a `<notification type="w:gp2">` stanza. A single notification may produce multiple `GroupUpdate` events (one per action). */
 export interface GroupUpdate {
@@ -753,6 +815,7 @@ export interface GroupUpdate {
   action: GroupNotificationAction;
 }
 
+/** Media host classification. Unrecognized wire values remain available in [`HostType::Other`]; future releases may recognize additional classifications.  ``` use wacore::iq::mediaconn::HostType; let host_type = HostType::from("future-host"); assert_eq!(host_type.as_str(), "future-host"); match host_type { HostType::Other(value) => assert_eq!(value, "future-host"), _ => panic!("unexpected classification"), } ``` An exhaustive downstream match would prevent recognizing new host types: ```compile_fail use wacore::iq::mediaconn::HostType; fn exhaustive(host: HostType) { match host { HostType::Primary | HostType::Fallback | HostType::Other(_) => {} } } ``` */
 export type HostType = "primary" | "fallback" | string;
 
 /** Identity key changed for a user (e.g., user reinstalled WhatsApp). Emitted after device record cleanup so sessions and sender keys are cleared. */
@@ -786,9 +849,12 @@ export interface IncomingCall {
   participant?: Jid | null;
   /** Companion recipient metadata copied from the outer `<call>` wrapper. */
   recipient?: Jid | null;
-  timestamp: number;
+  /** Server timestamp, absent on mid-call `enc_rekey` stanzas that omit `t`. Key rotation is ordered by its transaction id and does not need a date. */
+  timestamp?: number | null;
   offline: boolean;
   action: CallAction;
+  /** The offer's `username` attribute, used to enforce calling phone-number privacy before learning a LID/PN mapping. Kept on this extensible payload rather than adding a field to the public `CallAction::Offer` variant. */
+  caller_username?: string | null;
   /** The rotation the sending device announced on this stanza's `<video>` child, in `0..=3`. Only an `<offer>` and an `<accept>` carry one; `None` everywhere else, and for a stanza whose value was out of range.  A video-from-start peer announces its camera rotation exactly once, in that stanza, and sends no `<video>` of its own until the camera actually turns -- so dropping this leaves every frame of a call from a sideways camera stamped upright.  On the payload rather than inside [`CallAction::Offer`] / [`Accept`]: those variants are plain struct variants, so a new field there breaks every consumer that destructures them without a `..` rest. This struct is `#[non_exhaustive]` with a `bon` builder, which is exactly the shape the `Event` stability policy reserves for a payload that has to grow.  [`Accept`]: CallAction::Accept */
   video_orientation?: number | null;
   /** Group snapshot embedded in an initial offer or active-call invitation. */
@@ -815,7 +881,10 @@ export interface LabelAssociationUpdate {
   label_id: string;
   /** The chat the label was associated with or removed from. */
   chat_jid: Jid;
+  /** Legacy action time: the Unix epoch when absent, local dispatch time when the carried value is outside `DateTime`'s range. */
   timestamp: string;
+  /** The mutation's timestamp in milliseconds, converted without a fallback. `None` when absent or outside `DateTime`'s range; explicit zero is `Some` of the Unix epoch. This is not a server receipt time and does not classify a mutation as replayed or live. See `from_full_sync` for whether the event was dispatched during a full sync. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
@@ -824,12 +893,33 @@ export interface LabelAssociationUpdate {
 export interface LabelEditUpdate {
   /** The label identifier (the index key, not a JID). */
   label_id: string;
+  /** Legacy action time: the Unix epoch when absent, local dispatch time when the carried value is outside `DateTime`'s range. */
   timestamp: string;
+  /** The mutation's timestamp in milliseconds, converted without a fallback. `None` when absent or outside `DateTime`'s range; explicit zero is `Some` of the Unix epoch. This is not a server receipt time and does not classify a mutation as replayed or live. See `from_full_sync` for whether the event was dispatched during a full sync. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.ILabelEditAction;
   from_full_sync: boolean;
 }
 
-/** The source from which a LID-PN mapping was learned.  The source is load-bearing, not just provenance: it selects the write policy applied when the pair reaches the cache — see `lid_pn_write_policy` in the `whatsapp-rust` client, which mirrors WhatsApp Web's `createLidPnMappings` `switch (learningSource)`. Directed sources overwrite on any change; observational bulk sources (`Other` and friends, WA Web `"other"`) only seed new LIDs and re-resolve conflicts via a live query; known-stale sources are stamped `created_at = 0` so they never outrank a fresher mapping for the same phone (the PN→LID resolution direction; the LID→PN reverse map always takes the latest write). */
+/** A change to the entry keyed by `(predefined_id, chat_jid)` in a sublist. This does not assign or remove the parent label and does not reorder lists. */
+export type LabelSublistChange =
+  | { "Upsert": { sub_list_id: number } }
+  | "Remove";
+
+/** An inbound `label_sublist` mutation, distinct from [`LabelAssociationUpdate`].  Apply this as an upsert or removal keyed by `(predefined_id, chat_jid)` to make repeated delivery idempotent. It describes the received mutation, not a comparison against a stored previous value; delivery is not exactly once. The SDK keeps no sublist membership store and does not synthesize removals when a parent label is deleted or a snapshot omits an entry.  WhatsApp Web's AI handoff/responding filters use thread-control state; this event alone does not describe membership of those computed lists. */
+export interface LabelSublistUpdate {
+  /** Signed decimal ID from `index[1]`, in `LabelEditAction.predefined_id`'s numeric namespace. This is neither the label's ID nor its `ListType`. Unknown IDs are retained without filtering against known definitions. */
+  predefined_id: number;
+  /** JID from `index[2]`, preserving PN/LID identity without guessing a mapping. */
+  chat_jid: Jid;
+  change: LabelSublistChange;
+  /** Carried milliseconds converted without a fallback. `None` means absent or outside `DateTime`'s range; explicit zero is `Some` of the Unix epoch. This is not a server receipt time or a replay/live classifier. */
+  action_timestamp?: string | null;
+  /** Whether dispatch came from a full sync. `false` can also describe recovery/replay and does not guarantee a live change. */
+  from_full_sync: boolean;
+}
+
+/** The source from which a LID-PN mapping was learned.  The source is load-bearing, not just provenance: it selects the write policy applied when the pair reaches the cache — see `lid_pn_write_policy` in the `whatsapp-rust` client, which mirrors WhatsApp Web's `createLidPnMappings` `switch (learningSource)`. Peer-message sources only seed unseen LIDs, without re-querying conflicts. Latest-LID sources overwrite on any change; observational bulk sources (`Other` and friends, WA Web `"other"`) only seed new LIDs and re-resolve conflicts via a live query; known-stale sources are stamped `created_at = 0` so they never outrank a fresher mapping for the same phone (the PN→LID resolution direction; the LID→PN reverse map always takes the latest write). */
 export type LearningSource = "usync" | "peer_pn_message" | "peer_lid_message" | "recipient_latest_lid" | "migration_sync_latest" | "migration_sync_old" | "blocklist_active" | "blocklist_inactive" | "pairing" | "device_notification" | "other";
 
 /** An entry in the LID-PN cache containing the full mapping information. */
@@ -862,6 +952,8 @@ export interface LockChatUpdate {
   /** The chat being locked or unlocked (chat lock, the hidden "locked chats" folder on the primary device). */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.ILockChatAction;
   from_full_sync: boolean;
 }
@@ -887,6 +979,8 @@ export interface MarkChatAsReadUpdate {
   /** The chat being marked as read or unread. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IMarkChatAsReadAction;
   from_full_sync: boolean;
 }
@@ -913,7 +1007,10 @@ export type MessageCategory = "" | "peer" | string;
 export interface MessageInfo {
   source: MessageSource;
   id: string;
+  /** Legacy range-filtered server id; zero also represents absence. Prefer `newsletter_server_id` for lossless newsletter addressing. */
   server_id: number;
+  /** Newsletter envelope `server_id`, retaining every representable number. Absence remains absent and zero is a number, not a sentinel. */
+  newsletter_server_id?: number | string | null;
   /** The envelope's `type` attribute. `None` when the stanza carried none. */
   type?: StanzaMessageType | null;
   /** The sender's `notify` display name. Inline up to 24 bytes, which covers most names, so a message does not allocate for it. */
@@ -942,7 +1039,7 @@ export interface MessageInfo {
   verified_level?: string | null;
   /** Envelope `verified_name` int attr (business name certificate serial). Separate from the `verified_name` child cert bytes already on this struct. */
   verified_name_serial?: number | string | null;
-  /** Envelope `peer_recipient_pn` attr. Present on companion-device self-synced DM stanzas to identify the peer's PN (so the receipt goes to the right routing target). */
+  /** Raw parsed envelope `peer_recipient_pn`. For a valid self-synced LID DM, `source.recipient_alt` associates this PN with the explicit peer. This field alone does not establish an identity pair or change routing. */
   peer_recipient_pn?: Jid | null;
   /** Broadcast-contact-list recipients from `<participants><to jid>` on an incoming broadcast/status stanza. Populated only for broadcasts; used to validate a `deviceSentMessage.phash` (WA Web `validateBclHash`). Empty otherwise. */
   bcl_participants: Jid[];
@@ -956,7 +1053,10 @@ export interface MessageLabelAssociationUpdate {
   chat_jid: Jid;
   /** The labelled message's id. */
   message_id: string;
+  /** Legacy action time: the Unix epoch when absent, local dispatch time when the carried value is outside `DateTime`'s range. */
   timestamp: string;
+  /** The mutation's timestamp in milliseconds, converted without a fallback. `None` when absent or outside `DateTime`'s range; explicit zero is `Some` of the Unix epoch. This is not a server receipt time and does not classify a mutation as replayed or live. See `from_full_sync` for whether the event was dispatched during a full sync. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.ILabelAssociationAction;
   from_full_sync: boolean;
 }
@@ -968,6 +1068,7 @@ export interface MessageSource {
   is_group: boolean;
   addressing_mode?: AddressingMode | null;
   sender_alt?: Jid | null;
+  /** Explicit alternate identity of the recipient, not of `sender`. Self-synced LID DMs populate this from a valid `peer_recipient_pn` without changing `chat`. An omitted PN is not inferred from the cache. */
   recipient_alt?: Jid | null;
   broadcast_list_owner?: Jid | null;
   recipient?: Jid | null;
@@ -1063,6 +1164,8 @@ export interface MuteUpdate {
   /** The chat being muted or unmuted. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IMuteAction;
   from_full_sync: boolean;
 }
@@ -1070,17 +1173,27 @@ export interface MuteUpdate {
 /** Wire codes: 415=UnsupportedMessage, 421=StaleGroupAddressingMode, 475=NewChatMessagesCapped, 487=ParsingError, 488=UnrecognizedStanza, 489=UnrecognizedStanzaClass, 490=UnrecognizedStanzaType, 491=InvalidProtobuf, 493=InvalidHostedCompanionStanza, 495=MissingMessageSecret, 496=SignalErrorOldCounter, 499=MessageDeletedOnPeer, 500=UnhandledError, 550=UnsupportedAdminRevoke, 551=UnsupportedLIDGroup, 552=DBOperationFailed */
 export type NackReason = number;
 
-/** A newsletter live update notification, typically containing updated reaction counts for one or more messages. */
+/** A newsletter live update notification: the current counters (reactions, forwards, poll tallies) of one or more messages. */
 export interface NewsletterLiveUpdate {
   /** The newsletter channel this update belongs to. */
   newsletter_jid: Jid;
   messages: NewsletterLiveUpdateMessage[];
 }
 
-/** A single message entry in a newsletter live update. */
+/** A single message entry in a newsletter live update.  Carries the children a captured `<live_updates>` notification showed on a `<message>`: `<forwards_count>` and `<reactions>` on every one, `<votes>` on polls only, and never `<meta>` or `<plaintext>`. The other history counters (views, responses) were not seen live and are not modelled here. */
 export interface NewsletterLiveUpdateMessage {
   server_id: number | string;
   reactions: NewsletterLiveUpdateReaction[];
+  /** Per-option poll tallies. Empty on a message that is not a poll. */
+  votes: NewsletterLiveUpdatePollVote[];
+  /** How many times the message was forwarded. `None` when the node is absent, which is not the same as a count of zero. */
+  forwards_count?: number | string | null;
+}
+
+/** A poll option's tally in a newsletter live update, keyed the same way as the history tallies: by the SHA-256 of the option name ([`crate::poll::compute_option_hash`]). */
+export interface NewsletterLiveUpdatePollVote {
+  option_hash: Uint8Array;
+  count: number | string;
 }
 
 /** A reaction count in a newsletter live update. */
@@ -1089,7 +1202,23 @@ export interface NewsletterLiveUpdateReaction {
   count: number | string;
 }
 
-export type NewsletterMessageType = "text" | "media" | "reaction" | "revoke" | "poll_creation" | "poll_vote" | "edit" | string;
+/** The `mediatype` attribute of newsletter `<plaintext>`.  The known values come from the history IQ shape. `Other` keeps this API forward-compatible if WhatsApp adds another media kind. */
+export type NewsletterMediaType = "1p_sticker" | "audio" | "avatar_sticker" | "cataloglink" | "collection" | "document" | "genai_sticker" | "gif" | "image" | "motion_photo" | "motion_video" | "productlink" | "ptt" | "ptv" | "sticker" | "sticker_pack" | "url" | "user_created_sticker" | "vcard" | "video" | string;
+
+/** The `message_association_type` attribute in newsletter `<meta>`.  Unknown values are retained in `Other` instead of rejected, because this attribute is a closed set in the current IR but can grow with new media relationships. */
+export type NewsletterMessageAssociationType = "hd_image_dual_upload" | "hd_video_dual_upload" | "hevc_video_dual_upload" | "media_poll" | "motion_photo" | "poll_add_option" | "sticker_annotation" | string;
+
+/** The `type` attribute of a `<message>` in a newsletter's history.  Only [`Text`](Self::Text), [`Media`](Self::Media) and [`Poll`](Self::Poll) are the history wire values confirmed by both the pinned and latest whatspec IR. What the other variants try to name lives in sibling fields instead, and matching on them will never fire:  - an edit is `edit="3"` and a revocation `edit="8"`, both read into [`NewsletterMessage::edit`]; - a poll's stage is `<meta polltype>`, read into [`NewsletterMessage::poll_type`], which is where the `creation` / `quiz_creation` / `result_snapshot` distinction actually lives; - a reaction is never a message type here: reactions arrive as counts on the message they apply to ([`NewsletterMessage::reactions`]).  They are kept because removing a variant breaks callers that match on it; prefer the fields above. */
+export type NewsletterMessageType = "text" | "media" | "poll" | "reaction" | "revoke" | "poll_creation" | "poll_vote" | "edit" | string;
+
+/** The `questiontype` attribute in newsletter `<meta>`.  This small closed set is kept forward-compatible for future question variants. */
+export type NewsletterQuestionType = "question" | "reply" | string;
+
+/** Normalized discriminants are separate from the owned payload union. Each string has one WireEnum definition; physical wire dispatch uses the existing GroupNotificationActionTag enum, including its deliberately collapsed aliases. */
+export type NormalizedGroupActionType = "create" | "add" | "delete" | "remove" | "promote" | "demote" | "linked_group_promote" | "linked_group_demote" | "modify" | "subject" | "desc_add" | "desc_remove" | "suspend" | "restrict" | "announce" | "no_frequently_forwarded" | "invite" | "ephemeral" | "revoke_invite" | "growth_locked" | "growth_unlocked" | "sub_group_link" | "parent_group_link" | "sibling_group_link" | "sub_group_unlink" | "parent_group_unlink" | "sibling_group_unlink" | "delete_parent_group_unlink" | "integrity_parent_group_unlink" | "integrity_sub_group_unlink" | "membership_approval_mode" | "membership_approval_request" | "allow_admin_reports" | "admin_report_received" | "created_membership_requests" | "revoked_membership_requests" | "allow_non_admin_sub_group_creation" | "created_subgroup_suggestion" | "revoked_sub_group_suggestions" | "subgroup_suggestions_change_number" | "member_add_mode" | "general_chat_auto_add_disabled" | "group_safety_check";
+
+/** Internal normalized values from WAWebRequestMethodType, distinct from wire request_method strings used by the established public adapter enum. */
+export type NormalizedMembershipRequestMethod = "NonAdminAdd" | "InviteLink" | "LinkedGroupJoin";
 
 /** The `type` attribute of an incoming `<notification>`.  Every value WA Web routes. This client handles a subset and forwards the rest as a raw event, so a variant here is a value the protocol carries, not a promise that anything acts on it. */
 export type NotificationType = "account_sync" | "business" | "companion_reg_refresh" | "contacts" | "crsc_continuation" | "devices" | "digital_commerce_subscription" | "disappearing_mode" | "encrypt" | "fb:update" | "hosted" | "link_code_companion_reg" | "mediaretry" | "mex" | "newsletter" | "passkey_prologue_request" | "pay" | "picture" | "privacy_token" | "psa" | "registration" | "server" | "server_sync" | "status" | "w:gp2" | "w:growth" | "waffle";
@@ -1210,6 +1339,8 @@ export interface PinUpdate {
   /** The chat being pinned or unpinned. */
   jid: Jid;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IPinAction;
   from_full_sync: boolean;
 }
@@ -1219,12 +1350,11 @@ export type PollType = "creation" | "quiz_creation" | "vote" | "result_snapshot"
 
 export type PreKeyFetchReason = "identity" | "retry" | string;
 
-export type Presence = "available" | "unavailable";
-
 export interface PresenceUpdate {
   /** The contact whose presence changed. */
   from: Jid;
-  unavailable: boolean;
+  /** Global availability, directly reusable with `client.presence().set` in the SDK. */
+  status: PresenceStatus;
   last_seen?: string | null;
 }
 
@@ -1251,7 +1381,26 @@ export interface QuickReplyUpdate {
   from_full_sync: boolean;
 }
 
+export interface ReachoutTimelock {
+  enforcement_type?: string | null;
+  is_active?: boolean | null;
+  time_enforcement_ends?: string | null;
+}
+
+/** Payload for [`Event::ReachoutTimelockUpdate`].  Emitted for `NotificationUserReachoutTimelockUpdate`, before its raw MEX twin. This reports state, not an automatic outgoing-message enforcement policy. In particular, `state.is_active == Some(false)` reports a lifted restriction; `None` makes no assertion about whether it is active. */
+export interface ReachoutTimelockUpdate {
+  /** Decoded using the pull query's state type and deserializer. */
+  state: ReachoutTimelock;
+  /** Source of the notification, if present. */
+  from?: Jid | null;
+  /** Transport stanza ID, if present. */
+  stanza_id?: string | null;
+  /** Verbatim backlog marker, if present; not coerced to a boolean. */
+  offline?: string | null;
+}
+
 export interface Receipt {
+  /** `sender` identifies the receipt actor, not the author of the referenced message. For Status, `chat` stays `status@broadcast`, `sender` comes from `participant`, and an explicit `recipient` names the post author. `is_from_me` on Status describes our receipt, not our post; own reads and plays use the corresponding self receipt type. An absent/invalid Status participant retains the broadcast sender fallback without a sender alias. Missing aliases and post authors are not filled from cached identities. */
   source: MessageSource;
   message_ids: string[];
   timestamp: string;
@@ -1260,6 +1409,7 @@ export interface Receipt {
   offline: boolean;
 }
 
+/** Receipt semantics. Serde uses Rust variant names, independently of wire `type` values. Unknown values retain their payload in `{ "Other": "..." }`, even for known-name collisions. */
 export type ReceiptType =
   | "Delivered"
   | "Sent"
@@ -1276,8 +1426,17 @@ export type ReceiptType =
   | "HistorySync"
   | { "Other": string };
 
-/** Chat state type as received from incoming stanzas.  Aligned with WhatsApp Web's `WAChatState` constants: - `typing` = ACTIVE_CHAT_STATE_TYPE.TYPING - `recording_audio` = ACTIVE_CHAT_STATE_TYPE.RECORDING_AUDIO - `idle` = IDLE_CHAT_STATE_TYPE.IDLE */
-export type ReceivedChatState = "typing" | "recording_audio" | "idle";
+/** A sticker was removed from the recent-stickers list on a linked device (`removeRecentSticker`). */
+export interface RemoveRecentStickerUpdate {
+  /** WA Web's sticker `filehash` (the index key). */
+  filehash: string;
+  timestamp: string;
+  /** `last_sticker_sent_ts`: WA Web drops its recent entry only when that entry is not newer than this, and unconditionally when it is `None`. */
+  action: import('./proto-types').proto.SyncActionValue.IRemoveRecentStickerAction;
+  from_full_sync: boolean;
+}
+
+export type RevokedSuggestionReason = "approved" | "rejected" | "cancelled";
 
 /** Parsed screen-share state for one participant. */
 export interface ScreenShare {
@@ -1327,7 +1486,7 @@ export interface ServerClientExpiration {
 /** The type of spam flow indicating the source of the report. */
 export type SpamFlow = "GroupSpamBannerReport" | "GroupInfoReport" | "MessageMenu" | "ContactInfo" | "StatusReport";
 
-/** The `type` attribute of an incoming `<message>` envelope.  The official parser rejects a stanza whose `type` is absent or outside this set (`unknownValue: "reject"`). This client keeps the stanza instead, so the fallback arm holds the exact wire bytes of a value it does not model.  Generated from `STANZA_MSG_TYPES` in `WAWebHandleMsgCommon`. */
+/** The `type` attribute of an incoming `<message>` envelope.  The official parser rejects a stanza whose `type` is absent or outside this set (`unknownValue: "reject"`). This client keeps the stanza instead, so the fallback arm holds the exact wire bytes of a value it does not model.  Generated from `STANZA_MSG_TYPES` in `WAWebHandleMsgCommon`.  Keep a wildcard when matching: future wire values can gain named variants. */
 export type StanzaMessageType = "text" | "media" | "medianotify" | "pay" | "poll" | "reaction" | "event" | string;
 
 /** The tag a stanza arrives under.  The union of WA Web's stanza dispatcher, the requests the server sends us, and the types this client sends: no one document lists them all. */
@@ -1341,12 +1500,24 @@ export interface StarUpdate {
   message_id: string;
   from_me: boolean;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IStarAction;
   from_full_sync: boolean;
 }
 
 /** Privacy setting sent in the `<meta>` node of the status stanza. Matches WhatsApp Web's `status_setting` attribute. */
 export type StatusPrivacySetting = "contacts" | "allowlist" | "denylist";
+
+/** The account's status audience changed on a linked device (`status_privacy`). Carries the full syncd action, including modes this client does not yet interpret. A consumer must not treat an unknown mode as "all contacts". */
+export interface StatusPrivacyUpdate {
+  /** Dispatch time when the action carried no valid timestamp. */
+  timestamp: string;
+  /** Timestamp on the mutation, if it was present and representable. */
+  action_timestamp?: string | null;
+  action: import('./proto-types').proto.SyncActionValue.IStatusPrivacyAction;
+  from_full_sync: boolean;
+}
 
 export interface StreamError {
   code: string;
@@ -1378,6 +1549,15 @@ export interface TemporaryBan {
   raw?: any | null;
 }
 
+/** The account-wide "Keep chats archived" setting changed on a linked device (`setting_unarchiveChats`).  The wire flag is the inverse of the phone's switch: `unarchive_chats` is `true` when "Keep chats archived" is off, so a new message moves its chat out of the archive. */
+export interface UnarchiveChatsSettingUpdate {
+  /** `true` when a new message should unarchive its chat. Only emitted when the wire carried the flag. */
+  unarchive_chats: boolean;
+  timestamp: string;
+  action: import('./proto-types').proto.SyncActionValue.IUnarchiveChatsSetting;
+  from_full_sync: boolean;
+}
+
 export type UnavailableType = "unknown" | "view_once" | "hosted" | "bot";
 
 export interface UndecryptableMessage {
@@ -1401,6 +1581,8 @@ export interface UserStatusMuteUpdate {
   /** `true` = status muted, `false` = unmuted. */
   muted: boolean;
   timestamp: string;
+  /** The timestamp the mutation itself carried. `None` when it carried none, or one outside `DateTime`'s range: `timestamp` then holds a fallback (the Unix epoch or the dispatch time), not an instant the server sent. */
+  action_timestamp?: string | null;
   action: import('./proto-types').proto.SyncActionValue.IUserStatusMuteAction;
   from_full_sync: boolean;
 }
@@ -1704,4 +1886,12 @@ pub(crate) const CORE_EVENT_VARIANTS: &[&str] = &[
     "ClientExpirationChanged",
     "OfflineSyncInterrupted",
     "LockChatUpdate",
+    "FavoriteStickerUpdate",
+    "RemoveRecentStickerUpdate",
+    "FavoritesUpdate",
+    "StatusPrivacyUpdate",
+    "ReachoutTimelockUpdate",
+    "CallLogHistory",
+    "UnarchiveChatsSettingUpdate",
+    "LabelSublistUpdate",
 ];

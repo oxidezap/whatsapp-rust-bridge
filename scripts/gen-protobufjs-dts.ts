@@ -20,7 +20,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
+import * as ts from './typescript-api'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const SRC = join(HERE, '..', 'ts', 'generated', 'whatsapp.ts')
@@ -35,7 +35,7 @@ type Def = EnumDef | InterfaceDef
 // ─── Parse ───────────────────────────────────────────────────────────────
 
 const src = readFileSync(SRC, 'utf8')
-const sourceFile = ts.createSourceFile(SRC, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+const sourceFile = await ts.createSourceFile(SRC, src)
 
 const enumDefs: EnumDef[] = []
 const interfaceDefs: InterfaceDef[] = []
@@ -73,7 +73,7 @@ for (const statement of sourceFile.statements) {
 
 	const fields: FieldDef[] = []
 	for (const member of statement.members) {
-		if (!ts.isPropertySignature(member) || member.type === undefined) {
+		if (!ts.isPropertySignatureDeclaration(member) || member.type === undefined) {
 			throw new Error(`unsupported member in generated interface ${statement.name.text}`)
 		}
 
@@ -90,7 +90,7 @@ for (const statement of sourceFile.statements) {
 		fields.push({
 			name: declarationName(member.name),
 			type: rawType.replace(/\s+/g, ' ').trim(),
-			optional: member.questionToken !== undefined || hasUndefined,
+			optional: member.postfixToken?.kind === ts.SyntaxKind.QuestionToken || hasUndefined,
 			repeated
 		})
 	}
@@ -188,6 +188,14 @@ declare namespace $protobuf {
 \tinterface IConversionOptions { [key: string]: any; }
 }
 
+type $ProtoObject = { [k: string]: any };
+interface $ProtoJSON { toJSON(): $ProtoObject; }
+
+// Keep method-origin signatures so strictFunctionTypes retains their variance.
+type $ProtoEncode<T> = { encode(m: T, w?: $protobuf.Writer): $protobuf.Writer }["encode"];
+type $ProtoDecode<T> = { decode(r: ($protobuf.Reader|Uint8Array), l?: number): T }["decode"];
+type $ProtoToObject<T> = { toObject(m: T, o?: $protobuf.IConversionOptions): $ProtoObject }["toObject"];
+
 export namespace proto {
 `
 
@@ -231,17 +239,16 @@ const renderInterface = (def: InterfaceDef, leafName: string, depth: number): st
 		s += `${indent(depth + 1)}${renderField(f, false)}\n`
 	}
 	s += `${indent(depth)}}\n`
-	s += `\n${indent(depth)}class ${leafName} implements I${leafName} {\n`
+	// Ambient class/interface merging supplies the same public instance fields
+	// from I<Name>, without publishing each field declaration twice.
+	s += `\n${indent(depth)}interface ${leafName} extends I${leafName}, $ProtoJSON {}\n`
+	s += `\n${indent(depth)}class ${leafName} {\n`
 	s += `${indent(depth + 1)}constructor(p?: I${leafName});\n`
-	for (const f of def.fields) {
-		s += `${indent(depth + 1)}${renderField(f, true)}\n`
-	}
-	s += `${indent(depth + 1)}public static create(p?: I${leafName}): ${leafName};\n`
-	s += `${indent(depth + 1)}public static fromObject(d: { [k: string]: any }): ${leafName};\n`
-	s += `${indent(depth + 1)}public static toObject(m: ${leafName}, o?: $protobuf.IConversionOptions): { [k: string]: any };\n`
-	s += `${indent(depth + 1)}public static encode(m: I${leafName}, w?: $protobuf.Writer): $protobuf.Writer;\n`
-	s += `${indent(depth + 1)}public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): ${leafName};\n`
-	s += `${indent(depth + 1)}public toJSON(): { [k: string]: any };\n`
+	s += `${indent(depth + 1)}static create(p?: I${leafName}): ${leafName};\n`
+	s += `${indent(depth + 1)}static fromObject(d: $ProtoObject): ${leafName};\n`
+	s += `${indent(depth + 1)}static toObject: $ProtoToObject<${leafName}>;\n`
+	s += `${indent(depth + 1)}static encode: $ProtoEncode<I${leafName}>;\n`
+	s += `${indent(depth + 1)}static decode: $ProtoDecode<${leafName}>;\n`
 	s += `${indent(depth)}}\n`
 	return s
 }

@@ -49,6 +49,9 @@ pub struct LiveCall {
     format: wacore::voip_control::MediaAudioFormat,
     opus_mlow_escape: bool,
     mic_tx: async_channel::Sender<Vec<i16>>,
+    mic_drain: async_channel::Receiver<Vec<i16>>,
+    encoded_drain: async_channel::Receiver<Bytes>,
+    relay_close: Option<wacore::voip_control::VideoTeardownHook>,
     encoded_tx: async_channel::Sender<Bytes>,
     video_tx: async_channel::Sender<Vec<u8>>,
     timed_video_tx: async_channel::Sender<wacore::voip_control::VideoInput>,
@@ -90,6 +93,8 @@ impl LiveCall {
         let opus_mlow_escape = spec.audio.format == MediaAudioFormat::OPUS_MLOW_16KHZ_60MS;
         let parts = wacore::voip_control::engine_bridge::into_engine_parts(spec)
             .map_err(OpenError::Spec)?;
+        let mut rng_probe = [0u8; 12];
+        getrandom::fill(&mut rng_probe).map_err(|_| OpenError::SecureRandomUnavailable)?;
         let mut engine = CallEngine::new(parts.config, Box::new(RandTxIds))
             .map_err(|e| OpenError::Engine(e.to_string()))?;
         if let Some(group) = parts.group {
@@ -128,7 +133,12 @@ impl LiveCall {
         let (rekey_tx, rekey_rx) =
             async_channel::bounded::<wacore::voip_control::control::PeerAnswer>(1);
         let group_tx = parts_group_channel(&engine);
+        // The core API requires Arc even on single-threaded WASM.
+        #[allow(clippy::arc_with_non_send_sync)]
         let stats = Arc::new(media_stats::MediaStatsCell::default());
+        let (timed_video_tx, timed_video_rx) = async_channel::bounded(MEDIA_QUEUE_CAPACITY);
+        let mic_drain = mic_rx.clone();
+        let encoded_drain = enc_rx.clone();
         let channels = CallChannels {
             mic: mic_rx,
             speaker: spk_tx,
@@ -137,7 +147,7 @@ impl LiveCall {
             events: ev_tx,
             rekey: Some(rekey_rx),
             video_in: vin_rx,
-            timed_video_in: None,
+            timed_video_in: Some(timed_video_rx),
             video_out: vout_tx,
             video_ctl: vctl_rx,
             group_ctl: group_tx.1,
@@ -166,12 +176,12 @@ impl LiveCall {
             format,
             opus_mlow_escape,
             mic_tx,
+            mic_drain,
+            encoded_drain,
+            relay_close: Some(dialed.close),
             encoded_tx: enc_tx,
             video_tx: vin_tx,
-            timed_video_tx: {
-                let (tx, _rx) = async_channel::bounded(1);
-                tx
-            },
+            timed_video_tx,
             video_ctl: vctl_tx,
             group_tx: group_tx.0,
             rekey_tx: Some(rekey_tx),
@@ -233,7 +243,9 @@ impl LiveCall {
         wasm_bindgen_futures::spawn_local(async move {
             let mut seq = 0u32;
             while let Ok(frame) = encoded_out.recv().await {
-                push_encoded(id, seq, encoded_frame_to_dto(&frame, &format));
+                if let Some(frame) = encoded_frame_to_dto(&frame, &format) {
+                    push_encoded(id, seq, frame);
+                }
                 seq = seq.wrapping_add(1);
             }
         });
@@ -256,7 +268,9 @@ impl LiveCall {
         }
         let samples: Vec<i16> = frame
             .data
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| i16::from_le_bytes([c[0], c[1]]))
             .collect();
         let _ = self.mic_tx.try_send(samples);
@@ -264,6 +278,9 @@ impl LiveCall {
 
     /// Feeds one encoded packet to the engine's encoded mailbox.
     pub fn encoded_in(&self, data: &[u8]) {
+        if self.muted {
+            return;
+        }
         if let Some(packet) = encoded_input_packet(data, self.opus_mlow_escape) {
             let _ = self.encoded_tx.try_send(packet);
         }
@@ -370,25 +387,21 @@ impl LiveCall {
                 answering_lid,
                 audio_codec,
             } => {
-                let Some(rekey) = self.rekey_tx.take() else {
+                let Some(rekey) = self.rekey_tx.as_ref() else {
                     return false;
                 };
                 let codec = audio_codec.map(|c| match c {
                     voip_abi::AudioCodecWire::Mlow => MediaAudioCodec::Mlow,
                     voip_abi::AudioCodecWire::Opus => MediaAudioCodec::Opus,
                 });
-                let kept = rekey
+                rekey
                     .try_send(
                         PeerAnswer::builder()
                             .answering_lid(answering_lid)
                             .maybe_audio_codec(codec)
                             .build(),
                     )
-                    .is_ok();
-                if kept {
-                    self.rekey_tx = Some(rekey);
-                }
-                kept
+                    .is_ok()
             }
             MediaCommand::GroupApplyUpdate(update) => {
                 let Some(tx) = self.group_tx.as_ref() else {
@@ -438,6 +451,10 @@ impl LiveCall {
             }
             MediaCommand::AudioMute(flag) => {
                 self.muted = flag != 0;
+                if self.muted {
+                    while self.mic_drain.try_recv().is_ok() {}
+                    while self.encoded_drain.try_recv().is_ok() {}
+                }
                 true
             }
         }
@@ -465,8 +482,17 @@ impl LiveCall {
     pub fn close(self) -> (SessionId, String) {
         let call_id = self.call_id.clone();
         let id = self.id;
-        drop(self.task);
         (id, call_id)
+    }
+}
+
+impl Drop for LiveCall {
+    fn drop(&mut self) {
+        if let Some(close) = self.relay_close.take() {
+            close();
+        }
+        self.task.abort();
+        self._stats_task.abort();
     }
 }
 
@@ -504,16 +530,41 @@ pub use voip_abi::EncodedAudioOut;
 pub enum OpenError {
     Spec(MediaSetupError),
     Endpoint,
+    SecureRandomUnavailable,
     Engine(String),
     Relay(String),
 }
 
 impl OpenError {
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Spec(error) => match error {
+                MediaSetupError::BadCallKey => "call key must contain at least 32 bytes".to_owned(),
+                MediaSetupError::BadEndpoint => "invalid relay endpoint".to_owned(),
+                MediaSetupError::BadAudioFormat => {
+                    "invalid audio timing or channel count".to_owned()
+                }
+                MediaSetupError::UnsupportedPcmAudio => "unsupported PCM audio format".to_owned(),
+                MediaSetupError::MlowUnavailable => "MLOW codec is unavailable".to_owned(),
+                MediaSetupError::Relay(detail) => format!("relay setup failed: {detail}"),
+                MediaSetupError::Connect(detail) => format!("relay connection failed: {detail}"),
+                MediaSetupError::Backend(detail) => format!("media backend failed: {detail}"),
+                MediaSetupError::NoBackend => "no media backend installed".to_owned(),
+                _ => "unsupported media setup failure".to_owned(),
+            },
+            Self::Endpoint => "no usable relay endpoint".to_owned(),
+            Self::SecureRandomUnavailable => "secure random source unavailable".to_owned(),
+            Self::Engine(_) => "engine configuration refused".to_owned(),
+            Self::Relay(detail) => format!("relay connection failed: {detail}"),
+        }
+    }
     pub fn code(&self) -> voip_abi::AbiErrorCode {
         match self {
             OpenError::Spec(_) => voip_abi::AbiErrorCode::BadPayload,
             OpenError::Endpoint | OpenError::Relay(_) => voip_abi::AbiErrorCode::Transport,
-            OpenError::Engine(_) => voip_abi::AbiErrorCode::Internal,
+            OpenError::Engine(_) | OpenError::SecureRandomUnavailable => {
+                voip_abi::AbiErrorCode::Internal
+            }
         }
     }
 }
@@ -527,7 +578,7 @@ struct RandTxIds;
 impl wacore::voip::engine::TxIdSource for RandTxIds {
     fn next_tx_id(&mut self) -> [u8; 12] {
         let mut id = [0u8; 12];
-        getrandom::fill(&mut id).unwrap_or_default();
+        getrandom::fill(&mut id).expect("secure random source failed after setup");
         id
     }
 }
@@ -686,13 +737,13 @@ fn stats_to_wire(stats: &wacore::voip_control::MediaStats) -> StatsData {
 fn encoded_frame_to_dto(
     frame: &MediaEncodedFrame,
     format: &wacore::voip_control::MediaAudioFormat,
-) -> EncodedFrameDto {
+) -> Option<EncodedFrameDto> {
     let _ = format;
-    EncodedFrameDto {
+    Some(EncodedFrameDto {
         codec: match frame.codec {
             MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
             MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
-            _ => voip_abi::AudioCodecWire::Mlow,
+            _ => return None,
         },
         data: frame.data.to_vec(),
         payload_type: frame.payload_type,
@@ -701,7 +752,7 @@ fn encoded_frame_to_dto(
         marker: u8::from(frame.marker),
         sender: frame.sender.as_ref().map(ToString::to_string),
         device: frame.device.as_ref().map(ToString::to_string),
-    }
+    })
 }
 
 fn video_frame_to_dto(frame: &wacore::voip_control::ports::VideoFrame) -> VideoFrameDto {
@@ -729,7 +780,7 @@ fn event_to_wire(
         MediaEvent::RelayAllocated => Some(AbiEvent::RelayAllocated),
         MediaEvent::ForeignAudio(data) => Some(AbiEvent::ForeignAudio(data.to_vec())),
         MediaEvent::ForeignGroupAudio(frame) => Some(AbiEvent::ForeignGroupAudio(
-            encoded_frame_to_dto(frame, format),
+            encoded_frame_to_dto(frame, format)?,
         )),
         MediaEvent::AudioFormatMismatch {
             expected_rate,
@@ -824,17 +875,17 @@ fn event_to_wire(
             from: match from {
                 MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
                 MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
-                _ => voip_abi::AudioCodecWire::Mlow,
+                _ => return None,
             },
             to: match to {
                 MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
                 MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
-                _ => voip_abi::AudioCodecWire::Mlow,
+                _ => return None,
             },
             source: match source {
                 MediaCodecDecisionSource::Negotiated => CodecSource::Negotiated,
                 MediaCodecDecisionSource::Content => CodecSource::Content,
-                _ => CodecSource::Negotiated,
+                _ => return None,
             },
             packets_observed: *packets_observed,
         }),
@@ -846,17 +897,17 @@ fn event_to_wire(
             sending: match sending {
                 MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
                 MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
-                _ => voip_abi::AudioCodecWire::Mlow,
+                _ => return None,
             },
             peer_expects: match peer_expects {
                 MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
                 MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
-                _ => voip_abi::AudioCodecWire::Mlow,
+                _ => return None,
             },
             source: match source {
                 MediaCodecDecisionSource::Negotiated => CodecSource::Negotiated,
                 MediaCodecDecisionSource::Content => CodecSource::Content,
-                _ => CodecSource::Negotiated,
+                _ => return None,
             },
         }),
         MediaEvent::AudioReceptionStalled { silent_for_ms } => {
@@ -869,7 +920,6 @@ fn event_to_wire(
         // raises (video state, group, reactions, ...) have no wire spelling
         // and drop here rather than invent one.
         MediaEvent::Closed(_)
-        | MediaEvent::VideoStateChanged { .. }
         | MediaEvent::PeerVideoStateChanged { .. }
         | MediaEvent::GroupUpdated(_)
         | MediaEvent::WaitingRoomUpdated(_)
@@ -964,7 +1014,7 @@ fn encoded_input_packet(data: &[u8], opus_mlow_escape: bool) -> Option<Bytes> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     #[cfg(target_arch = "wasm32")]
@@ -977,6 +1027,8 @@ mod tests {
                 let _ = tx.send(snapshot);
             }
         });
+        // The core stats fan takes Arc on both target shapes.
+        #[allow(clippy::arc_with_non_send_sync)]
         let cell = Arc::new(media_stats::MediaStatsCell::default());
         let fan = spawn_stats_fan(
             SessionId {
@@ -1011,7 +1063,7 @@ mod tests {
 
     use wacore::voip::engine::{Input, Output, SequentialTxIds};
 
-    fn open_params() -> OpenParams {
+    pub(crate) fn open_params() -> OpenParams {
         use voip_abi::{AudioFormatDto, Direction};
         OpenParams {
             direction: Direction::Incoming,

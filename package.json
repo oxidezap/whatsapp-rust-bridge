@@ -1,6 +1,6 @@
 {
     "name": "@oxidezap/whatsapp-rust-bridge",
-    "version": "0.24.1",
+    "version": "0.26.3",
     "description": "A high-performance utilities for WhatsApp, powered by Rust and WebAssembly.",
     "author": "João Lucas <jlucaso@hotmail.com>",
     "license": "MIT",
@@ -61,7 +61,7 @@
         "gen:bridge-types": "cargo fetch && cd codegen && cargo run -q --bin gen-types --target $(rustc -vV | grep host | cut -d' ' -f2) > ../src/generated_types.rs.tmp && mv ../src/generated_types.rs.tmp ../src/generated_types.rs",
         "gen:proto-codec": "bun run scripts/gen-ts-proto.ts",
         "gen:proto-types": "bun run scripts/gen-protobufjs-dts.ts",
-        "gen": "bun run gen:proto-codec && bun run gen:proto-types && bun run gen:bridge-types",
+        "gen": "bun run gen:proto-codec && bun run gen:proto-types && bun run gen:bridge-types && bun run gen:operations",
         "build:wasm": "wasm-pack build --target web --out-dir pkg --no-pack",
         "build:wasm:dev": "wasm-pack build --target web --out-dir pkg --no-pack --dev",
         "build:wasm:voip": "wasm-pack build --target web --out-dir ../../pkg-voip --no-pack crates/voip-wasm",
@@ -70,8 +70,8 @@
         "build:finalize": "tsc -p tsconfig.json --outDir dist && rm -f dist/macro.d.ts && rm -rf dist/generated && bun run scripts/finalize-dist.ts",
         "build": "bun run gen && bun run build:wasm && bun run build:wasm:voip && bun run build:ts && bun run build:finalize",
         "build:dev": "bun run gen && bun run build:wasm:dev && bun run build:wasm:voip:dev && bun run build:ts && bun run build:finalize",
-        "build:profile": "cargo build --profile profiling --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run build:finalize",
-        "build:memory-profile": "cargo build --profile profiling --target wasm32-unknown-unknown --features memory-profiling && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:ts && bun run build:finalize",
+        "build:profile": "cargo build --profile profiling --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:wasm:voip && bun run build:ts && bun run build:finalize",
+        "build:memory-profile": "cargo build --profile profiling --target wasm32-unknown-unknown --features memory-profiling && wasm-bindgen --target web --out-dir pkg --keep-debug target/wasm32-unknown-unknown/profiling/whatsapp_rust_bridge.wasm && wasm-tools strip pkg/whatsapp_rust_bridge_bg.wasm -o pkg/whatsapp_rust_bridge_bg.wasm && bun run build:wasm:voip && bun run build:ts && bun run build:finalize",
         "bump:wacore": "bun run scripts/bump-wacore.ts",
         "example": "NODE_TLS_REJECT_UNAUTHORIZED=0 bun run examples/connect.ts",
         "test:rust": "wasm-pack test --node",
@@ -83,17 +83,19 @@
         "measure:fn-sizes": "node scripts/wasm-fn-sizes.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "measure:zone-peak": "node scripts/wasm-zone-peak.mjs pkg/whatsapp_rust_bridge_bg.wasm",
         "prepack": "bun run scripts/check-pack.ts",
-        "prepublishOnly": "bun run build"
+        "prepublishOnly": "bun run build",
+        "gen:operations": "cd codegen && cargo run -q --bin gen-operations --target $(rustc -vV | sed -n \"s/^host: //p\")",
+        "check:operations": "cd codegen && cargo run -q --bin gen-operations --target $(rustc -vV | sed -n \"s/^host: //p\") -- --check"
     },
     "dependencies": {
-        "@bufbuild/protobuf": "^2.14.1"
+        "@bufbuild/protobuf": "^2.16.0"
     },
     "devDependencies": {
-        "@types/bun": "^1.3.13",
-        "@types/node": "^25.6.0",
-        "pkg-pr-new": "^0.0.88",
-        "ts-proto": "^2.12.2",
-        "typescript": "^6.0.3"
+        "@types/bun": "^1.4.4",
+        "@types/node": "^26.6.6",
+        "pkg-pr-new": "^0.0.93",
+        "ts-proto": "^2.18.3",
+        "typescript": "^7.0.2"
     },
     "private": false
 }

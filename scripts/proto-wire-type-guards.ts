@@ -7,6 +7,7 @@
  */
 
 import { fromBinary } from '@bufbuild/protobuf'
+import { expandSharedUnknownFields } from './proto-source-sharing'
 import {
 	FieldDescriptorProto_Label as Label,
 	FieldDescriptorProto_Type as Type,
@@ -148,7 +149,7 @@ const guardBlock = (lines: string[], index: number, indent: string): Pick<Guard,
 export const assertWireTypeGuards = (source: string, descriptor: Uint8Array): void => {
 	const declared = declaredTagsByCodec(descriptor)
 	const decoded = new Map<string, Set<number>>()
-	const lines = source.split('\n')
+	const lines = expandSharedUnknownFields(source).split('\n')
 	let codec: string | undefined
 	let field: number | undefined
 	let indent = ''

@@ -99,6 +99,54 @@ async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: st
 }
 
 describe("the reconnect window", () => {
+  test("generated operations retain online admission and withdrawal", async () => {
+    const client = await reconnectingClient();
+    const calls = [
+      client.getGroupMetadata(GROUP),
+      client.groupUpdateSubject(GROUP, "synthetic subject"),
+      client.groupUpdateDescription(GROUP, "synthetic description"),
+      client.groupLeave(GROUP),
+      client.updateMemberLabel(GROUP, "synthetic label"),
+      client.groupInviteCode(GROUP),
+      client.groupToggleEphemeral(GROUP, 0),
+      client.groupRevokeInvite(GROUP),
+      client.deactivateCommunity(GROUP),
+      client.linkCommunitySubgroups(GROUP, ["120363000000000001@g.us"]),
+      client.unlinkCommunitySubgroups(GROUP, ["120363000000000001@g.us"], false),
+      client.getCommunitySubgroups(GROUP),
+      client.groupAcceptInvite("synthetic-code"),
+      client.groupAcceptInviteV4(GROUP, "synthetic-code", 2000000000, CHAT),
+      client.groupRevokeInviteV4(GROUP, CHAT),
+      client.groupGetInviteInfo("synthetic-code"),
+      client.groupRequestParticipantsList(GROUP),
+      client.getBusinessProfile(CHAT),
+      client.getOrder(CHAT, "synthetic-order", "synthetic-token"),
+      client.removeBusinessCoverPhoto("synthetic-fbid"),
+      client.getMediaConn(true),
+    ].map(watch);
+
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(calls.every((call) => !call.settled())).toBe(true);
+    expect(client.withdrawParkedCalls()).toBe(calls.length);
+    for (const call of calls) {
+      expect((await rejection(call.promise)).kind).toBe("withdrawn");
+    }
+  });
+
+  test("generated input validation rejects before admission", async () => {
+    const client = await reconnectingClient();
+    for (const call of [
+      client.groupLeave("@"),
+      client.getGroupMetadata("@"),
+      client.linkCommunitySubgroups(GROUP, ["@"]),
+      client.getOrder("@", "synthetic-order", "synthetic-token"),
+    ]) {
+      const error = await rejection(call);
+      expect(error.kind).toBe("invalid-argument");
+    }
+    expect(client.withdrawParkedCalls()).toBe(0);
+  });
+
   test("a call that a reconnect would answer waits for it", async () => {
     const client = await reconnectingClient();
     expect(client.reachability()).toBe("reconnecting");

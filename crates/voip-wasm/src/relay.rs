@@ -29,6 +29,7 @@ fn transport_slot() -> &'static Mutex<Option<JsTransport>> {
 #[derive(Clone)]
 struct JsTransport {
     connect: js_sys::Function,
+    receiver: JsValue,
 }
 
 impl JsTransport {
@@ -38,7 +39,10 @@ impl JsTransport {
         let connect = connect
             .dyn_into::<js_sys::Function>()
             .map_err(|_| JsValue::from_str("relay transport connect is not a function"))?;
-        Ok(JsTransport { connect })
+        Ok(JsTransport {
+            connect,
+            receiver: value.clone(),
+        })
     }
 }
 
@@ -63,29 +67,47 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
         .unwrap_or(None)
         .ok_or_else(|| "no relay transport installed".to_owned())?;
     let events = JsEvents::new();
+    let (tx, rx) = async_channel::bounded(64);
+    events.install(tx.clone());
     let endpoint_js = js_endpoint(&endpoint);
     let promise = transport
         .connect
-        .call2(&JsValue::UNDEFINED, &endpoint_js, events.handler_object())
+        .call2(&transport.receiver, &endpoint_js, events.handler_object())
         .map_err(|_| "relay connect threw".to_owned())?;
-    let connection = JsFuture::from(js_sys::Promise::from(promise))
+    let connection = JsFuture::from(js_sys::Promise::resolve(&promise))
         .await
         .map_err(|_| "relay connect rejected".to_owned())?;
     let pipe = JsPipe::from_value(&connection)?;
-    let (tx, rx) = async_channel::unbounded();
-    events.install(tx.clone());
     // The channel is open when `connect` resolved: report it so the driver
     // starts its allocate instead of waiting on an `onOpen` that already
     // happened.
     tx.try_send(RelayTransportEvent::Connected).ok();
+    let closing = pipe.clone();
+    let close: wacore::voip_control::VideoTeardownHook = Box::new(move || {
+        if let Ok(result) = closing.close.call0(&closing.this) {
+            #[cfg(target_arch = "wasm32")]
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
+            });
+            #[cfg(not(target_arch = "wasm32"))]
+            let _ = result;
+        }
+    });
     Ok(Dialed {
-        transport: Arc::new(ConnectedPipe { pipe, events }) as Arc<dyn RelayTransport>,
+        close,
+        transport: Arc::new(ConnectedPipe {
+            pipe,
+            events,
+            endpoint,
+            relay_events: rx.clone(),
+        }) as Arc<dyn RelayTransport>,
         relay_events: rx,
     })
 }
 
 /// The two halves `run_call` takes: the packet pipe and its push stream.
 pub struct Dialed {
+    pub close: wacore::voip_control::VideoTeardownHook,
     pub transport: Arc<dyn RelayTransport>,
     pub relay_events: async_channel::Receiver<RelayTransportEvent>,
 }
@@ -178,35 +200,31 @@ impl JsEvents {
                     let _ = sender.try_send(RelayTransportEvent::Disconnected(
                         reason.unwrap_or(RelayDisconnectReason::Closed),
                     ));
+                    sender.close();
                 }
             }) as Box<dyn FnMut(JsValue)>)
         };
         let _ = js_sys::Reflect::set(
             &events.obj,
             &JsValue::from_str("onPacket"),
-            on_packet.as_ref().unchecked_ref(),
+            &on_packet.into_js_value(),
         );
         let _ = js_sys::Reflect::set(
             &events.obj,
             &JsValue::from_str("onOpen"),
-            on_open.as_ref().unchecked_ref(),
+            &on_open.into_js_value(),
         );
         let _ = js_sys::Reflect::set(
             &events.obj,
             &JsValue::from_str("onClose"),
-            on_close.as_ref().unchecked_ref(),
+            &on_close.into_js_value(),
         );
-        // The JS object owns the closures now; they hold only a weak backref,
-        // so dropping the `Arc` silences them without leaking the call.
-        on_packet.forget();
-        on_open.forget();
-        on_close.forget();
         events
     }
 
     fn handler_object(&self) -> &JsValue {
         // The object reference the `connect` call receives.
-        unsafe { &*(&self.obj as *const js_sys::Object as *const JsValue) }
+        self.obj.as_ref()
     }
 
     fn install(self: &Arc<Self>, sender: async_channel::Sender<RelayTransportEvent>) {
@@ -217,8 +235,11 @@ impl JsEvents {
 }
 
 /// The live JS connection plus its event callbacks, behind the trait.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 struct ConnectedPipe {
     pipe: JsPipe,
+    endpoint: RelayEndpointParams,
+    relay_events: async_channel::Receiver<RelayTransportEvent>,
     /// Held so the `onPacket`/`onOpen`/`onClose` closures stay able to reach
     /// the sender: they hold only a weak backref, which this keeps alive.
     #[allow(dead_code)]
@@ -226,9 +247,11 @@ struct ConnectedPipe {
 }
 
 #[derive(Clone)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 struct JsPipe {
     send: js_sys::Function,
     close: js_sys::Function,
+    reconnect: js_sys::Function,
     this: JsValue,
 }
 
@@ -243,24 +266,69 @@ impl JsPipe {
         Ok(JsPipe {
             send: get("send")?,
             close: get("close")?,
+            reconnect: get("reconnect")?,
             this: value.clone(),
         })
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+#[cfg(target_arch = "wasm32")]
+#[async_trait(?Send)]
 impl RelayTransport for ConnectedPipe {
     async fn send(&self, data: Bytes) -> anyhow::Result<()> {
         let bytes = js_sys::Uint8Array::from(data.as_ref());
-        self.pipe
+        let result = self
+            .pipe
             .send
             .call1(&self.pipe.this, &bytes.into())
             .map_err(|_| anyhow::anyhow!("relay send threw"))?;
+        JsFuture::from(js_sys::Promise::resolve(&result))
+            .await
+            .map_err(|_| anyhow::anyhow!("relay send rejected"))?;
         Ok(())
     }
 
-    async fn disconnect(&self) {
-        let _ = self.pipe.close.call0(&self.pipe.this);
+    async fn reconnect(
+        &self,
+        address: std::net::SocketAddr,
+    ) -> anyhow::Result<(
+        Arc<dyn RelayTransport>,
+        async_channel::Receiver<RelayTransportEvent>,
+    )> {
+        let mut endpoint = self.endpoint.clone();
+        endpoint.addr = address;
+        let result = self
+            .pipe
+            .reconnect
+            .call1(&self.pipe.this, &js_endpoint(&endpoint))
+            .map_err(|_| anyhow::anyhow!("relay reconnect threw"))?;
+        JsFuture::from(js_sys::Promise::resolve(&result))
+            .await
+            .map_err(|_| anyhow::anyhow!("relay reconnect rejected"))?;
+        Ok((
+            Arc::new(ConnectedPipe {
+                pipe: self.pipe.clone(),
+                events: self.events.clone(),
+                endpoint,
+                relay_events: self.relay_events.clone(),
+            }),
+            self.relay_events.clone(),
+        ))
     }
+
+    async fn disconnect(&self) {
+        if let Ok(result) = self.pipe.close.call0(&self.pipe.this) {
+            let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
+        }
+    }
+}
+
+// Native tests exercise the sans-IO engine; JS transports run only on WASM.
+#[cfg(not(target_arch = "wasm32"))]
+#[async_trait]
+impl RelayTransport for ConnectedPipe {
+    async fn send(&self, _: Bytes) -> anyhow::Result<()> {
+        anyhow::bail!("JS relay requires wasm32")
+    }
+    async fn disconnect(&self) {}
 }

@@ -138,3 +138,23 @@ describe("extensions.voipBackend", () => {
     await client.disconnect();
   });
 });
+
+test("preserves method receivers and adopts thenable backend responses", async () => {
+  const backend = {
+    calls: 0,
+    handler: undefined as unknown,
+    sendFrame(request: Uint8Array) {
+      this.calls++;
+      return { then: (resolve: (value: Uint8Array) => void) => resolve(helloResponse(3)) } as unknown as Promise<Uint8Array>;
+    },
+    setPushHandler(handler: unknown) { this.handler = handler; },
+  };
+  const client = await createWhatsAppClient(
+    { connect() {}, send() {}, disconnect() {} }, createHttp(), null, null, null,
+    null, null, null, null, { voipBackend: backend },
+  );
+  try {
+    expect(backend.calls).toBe(1);
+    expect(typeof backend.handler).toBe("function");
+  } finally { client.free(); }
+});

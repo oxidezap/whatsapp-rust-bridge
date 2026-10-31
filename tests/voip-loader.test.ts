@@ -56,6 +56,25 @@ describe("published VoIP facade", () => {
     }
   });
 
+  test("rejects malformed video flags on every media entrypoint", async () => {
+    initWasmEngine();
+    const client = await createWhatsAppClient(
+      { connect() {}, send() {}, disconnect() {} }, createHttp(), null, null,
+    );
+    try {
+      for (const value of ["false", {}, 0, null]) {
+        for (const operation of [
+          () => client.acceptCall("MISSING", "mlow", value as never),
+          () => client.dialCall("5511999999999@s.whatsapp.net", "mlow", value as never),
+          () => client.acceptCallPcm("MISSING", value as never),
+          () => client.dialCallPcm("5511999999999@s.whatsapp.net", value as never),
+        ]) {
+          await expect(operation()).rejects.toMatchObject({ kind: "invalid-argument", field: "withVideo" });
+        }
+      }
+    } finally { client.free(); }
+  });
+
   test("host init accepts provided bytes without loading the core entrypoint", async () => {
     const bytes = readFileSync(new URL("../dist/whatsapp_rust_voip_bg.wasm", import.meta.url));
     const engine = initVoipSync(bytes, noRelay);

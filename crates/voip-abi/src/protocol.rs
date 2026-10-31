@@ -334,3 +334,13 @@ impl Frame {
         })
     }
 }
+
+impl Drop for Frame {
+    fn drop(&mut self) {
+        for byte in &mut self.payload {
+            unsafe {
+                core::ptr::write_volatile(byte, 0);
+            }
+        }
+    }
+}

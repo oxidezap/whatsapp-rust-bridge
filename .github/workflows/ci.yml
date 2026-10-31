@@ -20,10 +20,23 @@ env:
   # Pinned to what release.yml uses. This workflow runs the same build, so a
   # different toolchain version here would let CI pass on something the release
   # then fails on — which is the drift this parity is meant to remove.
-  BUN_VERSION: 1.3.14
-  NODE_VERSION: 24
+  BUN_VERSION: 1.4.4
+  NODE_VERSION: 26.13.0
 
 jobs:
+  release-contract:
+    name: Release ordering and retry contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node --test .github/scripts/release.test.mjs
+
   # release-please keeps its release pull request rebased on main, so every
   # feature that lands re-triggers a full run on a diff that is a version
   # string and a changelog entry — 7 of the 30 runs in the last five days, at
@@ -133,7 +146,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2026-04-05
+          toolchain: 1.99.1
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
 
@@ -171,6 +184,7 @@ jobs:
           cargo fmt --manifest-path codegen/Cargo.toml --all -- --check
           cargo clippy --manifest-path codegen/Cargo.toml --all-targets --target "$HOST" -- -D warnings
           cargo test --manifest-path codegen/Cargo.toml --target "$HOST"
+          cargo run --manifest-path codegen/Cargo.toml --bin gen-operations --target "$HOST" -- --check
 
       # `crates/voip-abi/` is its own package like `codegen/`, so the steps
       # above do not reach it. Same host-target reasoning: the default build
@@ -224,18 +238,18 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2026-04-05
+          toolchain: 1.99.1
           targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@4076c08d76dba979c11a7285295b0716c1d67908 # v2.87.15
+        uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
         with:
           # Same pin as the release workflow: this job now runs the same build,
           # and the point is for it to fail here rather than there.
-          tool: wasm-pack,protoc@3.35.1
+          tool: wasm-pack@0.15.1,protoc@3.36.2
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -243,7 +257,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -253,6 +267,9 @@ jobs:
       # The package's real build, the same command the release runs. Calling
       # wasm-pack and build:ts directly skipped `gen`, so a codegen or tooling
       # break surfaced for the first time at publish, where it costs a version.
+      - name: Install Binaryen 133
+        run: bash scripts/install-binaryen.sh
+
       - name: Build the wasm package
         run: bun run build
 
@@ -266,8 +283,8 @@ jobs:
         # --intent-to-add first: `git diff` only sees tracked files, so a
         # generator that starts emitting a new file would pass unreviewed.
         run: |
-          git add --intent-to-add -- src/generated_types.rs ts/generated
-          git diff --exit-code -- src/generated_types.rs ts/generated
+          git add --intent-to-add -- src/generated_types.rs src/wasm_client/generated ts/generated
+          git diff --exit-code -- src/generated_types.rs src/wasm_client/generated ts/generated
 
       # The Noise cert-chain bypass must not reach the shipped graph. The
       # script reads the resolved wasm32 feature set, so only the production
@@ -338,6 +355,14 @@ jobs:
       # stops being true. It packs with `npm pack`, which runs `prepack` — the
       # same tarball guard a real publish goes through — so the preview is
       # `dist/` as this job built it, with nothing built twice.
+      - name: Preserve the production build for isolated consumer checks
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Publish a preview package
         continue-on-error: true
         run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
@@ -349,36 +374,16 @@ jobs:
   # Packing, installing twice and typechecking twice is far past the per-test
   # clock budget, so it is a job of its own.
   #
-  # This builds the development package, not the release one: wasm-opt never
-  # touches a `.d.ts`, so the declarations are identical either way, and the
-  # release cost — size, shape, drift — stays in `build-and-test`, which owns
-  # those gates. A packaging check that rebuilt the release wasm would pay
-  # most of that job's ~9 minutes a second time for the same bytes.
+  # Reuse the production build. Lifecycle checks must exercise wasm-opt's
+  # shipped bytes as well as the declarations, without paying for a rebuild.
   published-tarball:
     name: Published tarball contract
-    needs: changes
+    needs: [changes, build-and-test]
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2026-04-05
-          targets: wasm32-unknown-unknown
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@4076c08d76dba979c11a7285295b0716c1d67908 # v2.87.15
-        with:
-          # Same pin as build-and-test: `gen` must see the same protoc, or a
-          # comment-only version line drifts the generated codec here and not
-          # there.
-          tool: wasm-pack,protoc@3.35.1
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -386,15 +391,18 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install JavaScript dependencies
         run: bun install
 
-      - name: Build the development package
-        run: bun run build:dev
+      - name: Download the production build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # same pin as release
+        with:
+          name: production-dist
+          path: dist
 
       # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
       # publish goes through), installs it in a directory outside the
@@ -416,16 +424,16 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2026-04-05
+          toolchain: 1.99.1
           targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
       - name: Install wasm-pack
-        uses: taiki-e/install-action@4076c08d76dba979c11a7285295b0716c1d67908 # v2.87.15
+        uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
         with:
-          tool: wasm-pack
+          tool: wasm-pack@0.15.1
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -433,7 +441,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 

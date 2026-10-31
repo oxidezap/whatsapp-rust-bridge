@@ -9,17 +9,13 @@ const replaceOnce = (from: string, to: string) => {
   }
   glue = glue.replace(from, to);
 };
-const exports = [
-  "MlowAudioDecoder",
-  "depacketizeOpusFromMlow",
-  "init",
-  "packetizeOpusForMlow",
-  "send_frame",
-  "set_push_handler",
-  "set_relay_transport",
-] as const;
-for (const name of exports) {
-  replaceOnce(`export ${name === "MlowAudioDecoder" ? "class" : "function"} ${name}`, `${name === "MlowAudioDecoder" ? "class" : "function"} ${name}`);
+const exports: string[] = [];
+glue = glue.replace(/^export (class|(?:async )?function) (\w+)/gm, (_, kind, name) => {
+  exports.push(name);
+  return `${kind} ${name}`;
+});
+if (exports.length === 0 || new Set(exports).size !== exports.length) {
+  throw new Error("voip wasm-bindgen glue has no exports or duplicate exports");
 }
 replaceOnce("export { initSync, __wbg_init as default };", "");
 // wasm-pack --dev also exposes the raw exports for test harnesses. The

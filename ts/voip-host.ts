@@ -42,6 +42,8 @@ export interface VoipEngine {
  * Initialize a fresh engine with host-provided bytes or a compiled Module.
  * Each call owns a separate WASM instance and relay pipe, even in one isolate.
  * Nothing in the core entrypoint imports or allocates the media engine.
+ * The bundled backend negotiates PCM and encoded audio. Video is refused
+ * until the core exposes a neutral receive-frame constructor.
  */
 export function initVoipSync(wasm: SyncInitInput, transport: VoipRelayTransport): VoipEngine {
   const engine = createVoipBindings();

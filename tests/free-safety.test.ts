@@ -89,7 +89,7 @@ describe("free() with a call in flight", () => {
   // so freeing underneath them is safe by construction rather than by
   // heap luck. One body per shape: validation failure, gate plus core
   // failure, unknown record, and stanza send.
-  const hasCallsAudio = typeof (dist as any).packetizeOpusForMlow !== "undefined";
+  const hasCallsAudio = typeof (dist.WasmWhatsAppClient.prototype as any).acceptCall === "function";
 
   const callBodies = [
     ...(hasCallsAudio

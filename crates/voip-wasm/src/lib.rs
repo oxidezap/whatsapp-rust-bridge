@@ -45,7 +45,6 @@ use wasm_bindgen::prelude::*;
 /// it never gives. Mirrors `ABI_CAPABILITIES` on the core side.
 const ENGINE_CAPABILITIES: u32 = Capabilities::PCM
     | Capabilities::ENCODED_AUDIO
-    | Capabilities::VIDEO
     | Capabilities::GROUP_CALLS
     | Capabilities::CALL_LINKS
     | Capabilities::STATS_PUSH;
@@ -61,6 +60,7 @@ struct EngineSession {
     call_id: String,
     /// Whether `BeginOpen` has been acknowledged for this session.
     opening: bool,
+    open_attempt: u64,
     /// The running call, once `BeginOpen` built its engine and the `OPEN`
     /// push went out. `None` while setup is still in flight.
     live_call: Option<LiveCall>,
@@ -87,8 +87,10 @@ impl State {
 }
 
 fn state() -> &'static Mutex<State> {
-    static STATE: OnceLock<Mutex<State>> = OnceLock::new();
-    STATE.get_or_init(|| Mutex::new(State::new()))
+    thread_local! {
+        static STATE: &'static Mutex<State> = Box::leak(Box::new(Mutex::new(State::new())));
+    }
+    STATE.with(|state| *state)
 }
 
 /// The push entry point the core registered. Called for `OPEN`, `EVENT`,
@@ -168,8 +170,9 @@ pub fn set_push_handler(handler: js_sys::Function) {
 /// Media `_In` frames are acknowledged (the stub engine consumes them);
 /// `_Out` frames never arrive here — they leave as pushes.
 #[wasm_bindgen]
-pub fn send_frame(frame: &[u8]) -> Result<js_sys::Uint8Array, JsValue> {
-    let req = Frame::decode(frame)
+pub fn send_frame(frame: Vec<u8>) -> Result<js_sys::Uint8Array, JsValue> {
+    let frame = voip_abi::SecretBytes::new(frame);
+    let req = Frame::decode(frame.as_bytes())
         .map_err(|e| JsValue::from_str(&format!("voip frame misframed: {e}")))?;
     let resp = route(&req);
     Ok(js_sys::Uint8Array::from(resp.encode().as_slice()))
@@ -273,6 +276,7 @@ fn on_reserve(req: &Frame) -> Frame {
             id: reserve.session,
             call_id: reserve.call_id,
             opening: false,
+            open_attempt: 0,
             live_call: None,
         },
     );
@@ -289,7 +293,7 @@ fn on_begin_open(req: &Frame) -> Frame {
     let Ok(begin) = BeginOpenRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("BEGIN_OPEN misformed"));
     };
-    let (call_id, params) = match state().lock() {
+    let (call_id, params, attempt) = match state().lock() {
         Ok(mut st) => {
             if let Err(e) = st.sessions.validate(begin.session) {
                 return session_error(req, e);
@@ -312,7 +316,8 @@ fn on_begin_open(req: &Frame) -> Frame {
                 return Frame::fail(req, AbiErrorCode::Busy, Some("open already in flight"));
             }
             session.opening = true;
-            (session.call_id.clone(), begin.params)
+            session.open_attempt += 1;
+            (session.call_id.clone(), begin.params, session.open_attempt)
         }
         Err(_) => {
             return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged"));
@@ -321,7 +326,7 @@ fn on_begin_open(req: &Frame) -> Frame {
     let ack = Frame::respond(req, Vec::new());
     let session = begin.session;
     wasm_bindgen_futures::spawn_local(async move {
-        open_async(session, call_id, params).await;
+        open_async(session, call_id, params, attempt).await;
     });
     ack
 }
@@ -331,7 +336,12 @@ fn on_begin_open(req: &Frame) -> Frame {
 /// On success the `OPEN` push goes out; on refusal the session is released
 /// back to reserved so the core can retry or close, and the failure rides
 /// an `EVENT(MEDIA_SETUP_FAILED)` the core's session raises.
-async fn open_async(session: SessionId, call_id: String, params: voip_abi::OpenParams) {
+async fn open_async(
+    session: SessionId,
+    call_id: String,
+    params: voip_abi::OpenParams,
+    attempt: u64,
+) {
     use crate::call::PushSinks;
     let live = LiveCall::open(
         session,
@@ -351,7 +361,8 @@ async fn open_async(session: SessionId, call_id: String, params: voip_abi::OpenP
     let Some(entry) = st.live.get_mut(&session.handle) else {
         return;
     };
-    if entry.id.generation != session.generation {
+    if entry.id.generation != session.generation || !entry.opening || entry.open_attempt != attempt
+    {
         return;
     }
     match live {
@@ -378,7 +389,11 @@ async fn open_async(session: SessionId, call_id: String, params: voip_abi::OpenP
 fn push_setup_failed(session: SessionId, error: &crate::call::OpenError) {
     push(event_push(
         session,
-        voip_abi::AbiEvent::MediaSetupFailed(format!("{}: {error:?}", error.code().name())),
+        voip_abi::AbiEvent::MediaSetupFailed(format!(
+            "{}: {}",
+            error.code().name(),
+            error.detail()
+        )),
     ));
 }
 
@@ -485,6 +500,7 @@ fn on_cancel_open(req: &Frame) -> Frame {
                 // opening session and drops the call it built: the abort is
                 // what the core was promised, even if the task outlives it.
                 session.opening = false;
+                session.open_attempt += 1;
                 CancelOutcome::Aborted
             } else if session.live_call.is_some() {
                 CancelOutcome::AlreadyOpen
@@ -599,15 +615,14 @@ fn on_close(req: &Frame) -> Frame {
             }
         }
     }
-    let _reason = close.reason;
-    if let Some(session) = st.live.remove(&close.session.handle)
+    let session = st.live.remove(&close.session.handle);
+    st.sessions.remove(close.session.handle);
+    drop(st);
+    if let Some(session) = session
         && let Some(call) = session.live_call
     {
-        // The abort drops the transport and closes the relay channel;
-        // the ended fan already pushed `MEDIA_ENDED`, so no extra push.
         call.close();
     }
-    st.sessions.remove(close.session.handle);
     Frame::respond(req, Vec::new())
 }
 
@@ -673,7 +688,10 @@ fn on_audio_in(req: &Frame) -> Frame {
             Some("session generation is not current"),
         );
     }
-    if let Some(call) = session.live_call.as_ref() {
+    let Some(call) = session.live_call.as_ref() else {
+        return Frame::fail(req, AbiErrorCode::Busy, Some("media is not open"));
+    };
+    {
         match req.opcode {
             Opcode::PcmIn => call.pcm_in(&frame),
             _ => call.encoded_in(&frame.data),
@@ -707,9 +725,10 @@ fn on_video_in(req: &Frame) -> Frame {
             Some("session generation is not current"),
         );
     }
-    if let Some(call) = session.live_call.as_ref() {
-        call.video_in(&frame.input);
-    }
+    let Some(call) = session.live_call.as_ref() else {
+        return Frame::fail(req, AbiErrorCode::Busy, Some("media is not open"));
+    };
+    call.video_in(&frame.input);
     Frame::respond(req, Vec::new())
 }
 
@@ -759,5 +778,146 @@ fn session_error(req: &Frame, e: voip_abi::SessionError) -> Frame {
             AbiErrorCode::Internal,
             Some("session table is confused"),
         ),
+    }
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod lifecycle_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test(async)]
+    async fn a_cancelled_open_closes_its_late_relay_without_installing_a_call() {
+        *state().lock().unwrap() = State::new();
+        let (started_tx, started_rx) = futures::channel::oneshot::channel();
+        let started = Rc::new(RefCell::new(Some(started_tx)));
+        let resolver = Rc::new(RefCell::new(None));
+        let resolve_slot = resolver.clone();
+        let connect = Closure::wrap(Box::new(move |_: JsValue, _: JsValue| {
+            let promise = js_sys::Promise::new(&mut |resolve, _| {
+                *resolve_slot.borrow_mut() = Some(resolve);
+            });
+            if let Some(tx) = started.borrow_mut().take() {
+                let _ = tx.send(());
+            }
+            promise
+        })
+            as Box<dyn FnMut(JsValue, JsValue) -> js_sys::Promise>);
+        let transport = js_sys::Object::new();
+        js_sys::Reflect::set(&transport, &"connect".into(), &connect.into_js_value()).unwrap();
+        relay::set_relay_transport(transport.into()).unwrap();
+
+        let id = SessionId {
+            handle: 9001,
+            generation: 47,
+        };
+        let reserve = Frame::request(
+            Opcode::Reserve,
+            ReserveRequest {
+                session: id,
+                call_id: "cancel-late-relay".to_owned(),
+                direction: voip_abi::Direction::Incoming,
+            }
+            .encode(),
+        );
+        assert!(!on_reserve(&reserve).is_error());
+        let begin = Frame::request(
+            Opcode::BeginOpen,
+            BeginOpenRequest {
+                session: id,
+                params: call::tests::open_params(),
+            }
+            .encode(),
+        );
+        assert!(!on_begin_open(&begin).is_error());
+        started_rx.await.expect("setup reached relay connect");
+        let cancel = Frame::request(
+            Opcode::CancelOpen,
+            CancelOpenRequest { session: id }.encode(),
+        );
+        let cancelled = on_cancel_open(&cancel);
+        assert_eq!(
+            CancelOpenResponse::decode(&cancelled.payload)
+                .unwrap()
+                .outcome,
+            CancelOutcome::Aborted
+        );
+
+        let (closed_tx, closed_rx) = futures::channel::oneshot::channel();
+        let closed = Rc::new(RefCell::new(Some(closed_tx)));
+        let close = Closure::wrap(Box::new(move || {
+            if let Some(tx) = closed.borrow_mut().take() {
+                let _ = tx.send(());
+            }
+        }) as Box<dyn FnMut()>);
+        let connection = js_sys::Object::new();
+        js_sys::Reflect::set(&connection, &"close".into(), &close.into_js_value()).unwrap();
+        for method in ["send", "reconnect"] {
+            js_sys::Reflect::set(
+                &connection,
+                &method.into(),
+                &js_sys::Function::new_no_args(""),
+            )
+            .unwrap();
+        }
+        resolver
+            .borrow_mut()
+            .take()
+            .unwrap()
+            .call1(&JsValue::UNDEFINED, &connection)
+            .unwrap();
+        closed_rx.await.expect("late relay is explicitly closed");
+        let state = state().lock().unwrap();
+        let entry = state.live.get(&id.handle).unwrap();
+        assert!(!entry.opening);
+        assert!(
+            entry.live_call.is_none(),
+            "cancelled setup must not resurrect its call"
+        );
+    }
+}
+
+#[cfg(test)]
+mod wire_tests {
+    use super::*;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn media_before_open_is_refused_instead_of_acknowledged_and_lost() {
+        *state().lock().unwrap() = State::new();
+        let id = SessionId {
+            handle: 41,
+            generation: 9,
+        };
+        let reserve = Frame::request(
+            Opcode::Reserve,
+            ReserveRequest {
+                session: id,
+                call_id: "not-yet-open".to_owned(),
+                direction: voip_abi::Direction::Outgoing,
+            }
+            .encode(),
+        );
+        assert!(!on_reserve(&reserve).is_error());
+        for opcode in [Opcode::PcmIn, Opcode::EncodedAudioIn] {
+            let frame = Frame::request(
+                opcode,
+                MediaFrame {
+                    session: id,
+                    seq: 0,
+                    data: vec![0; 4],
+                }
+                .encode(),
+            );
+            let response = on_media_in(&frame);
+            assert!(response.is_error());
+            assert_eq!(
+                voip_abi::ErrorBody::decode(&response.payload).unwrap().code,
+                AbiErrorCode::Busy
+            );
+        }
     }
 }

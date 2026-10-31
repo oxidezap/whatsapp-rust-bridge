@@ -47,9 +47,27 @@ pub(super) enum OfferEntry {
 pub(super) struct OfferCache {
     entries: HashMap<String, OfferEntry>,
     next_generation: u64,
+    event_identity: HashMap<String, usize>,
 }
 
 impl OfferCache {
+    fn note_offer_event(&mut self, offer: &IncomingCall) {
+        let id = offer.action.call_id().to_owned();
+        self.note_offer(id.clone(), offer.clone());
+        self.event_identity
+            .retain(|id, _| self.entries.contains_key(id));
+        self.event_identity
+            .insert(id, offer as *const IncomingCall as usize);
+    }
+
+    pub(super) fn offer_handle_for_event(&self, offer: &IncomingCall) -> Option<u32> {
+        let id = offer.action.call_id();
+        if self.event_identity.get(id).copied() != Some(offer as *const IncomingCall as usize) {
+            return None;
+        }
+        self.offer_handle_for_call_id(id)
+    }
+
     pub(super) fn note_offer(&mut self, call_id: String, offer: IncomingCall) {
         if self.entries.len() >= OFFER_CACHE_CAPACITY && !self.entries.contains_key(&call_id) {
             self.entries
@@ -340,7 +358,7 @@ pub(super) fn note_call_event(cache: &Mutex<OfferCache>, event: &Event) {
                 cache
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
-                    .note_offer(call.action.call_id().to_owned(), (**call).clone());
+                    .note_offer_event(call);
             } else if resolves_offer(call.action.wire_tag()) {
                 evict_offer(cache, call.action.call_id());
             }
@@ -409,7 +427,7 @@ where
 impl WasmWhatsAppClient {
     // ── Call media ───────────────────────────────────────────────────────
 
-    /// Answer a ringing call with encoded audio, and return its call id.
+    /// Answer a ringing call with encoded audio, and return its call handle.
     ///
     /// A withdrawn or failed start restores the offer only if no resolution
     /// or replacement arrived. A superseded successful start is torn down locally.
@@ -418,20 +436,28 @@ impl WasmWhatsAppClient {
         &self,
         call_id: String,
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
-        with_video: Option<bool>,
-        offer_handle: Option<u32>,
+        #[wasm_bindgen(unchecked_optional_param_type = "boolean")] with_video: JsValue,
+        #[wasm_bindgen(unchecked_optional_param_type = "number")] offer_handle: Option<u32>,
     ) -> js_sys::Promise {
         let format = call_audio_format(&audio_format);
         let media = CallMedia::of(self);
-        let with_video = with_video.unwrap_or(false);
+        let with_video = optional_video(&with_video);
         promise_value(async move {
             let format = format?;
+            let with_video = with_video?;
             let call_id = if let Some(handle) = offer_handle {
-                media
+                let offered_id = media
                     .call_offers
                     .lock()
                     .unwrap()
-                    .call_id_for_offer_handle(handle)?
+                    .call_id_for_offer_handle(handle)?;
+                if offered_id != call_id {
+                    return Err(crate::errors::invalid_arg(
+                        "offerHandle",
+                        "offer handle belongs to another call",
+                    ));
+                }
+                offered_id
             } else {
                 call_id
             };
@@ -442,7 +468,7 @@ impl WasmWhatsAppClient {
         })
     }
 
-    /// Dial a peer with encoded audio, and return the new call id.
+    /// Dial a peer with encoded audio, and return the new call handle.
     ///
     /// The handle is dormant until the server acks the offer with a relay;
     /// mic packets pushed before then queue bounded and shed oldest-first
@@ -452,13 +478,14 @@ impl WasmWhatsAppClient {
         &self,
         peer: String,
         #[wasm_bindgen(unchecked_param_type = "CallAudioFormat")] audio_format: JsValue,
-        with_video: Option<bool>,
+        #[wasm_bindgen(unchecked_optional_param_type = "boolean")] with_video: JsValue,
     ) -> js_sys::Promise {
         let format = call_audio_format(&audio_format);
         let media = CallMedia::of(self);
-        let with_video = with_video.unwrap_or(false);
+        let with_video = optional_video(&with_video);
         promise_value(async move {
             let format = format?;
+            let with_video = with_video?;
             media
                 .dial_call_mode(peer, CallAudioMode::Encoded(format), with_video)
                 .await
@@ -467,22 +494,30 @@ impl WasmWhatsAppClient {
 
     /// Answer a ringing call with PCM through the selected media backend.
     #[wasm_bindgen(js_name = acceptCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
-    pub fn accept_call_pcm(&self, call_id: String, with_video: Option<bool>) -> js_sys::Promise {
+    pub fn accept_call_pcm(
+        &self,
+        call_id: String,
+        #[wasm_bindgen(unchecked_optional_param_type = "boolean")] with_video: JsValue,
+    ) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_value(async move {
             media
-                .accept_call_mode(call_id, CallAudioMode::Pcm, with_video.unwrap_or(false))
+                .accept_call_mode(call_id, CallAudioMode::Pcm, optional_video(&with_video)?)
                 .await
         })
     }
 
     /// Dial a peer with PCM through the selected media backend.
     #[wasm_bindgen(js_name = dialCallPcm, unchecked_return_type = "Promise<WasmCallHandle>")]
-    pub fn dial_call_pcm(&self, peer: String, with_video: Option<bool>) -> js_sys::Promise {
+    pub fn dial_call_pcm(
+        &self,
+        peer: String,
+        #[wasm_bindgen(unchecked_optional_param_type = "boolean")] with_video: JsValue,
+    ) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_value(async move {
             media
-                .dial_call_mode(peer, CallAudioMode::Pcm, with_video.unwrap_or(false))
+                .dial_call_mode(peer, CallAudioMode::Pcm, optional_video(&with_video)?)
                 .await
         })
     }
@@ -597,6 +632,8 @@ impl WasmWhatsAppClient {
     /// tearing anything down. The handle's own terminate degrades the same
     /// way, tearing down locally when the stanza cannot go out.
     #[wasm_bindgen(js_name = endCall, unchecked_return_type = "Promise<CallEndResult>")]
+    /// Repeated ends return `already-ended` within the last eight ended calls.
+    /// Older call IDs are unknown; retain the call handle for longer-lived identity.
     pub fn end_call(&self, call_id: String) -> js_sys::Promise {
         let media = CallMedia::of(self);
         promise_serialized(async move { media.end_call(call_id).await })
@@ -615,9 +652,9 @@ impl WasmWhatsAppClient {
         promise_void(async move { media.set_call_muted(call_id, muted).await })
     }
 
-    /// Media counters for one call. Live calls read the handle; ended calls
+    /// Media counters for one call. Live calls read the handle; the last eight ended calls
     /// read the snapshot the finish path kept, which is what makes counters
-    /// inspectable after `ended` fires.
+    /// inspectable after `ended` fires, until eight newer calls end.
     #[wasm_bindgen(js_name = getCallMediaStats)]
     pub fn call_media_stats(
         &self,
@@ -1235,7 +1272,7 @@ impl CallMedia {
         generation: u64,
         handle: CallHandle,
     ) -> Option<wacore::runtime::AbortHandle> {
-        let events = handle.events();
+        let mut events = handle.take_events()?;
         let callback = self.call_event_callback.clone();
         let records = self.call_records.clone();
         let alive = self.calls_live.clone();
@@ -1300,11 +1337,17 @@ impl CallMedia {
                         if current.is_some_and(|current| current != generation) {
                             break;
                         }
+                        if matches!(event, CallEvent::Closed(_)) {
+                            handle.hangup_local().await;
+                        }
                         if !forward_engine_event(&records, &call_id, callback.as_deref(), &event) {
                             break;
                         }
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        handle.hangup_local().await;
+                        break;
+                    }
                 }
             }
         })))
@@ -1377,10 +1420,47 @@ impl CallMedia {
 
     /// Mirror the mute flag on the live call record without issuing a stanza.
     /// `call_push_audio` reads this flag and sheds outbound packets while set.
-    pub(super) fn set_mic_muted_flag(&self, call_id: &str, muted: bool) {
-        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
-            record.mic_muted = muted;
+    pub(super) fn set_mic_muted_flag(
+        &self,
+        call_id: &str,
+        generation: u64,
+        muted: bool,
+    ) -> Result<(), crate::errors::BridgeError> {
+        let mut records = self.call_records.borrow_mut();
+        let record = records
+            .get_mut(call_id)
+            .filter(|r| r.generation == generation)
+            .ok_or_else(unknown_call)?;
+        record.mic_muted = muted;
+        if muted {
+            match &record.mic {
+                CallMic::Encoded { drain, .. } => while drain.try_recv().is_ok() {},
+                CallMic::Pcm { drain, .. } => while drain.try_recv().is_ok() {},
+            }
         }
+        Ok(())
+    }
+
+    pub(super) fn check_generation(
+        &self,
+        call_id: &str,
+        generation: u64,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.call_records
+            .borrow()
+            .get(call_id)
+            .filter(|r| r.generation == generation)
+            .map(|_| ())
+            .ok_or_else(unknown_call)
+    }
+
+    pub(super) async fn stop_call_video_by_generation(
+        &self,
+        call_id: String,
+        generation: u64,
+    ) -> Result<(), crate::errors::BridgeError> {
+        self.check_generation(&call_id, generation)?;
+        self.stop_call_video(call_id).await
     }
 
     /// Start a video plane from an external async closure, used by `WasmCallHandle`.
@@ -1450,7 +1530,7 @@ fn forward_engine_event(
     callback: Option<&MediaCallback>,
     event: &CallEvent,
 ) -> bool {
-    if let CallEvent::VideoStateChanged {
+    if let CallEvent::PeerVideoStateChanged {
         state,
         upgrade_token,
         ..
@@ -1545,7 +1625,7 @@ fn finish_call(
     // The borrow scopes to the removal alone: the host callback below
     // may re-enter record-backed methods, and a live RefMut would turn
     // that ordinary reaction into a borrow panic.
-    let record = {
+    let mut record = {
         let mut records = records.borrow_mut();
         if records.get(call_id).map(|record| record.generation) != Some(generation) {
             return;
@@ -1557,6 +1637,9 @@ fn finish_call(
     };
     for task in &record.tasks {
         task.abort();
+    }
+    if let Some(forwarder) = record.forwarder.take() {
+        forwarder.detach();
     }
     if let Some(offer_gen) = record.offer_generation {
         offers
@@ -1974,7 +2057,7 @@ impl CallMedia {
         handle
             .re_request_video_upgrade()
             .await
-            .map_err(crate::errors::BridgeError::from)
+            .map_err(|e| call_error_to_bridge(e, "retryCallVideoUpgrade"))
     }
 
     fn call_video_diagnostics(
@@ -2736,6 +2819,18 @@ mod call_media_tests {
     }
 
     #[test]
+    fn an_older_offer_event_never_receives_its_replacements_handle() {
+        let first = offered_call("REUSED", &[("mlow", "16000")]);
+        let second = first.clone();
+        let mut cache = OfferCache::default();
+        cache.note_offer_event(&first);
+        let original = cache.offer_handle_for_event(&first).unwrap();
+        cache.note_offer_event(&second);
+        assert!(cache.offer_handle_for_event(&first).is_none());
+        assert_ne!(cache.offer_handle_for_event(&second).unwrap(), original);
+    }
+
+    #[test]
     fn offers_are_retained_until_something_resolves_them() {
         let cache = cache();
         let offer = offered_call("CALL-1", &[("opus", "16000")]);
@@ -3306,4 +3401,13 @@ mod call_group_tests {
         assert_eq!(VideoState::Stopped.code(), 6);
         assert_eq!(VideoState::UpgradeRequestV2.code(), 11);
     }
+}
+
+fn optional_video(value: &JsValue) -> Result<bool, crate::errors::BridgeError> {
+    if value.is_undefined() {
+        return Ok(false);
+    }
+    value
+        .as_bool()
+        .ok_or_else(|| crate::errors::invalid_arg("withVideo", "expected a boolean"))
 }

@@ -45,18 +45,22 @@ pub struct ForeignVoipSession {
     queued_command_bytes: Arc<AtomicUsize>,
     pending_epoch: Mutex<Option<u32>>,
     opened: AtomicBool,
+    initial_muted: AtomicBool,
     open_waker: Mutex<Option<oneshot::Sender<()>>>,
     closed: AtomicBool,
+    remote_ended: AtomicBool,
+    open_failure: Mutex<Option<String>>,
     alive: Arc<AtomicBool>,
     media: Mutex<Option<MediaSinks>>,
-    video_teardown: Mutex<Option<Box<dyn Fn() + Send + Sync>>>,
+    video_teardown: Mutex<Option<whatsapp_rust::voip_control::VideoTeardownHook>>,
     pump_handles: Mutex<Vec<whatsapp_rust::wacore::runtime::AbortHandle>>,
+    on_closed: Mutex<Option<vc::VideoTeardownHook>>,
 }
 
 /// One command queued for the wire, pre-encoded so the retained-bytes
 /// accounting is exact.
 pub(crate) struct CommandEnvelope {
-    pub(crate) bytes: Vec<u8>,
+    pub(crate) bytes: abi::SecretBytes,
 }
 
 /// The sink halves the opening context carried, stored at attach for the
@@ -95,12 +99,26 @@ impl ForeignVoipSession {
             queued_command_bytes: Arc::new(AtomicUsize::new(0)),
             pending_epoch: Mutex::new(None),
             opened: AtomicBool::new(false),
+            initial_muted: AtomicBool::new(false),
             open_waker: Mutex::new(None),
             closed: AtomicBool::new(false),
+            remote_ended: AtomicBool::new(false),
+            open_failure: Mutex::new(None),
             alive: Arc::new(AtomicBool::new(true)),
             media: Mutex::new(None),
             video_teardown: Mutex::new(None),
             pump_handles: Mutex::new(Vec::new()),
+            on_closed: Mutex::new(None),
+        }
+    }
+
+    pub(super) fn set_on_closed(&self, hook: vc::VideoTeardownHook) {
+        *self.on_closed.lock().unwrap() = Some(hook);
+    }
+
+    pub(super) fn prepare_teardown(&self, hook: Option<vc::VideoTeardownHook>) {
+        if let Some(hook) = hook {
+            *self.video_teardown.lock().unwrap() = Some(hook);
         }
     }
 
@@ -138,8 +156,10 @@ impl ForeignVoipSession {
         ctx: &'c vc::MediaOpenContext,
         enable_video: bool,
     ) -> conv::CtxBits<'c> {
+        let muted = ctx.muted.load(Ordering::SeqCst);
+        self.initial_muted.store(muted, Ordering::SeqCst);
         conv::CtxBits {
-            muted: ctx.muted.load(Ordering::SeqCst),
+            muted,
             video_caps: if enable_video {
                 voip_abi::VideoCaps::SEND | voip_abi::VideoCaps::RECV
             } else {
@@ -160,9 +180,7 @@ impl ForeignVoipSession {
         }
         // Stored before any early return below: the hook runs on every
         // teardown, and the queue drains whatever the microphone does.
-        if let Ok(mut teardown) = self.video_teardown.lock() {
-            *teardown = ctx.video_teardown;
-        }
+        self.prepare_teardown(ctx.video_teardown);
         if let Ok(mut pending) = self.pending_epoch.lock() {
             *pending = None;
         }
@@ -190,6 +208,7 @@ impl ForeignVoipSession {
             timed_in: ctx.video_channels.timed_video_in,
             control: ctx.video_channels.control,
             muted: ctx.muted.clone(),
+            initial_muted: self.initial_muted.load(Ordering::SeqCst),
         };
         let pipe = media_pump::CommandPipe {
             tx: self.commands_tx.clone(),
@@ -205,6 +224,7 @@ impl ForeignVoipSession {
             self.runtime.clone(),
             self.agreed,
             self.alive.clone(),
+            self.events_tx.clone(),
         );
         if let Ok(mut pump_handles) = self.pump_handles.lock() {
             pump_handles.extend(handles);
@@ -220,6 +240,14 @@ impl ForeignVoipSession {
     /// Resolves when the `OPEN` notification arrives. A prior arrival
     /// resolves immediately; a close first fails the wait.
     pub async fn wait_opened(&self) -> Result<(), vc::MediaSetupError> {
+        if let Some(failure) = self.open_failure.lock().ok().and_then(|s| s.clone()) {
+            return Err(open_failure(&failure));
+        }
+        if self.closed.load(Ordering::SeqCst) {
+            return Err(vc::MediaSetupError::Backend(
+                "session ended before media came up".to_owned(),
+            ));
+        }
         if self.opened.load(Ordering::SeqCst) {
             return Ok(());
         }
@@ -234,7 +262,14 @@ impl ForeignVoipSession {
             *waker = Some(tx);
         }
         rx.await.map_err(|_| {
-            vc::MediaSetupError::Backend("session ended before media came up".to_owned())
+            open_failure(
+                &self
+                    .open_failure
+                    .lock()
+                    .ok()
+                    .and_then(|s| s.clone())
+                    .unwrap_or_else(|| "session ended before media came up".to_owned()),
+            )
         })
     }
 
@@ -253,12 +288,13 @@ impl ForeignVoipSession {
     /// so a lingering handle's `recv` ends instead of parking. The channel
     /// itself closes on the control plane's `close`, which tears down.
     fn on_remote_ended(&self, reason: abi::CloseReason, detail: Option<&str>) {
-        if self.closed.swap(true, Ordering::SeqCst) {
+        if self.remote_ended.swap(true, Ordering::SeqCst) {
             return;
         }
         let _ = self.publish_event(vc::MediaEvent::Closed(conv::close_reason_from_abi(
             reason, detail,
         )));
+        <Self as vc::VoipMediaSession>::close(self, conv::close_reason_from_abi(reason, detail));
     }
 
     /// Publishes into the session's stream. `false` is backpressure, per the
@@ -334,6 +370,10 @@ impl ForeignVoipSession {
     /// Handles one engine-raised event: codec switches refresh the format
     /// cache, `Closed` follows the remote-ended path, the rest publishes.
     fn on_event(&self, event: abi::AbiEvent) {
+        if let abi::AbiEvent::MediaSetupFailed(detail) = &event {
+            *self.open_failure.lock().unwrap() = Some(detail.clone());
+            self.open_waker.lock().unwrap().take();
+        }
         if let abi::AbiEvent::Closed(reason) = &event {
             self.on_remote_ended(*reason, None);
             return;
@@ -362,6 +402,10 @@ impl ForeignVoipSession {
     /// Writes one PCM frame into the speaker sink. Loss-tolerant: a full
     /// sink sheds, like the trait documents.
     fn on_pcm_out(&self, data: &[u8]) {
+        if !data.len().is_multiple_of(2) {
+            log::warn!("voip plugin PCM has an odd byte tail, dropped");
+            return;
+        }
         let media = self
             .media
             .lock()
@@ -372,12 +416,11 @@ impl ForeignVoipSession {
             return;
         };
         let samples: Vec<i16> = data
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| i16::from_le_bytes([c[0], c[1]]))
             .collect();
-        if samples.len() * 2 != data.len() {
-            log::warn!("voip plugin PCM has an odd byte tail, truncated");
-        }
         if sink.playout().try_send(samples).is_err() {
             log::debug!("speaker sink full, PCM frame shed");
         }
@@ -428,13 +471,19 @@ impl ForeignVoipSession {
 
     /// Enqueues one command for the pump. `false` is backpressure.
     fn enqueue(&self, command: abi::MediaCommand, lossless: bool) -> bool {
+        if self.agreed & abi::Capabilities::VIDEO == 0 && command.kind_name().starts_with("VIDEO_")
+        {
+            return false;
+        }
         let bytes = abi::CommandRequest {
             session: self.session_id(),
             command,
         }
         .encode();
         let len = bytes.len();
-        let mut envelope = Some(CommandEnvelope { bytes });
+        let mut envelope = Some(CommandEnvelope {
+            bytes: abi::SecretBytes::new(bytes),
+        });
         // A full mailbox returns the envelope; shedding the oldest entry
         // (the resident mailbox policy) frees the slot it takes.
         for _ in 0..2 {
@@ -460,16 +509,20 @@ impl ForeignVoipSession {
     /// Submits through the shared path, retaining group epochs for the
     /// pre-attach pairing the control plane reads back.
     fn submit_inner(&self, command: vc::MediaCommand, lossless: bool) -> bool {
-        if let vc::MediaCommand::ApplyGroupEpoch { transaction_id, .. } = &command
-            && let Ok(mut pending) = self.pending_epoch.lock()
-        {
-            *pending = Some(*transaction_id);
-        }
+        let epoch = match &command {
+            vc::MediaCommand::ApplyGroupEpoch { transaction_id, .. } => Some(*transaction_id),
+            _ => None,
+        };
         let Some(mapped) = conv::command_to_abi(&command) else {
-            log::warn!("voip command this bridge predates, refused");
             return false;
         };
-        self.enqueue(mapped, lossless)
+        if !self.enqueue(mapped, lossless) {
+            return false;
+        }
+        if let Some(epoch) = epoch {
+            *self.pending_epoch.lock().unwrap() = Some(epoch);
+        }
+        true
     }
 }
 
@@ -516,6 +569,10 @@ impl vc::VoipMediaSession for ForeignVoipSession {
         if self.closed.swap(true, Ordering::SeqCst) {
             return;
         }
+        let on_closed = self.on_closed.lock().unwrap().take();
+        if let Some(hook) = on_closed {
+            hook();
+        }
         self.alive.store(false, Ordering::SeqCst);
         // An open parked on the `OPEN` notification ends here instead of
         // hanging to the ceiling: dropping the sender cancels the wait.
@@ -525,9 +582,12 @@ impl vc::VoipMediaSession for ForeignVoipSession {
         // The stream ends here so a lingering handle's `recv` ends instead
         // of parking — the same close-on-teardown the old entry queue had.
         self.events_tx.close();
-        if let Ok(mut teardown) = self.video_teardown.lock()
-            && let Some(hook) = teardown.take()
-        {
+        let teardown = self
+            .video_teardown
+            .lock()
+            .ok()
+            .and_then(|mut slot| slot.take());
+        if let Some(hook) = teardown {
             hook();
         }
         if let Ok(mut handles) = self.pump_handles.lock() {
@@ -553,5 +613,13 @@ impl vc::VoipMediaSession for ForeignVoipSession {
                 let _ = callbacks.send(&bytes).await;
             }))
             .detach();
+    }
+}
+
+fn open_failure(detail: &str) -> vc::MediaSetupError {
+    if let Some(detail) = detail.strip_prefix("TRANSPORT: ") {
+        vc::MediaSetupError::Connect(detail.to_owned())
+    } else {
+        vc::MediaSetupError::Backend(detail.to_owned())
     }
 }

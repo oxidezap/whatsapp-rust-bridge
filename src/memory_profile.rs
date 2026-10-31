@@ -748,11 +748,6 @@ mod imp {
         }
     }
 
-    // The concrete bridge runtime is single-threaded on wasm32. This mirrors
-    // the escape hatch used by whatsapp-rust's own InstrumentedRuntime.
-    unsafe impl Send for TraceContextRuntime {}
-    unsafe impl Sync for TraceContextRuntime {}
-
     #[async_trait::async_trait(?Send)]
     impl Runtime for TraceContextRuntime {
         fn spawn(&self, future: Pin<Box<dyn Future<Output = ()> + 'static>>) -> AbortHandle {

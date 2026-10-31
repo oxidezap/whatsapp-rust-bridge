@@ -10,29 +10,30 @@ AISubscriptionRequestType	enum
 BotMetricsEntryPoint	enum
 BotMetricsThreadEntryPoint	enum
 BotSessionSource	enum
-COMMAND_COMMAND_TYPE	enum
-CONSUMER_APPLICATION_METADATA_SPECIAL_TEXT_SIZE	enum
-CONSUMER_APPLICATION_STATUS_TEXT_MESAGE_FONT_TYPE	enum
 CollectionName	enum
-EXTENDED_CONTENT_MESSAGE_CTA_BUTTON_TYPE	enum
-EXTENDED_CONTENT_MESSAGE_EXTENDED_CONTENT_TYPE	enum
-EXTENDED_CONTENT_MESSAGE_XMA_DATACLASS_TYPE	enum
-EXTENDED_CONTENT_MESSAGE_XMA_LAYOUT_TYPE	enum
-FUTURE_PROOF_BEHAVIOR	enum
 KeepType	enum
-MENTION_MENTION_TYPE	enum
 MediaKeyDomain	enum
 MediaVisibility	enum
 MutationProps	enum
 PrivacySystemMessage	enum
 SessionTransparencyType	enum
 WebLinkRenderConfig	enum
+COMMAND_COMMAND_TYPE	enum
+CONSUMER_APPLICATION_METADATA_SPECIAL_TEXT_SIZE	enum
+CONSUMER_APPLICATION_STATUS_TEXT_MESAGE_FONT_TYPE	enum
+EXTENDED_CONTENT_MESSAGE_CTA_BUTTON_TYPE	enum
+EXTENDED_CONTENT_MESSAGE_EXTENDED_CONTENT_TYPE	enum
+EXTENDED_CONTENT_MESSAGE_XMA_DATACLASS_TYPE	enum
+EXTENDED_CONTENT_MESSAGE_XMA_LAYOUT_TYPE	enum
+FUTURE_PROOF_BEHAVIOR	enum
+MENTION_MENTION_TYPE	enum
 AIHomeState.AIHomeOption.AIHomeActionType	enum
 AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType	enum
 AIRichResponseContentItemsMetadata.ContentType	enum
 AIRichResponseDynamicMetadata.AIRichResponseDynamicMetadataType	enum
 AIRichResponseInlineImageMetadata.AIRichResponseImageAlignment	enum
 AIThreadInfo.AIThreadClientInfo.AIThreadType	enum
+BizAIMetadataSync.ServerEvent.ProtocolEvent	enum
 BizAccountLinkInfo.AccountType	enum
 BizAccountLinkInfo.HostStorageType	enum
 BizIdentityInfo.ActualActorsType	enum
@@ -80,7 +81,6 @@ ClientPayload.UserAgent.DistributionChannel	enum
 ClientPayload.UserAgent.Platform	enum
 ClientPayload.UserAgent.ReleaseChannel	enum
 ClientPayload.WebInfo.WebSubPlatform	enum
-ConsumerApplication.CONSUMER_APPLICATION_EXTENDED_TEXT_MESSAGE_PREVIEW_TYPE	enum
 ContextInfo.CrossAppSource	enum
 ContextInfo.ForwardOrigin	enum
 ContextInfo.PairedMediaType	enum
@@ -103,7 +103,6 @@ DeviceCapabilities.AiThread.SupportLevel	enum
 DeviceProps.PlatformType	enum
 DisappearingMode.Initiator	enum
 DisappearingMode.Trigger	enum
-ExtendedContentMessage.EXTENDED_CONTENT_MESSAGE_OVERLAY_ICON_GLYPH	enum
 FingerprintData.HostedState	enum
 GroupHistoryBundleInfo.ProcessState	enum
 GroupParticipant.Rank	enum
@@ -161,6 +160,7 @@ Message.RequestWelcomeMessageMetadata.WelcomeTrigger	enum
 Message.ScheduledCallCreationMessage.CallType	enum
 Message.ScheduledCallEditMessage.EditType	enum
 Message.SecretEncryptedMessage.SecretEncType	enum
+Message.SharedDeviceContactHashKey.Kind	enum
 Message.SplitPaymentParticipant.SplitPaymentStatus	enum
 Message.StatusLinkPreviewMetadata.Style	enum
 Message.StatusNotificationMessage.StatusNotificationType	enum
@@ -191,6 +191,7 @@ StatusAttribution.AiCreatedAttribution.Source	enum
 StatusAttribution.ExternalShare.Source	enum
 StatusAttribution.RLAttribution.Source	enum
 StatusAttribution.StatusReshare.Source	enum
+SyncActionValue.BusinessBroadcastCampaignBBProStatus	enum
 SyncActionValue.BusinessBroadcastCampaignStatus	enum
 SyncActionValue.AvatarUpdatedAction.AvatarEventType	enum
 SyncActionValue.BizAISettingsNudgeAction.BizAISettingsCategory	enum
@@ -220,6 +221,12 @@ WebFeatures.Flag	enum
 WebMessageInfo.BizPrivacyStatus	enum
 WebMessageInfo.Status	enum
 WebMessageInfo.StubType	enum
+ConsumerApplication.CONSUMER_APPLICATION_EXTENDED_TEXT_MESSAGE_PREVIEW_TYPE	enum
+ExtendedContentMessage.EXTENDED_CONTENT_MESSAGE_OVERLAY_ICON_GLYPH	enum
+ACP2Setting	enabled	1	optional	bool
+ACP2Setting	trigger	2	optional	enum	LimitSharing.TriggerType=0,1
+ACP2Setting	settingTimestamp	3	optional	int64
+ACP2Setting	initiatedByMe	4	optional	bool
 ADVDeviceIdentity	rawId	1	optional	uint32
 ADVDeviceIdentity	timestamp	2	optional	uint64
 ADVDeviceIdentity	keyIndex	3	optional	uint32
@@ -257,6 +264,7 @@ AIMediaCollectionMessage	hasGlobalCaption	3	optional	bool
 AIMediaCollectionMetadata	collectionId	1	optional	string
 AIMediaCollectionMetadata	uploadOrderIndex	2	optional	uint32
 AIMetadataOperation	hatchMetadataSync	1	optional	message	HatchMetadataSync
+AIMetadataOperation	bizAiMetadataSync	2	optional	message	BizAIMetadataSync
 AIProvenance	c2PaMetadata	1	optional	message	AIProvenance.Metadata
 AIProvenance	iptcMetadata	2	optional	message	AIProvenance.Metadata
 AIProvenance.Metadata	createdWithGenAi	1	optional	bool
@@ -316,6 +324,7 @@ AIRichResponseMessage	messageType	1	optional	enum	AIRichResponseMessageType=0,1
 AIRichResponseMessage	submessages	2	repeated	message	AIRichResponseSubMessage
 AIRichResponseMessage	unifiedResponse	3	optional	message	AIRichResponseUnifiedResponse
 AIRichResponseMessage	contextInfo	4	optional	message	ContextInfo
+AIRichResponseMessage	originalRecipientMetadata	5	optional	message	AIRichResponseUnifiedResponse
 AIRichResponseSubMessage	messageType	1	optional	enum	AIRichResponseSubMessageType=0,1
 AIRichResponseSubMessage	gridImageMetadata	2	optional	message	AIRichResponseGridImageMetadata
 AIRichResponseSubMessage	messageText	3	optional	string
@@ -353,9 +362,10 @@ AutoDownloadSettings	downloadVideo	3	optional	bool
 AutoDownloadSettings	downloadDocuments	4	optional	bool
 AvatarUserSettings	fbid	1	optional	string
 AvatarUserSettings	password	2	optional	string
-BackwardEdge	encryptedPrevEpochAnonId	1	optional	bytes
-BackwardEdge	encryptedPrevEpochRootKey	2	optional	bytes
-BackwardEdge	prevEpochRootKeyFingerprint	3	optional	bytes
+BizAIMetadataSync	serverEvent	1	optional	message	BizAIMetadataSync.ServerEvent
+BizAIMetadataSync.ServerEvent	protocolEvent	1	optional	enum	BizAIMetadataSync.ServerEvent.ProtocolEvent=0,1
+BizAIMetadataSync.ServerEvent	agentOnboardingStarted	2	optional	message	BizAIMetadataSync.ServerEvent.AgentOnboardingStarted
+BizAIMetadataSync.ServerEvent.AgentOnboardingStarted	composerBlockDurationSecs	1	optional	int64
 BizAccountLinkInfo	whatsappBizAcctFbid	1	optional	uint64
 BizAccountLinkInfo	whatsappAcctNumber	2	optional	string
 BizAccountLinkInfo	issueTime	3	optional	uint64
@@ -488,6 +498,7 @@ BotMetadata	resolvedToolCallMetadata	40	optional	message	BotResolvedToolCallMeta
 BotMetadata	subscriptionUpsellMetadata	41	optional	message	AISubscriptionUpsellMetadata
 BotMetadata	pttPromptMetadata	42	optional	message	BotPttPromptMetadata
 BotMetadata	botHistoryShareMetadata	43	optional	message	BotHistoryShareMetadata
+BotMetadata	responseStoppedByUser	44	optional	bool
 BotMetadata	internalMetadata	999	optional	bytes
 BotMetricsMetadata	destinationId	1	optional	string
 BotMetricsMetadata	destinationEntryPoint	2	optional	enum	BotMetricsEntryPoint=0,1
@@ -639,6 +650,7 @@ ClientPairingProps	isSyncdPureLidSession	2	optional	bool
 ClientPairingProps	isSyncdSnapshotRecoveryEnabled	3	optional	bool
 ClientPairingProps	isHsThumbnailSyncEnabled	4	optional	bool
 ClientPairingProps	subscriptionSyncPayload	5	optional	bytes
+ClientPairingProps	isBotJidDbMigrated	6	optional	bool
 ClientPayload	username	1	optional	uint64
 ClientPayload	passive	3	optional	bool
 ClientPayload	userAgent	5	optional	message	ClientPayload.UserAgent
@@ -737,10 +749,6 @@ CoexStateSync.Mutation	operation	4	optional	enum	SyncdMutation.SyncdOperation=0,
 CombinedFingerprint	version	1	optional	uint32
 CombinedFingerprint	localFingerprint	2	optional	message	FingerprintData
 CombinedFingerprint	remoteFingerprint	3	optional	message	FingerprintData
-Command	commandType	1	optional	enum	COMMAND_COMMAND_TYPE=1,2
-Command	offset	2	optional	uint32
-Command	length	3	optional	uint32
-Command	validationToken	4	optional	string
 CommentMetadata	commentParentKey	1	optional	message	MessageKey
 CommentMetadata	replyCount	2	optional	uint32
 CompanionCommitment	hash	1	optional	bytes
@@ -749,105 +757,6 @@ CompanionEphemeralIdentity	deviceType	2	optional	enum	DeviceProps.PlatformType=0
 CompanionEphemeralIdentity	ref	3	optional	string
 Config	field	1	map	map<uint32,message>	Field
 Config	version	2	optional	uint32
-ConsumerApplication	payload	1	optional	message	ConsumerApplication.Payload
-ConsumerApplication	metadata	2	optional	message	ConsumerApplication.Metadata
-ConsumerApplication.ApplicationData	revoke	1	optional	message	ConsumerApplication.RevokeMessage
-ConsumerApplication.AudioMessage	audio	1	optional	message	SubProtocol
-ConsumerApplication.AudioMessage	ptt	2	optional	bool
-ConsumerApplication.ContactMessage	contact	1	optional	message	SubProtocol
-ConsumerApplication.ContactsArrayMessage	displayName	1	optional	string
-ConsumerApplication.ContactsArrayMessage	contacts	2	repeated	message	ConsumerApplication.ContactMessage
-ConsumerApplication.Content	messageText	1	optional	message	MessageText
-ConsumerApplication.Content	imageMessage	2	optional	message	ConsumerApplication.ImageMessage
-ConsumerApplication.Content	contactMessage	3	optional	message	ConsumerApplication.ContactMessage
-ConsumerApplication.Content	locationMessage	4	optional	message	ConsumerApplication.LocationMessage
-ConsumerApplication.Content	extendedTextMessage	5	optional	message	ConsumerApplication.ExtendedTextMessage
-ConsumerApplication.Content	statusTextMessage	6	optional	message	ConsumerApplication.StatusTextMesage
-ConsumerApplication.Content	documentMessage	7	optional	message	ConsumerApplication.DocumentMessage
-ConsumerApplication.Content	audioMessage	8	optional	message	ConsumerApplication.AudioMessage
-ConsumerApplication.Content	videoMessage	9	optional	message	ConsumerApplication.VideoMessage
-ConsumerApplication.Content	contactsArrayMessage	10	optional	message	ConsumerApplication.ContactsArrayMessage
-ConsumerApplication.Content	liveLocationMessage	11	optional	message	ConsumerApplication.LiveLocationMessage
-ConsumerApplication.Content	stickerMessage	12	optional	message	ConsumerApplication.StickerMessage
-ConsumerApplication.Content	groupInviteMessage	13	optional	message	ConsumerApplication.GroupInviteMessage
-ConsumerApplication.Content	viewOnceMessage	14	optional	message	ConsumerApplication.ViewOnceMessage
-ConsumerApplication.Content	reactionMessage	16	optional	message	ConsumerApplication.ReactionMessage
-ConsumerApplication.Content	pollCreationMessage	17	optional	message	ConsumerApplication.PollCreationMessage
-ConsumerApplication.Content	pollUpdateMessage	18	optional	message	ConsumerApplication.PollUpdateMessage
-ConsumerApplication.Content	editMessage	19	optional	message	ConsumerApplication.EditMessage
-ConsumerApplication.DocumentMessage	document	1	optional	message	SubProtocol
-ConsumerApplication.DocumentMessage	fileName	2	optional	string
-ConsumerApplication.EditMessage	key	1	optional	message	MessageKey
-ConsumerApplication.EditMessage	message	2	optional	message	MessageText
-ConsumerApplication.EditMessage	timestampMs	3	optional	int64
-ConsumerApplication.ExtendedTextMessage	text	1	optional	message	MessageText
-ConsumerApplication.ExtendedTextMessage	matchedText	2	optional	string
-ConsumerApplication.ExtendedTextMessage	canonicalUrl	3	optional	string
-ConsumerApplication.ExtendedTextMessage	description	4	optional	string
-ConsumerApplication.ExtendedTextMessage	title	5	optional	string
-ConsumerApplication.ExtendedTextMessage	thumbnail	6	optional	message	SubProtocol
-ConsumerApplication.ExtendedTextMessage	previewType	7	optional	enum	ConsumerApplication.CONSUMER_APPLICATION_EXTENDED_TEXT_MESSAGE_PREVIEW_TYPE=0,1
-ConsumerApplication.GroupInviteMessage	groupJid	1	optional	string
-ConsumerApplication.GroupInviteMessage	inviteCode	2	optional	string
-ConsumerApplication.GroupInviteMessage	inviteExpiration	3	optional	int64
-ConsumerApplication.GroupInviteMessage	groupName	4	optional	string
-ConsumerApplication.GroupInviteMessage	jpegThumbnail	5	optional	bytes
-ConsumerApplication.GroupInviteMessage	caption	6	optional	message	MessageText
-ConsumerApplication.ImageMessage	image	1	optional	message	SubProtocol
-ConsumerApplication.ImageMessage	caption	2	optional	message	MessageText
-ConsumerApplication.InteractiveAnnotation	polygonVertices	1	repeated	message	ConsumerApplication.Point
-ConsumerApplication.InteractiveAnnotation	location	2	optional	message	ConsumerApplication.Location
-ConsumerApplication.LiveLocationMessage	location	1	optional	message	ConsumerApplication.Location
-ConsumerApplication.LiveLocationMessage	accuracyInMeters	2	optional	uint32
-ConsumerApplication.LiveLocationMessage	speedInMps	3	optional	float
-ConsumerApplication.LiveLocationMessage	degreesClockwiseFromMagneticNorth	4	optional	uint32
-ConsumerApplication.LiveLocationMessage	caption	5	optional	message	MessageText
-ConsumerApplication.LiveLocationMessage	sequenceNumber	6	optional	int64
-ConsumerApplication.LiveLocationMessage	timeOffset	7	optional	uint32
-ConsumerApplication.Location	degreesLatitude	1	optional	double
-ConsumerApplication.Location	degreesLongitude	2	optional	double
-ConsumerApplication.Location	name	3	optional	string
-ConsumerApplication.LocationMessage	location	1	optional	message	ConsumerApplication.Location
-ConsumerApplication.LocationMessage	address	2	optional	string
-ConsumerApplication.MediaPayload	protocol	1	optional	message	SubProtocol
-ConsumerApplication.Metadata	specialTextSize	1	optional	enum	CONSUMER_APPLICATION_METADATA_SPECIAL_TEXT_SIZE=1,2
-ConsumerApplication.Option	optionName	1	optional	string
-ConsumerApplication.Payload	content	1	optional	message	ConsumerApplication.Content
-ConsumerApplication.Payload	applicationData	2	optional	message	ConsumerApplication.ApplicationData
-ConsumerApplication.Payload	signal	3	optional	message	ConsumerApplication.Signal
-ConsumerApplication.Payload	subProtocol	4	optional	message	ConsumerApplication.SubProtocolPayload
-ConsumerApplication.Point	x	1	optional	double
-ConsumerApplication.Point	y	2	optional	double
-ConsumerApplication.PollAddOptionMessage	pollOption	1	repeated	message	ConsumerApplication.Option
-ConsumerApplication.PollCreationMessage	encKey	1	optional	bytes
-ConsumerApplication.PollCreationMessage	name	2	optional	string
-ConsumerApplication.PollCreationMessage	options	3	repeated	message	ConsumerApplication.Option
-ConsumerApplication.PollCreationMessage	selectableOptionsCount	4	optional	uint32
-ConsumerApplication.PollEncValue	encPayload	1	optional	bytes
-ConsumerApplication.PollEncValue	encIv	2	optional	bytes
-ConsumerApplication.PollUpdateMessage	pollCreationMessageKey	1	optional	message	MessageKey
-ConsumerApplication.PollUpdateMessage	vote	2	optional	message	ConsumerApplication.PollEncValue
-ConsumerApplication.PollUpdateMessage	addOption	3	optional	message	ConsumerApplication.PollEncValue
-ConsumerApplication.PollVoteMessage	selectedOptions	1	repeated	bytes
-ConsumerApplication.PollVoteMessage	senderTimestampMs	2	optional	int64
-ConsumerApplication.ReactionMessage	key	1	optional	message	MessageKey
-ConsumerApplication.ReactionMessage	text	2	optional	string
-ConsumerApplication.ReactionMessage	groupingKey	3	optional	string
-ConsumerApplication.ReactionMessage	senderTimestampMs	4	optional	int64
-ConsumerApplication.ReactionMessage	reactionMetadataDataclassData	5	optional	string
-ConsumerApplication.ReactionMessage	style	6	optional	int32
-ConsumerApplication.RevokeMessage	key	1	optional	message	MessageKey
-ConsumerApplication.Signal
-ConsumerApplication.StatusTextMesage	text	1	optional	message	ConsumerApplication.ExtendedTextMessage
-ConsumerApplication.StatusTextMesage	textArgb	6	optional	fixed32
-ConsumerApplication.StatusTextMesage	backgroundArgb	7	optional	fixed32
-ConsumerApplication.StatusTextMesage	font	8	optional	enum	CONSUMER_APPLICATION_STATUS_TEXT_MESAGE_FONT_TYPE=0,1
-ConsumerApplication.StickerMessage	sticker	1	optional	message	SubProtocol
-ConsumerApplication.SubProtocolPayload	futureProof	1	optional	enum	FUTURE_PROOF_BEHAVIOR=0,1
-ConsumerApplication.VideoMessage	video	1	optional	message	SubProtocol
-ConsumerApplication.VideoMessage	caption	2	optional	message	MessageText
-ConsumerApplication.ViewOnceMessage	imageMessage	1	optional	message	ConsumerApplication.ImageMessage
-ConsumerApplication.ViewOnceMessage	videoMessage	2	optional	message	ConsumerApplication.VideoMessage
 ContextInfo	stanzaId	1	optional	string
 ContextInfo	participant	2	optional	string
 ContextInfo	quotedMessage	3	optional	message	Message
@@ -912,6 +821,8 @@ ContextInfo	businessInteractionPills	78	optional	message	ContextInfo.BusinessInt
 ContextInfo	posterStatusId	79	optional	string
 ContextInfo	instagramThreadLink	80	optional	message	ContextInfo.InstagramThreadLink
 ContextInfo	aiProvenance	81	optional	message	AIProvenance
+ContextInfo	experienceIds	82	repeated packed	uint32
+ContextInfo	partnerDeepLinkToken	83	optional	string
 ContextInfo.AdReplyInfo	advertiserName	1	optional	string
 ContextInfo.AdReplyInfo	mediaType	2	optional	enum	ContextInfo.AdReplyInfo.MediaType=0,1
 ContextInfo.AdReplyInfo	jpegThumbnail	16	optional	bytes
@@ -972,6 +883,7 @@ ContextInfo.ExternalAdReplyInfo	agmThumbnailStrategy	29	optional	int32
 ContextInfo.ExternalAdReplyInfo	agmTitleStrategy	30	optional	int32
 ContextInfo.ExternalAdReplyInfo	agmSubtitleStrategy	31	optional	int32
 ContextInfo.ExternalAdReplyInfo	agmHeaderInteractionStrategy	32	optional	int32
+ContextInfo.ExternalAdReplyInfo	containsCtwaFlowsAutoLabel	33	optional	bool
 ContextInfo.FeatureEligibilities	cannotBeReactedTo	1	optional	bool
 ContextInfo.FeatureEligibilities	cannotBeRanked	2	optional	bool
 ContextInfo.FeatureEligibilities	canRequestFeedback	3	optional	bool
@@ -1056,88 +968,7 @@ Conversation	appealUpdateTime	60	optional	uint64
 Conversation	authAgentParentCompanyName	61	optional	string
 Conversation	authAgentObaPhoneNumber	62	optional	string
 Conversation	identityVerification	63	optional	message	IdentityVerificationState
-CreateBackupInput	recoveryCode	1	required	string
-CreateBackupInput	userId	2	required	uint64
-CreateBackupOutput	device	1	optional	message	DeviceOutput
-CreateBackupOutput	virtualDevice	2	optional	message	VirtualDeviceOutput
-CreateBackupOutput	epoch0	3	optional	message	Epoch0Output
-CreateBackupOutput	mailboxRootKey	4	optional	bytes
-CreateBackupOutput	error	5	optional	string
-DecryptMekForDistributionFromTransportSenderInput	mekDistribution	1	required	message	DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient
-DecryptMekForDistributionFromTransportSenderInput	mekId	2	required	bytes
-DecryptMekForDistributionFromTransportSenderInput	rosterHash	3	required	bytes
-DecryptMekForDistributionFromTransportSenderInput	recipientEncSk	4	required	bytes
-DecryptMekForDistributionFromTransportSenderInput	version	5	required	uint64
-DecryptMekForDistributionFromTransportSenderInput	conf	6	optional	message	MinosClientConfig
-DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	encryptedMek	1	required	bytes
-DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	ephemeralEncryptionPk	2	required	bytes
-DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	signingPk	3	required	bytes
-DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	signature	4	required	bytes
-DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	recipientEpochHead	5	optional	bytes
-DecryptMekForDistributionFromTransportSenderResult	success	1	optional	message	DecryptMekForDistributionFromTransportSenderSuccess
-DecryptMekForDistributionFromTransportSenderResult	errorMessage	2	optional	string
-DecryptMekForDistributionFromTransportSenderSuccess	mek	1	required	bytes
-DecryptMekForDistributionInput	toMailboxSk	1	required	bytes
-DecryptMekForDistributionInput	fromPk	2	required	bytes
-DecryptMekForDistributionInput	mekId	3	required	bytes
-DecryptMekForDistributionInput	senderEpochHead	4	required	bytes
-DecryptMekForDistributionInput	rosterHash	5	required	bytes
-DecryptMekForDistributionInput	ciphertext	6	required	bytes
-DecryptMekForDistributionInput	toEpochHead	7	optional	bytes
-DecryptMekForDistributionInput	mekEncryptionVersion	8	optional	int32
-DecryptMekForDistributionInput	conf	9	optional	message	MinosClientConfig
-DecryptMekForDistributionResult	success	1	optional	message	DecryptMekForDistributionSuccess
-DecryptMekForDistributionResult	errorMessage	2	optional	string
-DecryptMekForDistributionSuccess	mek	1	required	bytes
-DecryptMessageInput	epochRootKey	1	required	bytes
-DecryptMessageInput	epochAnonId	2	required	bytes
-DecryptMessageInput	threadId	3	required	string
-DecryptMessageInput	encryptionVersion	4	required	int32
-DecryptMessageInput	ciphertext	5	required	bytes
-DecryptMessageOutput	plaintextPayload	1	optional	bytes
-DecryptMessageOutput	error	2	optional	string
-DecryptSelfMmkDistributionInput	encryptedMmk	1	required	bytes
-DecryptSelfMmkDistributionInput	exportRootKey	2	required	bytes
-DecryptSelfMmkDistributionInput	mailboxHeadHash	3	required	bytes
-DecryptSelfMmkDistributionResult	success	1	optional	message	DecryptSelfMmkDistributionSuccess
-DecryptSelfMmkDistributionResult	errorMessage	2	optional	string
-DecryptSelfMmkDistributionSuccess	mmkSeed	1	required	bytes
-DeriveAttachmentAccessTokenSecretInput	mediaKey	1	required	bytes
-DeriveAttachmentAccessTokenSecretResult	attachmentAccessTokenSecret	1	required	bytes
-DeriveAttachmentPrimaryKeySecretInput	mediaKey	1	required	bytes
-DeriveAttachmentPrimaryKeySecretResult	attachmentPrimaryKeySecret	1	required	bytes
-DeriveMailboxAuthKeypairInput	exportRootKey	1	required	bytes
-DeriveMailboxAuthKeypairInput	epochNumber	2	required	uint64
-DeriveMailboxAuthKeypairResult	mailboxAuthPublicKey	1	required	bytes
-DeriveMailboxAuthKeypairResult	mailboxAuthPrivateKey	2	required	bytes
-DeriveMailboxEncryptionKeypairInput	exportRootKey	1	required	bytes
-DeriveMailboxEncryptionKeypairInput	epochNumber	2	required	uint64
-DeriveMailboxEncryptionKeypairResult	mailboxEncryptionPublicKey	1	required	bytes
-DeriveMailboxEncryptionKeypairResult	mailboxEncryptionPrivateKey	2	required	bytes
-DeriveMailboxSigningKeypairInput	exportRootKey	1	required	bytes
-DeriveMailboxSigningKeypairInput	epochNumber	2	required	uint64
-DeriveMailboxSigningKeypairResult	success	1	optional	message	DeriveMailboxSigningKeypairSuccess
-DeriveMailboxSigningKeypairResult	errorMessage	2	optional	string
-DeriveMailboxSigningKeypairSuccess	mailboxSigningPublicKey	1	required	bytes
-DeriveMailboxSigningKeypairSuccess	mailboxSigningPrivateKey	2	required	bytes
-DeriveMessageKeyInput	epochRootKey	1	required	bytes
-DeriveMessageKeyInput	epochAnonId	2	required	bytes
-DeriveMessageKeyInput	threadId	3	required	string
-DeriveMessageKeyOutput	messageKey	1	optional	bytes
-DeriveMessageKeyOutput	error	2	optional	string
-DeriveMessagingMailboxKeypairsInput	mmkSeed	1	required	bytes
-DeriveMessagingMailboxKeypairsResult	success	1	optional	message	DeriveMessagingMailboxKeypairsSuccess
-DeriveMessagingMailboxKeypairsResult	errorMessage	2	optional	string
-DeriveMessagingMailboxKeypairsSuccess	encSk	1	required	bytes
-DeriveMessagingMailboxKeypairsSuccess	encPk	2	required	bytes
-DeriveMessagingMailboxKeypairsSuccess	authSk	3	optional	bytes
-DeriveMessagingMailboxKeypairsSuccess	authPk	4	optional	bytes
-DetachedDevicePublicData	deviceId	1	required	uint64
-DetachedDevicePublicData	name	2	required	bytes
-DetachedDevicePublicData	sigPk	3	required	bytes
-DetachedDevicePublicData	authPk	4	required	bytes
-DetachedDevicePublicData	encPk	5	required	bytes
-DetachedDevicePublicData	signature	6	required	bytes
+Conversation	acp2Setting	64	optional	message	ACP2Setting
 DeviceCapabilities	chatLockSupportLevel	1	optional	enum	DeviceCapabilities.ChatLockSupportLevel=0,1
 DeviceCapabilities	lidMigration	2	optional	message	DeviceCapabilities.LIDMigration
 DeviceCapabilities	businessBroadcast	3	optional	message	DeviceCapabilities.BusinessBroadcast
@@ -1148,6 +979,7 @@ DeviceCapabilities	aiFbidMigration	7	optional	message	DeviceCapabilities.AiFbidM
 DeviceCapabilities	bizAiSettingsSync	8	optional	message	DeviceCapabilities.BizAiSettingsSync
 DeviceCapabilities	contactRefresh	9	optional	message	DeviceCapabilities.ContactRefresh
 DeviceCapabilities.AiFbidMigration	chatDbMigrationTimestamp	1	optional	uint64
+DeviceCapabilities.AiFbidMigration	supportVersion	2	optional	uint32
 DeviceCapabilities.AiThread	supportLevel	1	optional	enum	DeviceCapabilities.AiThread.SupportLevel=0,1
 DeviceCapabilities.BizAiSettingsSync	handoffRemovalTimingEnabled	1	optional	bool
 DeviceCapabilities.BusinessBroadcast	importListEnabled	1	optional	bool
@@ -1155,6 +987,7 @@ DeviceCapabilities.BusinessBroadcast	companionSupportEnabled	2	optional	bool
 DeviceCapabilities.BusinessBroadcast	campaignSyncEnabled	3	optional	bool
 DeviceCapabilities.BusinessBroadcast	insightsSyncEnabled	4	optional	bool
 DeviceCapabilities.BusinessBroadcast	recipientLimit	5	optional	int32
+DeviceCapabilities.BusinessBroadcast	proCompanionSupportEnabled	6	optional	bool
 DeviceCapabilities.ContactRefresh	refreshSupported	1	optional	bool
 DeviceCapabilities.LIDMigration	chatDbMigrationTimestamp	1	optional	uint64
 DeviceCapabilities.UserHasAvatar	userHasAvatar	1	optional	bool
@@ -1168,16 +1001,6 @@ DeviceListMetadata	receiverAccountType	5	optional	enum	ADVEncryptionType=0,1
 DeviceListMetadata	recipientKeyHash	8	optional	bytes
 DeviceListMetadata	recipientTimestamp	9	optional	uint64
 DeviceListMetadata	recipientKeyIndexes	10	repeated packed	uint32
-DeviceOutput	publicKey	1	required	bytes
-DeviceOutput	epochAuthPublicKey	2	required	bytes
-DeviceOutput	epochAuthPublicKeySig	3	required	bytes
-DeviceOutput	epochStoragePublicKey	4	required	bytes
-DeviceOutput	epochStoragePublicKeySig	5	required	bytes
-DeviceOutput	supportedEncryptionVersions	6	repeated	int32
-DeviceOutput	encryptionVersionSignature	7	required	bytes
-DeviceOutput	clientVersion	8	required	int32
-DeviceOutput	ocmfClientState	9	required	bytes
-DeviceOutput	epochStoragePrivateKey	10	required	bytes
 DeviceProps	os	1	optional	string
 DeviceProps	version	2	optional	message	DeviceProps.AppVersion
 DeviceProps	platformType	3	optional	enum	DeviceProps.PlatformType=0,1
@@ -1235,72 +1058,10 @@ EmbeddedMusic	artworkMediaKey	11	optional	bytes
 EmbeddedMusic	musicSongStartTimeInMs	12	optional	int64
 EmbeddedMusic	derivedContentStartTimeInMs	13	optional	int64
 EmbeddedMusic	overlapDurationInMs	14	optional	int64
-EncryptMekForDistributionInput	senderEpochHead	1	required	bytes
-EncryptMekForDistributionInput	toMailboxPk	2	required	bytes
-EncryptMekForDistributionInput	fromKeypair	3	required	message	EncryptMekForDistributionInput.MailboxAuthKP
-EncryptMekForDistributionInput	mek	4	required	message	MekBundle
-EncryptMekForDistributionInput	toEpochHead	5	optional	bytes
-EncryptMekForDistributionInput	conf	6	optional	message	MinosClientConfig
-EncryptMekForDistributionInput.MailboxAuthKP	sk	1	required	bytes
-EncryptMekForDistributionInput.MailboxAuthKP	pk	2	required	bytes
-EncryptMekForDistributionResult	ciphertext	1	required	bytes
-EncryptMekForDistributionResult	version	2	required	uint64
-EncryptMeksForDistributionFromTransportSenderInput	mek	1	required	message	MekBundle
-EncryptMeksForDistributionFromTransportSenderInput	transportSigningKp	2	required	message	EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP
-EncryptMeksForDistributionFromTransportSenderInput	recipientMailboxEncryptionPks	3	repeated	bytes
-EncryptMeksForDistributionFromTransportSenderInput	recipientEpochHeads	4	repeated	bytes
-EncryptMeksForDistributionFromTransportSenderInput	conf	5	optional	message	MinosClientConfig
-EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP	sk	1	required	bytes
-EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP	pk	2	required	bytes
-EncryptMeksForDistributionFromTransportSenderResult	encryptedMeks	1	repeated	bytes
-EncryptMeksForDistributionFromTransportSenderResult	ephemeralEncryptionPk	2	required	bytes
-EncryptMeksForDistributionFromTransportSenderResult	signingPk	3	required	bytes
-EncryptMeksForDistributionFromTransportSenderResult	signature	4	required	bytes
-EncryptMeksForDistributionFromTransportSenderResult	version	5	required	uint64
-EncryptMessageInput	epochRootKey	1	required	bytes
-EncryptMessageInput	mailboxRootKey	2	required	bytes
-EncryptMessageInput	orfClientState	3	required	bytes
-EncryptMessageInput	epochAnonId	4	required	bytes
-EncryptMessageInput	epochId	5	required	uint64
-EncryptMessageInput	threadId	6	required	string
-EncryptMessageInput	waCanonicalUserFbid	7	required	uint64
-EncryptMessageInput	timestampMs	8	required	uint64
-EncryptMessageInput	backupId	9	required	uint64
-EncryptMessageInput	plaintextPayload	10	required	bytes
-EncryptMessageInput	stanzaId	11	required	string
-EncryptMessageOutput	encryptedProtobuf	1	optional	bytes
-EncryptMessageOutput	orfThreadId	2	optional	bytes
-EncryptMessageOutput	valueSecretRef	3	optional	string
-EncryptMessageOutput	offlineThreadingId	4	optional	uint64
-EncryptMessageOutput	timestampMs	5	optional	uint64
-EncryptMessageOutput	error	7	optional	string
 EncryptedPairingRequest	encryptedPayload	1	optional	bytes
 EncryptedPairingRequest	iv	2	optional	bytes
-EncryptedSecretValuesOutput	encryptedDevicePrivateKey	1	required	bytes
-EncryptedSecretValuesOutput	encryptedObliviousValidationTokenBlob	2	required	bytes
-EncryptedSecretValuesOutput	encryptedEpochStoragePrivateKey	3	required	bytes
-EncryptedSecretValuesOutput	encryptedOcmfClientState	4	required	bytes
-EncryptedSecretValuesOutput	encryptedOrfClientStateV2	5	optional	bytes
-EncryptedSecretValuesOutput	encryptedMailboxRootKeyBlob	6	required	bytes
-EncryptedSecretValuesOutput	encryptedEpochAnonId	7	required	bytes
-EncryptedSecretValuesOutput	encryptedEpochRootKey	8	required	bytes
 EphemeralSetting	duration	1	optional	sfixed32
 EphemeralSetting	timestamp	2	optional	sfixed64
-Epoch0Output	epochFbid	1	required	uint64
-Epoch0Output	epochAnonId	2	required	bytes
-Epoch0Output	epochData	3	required	bytes
-Epoch0Output	wrappedRootKeyForSelf	4	required	bytes
-Epoch0Output	epochSignature	5	required	bytes
-Epoch0Output	epochRootKeyFingerprint	6	required	bytes
-Epoch0Output	epochRootKey	7	optional	bytes
-EpochPublicData	epochNumber	1	required	uint64
-EpochPublicData	userFbid	2	required	string
-EpochPublicData	mailboxSigningPk	3	required	bytes
-EpochPublicData	mailboxEncryptionPk	4	required	bytes
-EpochPublicData	mailboxAuthPk	5	required	bytes
-EpochPublicData	previousEpochHead	6	optional	bytes
-EpochSignatures	selfSignature	1	required	bytes
-EpochSignatures	prevSignature	2	optional	bytes
 EventAdditionalMetadata	isStale	1	optional	bool
 EventResponse	eventResponseMessageKey	1	optional	message	MessageKey
 EventResponse	timestampMs	2	optional	int64
@@ -1308,41 +1069,6 @@ EventResponse	eventResponseMessage	3	optional	message	Message.EventResponseMessa
 EventResponse	unread	4	optional	bool
 ExitCode	code	1	optional	uint64
 ExitCode	text	2	optional	string
-ExtendedContentMessage	associatedMessage	1	optional	message	SubProtocol
-ExtendedContentMessage	targetType	2	optional	enum	EXTENDED_CONTENT_MESSAGE_EXTENDED_CONTENT_TYPE=-1,4
-ExtendedContentMessage	targetUsername	3	optional	string
-ExtendedContentMessage	targetId	4	optional	string
-ExtendedContentMessage	targetExpiringAtSec	5	optional	int64
-ExtendedContentMessage	xmaLayoutType	6	optional	enum	EXTENDED_CONTENT_MESSAGE_XMA_LAYOUT_TYPE=0,1
-ExtendedContentMessage	ctas	7	repeated	message	ExtendedContentMessage.CTA
-ExtendedContentMessage	previews	8	repeated	message	SubProtocol
-ExtendedContentMessage	titleText	9	optional	string
-ExtendedContentMessage	subtitleText	10	optional	string
-ExtendedContentMessage	maxTitleNumOfLines	11	optional	uint32
-ExtendedContentMessage	maxSubtitleNumOfLines	12	optional	uint32
-ExtendedContentMessage	favicon	13	optional	message	SubProtocol
-ExtendedContentMessage	headerImage	14	optional	message	SubProtocol
-ExtendedContentMessage	headerTitle	15	optional	string
-ExtendedContentMessage	overlayIconGlyph	16	optional	enum	ExtendedContentMessage.EXTENDED_CONTENT_MESSAGE_OVERLAY_ICON_GLYPH=0,1
-ExtendedContentMessage	overlayTitle	17	optional	string
-ExtendedContentMessage	overlayDescription	18	optional	string
-ExtendedContentMessage	sentWithMessageId	19	optional	string
-ExtendedContentMessage	messageText	20	optional	string
-ExtendedContentMessage	headerSubtitle	21	optional	string
-ExtendedContentMessage	xmaDataclass	22	optional	string
-ExtendedContentMessage	contentRef	23	optional	string
-ExtendedContentMessage	mentionedJid	24	repeated	string
-ExtendedContentMessage	commands	25	repeated	message	Command
-ExtendedContentMessage	mentions	26	repeated	message	Mention
-ExtendedContentMessage	xmaDataclassType	27	optional	enum	EXTENDED_CONTENT_MESSAGE_XMA_DATACLASS_TYPE=0,1
-ExtendedContentMessage	signedXmaDataclassValidation	28	optional	string
-ExtendedContentMessage	featureSharedSessionId	29	optional	string
-ExtendedContentMessage.CTA	buttonType	1	optional	enum	EXTENDED_CONTENT_MESSAGE_CTA_BUTTON_TYPE=11
-ExtendedContentMessage.CTA	title	2	optional	string
-ExtendedContentMessage.CTA	actionUrl	3	optional	string
-ExtendedContentMessage.CTA	nativeUrl	4	optional	string
-ExtendedContentMessage.CTA	ctaType	5	optional	string
-ExtendedContentMessage.CTA	actionContentBlob	6	optional	string
 ExternalBlobReference	mediaKey	1	optional	bytes
 ExternalBlobReference	directPath	2	optional	string
 ExternalBlobReference	handle	3	optional	string
@@ -1363,10 +1089,6 @@ FingerprintData	hashedPublicKey	6	optional	bytes
 ForwardedAIBotMessageInfo	botName	1	optional	string
 ForwardedAIBotMessageInfo	botJid	2	optional	string
 ForwardedAIBotMessageInfo	creatorName	3	optional	string
-GenerateMekInput	epochHeads	1	repeated	bytes
-GenerateMekResult	mek	1	required	message	MekBundle
-GenerateMekRosterHashInput	epochHeads	1	repeated	bytes
-GenerateMekRosterHashResult	rosterHash	1	required	bytes
 GlobalSettings	lightThemeWallpaper	1	optional	message	WallpaperSettings
 GlobalSettings	mediaVisibility	2	optional	enum	MediaVisibility=0,1
 GlobalSettings	darkThemeWallpaper	3	optional	message	WallpaperSettings
@@ -1532,12 +1254,6 @@ LIDMigrationMapping	assignedLid	2	required	uint64
 LIDMigrationMapping	latestLid	3	optional	uint64
 LIDMigrationMappingSyncPayload	pnToLidMappings	1	repeated	message	LIDMigrationMapping
 LIDMigrationMappingSyncPayload	chatDbMigrationTimestamp	2	optional	uint64
-LabyrinthWaCommand	createBackupInput	1	optional	message	CreateBackupInput
-LabyrinthWaCommand	encryptMessageInput	2	optional	message	EncryptMessageInput
-LabyrinthWaCommand	decryptMessageInput	3	optional	message	DecryptMessageInput
-LabyrinthWaCommand	orfThreadIdInput	4	optional	message	OrfThreadIdInput
-LabyrinthWaCommand	deriveMessageKeyInput	5	optional	message	DeriveMessageKeyInput
-LabyrinthWaCommand	rotateEpochInput	6	optional	message	RotateEpochInput
 LegacyMessage	eventResponseMessage	1	optional	message	Message.EventResponseMessage
 LegacyMessage	pollVote	2	optional	message	Message.PollVoteMessage
 LimitSharing	sharingLimited	1	optional	bool
@@ -1550,77 +1266,6 @@ LocalizedName	verifiedName	3	optional	string
 Location	degreesLatitude	1	optional	double
 Location	degreesLongitude	2	optional	double
 Location	name	3	optional	string
-MandrakeDecryptMekInput	encryptedMek	1	required	bytes
-MandrakeDecryptMekInput	recipientsHash	4	required	bytes
-MandrakeDecryptMekInput	recipientEncSk	5	required	bytes
-MandrakeDecryptMekInput	mekEncryptionVersion	6	optional	uint64
-MandrakeDecryptMekInput	conf	7	optional	message	MinosClientConfig
-MandrakeDecryptMekInput	recipientMmk	8	required	message	MessagingMailboxPublicData
-MandrakeDecryptMekInput	mekId	9	optional	bytes
-MandrakeDecryptMekInput	recipientMembershipProof	10	optional	message	MerkleMembershipProof
-MandrakeDecryptMekInput	mmkSender	2	optional	message	MandrakeDecryptMekInput.MmkSenderPublicData
-MandrakeDecryptMekInput	epochSender	3	optional	message	MandrakeDecryptMekInput.EpochSenderPublicData
-MandrakeDecryptMekInput	precomputedEpochSender	11	optional	message	MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData
-MandrakeDecryptMekInput.EpochSenderPublicData	epochPublicData	1	required	message	EpochPublicData
-MandrakeDecryptMekInput.MmkSenderPublicData	mmkPublicData	1	required	message	MessagingMailboxPublicData
-MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData	authPk	1	required	bytes
-MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData	epochHead	2	required	bytes
-MandrakeDecryptMekResult	success	1	optional	message	MandrakeDecryptMekSuccess
-MandrakeDecryptMekResult	errorMessage	2	optional	string
-MandrakeDecryptMekSuccess	mek	1	required	bytes
-MandrakeEncryptMekInput	mek	1	required	message	MandrakeMekBundle
-MandrakeEncryptMekInput	recipients	2	repeated	message	MessagingMailboxPublicData
-MandrakeEncryptMekInput	conf	5	optional	message	MinosClientConfig
-MandrakeEncryptMekInput	mmkSender	3	optional	message	MandrakeEncryptMekInput.MmkSender
-MandrakeEncryptMekInput	epochSender	4	optional	message	MandrakeEncryptMekInput.EpochSender
-MandrakeEncryptMekInput	detachedDeviceSender	6	optional	message	MandrakeEncryptMekInput.DetachedDeviceSender
-MandrakeEncryptMekInput.DetachedDeviceSender	detachedDevicePublicData	1	required	message	DetachedDevicePublicData
-MandrakeEncryptMekInput.DetachedDeviceSender	authSk	2	required	bytes
-MandrakeEncryptMekInput.DetachedDeviceSender	authPk	3	required	bytes
-MandrakeEncryptMekInput.EpochSender	epochPublicData	1	required	message	EpochPublicData
-MandrakeEncryptMekInput.EpochSender	authSk	2	required	bytes
-MandrakeEncryptMekInput.EpochSender	authPk	3	required	bytes
-MandrakeEncryptMekInput.MmkSender	mmkPublicData	1	required	message	MessagingMailboxPublicData
-MandrakeEncryptMekInput.MmkSender	authSk	2	required	bytes
-MandrakeEncryptMekInput.MmkSender	authPk	3	required	bytes
-MandrakeEncryptMekResult	success	1	optional	message	MandrakeEncryptMekSuccess
-MandrakeEncryptMekResult	errorMessage	2	optional	string
-MandrakeEncryptMekSuccess	distributions	1	repeated	message	MandrakeEncryptMekSuccess.MekDistributionSingleRecipient
-MandrakeEncryptMekSuccess	recipientsHash	2	required	bytes
-MandrakeEncryptMekSuccess	version	3	required	uint64
-MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	encryptedMek	1	required	bytes
-MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	toMmk	2	required	message	MessagingMailboxPublicData
-MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	recipientMembershipProof	3	optional	message	MerkleMembershipProof
-MandrakeMekBundle	key	1	required	bytes
-MandrakeMekBundle	mekId	2	required	bytes
-MandrakeMekBundle	mailboxHeadHash	3	required	bytes
-MandrakeOpenEpochInput	userFbid	1	required	string
-MandrakeOpenEpochInput	epochNumber	2	required	uint64
-MandrakeOpenEpochInput	exportRootKey	3	required	bytes
-MandrakeOpenEpochInput	previousExportRootKey	4	required	bytes
-MandrakeOpenEpochInput	previousEpochNumber	5	required	uint64
-MandrakeOpenEpochInput	previousEpochHead	6	required	bytes
-MandrakeOpenEpochInput	previousMmk	7	optional	message	MessagingMailboxPublicData
-MandrakeOpenEpochInput	detachedDevices	8	repeated	message	DetachedDevicePublicData
-MandrakeOpenEpochResult	success	1	optional	message	MandrakeOpenEpochSuccess
-MandrakeOpenEpochResult	errorMessage	2	optional	string
-MandrakeOpenEpochSuccess	minosSignedEpoch	1	required	message	MinosSignedEpoch
-MandrakeOpenEpochSuccess	signedMmkDistribution	2	required	message	SignedMmkDistributionFromMailbox
-MandrakeOpenInitialEpochInput	userFbid	1	required	string
-MandrakeOpenInitialEpochInput	epochNumber	2	required	uint64
-MandrakeOpenInitialEpochInput	exportRootKey	3	required	bytes
-MandrakeOpenInitialEpochInput	detachedDevices	4	repeated	message	DetachedDevicePublicData
-MandrakeOpenInitialEpochResult	success	1	optional	message	MandrakeOpenEpochSuccess
-MandrakeOpenInitialEpochResult	errorMessage	2	optional	string
-MandrakeValidateNewMmkFromDetachedDeviceInput	mmkFromDevice	1	required	message	MmkFromDetachedDevice
-MandrakeValidateNewMmkFromDetachedDeviceInput	signature	2	required	bytes
-MandrakeValidateNewMmkFromDetachedDeviceInput	prevMmk	3	required	message	MessagingMailboxPublicData
-MandrakeValidateNewMmkFromMailboxInput	newMmk	1	required	message	MessagingMailboxPublicData
-MandrakeValidateNewMmkFromMailboxInput	signature	2	required	bytes
-MandrakeValidateNewMmkFromMailboxInput	prevMmk	3	optional	message	MessagingMailboxPublicData
-MandrakeValidateNewMmkFromMailboxInput	epochPublicData	4	required	message	EpochPublicData
-MandrakeValidateNewMmkResult	valid	1	optional	bool
-MandrakeValidateNewMmkResult	errorMessage	2	optional	string
 MediaData	localPath	1	optional	string
 MediaDomainInfo	mediaKeyDomain	1	optional	enum	MediaKeyDomain=0,1
 MediaDomainInfo	e2EeMediaKey	2	optional	bytes
@@ -1656,19 +1301,8 @@ MediaRetryNotification	stanzaId	1	optional	string
 MediaRetryNotification	directPath	2	optional	string
 MediaRetryNotification	result	3	optional	enum	MediaRetryNotification.ResultType=0,1
 MediaRetryNotification	messageSecret	4	optional	bytes
-MekBundle	key	1	required	bytes
-MekBundle	mekId	2	required	bytes
-MekBundle	rosterHash	3	required	bytes
 MemberLabel	label	1	optional	string
 MemberLabel	labelTimestamp	2	optional	int64
-Mention	mentionType	1	optional	enum	MENTION_MENTION_TYPE=0
-Mention	mentionedJid	2	optional	string
-Mention	offset	3	optional	uint32
-Mention	length	4	optional	uint32
-MerkleMembershipProof	proof	1	required	bytes
-MerkleMembershipProof	root	2	required	bytes
-MerkleMembershipProof	leafIndex	3	required	uint64
-MerkleMembershipProof	totalLeaves	4	required	uint64
 Message	conversation	1	optional	string
 Message	senderKeyDistributionMessage	2	optional	message	Message.SenderKeyDistributionMessage
 Message	imageMessage	3	optional	message	Message.ImageMessage
@@ -1765,7 +1399,6 @@ Message	pollCreationMessageV5	111	optional	message	Message.PollCreationMessage
 Message	newsletterFollowerInviteMessageV2	113	optional	message	Message.NewsletterFollowerInviteMessage
 Message	pollResultSnapshotMessageV3	115	optional	message	Message.PollResultSnapshotMessage
 Message	newsletterAdminProfileMessage	116	optional	message	Message.FutureProofMessage
-Message	newsletterAdminProfileMessageV2	117	optional	message	Message.FutureProofMessage
 Message	spoilerMessage	118	optional	message	Message.FutureProofMessage
 Message	pollCreationMessageV6	119	optional	message	Message.PollCreationMessage
 Message	conditionalRevealMessage	120	optional	message	Message.ConditionalRevealMessage
@@ -1780,6 +1413,9 @@ Message	splitPaymentUpdateMessage	128	optional	message	Message.SplitPaymentUpdat
 Message	musicMessage	129	optional	message	Message.MusicMessage
 Message	statusLinkPreviewMetadata	130	optional	message	Message.StatusLinkPreviewMetadata
 Message	botPlatformRegistrationSuccessMessage	131	optional	message	Message.FutureProofMessage
+Message	newsletterScheduledMessage	132	optional	message	Message.FutureProofMessage
+Message	acp2SettingMessage	133	optional	message	Message.FutureProofMessage
+Message	audioStickerMessage	134	optional	message	Message.FutureProofMessage
 Message.AlbumMessage	expectedImageCount	2	optional	uint32
 Message.AlbumMessage	expectedVideoCount	3	optional	uint32
 Message.AlbumMessage	contextInfo	17	optional	message	ContextInfo
@@ -1862,6 +1498,8 @@ Message.CallLogMessage.CallParticipant	callOutcome	2	optional	enum	Message.CallL
 Message.CancelPaymentRequestMessage	key	1	optional	message	MessageKey
 Message.Chat	displayName	1	optional	string
 Message.Chat	id	2	optional	string
+Message.ChatAnimatedWallpaper	animatedWallpaperId	1	optional	string
+Message.ChatAnimatedWallpaper	dimLevel	2	optional	float
 Message.ChatCustomImageWallpaper	directPath	1	optional	string
 Message.ChatCustomImageWallpaper	mediaKey	2	optional	bytes
 Message.ChatCustomImageWallpaper	fileEncSha256	3	optional	bytes
@@ -1880,6 +1518,7 @@ Message.ChatThemeSetting	defaultWallpaper	10	optional	message	Message.ChatDefaul
 Message.ChatThemeSetting	solidColor	11	optional	message	Message.ChatSolidColorWallpaper
 Message.ChatThemeSetting	stockImage	12	optional	message	Message.ChatStockImageWallpaper
 Message.ChatThemeSetting	customImage	13	optional	message	Message.ChatCustomImageWallpaper
+Message.ChatThemeSetting	animatedWallpaper	14	optional	message	Message.ChatAnimatedWallpaper
 Message.CloudAPIThreadControlNotification	status	1	optional	enum	Message.CloudAPIThreadControlNotification.CloudAPIThreadControl=0,1
 Message.CloudAPIThreadControlNotification	senderNotificationTimestampMs	2	optional	int64
 Message.CloudAPIThreadControlNotification	consumerLid	3	optional	string
@@ -2477,6 +2116,9 @@ Message.ProtocolMessage	chatThemeSetting	30	optional	message	Message.ChatThemeSe
 Message.ProtocolMessage	aiMetadataOperation	31	optional	message	AIMetadataOperation
 Message.ProtocolMessage	markAsVerifiedAction	32	optional	message	Message.MarkAsVerifiedAction
 Message.ProtocolMessage	coexStateSync	33	optional	message	CoexStateSync
+Message.ProtocolMessage	acp2Setting	35	optional	message	ACP2Setting
+Message.ProtocolMessage	sharedDeviceContactHashKeyShare	36	optional	message	Message.SharedDeviceContactHashKeyShare
+Message.ProtocolMessage	sharedDeviceContactHashKeyRequest	37	optional	message	Message.SharedDeviceContactHashKeyRequest
 Message.QuestionResponseMessage	key	1	optional	message	MessageKey
 Message.QuestionResponseMessage	text	2	optional	string
 Message.ReactionMessage	key	1	optional	message	MessageKey
@@ -2511,6 +2153,11 @@ Message.SendPaymentMessage	background	4	optional	message	PaymentBackground
 Message.SendPaymentMessage	transactionData	5	optional	string
 Message.SenderKeyDistributionMessage	groupId	1	optional	string
 Message.SenderKeyDistributionMessage	axolotlSenderKeyDistributionMessage	2	optional	bytes
+Message.SharedDeviceContactHashKey	epoch	1	optional	uint32
+Message.SharedDeviceContactHashKey	kind	2	optional	enum	Message.SharedDeviceContactHashKey.Kind=0,1
+Message.SharedDeviceContactHashKey	keyData	3	optional	bytes
+Message.SharedDeviceContactHashKeyRequest	knownEpoch	1	optional	uint32
+Message.SharedDeviceContactHashKeyShare	keys	1	repeated	message	Message.SharedDeviceContactHashKey
 Message.SplitPaymentMessage	splitId	1	optional	string
 Message.SplitPaymentMessage	totalAmount	2	optional	message	Money
 Message.SplitPaymentMessage	description	3	optional	string
@@ -2558,6 +2205,7 @@ Message.StickerMessage	isLottie	21	optional	bool
 Message.StickerMessage	accessibilityLabel	22	optional	string
 Message.StickerMessage	premium	24	optional	int32
 Message.StickerMessage	emojis	25	optional	string
+Message.StickerMessage	audioMessage	26	optional	message	Message.AudioMessage
 Message.StickerPackMessage	stickerPackId	1	optional	string
 Message.StickerPackMessage	name	2	optional	string
 Message.StickerPackMessage	publisher	3	optional	string
@@ -2654,6 +2302,7 @@ Message.VideoMessage	externalShareFullVideoDurationInSeconds	28	optional	uint32
 Message.VideoMessage	motionPhotoPresentationOffsetMs	29	optional	uint64
 Message.VideoMessage	metadataUrl	30	optional	string
 Message.VideoMessage	videoSourceType	31	optional	enum	Message.VideoMessage.VideoSourceType=0,1
+Message.VideoMessage	dashManifestUrl	33	optional	string
 MessageAddOn	messageAddOnType	1	optional	enum	MessageAddOn.MessageAddOnType=0,1
 MessageAddOn	messageAddOn	2	optional	message	Message
 MessageAddOn	senderTimestampMs	3	optional	int64
@@ -2686,6 +2335,8 @@ MessageContextInfo	weblinkRenderConfig	16	optional	enum	WebLinkRenderConfig=0,1
 MessageContextInfo	teeBotMetadata	17	optional	bytes
 MessageContextInfo	accountEncryptionAttestation	18	optional	message	NonE2EEAttestation
 MessageContextInfo	associatedPrimaryIdentityKey	19	optional	bytes
+MessageContextInfo	teeContextAnchorMessageId	20	optional	string
+MessageContextInfo	acp2Setting	21	optional	message	ACP2Setting
 MessageKey	remoteJid	1	optional	string
 MessageKey	fromMe	2	optional	bool
 MessageKey	id	3	optional	string
@@ -2693,107 +2344,6 @@ MessageKey	participant	4	optional	string
 MessageSecretMessage	version	1	optional	sfixed32
 MessageSecretMessage	encIv	2	optional	bytes
 MessageSecretMessage	encPayload	3	optional	bytes
-MessageText	text	1	optional	string
-MessageText	mentionedJid	2	repeated	string
-MessageText	commands	3	repeated	message	Command
-MessageText	mentions	4	repeated	message	Mention
-MessagingMailboxPublicData	epochHead	1	required	bytes
-MessagingMailboxPublicData	deviceRosterHash	2	required	bytes
-MessagingMailboxPublicData	sequenceNumber	3	required	uint64
-MessagingMailboxPublicData	sigPk	4	required	bytes
-MessagingMailboxPublicData	encPk	5	required	bytes
-MessagingMailboxPublicData	authPk	6	required	bytes
-MinosClientConfig	preferredMessageEncryptionVersion	1	required	int32
-MinosClientConfig	preferredMekEncryptionVersion	2	required	int32
-MinosCommand	encryptAndSignMessage	1	optional	message	MinosEncryptAndSignMessageInput
-MinosCommand	decryptAndVerifyMessage	2	optional	message	MinosDecryptAndVerifyMessageInput
-MinosCommand	generateMek	3	optional	message	GenerateMekInput
-MinosCommand	generateMekRosterHash	4	optional	message	GenerateMekRosterHashInput
-MinosCommand	encryptMekForDistribution	5	optional	message	EncryptMekForDistributionInput
-MinosCommand	decryptMekForDistribution	6	optional	message	DecryptMekForDistributionInput
-MinosCommand	encryptMeksForDistributionFromTransportSender	7	optional	message	EncryptMeksForDistributionFromTransportSenderInput
-MinosCommand	decryptMekForDistributionFromTransportSender	8	optional	message	DecryptMekForDistributionFromTransportSenderInput
-MinosCommand	wrapTransportSigningPublicKey	9	optional	message	WrapTransportSigningPublicKeyInput
-MinosCommand	wrapTransportSigningSecretKey	10	optional	message	WrapTransportSigningSecretKeyInput
-MinosCommand	deriveMailboxSigningKeypair	11	optional	message	DeriveMailboxSigningKeypairInput
-MinosCommand	deriveMailboxEncryptionKeypair	12	optional	message	DeriveMailboxEncryptionKeypairInput
-MinosCommand	deriveMailboxAuthKeypair	13	optional	message	DeriveMailboxAuthKeypairInput
-MinosCommand	deriveAttachmentAccessTokenSecret	14	optional	message	DeriveAttachmentAccessTokenSecretInput
-MinosCommand	deriveAttachmentPrimaryKeySecret	15	optional	message	DeriveAttachmentPrimaryKeySecretInput
-MinosCommand	minosOpenInitialEpoch	16	optional	message	MinosOpenInitialEpochInput
-MinosCommand	minosOpenEpoch	17	optional	message	MinosOpenEpochInput
-MinosCommand	minosValidateEpoch	18	optional	message	MinosValidateEpochInput
-MinosCommand	minosVerifySingleEpoch	19	optional	message	MinosVerifySingleEpochInput
-MinosCommand	minosThreadIdFromOneToOneThread	20	optional	message	MinosThreadIdFromOneToOneThreadInput
-MinosCommand	minosThreadIdFromActThreadId	21	optional	message	MinosThreadIdFromActThreadIdInput
-MinosCommand	mandrakeOpenEpoch	22	optional	message	MandrakeOpenEpochInput
-MinosCommand	mandrakeEncryptMek	23	optional	message	MandrakeEncryptMekInput
-MinosCommand	mandrakeDecryptMek	24	optional	message	MandrakeDecryptMekInput
-MinosCommand	mandrakeOpenInitialEpoch	25	optional	message	MandrakeOpenInitialEpochInput
-MinosCommand	mandrakeValidateNewMmkFromMailbox	27	optional	message	MandrakeValidateNewMmkFromMailboxInput
-MinosCommand	mandrakeValidateNewMmkFromDetachedDevice	28	optional	message	MandrakeValidateNewMmkFromDetachedDeviceInput
-MinosCommand	deriveMessagingMailboxKeypairs	29	optional	message	DeriveMessagingMailboxKeypairsInput
-MinosCommand	decryptSelfMmkDistribution	30	optional	message	DecryptSelfMmkDistributionInput
-MinosDecryptAndVerifyMessageInput	transportSigningPk	1	required	bytes
-MinosDecryptAndVerifyMessageInput	mek	2	required	bytes
-MinosDecryptAndVerifyMessageInput	encryptedMessageCiphertext	3	required	bytes
-MinosDecryptAndVerifyMessageInput	encryptedMessageSignature	4	required	bytes
-MinosDecryptAndVerifyMessageInput	metadata	5	required	message	MinosMessageMetadata
-MinosDecryptAndVerifyMessageInput	messageEncryptionVersion	6	optional	int32
-MinosDecryptAndVerifyMessageInput	conf	7	optional	message	MinosClientConfig
-MinosDecryptAndVerifyMessageResult	success	1	optional	message	MinosDecryptAndVerifyMessageSuccess
-MinosDecryptAndVerifyMessageResult	errorMessage	2	optional	string
-MinosDecryptAndVerifyMessageSuccess	plaintext	1	required	bytes
-MinosEncryptAndSignMessageInput	transportSigningSk	1	required	bytes
-MinosEncryptAndSignMessageInput	mek	2	required	bytes
-MinosEncryptAndSignMessageInput	plaintext	3	required	bytes
-MinosEncryptAndSignMessageInput	metadata	4	required	message	MinosMessageMetadata
-MinosEncryptAndSignMessageInput	transportSigningPk	5	optional	bytes
-MinosEncryptAndSignMessageInput	conf	6	optional	message	MinosClientConfig
-MinosEncryptAndSignMessageResult	ciphertext	1	required	bytes
-MinosEncryptAndSignMessageResult	signature	2	required	bytes
-MinosEncryptAndSignMessageResult	version	3	required	int32
-MinosMessageMetadata	mekId	1	required	bytes
-MinosMessageMetadata	timestamp	2	required	uint64
-MinosMessageMetadata	messageId	3	required	string
-MinosMessageMetadata	threadId	4	required	bytes
-MinosOpenEpochInput	userFbid	1	required	string
-MinosOpenEpochInput	epochNumber	2	required	uint64
-MinosOpenEpochInput	exportRootKey	3	required	bytes
-MinosOpenEpochInput	previousExportRootKey	4	required	bytes
-MinosOpenEpochInput	previousEpochNumber	5	required	uint64
-MinosOpenEpochInput	previousEpochHead	6	required	bytes
-MinosOpenEpochResult	minosSignedEpoch	1	required	message	MinosSignedEpoch
-MinosOpenInitialEpochInput	userFbid	1	required	string
-MinosOpenInitialEpochInput	epochNumber	2	required	uint64
-MinosOpenInitialEpochInput	exportRootKey	3	required	bytes
-MinosOpenInitialEpochResult	minosSignedEpoch	1	required	message	MinosSignedEpoch
-MinosSignedEpoch	epochPublicData	1	required	message	EpochPublicData
-MinosSignedEpoch	signatures	2	required	message	EpochSignatures
-MinosSignedEpoch	epochHead	3	required	bytes
-MinosThreadIdFromActThreadIdInput	actThreadId	1	required	string
-MinosThreadIdFromActThreadIdResult	threadId	1	required	bytes
-MinosThreadIdFromOneToOneThreadInput	actThreadId	1	required	string
-MinosThreadIdFromOneToOneThreadInput	selfFbid	2	required	string
-MinosThreadIdFromOneToOneThreadResult	threadId	1	required	bytes
-MinosValidateEpochInput	epochPublicData	1	required	message	EpochPublicData
-MinosValidateEpochInput	previousEpochPublicData	2	required	message	EpochPublicData
-MinosValidateEpochInput	signatures	3	required	message	EpochSignatures
-MinosValidateEpochResult	valid	1	optional	bool
-MinosValidateEpochResult	errorMessage	2	optional	string
-MinosVerifySingleEpochInput	epochPublicData	1	required	message	EpochPublicData
-MinosVerifySingleEpochInput	signature	2	required	bytes
-MinosVerifySingleEpochResult	valid	1	required	bool
-MmkDistribution	toDetachedDevices	1	repeated	message	MmkDistributionToDetachedDevice
-MmkDistribution	toMailbox	2	required	message	MmkDistributionToMailbox
-MmkDistribution	version	3	required	uint64
-MmkDistributionToDetachedDevice	encryptedMmk	1	required	bytes
-MmkDistributionToDetachedDevice	recipDeviceHash	2	required	bytes
-MmkDistributionToMailbox	encryptedMmk	1	required	bytes
-MmkDistributionToMailbox	recipMailboxHeadHash	2	required	bytes
-MmkFromDetachedDevice	mmk	1	required	message	MessagingMailboxPublicData
-MmkFromDetachedDevice	fromDetachedDevice	2	required	message	DetachedDevicePublicData
-MmkFromDetachedDevice	membershipProof	3	required	message	MerkleMembershipProof
 Money	value	1	optional	int64
 Money	offset	2	optional	uint32
 Money	currencyCode	3	optional	string
@@ -2852,6 +2402,8 @@ MsgOpaqueData	sharableEventInviteCaption	57	optional	string
 MsgOpaqueData	sharableEventInviteIsCanceled	58	optional	bool
 MsgOpaqueData	sharableEventInviteJpegThumbnail	59	optional	bytes
 MsgOpaqueData	sharableEventInviteCallLink	60	optional	string
+MsgOpaqueData	mediaPngThumbnail	61	optional	string
+MsgOpaqueData	qrUrl	62	optional	string
 MsgOpaqueData.EventLocation	degreesLatitude	1	optional	double
 MsgOpaqueData.EventLocation	degreesLongitude	2	optional	double
 MsgOpaqueData.EventLocation	name	3	optional	string
@@ -2860,6 +2412,7 @@ MsgOpaqueData.EventLocation	url	5	optional	string
 MsgOpaqueData.EventLocation	jpegThumbnail	6	optional	bytes
 MsgOpaqueData.PollOption	name	1	optional	string
 MsgOpaqueData.PollOption	hash	2	optional	string
+MsgOpaqueData.PollOption	addOptionMsgKey	3	optional	string
 MsgOpaqueData.PollVoteSnapshot	option	1	optional	message	MsgOpaqueData.PollOption
 MsgOpaqueData.PollVoteSnapshot	optionVoteCount	2	optional	int32
 MsgOpaqueData.PollVotesSnapshot	pollVotes	1	repeated	message	MsgOpaqueData.PollVoteSnapshot
@@ -2883,10 +2436,6 @@ NotificationSettings	messageLight	3	optional	string
 NotificationSettings	lowPriorityNotifications	4	optional	bool
 NotificationSettings	reactionsMuted	5	optional	bool
 NotificationSettings	callVibrate	6	optional	string
-OrfThreadIdInput	orfClientState	1	required	bytes
-OrfThreadIdInput	threadId	2	required	string
-OrfThreadIdOutput	orfThreadId	1	optional	bytes
-OrfThreadIdOutput	error	2	optional	string
 PairingRequest	companionPublicKey	1	optional	bytes
 PairingRequest	companionIdentityKey	2	optional	bytes
 PairingRequest	advSecret	3	optional	bytes
@@ -3013,25 +2562,6 @@ Reportable	notReportableMinVersion	3	optional	uint32
 Reportable	never	4	optional	bool
 ReportingTokenInfo	reportingTag	1	optional	bytes
 ReportingTokenInfo	reportingTagTimestamp	2	optional	uint64
-RotateEpochInput	currentEpochRootKey	1	required	bytes
-RotateEpochInput	currentEpochAnonId	2	required	bytes
-RotateEpochInput	currentEpochFbid	3	required	uint64
-RotateEpochInput	epochStoragePrivateKey	4	required	bytes
-RotateEpochInput	members	5	repeated	message	RotateEpochMemberInput
-RotateEpochMemberEdge	deviceId	1	optional	uint64
-RotateEpochMemberEdge	encryptedEpochKey	2	optional	bytes
-RotateEpochMemberEdge	deviceEpochHmac	3	optional	bytes
-RotateEpochMemberInput	deviceId	1	required	uint64
-RotateEpochMemberInput	epochStoragePublicKey	2	required	bytes
-RotateEpochMemberInput	devicePublicKey	3	required	bytes
-RotateEpochOutput	newEpochRootKey	1	optional	bytes
-RotateEpochOutput	newEpochAnonId	2	optional	uint64
-RotateEpochOutput	newEpochFbid	8	optional	uint64
-RotateEpochOutput	epochAnonId	3	optional	bytes
-RotateEpochOutput	backwardEdge	4	optional	message	BackwardEdge
-RotateEpochOutput	memberEdges	5	repeated	message	RotateEpochMemberEdge
-RotateEpochOutput	epochRootKeyFingerprint	6	optional	bytes
-RotateEpochOutput	error	7	optional	string
 RoutingInfo	regionId	1	repeated	int32
 RoutingInfo	clusterId	2	repeated	int32
 RoutingInfo	taskId	3	optional	int32
@@ -3102,9 +2632,6 @@ SignalMessage	ratchetKey	1	optional	bytes
 SignalMessage	counter	2	optional	uint32
 SignalMessage	previousCounter	3	optional	uint32
 SignalMessage	ciphertext	4	optional	bytes
-SignedMmkDistributionFromMailbox	mmkDistribution	1	required	message	MmkDistribution
-SignedMmkDistributionFromMailbox	signature	2	required	bytes
-SignedMmkDistributionFromMailbox	fromMailbox	3	required	message	MessagingMailboxPublicData
 SignedPreKeyRecordStructure	id	1	optional	uint32
 SignedPreKeyRecordStructure	publicKey	2	optional	bytes
 SignedPreKeyRecordStructure	privateKey	3	optional	bytes
@@ -3154,8 +2681,6 @@ StickerMetadata	lastStickerSentTs	11	optional	int64
 StickerMetadata	isLottie	12	optional	bool
 StickerMetadata	imageHash	13	optional	string
 StickerMetadata	isAvatarSticker	14	optional	bool
-SubProtocol	payload	1	optional	bytes
-SubProtocol	version	2	optional	int32
 SyncActionData	index	1	optional	bytes
 SyncActionData	value	2	optional	message	SyncActionValue
 SyncActionData	padding	3	optional	bytes
@@ -3244,6 +2769,9 @@ SyncActionValue	bubbleLockMessageAction	90	optional	message	SyncActionValue.Bubb
 SyncActionValue	labelSublistAction	91	optional	message	SyncActionValue.LabelSublistAction
 SyncActionValue	deviceCapabilitiesV2	92	optional	message	DeviceCapabilities
 SyncActionValue	ctwaMessageReceivedAction	93	optional	message	SyncActionValue.CtwaMessageReceivedAction
+SyncActionValue	sharedDeviceAllowlistAction	94	optional	message	SyncActionValue.SharedDeviceAllowlistAction
+SyncActionValue	contactManagerMetadataAction	95	optional	message	SyncActionValue.ContactManagerMetadataAction
+SyncActionValue	businessFolderActivationAction	96	optional	message	SyncActionValue.BusinessFolderActivationAction
 SyncActionValue.AgentAction	name	1	optional	string
 SyncActionValue.AgentAction	deviceId	2	optional	int32
 SyncActionValue.AgentAction	isDeleted	3	optional	bool
@@ -3271,6 +2799,8 @@ SyncActionValue.BusinessBroadcastCampaignAction	reservedQuota	6	optional	int32
 SyncActionValue.BusinessBroadcastCampaignAction	scheduledTimestamp	7	optional	int64
 SyncActionValue.BusinessBroadcastCampaignAction	createTimestamp	8	optional	int64
 SyncActionValue.BusinessBroadcastCampaignAction	status	9	optional	enum	SyncActionValue.BusinessBroadcastCampaignStatus=1,2
+SyncActionValue.BusinessBroadcastCampaignAction	bbProStatus	10	optional	enum	SyncActionValue.BusinessBroadcastCampaignBBProStatus=1,2
+SyncActionValue.BusinessBroadcastCampaignAction	customAudienceFbid	11	optional	string
 SyncActionValue.BusinessBroadcastInsightsAction	recipientCount	1	optional	int32
 SyncActionValue.BusinessBroadcastInsightsAction	deliveredCount	2	optional	int32
 SyncActionValue.BusinessBroadcastInsightsAction	readCount	3	optional	int32
@@ -3282,6 +2812,7 @@ SyncActionValue.BusinessBroadcastListAction	listName	3	optional	string
 SyncActionValue.BusinessBroadcastListAction	labelIds	4	repeated	string
 SyncActionValue.BusinessBroadcastListAction	audienceExpression	5	optional	string
 SyncActionValue.BusinessBroadcastListAction	customAudienceFbid	6	optional	string
+SyncActionValue.BusinessFolderActivationAction	activated	1	optional	bool
 SyncActionValue.CallLogAction	callLogRecord	1	optional	message	CallLogRecord
 SyncActionValue.ChatAssignmentAction	deviceAgentId	1	optional	string
 SyncActionValue.ChatAssignmentOpenedStatusAction	chatOpened	1	optional	bool
@@ -3293,6 +2824,7 @@ SyncActionValue.ContactAction	lidJid	3	optional	string
 SyncActionValue.ContactAction	saveOnPrimaryAddressbook	4	optional	bool
 SyncActionValue.ContactAction	pnJid	5	optional	string
 SyncActionValue.ContactAction	username	6	optional	string
+SyncActionValue.ContactManagerMetadataAction	isHidden	1	optional	bool
 SyncActionValue.CtwaMessageReceivedAction	isCtwaMessageReceived	1	optional	bool
 SyncActionValue.CtwaPerCustomerDataSharingAction	isCtwaPerCustomerDataSharingEnabled	1	optional	bool
 SyncActionValue.CustomPaymentMethod	credentialId	1	required	string
@@ -3430,6 +2962,7 @@ SyncActionValue.SettingsSyncAction	shouldPlaySoundForCallNotification	31	optiona
 SyncActionValue.SettingsSyncAction	chatThemeId	32	optional	string
 SyncActionValue.SettingsSyncAction	colorSchemeId	33	optional	string
 SyncActionValue.SettingsSyncAction	stockWallpaperImageId	34	optional	string
+SyncActionValue.SharedDeviceAllowlistAction	allowed	1	optional	bool
 SyncActionValue.StarAction	starred	1	optional	bool
 SyncActionValue.StatusPostOptInNotificationPreferencesAction	enabled	1	optional	bool
 SyncActionValue.StatusPrivacyAction	mode	1	optional	enum	SyncActionValue.StatusPrivacyAction.StatusDistributionMode=0,1
@@ -3566,13 +3099,6 @@ VerifiedNameCertificate.Details	issuer	2	optional	string
 VerifiedNameCertificate.Details	verifiedName	4	optional	string
 VerifiedNameCertificate.Details	localizedNames	8	repeated	message	LocalizedName
 VerifiedNameCertificate.Details	issueTime	10	optional	uint64
-VirtualDeviceOutput	vdId	1	required	bytes
-VirtualDeviceOutput	vdPublicKey	2	required	bytes
-VirtualDeviceOutput	vdEpochStoragePublicKey	3	required	bytes
-VirtualDeviceOutput	vdEpochStoragePublicKeySig	4	required	bytes
-VirtualDeviceOutput	ocmfRotationToken	5	required	bytes
-VirtualDeviceOutput	deviceEpochHmac	6	required	bytes
-VirtualDeviceOutput	encryptedSecretValues	7	required	message	EncryptedSecretValuesOutput
 WallpaperSettings	filename	1	optional	string
 WallpaperSettings	opacity	2	optional	uint32
 WallpaperSettings	isGenAi	3	optional	bool
@@ -3699,6 +3225,529 @@ WebNotificationsInfo	timestamp	2	optional	uint64
 WebNotificationsInfo	unreadChats	3	optional	uint32
 WebNotificationsInfo	notifyMessageCount	4	optional	uint32
 WebNotificationsInfo	notifyMessages	5	repeated	message	WebMessageInfo
+BackwardEdge	encryptedPrevEpochAnonId	1	optional	bytes
+BackwardEdge	encryptedPrevEpochRootKey	2	optional	bytes
+BackwardEdge	prevEpochRootKeyFingerprint	3	optional	bytes
+Command	commandType	1	optional	enum	COMMAND_COMMAND_TYPE=1,2
+Command	offset	2	optional	uint32
+Command	length	3	optional	uint32
+Command	validationToken	4	optional	string
+ConsumerApplication	payload	1	optional	message	ConsumerApplication.Payload
+ConsumerApplication	metadata	2	optional	message	ConsumerApplication.Metadata
+ConsumerApplication.ApplicationData	revoke	1	optional	message	ConsumerApplication.RevokeMessage
+ConsumerApplication.AudioMessage	audio	1	optional	message	SubProtocol
+ConsumerApplication.AudioMessage	ptt	2	optional	bool
+ConsumerApplication.ContactMessage	contact	1	optional	message	SubProtocol
+ConsumerApplication.ContactsArrayMessage	displayName	1	optional	string
+ConsumerApplication.ContactsArrayMessage	contacts	2	repeated	message	ConsumerApplication.ContactMessage
+ConsumerApplication.Content	messageText	1	optional	message	MessageText
+ConsumerApplication.Content	imageMessage	2	optional	message	ConsumerApplication.ImageMessage
+ConsumerApplication.Content	contactMessage	3	optional	message	ConsumerApplication.ContactMessage
+ConsumerApplication.Content	locationMessage	4	optional	message	ConsumerApplication.LocationMessage
+ConsumerApplication.Content	extendedTextMessage	5	optional	message	ConsumerApplication.ExtendedTextMessage
+ConsumerApplication.Content	statusTextMessage	6	optional	message	ConsumerApplication.StatusTextMesage
+ConsumerApplication.Content	documentMessage	7	optional	message	ConsumerApplication.DocumentMessage
+ConsumerApplication.Content	audioMessage	8	optional	message	ConsumerApplication.AudioMessage
+ConsumerApplication.Content	videoMessage	9	optional	message	ConsumerApplication.VideoMessage
+ConsumerApplication.Content	contactsArrayMessage	10	optional	message	ConsumerApplication.ContactsArrayMessage
+ConsumerApplication.Content	liveLocationMessage	11	optional	message	ConsumerApplication.LiveLocationMessage
+ConsumerApplication.Content	stickerMessage	12	optional	message	ConsumerApplication.StickerMessage
+ConsumerApplication.Content	groupInviteMessage	13	optional	message	ConsumerApplication.GroupInviteMessage
+ConsumerApplication.Content	viewOnceMessage	14	optional	message	ConsumerApplication.ViewOnceMessage
+ConsumerApplication.Content	reactionMessage	16	optional	message	ConsumerApplication.ReactionMessage
+ConsumerApplication.Content	pollCreationMessage	17	optional	message	ConsumerApplication.PollCreationMessage
+ConsumerApplication.Content	pollUpdateMessage	18	optional	message	ConsumerApplication.PollUpdateMessage
+ConsumerApplication.Content	editMessage	19	optional	message	ConsumerApplication.EditMessage
+ConsumerApplication.DocumentMessage	document	1	optional	message	SubProtocol
+ConsumerApplication.DocumentMessage	fileName	2	optional	string
+ConsumerApplication.EditMessage	key	1	optional	message	MessageKey
+ConsumerApplication.EditMessage	message	2	optional	message	MessageText
+ConsumerApplication.EditMessage	timestampMs	3	optional	int64
+ConsumerApplication.ExtendedTextMessage	text	1	optional	message	MessageText
+ConsumerApplication.ExtendedTextMessage	matchedText	2	optional	string
+ConsumerApplication.ExtendedTextMessage	canonicalUrl	3	optional	string
+ConsumerApplication.ExtendedTextMessage	description	4	optional	string
+ConsumerApplication.ExtendedTextMessage	title	5	optional	string
+ConsumerApplication.ExtendedTextMessage	thumbnail	6	optional	message	SubProtocol
+ConsumerApplication.ExtendedTextMessage	previewType	7	optional	enum	ConsumerApplication.CONSUMER_APPLICATION_EXTENDED_TEXT_MESSAGE_PREVIEW_TYPE=0,1
+ConsumerApplication.GroupInviteMessage	groupJid	1	optional	string
+ConsumerApplication.GroupInviteMessage	inviteCode	2	optional	string
+ConsumerApplication.GroupInviteMessage	inviteExpiration	3	optional	int64
+ConsumerApplication.GroupInviteMessage	groupName	4	optional	string
+ConsumerApplication.GroupInviteMessage	jpegThumbnail	5	optional	bytes
+ConsumerApplication.GroupInviteMessage	caption	6	optional	message	MessageText
+ConsumerApplication.ImageMessage	image	1	optional	message	SubProtocol
+ConsumerApplication.ImageMessage	caption	2	optional	message	MessageText
+ConsumerApplication.InteractiveAnnotation	polygonVertices	1	repeated	message	ConsumerApplication.Point
+ConsumerApplication.InteractiveAnnotation	location	2	optional	message	ConsumerApplication.Location
+ConsumerApplication.LiveLocationMessage	location	1	optional	message	ConsumerApplication.Location
+ConsumerApplication.LiveLocationMessage	accuracyInMeters	2	optional	uint32
+ConsumerApplication.LiveLocationMessage	speedInMps	3	optional	float
+ConsumerApplication.LiveLocationMessage	degreesClockwiseFromMagneticNorth	4	optional	uint32
+ConsumerApplication.LiveLocationMessage	caption	5	optional	message	MessageText
+ConsumerApplication.LiveLocationMessage	sequenceNumber	6	optional	int64
+ConsumerApplication.LiveLocationMessage	timeOffset	7	optional	uint32
+ConsumerApplication.Location	degreesLatitude	1	optional	double
+ConsumerApplication.Location	degreesLongitude	2	optional	double
+ConsumerApplication.Location	name	3	optional	string
+ConsumerApplication.LocationMessage	location	1	optional	message	ConsumerApplication.Location
+ConsumerApplication.LocationMessage	address	2	optional	string
+ConsumerApplication.MediaPayload	protocol	1	optional	message	SubProtocol
+ConsumerApplication.Metadata	specialTextSize	1	optional	enum	CONSUMER_APPLICATION_METADATA_SPECIAL_TEXT_SIZE=1,2
+ConsumerApplication.Option	optionName	1	optional	string
+ConsumerApplication.Payload	content	1	optional	message	ConsumerApplication.Content
+ConsumerApplication.Payload	applicationData	2	optional	message	ConsumerApplication.ApplicationData
+ConsumerApplication.Payload	signal	3	optional	message	ConsumerApplication.Signal
+ConsumerApplication.Payload	subProtocol	4	optional	message	ConsumerApplication.SubProtocolPayload
+ConsumerApplication.Point	x	1	optional	double
+ConsumerApplication.Point	y	2	optional	double
+ConsumerApplication.PollAddOptionMessage	pollOption	1	repeated	message	ConsumerApplication.Option
+ConsumerApplication.PollCreationMessage	encKey	1	optional	bytes
+ConsumerApplication.PollCreationMessage	name	2	optional	string
+ConsumerApplication.PollCreationMessage	options	3	repeated	message	ConsumerApplication.Option
+ConsumerApplication.PollCreationMessage	selectableOptionsCount	4	optional	uint32
+ConsumerApplication.PollEncValue	encPayload	1	optional	bytes
+ConsumerApplication.PollEncValue	encIv	2	optional	bytes
+ConsumerApplication.PollUpdateMessage	pollCreationMessageKey	1	optional	message	MessageKey
+ConsumerApplication.PollUpdateMessage	vote	2	optional	message	ConsumerApplication.PollEncValue
+ConsumerApplication.PollUpdateMessage	addOption	3	optional	message	ConsumerApplication.PollEncValue
+ConsumerApplication.PollVoteMessage	selectedOptions	1	repeated	bytes
+ConsumerApplication.PollVoteMessage	senderTimestampMs	2	optional	int64
+ConsumerApplication.ReactionMessage	key	1	optional	message	MessageKey
+ConsumerApplication.ReactionMessage	text	2	optional	string
+ConsumerApplication.ReactionMessage	groupingKey	3	optional	string
+ConsumerApplication.ReactionMessage	senderTimestampMs	4	optional	int64
+ConsumerApplication.ReactionMessage	reactionMetadataDataclassData	5	optional	string
+ConsumerApplication.ReactionMessage	style	6	optional	int32
+ConsumerApplication.RevokeMessage	key	1	optional	message	MessageKey
+ConsumerApplication.Signal
+ConsumerApplication.StatusTextMesage	text	1	optional	message	ConsumerApplication.ExtendedTextMessage
+ConsumerApplication.StatusTextMesage	textArgb	6	optional	fixed32
+ConsumerApplication.StatusTextMesage	backgroundArgb	7	optional	fixed32
+ConsumerApplication.StatusTextMesage	font	8	optional	enum	CONSUMER_APPLICATION_STATUS_TEXT_MESAGE_FONT_TYPE=0,1
+ConsumerApplication.StickerMessage	sticker	1	optional	message	SubProtocol
+ConsumerApplication.SubProtocolPayload	futureProof	1	optional	enum	FUTURE_PROOF_BEHAVIOR=0,1
+ConsumerApplication.VideoMessage	video	1	optional	message	SubProtocol
+ConsumerApplication.VideoMessage	caption	2	optional	message	MessageText
+ConsumerApplication.ViewOnceMessage	imageMessage	1	optional	message	ConsumerApplication.ImageMessage
+ConsumerApplication.ViewOnceMessage	videoMessage	2	optional	message	ConsumerApplication.VideoMessage
+CreateBackupInput	recoveryCode	1	required	string
+CreateBackupInput	userId	2	required	uint64
+CreateBackupOutput	device	1	optional	message	DeviceOutput
+CreateBackupOutput	virtualDevice	2	optional	message	VirtualDeviceOutput
+CreateBackupOutput	epoch0	3	optional	message	Epoch0Output
+CreateBackupOutput	mailboxRootKey	4	optional	bytes
+CreateBackupOutput	error	5	optional	string
+DecryptMekForDistributionFromTransportSenderInput	mekDistribution	1	required	message	DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient
+DecryptMekForDistributionFromTransportSenderInput	mekId	2	required	bytes
+DecryptMekForDistributionFromTransportSenderInput	rosterHash	3	required	bytes
+DecryptMekForDistributionFromTransportSenderInput	recipientEncSk	4	required	bytes
+DecryptMekForDistributionFromTransportSenderInput	version	5	required	uint64
+DecryptMekForDistributionFromTransportSenderInput	conf	6	optional	message	MinosClientConfig
+DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	encryptedMek	1	required	bytes
+DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	ephemeralEncryptionPk	2	required	bytes
+DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	signingPk	3	required	bytes
+DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	signature	4	required	bytes
+DecryptMekForDistributionFromTransportSenderInput.TransportSenderMEKDistributionSingleRecipient	recipientEpochHead	5	optional	bytes
+DecryptMekForDistributionFromTransportSenderResult	success	1	optional	message	DecryptMekForDistributionFromTransportSenderSuccess
+DecryptMekForDistributionFromTransportSenderResult	errorMessage	2	optional	string
+DecryptMekForDistributionFromTransportSenderSuccess	mek	1	required	bytes
+DecryptMekForDistributionInput	toMailboxSk	1	required	bytes
+DecryptMekForDistributionInput	fromPk	2	required	bytes
+DecryptMekForDistributionInput	mekId	3	required	bytes
+DecryptMekForDistributionInput	senderEpochHead	4	required	bytes
+DecryptMekForDistributionInput	rosterHash	5	required	bytes
+DecryptMekForDistributionInput	ciphertext	6	required	bytes
+DecryptMekForDistributionInput	toEpochHead	7	optional	bytes
+DecryptMekForDistributionInput	mekEncryptionVersion	8	optional	int32
+DecryptMekForDistributionInput	conf	9	optional	message	MinosClientConfig
+DecryptMekForDistributionResult	success	1	optional	message	DecryptMekForDistributionSuccess
+DecryptMekForDistributionResult	errorMessage	2	optional	string
+DecryptMekForDistributionSuccess	mek	1	required	bytes
+DecryptMessageInput	epochRootKey	1	required	bytes
+DecryptMessageInput	epochAnonId	2	required	bytes
+DecryptMessageInput	threadId	3	required	string
+DecryptMessageInput	encryptionVersion	4	required	int32
+DecryptMessageInput	ciphertext	5	required	bytes
+DecryptMessageOutput	plaintextPayload	1	optional	bytes
+DecryptMessageOutput	error	2	optional	string
+DecryptSelfMmkDistributionInput	encryptedMmk	1	required	bytes
+DecryptSelfMmkDistributionInput	exportRootKey	2	required	bytes
+DecryptSelfMmkDistributionInput	mailboxHeadHash	3	required	bytes
+DecryptSelfMmkDistributionResult	success	1	optional	message	DecryptSelfMmkDistributionSuccess
+DecryptSelfMmkDistributionResult	errorMessage	2	optional	string
+DecryptSelfMmkDistributionSuccess	mmkSeed	1	required	bytes
+DeriveAttachmentAccessTokenSecretInput	mediaKey	1	required	bytes
+DeriveAttachmentAccessTokenSecretResult	attachmentAccessTokenSecret	1	required	bytes
+DeriveAttachmentPrimaryKeySecretInput	mediaKey	1	required	bytes
+DeriveAttachmentPrimaryKeySecretResult	attachmentPrimaryKeySecret	1	required	bytes
+DeriveMailboxAuthKeypairInput	exportRootKey	1	required	bytes
+DeriveMailboxAuthKeypairInput	epochNumber	2	required	uint64
+DeriveMailboxAuthKeypairResult	mailboxAuthPublicKey	1	required	bytes
+DeriveMailboxAuthKeypairResult	mailboxAuthPrivateKey	2	required	bytes
+DeriveMailboxEncryptionKeypairInput	exportRootKey	1	required	bytes
+DeriveMailboxEncryptionKeypairInput	epochNumber	2	required	uint64
+DeriveMailboxEncryptionKeypairResult	mailboxEncryptionPublicKey	1	required	bytes
+DeriveMailboxEncryptionKeypairResult	mailboxEncryptionPrivateKey	2	required	bytes
+DeriveMailboxSigningKeypairInput	exportRootKey	1	required	bytes
+DeriveMailboxSigningKeypairInput	epochNumber	2	required	uint64
+DeriveMailboxSigningKeypairResult	success	1	optional	message	DeriveMailboxSigningKeypairSuccess
+DeriveMailboxSigningKeypairResult	errorMessage	2	optional	string
+DeriveMailboxSigningKeypairSuccess	mailboxSigningPublicKey	1	required	bytes
+DeriveMailboxSigningKeypairSuccess	mailboxSigningPrivateKey	2	required	bytes
+DeriveMessageKeyInput	epochRootKey	1	required	bytes
+DeriveMessageKeyInput	epochAnonId	2	required	bytes
+DeriveMessageKeyInput	threadId	3	required	string
+DeriveMessageKeyOutput	messageKey	1	optional	bytes
+DeriveMessageKeyOutput	error	2	optional	string
+DeriveMessagingMailboxKeypairsInput	mmkSeed	1	required	bytes
+DeriveMessagingMailboxKeypairsResult	success	1	optional	message	DeriveMessagingMailboxKeypairsSuccess
+DeriveMessagingMailboxKeypairsResult	errorMessage	2	optional	string
+DeriveMessagingMailboxKeypairsSuccess	encSk	1	required	bytes
+DeriveMessagingMailboxKeypairsSuccess	encPk	2	required	bytes
+DeriveMessagingMailboxKeypairsSuccess	authSk	3	optional	bytes
+DeriveMessagingMailboxKeypairsSuccess	authPk	4	optional	bytes
+DetachedDevicePublicData	deviceId	1	required	uint64
+DetachedDevicePublicData	name	2	required	bytes
+DetachedDevicePublicData	sigPk	3	required	bytes
+DetachedDevicePublicData	authPk	4	required	bytes
+DetachedDevicePublicData	encPk	5	required	bytes
+DetachedDevicePublicData	signature	6	required	bytes
+DeviceOutput	publicKey	1	required	bytes
+DeviceOutput	epochAuthPublicKey	2	required	bytes
+DeviceOutput	epochAuthPublicKeySig	3	required	bytes
+DeviceOutput	epochStoragePublicKey	4	required	bytes
+DeviceOutput	epochStoragePublicKeySig	5	required	bytes
+DeviceOutput	supportedEncryptionVersions	6	repeated	int32
+DeviceOutput	encryptionVersionSignature	7	required	bytes
+DeviceOutput	clientVersion	8	required	int32
+DeviceOutput	ocmfClientState	9	required	bytes
+DeviceOutput	epochStoragePrivateKey	10	required	bytes
+EncryptMekForDistributionInput	senderEpochHead	1	required	bytes
+EncryptMekForDistributionInput	toMailboxPk	2	required	bytes
+EncryptMekForDistributionInput	fromKeypair	3	required	message	EncryptMekForDistributionInput.MailboxAuthKP
+EncryptMekForDistributionInput	mek	4	required	message	MekBundle
+EncryptMekForDistributionInput	toEpochHead	5	optional	bytes
+EncryptMekForDistributionInput	conf	6	optional	message	MinosClientConfig
+EncryptMekForDistributionInput.MailboxAuthKP	sk	1	required	bytes
+EncryptMekForDistributionInput.MailboxAuthKP	pk	2	required	bytes
+EncryptMekForDistributionResult	ciphertext	1	required	bytes
+EncryptMekForDistributionResult	version	2	required	uint64
+EncryptMeksForDistributionFromTransportSenderInput	mek	1	required	message	MekBundle
+EncryptMeksForDistributionFromTransportSenderInput	transportSigningKp	2	required	message	EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP
+EncryptMeksForDistributionFromTransportSenderInput	recipientMailboxEncryptionPks	3	repeated	bytes
+EncryptMeksForDistributionFromTransportSenderInput	recipientEpochHeads	4	repeated	bytes
+EncryptMeksForDistributionFromTransportSenderInput	conf	5	optional	message	MinosClientConfig
+EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP	sk	1	required	bytes
+EncryptMeksForDistributionFromTransportSenderInput.TransportSigningKP	pk	2	required	bytes
+EncryptMeksForDistributionFromTransportSenderResult	encryptedMeks	1	repeated	bytes
+EncryptMeksForDistributionFromTransportSenderResult	ephemeralEncryptionPk	2	required	bytes
+EncryptMeksForDistributionFromTransportSenderResult	signingPk	3	required	bytes
+EncryptMeksForDistributionFromTransportSenderResult	signature	4	required	bytes
+EncryptMeksForDistributionFromTransportSenderResult	version	5	required	uint64
+EncryptMessageInput	epochRootKey	1	required	bytes
+EncryptMessageInput	mailboxRootKey	2	required	bytes
+EncryptMessageInput	orfClientState	3	required	bytes
+EncryptMessageInput	epochAnonId	4	required	bytes
+EncryptMessageInput	epochId	5	required	uint64
+EncryptMessageInput	threadId	6	required	string
+EncryptMessageInput	waCanonicalUserFbid	7	required	uint64
+EncryptMessageInput	timestampMs	8	required	uint64
+EncryptMessageInput	backupId	9	required	uint64
+EncryptMessageInput	plaintextPayload	10	required	bytes
+EncryptMessageInput	stanzaId	11	required	string
+EncryptMessageOutput	encryptedProtobuf	1	optional	bytes
+EncryptMessageOutput	orfThreadId	2	optional	bytes
+EncryptMessageOutput	valueSecretRef	3	optional	string
+EncryptMessageOutput	offlineThreadingId	4	optional	uint64
+EncryptMessageOutput	timestampMs	5	optional	uint64
+EncryptMessageOutput	error	7	optional	string
+EncryptedSecretValuesOutput	encryptedDevicePrivateKey	1	required	bytes
+EncryptedSecretValuesOutput	encryptedObliviousValidationTokenBlob	2	required	bytes
+EncryptedSecretValuesOutput	encryptedEpochStoragePrivateKey	3	required	bytes
+EncryptedSecretValuesOutput	encryptedOcmfClientState	4	required	bytes
+EncryptedSecretValuesOutput	encryptedOrfClientStateV2	5	optional	bytes
+EncryptedSecretValuesOutput	encryptedMailboxRootKeyBlob	6	required	bytes
+EncryptedSecretValuesOutput	encryptedEpochAnonId	7	required	bytes
+EncryptedSecretValuesOutput	encryptedEpochRootKey	8	required	bytes
+Epoch0Output	epochFbid	1	required	uint64
+Epoch0Output	epochAnonId	2	required	bytes
+Epoch0Output	epochData	3	required	bytes
+Epoch0Output	wrappedRootKeyForSelf	4	required	bytes
+Epoch0Output	epochSignature	5	required	bytes
+Epoch0Output	epochRootKeyFingerprint	6	required	bytes
+Epoch0Output	epochRootKey	7	optional	bytes
+EpochPublicData	epochNumber	1	required	uint64
+EpochPublicData	userFbid	2	required	string
+EpochPublicData	mailboxSigningPk	3	required	bytes
+EpochPublicData	mailboxEncryptionPk	4	required	bytes
+EpochPublicData	mailboxAuthPk	5	required	bytes
+EpochPublicData	previousEpochHead	6	optional	bytes
+EpochSignatures	selfSignature	1	required	bytes
+EpochSignatures	prevSignature	2	optional	bytes
+ExtendedContentMessage	associatedMessage	1	optional	message	SubProtocol
+ExtendedContentMessage	targetType	2	optional	enum	EXTENDED_CONTENT_MESSAGE_EXTENDED_CONTENT_TYPE=-1,4
+ExtendedContentMessage	targetUsername	3	optional	string
+ExtendedContentMessage	targetId	4	optional	string
+ExtendedContentMessage	targetExpiringAtSec	5	optional	int64
+ExtendedContentMessage	xmaLayoutType	6	optional	enum	EXTENDED_CONTENT_MESSAGE_XMA_LAYOUT_TYPE=0,1
+ExtendedContentMessage	ctas	7	repeated	message	ExtendedContentMessage.CTA
+ExtendedContentMessage	previews	8	repeated	message	SubProtocol
+ExtendedContentMessage	titleText	9	optional	string
+ExtendedContentMessage	subtitleText	10	optional	string
+ExtendedContentMessage	maxTitleNumOfLines	11	optional	uint32
+ExtendedContentMessage	maxSubtitleNumOfLines	12	optional	uint32
+ExtendedContentMessage	favicon	13	optional	message	SubProtocol
+ExtendedContentMessage	headerImage	14	optional	message	SubProtocol
+ExtendedContentMessage	headerTitle	15	optional	string
+ExtendedContentMessage	overlayIconGlyph	16	optional	enum	ExtendedContentMessage.EXTENDED_CONTENT_MESSAGE_OVERLAY_ICON_GLYPH=0,1
+ExtendedContentMessage	overlayTitle	17	optional	string
+ExtendedContentMessage	overlayDescription	18	optional	string
+ExtendedContentMessage	sentWithMessageId	19	optional	string
+ExtendedContentMessage	messageText	20	optional	string
+ExtendedContentMessage	headerSubtitle	21	optional	string
+ExtendedContentMessage	xmaDataclass	22	optional	string
+ExtendedContentMessage	contentRef	23	optional	string
+ExtendedContentMessage	mentionedJid	24	repeated	string
+ExtendedContentMessage	commands	25	repeated	message	Command
+ExtendedContentMessage	mentions	26	repeated	message	Mention
+ExtendedContentMessage	xmaDataclassType	27	optional	enum	EXTENDED_CONTENT_MESSAGE_XMA_DATACLASS_TYPE=0,1
+ExtendedContentMessage	signedXmaDataclassValidation	28	optional	string
+ExtendedContentMessage	featureSharedSessionId	29	optional	string
+ExtendedContentMessage.CTA	buttonType	1	optional	enum	EXTENDED_CONTENT_MESSAGE_CTA_BUTTON_TYPE=11
+ExtendedContentMessage.CTA	title	2	optional	string
+ExtendedContentMessage.CTA	actionUrl	3	optional	string
+ExtendedContentMessage.CTA	nativeUrl	4	optional	string
+ExtendedContentMessage.CTA	ctaType	5	optional	string
+ExtendedContentMessage.CTA	actionContentBlob	6	optional	string
+GenerateMekInput	epochHeads	1	repeated	bytes
+GenerateMekResult	mek	1	required	message	MekBundle
+GenerateMekRosterHashInput	epochHeads	1	repeated	bytes
+GenerateMekRosterHashResult	rosterHash	1	required	bytes
+LabyrinthWaCommand	createBackupInput	1	optional	message	CreateBackupInput
+LabyrinthWaCommand	encryptMessageInput	2	optional	message	EncryptMessageInput
+LabyrinthWaCommand	decryptMessageInput	3	optional	message	DecryptMessageInput
+LabyrinthWaCommand	orfThreadIdInput	4	optional	message	OrfThreadIdInput
+LabyrinthWaCommand	deriveMessageKeyInput	5	optional	message	DeriveMessageKeyInput
+LabyrinthWaCommand	rotateEpochInput	6	optional	message	RotateEpochInput
+MandrakeDecryptMekInput	encryptedMek	1	required	bytes
+MandrakeDecryptMekInput	recipientsHash	4	required	bytes
+MandrakeDecryptMekInput	recipientEncSk	5	required	bytes
+MandrakeDecryptMekInput	mekEncryptionVersion	6	optional	uint64
+MandrakeDecryptMekInput	conf	7	optional	message	MinosClientConfig
+MandrakeDecryptMekInput	recipientMmk	8	required	message	MessagingMailboxPublicData
+MandrakeDecryptMekInput	mekId	9	optional	bytes
+MandrakeDecryptMekInput	recipientMembershipProof	10	optional	message	MerkleMembershipProof
+MandrakeDecryptMekInput	mmkSender	2	optional	message	MandrakeDecryptMekInput.MmkSenderPublicData
+MandrakeDecryptMekInput	epochSender	3	optional	message	MandrakeDecryptMekInput.EpochSenderPublicData
+MandrakeDecryptMekInput	precomputedEpochSender	11	optional	message	MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData
+MandrakeDecryptMekInput.EpochSenderPublicData	epochPublicData	1	required	message	EpochPublicData
+MandrakeDecryptMekInput.MmkSenderPublicData	mmkPublicData	1	required	message	MessagingMailboxPublicData
+MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData	authPk	1	required	bytes
+MandrakeDecryptMekInput.PrecomputedEpochSenderPublicData	epochHead	2	required	bytes
+MandrakeDecryptMekResult	success	1	optional	message	MandrakeDecryptMekSuccess
+MandrakeDecryptMekResult	errorMessage	2	optional	string
+MandrakeDecryptMekSuccess	mek	1	required	bytes
+MandrakeEncryptMekInput	mek	1	required	message	MandrakeMekBundle
+MandrakeEncryptMekInput	recipients	2	repeated	message	MessagingMailboxPublicData
+MandrakeEncryptMekInput	conf	5	optional	message	MinosClientConfig
+MandrakeEncryptMekInput	mmkSender	3	optional	message	MandrakeEncryptMekInput.MmkSender
+MandrakeEncryptMekInput	epochSender	4	optional	message	MandrakeEncryptMekInput.EpochSender
+MandrakeEncryptMekInput	detachedDeviceSender	6	optional	message	MandrakeEncryptMekInput.DetachedDeviceSender
+MandrakeEncryptMekInput.DetachedDeviceSender	detachedDevicePublicData	1	required	message	DetachedDevicePublicData
+MandrakeEncryptMekInput.DetachedDeviceSender	authSk	2	required	bytes
+MandrakeEncryptMekInput.DetachedDeviceSender	authPk	3	required	bytes
+MandrakeEncryptMekInput.EpochSender	epochPublicData	1	required	message	EpochPublicData
+MandrakeEncryptMekInput.EpochSender	authSk	2	required	bytes
+MandrakeEncryptMekInput.EpochSender	authPk	3	required	bytes
+MandrakeEncryptMekInput.MmkSender	mmkPublicData	1	required	message	MessagingMailboxPublicData
+MandrakeEncryptMekInput.MmkSender	authSk	2	required	bytes
+MandrakeEncryptMekInput.MmkSender	authPk	3	required	bytes
+MandrakeEncryptMekResult	success	1	optional	message	MandrakeEncryptMekSuccess
+MandrakeEncryptMekResult	errorMessage	2	optional	string
+MandrakeEncryptMekSuccess	distributions	1	repeated	message	MandrakeEncryptMekSuccess.MekDistributionSingleRecipient
+MandrakeEncryptMekSuccess	recipientsHash	2	required	bytes
+MandrakeEncryptMekSuccess	version	3	required	uint64
+MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	encryptedMek	1	required	bytes
+MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	toMmk	2	required	message	MessagingMailboxPublicData
+MandrakeEncryptMekSuccess.MekDistributionSingleRecipient	recipientMembershipProof	3	optional	message	MerkleMembershipProof
+MandrakeMekBundle	key	1	required	bytes
+MandrakeMekBundle	mekId	2	required	bytes
+MandrakeMekBundle	mailboxHeadHash	3	required	bytes
+MandrakeOpenEpochInput	userFbid	1	required	string
+MandrakeOpenEpochInput	epochNumber	2	required	uint64
+MandrakeOpenEpochInput	exportRootKey	3	required	bytes
+MandrakeOpenEpochInput	previousExportRootKey	4	required	bytes
+MandrakeOpenEpochInput	previousEpochNumber	5	required	uint64
+MandrakeOpenEpochInput	previousEpochHead	6	required	bytes
+MandrakeOpenEpochInput	previousMmk	7	optional	message	MessagingMailboxPublicData
+MandrakeOpenEpochInput	detachedDevices	8	repeated	message	DetachedDevicePublicData
+MandrakeOpenEpochResult	success	1	optional	message	MandrakeOpenEpochSuccess
+MandrakeOpenEpochResult	errorMessage	2	optional	string
+MandrakeOpenEpochSuccess	minosSignedEpoch	1	required	message	MinosSignedEpoch
+MandrakeOpenEpochSuccess	signedMmkDistribution	2	required	message	SignedMmkDistributionFromMailbox
+MandrakeOpenInitialEpochInput	userFbid	1	required	string
+MandrakeOpenInitialEpochInput	epochNumber	2	required	uint64
+MandrakeOpenInitialEpochInput	exportRootKey	3	required	bytes
+MandrakeOpenInitialEpochInput	detachedDevices	4	repeated	message	DetachedDevicePublicData
+MandrakeOpenInitialEpochResult	success	1	optional	message	MandrakeOpenEpochSuccess
+MandrakeOpenInitialEpochResult	errorMessage	2	optional	string
+MandrakeValidateNewMmkFromDetachedDeviceInput	mmkFromDevice	1	required	message	MmkFromDetachedDevice
+MandrakeValidateNewMmkFromDetachedDeviceInput	signature	2	required	bytes
+MandrakeValidateNewMmkFromDetachedDeviceInput	prevMmk	3	required	message	MessagingMailboxPublicData
+MandrakeValidateNewMmkFromMailboxInput	newMmk	1	required	message	MessagingMailboxPublicData
+MandrakeValidateNewMmkFromMailboxInput	signature	2	required	bytes
+MandrakeValidateNewMmkFromMailboxInput	prevMmk	3	optional	message	MessagingMailboxPublicData
+MandrakeValidateNewMmkFromMailboxInput	epochPublicData	4	required	message	EpochPublicData
+MandrakeValidateNewMmkResult	valid	1	optional	bool
+MandrakeValidateNewMmkResult	errorMessage	2	optional	string
+MekBundle	key	1	required	bytes
+MekBundle	mekId	2	required	bytes
+MekBundle	rosterHash	3	required	bytes
+Mention	mentionType	1	optional	enum	MENTION_MENTION_TYPE=0
+Mention	mentionedJid	2	optional	string
+Mention	offset	3	optional	uint32
+Mention	length	4	optional	uint32
+MerkleMembershipProof	proof	1	required	bytes
+MerkleMembershipProof	root	2	required	bytes
+MerkleMembershipProof	leafIndex	3	required	uint64
+MerkleMembershipProof	totalLeaves	4	required	uint64
+MessageText	text	1	optional	string
+MessageText	mentionedJid	2	repeated	string
+MessageText	commands	3	repeated	message	Command
+MessageText	mentions	4	repeated	message	Mention
+MessagingMailboxPublicData	epochHead	1	required	bytes
+MessagingMailboxPublicData	deviceRosterHash	2	required	bytes
+MessagingMailboxPublicData	sequenceNumber	3	required	uint64
+MessagingMailboxPublicData	sigPk	4	required	bytes
+MessagingMailboxPublicData	encPk	5	required	bytes
+MessagingMailboxPublicData	authPk	6	required	bytes
+MinosClientConfig	preferredMessageEncryptionVersion	1	required	int32
+MinosClientConfig	preferredMekEncryptionVersion	2	required	int32
+MinosCommand	encryptAndSignMessage	1	optional	message	MinosEncryptAndSignMessageInput
+MinosCommand	decryptAndVerifyMessage	2	optional	message	MinosDecryptAndVerifyMessageInput
+MinosCommand	generateMek	3	optional	message	GenerateMekInput
+MinosCommand	generateMekRosterHash	4	optional	message	GenerateMekRosterHashInput
+MinosCommand	encryptMekForDistribution	5	optional	message	EncryptMekForDistributionInput
+MinosCommand	decryptMekForDistribution	6	optional	message	DecryptMekForDistributionInput
+MinosCommand	encryptMeksForDistributionFromTransportSender	7	optional	message	EncryptMeksForDistributionFromTransportSenderInput
+MinosCommand	decryptMekForDistributionFromTransportSender	8	optional	message	DecryptMekForDistributionFromTransportSenderInput
+MinosCommand	wrapTransportSigningPublicKey	9	optional	message	WrapTransportSigningPublicKeyInput
+MinosCommand	wrapTransportSigningSecretKey	10	optional	message	WrapTransportSigningSecretKeyInput
+MinosCommand	deriveMailboxSigningKeypair	11	optional	message	DeriveMailboxSigningKeypairInput
+MinosCommand	deriveMailboxEncryptionKeypair	12	optional	message	DeriveMailboxEncryptionKeypairInput
+MinosCommand	deriveMailboxAuthKeypair	13	optional	message	DeriveMailboxAuthKeypairInput
+MinosCommand	deriveAttachmentAccessTokenSecret	14	optional	message	DeriveAttachmentAccessTokenSecretInput
+MinosCommand	deriveAttachmentPrimaryKeySecret	15	optional	message	DeriveAttachmentPrimaryKeySecretInput
+MinosCommand	minosOpenInitialEpoch	16	optional	message	MinosOpenInitialEpochInput
+MinosCommand	minosOpenEpoch	17	optional	message	MinosOpenEpochInput
+MinosCommand	minosValidateEpoch	18	optional	message	MinosValidateEpochInput
+MinosCommand	minosVerifySingleEpoch	19	optional	message	MinosVerifySingleEpochInput
+MinosCommand	minosThreadIdFromOneToOneThread	20	optional	message	MinosThreadIdFromOneToOneThreadInput
+MinosCommand	minosThreadIdFromActThreadId	21	optional	message	MinosThreadIdFromActThreadIdInput
+MinosCommand	mandrakeOpenEpoch	22	optional	message	MandrakeOpenEpochInput
+MinosCommand	mandrakeEncryptMek	23	optional	message	MandrakeEncryptMekInput
+MinosCommand	mandrakeDecryptMek	24	optional	message	MandrakeDecryptMekInput
+MinosCommand	mandrakeOpenInitialEpoch	25	optional	message	MandrakeOpenInitialEpochInput
+MinosCommand	mandrakeValidateNewMmkFromMailbox	27	optional	message	MandrakeValidateNewMmkFromMailboxInput
+MinosCommand	mandrakeValidateNewMmkFromDetachedDevice	28	optional	message	MandrakeValidateNewMmkFromDetachedDeviceInput
+MinosCommand	deriveMessagingMailboxKeypairs	29	optional	message	DeriveMessagingMailboxKeypairsInput
+MinosCommand	decryptSelfMmkDistribution	30	optional	message	DecryptSelfMmkDistributionInput
+MinosDecryptAndVerifyMessageInput	transportSigningPk	1	required	bytes
+MinosDecryptAndVerifyMessageInput	mek	2	required	bytes
+MinosDecryptAndVerifyMessageInput	encryptedMessageCiphertext	3	required	bytes
+MinosDecryptAndVerifyMessageInput	encryptedMessageSignature	4	required	bytes
+MinosDecryptAndVerifyMessageInput	metadata	5	required	message	MinosMessageMetadata
+MinosDecryptAndVerifyMessageInput	messageEncryptionVersion	6	optional	int32
+MinosDecryptAndVerifyMessageInput	conf	7	optional	message	MinosClientConfig
+MinosDecryptAndVerifyMessageResult	success	1	optional	message	MinosDecryptAndVerifyMessageSuccess
+MinosDecryptAndVerifyMessageResult	errorMessage	2	optional	string
+MinosDecryptAndVerifyMessageSuccess	plaintext	1	required	bytes
+MinosEncryptAndSignMessageInput	transportSigningSk	1	required	bytes
+MinosEncryptAndSignMessageInput	mek	2	required	bytes
+MinosEncryptAndSignMessageInput	plaintext	3	required	bytes
+MinosEncryptAndSignMessageInput	metadata	4	required	message	MinosMessageMetadata
+MinosEncryptAndSignMessageInput	transportSigningPk	5	optional	bytes
+MinosEncryptAndSignMessageInput	conf	6	optional	message	MinosClientConfig
+MinosEncryptAndSignMessageResult	ciphertext	1	required	bytes
+MinosEncryptAndSignMessageResult	signature	2	required	bytes
+MinosEncryptAndSignMessageResult	version	3	required	int32
+MinosMessageMetadata	mekId	1	required	bytes
+MinosMessageMetadata	timestamp	2	required	uint64
+MinosMessageMetadata	messageId	3	required	string
+MinosMessageMetadata	threadId	4	required	bytes
+MinosOpenEpochInput	userFbid	1	required	string
+MinosOpenEpochInput	epochNumber	2	required	uint64
+MinosOpenEpochInput	exportRootKey	3	required	bytes
+MinosOpenEpochInput	previousExportRootKey	4	required	bytes
+MinosOpenEpochInput	previousEpochNumber	5	required	uint64
+MinosOpenEpochInput	previousEpochHead	6	required	bytes
+MinosOpenEpochResult	minosSignedEpoch	1	required	message	MinosSignedEpoch
+MinosOpenInitialEpochInput	userFbid	1	required	string
+MinosOpenInitialEpochInput	epochNumber	2	required	uint64
+MinosOpenInitialEpochInput	exportRootKey	3	required	bytes
+MinosOpenInitialEpochResult	minosSignedEpoch	1	required	message	MinosSignedEpoch
+MinosSignedEpoch	epochPublicData	1	required	message	EpochPublicData
+MinosSignedEpoch	signatures	2	required	message	EpochSignatures
+MinosSignedEpoch	epochHead	3	required	bytes
+MinosThreadIdFromActThreadIdInput	actThreadId	1	required	string
+MinosThreadIdFromActThreadIdResult	threadId	1	required	bytes
+MinosThreadIdFromOneToOneThreadInput	actThreadId	1	required	string
+MinosThreadIdFromOneToOneThreadInput	selfFbid	2	required	string
+MinosThreadIdFromOneToOneThreadResult	threadId	1	required	bytes
+MinosValidateEpochInput	epochPublicData	1	required	message	EpochPublicData
+MinosValidateEpochInput	previousEpochPublicData	2	required	message	EpochPublicData
+MinosValidateEpochInput	signatures	3	required	message	EpochSignatures
+MinosValidateEpochResult	valid	1	optional	bool
+MinosValidateEpochResult	errorMessage	2	optional	string
+MinosVerifySingleEpochInput	epochPublicData	1	required	message	EpochPublicData
+MinosVerifySingleEpochInput	signature	2	required	bytes
+MinosVerifySingleEpochResult	valid	1	required	bool
+MmkDistribution	toDetachedDevices	1	repeated	message	MmkDistributionToDetachedDevice
+MmkDistribution	toMailbox	2	required	message	MmkDistributionToMailbox
+MmkDistribution	version	3	required	uint64
+MmkDistributionToDetachedDevice	encryptedMmk	1	required	bytes
+MmkDistributionToDetachedDevice	recipDeviceHash	2	required	bytes
+MmkDistributionToMailbox	encryptedMmk	1	required	bytes
+MmkDistributionToMailbox	recipMailboxHeadHash	2	required	bytes
+MmkFromDetachedDevice	mmk	1	required	message	MessagingMailboxPublicData
+MmkFromDetachedDevice	fromDetachedDevice	2	required	message	DetachedDevicePublicData
+MmkFromDetachedDevice	membershipProof	3	required	message	MerkleMembershipProof
+OrfThreadIdInput	orfClientState	1	required	bytes
+OrfThreadIdInput	threadId	2	required	string
+OrfThreadIdOutput	orfThreadId	1	optional	bytes
+OrfThreadIdOutput	error	2	optional	string
+RotateEpochInput	currentEpochRootKey	1	required	bytes
+RotateEpochInput	currentEpochAnonId	2	required	bytes
+RotateEpochInput	currentEpochFbid	3	required	uint64
+RotateEpochInput	epochStoragePrivateKey	4	required	bytes
+RotateEpochInput	members	5	repeated	message	RotateEpochMemberInput
+RotateEpochMemberEdge	deviceId	1	optional	uint64
+RotateEpochMemberEdge	encryptedEpochKey	2	optional	bytes
+RotateEpochMemberEdge	deviceEpochHmac	3	optional	bytes
+RotateEpochMemberInput	deviceId	1	required	uint64
+RotateEpochMemberInput	epochStoragePublicKey	2	required	bytes
+RotateEpochMemberInput	devicePublicKey	3	required	bytes
+RotateEpochOutput	newEpochRootKey	1	optional	bytes
+RotateEpochOutput	newEpochAnonId	2	optional	uint64
+RotateEpochOutput	newEpochFbid	8	optional	uint64
+RotateEpochOutput	epochAnonId	3	optional	bytes
+RotateEpochOutput	backwardEdge	4	optional	message	BackwardEdge
+RotateEpochOutput	memberEdges	5	repeated	message	RotateEpochMemberEdge
+RotateEpochOutput	epochRootKeyFingerprint	6	optional	bytes
+RotateEpochOutput	error	7	optional	string
+SignedMmkDistributionFromMailbox	mmkDistribution	1	required	message	MmkDistribution
+SignedMmkDistributionFromMailbox	signature	2	required	bytes
+SignedMmkDistributionFromMailbox	fromMailbox	3	required	message	MessagingMailboxPublicData
+SubProtocol	payload	1	optional	bytes
+SubProtocol	version	2	optional	int32
+VirtualDeviceOutput	vdId	1	required	bytes
+VirtualDeviceOutput	vdPublicKey	2	required	bytes
+VirtualDeviceOutput	vdEpochStoragePublicKey	3	required	bytes
+VirtualDeviceOutput	vdEpochStoragePublicKeySig	4	required	bytes
+VirtualDeviceOutput	ocmfRotationToken	5	required	bytes
+VirtualDeviceOutput	deviceEpochHmac	6	required	bytes
+VirtualDeviceOutput	encryptedSecretValues	7	required	message	EncryptedSecretValuesOutput
 WrapTransportSigningPublicKeyInput	keyBytes	1	required	bytes
 WrapTransportSigningPublicKeyResult	prefixedKey	1	required	bytes
 WrapTransportSigningSecretKeyInput	keyBytes	1	required	bytes

@@ -35,7 +35,6 @@ use crate::errors::{BridgeError, invalid_arg};
 /// the bridge must not promise reconnect help it never gives.
 pub const ABI_CAPABILITIES: u32 = voip_abi::Capabilities::PCM
     | voip_abi::Capabilities::ENCODED_AUDIO
-    | voip_abi::Capabilities::VIDEO
     | voip_abi::Capabilities::GROUP_CALLS
     | voip_abi::Capabilities::CALL_LINKS
     | voip_abi::Capabilities::STATS_PUSH;
@@ -60,6 +59,7 @@ pub const OPEN_CEILING: std::time::Duration = std::time::Duration::from_secs(20)
 /// `_OUT` media frames.
 #[derive(Clone)]
 pub struct VoipBackendCallbacks {
+    receiver: JsValue,
     send_frame: js_sys::Function,
     set_push_handler: js_sys::Function,
 }
@@ -84,6 +84,7 @@ impl VoipBackendCallbacks {
                 })
         };
         Ok(VoipBackendCallbacks {
+            receiver: obj.clone(),
             send_frame: get("sendFrame")?,
             set_push_handler: get("setPushHandler")?,
         })
@@ -92,7 +93,7 @@ impl VoipBackendCallbacks {
     /// Hands the inbound entry point to the plugin. Called once, at install.
     pub fn register_push(&self, push: &JsValue) -> Result<(), BridgeError> {
         self.set_push_handler
-            .call1(&JsValue::UNDEFINED, push)
+            .call1(&self.receiver, push)
             .map_err(|e| {
                 invalid_arg(
                     "extensions",
@@ -105,16 +106,12 @@ impl VoipBackendCallbacks {
     /// One request frame across, one response frame back.
     pub async fn send(&self, frame: &[u8]) -> Result<Vec<u8>, BackendCommsError> {
         let bytes = js_sys::Uint8Array::from(frame);
+        let _wipe = WipeJsBytes(bytes.clone());
         let ret = self
             .send_frame
-            .call1(&JsValue::UNDEFINED, &bytes.into())
+            .call1(&self.receiver, bytes.as_ref())
             .map_err(|e| BackendCommsError(format!("sendFrame threw: {e:?}")))?;
-        if !ret.is_instance_of::<js_sys::Promise>() {
-            return Err(BackendCommsError(
-                "sendFrame did not return a Promise".to_owned(),
-            ));
-        }
-        let resolved: JsValue = JsFuture::from(js_sys::Promise::unchecked_from_js(ret))
+        let resolved: JsValue = JsFuture::from(js_sys::Promise::resolve(&ret))
             .await
             .map_err(|e| BackendCommsError(format!("sendFrame rejected: {e:?}")))?;
         let bytes = resolved
@@ -221,4 +218,11 @@ pub fn install(
     let push = backend.push_entry();
     callbacks.register_push(&push)?;
     Ok(builder.with_voip_media_backend(backend))
+}
+
+struct WipeJsBytes(js_sys::Uint8Array);
+impl Drop for WipeJsBytes {
+    fn drop(&mut self) {
+        self.0.fill(0, 0, self.0.length());
+    }
 }

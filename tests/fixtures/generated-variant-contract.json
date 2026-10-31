@@ -1,0 +1,14 @@
+{
+  "bridgeRevision": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
+  "coreRevision": "6f7a62296242f5dab8967431bd1c6528c1339efe",
+  "types": {
+    "ProtocolTerminalReasonResult": "{ kind: \"stream-error\"; code: number } | { kind: \"connect-failure\"; reason: string } | { kind: \"conflict\"; cause: string } | { kind: \"unknown\"; detail: string }",
+    "UsernameLookupResult": "{ status: \"notFound\" } | { status: \"keyRequired\"; username?: string } | { status: \"found\"; jid: string; pnJid?: string; username?: string; isBusiness: boolean; verifiedName?: string }",
+    "NoiseHandshakeFailureResult": "{ kind: \"proto-decode\"; message: string } | { kind: \"incomplete-response\" } | { kind: \"crypto\"; detail: string } | { kind: \"cert-verification\"; detail: string } | { kind: \"invalid-length\"; name: string; expected: number; got: number } | { kind: \"invalid-key-length\" } | { kind: \"noise\"; message: string }",
+    "HandshakeFailureResult": "{ kind: \"transport\"; message: string } | { kind: \"core\"; reason: NoiseHandshakeFailureResult } | { kind: \"timeout\" } | { kind: \"stream-closed\" } | { kind: \"disconnected\" } | { kind: \"unexpected-event\"; detail: string } | { kind: \"unknown\"; detail: string }",
+    "ConnectErrorResult": "{ kind: \"already-connected\" } | { kind: \"not-activated\" } | { kind: \"shutdown\" } | { kind: \"paused\" } | { kind: \"timeout\"; stage: string; timeoutMs: number } | { kind: \"version\"; message: string } | { kind: \"transport\"; message: string } | { kind: \"handshake\"; reason: HandshakeFailureResult } | { kind: \"unknown\"; detail: string }",
+    "RunCompletionResult": "{ reason: \"shutdown-requested\"; generation: number } | { reason: \"auto-reconnect-disabled\"; generation: number; connection?: DisconnectReasonResult; connectError?: ConnectErrorResult; protocolError?: ProtocolTerminalReasonResult } | { reason: \"stopped\"; generation: number } | { reason: \"already-running\"; generation: number } | { reason: \"unknown\"; generation: number; detail: string }",
+    "DisconnectReasonResult": "{ kind: \"server-close\"; code?: number; reason: string } | { kind: \"stream-ended\" } | { kind: \"read-error\"; message: string } | { kind: \"unknown\" }",
+    "GroupHierarchyResult": "{ type: \"standalone\" } | { type: \"community\" } | { type: \"subgroup\"; parent: string; kind: string } | { type: \"unknown\"; detail: string }"
+  }
+}

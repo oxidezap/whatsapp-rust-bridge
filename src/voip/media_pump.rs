@@ -40,6 +40,7 @@ pub struct PumpInputs {
     pub control: vc::VideoControlReceiver,
     /// Shared microphone mute flag.
     pub muted: Arc<AtomicBool>,
+    pub initial_muted: bool,
 }
 
 /// The command mailbox halves plus its byte accounting, shared between the
@@ -71,6 +72,7 @@ pub fn spawn_all(
     runtime: Arc<dyn whatsapp_rust::wacore::runtime::Runtime>,
     agreed: u32,
     alive: Arc<AtomicBool>,
+    failures: Sender<vc::MediaEvent>,
 ) -> Vec<whatsapp_rust::wacore::runtime::AbortHandle> {
     let mut handles = Vec::new();
     let pump = Pump {
@@ -79,6 +81,9 @@ pub fn spawn_all(
         callbacks,
         runtime,
         alive,
+        failures,
+        muted: inputs.muted.clone(),
+        initial_muted: inputs.initial_muted,
     };
 
     handles.push(pump.spawn_command(pipe.rx, pipe.queued_bytes.clone()));
@@ -95,8 +100,12 @@ pub fn spawn_all(
 
     if agreed & abi::Capabilities::VIDEO != 0 {
         handles.push(pump.spawn_video(inputs.video_in, inputs.timed_in));
+        handles.push(pump.spawn_control(
+            inputs.control,
+            pipe.tx.clone(),
+            pipe.queued_bytes.clone(),
+        ));
     }
-    handles.push(pump.spawn_control(inputs.control, pipe.tx.clone(), pipe.queued_bytes.clone()));
     handles.push(pump.spawn_mute_watcher(inputs.muted, pipe.tx, pipe.queued_bytes));
 
     handles
@@ -110,6 +119,9 @@ struct Pump {
     callbacks: VoipBackendCallbacks,
     runtime: Arc<dyn whatsapp_rust::wacore::runtime::Runtime>,
     alive: Arc<AtomicBool>,
+    failures: Sender<vc::MediaEvent>,
+    muted: Arc<AtomicBool>,
+    initial_muted: bool,
 }
 
 impl Pump {
@@ -131,7 +143,11 @@ impl Pump {
                 };
                 let len = envelope.bytes.len();
                 if !this
-                    .send(abi::Opcode::Command, envelope.bytes, "command")
+                    .send(
+                        abi::Opcode::Command,
+                        envelope.bytes.as_bytes().to_vec(),
+                        "command",
+                    )
                     .await
                 {
                     break;
@@ -150,6 +166,9 @@ impl Pump {
                     Ok(samples) => samples,
                     Err(_) => break,
                 };
+                if this.muted.load(Ordering::SeqCst) {
+                    continue;
+                }
                 let data: Vec<u8> = samples.iter().flat_map(|s| s.to_le_bytes()).collect();
                 let body = abi::MediaFrame {
                     session: this.session,
@@ -174,6 +193,9 @@ impl Pump {
                     Ok(data) => data,
                     Err(_) => break,
                 };
+                if this.muted.load(Ordering::SeqCst) {
+                    continue;
+                }
                 let body = abi::MediaFrame {
                     session: this.session,
                     seq,
@@ -272,7 +294,12 @@ impl Pump {
                 }
                 .encode();
                 let len = bytes.len();
-                if commands.try_send(CommandEnvelope { bytes }).is_ok() {
+                if commands
+                    .try_send(CommandEnvelope {
+                        bytes: abi::SecretBytes::new(bytes),
+                    })
+                    .is_ok()
+                {
                     queued.fetch_add(len, Ordering::Relaxed);
                 } else {
                     log::warn!("command mailbox full, video control shed");
@@ -290,7 +317,7 @@ impl Pump {
         let this = self.clone();
         self.runtime.spawn(Box::pin(async move {
             // The open params carried the initial flag; only changes cross.
-            let mut last = muted.load(Ordering::SeqCst);
+            let mut last = this.initial_muted;
             while this.running() {
                 sleep(&*this.runtime, MUTE_POLL_INTERVAL).await;
                 if !this.running() {
@@ -300,17 +327,22 @@ impl Pump {
                 if now == last {
                     continue;
                 }
-                last = now;
                 let bytes = abi::CommandRequest {
                     session: this.session,
                     command: abi::MediaCommand::AudioMute(u8::from(now)),
                 }
                 .encode();
                 let len = bytes.len();
-                if commands.try_send(CommandEnvelope { bytes }).is_ok() {
+                if commands
+                    .try_send(CommandEnvelope {
+                        bytes: abi::SecretBytes::new(bytes),
+                    })
+                    .is_ok()
+                {
                     queued.fetch_add(len, Ordering::Relaxed);
+                    last = now;
                 } else {
-                    log::warn!("command mailbox full, mute update shed");
+                    log::warn!("command mailbox full, mute update deferred");
                 }
             }
         }))
@@ -319,14 +351,23 @@ impl Pump {
     /// One frame across with its acknowledgement. `false` ends the pump:
     /// the link broke, the plugin answered wrong, or the session ended.
     async fn send(&self, opcode: abi::Opcode, body: Vec<u8>, what: &str) -> bool {
+        let success = self.send_checked(opcode, body, what).await;
+        if !success && self.alive.swap(false, Ordering::SeqCst) {
+            let _ = self.failures.try_send(vc::MediaEvent::MediaSetupFailed(
+                "voip plugin link failed".to_owned(),
+            ));
+            self.failures.close();
+        }
+        success
+    }
+
+    async fn send_checked(&self, opcode: abi::Opcode, body: Vec<u8>, what: &str) -> bool {
         if !self.running() {
             return false;
         }
-        let raw = match self
-            .callbacks
-            .send(&abi::Frame::request(opcode, body).encode())
-            .await
-        {
+        let request = abi::Frame::request(opcode, body);
+        let encoded = abi::SecretBytes::new(request.encode());
+        let raw = match self.callbacks.send(encoded.as_bytes()).await {
             Ok(raw) => raw,
             Err(e) => {
                 log::warn!(
@@ -338,7 +379,14 @@ impl Pump {
             }
         };
         match abi::Frame::decode(&raw) {
-            Ok(resp) if resp.is_response() => true,
+            Ok(resp)
+                if resp.major == abi::ABI_MAJOR
+                    && resp.opcode == opcode
+                    && resp.is_response()
+                    && !resp.is_error() =>
+            {
+                true
+            }
             Ok(resp) => {
                 log::warn!("voip plugin refused {what} (handle {})", self.handle);
                 let _ = resp;

@@ -1,7 +1,7 @@
 //! Key material that zeroes itself. Any field the spec calls a token or a
-//! key crosses as [`SecretBytes`] and is wiped on drop on both sides, so a
-//! heap dump after the call holds no call key, relay token, auth token, or
-//! integrity key.
+//! key crosses as [`SecretBytes`] and is wiped on drop. Frames and transport
+//! copies are wiped separately; upstream engine allocations have their own
+//! ownership and are outside this boundary guarantee.
 
 /// Owned secret bytes, redacted in `Debug` and zeroed on drop.
 #[derive(Clone, PartialEq, Eq)]

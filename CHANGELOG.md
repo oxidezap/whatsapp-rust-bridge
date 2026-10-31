@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.26.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.2...v0.26.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **lifecycle:** generate owned and cancellable async client operations ([#156](https://github.com/oxidezap/whatsapp-rust-bridge/issues/156)) ([c1fcf9a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c1fcf9a4601afd7b850b8f33df73fe6d1ba7051e))
+
+## [0.26.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.1...v0.26.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies and toolchains to latest stable ([#154](https://github.com/oxidezap/whatsapp-rust-bridge/issues/154)) ([6425d45](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6425d45fff28211061f22c61b2a65365217bde55))
+
+## [0.26.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.0...v0.26.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for media budgets and local runtimes ([#149](https://github.com/oxidezap/whatsapp-rust-bridge/issues/149)) ([b933c2a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/b933c2a5f8203c7e47122d4b2da0519aadddfc2e))
+
+## [0.26.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.25.0...v0.26.0) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump whatsapp-rust pin for durable capture and typed media requests ([#148](https://github.com/oxidezap/whatsapp-rust-bridge/issues/148))
+
+### Features
+
+* generate typed bridge operations and boundary contracts ([#146](https://github.com/oxidezap/whatsapp-rust-bridge/issues/146)) ([bb45c37](https://github.com/oxidezap/whatsapp-rust-bridge/commit/bb45c37e88b29a3eef432f76713ef176e2404b1e))
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for durable capture and typed media requests ([#148](https://github.com/oxidezap/whatsapp-rust-bridge/issues/148)) ([a75d376](https://github.com/oxidezap/whatsapp-rust-bridge/commit/a75d3768d87969c0a5eb61e80014d5ac5d6b8193))
+* **release:** publish GitHub releases after verified npm artifacts ([#141](https://github.com/oxidezap/whatsapp-rust-bridge/issues/141)) ([d874030](https://github.com/oxidezap/whatsapp-rust-bridge/commit/d874030f3917117860d7d9cbee0ce000658edb20))
+* **release:** wait for npm registry processing ([#142](https://github.com/oxidezap/whatsapp-rust-bridge/issues/142)) ([4e40614](https://github.com/oxidezap/whatsapp-rust-bridge/commit/4e406146e5a9f392f50c0556dd5caa5f472e92d8))
+
+## [0.25.0](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.1...v0.25.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139))
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin through SKDM/PDO retry deduplication ([#139](https://github.com/oxidezap/whatsapp-rust-bridge/issues/139)) ([ec4a0eb](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ec4a0eb499d8accf3f1a64e0cc4757ab8c0a97e3))
+
 ## [0.24.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.24.0...v0.24.1) (2026-09-23)
 
 

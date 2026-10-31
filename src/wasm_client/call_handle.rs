@@ -127,10 +127,11 @@ impl WasmCallHandle {
         let handle = self.handle.clone();
         let media = self.media.clone();
         let call_id = self.call_id.clone();
+        let generation = self.generation;
         super::promise_void(async move {
             // Mirror locally first so outbound audio sheds before the stanza
             // lands. A failed stanza is still a local decision — the pump stops.
-            media.set_mic_muted_flag(&call_id, muted);
+            media.set_mic_muted_flag(&call_id, generation, muted)?;
             handle
                 .set_muted(muted)
                 .await
@@ -185,7 +186,12 @@ impl WasmCallHandle {
     pub fn stop_video_js(&self) -> js_sys::Promise {
         let call_id = self.call_id.clone();
         let media = self.media.clone();
-        super::promise_void(async move { media.stop_call_video(call_id).await })
+        let generation = self.generation;
+        super::promise_void(async move {
+            media
+                .stop_call_video_by_generation(call_id, generation)
+                .await
+        })
     }
 
     /// Reject an incoming video upgrade request. Clears the pending upgrade
@@ -194,7 +200,12 @@ impl WasmCallHandle {
     pub fn reject_video_js(&self) -> js_sys::Promise {
         let media = self.media.clone();
         let call_id = self.call_id.clone();
+        let generation = self.generation;
         super::promise_void(async move {
+            media.check_generation(&call_id, generation)?;
+            media
+                .stop_call_video_by_generation(call_id.clone(), generation)
+                .await?;
             media.clear_pending_video_upgrade(&call_id);
             Ok(())
         })

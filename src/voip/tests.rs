@@ -26,6 +26,7 @@ enum BeginAnswer {
     Error(abi::AbiErrorCode, Option<String>),
     /// Ack, but never complete: the dial-timeout path.
     AckThenSilence,
+    AckThenSetupFailure,
 }
 
 struct FakeState {
@@ -59,7 +60,9 @@ impl FakeState {
                 }
             }
             abi::Opcode::BeginOpen => match &self.begin {
-                BeginAnswer::Ack | BeginAnswer::AckThenSilence => {
+                BeginAnswer::Ack
+                | BeginAnswer::AckThenSilence
+                | BeginAnswer::AckThenSetupFailure => {
                     let ack = abi::Frame::respond(frame, Vec::new());
                     if matches!(self.begin, BeginAnswer::Ack) {
                         // Complete the open like an engine would: read the
@@ -74,6 +77,22 @@ impl FakeState {
                             .encode(),
                         );
                         self.push(&open.encode());
+                    }
+                    if matches!(self.begin, BeginAnswer::AckThenSetupFailure) {
+                        let req = abi::BeginOpenRequest::decode(&frame.payload).unwrap();
+                        self.push(
+                            &abi::Frame::request(
+                                abi::Opcode::Event,
+                                abi::EventNotification {
+                                    session: req.session,
+                                    event: abi::AbiEvent::MediaSetupFailed(
+                                        "TRANSPORT: relay refused".to_owned(),
+                                    ),
+                                }
+                                .encode(),
+                            )
+                            .encode(),
+                        );
                     }
                     ack
                 }
@@ -424,7 +443,7 @@ async fn cancel_sent_when_open_dropped() {
     let state = fake_state();
     state.lock().unwrap().begin = BeginAnswer::AckThenSilence;
     let (backend, seen) = backend_with(state, None);
-    let backend = Arc::new(backend);
+    let backend = std::rc::Rc::new(backend);
 
     let key = test_key(2);
     let session = backend.reserve(&key, vc::CallDirection::Outgoing);
@@ -476,22 +495,19 @@ async fn stale_push_never_touches_replacement() {
     let old = test_key(1);
     let old_session = backend.reserve(&old, vc::CallDirection::Outgoing);
     let events = old_session.subscribe();
-    let sid = |generation| abi::SessionId {
-        handle: 1,
-        generation,
-    };
-    let event_frame = |generation| {
+    let sid = |handle, generation| abi::SessionId { handle, generation };
+    let event_frame = |handle, generation| {
         abi::Frame::request(
             abi::Opcode::Event,
             abi::EventNotification {
-                session: sid(generation),
+                session: sid(handle, generation),
                 event: abi::AbiEvent::RelayAllocated,
             }
             .encode(),
         )
     };
 
-    push_frame(&state, &event_frame(1));
+    push_frame(&state, &event_frame(1, 1));
     assert!(matches!(
         events.recv().await.expect("current event arrives"),
         vc::MediaEvent::RelayAllocated
@@ -515,12 +531,13 @@ async fn stale_push_never_touches_replacement() {
     let new_session = backend.reserve(&test_key(2), vc::CallDirection::Outgoing);
     let new_events = new_session.subscribe();
 
-    // The replacement keeps the call's handle under the new generation.
+    // Closed identities are pruned; the replacement gets a fresh handle.
     // Both pushes cross synchronously, so the queue state afterwards is
     // exact: the fresh event arrived and the stale one never queued. That
     // ordering — not a timer — proves the negative.
-    push_frame(&state, &event_frame(1));
-    push_frame(&state, &event_frame(2));
+    push_frame(&state, &event_frame(1, 1));
+    push_frame(&state, &event_frame(2, 1));
+    push_frame(&state, &event_frame(2, 2));
     assert!(matches!(
         new_events.try_recv(),
         Ok(vc::MediaEvent::RelayAllocated)
@@ -619,4 +636,60 @@ fn test_ctx() -> vc::MediaOpenContext {
         .maybe_group_epoch(None)
         .maybe_initial_codec(None)
         .build()
+}
+
+#[test]
+async fn remote_end_closes_the_stream_and_runs_teardown() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    let (backend, _) = backend_with(state.clone(), None);
+    let key = test_key(71);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let events = session.subscribe();
+    let ran = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = ran.clone();
+    let mut ctx = test_ctx();
+    ctx.video_teardown = Some(Box::new(move || {
+        observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }));
+    backend.open(test_spec(key), ctx).await.unwrap();
+    let id = {
+        let seen = state.lock().unwrap().seen.clone();
+        let seen = seen.lock().unwrap();
+        let body = &seen
+            .iter()
+            .find(|(op, _)| *op == abi::Opcode::Reserve.as_u8())
+            .unwrap()
+            .1;
+        abi::ReserveRequest::decode(body).unwrap().session
+    };
+    push_frame(
+        &state,
+        &abi::Frame::request(
+            abi::Opcode::MediaEnded,
+            abi::CloseRequest {
+                session: id,
+                reason: abi::CloseReason::LocalHangup,
+                detail: None,
+            }
+            .encode(),
+        ),
+    );
+    assert!(matches!(events.recv().await, Ok(vc::MediaEvent::Closed(_))));
+    assert!(events.recv().await.is_err());
+    assert_eq!(ran.load(std::sync::atomic::Ordering::SeqCst), 1);
+    session.close(vc::MediaCloseReason::Local);
+    assert_eq!(ran.load(std::sync::atomic::Ordering::SeqCst), 1);
+}
+
+#[test]
+async fn asynchronous_setup_failure_keeps_its_transport_detail() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    state.lock().unwrap().begin = BeginAnswer::AckThenSetupFailure;
+    let (backend, _) = backend_with(state, None);
+    let key = test_key(72);
+    let _session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let error = backend.open(test_spec(key), test_ctx()).await.unwrap_err();
+    assert!(matches!(error, vc::MediaSetupError::Connect(ref detail) if detail == "relay refused"));
 }

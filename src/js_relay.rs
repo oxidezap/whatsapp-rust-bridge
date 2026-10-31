@@ -276,14 +276,24 @@ impl JsRelayConnection {
     }
 
     fn from_handle(val: JsValue) -> Result<Self, anyhow::Error> {
-        let send_fn = js_sys::Reflect::get(&val, &SEND_METHOD.into())
-            .map_err(|_| anyhow::anyhow!("relay handle is missing send"))?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| anyhow::anyhow!("relay handle.send must be a function"))?;
         let close_fn = js_sys::Reflect::get(&val, &CLOSE_METHOD.into())
             .map_err(|_| anyhow::anyhow!("relay handle is missing close"))?
             .dyn_into::<js_sys::Function>()
             .map_err(|_| anyhow::anyhow!("relay handle.close must be a function"))?;
+        let send_fn = match js_sys::Reflect::get(&val, &SEND_METHOD.into())
+            .ok()
+            .and_then(|v| v.dyn_into::<js_sys::Function>().ok())
+        {
+            Some(send) => send,
+            None => {
+                if let Ok(result) = close_fn.call0(&val) {
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let _ = resolve_maybe("close", result).await;
+                    });
+                }
+                return Err(anyhow::anyhow!("relay handle.send must be a function"));
+            }
+        };
         Ok(Self {
             send_fn,
             close_fn,

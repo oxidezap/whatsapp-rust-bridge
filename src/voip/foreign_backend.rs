@@ -56,6 +56,7 @@ impl ForeignVoipBackend {
 
     /// Builds with an explicit open ceiling. Production passes
     /// [`OPEN_CEILING`](super::OPEN_CEILING); tests shrink it.
+    #[allow(clippy::arc_with_non_send_sync)] // The core backend contract uses Arc on WASM too.
     pub(crate) fn with_ceiling(
         callbacks: VoipBackendCallbacks,
         agreed: u32,
@@ -100,6 +101,19 @@ impl ForeignVoipBackend {
 }
 
 impl BackendInner {
+    fn prune_closed(&self) {
+        let Ok(mut sessions) = self.sessions.lock() else {
+            return;
+        };
+        sessions.retain(|_, session| !session.is_closed());
+        if let Ok(mut keys) = self.keys.lock() {
+            keys.retain(|_, handle| sessions.contains_key(handle));
+        }
+        if let Ok(mut handles) = self.handles.lock() {
+            handles.retain(|_, handle| sessions.contains_key(handle));
+        }
+    }
+
     /// One request across, one checked response back.
     async fn request(
         &self,
@@ -107,12 +121,18 @@ impl BackendInner {
         body: Vec<u8>,
     ) -> Result<abi::Frame, RequestError> {
         let req = abi::Frame::request(opcode, body);
+        let encoded = abi::SecretBytes::new(req.encode());
         let raw = self
             .callbacks
-            .send(&req.encode())
+            .send(encoded.as_bytes())
             .await
             .map_err(RequestError::Comms)?;
         let resp = abi::Frame::decode(&raw).map_err(RequestError::Framing)?;
+        if resp.major != abi::ABI_MAJOR {
+            return Err(RequestError::WrongResponse(
+                "unsupported ABI major".to_owned(),
+            ));
+        }
         if resp.opcode != opcode {
             return Err(RequestError::WrongResponse(format!(
                 "voip plugin answered {} to {}, want the echo",
@@ -161,6 +181,7 @@ impl BackendInner {
             }
         };
         session.deliver_push(frame);
+        self.prune_closed();
     }
 
     /// Finds the session a push names, checking the generation before the
@@ -231,11 +252,13 @@ impl RequestError {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl vc::VoipMediaBackend for ForeignVoipBackend {
+    #[allow(clippy::arc_with_non_send_sync)] // The core session contract uses Arc on WASM too.
     fn reserve(
         &self,
         key: &vc::MediaSessionKey,
         direction: vc::CallDirection,
     ) -> Arc<dyn vc::VoipMediaSession> {
+        self.inner.prune_closed();
         // A call whose session already ended keeps its handle: the new
         // generation replaces the old under the same wire identity. A call
         // that is still live mints fresh, so the replacement cannot steal
@@ -274,6 +297,12 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
             self.inner.runtime.clone(),
             self.inner.agreed,
         ));
+        let weak = Arc::downgrade(&self.inner);
+        session.set_on_closed(Box::new(move || {
+            if let Some(inner) = weak.upgrade() {
+                inner.prune_closed();
+            }
+        }));
         if let Ok(mut sessions) = self.inner.sessions.lock() {
             // Sessions the registry released stay reachable here; evict the
             // ended ones while allocating so the table cannot grow with
@@ -300,6 +329,22 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
                 "open for a session that was never reserved".to_owned(),
             ));
         };
+        let capability = match &ctx.audio {
+            vc::MediaAudioPorts::Pcm { .. } => abi::Capabilities::PCM,
+            vc::MediaAudioPorts::Encoded { .. } => abi::Capabilities::ENCODED_AUDIO,
+            _ => 0,
+        };
+        if capability == 0
+            || self.inner.agreed & capability == 0
+            || (spec.enable_video && self.inner.agreed & abi::Capabilities::VIDEO == 0)
+        {
+            return Err(conv::setup_error(
+                abi::AbiErrorCode::NotSupported,
+                Some("media mode not negotiated"),
+            ));
+        }
+        let mut ctx = ctx;
+        session.prepare_teardown(ctx.video_teardown.take());
         let params = conv::params_from_spec(&spec, &session.ctx_bits(&ctx, spec.enable_video))?;
         let mut guard = OpenGuard::new(session.clone(), self.inner.clone());
 
@@ -332,8 +377,6 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
         })?
         .map_err(|e| e.into_setup("begin open"))?;
 
-        session.attach(&spec.audio.format, ctx);
-
         // The relay dial happens engine-side between the ack and OPEN; the
         // same ceiling that bounds the resident dial bounds this wait, and
         // dropping the future (hangup, terminate, disconnect, replacement)
@@ -349,6 +392,7 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
                 "voip plugin media did not come up within the dial ceiling".to_owned(),
             )
         })??;
+        session.attach(&spec.audio.format, ctx);
         guard.disarm();
         Ok(())
     }

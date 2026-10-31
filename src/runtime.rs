@@ -553,6 +553,31 @@ mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
 
+    #[wasm_bindgen_test]
+    async fn aborting_spawn_drops_local_task_state() {
+        let (started_tx, started_rx) = futures::channel::oneshot::channel();
+        let (dropped_tx, dropped_rx) = futures::channel::oneshot::channel();
+        struct DropSignal(Option<futures::channel::oneshot::Sender<()>>);
+        impl Drop for DropSignal {
+            fn drop(&mut self) {
+                let _ = self.0.take().unwrap().send(());
+            }
+        }
+        let local = std::rc::Rc::new(Cell::new(false));
+        let captured = local.clone();
+        let handle = WasmRuntime.spawn(Box::pin(async move {
+            let _drop = DropSignal(Some(dropped_tx));
+            captured.set(true);
+            let _ = started_tx.send(());
+            futures::future::pending::<()>().await;
+        }));
+        started_rx.await.unwrap();
+        assert!(local.get());
+        drop(handle);
+        dropped_rx.await.unwrap();
+        assert_eq!(std::rc::Rc::strong_count(&local), 1);
+    }
+
     fn pending_sleeps() -> usize {
         SLEEP_WAKERS.with(|wakers| wakers.borrow().len())
     }

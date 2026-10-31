@@ -12,8 +12,12 @@ path = "src/main.rs"
 name = "gen-proto-types"
 path = "src/proto_gen.rs"
 
+[[bin]]
+name = "gen-operations"
+path = "src/gen_operations.rs"
+
 [dependencies]
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "3", features = ["full", "parsing", "visit"] }
-walkdir = "2"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+syn = { version = "3.0.9", features = ["full", "parsing", "visit", "visit-mut"] }
+walkdir = "2.5.0"

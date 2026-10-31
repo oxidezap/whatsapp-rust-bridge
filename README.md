@@ -48,6 +48,23 @@ What it is not is a release. Preview builds carry the version
 install is a deliberate pin, and it stays on that commit until you change it.
 They are for trying a change, not for running one.
 
+## Persistent storage
+
+Persistent storage hosts must implement all six `JsStoreCallbacks` methods:
+`get`, `set`, `delete`, `commitPatch`, `touchTcTokenSenderTimestamp`, and
+`storeReceivedTcToken`. Missing or non-function callbacks reject client
+construction with `kind: "invalid-argument"`, `field: "store"`, before storage I/O.
+The built-in in-memory backend requires no JS callbacks.
+
+`commitPatch` must atomically persist the version and MAC changes, including
+the self-index when requested. Token callbacks must merge against the latest
+row, preserve the other timestamp/token fields, and share serialization with
+every writer in the device scope. Timestamps cross as signed decimal i64 strings.
+Use a transaction, CAS, or a lock shared by all relevant adapters/processes;
+separate writes, a non-transactional batch, or an adapter-local mutex are insufficient.
+Resolve only at the host's persistence boundary and propagate post-commit errors.
+The generated callback declarations describe the existing namespaces and byte layouts.
+
 ## Host-loaded runtimes
 
 On Node and Bun the default entrypoint finds and loads the wasm itself:
