@@ -112,6 +112,7 @@ pub fn spawn_drive(future: impl std::future::Future<Output = ()> + 'static) -> A
 pub async fn set_timeout_future(ms: i32) {
     struct Sleep {
         id: Option<JsValue>,
+        callback: Option<Closure<dyn FnMut()>>,
         fired: std::rc::Rc<std::cell::Cell<bool>>,
         waker: std::rc::Rc<std::cell::RefCell<Option<std::task::Waker>>>,
         done: bool,
@@ -150,6 +151,9 @@ pub async fn set_timeout_future(ms: i32) {
             let fired = this.fired.clone();
             let waker = this.waker.clone();
             let ms = this.ms;
+            #[cfg(test)]
+            tests::LAST_TIMER_STATE
+                .with(|slot| *slot.borrow_mut() = Some(std::rc::Rc::downgrade(&fired)));
             let closure = Closure::once(move || {
                 fired.set(true);
                 let wake = waker.borrow_mut().take();
@@ -167,10 +171,10 @@ pub async fn set_timeout_future(ms: i32) {
                         .ok()
                 })
             });
-            closure.forget();
             match id {
                 Some(id) => {
                     this.id = Some(id);
+                    this.callback = Some(closure);
                     std::task::Poll::Pending
                 }
                 None => {
@@ -182,6 +186,7 @@ pub async fn set_timeout_future(ms: i32) {
     }
     Sleep {
         id: None,
+        callback: None,
         fired: std::rc::Rc::new(std::cell::Cell::new(false)),
         waker: std::rc::Rc::new(std::cell::RefCell::new(None)),
         done: false,
@@ -195,6 +200,25 @@ mod tests {
     use super::*;
     use futures::channel::oneshot;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    thread_local! {
+        pub(super) static LAST_TIMER_STATE: std::cell::RefCell<Option<std::rc::Weak<std::cell::Cell<bool>>>> = const { std::cell::RefCell::new(None) };
+    }
+
+    #[wasm_bindgen_test]
+    fn cancelling_a_timer_releases_its_callback_state() {
+        let mut sleep = Box::pin(set_timeout_future(60_000));
+        let waker = futures::task::noop_waker();
+        let mut context = std::task::Context::from_waker(&waker);
+        assert!(sleep.as_mut().poll(&mut context).is_pending());
+        let state = LAST_TIMER_STATE.with(|slot| slot.borrow().as_ref().unwrap().clone());
+        assert!(state.upgrade().is_some());
+        drop(sleep);
+        assert!(
+            state.upgrade().is_none(),
+            "cancelled timer callback retained Rust state"
+        );
+    }
 
     #[wasm_bindgen_test(async)]
     async fn timeout_completes_after_its_callback() {

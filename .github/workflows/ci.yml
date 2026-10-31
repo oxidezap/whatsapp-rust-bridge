@@ -480,7 +480,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2026-04-05
+          toolchain: 1.99.1
           targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies

@@ -367,36 +367,53 @@ impl Pump {
         }
         let request = abi::Frame::request(opcode, body);
         let encoded = abi::SecretBytes::new(request.encode());
-        let raw = match self.callbacks.send(encoded.as_bytes()).await {
-            Ok(raw) => raw,
-            Err(e) => {
-                log::warn!(
-                    "voip plugin link failed during {what} (handle {}): {}",
-                    self.handle,
-                    e.0
-                );
-                return false;
-            }
-        };
-        match abi::Frame::decode(&raw) {
-            Ok(resp)
-                if resp.major == abi::ABI_MAJOR
-                    && resp.opcode == opcode
-                    && resp.is_response()
-                    && !resp.is_error() =>
-            {
-                true
-            }
-            Ok(resp) => {
-                log::warn!("voip plugin refused {what} (handle {})", self.handle);
-                let _ = resp;
-                false
-            }
-            Err(e) => {
-                log::warn!("voip plugin misframed {what} response: {e}");
-                false
+        while self.running() {
+            let raw = match self.callbacks.send(encoded.as_bytes()).await {
+                Ok(raw) => raw,
+                Err(e) => {
+                    log::warn!(
+                        "voip plugin link failed during {what} (handle {}): {}",
+                        self.handle,
+                        e.0
+                    );
+                    return false;
+                }
+            };
+            match abi::Frame::decode(&raw) {
+                Ok(resp)
+                    if resp.major == abi::ABI_MAJOR
+                        && resp.opcode == opcode
+                        && resp.is_error()
+                        && opcode == abi::Opcode::Command
+                        && abi::ErrorBody::decode(&resp.payload)
+                            .is_ok_and(|error| error.code == abi::AbiErrorCode::Busy) =>
+                {
+                    if let Some(yielding) = self.runtime.yield_now() {
+                        yielding.await;
+                    } else {
+                        sleep(&*self.runtime, Duration::from_millis(1)).await;
+                    }
+                }
+                Ok(resp)
+                    if resp.major == abi::ABI_MAJOR
+                        && resp.opcode == opcode
+                        && resp.is_response()
+                        && !resp.is_error() =>
+                {
+                    return true;
+                }
+                Ok(resp) => {
+                    log::warn!("voip plugin refused {what} (handle {})", self.handle);
+                    let _ = resp;
+                    return false;
+                }
+                Err(e) => {
+                    log::warn!("voip plugin misframed {what} response: {e}");
+                    return false;
+                }
             }
         }
+        false
     }
 }
 

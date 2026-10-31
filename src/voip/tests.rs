@@ -36,6 +36,8 @@ struct FakeState {
     hello_major: u8,
     begin: BeginAnswer,
     fail_reserve: bool,
+    command_busy: std::sync::atomic::AtomicUsize,
+    command_accepted: Mutex<Option<futures::channel::oneshot::Sender<()>>>,
 }
 
 impl FakeState {
@@ -107,7 +109,23 @@ impl FakeState {
                 }
                 .encode(),
             ),
-            abi::Opcode::Command => abi::Frame::respond(frame, Vec::new()),
+            abi::Opcode::Command => {
+                if self
+                    .command_busy
+                    .try_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |remaining| remaining.checked_sub(1),
+                    )
+                    .is_ok()
+                {
+                    return abi::Frame::fail(frame, abi::AbiErrorCode::Busy, None);
+                }
+                if let Some(tx) = self.command_accepted.lock().unwrap().take() {
+                    let _ = tx.send(());
+                }
+                abi::Frame::respond(frame, Vec::new())
+            }
             abi::Opcode::Close => abi::Frame::respond(frame, Vec::new()),
             _ => abi::Frame::fail(frame, abi::AbiErrorCode::NotSupported, None),
         }
@@ -231,6 +249,8 @@ fn fake_state() -> Arc<Mutex<FakeState>> {
         hello_major: abi::ABI_MAJOR,
         begin: BeginAnswer::Ack,
         fail_reserve: false,
+        command_busy: std::sync::atomic::AtomicUsize::new(0),
+        command_accepted: Mutex::new(None),
     }))
 }
 
@@ -692,4 +712,47 @@ async fn asynchronous_setup_failure_keeps_its_transport_detail() {
     let _session = backend.reserve(&key, vc::CallDirection::Outgoing);
     let error = backend.open(test_spec(key), test_ctx()).await.unwrap_err();
     assert!(matches!(error, vc::MediaSetupError::Connect(ref detail) if detail == "relay refused"));
+}
+
+#[test]
+async fn busy_commands_retry_without_ending_the_session() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    let (accepted_tx, accepted_rx) = futures::channel::oneshot::channel();
+    state
+        .lock()
+        .unwrap()
+        .command_busy
+        .store(2, std::sync::atomic::Ordering::SeqCst);
+    *state.lock().unwrap().command_accepted.lock().unwrap() = Some(accepted_tx);
+    let (backend, seen) = backend_with(state, None);
+    let key = test_key(73);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let events = session.subscribe();
+    backend.open(test_spec(key), test_ctx()).await.unwrap();
+    assert!(session.submit(vc::MediaCommand::DisableVideoOutbound));
+    let failure = events.recv();
+    futures::pin_mut!(failure);
+    match futures::future::select(accepted_rx, failure).await {
+        futures::future::Either::Left((Ok(()), _)) => {}
+        futures::future::Either::Left((Err(error), _)) => {
+            panic!("acceptance signal cancelled: {error}")
+        }
+        futures::future::Either::Right((event, _)) => panic!(
+            "stream settled before command acceptance: {event:?}; requests: {:?}",
+            seen_opcodes(&seen)
+        ),
+    }
+    assert_eq!(
+        seen_opcodes(&seen)
+            .iter()
+            .filter(|op| **op == abi::Opcode::Command.as_u8())
+            .count(),
+        3
+    );
+    assert!(matches!(
+        events.try_recv(),
+        Err(async_channel::TryRecvError::Empty)
+    ));
+    session.close(vc::MediaCloseReason::Local);
 }
