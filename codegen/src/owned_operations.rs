@@ -242,6 +242,51 @@ mod tests {
     }
 
     #[test]
+    fn infallible_unit_operations_do_not_pass_awaited_unit_as_an_argument() {
+        let generated = lower(
+            quote!(
+                pub async fn future_unit_method(&self) {
+                    self.client
+                        .unwaited(Unwaited::Local)
+                        .future_unit_method()
+                        .await
+                }
+            ),
+            false,
+            None,
+        );
+        struct UnitArguments {
+            awaited: usize,
+        }
+        impl<'ast> syn::visit::Visit<'ast> for UnitArguments {
+            fn visit_expr_await(&mut self, expr: &'ast syn::ExprAwait) {
+                self.awaited += 1;
+                syn::visit::visit_expr_await(self, expr);
+            }
+            fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+                if matches!(call.func.as_ref(), syn::Expr::Path(p) if p.path.is_ident("Ok")) {
+                    let mut arg = call.args.first().unwrap();
+                    while let syn::Expr::Paren(paren) = arg {
+                        arg = &paren.expr;
+                    }
+                    assert!(
+                        !matches!(arg, syn::Expr::Await(_)),
+                        "awaited unit triggers clippy::unit_arg"
+                    );
+                }
+                syn::visit::visit_expr_call(self, call);
+            }
+        }
+        let method: syn::ImplItemFn = syn::parse2(generated).unwrap();
+        let mut arguments = UnitArguments { awaited: 0 };
+        syn::visit::Visit::visit_block(&mut arguments, &method.block);
+        assert!(
+            arguments.awaited > 0,
+            "the generated operation must still await its work"
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "alias must only delegate")]
     fn aliases_cannot_silently_discard_preparation() {
         lower(
