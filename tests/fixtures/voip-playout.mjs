@@ -15,7 +15,8 @@ const format = Uint8Array.of(1, 0, ...u32(16_000), ...u32(16_000), 1,
   ...u32(960), ...u32(16_000), ...u32(960), 120);
 
 const wasm = readFileSync(new URL(import.meta.resolve("@oxidezap/whatsapp-rust-bridge/voip/wasm")));
-const endpoints = [], sentAt = [[], []], receivedAt = [[], []], videos = [0, 0];
+const endpoints = [], sentAt = [[], []], receivedAt = [[], []], videos = [0, 0], nonSilent = [0, 0];
+const idr = Uint8Array.of(0,0,0,1,0x65,0x88,0x84,0x21,0xa0);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const engines = [0, 1].map(index => initVoipSync(wasm, {
   async connect(_params, events) {
@@ -40,9 +41,16 @@ const opened = engines.map((engine, index) => new Promise(resolve => engine.setP
   if (packet[6] === 4) resolve();
   if (packet[6] === 0x11) {
     assert.ok(packet.length > 33, "PCM samples cross the ABI");
+    const samples = new DataView(packet.buffer, packet.byteOffset + 33, packet.length - 33);
+    for (let offset = 0; offset + 1 < samples.byteLength; offset += 2) {
+      if (Math.abs(samples.getInt16(offset, true)) > 100) { nonSilent[index]++; break; }
+    }
     receivedAt[index].push(performance.now());
   }
-  if (packet[6] === 0x15) videos[index]++;
+  if (packet[6] === 0x15) {
+    assert.deepEqual(packet.slice(37, 37 + idr.length), idr, "the submitted video NAL survives transport");
+    videos[index]++;
+  }
 })));
 const params = index => concat(
   Uint8Array.of(index), text(index ? "222222222222222:0@lid" : "111111111111111:0@lid"),
@@ -64,7 +72,6 @@ try {
   const pcm = new Uint8Array(1920);
   const view = new DataView(pcm.buffer);
   for (let i=0; i<960; i++) view.setInt16(i*2, Math.round(6000*Math.sin(i*Math.PI/20)), true);
-  const idr = Uint8Array.of(0,0,0,1,0x65,0x88,0x84,0x21,0xa0);
   for (let seq=0; seq<12; seq++) {
     for (const engine of engines) {
       await engine.sendFrame(frame(0x10, concat(session, u32(seq), bytes(pcm))));
@@ -79,6 +86,7 @@ try {
     assert.ok(receivedAt[index].at(-1)-receivedAt[index][0] >= 100, "playout advances over real time");
     assert.ok(sentAt[index].at(-1)-sentAt[index][0] >= 100, "RTP transmission continues over elapsed time");
     assert.ok(receivedAt[index][4]-receivedAt[index][0] >= 25, "decoded playout follows its deadlines rather than draining in one turn");
+    assert.ok(nonSilent[index] > 0, "decoded PCM contains the submitted signal rather than only silence concealment");
     assert.ok(videos[index] > 0, `endpoint ${index}: video delivery`);
   }
 } finally {
