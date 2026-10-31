@@ -12,10 +12,9 @@
  */
 import { packedContents } from "./pack";
 
-// The stable dependency/toolchain upgrade measures 8,458,300 bytes against
-// 0.26.1's 8,278,236. Keep a narrow margin over that measured floor; the
-// 110,000-byte function-body budget and inlining flags stay unchanged.
-const MAX_UNPACKED_BYTES = 8_500_000;
+// Main's 8.5 MB gate plus the existing 300 KB BoltFFI allowance.
+// The qualified release measures 8,736,170 bytes, leaving 63,830 bytes.
+const MAX_UNPACKED_BYTES = 8_800_000;
 
 const { files, unpackedSize: total } = packedContents();
 
@@ -25,7 +24,13 @@ const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 // metadata and nothing else, and a near-zero total would clear the budget by
 // the whole budget. A gate that reports 7.5 MB of headroom because it measured
 // no package is worse than no gate, so require what has to be there.
-const REQUIRED = ["dist/index.js", "dist/whatsapp_rust_bridge_bg.wasm"];
+const REQUIRED = [
+  "dist/index.js",
+  "dist/whatsapp_rust_bridge_bg.wasm",
+  // The budget was raised for this one, so measuring without it would clear the
+  // gate by exactly the bytes it was widened to hold.
+  "dist/boltffi/pkg/whatsapp_rust_bridge_boltffi_bg.wasm",
+];
 const missing = REQUIRED.filter((path) => !files.some((f) => f.path === path));
 if (missing.length > 0) {
   console.error(
@@ -41,8 +46,8 @@ for (const file of [...files].sort((a, b) => b.size - a.size).slice(0, 5)) {
 
 if (total > MAX_UNPACKED_BYTES) {
   console.error(
-    `check-size: ${mb(total)} unpacked, over the ${mb(MAX_UNPACKED_BYTES)} budget ` +
-      `by ${mb(total - MAX_UNPACKED_BYTES)}.\n` +
+    `check-size: ${total} bytes (${mb(total)}) unpacked, over the ${MAX_UNPACKED_BYTES}-byte budget ` +
+      `by ${total - MAX_UNPACKED_BYTES} bytes.\n` +
       `check-size: trim it, or raise MAX_UNPACKED_BYTES in scripts/check-size.ts ` +
       `in the commit that spends the bytes.`
   );
@@ -55,6 +60,6 @@ if (total > MAX_UNPACKED_BYTES) {
 }
 
 console.log(
-  `check-size: ${mb(total)} unpacked across ${files.length} files, ` +
-    `${mb(MAX_UNPACKED_BYTES - total)} under budget`
+  `check-size: ${total} bytes (${mb(total)}) unpacked across ${files.length} files, ` +
+    `${MAX_UNPACKED_BYTES - total} bytes under budget`
 );

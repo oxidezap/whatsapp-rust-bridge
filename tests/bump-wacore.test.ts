@@ -57,6 +57,23 @@ describe("bump:wacore argument parsing", () => {
 });
 
 describe("bump:wacore pin rewriting", () => {
+  test("the workspace pin changes while inherited dependencies stay untouched", async () => {
+    const manifest = await Bun.file(join(import.meta.dir, "..", "Cargo.toml")).text();
+    const pinned = manifest.match(/rev\s*=\s*"([0-9a-f]{40})"/)!;
+    expect(manifest).toContain("whatsapp-rust = { workspace = true }");
+    expect(rewritePin(manifest, NEXT)).toBe(
+      manifest.replace(pinned[0], `rev = "${NEXT}"`),
+    );
+  });
+
+  test("inherited core dependencies still require one unambiguous pin", () => {
+    const inherited = "whatsapp-rust = { workspace = true }\n";
+    expect(() => rewritePin(`[dependencies]\n${inherited}`, NEXT)).toThrow(/bump:wacore/);
+    expect(() => rewritePin(MANIFEST + "\n[workspace.dependencies]\n" + inherited +
+      `[target.'cfg(unix)'.dependencies]\nwhatsapp-rust = { rev = "${NEXT}" }\n`, NEXT))
+      .toThrow(/bump:wacore/);
+  });
+
   test("only the rev value changes", () => {
     const rewritten = rewritePin(MANIFEST, NEXT);
     expect(rewritten).toContain(`rev = "${NEXT}"`);

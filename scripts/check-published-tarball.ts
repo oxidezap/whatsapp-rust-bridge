@@ -93,6 +93,11 @@ const consumer = (name: string): string => `import {
   UnpairedSurrogateError,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
+import { md5, hkdf } from "${name}/boltffi";
+export const digest: Uint8Array = md5(new Uint8Array([1]));
+export const derived: Uint8Array = hkdf(digest, 16, { salt: null, info: null });
+// @ts-expect-error - bytes are required at the published BoltFFI boundary
+md5("not bytes");
 
 // The run-observation contract, derived from the export itself: a
 // declaration change that moves a field breaks this fixture at the access
@@ -136,6 +141,7 @@ export function roundtrip(): boolean {
 const smoke = (name: string): string => `import * as root from "${name}";
 import { proto } from "${name}/proto-types";
 import { proto as rootProto } from "${name}";
+import * as boltffi from "${name}/boltffi";
 
 const assert = (cond, label) => {
   if (!cond) {
@@ -157,6 +163,11 @@ assert(
 );
 const reader = new root.BinaryReader(bytes);
 assert(reader.len === bytes.length, "BinaryReader over the wire bytes");
+assert(
+  Buffer.from(boltffi.md5(new Uint8Array())).toString("hex") ===
+    "d41d8cd98f00b204e9800998ecf8427e",
+  "BoltFFI runtime resolves and hashes through the isolated install",
+);
 console.log("smoke: ok");
 `;
 
