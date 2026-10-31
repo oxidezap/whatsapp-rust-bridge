@@ -1,7 +1,9 @@
 // Exercise the published subpath in a separate Node process. No test runner
 // timers belong here: after CLOSE, an owned media engine must let Node exit.
 import assert from "node:assert/strict";
-import { loadVoip } from "@oxidezap/whatsapp-rust-bridge/voip";
+import { readFileSync } from "node:fs";
+import { loadVoip, MlowAudioDecoder, packetizeOpusForMlow, depacketizeOpusFromMlow } from "@oxidezap/whatsapp-rust-bridge/voip";
+import { initVoipSync } from "@oxidezap/whatsapp-rust-bridge/voip/host";
 
 const u32 = (n) => Uint8Array.of(n, n >>> 8, n >>> 16, n >>> 24);
 const u64 = (n) => Uint8Array.of(...u32(n), 0, 0, 0, 0);
@@ -24,11 +26,19 @@ const params = concat(
 );
 const begin = frame(3, concat(session, bytes(params)));
 const close = frame(8, concat(session, Uint8Array.of(1, 0)));
-const backend = loadVoip({
+const transport = {
   async connect() {
     return { send() {}, async reconnect() {}, close() {} };
   },
-}).voipBackend;
+};
+const wasm = readFileSync(new URL(import.meta.resolve("@oxidezap/whatsapp-rust-bridge/voip/wasm")));
+const backend = (process.env.VOIP_ENTRY === "host" ? initVoipSync(wasm, transport) : loadVoip(transport)).voipBackend;
+// In host mode, initialization must reach codec helpers exported by ./voip.
+const original = new Uint8Array([0xbb, 3, 1, 2]);
+assert.deepEqual(depacketizeOpusFromMlow(packetizeOpusForMlow(original)), original);
+const decoder = new MlowAudioDecoder();
+assert.equal(decoder.decode(new Uint8Array(), undefined).length, 960);
+decoder.free();
 let resolveOpen;
 const opened = new Promise((resolve) => { resolveOpen = resolve; });
 backend.setPushHandler((payload) => {
@@ -36,6 +46,11 @@ backend.setPushHandler((payload) => {
   if (payload[6] === 9) throw Error("media setup failed before OPEN");
 });
 assert.equal((await backend.sendFrame(reserve))[7], 1);
+// Shared codec state must not turn independent backends into one session table.
+const independent = initVoipSync(wasm, transport).voipBackend;
+assert.notEqual(independent, backend);
+assert.equal((await independent.sendFrame(reserve))[7], 1);
+assert.equal((await independent.sendFrame(close))[7], 1);
 assert.equal((await backend.sendFrame(begin))[7], 1);
 await opened;
 assert.equal((await backend.sendFrame(close))[7], 1);

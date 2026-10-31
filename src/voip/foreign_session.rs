@@ -607,6 +607,8 @@ impl vc::VoipMediaSession for ForeignVoipSession {
                 handle.abort();
             }
         }
+        self.commands_tx.close();
+        while self.commands_rx.try_recv().is_ok() {}
         self.queued_command_bytes.store(0, Ordering::Relaxed);
         let (abi_reason, detail) = conv::close_reason_to_abi(&reason);
         let close = abi::CloseRequest {
@@ -633,5 +635,59 @@ fn open_failure(detail: &str) -> vc::MediaSetupError {
         vc::MediaSetupError::Connect(detail.to_owned())
     } else {
         vc::MediaSetupError::Backend(detail.to_owned())
+    }
+}
+
+#[cfg(test)]
+mod teardown_tests {
+    use super::*;
+    use vc::VoipMediaSession;
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn closing_a_retained_session_releases_queued_secret_commands() {
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &object,
+            &"sendFrame".into(),
+            &js_sys::Function::new_with_args("frame", "return Promise.resolve(frame);"),
+        )
+        .unwrap();
+        js_sys::Reflect::set(
+            &object,
+            &"setPushHandler".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .unwrap();
+        let callbacks = VoipBackendCallbacks::from_js(&JsValue::from(object)).unwrap();
+        let session = ForeignVoipSession::new(
+            1,
+            vc::MediaSessionKey::builder()
+                .call_id("retained-secret-queue".to_owned())
+                .generation(1)
+                .build(),
+            vc::CallDirection::Outgoing,
+            callbacks,
+            Arc::new(crate::runtime::WasmRuntime),
+            u32::MAX,
+        );
+        for transaction_id in 1..=3 {
+            assert!(session.enqueue(
+                abi::MediaCommand::GroupApplyEpoch {
+                    transaction_id,
+                    epoch: abi::SecretBytes::new(vec![0x33; 4096]),
+                },
+                false
+            ));
+        }
+        assert_eq!(session.commands_rx.len(), 3);
+        assert!(session.retained_bytes() >= 3 * 4096);
+        session.close(vc::MediaCloseReason::Local);
+        assert!(session.commands_rx.is_closed());
+        assert!(session.commands_rx.is_empty());
+        assert_eq!(session.retained_bytes(), 0);
+        assert!(!session.enqueue(abi::MediaCommand::AudioMute(1), false));
+        session.close(vc::MediaCloseReason::Local);
     }
 }

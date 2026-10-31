@@ -295,6 +295,15 @@ try {
     }
   }
 
+  writeFileSync(join(smokeDir, "voip-lifecycle.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-lifecycle.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    for (const entry of ["root", "host"]) {
+      const lifecycle = await run([runtime, "voip-lifecycle.mjs"], smokeDir, 30_000, { VOIP_ENTRY: entry });
+      check(lifecycle.exit === 0 && lifecycle.output.includes("opened and closed"), `isolated VoIP codecs and lifecycle: ${runtime} ${entry}`);
+      if (lifecycle.exit !== 0) console.error(lifecycle.output);
+    }
+  }
+
   const isolatedPackageJson = join(
     SCRATCH,
     "bundler",

@@ -7,7 +7,10 @@
 //! crosses back into the same event queue. The engine never sees the JS
 //! objects — only this adapter's trait impl.
 
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{
+    Arc, Mutex, OnceLock,
+    atomic::{AtomicU32, Ordering},
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -17,6 +20,9 @@ use wacore::voip::transport::{
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
+
+/// Bounded ingress shared by connection events and datagrams.
+pub(crate) const RELAY_EVENT_CAPACITY: usize = 64;
 
 /// The installed plugin transport: `connect(endpoint, events)` returning a
 /// `Promise<connection>`, called once per call.
@@ -67,7 +73,7 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
         .unwrap_or(None)
         .ok_or_else(|| "no relay transport installed".to_owned())?;
     let events = JsEvents::new();
-    let (tx, rx) = async_channel::bounded(64);
+    let (tx, rx) = async_channel::bounded(RELAY_EVENT_CAPACITY);
     events.install(tx.clone());
     let endpoint_js = js_endpoint(&endpoint);
     let promise = transport
@@ -130,12 +136,82 @@ fn js_endpoint(endpoint: &RelayEndpointParams) -> JsValue {
     obj.into()
 }
 
+fn add_drops(dropped: &AtomicU32, count: u32) {
+    let _ = dropped.try_update(Ordering::Relaxed, Ordering::Relaxed, |pending| {
+        Some(pending.saturating_add(count))
+    });
+}
+
+fn push_packet(
+    sender: &async_channel::Sender<RelayTransportEvent>,
+    dropped: &AtomicU32,
+    packet: Bytes,
+) {
+    let free = sender
+        .capacity()
+        .map_or(usize::MAX, |capacity| capacity.saturating_sub(sender.len()));
+    // Leave room for the packet as well as the accumulated loss notice.
+    if free >= 2 {
+        let pending = dropped.swap(0, Ordering::AcqRel);
+        if pending > 0
+            && sender
+                .try_send(RelayTransportEvent::InboundDropped(pending))
+                .is_err()
+        {
+            add_drops(dropped, pending);
+        }
+    }
+    if matches!(
+        sender.try_send(RelayTransportEvent::PacketReceived(packet)),
+        Err(async_channel::TrySendError::Full(_))
+    ) {
+        add_drops(dropped, 1);
+    }
+}
+
+fn push_close(
+    sender: &async_channel::Sender<RelayTransportEvent>,
+    dropped: &AtomicU32,
+    event: RelayTransportEvent,
+) {
+    let pending = dropped.swap(0, Ordering::AcqRel);
+    if pending > 0
+        && sender
+            .try_send(RelayTransportEvent::InboundDropped(pending))
+            .is_err()
+    {
+        let sender = sender.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = sender
+                .send(RelayTransportEvent::InboundDropped(pending))
+                .await;
+            let _ = sender.send(event).await;
+            sender.close();
+        });
+        return;
+    }
+    match sender.try_send(event) {
+        Ok(()) => {
+            sender.close();
+        }
+        Err(async_channel::TrySendError::Full(event)) => {
+            let sender = sender.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = sender.send(event).await;
+                sender.close();
+            });
+        }
+        Err(async_channel::TrySendError::Closed(_)) => {}
+    }
+}
+
 /// The push callbacks handed to `connect`: `onPacket`, `onOpen`, `onClose`.
 /// One `Arc` per dial owns the sender; the JS closures hold a weak backref
 /// and go quiet when the call drops it.
 struct JsEvents {
     obj: js_sys::Object,
     inner: Mutex<Inner>,
+    dropped: AtomicU32,
 }
 
 struct Inner {
@@ -147,6 +223,7 @@ impl JsEvents {
         let events = Arc::new(JsEvents {
             obj: js_sys::Object::new(),
             inner: Mutex::new(Inner { sender: None }),
+            dropped: AtomicU32::new(0),
         });
         let on_packet = {
             let weak = Arc::downgrade(&events);
@@ -160,8 +237,7 @@ impl JsEvents {
                 if let Some(sender) = sender {
                     let mut bytes = vec![0u8; data.length() as usize];
                     data.copy_to(&mut bytes);
-                    let _ =
-                        sender.try_send(RelayTransportEvent::PacketReceived(Bytes::from(bytes)));
+                    push_packet(&sender, &events.dropped, Bytes::from(bytes));
                 }
             }) as Box<dyn FnMut(js_sys::Uint8Array)>)
         };
@@ -186,14 +262,17 @@ impl JsEvents {
                 let sender = events
                     .inner
                     .lock()
-                    .map(|g| g.sender.clone())
+                    .map(|mut g| g.sender.take())
                     .unwrap_or(None);
                 if let Some(sender) = sender {
                     let reason = reason.as_string().map(RelayDisconnectReason::ReadError);
-                    let _ = sender.try_send(RelayTransportEvent::Disconnected(
-                        reason.unwrap_or(RelayDisconnectReason::Closed),
-                    ));
-                    sender.close();
+                    push_close(
+                        &sender,
+                        &events.dropped,
+                        RelayTransportEvent::Disconnected(
+                            reason.unwrap_or(RelayDisconnectReason::Closed),
+                        ),
+                    );
                 }
             }) as Box<dyn FnMut(JsValue)>)
         };
@@ -351,6 +430,107 @@ impl RelayTransport for ConnectedPipe {
 mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn overflow_is_reported_once_before_subsequent_packets() {
+        let events = JsEvents::new();
+        let (sender, receiver) = async_channel::bounded(2);
+        events.install(sender);
+        let packet: js_sys::Function =
+            js_sys::Reflect::get(events.handler_object(), &"onPacket".into())
+                .unwrap()
+                .unchecked_into();
+        for value in 0..5u8 {
+            packet
+                .call1(
+                    events.handler_object(),
+                    &js_sys::Uint8Array::from(&[value][..]),
+                )
+                .unwrap();
+        }
+        assert_eq!(receiver.len(), 2);
+        assert!(matches!(
+            receiver.try_recv().unwrap(),
+            RelayTransportEvent::PacketReceived(_)
+        ));
+        assert!(matches!(
+            receiver.try_recv().unwrap(),
+            RelayTransportEvent::PacketReceived(_)
+        ));
+        packet
+            .call1(events.handler_object(), &js_sys::Uint8Array::from(&[9][..]))
+            .unwrap();
+        assert!(matches!(
+            receiver.try_recv().unwrap(),
+            RelayTransportEvent::InboundDropped(3)
+        ));
+        assert!(
+            matches!(receiver.try_recv().unwrap(), RelayTransportEvent::PacketReceived(packet) if packet.as_ref() == [9])
+        );
+        packet
+            .call1(
+                events.handler_object(),
+                &js_sys::Uint8Array::from(&[10][..]),
+            )
+            .unwrap();
+        assert!(matches!(
+            receiver.try_recv().unwrap(),
+            RelayTransportEvent::PacketReceived(_)
+        ));
+        assert!(receiver.is_empty());
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn closing_a_full_pipe_flushes_drops_and_fences_late_packets() {
+        let events = JsEvents::new();
+        let (sender, receiver) = async_channel::bounded(2);
+        events.install(sender);
+        let packet: js_sys::Function =
+            js_sys::Reflect::get(events.handler_object(), &"onPacket".into())
+                .unwrap()
+                .unchecked_into();
+        for _ in 0..3 {
+            packet
+                .call1(
+                    events.handler_object(),
+                    &js_sys::Uint8Array::from(&[0xff][..]),
+                )
+                .unwrap();
+        }
+        let close: js_sys::Function =
+            js_sys::Reflect::get(events.handler_object(), &"onClose".into())
+                .unwrap()
+                .unchecked_into();
+        close
+            .call1(events.handler_object(), &JsValue::UNDEFINED)
+            .unwrap();
+        packet
+            .call1(
+                events.handler_object(),
+                &js_sys::Uint8Array::from(&[0xff][..]),
+            )
+            .unwrap();
+        assert_eq!(
+            events.dropped.load(Ordering::Relaxed),
+            0,
+            "late teardown packets are fenced"
+        );
+        for _ in 0..2 {
+            assert!(matches!(
+                receiver.recv().await.unwrap(),
+                RelayTransportEvent::PacketReceived(_)
+            ));
+        }
+        assert!(matches!(
+            receiver.recv().await.unwrap(),
+            RelayTransportEvent::InboundDropped(1)
+        ));
+        assert!(matches!(
+            receiver.recv().await.unwrap(),
+            RelayTransportEvent::Disconnected(_)
+        ));
+        assert!(receiver.recv().await.is_err());
+    }
 
     #[wasm_bindgen_test]
     fn invalid_opened_connections_close_once_with_their_receiver() {

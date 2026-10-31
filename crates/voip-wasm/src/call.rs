@@ -1167,7 +1167,7 @@ pub(crate) mod tests {
         }
 
         async fn wait_ended(ended: futures::channel::oneshot::Receiver<()>) {
-            let timeout = set_timeout_ms(250);
+            let timeout = set_timeout_ms(750);
             futures::pin_mut!(ended, timeout);
             assert!(
                 matches!(
@@ -1246,9 +1246,12 @@ pub(crate) mod tests {
             let packet: js_sys::Function = js_sys::Reflect::get(&events, &"onPacket".into())
                 .unwrap()
                 .unchecked_into();
-            packet
-                .call1(&events, &js_sys::Uint8Array::from(&[0xff][..]))
-                .unwrap();
+            let burst = u32::try_from(relay::RELAY_EVENT_CAPACITY * 2).unwrap();
+            for _ in 0..burst {
+                packet
+                    .call1(&events, &js_sys::Uint8Array::from(&[0xff][..]))
+                    .unwrap();
+            }
             for _ in 0..100 {
                 if live.stats().relay_packet_unclassified > 0 {
                     break;
@@ -1269,7 +1272,9 @@ pub(crate) mod tests {
             let pushes = log.lock().unwrap().clone();
             assert_eq!(pushes.last(), Some(&Push::Ended));
             assert!(
-                matches!(&pushes[pushes.len()-2], Push::Stats(snapshot) if snapshot.relay_packet_unclassified > 0)
+                matches!(pushes.as_slice(), [.., Push::Stats(snapshot), Push::Ended]
+                if snapshot.relay_packet_unclassified > 0 && snapshot.inbound_pipe_dropped > 0
+                    && snapshot.relay_packet_unclassified + snapshot.inbound_pipe_dropped == burst)
             );
             drop(live);
             assert_eq!(*log.lock().unwrap(), pushes);
