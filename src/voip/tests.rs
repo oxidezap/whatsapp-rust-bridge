@@ -135,6 +135,10 @@ impl FakeState {
                 }
                 .encode(),
             ),
+            abi::Opcode::VideoIn => {
+                abi::VideoIn::decode(&frame.payload).expect("video metadata remains framed");
+                abi::Frame::respond(frame, Vec::new())
+            }
             abi::Opcode::Command => {
                 if self
                     .command_busy
@@ -1214,4 +1218,122 @@ async fn a_full_command_mailbox_retains_video_state_transitions() {
         .unwrap();
     assert!(generation < disable);
     session.close(vc::MediaCloseReason::Local);
+}
+
+#[test]
+async fn video_pump_drains_both_queues_fairly_and_survives_either_closing() {
+    use vc::VoipMediaBackend;
+    for close_timed_first in [false, true] {
+        let state = fake_state();
+        let (backend, seen) = backend_with(state, None);
+        let key = test_key(1200);
+        let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+        let (untimed_tx, untimed_rx) = async_channel::bounded(16);
+        let (timed_tx, timed_rx) = async_channel::bounded(16);
+        // Both are ready before the pump starts, so one cannot win by timing.
+        for index in 0..8 {
+            untimed_tx.try_send(vec![0x65, index]).unwrap();
+            timed_tx
+                .try_send(
+                    vc::VideoInput::builder()
+                        .data(vec![0x41, index])
+                        .timestamp(u32::MAX - u32::from(index))
+                        .generation(73)
+                        .build(),
+                )
+                .unwrap();
+        }
+        let mut ctx = test_ctx();
+        ctx.video_channels.video_in = untimed_rx;
+        ctx.video_channels.timed_video_in = Some(timed_rx);
+        let mut spec = test_spec(key);
+        spec.enable_video = true;
+        backend.open(spec, ctx).await.unwrap();
+        let frames = || {
+            seen.lock()
+                .unwrap()
+                .iter()
+                .filter(|(op, _)| *op == abi::Opcode::VideoIn.as_u8())
+                .map(|(_, bytes)| abi::VideoIn::decode(bytes).unwrap())
+                .collect::<Vec<_>>()
+        };
+        for _ in 0..200 {
+            if frames().len() >= 16 {
+                break;
+            }
+            sleep_ms(2).await;
+        }
+        let crossed = frames();
+        assert_eq!(
+            crossed.len(),
+            16,
+            "an idle timed receiver must not hide untimed input"
+        );
+        for pair in crossed.as_chunks::<2>().0 {
+            assert_ne!(
+                pair[0].input.timestamp.is_some(),
+                pair[1].input.timestamp.is_some(),
+                "ready queues alternate"
+            );
+        }
+        for (index, frame) in crossed.iter().enumerate() {
+            assert_eq!(frame.seq as usize, index);
+            if frame.input.data[0] == 0x41 {
+                assert_eq!(
+                    frame.input.timestamp,
+                    Some(u32::MAX - u32::from(frame.input.data[1]))
+                );
+                assert_eq!(frame.input.input_generation, Some(73));
+            } else {
+                assert_eq!(frame.input.timestamp, None);
+                assert_eq!(frame.input.input_generation, None);
+            }
+        }
+        if close_timed_first {
+            timed_tx.close();
+            untimed_tx.send(vec![0x65, 99]).await.unwrap();
+        } else {
+            untimed_tx.close();
+            timed_tx
+                .send(
+                    vc::VideoInput::builder()
+                        .data(vec![0x41, 99])
+                        .timestamp(0)
+                        .generation(74)
+                        .build(),
+                )
+                .await
+                .unwrap();
+        }
+        for _ in 0..100 {
+            if frames().len() == 17 {
+                break;
+            }
+            sleep_ms(2).await;
+        }
+        assert_eq!(
+            frames().len(),
+            17,
+            "closing one queue must preserve the other"
+        );
+        session.close(vc::MediaCloseReason::Local);
+        sleep_ms(5).await;
+        assert!(
+            if close_timed_first {
+                untimed_tx.send(vec![1]).await.is_err()
+            } else {
+                timed_tx
+                    .send(
+                        vc::VideoInput::builder()
+                            .data(vec![1])
+                            .timestamp(1)
+                            .generation(74)
+                            .build(),
+                    )
+                    .await
+                    .is_err()
+            },
+            "cancellation drops the remaining receiver"
+        );
+    }
 }

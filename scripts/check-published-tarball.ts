@@ -311,6 +311,17 @@ try {
     if (playout.exit !== 0) console.error(playout.output);
   }
 
+  if (process.env.MOCK_SERVER_URL) {
+    for (const file of ["voip-public-video.mjs", "voip-testsrc-idr.h264"]) {
+      writeFileSync(join(smokeDir, file), readFileSync(join(ROOT, "tests/fixtures", file)));
+    }
+    for (const runtime of ["node", process.execPath]) {
+      const video = await run([runtime, "voip-public-video.mjs"], smokeDir, 30_000, { NODE_TLS_REJECT_UNAUTHORIZED: "0" });
+      check(video.exit === 0 && video.output.includes("public callPushVideo delivered matching H.264 through both WASMs"), `isolated public video: ${runtime}`);
+      if (video.exit !== 0) console.error(video.output);
+    }
+  }
+
   const isolatedPackageJson = join(
     SCRATCH,
     "bundler",

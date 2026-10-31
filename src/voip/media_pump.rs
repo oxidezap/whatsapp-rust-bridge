@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use async_channel::{Receiver, Sender};
 use bytes::Bytes;
+use futures::StreamExt;
 use voip_abi as abi;
 use whatsapp_rust::voip_control as vc;
 
@@ -221,46 +222,32 @@ impl Pump {
         let this = self.clone();
         self.runtime.spawn(Box::pin(async move {
             let mut seq = 0u32;
-            // A timed source carries capture timestamps and the source
-            // generation the input queue filters on; the untimed feed has
-            // neither, and `None` tells the engine to pace and accept
-            // freely.
-            if let Some(timed) = timed {
-                while this.running() {
-                    let unit = match timed.recv().await {
-                        Ok(unit) => unit,
-                        Err(_) => break,
-                    };
-                    let body = abi::VideoIn {
-                        session: this.session,
-                        seq,
-                        input: abi::VideoInputDto {
-                            data: unit.data,
-                            timestamp: Some(unit.timestamp),
-                            input_generation: Some(unit.generation),
-                        },
-                    }
-                    .encode();
-                    seq = seq.wrapping_add(1);
-                    if !this.send(abi::Opcode::VideoIn, body, "video unit").await {
-                        break;
-                    }
-                }
-                return;
-            }
+            // Both queues may exist simultaneously. Round-robin selection keeps
+            // a ready producer from starving the other, and drains the surviving
+            // queue when either sender closes. Dropping this task cancels both
+            // pending receives and the single in-flight crossing.
+            let untimed = untimed.map(|data| abi::VideoInputDto {
+                data,
+                timestamp: None,
+                input_generation: None,
+            });
+            let timed = futures::stream::iter(timed)
+                .flatten()
+                .map(|unit| abi::VideoInputDto {
+                    data: unit.data,
+                    timestamp: Some(unit.timestamp),
+                    input_generation: Some(unit.generation),
+                });
+            let inputs = futures::stream::select(untimed, timed);
+            futures::pin_mut!(inputs);
             while this.running() {
-                let data = match untimed.recv().await {
-                    Ok(data) => data,
-                    Err(_) => break,
+                let Some(input) = inputs.next().await else {
+                    break;
                 };
                 let body = abi::VideoIn {
                     session: this.session,
                     seq,
-                    input: abi::VideoInputDto {
-                        data,
-                        timestamp: None,
-                        input_generation: None,
-                    },
+                    input,
                 }
                 .encode();
                 seq = seq.wrapping_add(1);
