@@ -28,7 +28,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 family: JidFamily::Pn,
                 list: true,
             })],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().is_on_whatsapp(&jids)),
@@ -59,7 +59,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(
@@ -112,7 +112,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     optional: true,
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -132,7 +132,7 @@ pub(super) fn catalog() -> Vec<Operation> {
         Operation {
             attributes: attributes(quote!(
                 /// Fetch user info for one or more JIDs.
-                #[wasm_bindgen(js_name = fetchUserInfo , skip_typescript)]
+                #[wasm_bindgen(js_name = fetchUserInfo)]
             )),
             signature: parse_quote!(
                 async fn fetch_user_info(
@@ -144,7 +144,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(parsed_jids),
                 value: parse_quote!(jids),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().get_user_info(&parsed_jids)),
@@ -164,7 +164,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn set_push_name(&self, name: &str) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().set_push_name(name)),
@@ -186,7 +186,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Option<Ts<crate::result_types::OwnUsernameResult>>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.mex().get_username()),
@@ -207,7 +207,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().set_profile_picture(img_data)),
@@ -227,7 +227,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.profile().remove_profile_picture()),
@@ -266,7 +266,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     reason: parse_quote!("must be a group jid"),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.execute(
@@ -302,7 +302,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     reason: parse_quote!("must be a group jid"),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.execute(
@@ -325,7 +325,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.profile().set_status_text(status)),
@@ -342,7 +342,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Vec<Ts<crate::result_types::BlocklistEntryResult>>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.blocking().get_blocklist()),
@@ -360,7 +360,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn fetch_privacy_settings(&self) -> Result<JsValue, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.fetch_privacy_settings()),
@@ -383,7 +383,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.set_privacy_setting(category.into(), value.into())),
@@ -401,7 +401,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.set_default_disappearing_mode(duration)),
@@ -436,7 +436,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     ],
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ConnectionBound),
             call: parse_quote!(client.presence().set(presence_status)),
@@ -454,7 +454,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(target),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Redriven),
             call: parse_quote!(client.presence().subscribe(&target)),
@@ -475,7 +475,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(parsed_jids),
                 value: parse_quote!(jids),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.contacts().get_user_info(&parsed_jids)),
@@ -511,7 +511,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(jid),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({

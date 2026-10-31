@@ -115,23 +115,6 @@ function park(client: WasmWhatsAppClient) {
   return client.createParticipantNodesBytes([CHAT], bytes, null);
 }
 
-/**
- * What `free()` threw, with the handle put back. The generated `free()` nulls
- * the JS handle before it calls in, so a refusal would otherwise strand the
- * client with no way to tear it down.
- */
-function refusedFree(client: WasmWhatsAppClient): Error {
-  const handle = client as unknown as { __wbg_ptr: number };
-  const pointer = handle.__wbg_ptr;
-  try {
-    client.free();
-  } catch (error) {
-    handle.__wbg_ptr = pointer;
-    return error as Error;
-  }
-  throw new Error("expected free() to be refused while a call was parked");
-}
-
 describe("tearing down a client that is holding parked calls", () => {
   /**
    * The step the severity of this rests on. `online()` hands back the client
@@ -155,13 +138,9 @@ describe("tearing down a client that is holding parked calls", () => {
     expect(store.counts.deviceReads).toBe(1);
   }, 20000);
 
-  /**
-   * And why that is safe. An exported `&self` method anchors the client for
-   * the whole of its future, so `free()` is refused rather than dropping the
-   * value a parked call is about to run against. That is the guarantee: not
-   * that the call rejects, but that nothing it reaches has been released.
-   */
-  test("a parked call holds the client open, so free() cannot drop it", async () => {
+  // Free consumes the wrapper and cancels its operations before a released
+  // park can enter the core. Explicit disconnect above keeps its own barrier.
+  test("free cancels a parked call before it reaches the core", async () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
@@ -170,20 +149,13 @@ describe("tearing down a client that is holding parked calls", () => {
     expect(call.settled()).toBe(false);
     expect(store.counts.deviceReads).toBe(0);
 
-    expect(refusedFree(client).message).toMatch(/borrowed/);
-
-    // Nothing was dropped: the same client answers the released call.
-    await client.disconnect();
+    expect(() => client.free()).not.toThrow();
+    live = live.filter((entry) => entry !== client);
     expect((await rejection(call.promise)).kind).toBe("not-connected");
-    expect(store.counts.deviceReads).toBe(1);
+    expect(store.counts.deviceReads).toBe(0);
   }, 20000);
 
-  /**
-   * Nothing bounds how many calls park, and a terminal state wakes all of
-   * them at once. Each anchors on its own, so the count changes how much runs
-   * after the teardown, not whether it has anything to run against.
-   */
-  test("every parked call holds it, however many are waiting", async () => {
+  test("free cancels every parked call without entering the core", async () => {
     const store = countingStore();
     const client = await reconnectingClient(store);
 
@@ -192,12 +164,11 @@ describe("tearing down a client that is holding parked calls", () => {
     expect(calls.map((call) => call.settled())).toEqual(Array(A_CROWD).fill(false));
     expect(store.counts.deviceReads).toBe(0);
 
-    expect(refusedFree(client).message).toMatch(/borrowed/);
-
-    await client.disconnect();
+    expect(() => client.free()).not.toThrow();
+    live = live.filter((entry) => entry !== client);
     for (const call of calls) {
       expect((await rejection(call.promise)).kind).toBe("not-connected");
     }
-    expect(store.counts.deviceReads).toBe(A_CROWD);
+    expect(store.counts.deviceReads).toBe(0);
   }, 20000);
 });

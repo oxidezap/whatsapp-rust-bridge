@@ -22,7 +22,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(contact_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.chat_actions().save_contact(
@@ -70,7 +70,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     key: parse_quote!(key),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.send_reaction_raw(
@@ -123,7 +123,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     key: parse_quote!(parent_key),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.comments().send_message_raw(chat, key, body)),
@@ -149,7 +149,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -171,7 +171,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.chat_actions().delete_chat(&chat_jid, true, None)),
@@ -198,7 +198,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -253,7 +253,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     sender: parse_quote!(participant_jid.as_ref()),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -279,7 +279,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(user_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.chat_actions().set_user_status_mute(&user_jid, muted)),
@@ -302,7 +302,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(contact_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.chat_actions().remove_contact(&contact_jid)),
@@ -324,7 +324,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.labels().create_label(label_id, name, color)),
@@ -339,7 +339,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.labels().delete_label(label_id)),
@@ -361,7 +361,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat),
                 value: parse_quote!(chat_jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.labels().add_chat_label(label_id, &chat)),
@@ -383,7 +383,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat),
                 value: parse_quote!(chat_jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.labels().remove_chat_label(label_id, &chat)),
@@ -419,7 +419,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     optional: false,
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -456,7 +456,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     optional: false,
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -486,7 +486,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -505,7 +505,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.quick_replies().delete_quick_reply(id)),
@@ -527,7 +527,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(
@@ -549,7 +549,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
@@ -587,7 +587,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     field: parse_quote!("muteUntil"),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
@@ -620,7 +620,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 binding: parse_quote!(chat_jid),
                 value: parse_quote!(jid),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
@@ -657,7 +657,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     sender: parse_quote!(None),
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({

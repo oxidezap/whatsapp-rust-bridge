@@ -20,7 +20,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST_ENTRY = join(ROOT, "dist", "index.d.ts");
@@ -57,12 +57,13 @@ async function run(
   args: string[],
   cwd: string,
   timeoutMs: number,
+  extraEnv: Record<string, string> = {},
 ): Promise<RunResult> {
   const proc = Bun.spawn(args, {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: process.env,
+    env: { ...process.env, ...extraEnv },
   });
   const timeout = setTimeout(() => proc.kill(), timeoutMs);
   const [stdout, stderr, exit] = await Promise.all([
@@ -196,18 +197,17 @@ if (typescriptRange === undefined || typesNodeRange === undefined) {
 }
 
 try {
-  const pack = await run(
-    ["npm", "pack", "--pack-destination", SCRATCH],
-    ROOT,
-    120_000,
-  );
-  check(pack.exit === 0, `npm pack a tarball (${pack.output.trim().split("\n").at(-1) ?? ""})`);
-  const tarballLine = pack.output
-    .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line.endsWith(".tgz"));
-  if (tarballLine === undefined) throw new Error("npm pack printed no tarball name");
-  const tarball = join(SCRATCH, basename(tarballLine));
+  let tarball: string;
+  if (process.argv[2]) {
+    tarball = resolve(process.argv[2]);
+    if (!existsSync(tarball)) throw new Error(`tarball absent: ${tarball}`);
+  } else {
+    const pack = await run(["npm", "pack", "--pack-destination", SCRATCH], ROOT, 120_000);
+    check(pack.exit === 0, `npm pack a tarball (${pack.output.trim().split("\n").at(-1) ?? ""})`);
+    const tarballLine = pack.output.split("\n").map(line => line.trim()).find(line => line.endsWith(".tgz"));
+    if (!tarballLine) throw new Error("npm pack printed no tarball name");
+    tarball = join(SCRATCH, basename(tarballLine));
+  }
 
   for (const mode of Object.keys(tsconfigs)) {
     const dir = join(SCRATCH, mode);
@@ -258,6 +258,21 @@ try {
     "runtime root/proto-types smoke over the isolated install",
   );
   if (!smokeRun.output.includes("smoke: ok")) console.error(smokeRun.output);
+
+  writeFileSync(
+    join(smokeDir, "client-lifecycle.test.mjs"),
+    readFileSync(join(ROOT, "tests/fixtures/client-lifecycle.test.mjs"), "utf8"),
+  );
+  for (const runtime of ["node", process.execPath]) {
+    for (const entry of ["root", "host"]) {
+      const command = runtime === "node"
+        ? [runtime, "--test", "client-lifecycle.test.mjs"]
+        : [runtime, "test", "client-lifecycle.test.mjs"];
+      const lifecycle = await run(command, smokeDir, 120_000, { BRIDGE_ENTRY: entry });
+      check(lifecycle.exit === 0, `isolated production lifecycle: ${runtime} ${entry}`);
+      if (lifecycle.exit !== 0) console.error(lifecycle.output);
+    }
+  }
 
   const isolatedPackageJson = join(
     SCRATCH,
