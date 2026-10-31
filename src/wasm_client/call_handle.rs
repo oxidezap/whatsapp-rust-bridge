@@ -202,12 +202,9 @@ impl WasmCallHandle {
         let call_id = self.call_id.clone();
         let generation = self.generation;
         super::promise_void(async move {
-            media.check_generation(&call_id, generation)?;
             media
-                .stop_call_video_by_generation(call_id.clone(), generation)
-                .await?;
-            media.clear_pending_video_upgrade(&call_id);
-            Ok(())
+                .stop_call_video_by_generation(call_id, generation)
+                .await
         })
     }
 }

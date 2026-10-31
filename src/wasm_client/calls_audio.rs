@@ -1510,14 +1510,6 @@ impl CallMedia {
         })
         .await
     }
-
-    /// Clear the pending video upgrade token. Called by `WasmCallHandle::rejectVideo`
-    /// to prevent a stale token from being consumed by a later `acceptVideo`.
-    pub(super) fn clear_pending_video_upgrade(&self, call_id: &str) {
-        if let Some(record) = self.call_records.borrow_mut().get_mut(call_id) {
-            record.pending_upgrade = None;
-        }
-    }
 }
 
 /// Forward one engine event, retaining a peer video-upgrade request on
