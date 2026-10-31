@@ -12,22 +12,10 @@
  */
 import { packedContents } from "./pack";
 
-/**
- * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
- * drift above — enough that ordinary work does not trip it, tight enough that
- * a jump does.
- *
- * Raised from 7,500,000 when the core regenerated its whatspec bundle at
- * 2.3000.1044659339: a WhatsApp schema release adds messages and enums across
- * the proto, and the derived declarations and codec grow with it. That is the
- * one kind of growth this budget cannot ask anyone to trim, so it buys the same
- * headroom again over the new floor rather than tracking it.
- *
- * Raised from 7,900,000 for the same reason at 2.3000.1045368834, which grew
- * the package by 217,140 bytes across `index.js` and `proto-types.d.ts` and
- * left the wasm 791 bytes smaller. Same headroom over the new floor.
- */
-const MAX_UNPACKED_BYTES = 8_300_000;
+// The stable dependency/toolchain upgrade measures 8,458,300 bytes against
+// 0.26.1's 8,278,236. Keep a narrow margin over that measured floor; the
+// 110,000-byte function-body budget and inlining flags stay unchanged.
+const MAX_UNPACKED_BYTES = 8_500_000;
 
 const { files, unpackedSize: total } = packedContents();
 

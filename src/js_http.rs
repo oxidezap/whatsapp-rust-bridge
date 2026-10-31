@@ -41,7 +41,7 @@ impl HttpClient for JsHttpClientAdapter {
             .map_err(|e| anyhow::anyhow!("http execute: {e:?}"))?;
 
         let resolved = if result.is_instance_of::<js_sys::Promise>() {
-            JsFuture::from(js_sys::Promise::unchecked_from_js(result))
+            JsFuture::from(js_sys::Promise::<JsValue>::unchecked_from_js(result))
                 .await
                 .map_err(|e| anyhow::anyhow!("http await: {e:?}"))?
         } else {

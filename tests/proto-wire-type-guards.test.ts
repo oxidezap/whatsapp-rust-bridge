@@ -164,11 +164,11 @@ describe("the codec ts-proto emits today", () => {
   });
 });
 
-test("shared-form guards validate the real framing helper and still reject wrong field tags", () => {
+test("shared-form guards validate the real framing helper and still reject wrong field tags", async () => {
   const shareable = CODEC.replace(/^(export const (\w+): MessageFns<[^>]+> = \{\n)/gm, (_, head, name) =>
     `${head}  create(base?: any): any { return ${name}.fromPartial(base ?? {}); },\n` +
     `  fromPartial(object: any): any { const message = createBase${name}(); return message; },\n`);
-  const shared = shareProtoPrivateWork(shareable);
+  const shared = await shareProtoPrivateWork(shareable);
   expect(shared.unknownEpilogues).toBe(2);
   expect(() => assertWireTypeGuards(shared.text, DESCRIPTOR)).not.toThrow();
   expect(() => assertWireTypeGuards(shared.text.replace("if (tag !== 8) {", "if (tag !== 10) {"), DESCRIPTOR))

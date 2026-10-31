@@ -2984,11 +2984,11 @@ fn from_js_class<T: JsCast>(
         reason: format!("must be a usable {expected}: {detail}"),
     };
 
-    let lock = call_no_args(&value, method).map_err(&refuse)?;
+    let lock = call_no_args(&value, method).map_err(refuse)?;
     // Hand it straight back. The stream has to reach `wasm_streams` unlocked,
     // and one whose lock will not release is no more usable than one that
     // could not produce it.
-    call_no_args(&lock, "releaseLock").map_err(&refuse)?;
+    call_no_args(&lock, "releaseLock").map_err(refuse)?;
 
     Ok(value.unchecked_into())
 }

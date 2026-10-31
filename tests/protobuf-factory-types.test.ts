@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import ts from "typescript";
+import * as ts from "../scripts/typescript-api";
 
 const root = join(import.meta.dir, "..");
-const declarations = ts.createSourceFile("proto-types.d.ts", readFileSync(join(root, "ts/proto-types.d.ts"), "utf8"), ts.ScriptTarget.Latest, true);
+const declarations = await ts.createSourceFile("proto-types.d.ts", readFileSync(join(root, "ts/proto-types.d.ts"), "utf8"));
 const classes: string[][] = [];
 function visit(node: ts.Node, path: string[]) {
   if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
@@ -51,24 +51,15 @@ instance.conversation = writableConversation;
 `;
 
 for (const exactOptionalPropertyTypes of [false, true]) {
-  test(`all protobuf factories preserve fields, constructors and method variance, exactOptional=${exactOptionalPropertyTypes}`, () => {
+  test(`all protobuf factories preserve fields, constructors and method variance, exactOptional=${exactOptionalPropertyTypes}`, async () => {
     expect(classes.length).toBeGreaterThan(700);
     const file = join(root, "tests/proto-factory-contract-consumer.ts");
-    const options: ts.CompilerOptions = {
+    const options = {
       strict: true, exactOptionalPropertyTypes, skipLibCheck: false, noEmit: true,
-      target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler, types: [],
+      target: "esnext", module: "esnext",
+      moduleResolution: "bundler", types: [],
     };
-    const host = ts.createCompilerHost(options);
-    const original = host.getSourceFile.bind(host);
-    host.getSourceFile = (name, language, onError, fresh) => name === file
-      ? ts.createSourceFile(file, fixture, language, true)
-      : original(name, language, onError, fresh);
-    const program = ts.createProgram([file], options, host);
-    const diagnostics = ts.getPreEmitDiagnostics(program);
-    expect(diagnostics.map(item => {
-      const line = item.file && item.start !== undefined ? item.file.getLineAndCharacterOfPosition(item.start).line : undefined;
-      return `${line === undefined ? "" : fixture.split("\n")[line]}: ${ts.flattenDiagnosticMessageText(item.messageText, "\n")}`;
-    })).toEqual([]);
+    const diagnostics = await ts.diagnostics({ [file]: fixture }, options);
+    expect(diagnostics.map(item => `${item.fileName ?? ""}:${item.pos}: ${item.text}`)).toEqual([]);
   }, 8000);
 }

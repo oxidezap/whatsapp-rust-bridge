@@ -16,7 +16,7 @@
  * dotted basename like `./foo.types` would defeat.
  */
 
-import ts from "typescript";
+import * as ts from "./typescript-api";
 
 export interface DtsSpecifier {
   specifier: string;
@@ -28,20 +28,17 @@ export interface DtsSpecifier {
 }
 
 /** Every module specifier in module-specifier position, comments and string literals excluded. */
-export function collectModuleSpecifiers(
+export async function collectModuleSpecifiers(
   sourceText: string,
   fileName: string,
-): DtsSpecifier[] {
-  const source = ts.createSourceFile(
+): Promise<DtsSpecifier[]> {
+  const source = await ts.createSourceFile(
     fileName,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
+    sourceText
   );
   const found: DtsSpecifier[] = [];
-  const pushLiteral = (node: ts.Expression | undefined): void => {
-    if (node !== undefined && ts.isStringLiteralLike(node)) {
+  const pushLiteral = (node: ts.Node | undefined): void => {
+    if (node !== undefined && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))) {
       const start = node.getStart(source);
       found.push({
         specifier: node.text,
@@ -111,12 +108,12 @@ export interface DtsSpecifierEdit {
 }
 
 /** Rewrite every relative specifier that does not already resolve. */
-export function rewriteDtsSpecifiers(
+export async function rewriteDtsSpecifiers(
   sourceText: string,
   fileName: string,
   fileExists: (distRelativePath: string) => boolean,
-): { text: string; edits: DtsSpecifierEdit[] } {
-  const specs = collectModuleSpecifiers(sourceText, fileName);
+): Promise<{ text: string; edits: DtsSpecifierEdit[] }> {
+  const specs = await collectModuleSpecifiers(sourceText, fileName);
   const edits: DtsSpecifierEdit[] = [];
   let text = sourceText;
   for (const spec of [...specs].reverse()) {

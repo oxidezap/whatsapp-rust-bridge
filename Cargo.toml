@@ -96,16 +96,16 @@ legacy-session = ["whatsapp-rust/legacy-session-interop"]
 memory-profiling = ["dep:tracing", "dep:tracing-core", "whatsapp-rust/tracing"]
 
 [dependencies]
-anyhow = { version = "1.0", default-features = false }
+anyhow = { version = "1.0.104", default-features = false }
 async-channel = { version = "2.5.0", default-features = false, features = ["std"] }
-async-lock = { version = "3", default-features = false }
-async-trait = "0.1.89"
+async-lock = { version = "3.4.2", default-features = false }
+async-trait = "0.1.92"
 base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
-bytes = { version = "1.11", default-features = false }
-console_error_panic_hook = "0.1"
-console_log = { version = "1", features = ["color"] }
-futures = { version = "0.3", default-features = false, features = ["alloc", "async-await"] }
-getrandom = { version = "0.4", features = ["wasm_js"] }
+bytes = { version = "1.12.1", default-features = false }
+console_error_panic_hook = "0.1.7"
+console_log = { version = "1.1.0", features = ["color"] }
+futures = { version = "0.3.34", default-features = false, features = ["alloc", "async-await"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
 # Ensure all getrandom usages (including via rand in whatsapp-rust) get wasm_js support
 # This doesn't modify whatsapp-rust — Cargo unifies features across the dependency graph
 image = { version = "0.25.10", default-features = false, features = [
@@ -114,43 +114,43 @@ image = { version = "0.25.10", default-features = false, features = [
     "webp",
 ], optional = true }
 
-img-parts = { version = "0.4", default-features = false, optional = true }
-js-sys = "0.3"
-log = "0.4"
-serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+img-parts = { version = "0.4.1", default-features = false, optional = true }
+js-sys = "0.3.107"
+log = "0.4.35"
+serde = { version = "1.0.229", default-features = false, features = ["derive", "alloc"] }
 serde-wasm-bindgen = "0.6.5"
-serde_bytes = "0.11"
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-symphonia = { version = "0.6.0", default-features = false, features = [
+serde_bytes = "0.11.19"
+serde_json = { version = "1.0.154", default-features = false, features = ["alloc"] }
+symphonia = { version = "0.6.1", default-features = false, features = [
     "mp3",
     "aac",
     "isomp4",
     "ogg",
 ], optional = true }
-thiserror = { version = "2.0.18", default-features = false }
+thiserror = { version = "2.0.21", default-features = false }
 tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
-tsify = { version = "0.5.6", default-features = false, features = ["js"] }
-uuid = { version = "1.23.1", default-features = false, features = ["v4", "js"] }
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }
+uuid = { version = "1.29.0", default-features = false, features = ["v4", "js"] }
 
-wasm-bindgen = "0.2.128"
-wasm-bindgen-futures = "0.4.71"
-wasm-streams = "0.7"
-web-sys = { version = "0.3", features = [
+wasm-bindgen = "0.2.130"
+wasm-bindgen-futures = "0.4.80"
+wasm-streams = "0.7.0"
+web-sys = { version = "0.3.107", features = [
     "ReadableStream",
     "ReadableStreamDefaultReader",
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "633f01480fe3a95510172c6312d01484563dcf3c", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "4e3c8fb12f006284415b60287eeae8fdab7e5a22", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
 # builds for wasm32 (no native test harness). The test modules alias
 # `#[test]` -> `#[wasm_bindgen_test]`, so there is no per-test annotation churn.
 [dev-dependencies]
-flate2 = "1"
-wasm-bindgen-test = "0.3"
+flate2 = "1.1.10"
+wasm-bindgen-test = "0.3.80"
 
 [profile.release]
 lto = "fat"

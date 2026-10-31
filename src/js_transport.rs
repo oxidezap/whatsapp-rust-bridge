@@ -27,6 +27,7 @@ use whatsapp_rust::wacore::net::{DisconnectReason, Transport, TransportEvent, Tr
 /// ordinary callback is still awaited to completion.
 pub(crate) struct HostCallbackState {
     next_id: AtomicUsize,
+    event_streams: Mutex<Vec<async_channel::WeakSender<TransportEvent>>>,
     cancel: Mutex<Option<(usize, futures::channel::oneshot::Sender<()>)>>,
 }
 
@@ -34,7 +35,24 @@ impl HostCallbackState {
     fn new() -> Self {
         Self {
             next_id: AtomicUsize::new(0),
+            event_streams: Mutex::new(Vec::new()),
             cancel: Mutex::new(None),
+        }
+    }
+
+    fn register_event_stream(&self, sender: &async_channel::Sender<TransportEvent>) {
+        let mut streams = self.event_streams.lock().unwrap_or_else(|p| p.into_inner());
+        streams.retain(|stream| stream.upgrade().is_some_and(|sender| !sender.is_closed()));
+        streams.push(sender.downgrade());
+    }
+
+    pub(crate) fn close_event_streams(&self) {
+        let streams =
+            core::mem::take(&mut *self.event_streams.lock().unwrap_or_else(|p| p.into_inner()));
+        for stream in streams {
+            if let Some(sender) = stream.upgrade() {
+                sender.close();
+            }
         }
     }
 
@@ -299,6 +317,9 @@ impl TransportFactory for JsTransportFactory {
         log::debug!("JsTransportFactory::create_transport called");
         // Sized for burst absorption; overflow is a real lag signal, not noise.
         let (event_tx, event_rx) = async_channel::bounded(32768);
+        self.callbacks
+            .callback_state
+            .register_event_stream(&event_tx);
         let handle = create_js_handle(event_tx);
 
         log::debug!("Calling JS connect(handle)...");
