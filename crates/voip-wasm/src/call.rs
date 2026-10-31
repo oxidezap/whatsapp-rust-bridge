@@ -64,7 +64,7 @@ pub struct LiveCall {
     muted: bool,
 }
 
-/// The nine push callbacks `open_async` installs, one per push opcode.
+/// The push callbacks `open_async` installs, one per push opcode.
 /// `pub` because `open_async` in the crate root builds it.
 pub struct PushSinks {
     pub event: Arc<dyn Fn(SessionId, AbiEvent) + Send + Sync>,
@@ -137,6 +137,7 @@ impl LiveCall {
         let (timed_video_tx, timed_video_rx) = async_channel::bounded(MEDIA_QUEUE_CAPACITY);
         let mic_drain = mic_rx.clone();
         let encoded_drain = enc_rx.clone();
+        let terminal_events = ev_tx.clone();
         let channels = CallChannels {
             mic: mic_rx,
             speaker: spk_tx,
@@ -156,9 +157,12 @@ impl LiveCall {
             let transport = dialed.transport.clone();
             let relay_events = dialed.relay_events.clone();
             async move {
-                let _reason =
+                let reason =
                     wacore::voip::driver::run_call(rt, transport, relay_events, channels, engine)
                         .await;
+                // The portable driver returns some terminal reasons without an
+                // engine Closed event. Publish those through the same ordered fan.
+                let _ = terminal_events.force_send(MediaEvent::Closed(reason));
             }
         };
         #[cfg(target_arch = "wasm32")]
@@ -200,28 +204,15 @@ impl LiveCall {
         video_out: async_channel::Receiver<wacore::voip_control::ports::VideoFrame>,
         sinks: PushSinks,
     ) -> wacore::runtime::AbortHandle {
+        spawn_event_fan(self.id, self.events.clone(), self.stats.clone(), &sinks);
         let PushSinks {
-            event: push_event,
+            event: _,
             stats: push_stats,
             pcm: push_pcm,
             encoded: push_encoded,
             video: push_video,
-            ended: push_ended,
+            ended: _,
         } = sinks;
-        let id = self.id;
-        let events = self.events.clone();
-        wasm_bindgen_futures::spawn_local(async move {
-            while let Ok(event) = events.recv().await {
-                if let MediaEvent::Closed(reason) = &event {
-                    let (wire, detail) = close_reason_to_wire(reason);
-                    push_ended(id, wire, detail);
-                    break;
-                }
-                if let Some(wire) = event_to_wire(&event) {
-                    push_event(id, wire);
-                }
-            }
-        });
         let id = self.id;
         wasm_bindgen_futures::spawn_local(async move {
             let mut seq = 0u32;
@@ -489,6 +480,30 @@ impl Drop for LiveCall {
         self.task.abort();
         self._stats_task.abort();
     }
+}
+
+fn spawn_event_fan(
+    id: SessionId,
+    events: async_channel::Receiver<MediaEvent>,
+    stats: Arc<media_stats::MediaStatsCell>,
+    sinks: &PushSinks,
+) {
+    let push_event = sinks.event.clone();
+    let push_stats = sinks.stats.clone();
+    let push_ended = sinks.ended.clone();
+    wasm_bindgen_futures::spawn_local(async move {
+        while let Ok(event) = events.recv().await {
+            if let MediaEvent::Closed(reason) = &event {
+                let (wire, detail) = close_reason_to_wire(reason);
+                push_stats(id, stats_to_wire(&stats.snapshot()));
+                push_ended(id, wire, detail);
+                break;
+            }
+            if let Some(wire) = event_to_wire(&event) {
+                push_event(id, wire);
+            }
+        }
+    });
 }
 
 /// The counters fan polls the cell the drive loop publishes into. Unlike the
@@ -1115,6 +1130,150 @@ pub(crate) mod tests {
             [0x90]
         );
         assert!(encoded_input_packet(&[0x08, 1, 2], true).is_none());
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    mod terminal_tests {
+        use super::*;
+        use std::sync::Mutex;
+        use wasm_bindgen::JsCast;
+        use wasm_bindgen_test::wasm_bindgen_test;
+
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        enum Push {
+            Stats(StatsData),
+            Ended,
+        }
+
+        fn sinks(
+            log: Arc<Mutex<Vec<Push>>>,
+            ended: futures::channel::oneshot::Sender<()>,
+        ) -> PushSinks {
+            let stats_log = log.clone();
+            let ended = Arc::new(Mutex::new(Some(ended)));
+            PushSinks {
+                event: Arc::new(|_, _| {}),
+                stats: Arc::new(move |_, stats| stats_log.lock().unwrap().push(Push::Stats(stats))),
+                pcm: Arc::new(|_, _, _| {}),
+                encoded: Arc::new(|_, _, _| {}),
+                video: Arc::new(|_, _, _| {}),
+                ended: Arc::new(move |_, _, _| {
+                    log.lock().unwrap().push(Push::Ended);
+                    if let Some(sender) = ended.lock().unwrap().take() {
+                        let _ = sender.send(());
+                    }
+                }),
+            }
+        }
+
+        async fn wait_ended(ended: futures::channel::oneshot::Receiver<()>) {
+            let timeout = set_timeout_ms(250);
+            futures::pin_mut!(ended, timeout);
+            assert!(
+                matches!(
+                    futures::future::select(ended, timeout).await,
+                    futures::future::Either::Left((Ok(()), _))
+                ),
+                "terminal notification did not arrive before a periodic stats tick"
+            );
+        }
+
+        #[wasm_bindgen_test(async)]
+        async fn terminal_event_flushes_fresh_stats_before_ended() {
+            for previous_tick in [false, true] {
+                let id = SessionId {
+                    handle: 71,
+                    generation: 91,
+                };
+                #[allow(clippy::arc_with_non_send_sync)]
+                let stats = Arc::new(media_stats::MediaStatsCell::default());
+                let log = Arc::new(Mutex::new(Vec::new()));
+                let (ended_tx, ended_rx) = futures::channel::oneshot::channel();
+                let sinks = sinks(log.clone(), ended_tx);
+                if previous_tick {
+                    (sinks.stats)(
+                        id,
+                        StatsData {
+                            rtp_received: 1,
+                            ..StatsData::default()
+                        },
+                    );
+                }
+                stats.publish(
+                    wacore::voip_control::MediaStats::builder()
+                        .rtp_received(7)
+                        .audio_frames_delivered(3)
+                        .build(),
+                );
+                let (sender, events) = async_channel::bounded(1);
+                spawn_event_fan(id, events, stats.clone(), &sinks);
+                sender
+                    .send(MediaEvent::Closed(MediaCloseReason::Local))
+                    .await
+                    .unwrap();
+                wait_ended(ended_rx).await;
+                let pushes = log.lock().unwrap().clone();
+                assert_eq!(pushes.last(), Some(&Push::Ended));
+                assert!(
+                    matches!(&pushes[pushes.len()-2], Push::Stats(snapshot) if snapshot.rtp_received == 7 && snapshot.audio_frames_delivered == 3)
+                );
+                // The pushed snapshot owns its values beyond engine teardown.
+                stats.publish(wacore::voip_control::MediaStats::default());
+                assert_eq!(*log.lock().unwrap(), pushes);
+            }
+        }
+
+        #[wasm_bindgen_test(async)]
+        async fn relay_disconnect_reports_final_counters_without_an_engine_closed_event() {
+            let transport = js_sys::Function::new_no_args("return {events:null,connect(_endpoint,events){this.events=events;return Promise.resolve({send(){},reconnect(){},close(){}});}};")
+                .call0(&wasm_bindgen::JsValue::UNDEFINED).unwrap();
+            relay::set_relay_transport(transport.clone()).unwrap();
+            let id = SessionId {
+                handle: 72,
+                generation: 92,
+            };
+            let log = Arc::new(Mutex::new(Vec::new()));
+            let (ended_tx, ended_rx) = futures::channel::oneshot::channel();
+            let live = LiveCall::open(
+                id,
+                "terminal-stats".to_owned(),
+                open_params(),
+                sinks(log.clone(), ended_tx),
+            )
+            .await
+            .unwrap();
+            let events = js_sys::Reflect::get(&transport, &"events".into()).unwrap();
+            let packet: js_sys::Function = js_sys::Reflect::get(&events, &"onPacket".into())
+                .unwrap()
+                .unchecked_into();
+            packet
+                .call1(&events, &js_sys::Uint8Array::from(&[0xff][..]))
+                .unwrap();
+            for _ in 0..100 {
+                if live.stats().relay_packet_unclassified > 0 {
+                    break;
+                }
+                set_timeout_ms(1).await;
+            }
+            assert!(
+                live.stats().relay_packet_unclassified > 0,
+                "the real driver counted the injected local packet"
+            );
+            let close: js_sys::Function = js_sys::Reflect::get(&events, &"onClose".into())
+                .unwrap()
+                .unchecked_into();
+            close
+                .call1(&events, &wasm_bindgen::JsValue::UNDEFINED)
+                .unwrap();
+            wait_ended(ended_rx).await;
+            let pushes = log.lock().unwrap().clone();
+            assert_eq!(pushes.last(), Some(&Push::Ended));
+            assert!(
+                matches!(&pushes[pushes.len()-2], Push::Stats(snapshot) if snapshot.relay_packet_unclassified > 0)
+            );
+            drop(live);
+            assert_eq!(*log.lock().unwrap(), pushes);
+        }
     }
 
     use wacore::voip::engine::{Input, Output, SequentialTxIds};

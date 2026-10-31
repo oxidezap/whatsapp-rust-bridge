@@ -2380,7 +2380,7 @@ impl EventNotification {
 /// Per-call media counters, mirroring the core's neutral stats record field
 /// for field. The core caches the latest push per session and serves reads
 /// locally, so stats never poll across the boundary.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct StatsData {
     /// RTP packets received.
     pub rtp_received: u32,

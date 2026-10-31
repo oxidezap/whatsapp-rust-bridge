@@ -757,28 +757,7 @@ fn on_video_in(req: &Frame) -> Frame {
 /// Zero counters: the stub engine has counted nothing. The shape the core
 /// caches, with no counters invented.
 fn zero_stats() -> StatsData {
-    StatsData {
-        rtp_received: 0,
-        rtp_payload_type_unexpected: 0,
-        srtp_unprotect_failed: 0,
-        sframe_decrypt_failed: 0,
-        audio_frames_decoded: 0,
-        audio_frames_delivered: 0,
-        audio_frames_concealed: 0,
-        mlow_off_point_dropped: 0,
-        mlow_inactive_or_sid: 0,
-        foreign_frames_decoded: 0,
-        audio_frames_without_decoder: 0,
-        outbound_frames_without_encoder: 0,
-        playout_trimmed_samples: 0,
-        inbound_pipe_dropped: 0,
-        audio_sink_dropped: 0,
-        video_sink_dropped: 0,
-        peer_keyframe_requests: 0,
-        relay_packet_unclassified: 0,
-        forwarding_envelope_rejected: 0,
-        codec_switches: 0,
-    }
+    StatsData::default()
 }
 
 /// Maps a session-table refusal onto the wire grammar: unknown handles

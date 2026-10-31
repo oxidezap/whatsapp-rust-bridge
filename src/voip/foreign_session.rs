@@ -296,9 +296,12 @@ impl ForeignVoipSession {
         if self.remote_ended.swap(true, Ordering::SeqCst) {
             return;
         }
-        let _ = self.publish_event(vc::MediaEvent::Closed(conv::close_reason_from_abi(
-            reason, detail,
-        )));
+        // Terminal state must survive a full diagnostics queue.
+        let _ = self
+            .events_tx
+            .force_send(vc::MediaEvent::Closed(conv::close_reason_from_abi(
+                reason, detail,
+            )));
         <Self as vc::VoipMediaSession>::close(self, conv::close_reason_from_abi(reason, detail));
     }
 
@@ -362,8 +365,8 @@ impl ForeignVoipSession {
         }
     }
 
-    /// Handles one engine-raised event: codec switches refresh the format
-    /// cache, `Closed` follows the remote-ended path, the rest publishes.
+    /// Handles one engine-raised event. Closed follows the remote-ended
+    /// path; other diagnostics publish without changing per-frame formats.
     fn on_event(&self, event: abi::AbiEvent) {
         if let abi::AbiEvent::MediaSetupFailed(detail) = &event {
             *self.open_failure.lock().unwrap() = Some(detail.clone());

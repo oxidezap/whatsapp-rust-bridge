@@ -702,6 +702,34 @@ async fn remote_end_closes_the_stream_and_runs_teardown() {
             .1;
         abi::ReserveRequest::decode(body).unwrap().session
     };
+    for _ in 0..=events.capacity().unwrap() {
+        push_frame(
+            &state,
+            &abi::Frame::request(
+                abi::Opcode::Event,
+                abi::EventNotification {
+                    session: id,
+                    event: abi::AbiEvent::RelayAllocated,
+                }
+                .encode(),
+            ),
+        );
+    }
+    push_frame(
+        &state,
+        &abi::Frame::request(
+            abi::Opcode::Stats,
+            abi::StatsPush {
+                session: id,
+                stats: abi::StatsData {
+                    rtp_received: 9,
+                    audio_frames_delivered: 7,
+                    ..abi::StatsData::default()
+                },
+            }
+            .encode(),
+        ),
+    );
     push_frame(
         &state,
         &abi::Frame::request(
@@ -714,8 +742,31 @@ async fn remote_end_closes_the_stream_and_runs_teardown() {
             .encode(),
         ),
     );
-    assert!(matches!(events.recv().await, Ok(vc::MediaEvent::Closed(_))));
-    assert!(events.recv().await.is_err());
+    let mut terminal_events = 0;
+    while let Ok(event) = events.recv().await {
+        if matches!(event, vc::MediaEvent::Closed(_)) {
+            terminal_events += 1;
+        }
+    }
+    assert_eq!(
+        terminal_events, 1,
+        "terminal state survives the full diagnostics queue"
+    );
+    assert_eq!(session.stats().rtp_received, 9);
+    assert_eq!(session.stats().audio_frames_delivered, 7);
+    // Pruned late pushes cannot erase the terminal snapshot retained by the handle.
+    push_frame(
+        &state,
+        &abi::Frame::request(
+            abi::Opcode::Stats,
+            abi::StatsPush {
+                session: id,
+                stats: abi::StatsData::default(),
+            }
+            .encode(),
+        ),
+    );
+    assert_eq!(session.stats().rtp_received, 9);
     assert_eq!(ran.load(std::sync::atomic::Ordering::SeqCst), 1);
     session.close(vc::MediaCloseReason::Local);
     assert_eq!(ran.load(std::sync::atomic::Ordering::SeqCst), 1);

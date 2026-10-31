@@ -84,14 +84,7 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
     tx.try_send(RelayTransportEvent::Connected).ok();
     let closing = pipe.clone();
     let close: wacore::voip_control::VideoTeardownHook = Box::new(move || {
-        if let Ok(result) = closing.close.call0(&closing.this) {
-            #[cfg(target_arch = "wasm32")]
-            wasm_bindgen_futures::spawn_local(async move {
-                let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
-            });
-            #[cfg(not(target_arch = "wasm32"))]
-            let _ = result;
-        }
+        close_detached(&closing.close, &closing.this);
     });
     Ok(Dialed {
         close,
@@ -255,6 +248,17 @@ struct JsPipe {
     this: JsValue,
 }
 
+fn close_detached(close: &js_sys::Function, receiver: &JsValue) {
+    if let Ok(result) = close.call0(receiver) {
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
+        });
+        #[cfg(not(target_arch = "wasm32"))]
+        let _ = result;
+    }
+}
+
 impl JsPipe {
     fn from_value(value: &JsValue) -> Result<Self, String> {
         let get = |name: &str| {
@@ -263,10 +267,20 @@ impl JsPipe {
                 .and_then(|v| v.dyn_into::<js_sys::Function>().ok())
                 .ok_or_else(|| format!("relay connection has no {name}"))
         };
+        let close = get("close")?;
+        let methods =
+            get("send").and_then(|send| get("reconnect").map(|reconnect| (send, reconnect)));
+        let (send, reconnect) = match methods {
+            Ok(methods) => methods,
+            Err(error) => {
+                close_detached(&close, value);
+                return Err(error);
+            }
+        };
         Ok(JsPipe {
-            send: get("send")?,
-            close: get("close")?,
-            reconnect: get("reconnect")?,
+            send,
+            close,
+            reconnect,
             this: value.clone(),
         })
     }
@@ -331,4 +345,58 @@ impl RelayTransport for ConnectedPipe {
         anyhow::bail!("JS relay requires wasm32")
     }
     async fn disconnect(&self) {}
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn invalid_opened_connections_close_once_with_their_receiver() {
+        let make = js_sys::Function::new_no_args(
+            "return {closed:0,send(){},reconnect(){},close(){this.closed++;return Promise.resolve();}};",
+        );
+        for method in ["send", "reconnect"] {
+            for kind in 0..3 {
+                let handle: js_sys::Object =
+                    make.call0(&JsValue::UNDEFINED).unwrap().unchecked_into();
+                if kind == 2 {
+                    let descriptor = js_sys::Object::new();
+                    js_sys::Reflect::set(
+                        &descriptor,
+                        &"get".into(),
+                        &js_sys::Function::new_no_args("throw new Error('bad getter');"),
+                    )
+                    .unwrap();
+                    js_sys::Object::define_property(&handle, &method.into(), &descriptor);
+                } else {
+                    let value = if kind == 0 {
+                        JsValue::UNDEFINED
+                    } else {
+                        42.into()
+                    };
+                    js_sys::Reflect::set(&handle, &method.into(), &value).unwrap();
+                }
+                let error = JsPipe::from_value(&handle)
+                    .err()
+                    .expect("invalid method refused");
+                assert!(error.contains(method));
+                assert_eq!(
+                    js_sys::Reflect::get(&handle, &"closed".into())
+                        .unwrap()
+                        .as_f64(),
+                    Some(1.0)
+                );
+            }
+        }
+        let valid = make.call0(&JsValue::UNDEFINED).unwrap();
+        assert!(JsPipe::from_value(&valid).is_ok());
+        assert_eq!(
+            js_sys::Reflect::get(&valid, &"closed".into())
+                .unwrap()
+                .as_f64(),
+            Some(0.0)
+        );
+    }
 }
