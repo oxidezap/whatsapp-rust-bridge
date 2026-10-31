@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as ts from "./typescript-api";
 
 interface Token {
   kind: ts.SyntaxKind;
@@ -10,9 +10,9 @@ const whitespace = (kind: ts.SyntaxKind) =>
   kind === ts.SyntaxKind.WhitespaceTrivia || kind === ts.SyntaxKind.NewLineTrivia;
 
 function tokens(text: string): Token[] {
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, text);
+  const scanner = ts.createScanner(false, ts.LanguageVariant.Standard, text);
   const out: Token[] = [];
-  for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFileToken; kind = scanner.scan()) {
+  for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) {
     out.push({ kind, text: scanner.getTokenText() });
   }
   return out;

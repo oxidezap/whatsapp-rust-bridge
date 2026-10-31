@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as ts from "./typescript-api";
 
 const UNKNOWN_BODY = [
   "if (tag >>> 3 === 0 || (tag & 7) === 4) {",
@@ -37,12 +37,12 @@ export interface SharingReport {
 }
 
 /** Share only post-value operations; all fresh base construction and field reads stay ordered. */
-export function shareProtoPrivateWork(source: string): SharingReport {
-  const original = ts.createSourceFile("whatsapp.ts", source, ts.ScriptTarget.Latest, false);
+export async function shareProtoPrivateWork(source: string): Promise<SharingReport> {
+  const original = await ts.createSourceFile("whatsapp.ts", source);
   const declarations = new Set<string>();
   const addBinding = (name: ts.BindingName): void => {
     if (ts.isIdentifier(name)) declarations.add(name.text);
-    else for (const element of name.elements) if (ts.isBindingElement(element)) addBinding(element.name);
+    else for (const element of name.elements) if (ts.isBindingElement(element) && element.name) addBinding(element.name);
   };
   for (const statement of original.statements) {
     if (ts.isVariableStatement(statement)) {
@@ -53,7 +53,7 @@ export function shareProtoPrivateWork(source: string): SharingReport {
       if (bindings && ts.isNamespaceImport(bindings)) addBinding(bindings.name);
       else if (bindings) for (const element of bindings.elements) addBinding(element.name);
     } else {
-      const name = (statement as ts.Statement & ts.NamedDeclaration).name;
+      const name = (statement as ts.Statement & { name?: ts.DeclarationName }).name;
       if (name && ts.isIdentifier(name)) declarations.add(name.text);
     }
   }
@@ -68,7 +68,7 @@ export function shareProtoPrivateWork(source: string): SharingReport {
     return indent + UNKNOWN_CALL;
   });
   if (!loops || unknownEpilogues !== loops) throw new Error(`unknown framing shape drift (${unknownEpilogues}/${loops})`);
-  const file = ts.createSourceFile("whatsapp.ts", text, ts.ScriptTarget.Latest, true);
+  const file = await ts.createSourceFile("whatsapp.ts", text);
   const edits: { start: number; end: number; text: string }[] = [];
   const keys: string[] = [];
   let scalarRuns = 0;

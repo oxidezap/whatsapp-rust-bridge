@@ -49,12 +49,19 @@ function gatedTransport() {
   const enteredGate = new Promise<void>((resolve) => {
     entered = resolve;
   });
+  let sent!: () => void;
+  const handshakeSent = new Promise<void>(resolve => { sent = resolve; });
+  // Keep handles reachable so completion cannot depend on JS garbage collection.
+  const handles: unknown[] = [];
   return {
+    handles,
     entered: enteredGate,
-    connect() {
+    handshakeSent,
+    connect(handle: unknown) {
+      handles.push(handle);
       entered();
     },
-    send() {},
+    send() { sent(); },
     disconnect() {},
   };
 }
@@ -150,8 +157,8 @@ describe("run completion observation", () => {
     const client = await createWhatsAppClient(transport, failingHttp());
     try {
       client.run();
-      // The run task provably began: the core attempted its first connect.
-      await withLimit(transport.entered, 5000, "run task start");
+      // Wait for the handshake write, beyond the unpublished transport window.
+      await withLimit(transport.handshakeSent, 5000, "handshake write");
       const waiting = client.waitForRunCompletion();
       // disconnect() must settle while the observation is still pending: the
       // wait holds no borrow that stops another call from reaching the client.

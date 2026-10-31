@@ -12,28 +12,8 @@
  */
 import { packedContents } from "./pack";
 
-/**
- * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
- * drift above — enough that ordinary work does not trip it, tight enough that
- * a jump does.
- *
- * Raised from 7,500,000 when the core regenerated its whatspec bundle at
- * 2.3000.1044659339: a WhatsApp schema release adds messages and enums across
- * the proto, and the derived declarations and codec grow with it. That is the
- * one kind of growth this budget cannot ask anyone to trim, so it buys the same
- * headroom again over the new floor rather than tracking it.
- *
- * Raised from 7,900,000 for the same reason at 2.3000.1045368834, which grew
- * the package by 217,140 bytes across `index.js` and `proto-types.d.ts` and
- * left the wasm 791 bytes smaller. Same headroom over the new floor.
- *
- * Raised again for the second WASM artifact: the package now also ships the
- * BoltFFI backend under `dist/boltffi/`, which is bytes the budget was never
- * sized for. That artifact measures 297,185 bytes, so this is the previous
- * 8,300,000 plus 300,000 — the headroom over the wasm-bindgen floor is the
- * same as before, and that artifact's own drift is still measured against the
- * same slope rather than hidden by the increase.
- */
+// Keep the PR's existing gate while the merged toolchain's release footprint
+// and the opt-in BoltFFI artifact are qualified together.
 const MAX_UNPACKED_BYTES = 8_600_000;
 
 const { files, unpackedSize: total } = packedContents();

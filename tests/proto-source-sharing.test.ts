@@ -54,7 +54,7 @@ export const Mixed = {
 `;
 
 async function modules(source = SOURCE) {
-  const shared = shareProtoPrivateWork(source);
+  const shared = await shareProtoPrivateWork(source);
   const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
   const load = (source: string) => import(`data:text/javascript;base64,${Buffer.from(transpiler.transformSync(source)).toString("base64")}`);
   const original = await load(source);
@@ -232,12 +232,12 @@ test("helper reservations apply to module declarations, not schema fields or com
       `\n// ${name} is a permitted field, not a module declaration\n`;
     const { original, candidate } = await modules(source);
     expect(candidate.Leaf.fromPartial({ [name]: 9 })).toEqual(original.Leaf.fromPartial({ [name]: 9 }));
-    expect(() => shareProtoPrivateWork(SOURCE + `\nconst ${name} = 1;`)).toThrow("helper collision");
+    expect(await shareProtoPrivateWork(SOURCE + `\nconst ${name} = 1;`).then(() => "unexpected success", error => error.message)).toContain("helper collision");
   }
 });
 
-test("sharing refuses changed generator shapes instead of silently omitting work", () => {
-  expect(() => shareProtoPrivateWork(SOURCE.replace("return Leaf.fromPartial(base ?? {});", "return Leaf.fromPartial(base);"))).toThrow("create method changed");
-  expect(() => shareProtoPrivateWork(SOURCE.replace("reader.skip(tag & 7);", "reader.skip(0);"))).toThrow("framing shape drift");
-  expect(() => shareProtoPrivateWork(SOURCE.replace("const message = createBaseMixed();", "const message = {};"))).toThrow("base construction changed");
+test("sharing refuses changed generator shapes instead of silently omitting work", async () => {
+  expect(await shareProtoPrivateWork(SOURCE.replace("return Leaf.fromPartial(base ?? {});", "return Leaf.fromPartial(base);")).then(() => "unexpected success", error => error.message)).toContain("create method changed");
+  expect(await shareProtoPrivateWork(SOURCE.replace("reader.skip(tag & 7);", "reader.skip(0);")).then(() => "unexpected success", error => error.message)).toContain("framing shape drift");
+  expect(await shareProtoPrivateWork(SOURCE.replace("const message = createBaseMixed();", "const message = {};")).then(() => "unexpected success", error => error.message)).toContain("base construction changed");
 });

@@ -599,7 +599,7 @@ try {
 		countPackableRepeatedFields(descriptor)
 	)
 	generatedSource = rejectIllegalTags(generatedSource)
-	const shared = shareProtoPrivateWork(generatedSource)
+	const shared = await shareProtoPrivateWork(generatedSource)
 	generatedSource = shared.text
 	assertWireTypeGuards(generatedSource, descriptor)
 	console.log(`Shared ${shared.unknownEpilogues} framing tails, ${shared.scalarRuns} scalar runs (${shared.scalarFields} fields), ${shared.createMethods} create tails`)

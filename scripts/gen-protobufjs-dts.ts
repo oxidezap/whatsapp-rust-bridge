@@ -20,7 +20,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
+import * as ts from './typescript-api'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const SRC = join(HERE, '..', 'ts', 'generated', 'whatsapp.ts')
@@ -35,7 +35,7 @@ type Def = EnumDef | InterfaceDef
 // ─── Parse ───────────────────────────────────────────────────────────────
 
 const src = readFileSync(SRC, 'utf8')
-const sourceFile = ts.createSourceFile(SRC, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+const sourceFile = await ts.createSourceFile(SRC, src)
 
 const enumDefs: EnumDef[] = []
 const interfaceDefs: InterfaceDef[] = []
@@ -73,7 +73,7 @@ for (const statement of sourceFile.statements) {
 
 	const fields: FieldDef[] = []
 	for (const member of statement.members) {
-		if (!ts.isPropertySignature(member) || member.type === undefined) {
+		if (!ts.isPropertySignatureDeclaration(member) || member.type === undefined) {
 			throw new Error(`unsupported member in generated interface ${statement.name.text}`)
 		}
 
@@ -90,7 +90,7 @@ for (const statement of sourceFile.statements) {
 		fields.push({
 			name: declarationName(member.name),
 			type: rawType.replace(/\s+/g, ' ').trim(),
-			optional: member.questionToken !== undefined || hasUndefined,
+			optional: member.postfixToken?.kind === ts.SyntaxKind.QuestionToken || hasUndefined,
 			repeated
 		})
 	}
