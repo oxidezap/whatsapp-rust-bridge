@@ -38,6 +38,7 @@ fn catalog() -> Vec<Teardown> {
             publication: Publication::OnOwner,
             completion: Completion::Resolve,
             captures: vec![
+                parse_quote!(transport_callback_state),
                 parse_quote!(teardown_kind),
                 parse_quote!(saver_handle),
                 parse_quote!(connection_handle),
@@ -66,6 +67,7 @@ fn catalog() -> Vec<Teardown> {
             publication: Publication::BeforeFuture,
             completion: Completion::RequireMatchingKind,
             captures: vec![
+                parse_quote!(transport_callback_state),
                 parse_quote!(teardown_kind),
                 parse_quote!(saver_handle),
                 parse_quote!(sync_worker_handle),
@@ -148,6 +150,9 @@ impl Teardown {
                 #assert_owner
                 // The JS teardown contract resolves void; core reports are not exported here.
                 let _ = client.#action().await;
+                // A pending handshake owns a stream the core has not published yet.
+                // Close it after terminal shutdown so retained JS handles cannot keep run() alive.
+                transport_callback_state.close_event_streams();
                 #(#tasks)*
                 teardown_gate.complete();
                 Ok(JsValue::UNDEFINED)
