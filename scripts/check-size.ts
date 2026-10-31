@@ -12,9 +12,9 @@
  */
 import { packedContents } from "./pack";
 
-// Keep the PR's existing gate while the merged toolchain's release footprint
-// and the opt-in BoltFFI artifact are qualified together.
-const MAX_UNPACKED_BYTES = 8_600_000;
+// Main's 8.5 MB gate plus the existing 300 KB BoltFFI allowance.
+// The qualified release measures 8,736,170 bytes, leaving 63,830 bytes.
+const MAX_UNPACKED_BYTES = 8_800_000;
 
 const { files, unpackedSize: total } = packedContents();
 
