@@ -2231,6 +2231,8 @@ pub struct VideoFrameDto {
     pub device: Option<String>,
     /// Relay participant id, if any.
     pub pid: Option<u32>,
+    /// RTP capture timestamp, in the 90 kHz video clock. Added in ABI minor 1.
+    pub timestamp: u32,
 }
 
 impl VideoFrameDto {
@@ -2243,6 +2245,7 @@ impl VideoFrameDto {
         w.option_str(self.sender.as_deref());
         w.option_str(self.device.as_deref());
         encode_option_u32(&mut w, self.pid);
+        w.u32_le(self.timestamp);
         w.finish()
     }
 
@@ -2271,6 +2274,7 @@ impl VideoFrameDto {
             sender: r.option_str()?.map(str::to_owned),
             device: r.option_str()?.map(str::to_owned),
             pid: decode_option_u32(&mut r, "pid")?,
+            timestamp: r.u32_le()?,
         })
     }
 }

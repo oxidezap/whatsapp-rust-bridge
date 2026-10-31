@@ -347,6 +347,7 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
         session.prepare_teardown(ctx.video_teardown.take());
         let params = conv::params_from_spec(&spec, &session.ctx_bits(&ctx, spec.enable_video))?;
         let mut guard = OpenGuard::new(session.clone(), self.inner.clone());
+        session.prepare_sinks(&spec.audio.format, &ctx);
 
         let reserve = abi::ReserveRequest {
             session: session.session_id(),

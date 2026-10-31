@@ -83,6 +83,11 @@ describe("published VoIP facade", () => {
     expect(response.slice(0, 7)).toEqual(hello.slice(0, 7));
     expect(response[7]).toBe(1); // RESPONSE
     expect(response[13]! & 0x01).toBe(0x01); // PCM capability
+    expect(response[13]! & 0x04).toBe(0); // Legacy minor cannot preserve video timestamps.
+    hello[5] = 1;
+    const videoResponse = await engine.voipBackend.sendFrame(hello);
+    expect(videoResponse[5]).toBe(1);
+    expect(videoResponse[13]! & 0x04).toBe(0x04);
   });
 
   test("codec helpers and decoder are live in voip.wasm", () => {

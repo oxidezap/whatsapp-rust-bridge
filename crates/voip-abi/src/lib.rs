@@ -58,7 +58,19 @@ pub use session::{SessionError, SessionId, SessionTable};
 /// Wire major. Any peer whose major differs is incompatible, full stop.
 pub const ABI_MAJOR: u8 = 1;
 /// Wire minor. Additive fields only; decoders ignore trailing payload bytes.
-pub const ABI_MINOR: u8 = 0;
+pub const ABI_MINOR: u8 = 1;
+
+/// Minor that preserves the receive-frame timestamp required by video backends.
+pub const VIDEO_METADATA_MINOR: u8 = 1;
+
+/// Older peers can exchange audio, but cannot preserve video metadata.
+pub fn capabilities_for_minor(capabilities: u32, minor: u8) -> u32 {
+    if minor < VIDEO_METADATA_MINOR {
+        capabilities & !Capabilities::VIDEO
+    } else {
+        capabilities
+    }
+}
 
 /// The minor both sides agree to speak after a successful handshake.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

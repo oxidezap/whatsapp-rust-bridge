@@ -34,6 +34,7 @@ use crate::errors::{BridgeError, invalid_arg};
 /// carry. `RELAY_RECONNECT` stays out: the relay lives engine-side here, so
 /// the bridge must not promise reconnect help it never gives.
 pub const ABI_CAPABILITIES: u32 = voip_abi::Capabilities::PCM
+    | voip_abi::Capabilities::VIDEO
     | voip_abi::Capabilities::ENCODED_AUDIO
     | voip_abi::Capabilities::GROUP_CALLS
     | voip_abi::Capabilities::CALL_LINKS
@@ -203,7 +204,10 @@ pub async fn handshake(callbacks: &VoipBackendCallbacks) -> Result<u32, BridgeEr
             format!("voipBackend handshake misformed: {e}"),
         )
     })?;
-    Ok(hello.capabilities & ABI_CAPABILITIES)
+    Ok(voip_abi::capabilities_for_minor(
+        hello.capabilities & ABI_CAPABILITIES,
+        resp.minor.min(voip_abi::ABI_MINOR),
+    ))
 }
 
 /// Builds the backend, registers its push entry point, and installs it on

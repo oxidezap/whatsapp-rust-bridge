@@ -763,6 +763,7 @@ fn video_frame_to_dto(frame: &wacore::voip_control::ports::VideoFrame) -> VideoF
         sender: frame.sender.as_ref().map(ToString::to_string),
         device: frame.device.as_ref().map(ToString::to_string),
         pid: frame.pid,
+        timestamp: frame.timestamp,
     }
 }
 
@@ -1016,6 +1017,30 @@ fn encoded_input_packet(data: &[u8], opus_mlow_escape: bool) -> Option<Bytes> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    fn video_output_mapper_preserves_owned_access_unit_metadata() {
+        let frame = wacore::voip_control::VideoFrame::builder()
+            .data(vec![0, 0, 0, 1, 0x65, 0x80])
+            .keyframe(true)
+            .orientation(3)
+            .sender("100000000000001@lid".parse().unwrap())
+            .device("100000000000001:2@lid".parse().unwrap())
+            .pid(0)
+            .timestamp(u32::MAX)
+            .generation(42)
+            .build();
+        let dto = video_frame_to_dto(&frame);
+        assert_eq!(VideoFrameDto::decode(&dto.encode()).unwrap(), dto);
+        assert_eq!(dto.data, frame.data);
+        assert_eq!(dto.keyframe, 1);
+        assert_eq!(dto.orientation, 3);
+        assert_eq!(dto.sender, frame.sender.as_ref().map(ToString::to_string));
+        assert_eq!(dto.device, frame.device.as_ref().map(ToString::to_string));
+        assert_eq!(dto.pid, Some(0));
+        assert_eq!(dto.timestamp, u32::MAX);
+    }
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen_test::wasm_bindgen_test(async)]

@@ -34,6 +34,8 @@ struct FakeState {
     push_handler: Arc<Mutex<Option<js_sys::Function>>>,
     hello_caps: u32,
     hello_major: u8,
+    hello_minor: u8,
+    early_video: Option<abi::VideoFrameDto>,
     begin: BeginAnswer,
     fail_reserve: bool,
     command_busy: std::sync::atomic::AtomicUsize,
@@ -52,6 +54,7 @@ impl FakeState {
                     .encode(),
                 );
                 resp.major = self.hello_major;
+                resp.minor = self.hello_minor;
                 resp
             }
             abi::Opcode::Reserve => {
@@ -71,6 +74,20 @@ impl FakeState {
                         // session out of the request and push `OPEN` for it.
                         let req =
                             abi::BeginOpenRequest::decode(&frame.payload).expect("BEGIN_OPEN body");
+                        if let Some(frame) = &self.early_video {
+                            self.push(
+                                &abi::Frame::request(
+                                    abi::Opcode::VideoOut,
+                                    abi::VideoOut {
+                                        session: req.session,
+                                        seq: 0,
+                                        frame: frame.clone(),
+                                    }
+                                    .encode(),
+                                )
+                                .encode(),
+                            );
+                        }
                         let open = abi::Frame::request(
                             abi::Opcode::Open,
                             abi::OpenNotification {
@@ -247,6 +264,8 @@ fn fake_state() -> Arc<Mutex<FakeState>> {
         push_handler: Arc::new(Mutex::new(None)),
         hello_caps: u32::MAX,
         hello_major: abi::ABI_MAJOR,
+        hello_minor: abi::ABI_MINOR,
+        early_video: None,
         begin: BeginAnswer::Ack,
         fail_reserve: false,
         command_busy: std::sync::atomic::AtomicUsize::new(0),
@@ -755,4 +774,156 @@ async fn busy_commands_retry_without_ending_the_session() {
         Err(async_channel::TryRecvError::Empty)
     ));
     session.close(vc::MediaCloseReason::Local);
+}
+
+#[test]
+async fn video_capability_requires_timestamp_metadata_minor() {
+    let state = fake_state();
+    let callbacks = fake_callbacks(state.clone());
+    assert_ne!(
+        handshake(&callbacks).await.unwrap() & abi::Capabilities::VIDEO,
+        0
+    );
+    state.lock().unwrap().hello_minor = 0;
+    let legacy = handshake(&callbacks).await.unwrap();
+    assert_eq!(legacy & abi::Capabilities::VIDEO, 0);
+    assert_ne!(legacy & abi::Capabilities::ENCODED_AUDIO, 0);
+}
+
+#[test]
+async fn video_output_preserves_metadata_and_sheds_without_blocking() {
+    use vc::{VoipMediaBackend, VoipMediaSession};
+    let state = fake_state();
+    let (backend, seen) = backend_with(state.clone(), None);
+    let key = test_key(912);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let mut spec = test_spec(key.clone());
+    spec.enable_video = true;
+    let mut ctx = test_ctx();
+    let (sink, received) = async_channel::bounded(1);
+    ctx.video_channels.video_out = sink;
+    backend.open(spec, ctx).await.unwrap();
+    let id = seen
+        .lock()
+        .unwrap()
+        .iter()
+        .find_map(|(op, payload)| {
+            (*op == abi::Opcode::BeginOpen.as_u8())
+                .then(|| abi::BeginOpenRequest::decode(payload).unwrap().session)
+        })
+        .unwrap();
+    let dto = abi::VideoFrameDto {
+        data: vec![0, 0, 0, 1, 0x65, 0x80],
+        keyframe: 1,
+        orientation: 3,
+        sender: Some("100000000000001@lid".to_owned()),
+        device: Some("100000000000001:2@lid".to_owned()),
+        pid: Some(0),
+        timestamp: u32::MAX,
+    };
+    let push = |session, frame: abi::VideoFrameDto| {
+        push_frame(
+            &state,
+            &abi::Frame::request(
+                abi::Opcode::VideoOut,
+                abi::VideoOut {
+                    session,
+                    seq: 7,
+                    frame,
+                }
+                .encode(),
+            ),
+        )
+    };
+    // Invalid identities and payloads cannot consume the bounded sink.
+    push(
+        abi::SessionId {
+            generation: id.generation + 1,
+            ..id
+        },
+        dto.clone(),
+    );
+    let mut invalid = dto.clone();
+    invalid.sender = Some("invalid jid".to_owned());
+    push(id, invalid);
+    let mut truncated = abi::VideoOut {
+        session: id,
+        seq: 0,
+        frame: dto.clone(),
+    }
+    .encode();
+    truncated.pop();
+    push_frame(
+        &state,
+        &abi::Frame::request(abi::Opcode::VideoOut, truncated),
+    );
+    assert!(received.is_empty());
+    push(id, dto.clone());
+    push(id, dto.clone());
+    assert_eq!(received.len(), 1);
+    assert_eq!(session.stats().video_sink_dropped, 1);
+    let owned = received.try_recv().unwrap();
+    assert_eq!(owned.data, dto.data);
+    assert!(owned.keyframe);
+    assert_eq!(owned.orientation, 3);
+    assert_eq!(
+        owned.sender.as_ref().unwrap().to_string(),
+        dto.sender.unwrap()
+    );
+    assert_eq!(
+        owned.device.as_ref().unwrap().to_string(),
+        dto.device.unwrap()
+    );
+    assert_eq!(owned.pid, Some(0));
+    assert_eq!(owned.timestamp, u32::MAX);
+    assert_eq!(owned.generation, key.generation);
+    let minimal = abi::VideoFrameDto {
+        data: vec![0, 0, 0, 1, 0x41],
+        keyframe: 0,
+        orientation: 0,
+        sender: None,
+        device: None,
+        pid: None,
+        timestamp: 0,
+    };
+    push(id, minimal.clone());
+    let direct = received.try_recv().unwrap();
+    assert!(direct.sender.is_none() && direct.device.is_none() && direct.pid.is_none());
+    assert_eq!(direct.timestamp, 0);
+    assert!(!direct.keyframe);
+    session.close(vc::MediaCloseReason::Local);
+    push(id, minimal);
+    assert!(received.is_empty());
+    assert!(received.is_closed());
+    assert_eq!(owned.data, [0, 0, 0, 1, 0x65, 0x80]);
+}
+
+#[test]
+async fn video_sink_is_ready_before_open_notification() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    state.lock().unwrap().early_video = Some(abi::VideoFrameDto {
+        data: vec![0, 0, 0, 1, 0x65],
+        keyframe: 1,
+        orientation: 0,
+        sender: None,
+        device: None,
+        pid: None,
+        timestamp: 1920,
+    });
+    let (backend, _) = backend_with(state, None);
+    let key = test_key(913);
+    let _session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let mut spec = test_spec(key);
+    spec.enable_video = true;
+    let mut ctx = test_ctx();
+    let (sink, frames) = async_channel::bounded(1);
+    ctx.video_channels.video_out = sink;
+    backend.open(spec, ctx).await.unwrap();
+    let first = frames
+        .try_recv()
+        .expect("first keyframe emitted before OPEN is retained");
+    assert_eq!(first.timestamp, 1920);
+    assert_eq!(first.generation, 913);
+    assert!(first.keyframe);
 }

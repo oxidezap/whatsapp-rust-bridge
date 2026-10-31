@@ -44,6 +44,7 @@ use wasm_bindgen::prelude::*;
 /// which redials out of band, so this side must not promise reconnect help
 /// it never gives. Mirrors `ABI_CAPABILITIES` on the core side.
 const ENGINE_CAPABILITIES: u32 = Capabilities::PCM
+    | Capabilities::VIDEO
     | Capabilities::ENCODED_AUDIO
     | Capabilities::GROUP_CALLS
     | Capabilities::CALL_LINKS
@@ -70,6 +71,7 @@ struct EngineSession {
 struct State {
     /// The minor both sides agreed to speak, once the handshake ran.
     agreed_minor: Option<u8>,
+    agreed_capabilities: u32,
     /// Handle-to-reservation registry with generation checks.
     sessions: SessionTable,
     /// The live sessions behind the reserved handles.
@@ -80,6 +82,7 @@ impl State {
     fn new() -> Self {
         State {
             agreed_minor: None,
+            agreed_capabilities: 0,
             sessions: SessionTable::new(),
             live: HashMap::new(),
         }
@@ -145,10 +148,12 @@ pub fn init(abi_major: u32, abi_minor: u32) -> Result<js_sys::Uint8Array, JsValu
         .map_err(|e| JsValue::from_str(&format!("voip ABI handshake refused: {e}")))?;
     if let Ok(mut st) = state().lock() {
         st.agreed_minor = Some(agreed.minor);
+        st.agreed_capabilities =
+            voip_abi::capabilities_for_minor(ENGINE_CAPABILITIES, agreed.minor);
     }
     Ok(js_sys::Uint8Array::from(
         HelloResponse {
-            capabilities: ENGINE_CAPABILITIES,
+            capabilities: voip_abi::capabilities_for_minor(ENGINE_CAPABILITIES, agreed.minor),
         }
         .encode()
         .as_slice(),
@@ -228,24 +233,16 @@ fn on_hello(req: &Frame) -> Frame {
             Some("HELLO speaks another major"),
         );
     }
+    let minor = req.minor.min(ABI_MINOR);
+    let capabilities =
+        voip_abi::capabilities_for_minor(ENGINE_CAPABILITIES & hello.capabilities, minor);
     if let Ok(mut st) = state().lock() {
-        st.agreed_minor = Some(hello_cap_minor(req.minor));
+        st.agreed_minor = Some(minor);
+        st.agreed_capabilities = capabilities;
     }
-    Frame::respond(
-        req,
-        HelloResponse {
-            capabilities: ENGINE_CAPABILITIES,
-        }
-        .encode(),
-    )
-}
-
-/// The minor the two sides speak: the lower of the two, whose reader both
-/// sides already satisfy by ignoring trailing bytes. `ABI_MINOR` is 0, so
-/// the agreement is 0 unconditionally — the `min` only becomes load-bearing
-/// when the local minor moves.
-fn hello_cap_minor(_peer_minor: u8) -> u8 {
-    ABI_MINOR
+    let mut response = Frame::respond(req, HelloResponse { capabilities }.encode());
+    response.minor = minor;
+    response
 }
 
 /// Binds a handle to `(call_id, generation)` before any media message
@@ -295,6 +292,13 @@ fn on_begin_open(req: &Frame) -> Frame {
     };
     let (call_id, params, attempt) = match state().lock() {
         Ok(mut st) => {
+            if begin.params.enable_video != 0 && st.agreed_capabilities & Capabilities::VIDEO == 0 {
+                return Frame::fail(
+                    req,
+                    AbiErrorCode::NotSupported,
+                    Some("video metadata was not negotiated"),
+                );
+            }
             if let Err(e) = st.sessions.validate(begin.session) {
                 return session_error(req, e);
             }
@@ -524,6 +528,17 @@ fn on_command(req: &Frame) -> Frame {
         Ok(st) => st,
         Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
     };
+    if matches!(
+        cmd.command,
+        voip_abi::MediaCommand::VideoEnable | voip_abi::MediaCommand::VideoEnableAwaitingAccept
+    ) && st.agreed_capabilities & Capabilities::VIDEO == 0
+    {
+        return Frame::fail(
+            req,
+            AbiErrorCode::NotSupported,
+            Some("video metadata was not negotiated"),
+        );
+    }
     if let Err(e) = st.sessions.validate(cmd.session) {
         return session_error(req, e);
     }
@@ -708,6 +723,13 @@ fn on_video_in(req: &Frame) -> Frame {
         Ok(st) => st,
         Err(_) => return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged")),
     };
+    if st.agreed_capabilities & Capabilities::VIDEO == 0 {
+        return Frame::fail(
+            req,
+            AbiErrorCode::NotSupported,
+            Some("video metadata was not negotiated"),
+        );
+    }
     if let Err(e) = st.sessions.validate(frame.session) {
         return session_error(req, e);
     }
@@ -882,11 +904,100 @@ mod lifecycle_tests {
 #[cfg(test)]
 mod wire_tests {
     use super::*;
+    static TEST_STATE: Mutex<()> = Mutex::new(());
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::wasm_bindgen_test as test;
 
     #[test]
+    fn legacy_peers_keep_audio_but_cannot_enable_or_feed_video() {
+        let _guard = TEST_STATE.lock().unwrap();
+        *state().lock().unwrap() = State::new();
+        for (minor, capabilities, video) in [
+            (1, ENGINE_CAPABILITIES, true),
+            (1, Capabilities::PCM, false),
+            (0, ENGINE_CAPABILITIES, false),
+        ] {
+            let mut hello = Frame::request(
+                Opcode::Hello,
+                HelloRequest {
+                    role: Role::Core,
+                    capabilities,
+                }
+                .encode(),
+            );
+            hello.minor = minor;
+            let response = on_hello(&hello);
+            assert!(!response.is_error());
+            assert_eq!(response.minor, minor);
+            let caps = HelloResponse::decode(&response.payload)
+                .unwrap()
+                .capabilities;
+            assert_ne!(caps & Capabilities::PCM, 0);
+            assert_eq!(caps & Capabilities::VIDEO != 0, video);
+        }
+        let mut params = call::tests::open_params();
+        params.enable_video = 1;
+        let begin = Frame::request(
+            Opcode::BeginOpen,
+            BeginOpenRequest {
+                session: SessionId {
+                    handle: 1,
+                    generation: 1,
+                },
+                params,
+            }
+            .encode(),
+        );
+        assert_eq!(
+            voip_abi::ErrorBody::decode(&on_begin_open(&begin).payload)
+                .unwrap()
+                .code,
+            AbiErrorCode::NotSupported
+        );
+        let command = Frame::request(
+            Opcode::Command,
+            CommandRequest {
+                session: SessionId {
+                    handle: 1,
+                    generation: 1,
+                },
+                command: voip_abi::MediaCommand::VideoEnable,
+            }
+            .encode(),
+        );
+        assert_eq!(
+            voip_abi::ErrorBody::decode(&on_command(&command).payload)
+                .unwrap()
+                .code,
+            AbiErrorCode::NotSupported
+        );
+        let input = Frame::request(
+            Opcode::VideoIn,
+            voip_abi::VideoIn {
+                session: SessionId {
+                    handle: 1,
+                    generation: 1,
+                },
+                seq: 0,
+                input: voip_abi::VideoInputDto {
+                    data: vec![],
+                    timestamp: None,
+                    input_generation: None,
+                },
+            }
+            .encode(),
+        );
+        assert_eq!(
+            voip_abi::ErrorBody::decode(&on_video_in(&input).payload)
+                .unwrap()
+                .code,
+            AbiErrorCode::NotSupported
+        );
+    }
+
+    #[test]
     fn media_before_open_is_refused_instead_of_acknowledged_and_lost() {
+        let _guard = TEST_STATE.lock().unwrap();
         *state().lock().unwrap() = State::new();
         let id = SessionId {
             handle: 41,

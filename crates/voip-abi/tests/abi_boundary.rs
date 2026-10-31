@@ -756,6 +756,7 @@ fn every_message_round_trips() {
                 sender: None,
                 device: None,
                 pid: Some(7),
+                timestamp: 0xffff_fffe,
             },
         }
     );
@@ -863,5 +864,32 @@ fn every_message_round_trips() {
     ] {
         let back = AbiEvent::decode(&ev.encode()).expect("event round trip");
         assert_eq!(ev, back);
+    }
+}
+
+#[test]
+fn video_timestamp_metadata_requires_minor_one() {
+    use voip_abi::*;
+    let all = u32::MAX;
+    assert_eq!(capabilities_for_minor(all, 0) & Capabilities::VIDEO, 0);
+    assert_eq!(
+        capabilities_for_minor(all, 0) & !Capabilities::VIDEO,
+        all & !Capabilities::VIDEO
+    );
+    assert_ne!(capabilities_for_minor(all, 1) & Capabilities::VIDEO, 0);
+    assert_eq!(capabilities_for_minor(all, u8::MAX), all);
+    let minimal = VideoFrameDto {
+        data: vec![0, 0, 0, 1, 0x41],
+        keyframe: 0,
+        orientation: 0,
+        sender: None,
+        device: None,
+        pid: None,
+        timestamp: 0,
+    };
+    let encoded = minimal.encode();
+    assert_eq!(VideoFrameDto::decode(&encoded).unwrap(), minimal);
+    for missing in 1..=4 {
+        assert!(VideoFrameDto::decode(&encoded[..encoded.len() - missing]).is_err());
     }
 }

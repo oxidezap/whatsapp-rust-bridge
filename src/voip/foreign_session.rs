@@ -8,7 +8,7 @@
 
 use std::sync::{
     Arc, Mutex,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering},
 };
 
 use async_channel::{Receiver, Sender};
@@ -46,6 +46,7 @@ pub struct ForeignVoipSession {
     pending_epoch: Mutex<Option<u32>>,
     opened: AtomicBool,
     initial_muted: AtomicBool,
+    video_sink_dropped: AtomicU32,
     open_waker: Mutex<Option<oneshot::Sender<()>>>,
     closed: AtomicBool,
     remote_ended: AtomicBool,
@@ -63,11 +64,12 @@ pub(crate) struct CommandEnvelope {
     pub(crate) bytes: abi::SecretBytes,
 }
 
-/// The sink halves the opening context carried, stored at attach for the
+/// The sink halves the opening context carried, stored before BEGIN_OPEN for the
 /// push path. The source halves move into the pump tasks.
 struct MediaSinks {
     pcm_sink: Option<Arc<dyn vc::AudioSink>>,
     encoded_sink: Option<Arc<dyn vc::EncodedAudioSink>>,
+    video_sink: async_channel::Sender<vc::VideoFrame>,
 }
 
 impl ForeignVoipSession {
@@ -100,6 +102,7 @@ impl ForeignVoipSession {
             pending_epoch: Mutex::new(None),
             opened: AtomicBool::new(false),
             initial_muted: AtomicBool::new(false),
+            video_sink_dropped: AtomicU32::new(0),
             open_waker: Mutex::new(None),
             closed: AtomicBool::new(false),
             remote_ended: AtomicBool::new(false),
@@ -171,9 +174,22 @@ impl ForeignVoipSession {
         }
     }
 
-    /// Wires the opening context: stores the sinks, the teardown hook, and
-    /// the negotiated format; spawns the pumps over the sources; clears the
-    /// retained pre-attach epoch now that the queue drains onto the wire.
+    pub(super) fn prepare_sinks(&self, format: &vc::MediaAudioFormat, ctx: &vc::MediaOpenContext) {
+        *self.format.lock().unwrap() = *format;
+        let (pcm_sink, encoded_sink) = match &ctx.audio {
+            vc::MediaAudioPorts::Pcm { sink, .. } => (Some(sink.clone()), None),
+            vc::MediaAudioPorts::Encoded { sink, .. } => (None, Some(sink.clone())),
+            _ => (None, None),
+        };
+        *self.media.lock().unwrap() = Some(MediaSinks {
+            pcm_sink,
+            encoded_sink,
+            video_sink: ctx.video_channels.video_out.clone(),
+        });
+    }
+
+    /// Starts source pumps after OPEN and clears the retained pre-attach epoch.
+    /// Sinks and the teardown hook are already installed before BEGIN_OPEN.
     pub fn attach(&self, format: &vc::MediaAudioFormat, ctx: vc::MediaOpenContext) {
         if let Ok(mut slot) = self.format.lock() {
             *slot = *format;
@@ -184,17 +200,13 @@ impl ForeignVoipSession {
         if let Ok(mut pending) = self.pending_epoch.lock() {
             *pending = None;
         }
-        let (audio, pcm_sink, encoded_sink) = match ctx.audio {
-            vc::MediaAudioPorts::Pcm { source, sink } => (
-                media_pump::AudioInputs::Pcm(source.frames()),
-                Some(sink),
-                None,
-            ),
-            vc::MediaAudioPorts::Encoded { source, sink } => (
-                media_pump::AudioInputs::Encoded(source.frames()),
-                None,
-                Some(sink),
-            ),
+        let audio = match ctx.audio {
+            vc::MediaAudioPorts::Pcm { source, .. } => {
+                media_pump::AudioInputs::Pcm(source.frames())
+            }
+            vc::MediaAudioPorts::Encoded { source, .. } => {
+                media_pump::AudioInputs::Encoded(source.frames())
+            }
             _ => {
                 // A future audio port this bridge predates: the session
                 // opens without a microphone rather than guessing its shape.
@@ -228,12 +240,6 @@ impl ForeignVoipSession {
         );
         if let Ok(mut pump_handles) = self.pump_handles.lock() {
             pump_handles.extend(handles);
-        }
-        if let Ok(mut media) = self.media.lock() {
-            *media = Some(MediaSinks {
-                pcm_sink,
-                encoded_sink,
-            });
         }
     }
 
@@ -354,12 +360,10 @@ impl ForeignVoipSession {
                 Ok(_) => log::warn!("stale voip plugin encoded audio, dropped"),
                 Err(e) => log::warn!("voip plugin encoded audio misformed, dropped: {e}"),
             },
-            abi::Opcode::VideoOut => {
-                // No neutral `VideoFrame` constructor exists for an external
-                // backend to fill the control plane's sink with; inbound
-                // video waits on one upstream. The drop is loud on purpose.
-                log::warn!("voip plugin video frame dropped: no neutral VideoFrame constructor");
-            }
+            abi::Opcode::VideoOut => match abi::VideoOut::decode(&frame.payload) {
+                Ok(out) if out.session == self.session_id() => self.on_video_out(out.frame),
+                _ => log::warn!("voip plugin video with malformed or stale identity, dropped"),
+            },
             _ => log::warn!(
                 "voip plugin pushed {}, which flows core to voip; dropped",
                 frame.opcode.name()
@@ -396,6 +400,46 @@ impl ForeignVoipSession {
                 "voip plugin event unmappable ({}), dropped",
                 event.kind_name()
             ),
+        }
+    }
+
+    fn on_video_out(&self, frame: abi::VideoFrameDto) {
+        if self.is_closed() || self.agreed & abi::Capabilities::VIDEO == 0 {
+            return;
+        }
+        let sender = match frame.sender.as_deref().map(str::parse).transpose() {
+            Ok(jid) => jid,
+            Err(_) => return,
+        };
+        let device = match frame.device.as_deref().map(str::parse).transpose() {
+            Ok(jid) => jid,
+            Err(_) => return,
+        };
+        let sink = self
+            .media
+            .lock()
+            .ok()
+            .and_then(|media| media.as_ref().map(|media| media.video_sink.clone()));
+        let Some(sink) = sink else { return };
+        let frame = vc::VideoFrame::builder()
+            .data(frame.data)
+            .keyframe(frame.keyframe == 1)
+            .orientation(frame.orientation)
+            .maybe_sender(sender)
+            .maybe_device(device)
+            .maybe_pid(frame.pid)
+            .timestamp(frame.timestamp)
+            .generation(self.key.generation)
+            .build();
+        if matches!(
+            sink.try_send(frame),
+            Err(async_channel::TrySendError::Full(_))
+        ) {
+            let _ =
+                self.video_sink_dropped
+                    .try_update(Ordering::Relaxed, Ordering::Relaxed, |drops| {
+                        Some(drops.saturating_add(1))
+                    });
         }
     }
 
@@ -558,7 +602,11 @@ impl vc::VoipMediaSession for ForeignVoipSession {
     }
 
     fn stats(&self) -> vc::MediaStats {
-        self.stats.lock().map(|s| *s).unwrap_or_default()
+        let mut stats = self.stats.lock().map(|s| *s).unwrap_or_default();
+        stats.video_sink_dropped = stats
+            .video_sink_dropped
+            .saturating_add(self.video_sink_dropped.load(Ordering::Relaxed));
+        stats
     }
 
     fn subscribe(&self) -> async_channel::Receiver<vc::MediaEvent> {
@@ -574,6 +622,7 @@ impl vc::VoipMediaSession for ForeignVoipSession {
             hook();
         }
         self.alive.store(false, Ordering::SeqCst);
+        self.media.lock().unwrap().take();
         // An open parked on the `OPEN` notification ends here instead of
         // hanging to the ceiling: dropping the sender cancels the wait.
         if let Ok(mut waker) = self.open_waker.lock() {

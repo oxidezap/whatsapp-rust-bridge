@@ -42,13 +42,12 @@ export interface VoipEngine {
  * Initialize a fresh engine with host-provided bytes or a compiled Module.
  * Each call owns a separate WASM instance and relay pipe, even in one isolate.
  * Nothing in the core entrypoint imports or allocates the media engine.
- * The bundled backend negotiates PCM and encoded audio. Video is refused
- * until the core exposes a neutral receive-frame constructor.
+ * Video metadata requires OZVP minor 1; older peers retain audio-only negotiation.
  */
 export function initVoipSync(wasm: SyncInitInput, transport: VoipRelayTransport): VoipEngine {
   const engine = createVoipBindings();
   engine.initSync({ module: wasm });
-  engine.init(1, 0); // Fail immediately when the engine's OZVP major changes.
+  engine.init(1, 1); // Fail immediately when the engine's OZVP major changes.
   engine.set_relay_transport(transport);
   codecBindings ??= engine;
   return {
