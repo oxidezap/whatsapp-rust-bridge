@@ -804,14 +804,17 @@ mod lifecycle_tests {
         init(1, 1).unwrap();
         let wall = wacore::time::now_millis();
         let start = wacore::time::Instant::now();
-        assert!(wall > 1_700_000_000_000, "wall clock is not the epoch fallback");
+        assert!(
+            wall > 1_700_000_000_000,
+            "wall clock is not the epoch fallback"
+        );
         runtime::set_timeout_future(25).await;
         assert!(wacore::time::now_millis() > wall);
         assert!(start.elapsed() >= std::time::Duration::from_millis(15));
         assert!(
-            wacore::time::Instant::now().saturating_duration_since(
-                start + std::time::Duration::from_millis(10)
-            ) > std::time::Duration::ZERO,
+            wacore::time::Instant::now()
+                .saturating_duration_since(start + std::time::Duration::from_millis(10))
+                > std::time::Duration::ZERO,
             "a real monotonic deadline expires"
         );
         // Repeated negotiation preserves the existing instance clock.
