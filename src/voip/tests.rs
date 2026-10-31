@@ -1337,3 +1337,161 @@ async fn video_pump_drains_both_queues_fairly_and_survives_either_closing() {
         );
     }
 }
+
+struct TestPcmMic(Receiver<Vec<i16>>);
+impl vc::AudioSource for TestPcmMic {
+    fn frames(&self) -> Receiver<Vec<i16>> {
+        self.0.clone()
+    }
+}
+struct TestPcmSpeaker(Sender<Vec<i16>>);
+impl vc::AudioSink for TestPcmSpeaker {
+    fn playout(&self) -> Sender<Vec<i16>> {
+        self.0.clone()
+    }
+}
+
+#[test]
+async fn bridge_audio_overflow_is_counted_once_and_survives_terminal_stats() {
+    use vc::VoipMediaBackend;
+    for pcm in [false, true] {
+        let state = fake_state();
+        let (backend, seen) = backend_with(state.clone(), None);
+        let key = test_key(1300);
+        let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+        let mut ctx = test_ctx();
+        let mut spec = test_spec(key);
+        let (encoded_sink, encoded_output) = async_channel::bounded(1);
+        let (pcm_sink, pcm_output) = async_channel::bounded(1);
+        if pcm {
+            let (_mic, mic) = async_channel::bounded(1);
+            ctx.audio = vc::MediaAudioPorts::Pcm {
+                source: Arc::new(TestPcmMic(mic)),
+                sink: Arc::new(TestPcmSpeaker(pcm_sink)),
+            };
+            spec.audio.io = vc::MediaAudioIo::Pcm;
+        } else if let vc::MediaAudioPorts::Encoded { sink, .. } = &mut ctx.audio {
+            *sink = Arc::new(TestEncodedSpeaker { tx: encoded_sink });
+        }
+        backend.open(spec, ctx).await.unwrap();
+        let id = seen
+            .lock()
+            .unwrap()
+            .iter()
+            .find_map(|(op, bytes)| {
+                (*op == abi::Opcode::Reserve.as_u8())
+                    .then(|| abi::ReserveRequest::decode(bytes).unwrap().session)
+            })
+            .unwrap();
+        let snapshot = |drops| {
+            push_frame(
+                &state,
+                &abi::Frame::request(
+                    abi::Opcode::Stats,
+                    abi::StatsPush {
+                        session: id,
+                        stats: abi::StatsData {
+                            audio_sink_dropped: drops,
+                            ..abi::StatsData::default()
+                        },
+                    }
+                    .encode(),
+                ),
+            )
+        };
+        let audio = || {
+            let frame = if pcm {
+                abi::Frame::request(
+                    abi::Opcode::PcmOut,
+                    abi::MediaFrame {
+                        session: id,
+                        seq: 0,
+                        data: vec![1, 0],
+                    }
+                    .encode(),
+                )
+            } else {
+                abi::Frame::request(
+                    abi::Opcode::EncodedAudioOut,
+                    abi::EncodedAudioOut {
+                        session: id,
+                        seq: 0,
+                        frame: abi::EncodedFrameDto {
+                            codec: abi::AudioCodecWire::Mlow,
+                            data: vec![0x58],
+                            payload_type: 120,
+                            sequence_number: 0,
+                            timestamp: 0,
+                            marker: 0,
+                            sender: None,
+                            device: None,
+                            format: None,
+                        },
+                    }
+                    .encode(),
+                )
+            };
+            push_frame(&state, &frame);
+        };
+        snapshot(5);
+        audio();
+        audio();
+        audio();
+        assert_eq!(
+            if pcm {
+                pcm_output.len()
+            } else {
+                encoded_output.len()
+            },
+            1
+        );
+        assert_eq!(
+            session.stats().audio_sink_dropped,
+            7,
+            "two bridge losses add to five engine losses"
+        );
+        snapshot(5);
+        assert_eq!(
+            session.stats().audio_sink_dropped,
+            7,
+            "snapshots do not accumulate local losses twice"
+        );
+        snapshot(u32::MAX);
+        assert_eq!(
+            session.stats().audio_sink_dropped,
+            u32::MAX,
+            "merged losses saturate"
+        );
+        snapshot(5);
+        if pcm {
+            pcm_output.close();
+        } else {
+            encoded_output.close();
+        }
+        audio();
+        assert_eq!(
+            session.stats().audio_sink_dropped,
+            7,
+            "closed sinks are teardown, not overflow"
+        );
+        push_frame(
+            &state,
+            &abi::Frame::request(
+                abi::Opcode::MediaEnded,
+                abi::CloseRequest {
+                    session: id,
+                    reason: abi::CloseReason::LocalHangup,
+                    detail: None,
+                }
+                .encode(),
+            ),
+        );
+        audio();
+        assert_eq!(
+            session.stats().audio_sink_dropped,
+            7,
+            "final counters survive teardown and late frames"
+        );
+        sleep_ms(5).await;
+    }
+}

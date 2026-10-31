@@ -50,6 +50,7 @@ pub struct ForeignVoipSession {
     opened: AtomicBool,
     initial_muted: AtomicBool,
     video_sink_dropped: AtomicU32,
+    audio_sink_dropped: AtomicU32,
     open_waker: Mutex<Option<oneshot::Sender<()>>>,
     closed: AtomicBool,
     remote_ended: AtomicBool,
@@ -109,6 +110,7 @@ impl ForeignVoipSession {
             opened: AtomicBool::new(false),
             initial_muted: AtomicBool::new(false),
             video_sink_dropped: AtomicU32::new(0),
+            audio_sink_dropped: AtomicU32::new(0),
             open_waker: Mutex::new(None),
             closed: AtomicBool::new(false),
             remote_ended: AtomicBool::new(false),
@@ -496,7 +498,11 @@ impl ForeignVoipSession {
             .iter()
             .map(|c| i16::from_le_bytes([c[0], c[1]]))
             .collect();
-        if sink.playout().try_send(samples).is_err() {
+        if matches!(
+            sink.playout().try_send(samples),
+            Err(async_channel::TrySendError::Full(_))
+        ) {
+            self.note_audio_sink_drop();
             log::debug!("speaker sink full, PCM frame shed");
         }
     }
@@ -514,9 +520,22 @@ impl ForeignVoipSession {
         };
         let format = self.format.lock().ok().map(|f| *f);
         let Some(format) = format else { return };
-        if let Some(frame) = conv::encoded_frame(frame, &format) {
-            let _ = sink.frames().try_send(frame);
+        if let Some(frame) = conv::encoded_frame(frame, &format)
+            && matches!(
+                sink.frames().try_send(frame),
+                Err(async_channel::TrySendError::Full(_))
+            )
+        {
+            self.note_audio_sink_drop();
         }
+    }
+
+    fn note_audio_sink_drop(&self) {
+        let _ = self
+            .audio_sink_dropped
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |drops| {
+                Some(drops.saturating_add(1))
+            });
     }
 
     /// Enqueues one command for the pump. `false` is backpressure.
@@ -609,6 +628,9 @@ impl vc::VoipMediaSession for ForeignVoipSession {
 
     fn stats(&self) -> vc::MediaStats {
         let mut stats = self.stats.lock().map(|s| *s).unwrap_or_default();
+        stats.audio_sink_dropped = stats
+            .audio_sink_dropped
+            .saturating_add(self.audio_sink_dropped.load(Ordering::Relaxed));
         stats.video_sink_dropped = stats
             .video_sink_dropped
             .saturating_add(self.video_sink_dropped.load(Ordering::Relaxed));
