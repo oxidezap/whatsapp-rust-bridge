@@ -45,10 +45,13 @@ pub fn lower(tokens: TokenStream, alias: bool, declared_result: Option<String>) 
     if alias {
         fn delegated(expr: &syn::Expr) -> &syn::Expr {
             match expr {
-                syn::Expr::Block(block) => match block.block.stmts.last().unwrap() {
-                    syn::Stmt::Expr(expr, None) => delegated(expr),
-                    _ => panic!("alias must delegate"),
-                },
+                syn::Expr::Block(block) => {
+                    assert_eq!(block.block.stmts.len(), 1, "alias must only delegate");
+                    match block.block.stmts.last().unwrap() {
+                        syn::Stmt::Expr(expr, None) => delegated(expr),
+                        _ => panic!("alias must delegate"),
+                    }
+                }
                 syn::Expr::Await(expr) => &expr.base,
                 _ => panic!("alias must await its delegate"),
             }
@@ -233,6 +236,35 @@ mod tests {
         assert!(method.contains("bytes . to_owned"));
         assert!(method.contains("Promise<string>"));
         assert!(!method.contains("async fn"));
+    }
+
+    #[test]
+    #[should_panic(expected = "alias must only delegate")]
+    fn aliases_cannot_silently_discard_preparation() {
+        lower(
+            quote!(
+                pub async fn alias(&self) -> Result<(), crate::errors::BridgeError> {
+                    validate_input()?;
+                    self.delegate().await
+                }
+            ),
+            true,
+            None,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "unsupported async result type")]
+    fn unknown_result_types_fail_generation_instead_of_becoming_any() {
+        lower(
+            quote!(
+                pub async fn new_method(&self) -> Result<UnknownType, crate::errors::BridgeError> {
+                    self.client.online().await?.new_method().await
+                }
+            ),
+            false,
+            None,
+        );
     }
 
     #[test]
