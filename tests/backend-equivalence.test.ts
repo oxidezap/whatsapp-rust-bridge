@@ -160,7 +160,7 @@ describe.skipIf(!boltffiAvailable)("backend equivalence", () => {
    */
   test("every BoltFFI export is covered by a case", () => {
     // Module plumbing, not operations: the loader's default export and the
-    // generated error class and the 0.31 cancellation hook.
+    // generated error class and the cancellation hook.
     const NOT_AN_OPERATION = /^(default|init|initialized|__boltffiCancelById)$|Exception$/;
     const exported = Object.entries(boltffi)
       .filter(([name, value]) => typeof value === "function" && !NOT_AN_OPERATION.test(name))

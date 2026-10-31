@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 # Keep the crate, CLI and npm runtime on the same release.
 # uuid/url support is unused by this utility API.
-boltffi = { version = "=0.31.0", default-features = false }
+boltffi = { version = "=0.32.1", default-features = false }
 whatsapp-rust-bridge-core = { workspace = true }

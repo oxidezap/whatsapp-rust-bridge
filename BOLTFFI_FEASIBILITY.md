@@ -3,7 +3,7 @@
 Measured against `boltffi` at `b9272fb7` (workspace version `0.29.3`, the version
 published on crates.io) and this repository at `v0.7.0`.
 
-The current build pins the crate, CLI and `@boltffi/runtime` to **0.31.0**.
+The current build pins the crate, CLI and `@boltffi/runtime` to **0.32.1**.
 The wasm-bindgen client remains the default; `./boltffi` exposes eight shared
 utility operations. It does not expose the client or the newer AES-GCM/SHA-256
 exports. `generateKeyPair` and `calculateSignature` remain outside this PR's
@@ -19,6 +19,12 @@ This API uses owned byte buffers, so mutable-slice writeback is not exercised.
 to catch runtime/ABI mismatches. CI also runs cross-backend and declaration tests.
 The crate uses an exact Cargo version requirement so a lockfile refresh cannot
 silently move the generator contract to another release.
+
+[0.32.1](https://github.com/boltffi/boltffi/releases/tag/v0.32.1) explicitly
+selects the host target for metadata builds and transpiles through a temporary
+TypeScript project. The build no longer overrides `CARGO_BUILD_TARGET` or wraps
+`tsc`. CLI validation uses the exact release version rather than inspecting
+Cargo installation records for obsolete git revision pins.
 
 The decompression limit rejects values at or above 2^64 before the Rust cast.
 Explicit limits above 64 MiB and fractional truncation remain supported.

@@ -27,24 +27,10 @@ export const BOLTFFI_DTS = join(
 export const boltffiAvailable = existsSync(BOLTFFI_ENTRY) && existsSync(BOLTFFI_DTS);
 
 if (!boltffiAvailable) {
-  // The pin is read rather than repeated here: the CLI and the macro agree on
-  // wasm symbol names only within a version, and a hint naming a stale one
-  // sends a contributor to a build whose exports the generated JavaScript
-  // cannot find. Either form of pin is understood, because this pinned a main
-  // revision for as long as no release carried the fixes the backend needs.
   const pin = readFileSync(join(ROOT, "crates", "bridge-boltffi", "Cargo.toml"), "utf8");
-  const version = pin.match(/^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"=?([^"]+)"/m)?.[1];
-  const rev = pin.match(/^boltffi\s*=\s*\{[^}]*\brev\s*=\s*"([0-9a-f]+)"/m)?.[1];
-  // Naming neither would name the one command that cannot work: an install
-  // without a pin resolves to whatever is latest, which is the mismatch this
-  // whole hint exists to avoid.
-  const install = version
-    ? `\`cargo install boltffi_cli --version ${version} --locked\``
-    : rev
-      ? `\`cargo install --git https://github.com/boltffi/boltffi --rev ${rev} boltffi_cli --locked\``
-      : "the CLI matching whatever `crates/bridge-boltffi/Cargo.toml` pins — " +
-        "neither a version nor a `rev` was found there, so read the pin rather " +
-        "than installing latest";
+  const version = pin.match(/^boltffi\s*=\s*\{[^}]*\bversion\s*=\s*"=([^"]+)"/m)?.[1];
+  if (version === undefined) throw new Error("The BoltFFI crate must pin an exact release.");
+  const install = `\`cargo install boltffi_cli --version ${version} --locked\``;
   console.warn(
     `dist/boltffi is absent — BoltFFI suites skipped. Install ${install} and rebuild to run them.`,
   );

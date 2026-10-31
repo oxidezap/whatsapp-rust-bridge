@@ -7,6 +7,8 @@
 use boltffi::*;
 use whatsapp_rust_bridge_core as bridge_core;
 
+boltffi::scaffolding!();
+
 /// The free-standing utilities cross as a plain message on the wasm-bindgen
 /// path (`error_value` renders `Display`). Carrying the same rendered string
 /// keeps the two backends reporting identically.
@@ -27,21 +29,13 @@ impl std::fmt::Display for BridgeUtilError {
 
 impl std::error::Error for BridgeUtilError {}
 
-impl From<UnexpectedFfiCallbackError> for BridgeUtilError {
-    fn from(error: UnexpectedFfiCallbackError) -> Self {
-        Self::Failed(error.to_string())
-    }
-}
-
 impl From<bridge_core::CoreError> for BridgeUtilError {
     fn from(error: bridge_core::CoreError) -> Self {
         Self::Failed(error.message().to_owned())
     }
 }
 
-type Result<T> = bridge_core::CoreResult<T>;
-
-fn lift<T>(result: Result<T>) -> std::result::Result<T, BridgeUtilError> {
+fn lift<T>(result: bridge_core::CoreResult<T>) -> std::result::Result<T, BridgeUtilError> {
     result.map_err(BridgeUtilError::from)
 }
 
@@ -73,7 +67,7 @@ pub fn hkdf(
     ))
 }
 
-// Keep this opt-in API limited to its original eight utilities. BoltFFI 0.31
+// Keep this opt-in API limited to its original eight utilities. BoltFFI
 // can package wasm-bindgen imports, but adding the randomness-dependent
 // generateKeyPair/calculateSignature exports needs its own API tests.
 
