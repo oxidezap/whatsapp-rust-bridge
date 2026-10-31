@@ -2892,8 +2892,17 @@ fn client_operation(
     cancelled: async_channel::Receiver<()>,
     operation: impl std::future::Future<Output = Result<JsValue, JsValue>> + 'static,
 ) -> js_sys::Promise {
+    settle_client_operation(cancelled, Box::pin(operation))
+}
+
+// One cancellation future serves every operation, rather than emitting the
+// Promise/selection machinery again for each concrete operation future.
+fn settle_client_operation(
+    cancelled: async_channel::Receiver<()>,
+    operation: std::pin::Pin<Box<dyn std::future::Future<Output = Result<JsValue, JsValue>>>>,
+) -> js_sys::Promise {
     wasm_bindgen_futures::future_to_promise(async move {
-        match futures::future::select(Box::pin(cancelled.recv()), Box::pin(operation)).await {
+        match futures::future::select(Box::pin(cancelled.recv()), operation).await {
             futures::future::Either::Left(_) => {
                 Err(crate::errors::BridgeError::NotConnected.into())
             }
