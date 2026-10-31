@@ -729,6 +729,7 @@ fn every_message_round_trips() {
                 marker: 1,
                 sender: Some("s@test".to_owned()),
                 device: None,
+                format: None,
             },
         }
     );
@@ -808,6 +809,7 @@ fn every_message_round_trips() {
             marker: 0,
             sender: None,
             device: None,
+            format: None,
         }),
         AbiEvent::AudioFormatMismatch {
             expected_rate: 16_000,
@@ -891,5 +893,29 @@ fn video_timestamp_metadata_requires_minor_one() {
     assert_eq!(VideoFrameDto::decode(&encoded).unwrap(), minimal);
     for missing in 1..=4 {
         assert!(VideoFrameDto::decode(&encoded[..encoded.len() - missing]).is_err());
+    }
+}
+
+#[test]
+fn encoded_audio_format_extension_preserves_legacy_and_rejects_truncation() {
+    let mut frame = EncodedFrameDto {
+        codec: AudioCodecWire::Mlow,
+        data: vec![1, 2],
+        payload_type: 120,
+        sequence_number: 65535,
+        timestamp: u32::MAX,
+        marker: 1,
+        sender: None,
+        device: None,
+        format: None,
+    };
+    let mut legacy = frame.encode();
+    assert_eq!(legacy.pop(), Some(0));
+    assert_eq!(EncodedFrameDto::decode(&legacy).unwrap(), frame);
+    frame.format = Some(test_format());
+    let encoded = frame.encode();
+    assert_eq!(EncodedFrameDto::decode(&encoded).unwrap(), frame);
+    for missing in 1..=test_format().encode().len() {
+        assert!(EncodedFrameDto::decode(&encoded[..encoded.len() - missing]).is_err());
     }
 }

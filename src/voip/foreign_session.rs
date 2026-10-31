@@ -13,7 +13,6 @@ use std::sync::{
 
 use async_channel::{Receiver, Sender};
 use async_trait::async_trait;
-use bytes::Bytes;
 use futures::channel::oneshot;
 use voip_abi as abi;
 use whatsapp_rust::voip_control as vc;
@@ -316,14 +315,6 @@ impl ForeignVoipSession {
         }
     }
 
-    /// Adopts the codec a switch event announced, so the next encoded frame
-    /// fills the format the engine now speaks.
-    fn adopt_codec(&self, codec: vc::MediaAudioCodec) {
-        if let Ok(mut format) = self.format.lock() {
-            format.codec = codec;
-        }
-    }
-
     /// Routes one validated push frame into the session.
     pub fn deliver_push(&self, frame: abi::Frame) {
         match frame.opcode {
@@ -385,12 +376,6 @@ impl ForeignVoipSession {
         let format = self.format.lock().ok().map(|f| *f);
         let Some(format) = format else { return };
         match conv::event_to_call_event(&event, &format) {
-            Some(mapped @ vc::MediaEvent::AudioCodecSwitched { to, .. }) => {
-                self.adopt_codec(to);
-                if !self.publish_event(mapped) {
-                    log::warn!("voip plugin event shed: session stream full");
-                }
-            }
             Some(mapped) => {
                 if !self.publish_event(mapped) {
                     log::warn!("voip plugin event shed: session stream full");
@@ -483,34 +468,9 @@ impl ForeignVoipSession {
         };
         let format = self.format.lock().ok().map(|f| *f);
         let Some(format) = format else { return };
-        let codec = conv::unmap_audio_codec(frame.codec);
-        let sender = match frame.sender.as_deref().map(str::parse).transpose() {
-            Ok(sender) => sender,
-            Err(_) => {
-                log::warn!("voip plugin encoded audio with bad sender, dropped");
-                return;
-            }
-        };
-        let device = match frame.device.as_deref().map(str::parse).transpose() {
-            Ok(device) => device,
-            Err(_) => {
-                log::warn!("voip plugin encoded audio with bad device, dropped");
-                return;
-            }
-        };
-        let _ = sink.frames().try_send(
-            vc::MediaEncodedFrame::builder()
-                .format(format)
-                .codec(codec)
-                .data(Bytes::from(frame.data.clone()))
-                .payload_type(frame.payload_type)
-                .sequence_number(frame.sequence_number as u16)
-                .timestamp(frame.timestamp)
-                .marker(frame.marker == 1)
-                .maybe_sender(sender)
-                .maybe_device(device)
-                .build(),
-        );
+        if let Some(frame) = conv::encoded_frame(frame, &format) {
+            let _ = sink.frames().try_send(frame);
+        }
     }
 
     /// Enqueues one command for the pump. `false` is backpressure.

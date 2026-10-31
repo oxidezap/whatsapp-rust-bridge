@@ -2150,9 +2150,8 @@ impl AbiEvent {
 }
 
 /// One decrypted codec payload from the peer, mirroring the core's flattened
-/// encoded frame. The audio format (timing, profile) does not travel per
-/// packet: the bridge fills it from the negotiated open params, refreshed on
-/// `AudioCodecSwitched`, so the wire carries only what changes per frame.
+/// encoded frame. Minor 1 carries the complete per-frame audio format;
+/// legacy frames omit it and retain only their negotiated timing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EncodedFrameDto {
     /// Codec of these bytes.
@@ -2171,6 +2170,8 @@ pub struct EncodedFrameDto {
     pub sender: Option<String>,
     /// Sender device JID string, if any.
     pub device: Option<String>,
+    /// Full format selected by the engine; absent in legacy minor 0 frames.
+    pub format: Option<AudioFormatDto>,
 }
 
 impl EncodedFrameDto {
@@ -2185,6 +2186,7 @@ impl EncodedFrameDto {
         w.u8(self.marker);
         w.option_str(self.sender.as_deref());
         w.option_str(self.device.as_deref());
+        w.option(self.format.as_ref().map(AudioFormatDto::encode).as_deref());
         w.finish()
     }
 
@@ -2203,6 +2205,13 @@ impl EncodedFrameDto {
                 value: marker,
             });
         }
+        let sender = r.option_str()?.map(str::to_owned);
+        let device = r.option_str()?.map(str::to_owned);
+        let format = if r.remaining() == 0 {
+            None
+        } else {
+            r.option()?.map(AudioFormatDto::decode).transpose()?
+        };
         Ok(EncodedFrameDto {
             codec,
             data,
@@ -2210,8 +2219,9 @@ impl EncodedFrameDto {
             sequence_number,
             timestamp,
             marker,
-            sender: r.option_str()?.map(str::to_owned),
-            device: r.option_str()?.map(str::to_owned),
+            sender,
+            device,
+            format,
         })
     }
 }

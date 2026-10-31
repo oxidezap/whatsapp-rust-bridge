@@ -46,7 +46,6 @@ const MEDIA_QUEUE_CAPACITY: usize = 64;
 pub struct LiveCall {
     id: SessionId,
     call_id: String,
-    format: wacore::voip_control::MediaAudioFormat,
     opus_mlow_escape: bool,
     mic_tx: async_channel::Sender<Vec<i16>>,
     mic_drain: async_channel::Receiver<Vec<i16>>,
@@ -114,7 +113,6 @@ impl LiveCall {
                 .map_err(|e| OpenError::Engine(e.to_string()))?;
         }
         apply_open_ctx(&mut engine, &ctx).map_err(OpenError::Engine)?;
-        let format = engine_format(&engine);
 
         let dialed = relay::dial(endpoint).await.map_err(OpenError::Relay)?;
         // The pre-attach peer rotations replay as orientation commands once
@@ -173,7 +171,6 @@ impl LiveCall {
         let mut live = LiveCall {
             id: session,
             call_id,
-            format,
             opus_mlow_escape,
             mic_tx,
             mic_drain,
@@ -213,7 +210,6 @@ impl LiveCall {
         } = sinks;
         let id = self.id;
         let events = self.events.clone();
-        let format = self.format;
         wasm_bindgen_futures::spawn_local(async move {
             while let Ok(event) = events.recv().await {
                 if let MediaEvent::Closed(reason) = &event {
@@ -221,7 +217,7 @@ impl LiveCall {
                     push_ended(id, wire, detail);
                     break;
                 }
-                if let Some(wire) = event_to_wire(&event, &format) {
+                if let Some(wire) = event_to_wire(&event) {
                     push_event(id, wire);
                 }
             }
@@ -239,11 +235,10 @@ impl LiveCall {
             }
         });
         let id = self.id;
-        let format = self.format;
         wasm_bindgen_futures::spawn_local(async move {
             let mut seq = 0u32;
             while let Ok(frame) = encoded_out.recv().await {
-                if let Some(frame) = encoded_frame_to_dto(&frame, &format) {
+                if let Some(frame) = encoded_frame_to_dto(&frame) {
                     push_encoded(id, seq, frame);
                 }
                 seq = seq.wrapping_add(1);
@@ -598,12 +593,6 @@ fn apply_open_ctx(engine: &mut CallEngine, ctx: &OpenCtx) -> Result<(), String> 
     Ok(())
 }
 
-fn engine_format(engine: &CallEngine) -> MediaAudioFormat {
-    engine
-        .active_audio_format()
-        .unwrap_or(MediaAudioFormat::MLOW_16KHZ_60MS)
-}
-
 type GroupControlSender = async_channel::Sender<wacore::voip_control::control::GroupControl>;
 type GroupControlReceiver = async_channel::Receiver<wacore::voip_control::control::GroupControl>;
 
@@ -734,12 +723,30 @@ fn stats_to_wire(stats: &wacore::voip_control::MediaStats) -> StatsData {
     }
 }
 
-fn encoded_frame_to_dto(
-    frame: &MediaEncodedFrame,
-    format: &wacore::voip_control::MediaAudioFormat,
-) -> Option<EncodedFrameDto> {
-    let _ = format;
+fn encoded_frame_to_dto(frame: &MediaEncodedFrame) -> Option<EncodedFrameDto> {
+    let format = &frame.format;
     Some(EncodedFrameDto {
+        format: Some(voip_abi::AudioFormatDto {
+            codec: match format.codec {
+                MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
+                MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
+                _ => return None,
+            },
+            rtp_profile: match format.rtp_profile {
+                wacore::voip_control::MediaAudioRtpProfile::Mlow => voip_abi::RtpProfile::Mlow,
+                wacore::voip_control::MediaAudioRtpProfile::StandardOpus => {
+                    voip_abi::RtpProfile::StandardOpus
+                }
+                _ => return None,
+            },
+            signaling_rate: format.signaling_rate,
+            sample_rate: format.sample_rate,
+            channels: format.channels,
+            samples_per_frame: format.samples_per_frame,
+            rtp_clock_rate: format.rtp_clock_rate,
+            rtp_timestamp_step: format.rtp_timestamp_step,
+            rtp_payload_type: format.rtp_payload_type,
+        }),
         codec: match frame.codec {
             MediaAudioCodec::Mlow => voip_abi::AudioCodecWire::Mlow,
             MediaAudioCodec::Opus => voip_abi::AudioCodecWire::Opus,
@@ -772,17 +779,13 @@ fn video_frame_to_dto(frame: &wacore::voip_control::ports::VideoFrame) -> VideoF
 /// the event and close paths. `None` is a JID the core would not parse or a
 /// signaling-born variant the engine never raises; the fan drops it rather
 /// than invents it.
-fn event_to_wire(
-    event: &MediaEvent,
-    format: &wacore::voip_control::MediaAudioFormat,
-) -> Option<AbiEvent> {
-    let _ = format;
+fn event_to_wire(event: &MediaEvent) -> Option<AbiEvent> {
     match event {
         MediaEvent::RelayAllocated => Some(AbiEvent::RelayAllocated),
         MediaEvent::ForeignAudio(data) => Some(AbiEvent::ForeignAudio(data.to_vec())),
-        MediaEvent::ForeignGroupAudio(frame) => Some(AbiEvent::ForeignGroupAudio(
-            encoded_frame_to_dto(frame, format)?,
-        )),
+        MediaEvent::ForeignGroupAudio(frame) => {
+            Some(AbiEvent::ForeignGroupAudio(encoded_frame_to_dto(frame)?))
+        }
         MediaEvent::AudioFormatMismatch {
             expected_rate,
             received_rates,
@@ -1040,6 +1043,34 @@ pub(crate) mod tests {
         assert_eq!(dto.device, frame.device.as_ref().map(ToString::to_string));
         assert_eq!(dto.pid, Some(0));
         assert_eq!(dto.timestamp, u32::MAX);
+    }
+
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    fn encoded_mapper_uses_the_frames_complete_format_after_codec_switch() {
+        for format in [
+            MediaAudioFormat::MLOW_16KHZ_60MS,
+            MediaAudioFormat::OPUS_16KHZ_60MS,
+            MediaAudioFormat::OPUS_MLOW_16KHZ_60MS,
+            MediaAudioFormat::OPUS_RFC7587_48KHZ_60MS,
+        ] {
+            let frame = MediaEncodedFrame::builder()
+                .format(format)
+                .codec(format.codec)
+                .data(Bytes::from_static(&[0x58, 1, 2]))
+                .payload_type(format.rtp_payload_type)
+                .sequence_number(u16::MAX)
+                .timestamp(u32::MAX)
+                .marker(true)
+                .build();
+            let dto = encoded_frame_to_dto(&frame).unwrap();
+            let decoded = EncodedFrameDto::decode(&dto.encode()).unwrap();
+            let restored = crate::spec::format_from_dto(decoded.format.as_ref().unwrap()).unwrap();
+            assert_eq!(restored, format);
+            assert_eq!(decoded.sequence_number, u32::from(u16::MAX));
+            assert_eq!(decoded.timestamp, u32::MAX);
+            assert_eq!(decoded.payload_type, frame.payload_type);
+        }
     }
 
     #[cfg(target_arch = "wasm32")]

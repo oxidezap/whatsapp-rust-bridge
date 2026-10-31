@@ -295,15 +295,15 @@ impl Pump {
                 .encode();
                 let len = bytes.len();
                 if commands
-                    .try_send(CommandEnvelope {
+                    .send(CommandEnvelope {
                         bytes: abi::SecretBytes::new(bytes),
                     })
-                    .is_ok()
+                    .await
+                    .is_err()
                 {
-                    queued.fetch_add(len, Ordering::Relaxed);
-                } else {
-                    log::warn!("command mailbox full, video control shed");
+                    break;
                 }
+                queued.fetch_add(len, Ordering::Relaxed);
             }
         }))
     }
@@ -388,11 +388,9 @@ impl Pump {
                         && abi::ErrorBody::decode(&resp.payload)
                             .is_ok_and(|error| error.code == abi::AbiErrorCode::Busy) =>
                 {
-                    if let Some(yielding) = self.runtime.yield_now() {
-                        yielding.await;
-                    } else {
-                        sleep(&*self.runtime, Duration::from_millis(1)).await;
-                    }
+                    // BUSY can persist throughout engine setup. A real timer bounds
+                    // retries and lets cancellation/deadline timers make progress.
+                    sleep(&*self.runtime, Duration::from_millis(1)).await;
                 }
                 Ok(resp)
                     if resp.major == abi::ABI_MAJOR

@@ -383,7 +383,7 @@ pub fn close_reason_from_abi(
 }
 
 /// Projects one engine-raised event into the public stream vocabulary. The
-/// negotiated audio format fills the timing the wire omits per packet.
+/// per-frame format travels on minor 1; legacy frames use negotiated timing.
 /// `None` is a JID the core would not parse or a variant this bridge
 /// predates; the caller drops the event rather than invents it.
 pub fn event_to_call_event(
@@ -507,13 +507,35 @@ pub fn event_to_call_event(
 
 /// Builds the core's encoded frame around wire bytes, with the negotiated
 /// format and parsed sender identities.
-fn encoded_frame(
+pub(super) fn encoded_frame(
     frame: &abi::EncodedFrameDto,
     format: &vc::MediaAudioFormat,
 ) -> Option<vc::MediaEncodedFrame> {
+    let codec = unmap_audio_codec(frame.codec);
+    let format = match &frame.format {
+        Some(dto) => vc::MediaAudioFormat::builder()
+            .codec(unmap_audio_codec(dto.codec))
+            .rtp_profile(match dto.rtp_profile {
+                abi::RtpProfile::Mlow => vc::MediaAudioRtpProfile::Mlow,
+                abi::RtpProfile::StandardOpus => vc::MediaAudioRtpProfile::StandardOpus,
+            })
+            .signaling_rate(dto.signaling_rate)
+            .sample_rate(dto.sample_rate)
+            .channels(dto.channels)
+            .samples_per_frame(dto.samples_per_frame)
+            .rtp_clock_rate(dto.rtp_clock_rate)
+            .rtp_timestamp_step(dto.rtp_timestamp_step)
+            .rtp_payload_type(dto.rtp_payload_type)
+            .build(),
+        None if format.codec == codec => *format,
+        None => format.sibling_for(codec)?,
+    };
+    if format.codec != codec {
+        return None;
+    }
     Some(
         vc::MediaEncodedFrame::builder()
-            .format(*format)
+            .format(format)
             .codec(unmap_audio_codec(frame.codec))
             .data(Bytes::from(frame.data.clone()))
             .payload_type(frame.payload_type)

@@ -109,7 +109,7 @@ fn codec_from_wire(codec: AudioCodecWire) -> MediaAudioCodec {
     }
 }
 
-fn format_from_dto(dto: &AudioFormatDto) -> Result<MediaAudioFormat, MediaSetupError> {
+pub(crate) fn format_from_dto(dto: &AudioFormatDto) -> Result<MediaAudioFormat, MediaSetupError> {
     let codec = codec_from_wire(dto.codec);
     let rtp_profile = match dto.rtp_profile {
         RtpProfile::Mlow => MediaAudioRtpProfile::Mlow,

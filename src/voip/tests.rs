@@ -927,3 +927,144 @@ async fn video_sink_is_ready_before_open_notification() {
     assert_eq!(first.generation, 913);
     assert!(first.keyframe);
 }
+
+#[test]
+async fn encoded_frames_keep_engine_formats_across_codec_switches() {
+    use vc::{VoipMediaBackend, VoipMediaSession};
+    let state = fake_state();
+    let (backend, seen) = backend_with(state.clone(), None);
+    let key = test_key(914);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let mut ctx = test_ctx();
+    let (audio, received) = async_channel::bounded(8);
+    let (_, microphone) = async_channel::bounded(1);
+    ctx.audio = vc::MediaAudioPorts::Encoded {
+        source: Arc::new(TestEncodedMic { rx: microphone }),
+        sink: Arc::new(TestEncodedSpeaker { tx: audio }),
+    };
+    backend.open(test_spec(key), ctx).await.unwrap();
+    let id = seen
+        .lock()
+        .unwrap()
+        .iter()
+        .find_map(|(op, bytes)| {
+            (*op == abi::Opcode::Reserve.as_u8())
+                .then(|| abi::ReserveRequest::decode(bytes).unwrap().session)
+        })
+        .unwrap();
+    for format in [
+        vc::MediaAudioFormat::OPUS_16KHZ_60MS,
+        vc::MediaAudioFormat::OPUS_MLOW_16KHZ_60MS,
+        vc::MediaAudioFormat::MLOW_16KHZ_60MS,
+    ] {
+        let frame = abi::EncodedFrameDto {
+            codec: super::abi::map_audio_codec(format.codec).unwrap(),
+            data: vec![0x58, 1, 2],
+            payload_type: format.rtp_payload_type,
+            sequence_number: 65535,
+            timestamp: u32::MAX,
+            marker: 1,
+            sender: None,
+            device: None,
+            format: Some(super::abi::map_audio_format(&format).unwrap()),
+        };
+        // The frame may arrive before the diagnostic codec-switch event.
+        push_frame(
+            &state,
+            &abi::Frame::request(
+                abi::Opcode::EncodedAudioOut,
+                abi::EncodedAudioOut {
+                    session: id,
+                    seq: 0,
+                    frame: frame.clone(),
+                }
+                .encode(),
+            ),
+        );
+        let delivered = received.try_recv().unwrap();
+        assert_eq!(delivered.format, format);
+        assert_eq!(delivered.codec, format.codec);
+        push_frame(
+            &state,
+            &abi::Frame::request(
+                abi::Opcode::Event,
+                abi::EventNotification {
+                    session: id,
+                    event: abi::AbiEvent::ForeignGroupAudio(frame),
+                }
+                .encode(),
+            ),
+        );
+        let event = session.subscribe().try_recv().unwrap();
+        assert!(matches!(event, vc::MediaEvent::ForeignGroupAudio(ref f) if f.format == format));
+    }
+    session.close(vc::MediaCloseReason::Local);
+}
+
+#[test]
+async fn a_full_command_mailbox_retains_video_state_transitions() {
+    use vc::{VoipMediaBackend, VoipMediaSession};
+    let state = fake_state();
+    state
+        .lock()
+        .unwrap()
+        .command_busy
+        .store(usize::MAX, std::sync::atomic::Ordering::SeqCst);
+    let (backend, seen) = backend_with(state.clone(), None);
+    let key = test_key(915);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let ctx = test_ctx();
+    let control = ctx.video_channels.control_sender.clone();
+    backend.open(test_spec(key), ctx).await.unwrap();
+    assert!(session.submit(vc::MediaCommand::DisableVideoOutbound));
+    for _ in 0..100 {
+        if seen_opcodes(&seen).contains(&abi::Opcode::Command.as_u8()) {
+            break;
+        }
+        sleep_ms(1).await;
+    }
+    assert!(seen_opcodes(&seen).contains(&abi::Opcode::Command.as_u8()));
+    let mut filled = 0;
+    while session.submit(vc::MediaCommand::DisableVideoOutbound) {
+        filled += 1;
+    }
+    assert!(filled > 0);
+    assert!(control.send(vc::VideoControl::SetInputGeneration(915)));
+    assert!(control.send(vc::VideoControl::Disable));
+    sleep_ms(5).await;
+    state
+        .lock()
+        .unwrap()
+        .command_busy
+        .store(0, std::sync::atomic::Ordering::SeqCst);
+    let commands = || {
+        seen.lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(op, bytes)| {
+                (*op == abi::Opcode::Command.as_u8())
+                    .then(|| abi::CommandRequest::decode(bytes).unwrap().command)
+            })
+            .collect::<Vec<_>>()
+    };
+    for _ in 0..100 {
+        if commands()
+            .iter()
+            .any(|c| matches!(c, abi::MediaCommand::VideoDisable))
+        {
+            break;
+        }
+        sleep_ms(1).await;
+    }
+    let commands = commands();
+    let generation = commands
+        .iter()
+        .position(|c| matches!(c, abi::MediaCommand::VideoSetInputGeneration(915)))
+        .expect("consumed control retained while the command mailbox was full");
+    let disable = commands
+        .iter()
+        .position(|c| matches!(c, abi::MediaCommand::VideoDisable))
+        .unwrap();
+    assert!(generation < disable);
+    session.close(vc::MediaCloseReason::Local);
+}
