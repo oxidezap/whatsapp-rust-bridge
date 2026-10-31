@@ -1041,10 +1041,8 @@ async fn a_full_command_mailbox_retains_video_state_transitions() {
         seen.lock()
             .unwrap()
             .iter()
-            .filter_map(|(op, bytes)| {
-                (*op == abi::Opcode::Command.as_u8())
-                    .then(|| abi::CommandRequest::decode(bytes).unwrap().command)
-            })
+            .filter(|(op, _)| *op == abi::Opcode::Command.as_u8())
+            .map(|(_, bytes)| abi::CommandRequest::decode(bytes).unwrap().command)
             .collect::<Vec<_>>()
     };
     for _ in 0..100 {
