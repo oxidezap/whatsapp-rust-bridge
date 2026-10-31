@@ -89,6 +89,11 @@ pub fn lower(tokens: TokenStream, alias: bool, declared_result: Option<String>) 
     } else {
         quote!(Ok((async move #body).await))
     };
+    let settlement = if matches!(&value_type, syn::Type::Path(p) if p.path.is_ident("JsValue")) {
+        quote!(result.map_err(Into::into))
+    } else {
+        quote!(result.map(|value| { let _ = &value; #conversion }).map_err(Into::into))
+    };
     method.block = parse_quote!({
         #capture
         let cancelled = self.client.operation_cancellation();
@@ -96,7 +101,7 @@ pub fn lower(tokens: TokenStream, alias: bool, declared_result: Option<String>) 
         client_operation(cancelled, async move {
             #(#borrows)*
             let result: Result<#value_type, crate::errors::BridgeError> = #future;
-            result.map(|value| { let _ = &value; #conversion }).map_err(Into::into)
+            #settlement
         })
     });
     quote!(#method)

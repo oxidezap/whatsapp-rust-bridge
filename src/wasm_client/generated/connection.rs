@@ -31,12 +31,7 @@ impl WasmWhatsAppClient {
                 })
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Enable or disable automatic reconnection on disconnect."]
@@ -450,12 +445,7 @@ impl WasmWhatsAppClient {
                 }
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Returns a snapshot of internal memory diagnostics (cache sizes, session counts, etc.)."]

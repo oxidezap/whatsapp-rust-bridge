@@ -615,12 +615,7 @@ impl WasmWhatsAppClient {
                 Ok(result.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Create a parent group with explicit protocol options."]
@@ -732,12 +727,7 @@ impl WasmWhatsAppClient {
                 Ok(result.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Update participants of a parent group. Removing a participant also"]

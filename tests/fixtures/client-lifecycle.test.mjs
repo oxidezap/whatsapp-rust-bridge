@@ -73,13 +73,20 @@ for (const method of methods) {
   const methodName = method.name.getText(source);
   test(`immediate free after ${methodName}`, { timeout: 5000 }, async () => {
     const c = await client();
-    let pending;
+    assert.equal(typeof c[methodName], 'function', `${methodName} exists in the installed runtime`);
+    let pending, returned, inputRejected = false;
     try {
-      pending = outcome(c[methodName](...method.parameters.map(p => p.questionToken ? undefined : argument(p.type))));
+      returned = c[methodName](...method.parameters.map(p => p.questionToken ? undefined : argument(p.type)));
     } catch (error) {
       // Input ABI checks may reject before entering Rust. Ownership failures
       // are never an input error and must not be hidden by this branch.
       assert.doesNotMatch(String(error), /ownership|borrowed|out of bounds|unreachable/i);
+      assert.ok(error instanceof TypeError || (error.name === 'WhatsAppError' && error.kind === 'invalid-argument'), `${methodName} only rejects input synchronously`);
+      inputRejected = true;
+    }
+    if (!inputRejected) {
+      assert.equal(typeof returned?.then, 'function', `${methodName} returns its declared Promise`);
+      pending = outcome(returned);
     }
     assert.doesNotThrow(() => c.free());
     if (pending) {
@@ -165,4 +172,13 @@ test('logout that entered the core completes after free', { timeout: 5000 }, asy
   await checkpoint;
   c.free();
   assert.equal((await pending).error, undefined);
+});
+
+test('Symbol.dispose cancels operations and consumes the handle once', async () => {
+  const c = await client();
+  assert.equal(typeof c[Symbol.dispose], 'function');
+  const pending = outcome(c.fetchBlocklist());
+  c[Symbol.dispose]();
+  assert.throws(() => c[Symbol.dispose](), /null pointer passed to rust/);
+  assert.equal((await pending).error?.kind, 'not-connected');
 });

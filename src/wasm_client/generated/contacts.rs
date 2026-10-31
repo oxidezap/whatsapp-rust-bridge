@@ -182,12 +182,7 @@ impl WasmWhatsAppClient {
                 }
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Set the user's push name (display name)."]
@@ -454,12 +449,7 @@ impl WasmWhatsAppClient {
                 }
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Update a single privacy setting."]

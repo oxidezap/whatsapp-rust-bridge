@@ -281,12 +281,7 @@ impl WasmWhatsAppClient {
                 Ok(arr.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Encrypt plaintext for a single recipient."]
@@ -319,12 +314,7 @@ impl WasmWhatsAppClient {
                 Ok(obj.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r#" Decrypt a Signal protocol message. `msg_type` is "msg", "pkmsg", or "skmsg"."#]
@@ -416,12 +406,7 @@ impl WasmWhatsAppClient {
                 Ok(obj.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Decrypt a group (sender-key) message."]
@@ -999,12 +984,7 @@ impl WasmWhatsAppClient {
                 Ok(obj.into())
             })
             .await;
-            result
-                .map(|value| {
-                    let _ = &value;
-                    value.into()
-                })
-                .map_err(Into::into)
+            result.map_err(Into::into)
         })
     }
     #[doc = r" Send pre-marshaled bytes through the noise socket."]
