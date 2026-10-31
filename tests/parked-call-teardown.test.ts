@@ -44,7 +44,7 @@ function failingTransport() {
  * is the marker: the core reads `device_list` as its first move once a send
  * path is past the gate.
  */
-function countingStore(readGate?: Promise<void>) {
+function countingStore() {
   const kept = new Map<string, Uint8Array>();
   const counts = { deviceReads: 0 };
   return {
@@ -52,10 +52,7 @@ function countingStore(readGate?: Promise<void>) {
     callbacks: {
       ...unexercisedAtomicStorage,
       async get(store: string, key: string) {
-        if (store === "device_list") {
-          counts.deviceReads++;
-          if (readGate) await readGate;
-        }
+        if (store === "device_list") counts.deviceReads++;
         return kept.get(`${store}/${key}`) ?? null;
       },
       async set(store: string, key: string, value: Uint8Array) {
@@ -118,18 +115,6 @@ function park(client: WasmWhatsAppClient) {
   return client.createParticipantNodesBytes([CHAT], bytes, null);
 }
 
-// wasm-bindgen consumes the JS owner even when free() reports an active borrow.
-// Pending calls retain their own Rust owners; never resurrect the private pointer.
-function consumeWhileBorrowed(client: WasmWhatsAppClient): Error {
-  live = live.filter((value) => value !== client);
-  try {
-    client.free();
-  } catch (error) {
-    return error as Error;
-  }
-  throw new Error("expected free() to report an active borrow");
-}
-
 describe("tearing down a client that is holding parked calls", () => {
   /**
    * The step the severity of this rests on. `online()` hands back the client
@@ -153,34 +138,37 @@ describe("tearing down a client that is holding parked calls", () => {
     expect(store.counts.deviceReads).toBe(1);
   }, 20000);
 
-  for (const count of [1, A_CROWD]) {
-    test(`free() consumes the JS handle while ${count} held calls finish safely`, async () => {
-      let release!: () => void;
-      const readGate = new Promise<void>((resolve) => { release = resolve; });
-      const store = countingStore(readGate);
-      const client = await reconnectingClient(store);
-      const calls = Array.from({ length: count }, () => watch(park(client)));
-      await aCallThatDoesNotPark(client, CHAT);
-      expect(calls.map((call) => call.settled())).toEqual(Array(count).fill(false));
-      expect(store.counts.deviceReads).toBe(0);
+  // Free consumes the wrapper and cancels its operations before a released
+  // park can enter the core. Explicit disconnect above keeps its own barrier.
+  test("free cancels a parked call before it reaches the core", async () => {
+    const store = countingStore();
+    const client = await reconnectingClient(store);
 
-      // Enrol teardown before giving up the JS owner, so cleanup needs no stale handle.
-      const teardown = client.disconnect();
-      const error = consumeWhileBorrowed(client);
-      try {
-        expect(error.message).toMatch(/borrowed/);
-        expect(() => client.reachability()).toThrow(/null pointer/);
-        await teardown;
-        expect(store.counts.deviceReads).toBe(count);
-        expect(calls.map((call) => call.settled())).toEqual(Array(count).fill(false));
-      } finally {
-        release();
-        await teardown;
-        await Promise.allSettled(calls.map((call) => call.promise));
-      }
-      for (const call of calls) {
-        expect((await rejection(call.promise)).kind).toBe("not-connected");
-      }
-    }, 20000);
-  }
+    const call = watch(park(client));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(call.settled()).toBe(false);
+    expect(store.counts.deviceReads).toBe(0);
+
+    expect(() => client.free()).not.toThrow();
+    live = live.filter((entry) => entry !== client);
+    expect((await rejection(call.promise)).kind).toBe("not-connected");
+    expect(store.counts.deviceReads).toBe(0);
+  }, 20000);
+
+  test("free cancels every parked call without entering the core", async () => {
+    const store = countingStore();
+    const client = await reconnectingClient(store);
+
+    const calls = Array.from({ length: A_CROWD }, () => watch(park(client)));
+    await aCallThatDoesNotPark(client, CHAT);
+    expect(calls.map((call) => call.settled())).toEqual(Array(A_CROWD).fill(false));
+    expect(store.counts.deviceReads).toBe(0);
+
+    expect(() => client.free()).not.toThrow();
+    live = live.filter((entry) => entry !== client);
+    for (const call of calls) {
+      expect((await rejection(call.promise)).kind).toBe("not-connected");
+    }
+    expect(store.counts.deviceReads).toBe(0);
+  }, 20000);
 });

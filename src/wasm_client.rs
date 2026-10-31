@@ -575,17 +575,6 @@ export interface CacheConfig {
   messageRetry?: CacheEntryConfig;
 }
 
-// Augment the exported class with methods that need skip_typescript
-// (Record returns can't be expressed by wasm-bindgen). The declaration
-// must also be exported for TypeScript to merge it with the generated class.
-export interface WasmWhatsAppClient {
-  /** Fetch all groups the user is participating in. */
-  groupFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
-  /** Fetch all parent groups the user is participating in. */
-  communityFetchAllParticipating(): Promise<Record<string, GroupOverviewResult>>;
-  /** Fetch user info for one or more JIDs. */
-  fetchUserInfo(jids: string[]): Promise<Record<string, UserInfoResult>>;
-}
 "#;
 
 // ---------------------------------------------------------------------------
@@ -2491,9 +2480,12 @@ mod core_client {
     /// [`online`](Self::online) holds the call while a reconnect is in flight;
     /// [`unwaited`](Self::unwaited) does not, and names why. There is no third way
     /// in and no plain field, so a method added later has to pick one.
+    #[derive(Clone)]
     pub(crate) struct CoreClient {
         client: Arc<whatsapp_rust::Client>,
-        parked: Parked,
+        parked: Arc<Parked>,
+        operation_cancel: async_channel::Sender<()>,
+        operation_cancelled: async_channel::Receiver<()>,
     }
 
     /// The calls waiting at the gate, and the only way to let them go.
@@ -2565,10 +2557,24 @@ mod core_client {
 
     impl CoreClient {
         pub(crate) fn new(client: Arc<whatsapp_rust::Client>) -> Self {
+            let (operation_cancel, operation_cancelled) = async_channel::bounded(1);
             Self {
                 client,
-                parked: Parked::default(),
+                parked: Arc::new(Parked::default()),
+                operation_cancel,
+                operation_cancelled,
             }
+        }
+    }
+
+    impl CoreClient {
+        pub(crate) fn operation_cancellation(&self) -> async_channel::Receiver<()> {
+            self.operation_cancelled.clone()
+        }
+
+        pub(crate) fn cancel_operations(&self) {
+            self.operation_cancel.close();
+            self.parked.release_all();
         }
     }
 
@@ -2766,6 +2772,8 @@ impl TeardownGate {
 }
 
 /// Opaque handle to the WhatsApp client.
+/// `free()` consumes the handle and cancels pending operations as `not-connected`.
+/// Await `disconnect()` or `logout()` first when persistence must finish.
 #[wasm_bindgen]
 pub struct WasmWhatsAppClient {
     client: CoreClient,
@@ -2835,6 +2843,7 @@ impl Drop for WasmWhatsAppClient {
     /// `disconnect()` or `logout()` before `free()` when they need the
     /// persistence and transport barrier.
     fn drop(&mut self) {
+        self.client.cancel_operations();
         // A logout admitted before free owns the core connection until its
         // deregistration IQ and disconnect finish. Its future keeps the task
         // slots alive; aborting them here would turn logout into a local-only
@@ -2874,6 +2883,32 @@ impl Drop for WasmWhatsAppClient {
         observation.host_torn_down = true;
         observation.waiters.clear();
     }
+}
+
+// Disposal wins before polling an unstarted operation. Once polled, cancellation
+// drops the future, not effects the core has already committed. Explicit logout
+// and disconnect use their existing owned teardown barriers instead.
+fn client_operation(
+    cancelled: async_channel::Receiver<()>,
+    operation: impl std::future::Future<Output = Result<JsValue, JsValue>> + 'static,
+) -> js_sys::Promise {
+    settle_client_operation(cancelled, Box::pin(operation))
+}
+
+// One cancellation future serves every operation, rather than emitting the
+// Promise/selection machinery again for each concrete operation future.
+fn settle_client_operation(
+    cancelled: async_channel::Receiver<()>,
+    operation: std::pin::Pin<Box<dyn std::future::Future<Output = Result<JsValue, JsValue>>>>,
+) -> js_sys::Promise {
+    wasm_bindgen_futures::future_to_promise(async move {
+        match futures::future::select(Box::pin(cancelled.recv()), operation).await {
+            futures::future::Either::Left(_) => {
+                Err(crate::errors::BridgeError::NotConnected.into())
+            }
+            futures::future::Either::Right((result, _)) => result,
+        }
+    })
 }
 
 // ---------------------------------------------------------------------------

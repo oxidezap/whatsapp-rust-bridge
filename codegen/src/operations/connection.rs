@@ -25,7 +25,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn fetch_reachout_timelock(&self) -> Result<JsValue, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.mex().fetch_reachout_timelock()),
@@ -65,7 +65,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn reconnect(&self)
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
             call: parse_quote!(client.reconnect_immediately()),
@@ -119,7 +119,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 value: parse_quote!(timeout_ms),
                 optional: false,
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
             call: parse_quote!(client.wait_for_socket_ready(timeout)),
@@ -145,7 +145,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 value: parse_quote!(timeout_ms),
                 optional: false,
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
             call: parse_quote!(client.wait_for_session_ready(timeout)),
@@ -168,7 +168,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<(), crate::errors::BridgeError>
             ),
             inputs: vec![Input::Preparation(Preparation::DirtyBits)],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.clean_dirty_bits(bit)),
@@ -188,7 +188,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::BotListResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.bots().list()),
@@ -209,7 +209,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::NewChatMessageCappingResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.mex().fetch_new_chat_message_capping_info()),
@@ -231,7 +231,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn set_initial_push_name(&self, name: String)
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.persistence_manager().process_command(
@@ -266,7 +266,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 field: parse_quote!("input"),
                 value: parse_quote!(input),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.set_device_props(input.into())),
@@ -298,7 +298,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 field: parse_quote!("input"),
                 value: parse_quote!(input),
             }],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.set_client_profile(input.into())),
@@ -321,7 +321,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<String, crate::errors::BridgeError>
             ),
             inputs: vec![Input::Preparation(Preparation::PairingCode)],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::ThisSocket),
             call: parse_quote!(client.pair_with_code(options)),
@@ -339,7 +339,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn get_push_name(&self) -> String
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.push_name()),
@@ -357,7 +357,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn get_jid(&self) -> Option<String>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.pn().map(|j| j.to_non_ad().to_string())),
@@ -374,7 +374,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn get_lid(&self) -> Option<String>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.lid().map(|j| j.to_non_ad().to_string())),
@@ -390,7 +390,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 async fn get_account(&self) -> Result<JsValue, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.persistence_manager().get_device_snapshot()),
@@ -413,7 +413,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::MemoryDiagnosticsResult>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Unwaited(Unwaited::Local),
             call: parse_quote!(client.resource_report()),
@@ -478,7 +478,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::Reachability>, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Adapter(AdmissionAdapter::Reachability),
             call: parse_quote!({ to_ts(self.client.wait_until_reachable().await) }),

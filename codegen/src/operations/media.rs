@@ -16,7 +16,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     force: bool,
                 ) -> Result<Ts<crate::result_types::MediaConnResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![],
             admission: Admission::OnlineIf {
@@ -61,7 +61,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(media_type),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Cached),
             call: parse_quote!(
@@ -111,7 +111,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(media_type),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Unwaited(Unwaited::Cached),
             call: parse_quote!(client.upload(data.to_vec(), mt, Default::default())),
@@ -145,7 +145,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 },
                 Input::Preparation(Preparation::MediaReupload),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.media_reupload().request(&req)),
@@ -243,7 +243,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(media_type),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Adapter(AdmissionAdapter::StreamEncryption),
             call: parse_quote!(encrypt_stream(input, output, mt)),
@@ -282,7 +282,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(media_type),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Adapter(AdmissionAdapter::StreamingRetry),
             call: parse_quote!(upload_encrypted_stream(

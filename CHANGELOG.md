@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.26.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.2...v0.26.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **lifecycle:** generate owned and cancellable async client operations ([#156](https://github.com/oxidezap/whatsapp-rust-bridge/issues/156)) ([c1fcf9a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c1fcf9a4601afd7b850b8f33df73fe6d1ba7051e))
+
+## [0.26.2](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.1...v0.26.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies and toolchains to latest stable ([#154](https://github.com/oxidezap/whatsapp-rust-bridge/issues/154)) ([6425d45](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6425d45fff28211061f22c61b2a65365217bde55))
+
 ## [0.26.1](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.0...v0.26.1) (2026-10-16)
 
 

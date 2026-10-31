@@ -831,6 +831,10 @@ impl Projection {
                 .expect("registered projection descriptor"),
         }
     }
+    pub fn typescript_name(self) -> String {
+        self.descriptor().target.to_string()
+    }
+
     pub fn envelope(self, envelope: Envelope, value: TokenStream) -> TokenStream {
         let d = self.descriptor();
         let function = d.function;

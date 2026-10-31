@@ -251,6 +251,9 @@ jobs:
       - name: Pack the exact archive npm must receive
         run: node .github/scripts/release.mjs pack
 
+      - name: Verify the exact production tarball as an isolated consumer
+        run: bun run check:published-tarball ./release-package.tgz
+
       - id: artifact-name
         run: echo "name=npm-tarball-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
 

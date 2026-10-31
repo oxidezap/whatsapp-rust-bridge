@@ -3,258 +3,522 @@
 impl WasmWhatsAppClient {
     #[doc = r" Get metadata for a group."]
     # [wasm_bindgen (js_name = getGroupMetadata)]
-    pub async fn group_metadata(
-        &self,
-        jid: &str,
-    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.groups().fetch_metadata(&group_jid).await?;
-        to_ts(crate::result_types::project_group_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<GroupMetadataResult>")]
+    pub fn group_metadata(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::GroupMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.groups().fetch_metadata(&group_jid).await?;
+                to_ts(crate::result_types::project_group_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update a group's subject (name)."]
     # [wasm_bindgen (js_name = groupUpdateSubject)]
-    pub async fn group_update_subject(
-        &self,
-        jid: &str,
-        subject: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let group_subject = whatsapp_rust::features::GroupSubject::new(subject)?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .set_subject(&group_jid, group_subject)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_update_subject(&self, jid: &str, subject: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let subject = subject.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let subject: &str = &subject;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let group_subject = whatsapp_rust::features::GroupSubject::new(subject)?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .set_subject(&group_jid, group_subject)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update a group's description. Pass null/undefined to remove."]
     # [wasm_bindgen (js_name = groupUpdateDescription)]
-    pub async fn group_update_description(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_update_description(
         &self,
         jid: &str,
         description: Option<String>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let desc = description
-            .as_deref()
-            .map(whatsapp_rust::features::GroupDescription::new)
-            .transpose()?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .set_description(
-                &group_jid,
-                desc,
-                whatsapp_rust::features::PreviousDescription::Resolve,
-            )
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let desc = description
+                    .as_deref()
+                    .map(whatsapp_rust::features::GroupDescription::new)
+                    .transpose()?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .set_description(
+                        &group_jid,
+                        desc,
+                        whatsapp_rust::features::PreviousDescription::Resolve,
+                    )
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Leave a group."]
     # [wasm_bindgen (js_name = groupLeave)]
-    pub async fn group_leave(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .leave(&group_jid)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_leave(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .leave(&group_jid)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r#" Set or clear the bot's per-group "member label" — the small tag rendered"#]
     #[doc = r" under the bot's display name inside that group's UI. Empty `label`"]
     #[doc = r" clears the label. The core sends this as a `ProtocolMessage` over the"]
     #[doc = r" normal message path (not an IQ), matching WA Web's behavior."]
     # [wasm_bindgen (js_name = updateMemberLabel)]
-    pub async fn update_member_label(
-        &self,
-        group_jid: &str,
-        label: &str,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let parsed = parse_jid(group_jid)?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .update_member_label_with_id(&parsed, label)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn update_member_label(&self, group_jid: &str, label: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let label = label.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let label: &str = &label;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let parsed = parse_jid(group_jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .update_member_label_with_id(&parsed, label)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the invite link for a group."]
     # [wasm_bindgen (js_name = groupInviteCode)]
-    pub async fn group_invite_code(&self, jid: &str) -> Result<String, crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .get_invite_link(&group_jid, false)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn group_invite_code(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .get_invite_link(&group_jid, false)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set disappearing messages timer for a group (0 to disable)."]
     # [wasm_bindgen (js_name = groupToggleEphemeral)]
-    pub async fn group_toggle_ephemeral(
-        &self,
-        jid: &str,
-        expiration: u32,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .set_ephemeral(&group_jid, expiration)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_toggle_ephemeral(&self, jid: &str, expiration: u32) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .set_ephemeral(&group_jid, expiration)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Revoke a group's invite link (generates new one)."]
     # [wasm_bindgen (js_name = groupRevokeInvite)]
-    pub async fn group_revoke_invite(
-        &self,
-        jid: &str,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.groups().get_invite_link(&group_jid, true).await?;
-        Ok(value)
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn group_revoke_invite(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.groups().get_invite_link(&group_jid, true).await?;
+                Ok(value)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Deactivate a parent group without deleting its former subgroups."]
     # [wasm_bindgen (js_name = deactivateCommunity)]
-    pub async fn deactivate_community(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .community()
-            .deactivate(target)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn deactivate_community(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .community()
+                    .deactivate(target)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Link existing groups to a parent group."]
     # [wasm_bindgen (js_name = linkCommunitySubgroups)]
-    pub async fn link_community_subgroups(
+    #[wasm_bindgen(unchecked_return_type = "Promise<CommunityLinkResult>")]
+    pub fn link_community_subgroups(
         &self,
         parent_jid: &str,
         subgroup_jids: Vec<String>,
-    ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
-        let parent = parse_jid(parent_jid)?;
-        let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let value = client
-            .community()
-            .link_subgroups(parent, &subgroups)
-            .await?;
-        to_ts(crate::result_types::project_community_link(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let parent_jid = parent_jid.to_owned();
+        client_operation(cancelled, async move {
+            let parent_jid: &str = &parent_jid;
+            let result: Result<
+                Ts<crate::result_types::CommunityLinkResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let parent = parse_jid(parent_jid)?;
+                let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .community()
+                    .link_subgroups(parent, &subgroups)
+                    .await?;
+                to_ts(crate::result_types::project_community_link(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Unlink groups from a parent group."]
     # [wasm_bindgen (js_name = unlinkCommunitySubgroups)]
-    pub async fn unlink_community_subgroups(
+    #[wasm_bindgen(unchecked_return_type = "Promise<CommunityLinkResult>")]
+    pub fn unlink_community_subgroups(
         &self,
         parent_jid: &str,
         subgroup_jids: Vec<String>,
         remove_orphan_members: bool,
-    ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError> {
-        let parent = parse_jid(parent_jid)?;
-        let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let value = client
-            .community()
-            .unlink_subgroups(parent, &subgroups, remove_orphan_members)
-            .await?;
-        to_ts(crate::result_types::project_community_unlink(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let parent_jid = parent_jid.to_owned();
+        client_operation(cancelled, async move {
+            let parent_jid: &str = &parent_jid;
+            let result: Result<
+                Ts<crate::result_types::CommunityLinkResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let parent = parse_jid(parent_jid)?;
+                let subgroups: Vec<wacore_binary::jid::Jid> = subgroup_jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .community()
+                    .unlink_subgroups(parent, &subgroups, remove_orphan_members)
+                    .await?;
+                to_ts(crate::result_types::project_community_unlink(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch subgroups of a parent group."]
     # [wasm_bindgen (js_name = getCommunitySubgroups)]
-    pub async fn get_community_subgroups(
-        &self,
-        parent_jid: &str,
-    ) -> Result<Vec<Ts<crate::result_types::CommunitySubgroupResult>>, crate::errors::BridgeError>
-    {
-        let parent = parse_jid(parent_jid)?;
-        let client = self.client.online().await?;
-        let value = client.community().get_subgroups(&parent).await?;
-        to_ts_vec(
-            value
-                .into_iter()
-                .map(crate::result_types::project_community_subgroup)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<CommunitySubgroupResult[]>")]
+    pub fn get_community_subgroups(&self, parent_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let parent_jid = parent_jid.to_owned();
+        client_operation(cancelled, async move {
+            let parent_jid: &str = &parent_jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::CommunitySubgroupResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let parent = parse_jid(parent_jid)?;
+                let client = operation_client.online().await?;
+                let value = client.community().get_subgroups(&parent).await?;
+                to_ts_vec(
+                    value
+                        .into_iter()
+                        .map(crate::result_types::project_community_subgroup)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Join a group using an invite code."]
     # [wasm_bindgen (js_name = groupAcceptInvite)]
-    pub async fn group_accept_invite(
-        &self,
-        code: &str,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client.groups().join_with_invite_code(code).await?;
-        Ok(value.group_jid().to_string())
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn group_accept_invite(&self, code: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let code = code.to_owned();
+        client_operation(cancelled, async move {
+            let code: &str = &code;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                let value = client.groups().join_with_invite_code(code).await?;
+                Ok(value.group_jid().to_string())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Join a group via a GroupInviteMessage (V4 invite)."]
     # [wasm_bindgen (js_name = groupAcceptInviteV4)]
-    pub async fn group_accept_invite_v4(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn group_accept_invite_v4(
         &self,
         group_jid: &str,
         code: &str,
         expiration: f64,
         admin_jid: &str,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let admin = parse_jid(admin_jid)?;
-        let client = self.client.online().await?;
-        let value = client
-            .groups()
-            .join_with_invite_v4(&group, code, expiration as i64, &admin)
-            .await?;
-        Ok(value.group_jid().to_string())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let code = code.to_owned();
+        let admin_jid = admin_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let code: &str = &code;
+            let admin_jid: &str = &admin_jid;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let admin = parse_jid(admin_jid)?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .groups()
+                    .join_with_invite_v4(&group, code, expiration as i64, &admin)
+                    .await?;
+                Ok(value.group_jid().to_string())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Revoke invitation codes previously issued to participants."]
     # [wasm_bindgen (js_name = groupRevokeInviteV4)]
-    pub async fn group_revoke_invite_v4(
-        &self,
-        group_jid: &str,
-        invited_jid: &str,
-    ) -> Result<bool, crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let invited = parse_jid(invited_jid)?;
-        let client = self.client.online().await?;
-        let value = client
-            .groups()
-            .revoke_request_code(&group, &[invited])
-            .await?;
-        Ok(value.iter().all(|response| response.is_ok()))
+    #[wasm_bindgen(unchecked_return_type = "Promise<boolean>")]
+    pub fn group_revoke_invite_v4(&self, group_jid: &str, invited_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let invited_jid = invited_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let invited_jid: &str = &invited_jid;
+            let result: Result<bool, crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let invited = parse_jid(invited_jid)?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .groups()
+                    .revoke_request_code(&group, &[invited])
+                    .await?;
+                Ok(value.iter().all(|response| response.is_ok()))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get group info from an invite code (without joining)."]
     #[doc = r" Returns the same shape as groupMetadata."]
     # [wasm_bindgen (js_name = groupGetInviteInfo)]
-    pub async fn group_get_invite_info(
-        &self,
-        code: &str,
-    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client.groups().get_invite_info(code).await?;
-        to_ts(crate::result_types::project_group_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<GroupMetadataResult>")]
+    pub fn group_get_invite_info(&self, code: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let code = code.to_owned();
+        client_operation(cancelled, async move {
+            let code: &str = &code;
+            let result: Result<
+                Ts<crate::result_types::GroupMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.groups().get_invite_info(code).await?;
+                to_ts(crate::result_types::project_group_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get list of pending join requests for a group."]
     # [wasm_bindgen (js_name = groupRequestParticipantsList)]
-    pub async fn group_request_participants_list(
-        &self,
-        jid: &str,
-    ) -> Result<Vec<Ts<crate::result_types::MembershipRequestResult>>, crate::errors::BridgeError>
-    {
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.groups().get_membership_requests(&group_jid).await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_membership_request)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<MembershipRequestResult[]>")]
+    pub fn group_request_participants_list(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::MembershipRequestResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.groups().get_membership_requests(&group_jid).await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_membership_request)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create a new group."]
     #[doc = r""]
@@ -264,225 +528,386 @@ impl WasmWhatsAppClient {
     #[doc = r" already carries the complete `<group>` node (id, subject,"]
     #[doc = r" creation, creator, participants, …)."]
     # [wasm_bindgen (js_name = createGroup)]
-    pub async fn group_create(
-        &self,
-        subject: &str,
-        participants: Vec<String>,
-    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let participant_options = participants
-            .iter()
-            .map(|participant| -> Result<_, crate::errors::BridgeError> {
-                let jid = parse_jid(participant)?;
-                let options = whatsapp_rust::features::GroupParticipantOptions::new(jid);
-                Ok(options)
+    #[wasm_bindgen(unchecked_return_type = "Promise<GroupMetadataResult>")]
+    pub fn group_create(&self, subject: &str, participants: Vec<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let subject = subject.to_owned();
+        client_operation(cancelled, async move {
+            let subject: &str = &subject;
+            let result: Result<
+                Ts<crate::result_types::GroupMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let participant_options = participants
+                    .iter()
+                    .map(|participant| -> Result<_, crate::errors::BridgeError> {
+                        let jid = parse_jid(participant)?;
+                        let options = whatsapp_rust::features::GroupParticipantOptions::new(jid);
+                        Ok(options)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let options = whatsapp_rust::features::GroupCreateOptions::new(subject)
+                    .with_participants(participant_options);
+                let client = operation_client.online().await?;
+                let value = client.groups().create_group(options).await?;
+                to_ts(crate::result_types::project_group_metadata(&value.metadata))
             })
-            .collect::<Result<Vec<_>, _>>()?;
-        let options = whatsapp_rust::features::GroupCreateOptions::new(subject)
-            .with_participants(participant_options);
-        let client = self.client.online().await?;
-        let value = client.groups().create_group(options).await?;
-        to_ts(crate::result_types::project_group_metadata(&value.metadata))
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update group participants."]
     # [wasm_bindgen (js_name = groupParticipantsUpdate)]
-    pub async fn group_participants_update(
+    #[wasm_bindgen(unchecked_return_type = "Promise<ParticipantChangeResult[]>")]
+    pub fn group_participants_update(
         &self,
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
-    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
-    {
-        let action =
-            from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
-        let client = self.client.online().await?;
-        participants_update(client, group_jid, participant_jids, action, false).await
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::ParticipantChangeResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let action =
+                    from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
+                let (group_jid, participant_jids) =
+                    participants_update_input(jid, &participants, action)?;
+                let client = operation_client.online().await?;
+                participants_update(client, group_jid, participant_jids, action, false).await
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch all groups the user is participating in."]
-    # [wasm_bindgen (js_name = groupFetchAllParticipating , skip_typescript)]
-    pub async fn group_fetch_all_participating(
-        &self,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let groups = client.groups().list_participating().await?;
-        let result = js_sys::Object::new();
-        for group in &groups {
-            let entry = crate::result_types::project_group_overview(group);
-            let value = serde_wasm_bindgen::to_value(&entry)?;
-            js_sys::Reflect::set(&result, &JsValue::from_str(&entry.id), &value)?;
-        }
-        Ok(result.into())
+    # [wasm_bindgen (js_name = groupFetchAllParticipating)]
+    #[wasm_bindgen(unchecked_return_type = "Promise<Record<string, GroupOverviewResult>>")]
+    pub fn group_fetch_all_participating(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                let groups = client.groups().list_participating().await?;
+                let result = js_sys::Object::new();
+                for group in &groups {
+                    let entry = crate::result_types::project_group_overview(group);
+                    let value = serde_wasm_bindgen::to_value(&entry)?;
+                    js_sys::Reflect::set(&result, &JsValue::from_str(&entry.id), &value)?;
+                }
+                Ok(result.into())
+            })
+            .await;
+            result.map_err(Into::into)
+        })
     }
     #[doc = r" Create a parent group with explicit protocol options."]
     # [wasm_bindgen (js_name = createCommunity)]
-    pub async fn create_community(
+    #[wasm_bindgen(unchecked_return_type = "Promise<GroupMetadataResult>")]
+    pub fn create_community(
         &self,
         name: &str,
         description: Option<String>,
         closed: bool,
         allow_non_admin_sub_group_creation: bool,
         create_general_chat: bool,
-    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let options = whatsapp_rust::features::CreateCommunityOptions::new(name)
-            .map_err(|error| crate::errors::invalid_arg("name", error.to_string()))?;
-        let description = description
-            .map(|value| -> Result<_, crate::errors::BridgeError> {
-                let description =
-                    whatsapp_rust::features::GroupDescription::new(value).map_err(|error| {
-                        crate::errors::invalid_arg("description", error.to_string())
-                    })?;
-                Ok(description)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let name = name.to_owned();
+        client_operation(cancelled, async move {
+            let name: &str = &name;
+            let result: Result<
+                Ts<crate::result_types::GroupMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let options = whatsapp_rust::features::CreateCommunityOptions::new(name)
+                    .map_err(|error| crate::errors::invalid_arg("name", error.to_string()))?;
+                let description = description
+                    .map(|value| -> Result<_, crate::errors::BridgeError> {
+                        let description = whatsapp_rust::features::GroupDescription::new(value)
+                            .map_err(|error| {
+                                crate::errors::invalid_arg("description", error.to_string())
+                            })?;
+                        Ok(description)
+                    })
+                    .transpose()?;
+                let mut options = options;
+                options.description = description;
+                options.closed = closed;
+                options.allow_non_admin_sub_group_creation = allow_non_admin_sub_group_creation;
+                options.create_general_chat = create_general_chat;
+                let client = operation_client.online().await?;
+                let value = client.community().create(options).await?;
+                to_ts(crate::result_types::project_group_metadata(&value.metadata))
             })
-            .transpose()?;
-        let mut options = options;
-        options.description = description;
-        options.closed = closed;
-        options.allow_non_admin_sub_group_creation = allow_non_admin_sub_group_creation;
-        options.create_general_chat = create_general_chat;
-        let client = self.client.online().await?;
-        let value = client.community().create(options).await?;
-        to_ts(crate::result_types::project_group_metadata(&value.metadata))
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create a subgroup already linked to a parent group."]
     # [wasm_bindgen (js_name = createCommunitySubgroup)]
-    pub async fn create_community_subgroup(
+    #[wasm_bindgen(unchecked_return_type = "Promise<GroupMetadataResult>")]
+    pub fn create_community_subgroup(
         &self,
         name: &str,
         participants: Vec<String>,
         parent_jid: &str,
-    ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError> {
-        let participants: Vec<wacore_binary::jid::Jid> = participants
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let parent = parse_jid(parent_jid)?;
-        let client = self.client.online().await?;
-        let value = client
-            .community()
-            .create_subgroup(name, &participants, parent)
-            .await?;
-        to_ts(crate::result_types::project_group_metadata(&value.metadata))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let name = name.to_owned();
+        let parent_jid = parent_jid.to_owned();
+        client_operation(cancelled, async move {
+            let name: &str = &name;
+            let parent_jid: &str = &parent_jid;
+            let result: Result<
+                Ts<crate::result_types::GroupMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let participants: Vec<wacore_binary::jid::Jid> = participants
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let parent = parse_jid(parent_jid)?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .community()
+                    .create_subgroup(name, &participants, parent)
+                    .await?;
+                to_ts(crate::result_types::project_group_metadata(&value.metadata))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch all parent groups the account currently participates in."]
-    # [wasm_bindgen (js_name = communityFetchAllParticipating , skip_typescript)]
-    pub async fn community_fetch_all_participating(
-        &self,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let groups = client.community().list_participating().await?;
-        let result = js_sys::Object::new();
-        for group in &groups {
-            let entry = crate::result_types::project_group_overview(group);
-            let value = serde_wasm_bindgen::to_value(&entry)?;
-            js_sys::Reflect::set(&result, &group.id.to_string().into(), &value)?;
-        }
-        Ok(result.into())
+    # [wasm_bindgen (js_name = communityFetchAllParticipating)]
+    #[wasm_bindgen(unchecked_return_type = "Promise<Record<string, GroupOverviewResult>>")]
+    pub fn community_fetch_all_participating(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                let groups = client.community().list_participating().await?;
+                let result = js_sys::Object::new();
+                for group in &groups {
+                    let entry = crate::result_types::project_group_overview(group);
+                    let value = serde_wasm_bindgen::to_value(&entry)?;
+                    js_sys::Reflect::set(&result, &group.id.to_string().into(), &value)?;
+                }
+                Ok(result.into())
+            })
+            .await;
+            result.map_err(Into::into)
+        })
     }
     #[doc = r" Update participants of a parent group. Removing a participant also"]
     #[doc = r" removes them from its linked groups."]
     # [wasm_bindgen (js_name = communityParticipantsUpdate)]
-    pub async fn community_participants_update(
+    #[wasm_bindgen(unchecked_return_type = "Promise<ParticipantChangeResult[]>")]
+    pub fn community_participants_update(
         &self,
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupParticipantAction")] action: JsValue,
-    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
-    {
-        let action =
-            from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
-        let (group_jid, participant_jids) = participants_update_input(jid, &participants, action)?;
-        let client = self.client.online().await?;
-        participants_update(client, group_jid, participant_jids, action, true).await
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::ParticipantChangeResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let action =
+                    from_js_input::<crate::result_types::GroupParticipantAction>("action", action)?;
+                let (group_jid, participant_jids) =
+                    participants_update_input(jid, &participants, action)?;
+                let client = operation_client.online().await?;
+                participants_update(client, group_jid, participant_jids, action, true).await
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set who can add members to a group."]
     # [wasm_bindgen (js_name = groupMemberAddMode)]
-    pub async fn group_member_add_mode(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_member_add_mode(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "MemberAddMode")] mode: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let mode = from_js_input::<crate::result_types::MemberAddMode>("mode", mode)?;
-        let group_jid = parse_jid(jid)?;
-        let add_mode = match mode {
-            crate::result_types::MemberAddMode::AdminAdd => {
-                whatsapp_rust::features::MemberAddMode::AdminAdd
-            }
-            crate::result_types::MemberAddMode::AllMemberAdd => {
-                whatsapp_rust::features::MemberAddMode::AllMemberAdd
-            }
-        };
-        let client = self.client.online().await?;
-        client
-            .groups()
-            .set_member_add_mode(&group_jid, add_mode)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let mode = from_js_input::<crate::result_types::MemberAddMode>("mode", mode)?;
+                let group_jid = parse_jid(jid)?;
+                let add_mode = match mode {
+                    crate::result_types::MemberAddMode::AdminAdd => {
+                        whatsapp_rust::features::MemberAddMode::AdminAdd
+                    }
+                    crate::result_types::MemberAddMode::AllMemberAdd => {
+                        whatsapp_rust::features::MemberAddMode::AllMemberAdd
+                    }
+                };
+                let client = operation_client.online().await?;
+                client
+                    .groups()
+                    .set_member_add_mode(&group_jid, add_mode)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update a group setting (locked, announce, membership_approval)."]
     # [wasm_bindgen (js_name = groupSettingUpdate)]
-    pub async fn group_setting_update(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn group_setting_update(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "GroupSetting")] setting: JsValue,
         value: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let setting = from_js_input::<crate::result_types::GroupSetting>("setting", setting)?;
-        use crate::result_types::GroupSetting;
-        let group_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        match setting {
-            GroupSetting::Locked => client.groups().set_locked(&group_jid, value).await?,
-            GroupSetting::Announce => client.groups().set_announce(&group_jid, value).await?,
-            GroupSetting::MembershipApproval => {
-                let mode = if value {
-                    whatsapp_rust::MembershipApprovalMode::On
-                } else {
-                    whatsapp_rust::MembershipApprovalMode::Off
-                };
-                client
-                    .groups()
-                    .set_membership_approval(&group_jid, mode)
-                    .await?;
-            }
-        }
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let setting =
+                    from_js_input::<crate::result_types::GroupSetting>("setting", setting)?;
+                use crate::result_types::GroupSetting;
+                let group_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                match setting {
+                    GroupSetting::Locked => client.groups().set_locked(&group_jid, value).await?,
+                    GroupSetting::Announce => {
+                        client.groups().set_announce(&group_jid, value).await?
+                    }
+                    GroupSetting::MembershipApproval => {
+                        let mode = if value {
+                            whatsapp_rust::MembershipApprovalMode::On
+                        } else {
+                            whatsapp_rust::MembershipApprovalMode::Off
+                        };
+                        client
+                            .groups()
+                            .set_membership_approval(&group_jid, mode)
+                            .await?;
+                    }
+                }
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Approve or reject pending join requests."]
     # [wasm_bindgen (js_name = groupRequestParticipantsUpdate)]
-    pub async fn group_request_participants_update(
+    #[wasm_bindgen(unchecked_return_type = "Promise<ParticipantChangeResult[]>")]
+    pub fn group_request_participants_update(
         &self,
         jid: &str,
         participants: Vec<String>,
         #[wasm_bindgen(unchecked_param_type = "GroupRequestAction")] action: JsValue,
-    ) -> Result<Vec<Ts<crate::result_types::ParticipantChangeResult>>, crate::errors::BridgeError>
-    {
-        let action = from_js_input::<crate::result_types::GroupRequestAction>("action", action)?;
-        use crate::result_types::GroupRequestAction;
-        let group_jid = parse_jid(jid)?;
-        let participant_jids: Vec<wacore_binary::jid::Jid> = participants
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let responses = match action {
-            GroupRequestAction::Approve => {
-                client
-                    .groups()
-                    .approve_membership_requests(&group_jid, &participant_jids)
-                    .await?
-            }
-            GroupRequestAction::Reject => {
-                client
-                    .groups()
-                    .reject_membership_requests(&group_jid, &participant_jids)
-                    .await?
-            }
-        };
-        to_ts_vec(
-            responses
-                .iter()
-                .map(crate::result_types::project_participant_change)
-                .collect(),
-        )
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::ParticipantChangeResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let action =
+                    from_js_input::<crate::result_types::GroupRequestAction>("action", action)?;
+                use crate::result_types::GroupRequestAction;
+                let group_jid = parse_jid(jid)?;
+                let participant_jids: Vec<wacore_binary::jid::Jid> = participants
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let responses = match action {
+                    GroupRequestAction::Approve => {
+                        client
+                            .groups()
+                            .approve_membership_requests(&group_jid, &participant_jids)
+                            .await?
+                    }
+                    GroupRequestAction::Reject => {
+                        client
+                            .groups()
+                            .reject_membership_requests(&group_jid, &participant_jids)
+                            .await?
+                    }
+                };
+                to_ts_vec(
+                    responses
+                        .iter()
+                        .map(crate::result_types::project_participant_change)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
 }

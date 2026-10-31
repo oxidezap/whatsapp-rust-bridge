@@ -3,187 +3,219 @@
 impl WasmWhatsAppClient {
     #[doc = r" Get business profile information for a JID."]
     # [wasm_bindgen (js_name = getBusinessProfile)]
-    pub async fn get_business_profile(
-        &self,
-        jid: &str,
-    ) -> Result<Option<Ts<crate::result_types::BusinessProfileResult>>, crate::errors::BridgeError>
-    {
-        let target_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.get_business_profile(&target_jid).await?;
-        to_ts_opt(
-            value
-                .as_ref()
-                .map(crate::result_types::project_business_profile),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<BusinessProfileResult | undefined>")]
+    pub fn get_business_profile(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Option<Ts<crate::result_types::BusinessProfileResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.get_business_profile(&target_jid).await?;
+                to_ts_opt(
+                    value
+                        .as_ref()
+                        .map(crate::result_types::project_business_profile),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Look up an order's line items and totals."]
     #[doc = r""]
     #[doc = r" Both `orderId` and `token` come from the order message itself; the token"]
     #[doc = r" is a per-order capability, so an order cannot be read without it."]
     # [wasm_bindgen (js_name = getOrder)]
-    pub async fn get_order(
-        &self,
-        jid: &str,
-        order_id: &str,
-        token: &str,
-    ) -> Result<Ts<crate::result_types::OrderResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client
-            .business()
-            .get_order(&target, order_id, token)
-            .await?;
-        to_ts(crate::result_types::project_order(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<OrderResult>")]
+    pub fn get_order(&self, jid: &str, order_id: &str, token: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let order_id = order_id.to_owned();
+        let token = token.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let order_id: &str = &order_id;
+            let token: &str = &token;
+            let result: Result<Ts<crate::result_types::OrderResult>, crate::errors::BridgeError> =
+                (async move {
+                    let target = parse_jid(jid)?;
+                    let client = operation_client.online().await?;
+                    let value = client
+                        .business()
+                        .get_order(&target, order_id, token)
+                        .await?;
+                    to_ts(crate::result_types::project_order(&value))
+                })
+                .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove the business profile's cover photo, by the `fbid` it was set with."]
     # [wasm_bindgen (js_name = removeBusinessCoverPhoto)]
-    pub async fn remove_business_cover_photo(
-        &self,
-        id: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .business()
-            .remove_cover_photo(id)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn remove_business_cover_photo(&self, id: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let id = id.to_owned();
+        client_operation(cancelled, async move {
+            let id: &str = &id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .business()
+                    .remove_cover_photo(id)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch one page of a business's product catalog."]
     #[doc = r""]
     #[doc = r" Paginate by feeding `afterCursor` back through `options.after` until it"]
     #[doc = r" comes back absent."]
     # [wasm_bindgen (js_name = getCatalog)]
-    pub async fn get_catalog(
+    #[wasm_bindgen(unchecked_return_type = "Promise<CatalogResult>")]
+    pub fn get_catalog(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_optional_param_type = "CatalogOptionsInput | null")]
         options: JsValue,
-    ) -> Result<Ts<crate::result_types::CatalogResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let options =
-            from_js_input::<Option<crate::result_types::CatalogOptionsInput>>("options", options)?;
-        let input = options.unwrap_or_default();
-        let mut opts = whatsapp_rust::features::CatalogOptions::default();
-        if let Some(value) = input.limit {
-            opts.limit = value;
-        }
-        if let Some(value) = input.image_width {
-            opts.image_width = value;
-        }
-        if let Some(value) = input.image_height {
-            opts.image_height = value;
-        }
-        if let Some(value) = input.allow_shop_source {
-            opts.allow_shop_source = value;
-        }
-        opts.after = input.after;
-        let client = self.client.online().await?;
-        let value = client.business().get_catalog(&target, &opts).await?;
-        to_ts(crate::result_types::project_catalog(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<Ts<crate::result_types::CatalogResult>, crate::errors::BridgeError> =
+                (async move {
+                    let target = parse_jid(jid)?;
+                    let options = from_js_input::<Option<crate::result_types::CatalogOptionsInput>>(
+                        "options", options,
+                    )?;
+                    let input = options.unwrap_or_default();
+                    let mut opts = whatsapp_rust::features::CatalogOptions::default();
+                    if let Some(value) = input.limit {
+                        opts.limit = value;
+                    }
+                    if let Some(value) = input.image_width {
+                        opts.image_width = value;
+                    }
+                    if let Some(value) = input.image_height {
+                        opts.image_height = value;
+                    }
+                    if let Some(value) = input.allow_shop_source {
+                        opts.allow_shop_source = value;
+                    }
+                    opts.after = input.after;
+                    let client = operation_client.online().await?;
+                    let value = client.business().get_catalog(&target, &opts).await?;
+                    to_ts(crate::result_types::project_catalog(&value))
+                })
+                .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch one page of a business's product collections, each with its first"]
     #[doc = r" products inline."]
     # [wasm_bindgen (js_name = getCollections)]
-    pub async fn get_collections(
+    #[wasm_bindgen(unchecked_return_type = "Promise<CollectionsResult>")]
+    pub fn get_collections(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_optional_param_type = "CollectionOptionsInput | null")]
         options: JsValue,
-    ) -> Result<Ts<crate::result_types::CollectionsResult>, crate::errors::BridgeError> {
-        let options = from_js_input::<Option<crate::result_types::CollectionOptionsInput>>(
-            "options", options,
-        )?;
-        let target = parse_jid(jid)?;
-        let input = options.unwrap_or_default();
-        let mut opts = whatsapp_rust::features::CollectionOptions::default();
-        if let Some(value) = input.collection_limit {
-            opts.collection_limit = value;
-        }
-        if let Some(value) = input.item_limit {
-            opts.item_limit = value;
-        }
-        if let Some(value) = input.image_width {
-            opts.image_width = value;
-        }
-        if let Some(value) = input.image_height {
-            opts.image_height = value;
-        }
-        opts.after = input.after;
-        let client = self.client.online().await?;
-        let value = client.business().get_collections(&target, &opts).await?;
-        to_ts(crate::result_types::project_collections(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::CollectionsResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let options = from_js_input::<Option<crate::result_types::CollectionOptionsInput>>(
+                    "options", options,
+                )?;
+                let target = parse_jid(jid)?;
+                let input = options.unwrap_or_default();
+                let mut opts = whatsapp_rust::features::CollectionOptions::default();
+                if let Some(value) = input.collection_limit {
+                    opts.collection_limit = value;
+                }
+                if let Some(value) = input.item_limit {
+                    opts.item_limit = value;
+                }
+                if let Some(value) = input.image_width {
+                    opts.image_width = value;
+                }
+                if let Some(value) = input.image_height {
+                    opts.image_height = value;
+                }
+                opts.after = input.after;
+                let client = operation_client.online().await?;
+                let value = client.business().get_collections(&target, &opts).await?;
+                to_ts(crate::result_types::project_collections(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Apply a delta to the account's own business profile."]
     #[doc = r""]
     #[doc = r" Omitted fields are left untouched; an empty value clears one. The core"]
     #[doc = r" rejects a delta with nothing set."]
     # [wasm_bindgen (js_name = updateBusinessProfile)]
-    pub async fn update_business_profile(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn update_business_profile(
         &self,
         #[wasm_bindgen(unchecked_param_type = "BusinessProfileUpdateInput")] update: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let update =
-            from_js_input::<crate::result_types::BusinessProfileUpdateInput>("update", update)?;
-        let business_hours = update
-            .business_hours
-            .map(|hours| -> Result<_, crate::errors::BridgeError> {
-                let config = hours
-                    .config
-                    .into_iter()
-                    .map(|entry| -> Result<_, crate::errors::BridgeError> {
-                        let day = entry.day_of_week.as_str().into();
-                        let mode = entry.mode.as_str().into();
-                        let config = match (entry.open_time, entry.close_time) {
-                            (Some(open), Some(close)) => {
-                                wacore::iq::business::BusinessHoursConfig::with_hours(
-                                    day, mode, open, close,
-                                )
-                            }
-                            (None, None) => {
-                                wacore::iq::business::BusinessHoursConfig::new(day, mode)
-                            }
-                            (open, _) => {
-                                let missing = match open {
-                                    Some(_) => "closeTime",
-                                    None => "openTime",
-                                };
-                                return Err(crate::errors::invalid_arg(
-                                    "businessHours.config",
-                                    format!(
-                                        "{} is missing {missing}: an opening range needs both ends",
-                                        entry.day_of_week
-                                    ),
-                                ));
-                            }
-                        };
-                        Ok(config)
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let hours = wacore::iq::business::BusinessHoursUpdate {
-                    timezone: hours.timezone,
-                    note: hours.note,
-                    config,
-                };
-                Ok(hours)
-            })
-            .transpose()?;
-        let delta = wacore::iq::business::BusinessProfileUpdate {
-            address: update.address,
-            latitude: update.latitude,
-            longitude: update.longitude,
-            description: update.description,
-            email: update.email,
-            websites: update.websites,
-            categories: update.categories,
-            business_hours,
-        };
-        let client = self.client.online().await?;
-        client
-            .business()
-            .update_profile(&delta)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result : Result < () , crate :: errors :: BridgeError > = (async move { let update = from_js_input :: < crate :: result_types :: BusinessProfileUpdateInput > ("update" , update) ? ; let business_hours = update . business_hours . map (| hours | -> Result < _ , crate :: errors :: BridgeError > { let config = hours . config . into_iter () . map (| entry | -> Result < _ , crate :: errors :: BridgeError > { let day = entry . day_of_week . as_str () . into () ; let mode = entry . mode . as_str () . into () ; let config = match (entry . open_time , entry . close_time) { (Some (open) , Some (close)) => { wacore :: iq :: business :: BusinessHoursConfig :: with_hours (day , mode , open , close) } , (None , None) => { wacore :: iq :: business :: BusinessHoursConfig :: new (day , mode) } , (open , _) => { let missing = match open { Some (_) => { "closeTime" } , None => { "openTime" } , } ; return Err (crate :: errors :: invalid_arg ("businessHours.config" , format ! ("{} is missing {missing}: an opening range needs both ends" , entry . day_of_week))) } , } ; Ok (config) }) . collect :: < Result < Vec < _ > , _ > > () ? ; let hours = wacore :: iq :: business :: BusinessHoursUpdate { timezone : hours . timezone , note : hours . note , config , } ; Ok (hours) }) . transpose () ? ; let delta = wacore :: iq :: business :: BusinessProfileUpdate { address : update . address , latitude : update . latitude , longitude : update . longitude , description : update . description , email : update . email , websites : update . websites , categories : update . categories , business_hours , } ; let client = operation_client . online () . await ? ; client . business () . update_profile (& delta) . await . map_err (crate :: errors :: BridgeError :: from) }) . await ;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Point the business profile at an already-uploaded cover photo."]
     #[doc = r""]
@@ -193,26 +225,44 @@ impl WasmWhatsAppClient {
     #[doc = r" `fbid`/`meta_hmac`/`ts` instead, so the upload leg does not exist. The"]
     #[doc = r" protocol side is complete, and this is here for when it does."]
     # [wasm_bindgen (js_name = setBusinessCoverPhoto)]
-    pub async fn set_business_cover_photo(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_business_cover_photo(
         &self,
         #[wasm_bindgen(unchecked_param_type = "CoverPhotoUploadInput")] upload: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let upload = from_js_input::<crate::result_types::CoverPhotoUploadInput>("upload", upload)?;
-        let timestamp = {
-            let value = upload.timestamp;
-            value.parse::<i64>().map_err(|error| {
-                crate::errors::invalid_arg("timestamp", format!("must be the upload's ts: {error}"))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let upload =
+                    from_js_input::<crate::result_types::CoverPhotoUploadInput>("upload", upload)?;
+                let timestamp = {
+                    let value = upload.timestamp;
+                    value.parse::<i64>().map_err(|error| {
+                        crate::errors::invalid_arg(
+                            "timestamp",
+                            format!("must be the upload's ts: {error}"),
+                        )
+                    })
+                }?;
+                let client = operation_client.online().await?;
+                client
+                    .business()
+                    .set_cover_photo(wacore::iq::business::CoverPhotoUpload {
+                        id: upload.id,
+                        token: upload.token,
+                        timestamp,
+                    })
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
             })
-        }?;
-        let client = self.client.online().await?;
-        client
-            .business()
-            .set_cover_photo(wacore::iq::business::CoverPhotoUpload {
-                id: upload.id,
-                token: upload.token,
-                timestamp,
-            })
-            .await
-            .map_err(crate::errors::BridgeError::from)
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
 }
