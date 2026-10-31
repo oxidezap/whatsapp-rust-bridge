@@ -22,52 +22,6 @@ use whatsapp_rust::wacore::net::{DisconnectReason, Transport, TransportEvent, Tr
 // TypeScript interface (documentation only — actual impl uses raw Functions)
 // ---------------------------------------------------------------------------
 
-#[wasm_bindgen(typescript_custom_section)]
-const TS_TRANSPORT: &str = r#"
-/**
- * JS transport callbacks for WebSocket management.
- *
- * Passed to `createWhatsAppClient` as the transport config.
- *
- * `connect(handle)` is called when the client needs a connection:
- *   - Create a WebSocket
- *   - Wire ws.onopen → handle.onConnected()
- *   - Wire ws.onmessage → handle.onData(data)
- *   - Wire ws.onclose → handle.onDisconnected()
- *
- * `send(data)` sends raw bytes over the active WebSocket.
- * `sendBorrowed(data)`, when provided, is the zero-copy fast path. The view is
- * borrowed from WASM memory and is valid ONLY for the synchronous duration of
- * the call: implementations MUST consume/copy it before returning and MUST NOT
- * retain it, re-enter WASM, or return a Promise. The mandatory `send` method is
- * kept as the safe copying fallback for every other transport.
- * `disconnect()` closes the WebSocket.
- */
-export interface JsTransportHandle {
-    onConnected(): void;
-    onData(data: Uint8Array): void;
-    onDisconnected(): void;
-}
-
-/**
- * Every Promise handed back to the bridge must settle, including on failure:
- * reject rather than leaving it pending. The bridge awaits them through a
- * wasm-bindgen `JsFuture`; an overlapping teardown cancels only the wait that
- * would otherwise form a callback/teardown cycle.
- */
-export interface JsTransportCallbacks {
-    connect(handle: JsTransportHandle): void | Promise<void>;
-    send(data: Uint8Array): void | Promise<void>;
-    sendBorrowed?(data: Uint8Array): void;
-    disconnect(): void | Promise<void>;
-}
-"#;
-
-const CONNECT_METHOD: &str = "connect";
-const SEND_METHOD: &str = "send";
-const SEND_BORROWED_METHOD: &str = "sendBorrowed";
-const DISCONNECT_METHOD: &str = "disconnect";
-
 /// Coordinates a host disconnect callback with an overlapping teardown.
 /// Cancelling the wait breaks the only possible callback/teardown cycle; an
 /// ordinary callback is still awaited to completion.
@@ -207,57 +161,11 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue 
 // Internal: raw JS function storage (avoids wasm-bindgen reentrancy)
 // ---------------------------------------------------------------------------
 
-/// Stores the transport callbacks as raw JS functions.
-///
-/// Using `js_sys::Function` instead of wasm-bindgen extern types avoids the
-/// "recursive use of an object" panic that occurs when a callback reentrantly
-/// calls back into WASM (e.g. disconnect → ws.close → reconnect → connect).
-struct RawTransportCallbacks {
-    connect_fn: js_sys::Function,
-    send_fn: js_sys::Function,
-    send_borrowed_fn: Option<js_sys::Function>,
-    /// Whether `sendBorrowed`'s synchronous contract has been verified.
-    ///
-    /// Whether a JS function returns a Promise is a property of the function,
-    /// not of the call, so the check answers the same way forever. Repeating it
-    /// costs an `instanceof` crossing on the busiest path there is — one per
-    /// frame sent.
-    send_borrowed_checked: std::cell::Cell<bool>,
-    disconnect_fn: js_sys::Function,
-    callback_state: Arc<HostCallbackState>,
-    /// The original JS object — kept alive to prevent GC
-    _js_obj: JsValue,
-}
+generated_transport_callbacks!();
 
 crate::wasm_send_sync!(RawTransportCallbacks);
 
 impl RawTransportCallbacks {
-    /// Extract callbacks from a JS object with connect/send/disconnect methods.
-    fn from_js(obj: JsValue) -> Result<Self, JsValue> {
-        let connect_fn = js_sys::Reflect::get(&obj, &CONNECT_METHOD.into())?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| JsValue::from_str("transport.connect must be a function"))?;
-        let send_fn = js_sys::Reflect::get(&obj, &SEND_METHOD.into())?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| JsValue::from_str("transport.send must be a function"))?;
-        let send_borrowed_fn = js_sys::Reflect::get(&obj, &SEND_BORROWED_METHOD.into())
-            .ok()
-            .and_then(|value| value.dyn_into::<js_sys::Function>().ok());
-        let disconnect_fn = js_sys::Reflect::get(&obj, &DISCONNECT_METHOD.into())?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| JsValue::from_str("transport.disconnect must be a function"))?;
-
-        Ok(Self {
-            connect_fn,
-            send_fn,
-            send_borrowed_fn,
-            send_borrowed_checked: std::cell::Cell::new(false),
-            disconnect_fn,
-            callback_state: Arc::new(HostCallbackState::new()),
-            _js_obj: obj,
-        })
-    }
-
     async fn call_connect_js(&self, handle: JsValue) -> Result<(), anyhow::Error> {
         let result = self
             .connect_fn
@@ -403,5 +311,45 @@ impl TransportFactory for JsTransportFactory {
         }) as Arc<dyn Transport>;
 
         Ok((transport, event_rx))
+    }
+}
+
+#[cfg(test)]
+mod generated_host_callback_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    #[test]
+    fn registration_keeps_getter_order_and_required_throw_identity() {
+        let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};
+            for(const name of ["connect", "send", "sendBorrowed", "disconnect"]) Object.defineProperty(obj,name,{get(){reads.push(name);return ()=>{};}});
+            return obj; })()"#).unwrap();
+        RawTransportCallbacks::from_js(value.clone()).unwrap();
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(reads, vec!["connect", "send", "sendBorrowed", "disconnect"]);
+        let value=js_sys::eval(r#"(() => {const marker={marker:true}; return {marker,get connect(){throw marker;}};})()"#).unwrap();
+        let marker = js_sys::Reflect::get(&value, &"marker".into()).unwrap();
+        let error = RawTransportCallbacks::from_js(value.clone()).err().unwrap();
+        assert_eq!(error, marker);
+        let value = js_sys::eval(r#"({connect:42})"#).unwrap();
+        let error = RawTransportCallbacks::from_js(value.clone()).err().unwrap();
+        assert_eq!(
+            error.as_string().unwrap(),
+            "transport.connect must be a function"
+        );
+    }
+    #[test]
+    fn optional_borrowed_send_remains_tolerant() {
+        for source in [
+            "({connect(){},send(){},disconnect(){},get sendBorrowed(){throw 17;}})",
+            "({connect(){},send(){},disconnect(){},sendBorrowed:42})",
+        ] {
+            let value = js_sys::eval(source).unwrap();
+            let callbacks = RawTransportCallbacks::from_js(value.clone()).unwrap();
+            assert!(callbacks.send_borrowed_fn.is_none());
+            assert!(!callbacks.send_borrowed_checked.get());
+            assert_eq!(callbacks._js_obj, value);
+        }
     }
 }

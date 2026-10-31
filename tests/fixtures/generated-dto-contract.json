@@ -1,0 +1,460 @@
+{
+  "bridgeRevision": "4e406146e5a9f392f50c0556dd5caa5f472e92d8",
+  "coreRevision": "6f7a62296242f5dab8967431bd1c6528c1339efe",
+  "types": {
+    "UploadMediaResult": [
+      "url: string;",
+      "directPath: string;",
+      "mediaKey: Uint8Array;",
+      "fileSha256: Uint8Array;",
+      "fileEncSha256: Uint8Array;",
+      "fileLength: number;"
+    ],
+    "SignalSessionMigrationResult": [
+      "migrated: number;",
+      "skipped: number;",
+      "total: number;"
+    ],
+    "NewsletterFollowerResult": [
+      "jid: string;",
+      "phoneJid?: string;",
+      "displayName?: string;",
+      "username?: string;",
+      "role?: string;",
+      "followTime?: number;",
+      "adminProfile?: NewsletterAdminProfileResult;"
+    ],
+    "NewsletterAdminProfileResult": [
+      "id?: string;",
+      "name: string;",
+      "pictureId?: string;",
+      "pictureDirectPath?: string;"
+    ],
+    "NewsletterAdminInfoResult": [
+      "adminCount?: number;",
+      "adminProfile?: NewsletterAdminProfileResult;",
+      "adminProfilesEnabled?: boolean;"
+    ],
+    "NewsletterReactionCountResult": [
+      "code: string;",
+      "count: number;"
+    ],
+    "OwnUsernameResult": [
+      "username?: string;",
+      "state?: string;",
+      "key?: string;"
+    ],
+    "BlocklistEntryResult": [
+      "jid: string;",
+      "timestamp?: number;"
+    ],
+    "FetchStatusResult": [
+      "jid: string;",
+      "status?: string;"
+    ],
+    "MediaConnResult": [
+      "auth: string;",
+      "ttl: number;",
+      "hosts: MediaHost[];"
+    ],
+    "MediaHost": [
+      "hostname: string;"
+    ],
+    "PriceResult": [
+      "amount1000: string;",
+      "currency?: string;"
+    ],
+    "SalePriceResult": [
+      "price: PriceResult;",
+      "startDate?: string;",
+      "endDate?: string;"
+    ],
+    "ProductImageResult": [
+      "id?: string;",
+      "requestImageUrl?: string;",
+      "originalImageUrl?: string;"
+    ],
+    "ProductVideoResult": [
+      "id?: string;",
+      "originalVideoUrl?: string;",
+      "thumbnailUrl?: string;"
+    ],
+    "ImporterAddressResult": [
+      "street1?: string;",
+      "street2?: string;",
+      "city?: string;",
+      "region?: string;",
+      "postalCode?: string;",
+      "countryCode?: string;"
+    ],
+    "VariantPropertyResult": [
+      "name?: string;",
+      "value?: string;"
+    ],
+    "OrderPriceDetailsResult": [
+      "currency?: string;",
+      "subtotal?: PriceResult;",
+      "total?: PriceResult;"
+    ],
+    "OrderProductResult": [
+      "id?: string;",
+      "name?: string;",
+      "price?: PriceResult;",
+      "quantity?: number;",
+      "images: ProductImageResult[];",
+      "variantProperties: VariantPropertyResult[];"
+    ],
+    "OrderResult": [
+      "products: OrderProductResult[];",
+      "priceDetails?: OrderPriceDetailsResult;",
+      "creationTimestamp?: number;"
+    ],
+    "ProductResult": [
+      "id: string;",
+      "retailerId?: string;",
+      "name?: string;",
+      "description?: string;",
+      "url?: string;",
+      "shimmedUrl?: string;",
+      "price?: PriceResult;",
+      "salePrice?: SalePriceResult;",
+      "isHidden?: boolean;",
+      "isSanctioned?: boolean;",
+      "maxAvailable?: number;",
+      "availability?: string;",
+      "reviewStatus?: string;",
+      "canAppeal?: boolean;",
+      "belongsTo?: boolean;",
+      "images: ProductImageResult[];",
+      "videos: ProductVideoResult[];",
+      "complianceCategory?: string;",
+      "countryCodeOrigin?: string;",
+      "importerName?: string;",
+      "importerAddress?: ImporterAddressResult;"
+    ],
+    "CatalogResult": [
+      "products: ProductResult[];",
+      "afterCursor?: string;",
+      "beforeCursor?: string;"
+    ],
+    "CollectionResult": [
+      "id?: string;",
+      "name?: string;",
+      "products: ProductResult[];",
+      "reviewStatus?: string;",
+      "canAppeal?: boolean;",
+      "rejectReason?: string;",
+      "commerceUrl?: string;"
+    ],
+    "CollectionsResult": [
+      "collections: CollectionResult[];",
+      "afterCursor?: string;"
+    ],
+    "BusinessCategoryResult": [
+      "id: string;",
+      "name: string;"
+    ],
+    "BusinessHoursConfigResult": [
+      "dayOfWeek: string;",
+      "mode: string;",
+      "openTime?: number;",
+      "closeTime?: number;"
+    ],
+    "BusinessHoursResult": [
+      "timezone?: string;",
+      "businessConfig?: BusinessHoursConfigResult[];"
+    ],
+    "BusinessProfileResult": [
+      "wid?: string;",
+      "description: string;",
+      "email?: string;",
+      "website: string[];",
+      "categories: BusinessCategoryResult[];",
+      "address?: string;",
+      "businessHours: BusinessHoursResult;"
+    ],
+    "MembershipRequestResult": [
+      "jid: string;",
+      "requestTime?: number;"
+    ],
+    "CommunitySubgroupResult": [
+      "id: string;",
+      "subject: string;",
+      "participantCount?: number;",
+      "creation?: number;",
+      "owner?: string;",
+      "isDefaultSubGroup: boolean;",
+      "isGeneralChat: boolean;"
+    ],
+    "SignalSessionInfoResult": [
+      "baseKey: Uint8Array;",
+      "registrationId: number;"
+    ],
+    "ProfilePictureResult": [
+      "id: string;"
+    ],
+    "BotThemeResult": [
+      "mode: string;",
+      "background?: string;",
+      "primaryText?: string;",
+      "secondaryText?: string;"
+    ],
+    "BotListEntryResult": [
+      "jid: string;",
+      "personaId: string;",
+      "cardTitle?: string;",
+      "count?: number;",
+      "themes: BotThemeResult[];"
+    ],
+    "BotListSectionResult": [
+      "name?: string;",
+      "sectionType: string;",
+      "displayType?: string;",
+      "bots: BotListEntryResult[];"
+    ],
+    "BotDefaultResult": [
+      "jid: string;",
+      "personaId: string;"
+    ],
+    "BotListResult": [
+      "version: string;",
+      "bhash?: string;",
+      "defaultBot?: BotDefaultResult;",
+      "sections: BotListSectionResult[];"
+    ],
+    "ParticipantAddRequestResult": [
+      "code: string;",
+      "expiration: number;"
+    ],
+    "ParticipantChangeResult": [
+      "jid: string;",
+      "status?: string;",
+      "error?: string;",
+      "phoneNumber?: string;",
+      "username?: string;",
+      "addRequest?: ParticipantAddRequestResult;"
+    ],
+    "NewsletterMetadataResult": [
+      "jid: string;",
+      "name: string;",
+      "description?: string;",
+      "subscriberCount: number;",
+      "verification: string;",
+      "state: string;",
+      "pictureUrl?: string;",
+      "previewUrl?: string;",
+      "inviteCode?: string;",
+      "role?: string;",
+      "creationTime?: number;",
+      "muted?: boolean;",
+      "followerActivityMuted?: boolean;"
+    ],
+    "GroupMetadataParticipant": [
+      "jid: string;",
+      "phoneNumber?: string;",
+      "lid?: string;",
+      "username?: string;",
+      "participantType: string;",
+      "isAdmin: boolean;",
+      "isSuperAdmin: boolean;"
+    ],
+    "GroupEphemeralSettingsResult": [
+      "expiration?: number;",
+      "trigger?: number;"
+    ],
+    "GroupGrowthLockInfoResult": [
+      "lockType: string;",
+      "expiration: number;"
+    ],
+    "GroupOverviewResult": [
+      "id: string;",
+      "subject?: string;",
+      "hierarchy: GroupHierarchyResult;",
+      "participantCount?: number;"
+    ],
+    "GroupMetadataResult": [
+      "id: string;",
+      "subject?: string;",
+      "notify?: string;",
+      "participants: GroupMetadataParticipant[];",
+      "addressingMode: string;",
+      "creator?: string;",
+      "creatorPn?: string;",
+      "creatorUsername?: string;",
+      "creatorCountryCode?: string;",
+      "creationTime?: number;",
+      "subjectTime?: number;",
+      "subjectOwner?: string;",
+      "subjectOwnerPn?: string;",
+      "subjectOwnerUsername?: string;",
+      "description?: string;",
+      "descriptionId?: string;",
+      "descriptionOwner?: string;",
+      "descriptionOwnerPn?: string;",
+      "descriptionOwnerUsername?: string;",
+      "descriptionTime?: number;",
+      "isLocked: boolean;",
+      "isAnnouncement: boolean;",
+      "ephemeral?: GroupEphemeralSettingsResult;",
+      "membershipApproval: boolean;",
+      "memberAddMode?: string;",
+      "memberLinkMode?: string;",
+      "participantCount?: number;",
+      "isParentGroup: boolean;",
+      "parentGroupJid?: string;",
+      "isDefaultSubGroup: boolean;",
+      "isGeneralChat: boolean;",
+      "allowNonAdminSubGroupCreation: boolean;",
+      "noFrequentlyForwarded: boolean;",
+      "memberShareHistoryMode?: string;",
+      "growthLocked?: GroupGrowthLockInfoResult;",
+      "isSuspended: boolean;",
+      "allowAdminReports: boolean;",
+      "isHiddenGroup: boolean;",
+      "isIncognito: boolean;",
+      "hasGroupHistory: boolean;",
+      "isLimitSharingEnabled: boolean;"
+    ],
+    "CommunityLinkFailureResult": [
+      "jid: string;",
+      "error: number;"
+    ],
+    "CommunityLinkResult": [
+      "succeeded: string[];",
+      "failed: CommunityLinkFailureResult[];"
+    ],
+    "MemoryDiagnosticsResult": [
+      "groupCache: number;",
+      "groupCacheBytes: number;",
+      "deviceRegistryCache: number;",
+      "deviceRegistryCacheBytes: number;",
+      "senderKeyDeviceCache: number;",
+      "senderKeyDeviceCacheBytes: number;",
+      "groupDevicesMemo: number;",
+      "groupDevicesMemoBytes: number;",
+      "lidPnLidEntries: number;",
+      "lidPnLidBytes: number;",
+      "lidPnPnEntries: number;",
+      "lidPnPnBytes: number;",
+      "recentMessages: number;",
+      "recentMessagesBytes: number;",
+      "messageRetryCounts: number;",
+      "undecryptableDispatched: number;",
+      "pdoPendingRequests: number;",
+      "pdoRequested: number;",
+      "sessionLocks: number;",
+      "chatLanes: number;",
+      "groupDistributionLocks: number;",
+      "groupDistributionLockEvictions: number;",
+      "groupDistributionLockEvictionBlocks: number;",
+      "resendRateLimiterChats: number;",
+      "responseWaiters: number;",
+      "nodeWaiters: number;",
+      "pendingRetries: number;",
+      "presenceSubscriptions: number;",
+      "appStateKeyRequests: number;",
+      "appStateSyncing: number;",
+      "signalCacheSessions: number;",
+      "signalCacheSessionsBytes: number;",
+      "signalCacheIdentities: number;",
+      "signalCacheIdentitiesBytes: number;",
+      "signalCacheSenderKeys: number;",
+      "signalCacheSenderKeysBytes: number;",
+      "historySyncTasks: number;",
+      "historySyncPayloadBytes: number;",
+      "historySyncPeakTasks: number;",
+      "historySyncPeakPayloadBytes: number;",
+      "chatstateHandlers: number;",
+      "customEncHandlers: number;",
+      "clientEstimatedBytes: number;",
+      "storageMemoryBytes?: number;",
+      "storagePages?: number;",
+      "storageIoReadBytes?: number;",
+      "storageIoWriteBytes?: number;",
+      "transportReadBufferBytes?: number;",
+      "transportWriteBufferBytes?: number;",
+      "transportTlsStateBytes?: number;",
+      "httpPoolConnections?: number;",
+      "httpPoolBufferBytes?: number;",
+      "httpInflightBytes?: number;",
+      "resourceEstimatedBytes: number;"
+    ],
+    "NewChatMessageCappingResult": [
+      "cappingStatus?: string;",
+      "oteStatus?: string;",
+      "mvStatus?: string;",
+      "totalQuota?: number;",
+      "usedQuota?: number;",
+      "cycleStartTimestamp?: number;",
+      "cycleEndTimestamp?: number;",
+      "serverSentTimestamp?: number;",
+      "remainingQuota?: number;"
+    ],
+    "CreatePollResult": [
+      "messageId: string;",
+      "messageSecret: Uint8Array;"
+    ],
+    "NewsletterMessageResult": [
+      "messageId?: string;",
+      "serverId: string;",
+      "timestamp: number;",
+      "messageType: string;",
+      "messageTypeRaw?: string;",
+      "edit: string;",
+      "isSender: boolean;",
+      "mediaType?: string;",
+      "votes: NewsletterPollVoteResult[];",
+      "forwardsCount?: string;",
+      "viewsCount?: string;",
+      "responsesCount?: string;",
+      "originalTimestamp?: string;",
+      "lastEditTimestampMs?: string;",
+      "pollType?: string;",
+      "pollTypeRaw?: string;",
+      "contentType?: string;",
+      "questionType?: string;",
+      "messageAssociationType?: string;",
+      "isWamoSub: boolean;",
+      "adminProfile?: NewsletterAdminProfileResult;",
+      "rcat?: Uint8Array;",
+      "message?: Uint8Array;",
+      "reactions: NewsletterReactionCountResult[];"
+    ],
+    "NewsletterPollVoteResult": [
+      "optionHash: Uint8Array;",
+      "count: string;"
+    ],
+    "IsOnWhatsAppResult": [
+      "jid: string;",
+      "isRegistered: boolean;",
+      "lid?: string;",
+      "pnJid?: string;",
+      "isBusiness: boolean;",
+      "verifiedName?: string;",
+      "username?: string;"
+    ],
+    "UserInfoResult": [
+      "jid: string;",
+      "lid?: string;",
+      "status?: string;",
+      "pictureId?: string;",
+      "isBusiness: boolean;",
+      "verifiedName?: string;",
+      "devices: number[];",
+      "username?: string;"
+    ],
+    "ProfilePictureInfo": [
+      "id: string;",
+      "url: string;",
+      "directPath?: string;",
+      "hash?: string;"
+    ],
+    "CoreAllocationSnapshotResult": [
+      "enabled: boolean;",
+      "allocatedBytes: number;",
+      "freedBytes: number;",
+      "allocations: number;",
+      "netBytes: number;"
+    ]
+  }
+}

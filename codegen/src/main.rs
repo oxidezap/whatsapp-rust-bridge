@@ -20,7 +20,7 @@ const HAND_WRITTEN_DECLARATIONS: &[&str] = &["Jid", "JsonValue"];
 /// `typescript_custom_section`s. wasm-bindgen concatenates every section into
 /// one `.d.ts`, so a reference to one of these resolves there — this generator
 /// just cannot see them from the core's sources.
-const BRIDGE_DECLARATIONS: &[&str] = &["KeyPair"];
+const BRIDGE_DECLARATIONS: &[&str] = &["KeyPair", "PresenceStatus"];
 
 /// Where the core's sources live, as two roots rather than one: published
 /// crates put `wacore` and `whatsapp-rust` side by side in the registry, while

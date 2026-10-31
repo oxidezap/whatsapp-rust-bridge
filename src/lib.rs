@@ -8,6 +8,8 @@ pub mod image_utils;
 #[cfg(feature = "sticker")]
 pub mod sticker_metadata;
 
+include!("wasm_client/generated/host_callbacks.rs");
+
 pub mod addon_crypto;
 pub mod camel_serializer;
 pub mod client_profile;
@@ -15,6 +17,8 @@ pub mod compression;
 pub mod crypto;
 pub mod device_props;
 pub mod errors;
+#[cfg(test)]
+mod generated_projection_tests;
 mod generated_types;
 mod history_sync_admission;
 pub mod js_backend;

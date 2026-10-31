@@ -1,3 +1,4 @@
+import { unexercisedAtomicStorage } from "./fixtures/unexercised-atomic-storage.js";
 /**
  * What a parked call can still touch once the client is torn down.
  *
@@ -49,6 +50,7 @@ function countingStore() {
   return {
     counts,
     callbacks: {
+      ...unexercisedAtomicStorage,
       async get(store: string, key: string) {
         if (store === "device_list") counts.deviceReads++;
         return kept.get(`${store}/${key}`) ?? null;

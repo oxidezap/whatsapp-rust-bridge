@@ -9,36 +9,9 @@ use wasm_bindgen_futures::JsFuture;
 
 use whatsapp_rust::wacore::net::{HttpClient, HttpRequest, HttpResponse};
 
-#[wasm_bindgen(typescript_custom_section)]
-const TS_HTTP: &str = r#"
-/**
- * JS HTTP client callbacks. Implement using fetch() or any HTTP library.
- */
-export interface JsHttpClientConfig {
-    execute(url: string, method: string, headers: Record<string, string>, body: Uint8Array | null): Promise<{ statusCode: number; body: Uint8Array }>;
-}
-"#;
-
-/// Stores the execute function as a raw JS function.
-pub struct JsHttpClientAdapter {
-    execute_fn: js_sys::Function,
-    _js_obj: JsValue,
-}
+generated_http_callbacks!();
 
 crate::wasm_send_sync!(JsHttpClientAdapter);
-
-impl JsHttpClientAdapter {
-    pub fn from_js(obj: JsValue) -> Result<Self, JsValue> {
-        let execute_fn = js_sys::Reflect::get(&obj, &"execute".into())?
-            .dyn_into::<js_sys::Function>()
-            .map_err(|_| JsValue::from_str("httpClient.execute must be a function"))?;
-
-        Ok(Self {
-            execute_fn,
-            _js_obj: obj,
-        })
-    }
-}
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
@@ -90,6 +63,33 @@ impl HttpClient for JsHttpClientAdapter {
             Vec::new()
         };
 
-        Ok(HttpResponse { status_code, body })
+        Ok(HttpResponse::new(status_code, body))
+    }
+}
+
+#[cfg(test)]
+mod generated_host_callback_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    #[test]
+    fn registration_keeps_getter_order_and_required_throw_identity() {
+        let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};
+            for(const name of ["execute"]) Object.defineProperty(obj,name,{get(){reads.push(name);return ()=>{};}});
+            return obj; })()"#).unwrap();
+        JsHttpClientAdapter::from_js(value.clone()).unwrap();
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(reads, vec!["execute"]);
+        let value=js_sys::eval(r#"(() => {const marker={marker:true}; return {marker,get execute(){throw marker;}};})()"#).unwrap();
+        let marker = js_sys::Reflect::get(&value, &"marker".into()).unwrap();
+        let error = JsHttpClientAdapter::from_js(value.clone()).err().unwrap();
+        assert_eq!(error, marker);
+        let value = js_sys::eval(r#"({execute:42})"#).unwrap();
+        let error = JsHttpClientAdapter::from_js(value.clone()).err().unwrap();
+        assert_eq!(
+            error.as_string().unwrap(),
+            "httpClient.execute must be a function"
+        );
     }
 }

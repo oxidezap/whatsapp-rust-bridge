@@ -11,7 +11,7 @@ default-members = [".", "crates/bridge-core"]
 exclude = ["codegen"]
 
 [workspace.dependencies]
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "6f7a62296242f5dab8967431bd1c6528c1339efe", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "633f01480fe3a95510172c6312d01484563dcf3c", default-features = false }
 whatsapp-rust-bridge-core = { path = "crates/bridge-core" }
 
 [package.metadata.wasm-pack.profile.release]

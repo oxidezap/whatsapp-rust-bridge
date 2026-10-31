@@ -707,16 +707,30 @@ const RECEIPT_FLAG_OFFLINE: u8 = 1 << 2;
 /// The type slot holds an `Other(inner)` payload instead of a variant name.
 const RECEIPT_FLAG_TYPE_OTHER: u8 = 1 << 3;
 
-/// Serde representation of `ReceiptType`: the packed record carries the
-/// variant name, or the inner payload with the `Other` flag set. The core's
-/// `variant_name` backs its own `Serialize`, so this stays in step with the
-/// single-event shape without a mirrored list or a serde round-trip.
-pub(crate) fn receipt_type_repr(value: &wacore::types::presence::ReceiptType) -> (&str, bool) {
+/// Packed receipts keep the Serde variant names, independently of wire tags.
+pub(crate) fn receipt_type_repr(
+    value: &wacore::types::presence::ReceiptType,
+) -> (std::borrow::Cow<'_, str>, bool) {
+    use std::borrow::Cow;
     use wacore::types::presence::ReceiptType;
-    match value {
-        ReceiptType::Other(inner) => (inner.as_str(), true),
-        known => (known.variant_name(), false),
-    }
+    let name = match value {
+        ReceiptType::Other(inner) => return (Cow::Borrowed(inner), true),
+        ReceiptType::Delivered => "Delivered",
+        ReceiptType::Sent => "Sent",
+        ReceiptType::Sender => "Sender",
+        ReceiptType::Retry => "Retry",
+        ReceiptType::EncRekeyRetry => "EncRekeyRetry",
+        ReceiptType::Read => "Read",
+        ReceiptType::ReadSelf => "ReadSelf",
+        ReceiptType::Played => "Played",
+        ReceiptType::PlayedSelf => "PlayedSelf",
+        ReceiptType::ServerError => "ServerError",
+        ReceiptType::Inactive => "Inactive",
+        ReceiptType::PeerMsg => "PeerMsg",
+        ReceiptType::HistorySync => "HistorySync",
+        other => return (Cow::Owned(format!("{other:?}")), false),
+    };
+    (Cow::Borrowed(name), false)
 }
 
 /// Flat batch writer shared by the packed event transports.
@@ -1091,7 +1105,7 @@ impl PackedEventBatch for ReceiptWireBatch {
         let addressing_mode = self
             .writer
             .cache_str_optional(source.addressing_mode.as_ref().map(|mode| mode.as_str()));
-        let type_slot = self.writer.cache_str(type_repr);
+        let type_slot = self.writer.cache_str(&type_repr);
 
         // Validated BEFORE the first byte goes out, and that ordering is the
         // point. `records` is one flat buffer the reader walks sequentially
@@ -1656,9 +1670,10 @@ mod tests {
             .expect("valid sender jid");
         info.id = id.into();
         info.push_name = "Peer".into();
-        let message = Message {
-            conversation: Some("m".repeat(payload_len)),
-            ..Default::default()
+        let message = {
+            let mut __fixture = Message::default();
+            __fixture.conversation = Some("m".repeat(payload_len));
+            __fixture
         };
         InboundMessage::builder()
             .message(Arc::new(message))

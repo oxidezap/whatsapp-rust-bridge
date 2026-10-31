@@ -4,47 +4,18 @@
 //! from JavaScript while the Rust client uses them transparently.
 
 use async_trait::async_trait;
-use js_sys::{Function, Promise, Uint8Array};
+use js_sys::{Promise, Uint8Array};
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 use whatsapp_rust::wacore::store::cache::CacheStore;
 
-/// Wraps JS `JsCacheStore` callbacks to implement Rust's `CacheStore` trait.
-pub struct JsCacheStoreAdapter {
-    get_fn: Function,
-    set_fn: Function,
-    delete_fn: Function,
-    clear_fn: Function,
-}
+generated_cache_callbacks!();
 
 crate::wasm_send_sync!(JsCacheStoreAdapter);
 
 impl JsCacheStoreAdapter {
-    /// Create from a JS object that has `get`, `set`, `delete`, `clear` methods.
-    pub fn from_js(obj: &JsValue) -> Result<Self, JsValue> {
-        let get_fn = js_sys::Reflect::get(obj, &"get".into())?
-            .dyn_into::<Function>()
-            .map_err(|_| JsValue::from_str("cacheStore.get must be a function"))?;
-        let set_fn = js_sys::Reflect::get(obj, &"set".into())?
-            .dyn_into::<Function>()
-            .map_err(|_| JsValue::from_str("cacheStore.set must be a function"))?;
-        let delete_fn = js_sys::Reflect::get(obj, &"delete".into())?
-            .dyn_into::<Function>()
-            .map_err(|_| JsValue::from_str("cacheStore.delete must be a function"))?;
-        let clear_fn = js_sys::Reflect::get(obj, &"clear".into())?
-            .dyn_into::<Function>()
-            .map_err(|_| JsValue::from_str("cacheStore.clear must be a function"))?;
-
-        Ok(Self {
-            get_fn,
-            set_fn,
-            delete_fn,
-            clear_fn,
-        })
-    }
-
     /// Check if a JS value looks like a JsCacheStore (has a `get` function).
     pub fn is_cache_store(val: &JsValue) -> bool {
         js_sys::Reflect::get(val, &"get".into())
@@ -140,5 +111,35 @@ impl CacheStore for JsCacheStoreAdapter {
 
         resolve_promise(result).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod generated_host_callback_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    #[test]
+    fn registration_keeps_getter_order_and_required_throw_identity() {
+        let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};
+            for(const name of ["get", "set", "delete", "clear"]) Object.defineProperty(obj,name,{get(){reads.push(name);return ()=>{};}});
+            return obj; })()"#).unwrap();
+        JsCacheStoreAdapter::from_js(&value).unwrap();
+        let reads: Vec<String> =
+            serde_wasm_bindgen::from_value(js_sys::Reflect::get(&value, &"reads".into()).unwrap())
+                .unwrap();
+        assert_eq!(reads, vec!["get", "set", "delete", "clear"]);
+        let value = js_sys::eval(
+            r#"(() => {const marker={marker:true}; return {marker,get get(){throw marker;}};})()"#,
+        )
+        .unwrap();
+        let marker = js_sys::Reflect::get(&value, &"marker".into()).unwrap();
+        let error = JsCacheStoreAdapter::from_js(&value).err().unwrap();
+        assert_eq!(error, marker);
+        let value = js_sys::eval(r#"({get:42})"#).unwrap();
+        let error = JsCacheStoreAdapter::from_js(&value).err().unwrap();
+        assert_eq!(
+            error.as_string().unwrap(),
+            "cacheStore.get must be a function"
+        );
     }
 }
