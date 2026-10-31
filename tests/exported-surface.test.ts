@@ -38,14 +38,14 @@ function block(dts: string, opening: string): string {
 function readSurface(): { methods: Method[]; unions: Map<string, string> } {
   const dts = readFileSync(DTS, "utf8");
 
-  // Two blocks, not one. `skip_typescript` keeps a method out of the class and
-  // hand-writes it into a merged `interface` instead, so reading only the class
-  // would leave those methods unswept while the sweep still reported a pass.
+  // Include merged interfaces if a future binding needs one. Ordinary methods,
+  // including Record returns, are now declared by the operation generator.
   const methods: Method[] = [];
   for (const opening of [
     "export class WasmWhatsAppClient {",
     "interface WasmWhatsAppClient {",
   ]) {
+    if (!dts.includes(opening)) continue;
     const before = methods.length;
     for (const line of block(dts, opening).split("\n")) {
       // Every callable member has to end up parsed or named as a known

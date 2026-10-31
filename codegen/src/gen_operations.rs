@@ -6,6 +6,7 @@ mod lifecycle;
 mod node_projection;
 mod operation_codecs;
 mod operations;
+mod owned_operations;
 mod preparations;
 mod projections;
 mod storage;

@@ -13,7 +13,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<Option<Ts<crate::result_types::BusinessProfileResult>>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(target_jid),
@@ -42,7 +42,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     token: &str,
                 ) -> Result<Ts<crate::result_types::OrderResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(target),
@@ -66,7 +66,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     id: &str,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![],
             admission: Admission::Online,
@@ -116,7 +116,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     direct: vec![(parse_quote!(after), parse_quote!(after))],
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.business().get_catalog(&target, &opts)),
@@ -166,7 +166,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     direct: vec![(parse_quote!(after), parse_quote!(after))],
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.business().get_collections(&target, &opts)),
@@ -198,7 +198,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 },
                 Input::Preparation(Preparation::BusinessProfile),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.business().update_profile(&delta)),
@@ -237,7 +237,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     optional: false,
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.business().set_cover_photo(

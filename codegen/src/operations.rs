@@ -136,7 +136,7 @@ impl Input {
 
 #[derive(Clone, Copy)]
 enum Boundary {
-    AsyncBorrowed,
+    AsyncOwned,
     SyncBorrowed,
     SyncMutable,
     OwnedPromise,
@@ -287,8 +287,7 @@ pub fn validate(domains: &[Domain]) -> Result<(), String> {
         }
         for operation in &domain.operations {
             let signature = &operation.signature;
-            if signature.asyncness.is_some()
-                != matches!(operation.boundary, Boundary::AsyncBorrowed)
+            if signature.asyncness.is_some() != matches!(operation.boundary, Boundary::AsyncOwned)
                 || !signature.generics.params.is_empty()
             {
                 return Err(format!(
@@ -335,9 +334,9 @@ pub fn validate(domains: &[Domain]) -> Result<(), String> {
             if matches!(
                 operation.admission,
                 Admission::Online | Admission::OnlineIf { .. } | Admission::CommittedReceipts
-            ) && !matches!(operation.boundary, Boundary::AsyncBorrowed)
+            ) && !matches!(operation.boundary, Boundary::AsyncOwned)
             {
-                return Err("online admission requires a borrowed async boundary".into());
+                return Err("online admission requires an owned async boundary".into());
             }
             if matches!(operation.admission, Admission::CommittedReceipts) {
                 let unit = signature.output.to_token_stream().to_string()
@@ -498,6 +497,28 @@ impl Unwaited {
 
 impl Operation {
     fn emit(&self) -> TokenStream {
+        let emitted = self.emit_body();
+        if !matches!(self.boundary, Boundary::AsyncOwned) {
+            return emitted;
+        }
+        crate::owned_operations::lower(
+            emitted,
+            matches!(self.admission, Admission::Adapter(AdmissionAdapter::Alias)),
+            match &self.output {
+                ReturnAdapter::Dto {
+                    projection,
+                    envelope: Envelope::Record,
+                } => Some(format!("Record<string, {}>", projection.typescript_name())),
+                ReturnAdapter::Codec(OutputCodec::GroupRecord { .. }) => Some(format!(
+                    "Record<string, {}>",
+                    Projection::GroupOverview.typescript_name()
+                )),
+                _ => None,
+            },
+        )
+    }
+
+    fn emit_body(&self) -> TokenStream {
         let attributes = &self.attributes;
         let signature = &self.signature;
         let preparation: Vec<_> = self.inputs.iter().map(Input::emit).collect();
@@ -725,7 +746,7 @@ mod tests {
             .iter_mut()
             .find(|o| matches!(o.boundary, Boundary::OwnedPromise))
             .unwrap();
-        owned.boundary = Boundary::AsyncBorrowed;
+        owned.boundary = Boundary::AsyncOwned;
         assert!(validate(&domains).is_err());
         let mut domains = catalog();
         let owned = domains[0]
@@ -768,7 +789,7 @@ mod tests {
             .iter()
             .filter(|o| matches!(o.admission, Admission::CommittedReceipts))
         {
-            let mut method: syn::ImplItemFn = syn::parse2(operation.emit()).unwrap();
+            let mut method: syn::ImplItemFn = syn::parse2(operation.emit_body()).unwrap();
             method.attrs.clear();
             for arg in &mut method.sig.inputs {
                 if let syn::FnArg::Typed(arg) = arg {
@@ -784,6 +805,36 @@ mod tests {
             quote!(#(#methods)*)
         );
         compile_and_run_fixture(TemporaryFixture::new("receipt_fixture"), &source);
+    }
+
+    #[test]
+    fn every_async_operation_releases_the_wrapper_before_returning() {
+        let domains = catalog();
+        validate(&domains).unwrap();
+        let mut checked = 0;
+        for operation in domains.iter().flat_map(|d| &d.operations) {
+            if operation.signature.asyncness.is_none() {
+                continue;
+            }
+            checked += 1;
+            let method: syn::ImplItemFn = syn::parse2(operation.emit()).unwrap();
+            assert!(
+                method.sig.asyncness.is_none(),
+                "{} retains a wrapper borrow",
+                method.sig.ident
+            );
+            struct Futures;
+            impl<'ast> syn::visit::Visit<'ast> for Futures {
+                fn visit_expr_async(&mut self, future: &'ast syn::ExprAsync) {
+                    let mut access = BoundaryAccess::default();
+                    access.visit_block(&future.block);
+                    assert!(!access.receiver, "future captures the wrapper");
+                    syn::visit::visit_expr_async(self, future);
+                }
+            }
+            Futures.visit_block(&method.block);
+        }
+        assert!(checked > 0);
     }
 
     #[test]

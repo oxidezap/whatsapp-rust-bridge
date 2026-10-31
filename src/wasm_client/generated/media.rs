@@ -6,24 +6,39 @@ impl WasmWhatsAppClient {
     #[doc = r" Returns `{ auth: string, ttl: number, hosts: [{hostname: string}] }`."]
     #[doc = r" The core's `hosts` carry nothing but the hostname, so neither does this."]
     # [wasm_bindgen (js_name = getMediaConn)]
-    pub async fn get_media_conn(
-        &self,
-        force: bool,
-    ) -> Result<Ts<crate::result_types::MediaConnResult>, crate::errors::BridgeError> {
-        let client = if force {
-            self.client.online().await?
-        } else {
-            self.client.unwaited(Unwaited::Cached)
-        };
-        let value = client.refresh_media_conn(force).await?;
-        to_ts(crate::result_types::project_media_conn(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<MediaConnResult>")]
+    pub fn get_media_conn(&self, force: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::MediaConnResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = if force {
+                    operation_client.online().await?
+                } else {
+                    operation_client.unwaited(Unwaited::Cached)
+                };
+                let value = client.refresh_media_conn(force).await?;
+                to_ts(crate::result_types::project_media_conn(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Download and decrypt media from raw parameters."]
     #[doc = r""]
     #[doc = r" Handles CDN failover, auth refresh, HMAC-SHA256 verification, and"]
     #[doc = r" AES-256-CBC decryption internally. Returns decrypted media bytes."]
     # [wasm_bindgen (js_name = downloadMedia)]
-    pub async fn download_media(
+    #[wasm_bindgen(unchecked_return_type = "Promise<Uint8Array>")]
+    pub fn download_media(
         &self,
         direct_path: &str,
         media_key: &[u8],
@@ -31,69 +46,126 @@ impl WasmWhatsAppClient {
         file_enc_sha256: &[u8],
         file_length: f64,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
-        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
-        let mt: wacore::download::MediaType = media_type.into();
-        let client = self.client.unwaited(Unwaited::Cached);
-        let value = client
-            .download(
-                &whatsapp_rust::download::DownloadParams::encrypted(
-                    direct_path,
-                    media_key,
-                    file_sha256,
-                    file_enc_sha256,
-                    file_length as u64,
-                    mt,
-                )
-                .map_err(crate::errors::download_preparation_error)?,
-                whatsapp_rust::download::DownloadLimits::default(),
-            )
-            .await?;
-        Ok(js_sys::Uint8Array::from(value.as_slice()))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let direct_path = direct_path.to_owned();
+        let media_key = media_key.to_owned();
+        let file_sha256 = file_sha256.to_owned();
+        let file_enc_sha256 = file_enc_sha256.to_owned();
+        client_operation(cancelled, async move {
+            let direct_path: &str = &direct_path;
+            let media_key: &[u8] = &media_key;
+            let file_sha256: &[u8] = &file_sha256;
+            let file_enc_sha256: &[u8] = &file_enc_sha256;
+            let result: Result<js_sys::Uint8Array, crate::errors::BridgeError> = (async move {
+                let media_type =
+                    from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+                let mt: wacore::download::MediaType = media_type.into();
+                let client = operation_client.unwaited(Unwaited::Cached);
+                let value = client
+                    .download(
+                        &whatsapp_rust::download::DownloadParams::encrypted(
+                            direct_path,
+                            media_key,
+                            file_sha256,
+                            file_enc_sha256,
+                            file_length as u64,
+                            mt,
+                        )
+                        .map_err(crate::errors::download_preparation_error)?,
+                        whatsapp_rust::download::DownloadLimits::default(),
+                    )
+                    .await?;
+                Ok(js_sys::Uint8Array::from(value.as_slice()))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Upload media: encrypt in memory + upload with CDN failover and retry."]
     #[doc = r""]
     #[doc = r" Takes raw plaintext bytes. Handles AES-256-CBC encryption, HMAC-SHA256"]
     #[doc = r" signing, multi-host CDN upload, auth refresh, and resumable upload (>=5MB)."]
     # [wasm_bindgen (js_name = uploadMedia)]
-    pub async fn upload_media(
+    #[wasm_bindgen(unchecked_return_type = "Promise<UploadMediaResult>")]
+    pub fn upload_media(
         &self,
         data: &[u8],
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
-        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
-        let mt: wacore::download::MediaType = media_type.into();
-        let client = self.client.unwaited(Unwaited::Cached);
-        let value = client.upload(data.to_vec(), mt, Default::default()).await?;
-        to_ts(crate::result_types::project_upload_media(value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let data = data.to_owned();
+        client_operation(cancelled, async move {
+            let data: &[u8] = &data;
+            let result: Result<
+                Ts<crate::result_types::UploadMediaResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let media_type =
+                    from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+                let mt: wacore::download::MediaType = media_type.into();
+                let client = operation_client.unwaited(Unwaited::Cached);
+                let value = client.upload(data.to_vec(), mt, Default::default()).await?;
+                to_ts(crate::result_types::project_upload_media(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Request the server to re-upload expired media."]
     #[doc = r""]
     #[doc = r" Returns the new `directPath` on success."]
     #[doc = r" Throws on failure (not found, decryption error, timeout, etc.)."]
     # [wasm_bindgen (js_name = requestMediaReupload)]
-    pub async fn request_media_reupload(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn request_media_reupload(
         &self,
         msg_id: &str,
         chat_jid: &str,
         media_key: &[u8],
         is_from_me: bool,
         participant: Option<String>,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let chat = parse_jid(chat_jid)?;
-        let participant_jid = participant
-            .as_deref()
-            .map(|value| -> Result<_, crate::errors::BridgeError> {
-                let jid = parse_jid(value)?;
-                Ok(jid)
-            })
-            .transpose()?;
-        let message_id = whatsapp_rust::MessageId::new(msg_id)
-            .map_err(|error| crate::errors::invalid_arg("msgId", error.to_string()))?;
-        let media_key = <&[u8; 32]>::try_from(media_key)
-            .map_err(|_| crate::errors::invalid_arg("mediaKey", "must contain 32 bytes"))?;
-        let target =
-            whatsapp_rust::MessageRef::new(&chat, message_id, participant_jid.as_ref(), is_from_me)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let msg_id = msg_id.to_owned();
+        let chat_jid = chat_jid.to_owned();
+        let media_key = media_key.to_owned();
+        client_operation(cancelled, async move {
+            let msg_id: &str = &msg_id;
+            let chat_jid: &str = &chat_jid;
+            let media_key: &[u8] = &media_key;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let chat = parse_jid(chat_jid)?;
+                let participant_jid = participant
+                    .as_deref()
+                    .map(|value| -> Result<_, crate::errors::BridgeError> {
+                        let jid = parse_jid(value)?;
+                        Ok(jid)
+                    })
+                    .transpose()?;
+                let message_id = whatsapp_rust::MessageId::new(msg_id)
+                    .map_err(|error| crate::errors::invalid_arg("msgId", error.to_string()))?;
+                let media_key = <&[u8; 32]>::try_from(media_key)
+                    .map_err(|_| crate::errors::invalid_arg("mediaKey", "must contain 32 bytes"))?;
+                let target = whatsapp_rust::MessageRef::new(
+                    &chat,
+                    message_id,
+                    participant_jid.as_ref(),
+                    is_from_me,
+                )
                 .map_err(|error| {
                     crate::errors::message_reference_error(
                         &error,
@@ -102,9 +174,20 @@ impl WasmWhatsAppClient {
                         "participant",
                     )
                 })?;
-        let req = whatsapp_rust::MediaReuploadRequest { target, media_key };
-        let client = self.client.online().await?;
-        crate::result_types::project_media_retry(client.media_reupload().request(&req).await?)
+                let req = whatsapp_rust::MediaReuploadRequest { target, media_key };
+                let client = operation_client.online().await?;
+                crate::result_types::project_media_retry(
+                    client.media_reupload().request(&req).await?,
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Download, decrypt, and return a Web ReadableStream of decrypted chunks."]
     #[doc = r""]
@@ -148,27 +231,44 @@ impl WasmWhatsAppClient {
     #[doc = r""]
     #[doc = r" Peak memory: ~130KB (copy buffer + flush buffer + crypto state)."]
     # [wasm_bindgen (js_name = encryptMediaStream)]
-    pub async fn encrypt_media_stream(
+    #[wasm_bindgen(unchecked_return_type = "Promise<EncryptMediaResult>")]
+    pub fn encrypt_media_stream(
         &self,
         #[wasm_bindgen(unchecked_param_type = "ReadableStream")] input: JsValue,
         #[wasm_bindgen(unchecked_param_type = "WritableStream")] output: JsValue,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<Ts<crate::result_types::EncryptMediaResult>, crate::errors::BridgeError> {
-        let input = from_js_class::<web_sys::ReadableStream>(
-            "input",
-            "ReadableStream",
-            "getReader",
-            input,
-        )?;
-        let output = from_js_class::<web_sys::WritableStream>(
-            "output",
-            "WritableStream",
-            "getWriter",
-            output,
-        )?;
-        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
-        let mt: wacore::download::MediaType = media_type.into();
-        encrypt_stream(input, output, mt).await
+    ) -> js_sys::Promise {
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::EncryptMediaResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let input = from_js_class::<web_sys::ReadableStream>(
+                    "input",
+                    "ReadableStream",
+                    "getReader",
+                    input,
+                )?;
+                let output = from_js_class::<web_sys::WritableStream>(
+                    "output",
+                    "WritableStream",
+                    "getWriter",
+                    output,
+                )?;
+                let media_type =
+                    from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+                let mt: wacore::download::MediaType = media_type.into();
+                encrypt_stream(input, output, mt).await
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Upload pre-encrypted media with streaming body."]
     #[doc = r""]
@@ -176,7 +276,8 @@ impl WasmWhatsAppClient {
     #[doc = r" for each upload attempt (retry creates a fresh stream)."]
     #[doc = r" Handles CDN failover, auth refresh, and resumable upload (>=5MB)."]
     # [wasm_bindgen (js_name = uploadEncryptedMediaStream)]
-    pub async fn upload_encrypted_media_stream(
+    #[wasm_bindgen(unchecked_return_type = "Promise<UploadMediaResult>")]
+    pub fn upload_encrypted_media_stream(
         &self,
         get_body: &js_sys::Function,
         media_key: &[u8],
@@ -184,18 +285,43 @@ impl WasmWhatsAppClient {
         file_enc_sha256: &[u8],
         file_length: f64,
         #[wasm_bindgen(unchecked_param_type = "MediaType")] media_type: JsValue,
-    ) -> Result<Ts<crate::result_types::UploadMediaResult>, crate::errors::BridgeError> {
-        let media_type = from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
-        let mt: wacore::download::MediaType = media_type.into();
-        upload_encrypted_stream(
-            &self.client,
-            get_body,
-            media_key,
-            file_sha256,
-            file_enc_sha256,
-            file_length,
-            mt,
-        )
-        .await
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let get_body = get_body.to_owned();
+        let media_key = media_key.to_owned();
+        let file_sha256 = file_sha256.to_owned();
+        let file_enc_sha256 = file_enc_sha256.to_owned();
+        client_operation(cancelled, async move {
+            let get_body: &js_sys::Function = &get_body;
+            let media_key: &[u8] = &media_key;
+            let file_sha256: &[u8] = &file_sha256;
+            let file_enc_sha256: &[u8] = &file_enc_sha256;
+            let result: Result<
+                Ts<crate::result_types::UploadMediaResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let media_type =
+                    from_js_input::<crate::result_types::MediaType>("media_type", media_type)?;
+                let mt: wacore::download::MediaType = media_type.into();
+                upload_encrypted_stream(
+                    &operation_client,
+                    get_body,
+                    media_key,
+                    file_sha256,
+                    file_enc_sha256,
+                    file_length,
+                    mt,
+                )
+                .await
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
 }

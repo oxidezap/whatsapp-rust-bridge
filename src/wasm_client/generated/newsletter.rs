@@ -3,53 +3,113 @@
 impl WasmWhatsAppClient {
     #[doc = r" Create a new newsletter (channel)."]
     # [wasm_bindgen (js_name = newsletterCreate)]
-    pub async fn newsletter_create(
-        &self,
-        name: &str,
-        description: Option<String>,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client
-            .newsletter()
-            .create(name, description.as_deref())
-            .await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_create(&self, name: &str, description: Option<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let name = name.to_owned();
+        client_operation(cancelled, async move {
+            let name: &str = &name;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client
+                    .newsletter()
+                    .create(name, description.as_deref())
+                    .await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch metadata for a newsletter by JID."]
     # [wasm_bindgen (js_name = newsletterMetadata)]
-    pub async fn newsletter_metadata(
-        &self,
-        jid: &str,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().get_metadata(&target).await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_metadata(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().get_metadata(&target).await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Subscribe (join) a newsletter."]
     # [wasm_bindgen (js_name = newsletterSubscribe)]
-    pub async fn newsletter_subscribe(
-        &self,
-        jid: &str,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().join(&target).await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_subscribe(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().join(&target).await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Unsubscribe (leave) a newsletter."]
     # [wasm_bindgen (js_name = newsletterUnsubscribe)]
-    pub async fn newsletter_unsubscribe(
-        &self,
-        jid: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .leave(&target)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_unsubscribe(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .leave(&target)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Send a reaction to a newsletter message."]
     #[doc = r""]
@@ -57,286 +117,551 @@ impl WasmWhatsAppClient {
     #[doc = r" JS number precision issues). `reaction` is the emoji code, or null/empty"]
     #[doc = r" to remove a reaction."]
     # [wasm_bindgen (js_name = newsletterReactMessage)]
-    pub async fn newsletter_react_message(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn newsletter_react_message(
         &self,
         jid: &str,
         server_id: &str,
         reaction: Option<String>,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let sid = {
-            let value = server_id;
-            value
-                .parse::<u64>()
-                .map_err(|error| crate::errors::invalid_arg("serverId", error.to_string()))
-        }?;
-        let client = self.client.online().await?;
-        let value = client
-            .newsletter()
-            .send_reaction_raw(&target, sid, reaction.as_deref().unwrap_or(""))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let server_id = server_id.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let server_id: &str = &server_id;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let sid = {
+                    let value = server_id;
+                    value
+                        .parse::<u64>()
+                        .map_err(|error| crate::errors::invalid_arg("serverId", error.to_string()))
+                }?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .newsletter()
+                    .send_reaction_raw(&target, sid, reaction.as_deref().unwrap_or(""))
+                    .await;
+                let value = value?;
+                Ok(value.into_string())
+            })
             .await;
-        let value = value?;
-        Ok(value.into_string())
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mute or unmute a newsletter's follower-activity notifications"]
     #[doc = r" (`MUTE_FOLLOWER_ACTIVITY`) — what a subscriber toggles."]
     # [wasm_bindgen (js_name = newsletterFollowerMute)]
-    pub async fn newsletter_follower_mute(
-        &self,
-        jid: &str,
-        muted: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .set_follower_mute(&target, muted)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_follower_mute(&self, jid: &str, muted: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .set_follower_mute(&target, muted)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mute or unmute a newsletter's admin-activity notifications"]
     #[doc = r" (`MUTE_ADMIN_ACTIVITY`). Only meaningful for owners and admins."]
     # [wasm_bindgen (js_name = newsletterAdminMute)]
-    pub async fn newsletter_admin_mute(
-        &self,
-        jid: &str,
-        muted: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .set_admin_mute(&target, muted)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_admin_mute(&self, jid: &str, muted: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .set_admin_mute(&target, muted)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" List every newsletter this account is subscribed to."]
     # [wasm_bindgen (js_name = newsletterList)]
-    pub async fn newsletter_list(
-        &self,
-    ) -> Result<Vec<Ts<crate::result_types::NewsletterMetadataResult>>, crate::errors::BridgeError>
-    {
-        let client = self.client.online().await?;
-        let value = client.newsletter().list_subscribed().await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_newsletter_metadata)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult[]>")]
+    pub fn newsletter_list(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Vec<Ts<crate::result_types::NewsletterMetadataResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.newsletter().list_subscribed().await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_newsletter_metadata)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch a newsletter's metadata by its invite code."]
     # [wasm_bindgen (js_name = newsletterMetadataByInvite)]
-    pub async fn newsletter_metadata_by_invite(
-        &self,
-        invite_code: &str,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client
-            .newsletter()
-            .get_metadata_by_invite(invite_code)
-            .await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_metadata_by_invite(&self, invite_code: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let invite_code = invite_code.to_owned();
+        client_operation(cancelled, async move {
+            let invite_code: &str = &invite_code;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client
+                    .newsletter()
+                    .get_metadata_by_invite(invite_code)
+                    .await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update a newsletter's name and/or description. Returns the refreshed"]
     #[doc = r" metadata."]
     # [wasm_bindgen (js_name = newsletterUpdate)]
-    pub async fn newsletter_update(
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_update(
         &self,
         jid: &str,
         name: Option<String>,
         description: Option<String>,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client
-            .newsletter()
-            .update(&target, name.as_deref(), description.as_deref())
-            .await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .newsletter()
+                    .update(&target, name.as_deref(), description.as_deref())
+                    .await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete a newsletter. Owner-only."]
     # [wasm_bindgen (js_name = newsletterDelete)]
-    pub async fn newsletter_delete(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .delete(&target)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_delete(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .delete(&target)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Transfer a newsletter's ownership. Owner-only."]
     #[doc = r""]
     #[doc = r" `user` may be a LID or a phone-number JID; the core resolves the latter"]
     #[doc = r" to its LID, the only form the server addresses admins by."]
     # [wasm_bindgen (js_name = newsletterChangeOwner)]
-    pub async fn newsletter_change_owner(
-        &self,
-        jid: &str,
-        user: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let user_jid = parse_jid(user)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .change_owner(&target, &user_jid)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_change_owner(&self, jid: &str, user: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let user = user.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let user: &str = &user;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let user_jid = parse_jid(user)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .change_owner(&target, &user_jid)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Demote a newsletter admin back to subscriber. Owner-only."]
     # [wasm_bindgen (js_name = newsletterDemoteAdmin)]
-    pub async fn newsletter_demote_admin(
-        &self,
-        jid: &str,
-        user: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let user_jid = parse_jid(user)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .demote_admin(&target, &user_jid)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_demote_admin(&self, jid: &str, user: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let user = user.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let user: &str = &user;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let user_jid = parse_jid(user)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .demote_admin(&target, &user_jid)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Replace a newsletter's picture with the given JPEG bytes. Returns the"]
     #[doc = r" refreshed metadata."]
     # [wasm_bindgen (js_name = newsletterSetPicture)]
-    pub async fn newsletter_set_picture(
-        &self,
-        jid: &str,
-        jpeg: &[u8],
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().set_picture(&target, jpeg).await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_set_picture(&self, jid: &str, jpeg: &[u8]) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let jpeg = jpeg.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let jpeg: &[u8] = &jpeg;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().set_picture(&target, jpeg).await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove a newsletter's picture. Returns the refreshed metadata."]
     # [wasm_bindgen (js_name = newsletterRemovePicture)]
-    pub async fn newsletter_remove_picture(
-        &self,
-        jid: &str,
-    ) -> Result<Ts<crate::result_types::NewsletterMetadataResult>, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().remove_picture(&target).await?;
-        to_ts(crate::result_types::project_newsletter_metadata(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMetadataResult>")]
+    pub fn newsletter_remove_picture(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::NewsletterMetadataResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().remove_picture(&target).await?;
+                to_ts(crate::result_types::project_newsletter_metadata(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch a newsletter's admin-side information, including its admin count."]
     # [wasm_bindgen (js_name = newsletterAdminInfo)]
-    pub async fn newsletter_admin_info(
-        &self,
-        jid: &str,
-    ) -> Result<Ts<crate::result_types::NewsletterAdminInfoResult>, crate::errors::BridgeError>
-    {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().get_admin_info(&target).await?;
-        to_ts(crate::result_types::project_newsletter_admin_info(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterAdminInfoResult>")]
+    pub fn newsletter_admin_info(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Ts<crate::result_types::NewsletterAdminInfoResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().get_admin_info(&target).await?;
+                to_ts(crate::result_types::project_newsletter_admin_info(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch up to `count` followers of a newsletter."]
     #[doc = r""]
     #[doc = r" One page, no cursor: the core's query takes a count and the real client"]
     #[doc = r" does not paginate this list."]
     # [wasm_bindgen (js_name = newsletterFollowers)]
-    pub async fn newsletter_followers(
-        &self,
-        jid: &str,
-        count: u32,
-    ) -> Result<Vec<Ts<crate::result_types::NewsletterFollowerResult>>, crate::errors::BridgeError>
-    {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().get_followers(&target, count).await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_newsletter_follower)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterFollowerResult[]>")]
+    pub fn newsletter_followers(&self, jid: &str, count: u32) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::NewsletterFollowerResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().get_followers(&target, count).await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_newsletter_follower)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch up to `count` messages from a newsletter's history."]
     #[doc = r""]
     #[doc = r" `before` is a `serverId` from a previous page, as a string because it is"]
     #[doc = r" a u64. Omit it for the newest page."]
     # [wasm_bindgen (js_name = newsletterMessages)]
-    pub async fn newsletter_messages(
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewsletterMessageResult[]>")]
+    pub fn newsletter_messages(
         &self,
         jid: &str,
         count: u32,
         before: Option<String>,
-    ) -> Result<Vec<Ts<crate::result_types::NewsletterMessageResult>>, crate::errors::BridgeError>
-    {
-        let target = parse_jid(jid)?;
-        let before_id = before
-            .as_deref()
-            .map(|value| {
-                value.parse::<u64>().map_err(|error| {
-                    crate::errors::invalid_arg("before", format!("must be a serverId: {error}"))
-                })
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Vec<Ts<crate::result_types::NewsletterMessageResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let target = parse_jid(jid)?;
+                let before_id = before
+                    .as_deref()
+                    .map(|value| {
+                        value.parse::<u64>().map_err(|error| {
+                            crate::errors::invalid_arg(
+                                "before",
+                                format!("must be a serverId: {error}"),
+                            )
+                        })
+                    })
+                    .transpose()?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .newsletter()
+                    .get_messages(target, count, before_id)
+                    .await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_newsletter_message)
+                        .collect(),
+                )
             })
-            .transpose()?;
-        let client = self.client.online().await?;
-        let value = client
-            .newsletter()
-            .get_messages(target, count, before_id)
-            .await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_newsletter_message)
-                .collect(),
-        )
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Subscribe to a newsletter's live updates. Returns the subscription"]
     #[doc = r" duration in seconds, as the server set it."]
     # [wasm_bindgen (js_name = newsletterSubscribeLiveUpdates)]
-    pub async fn newsletter_subscribe_live_updates(
-        &self,
-        jid: &str,
-    ) -> Result<f64, crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        let value = client.newsletter().subscribe_live_updates(target).await?;
-        Ok(value as f64)
+    #[wasm_bindgen(unchecked_return_type = "Promise<number>")]
+    pub fn newsletter_subscribe_live_updates(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<f64, crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                let value = client.newsletter().subscribe_live_updates(target).await?;
+                Ok(value as f64)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Edit a newsletter message. `messageId` is the message's own id, not its"]
     #[doc = r" `serverId` — reactions key on the latter, edit and revoke on the former."]
     # [wasm_bindgen (js_name = newsletterEditMessage)]
-    pub async fn newsletter_edit_message(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_edit_message(
         &self,
         jid: &str,
         message_id: &str,
         message: &[u8],
-    ) -> Result<(), crate::errors::BridgeError> {
-        let (target, new_content) = parse_jid_and_msg_bytes(jid, message)?;
-        let reference = newsletter_content_reference(&target, message_id)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .edit_message(&reference, new_content)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let message_id = message_id.to_owned();
+        let message = message.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let message_id: &str = &message_id;
+            let message: &[u8] = &message;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let (target, new_content) = parse_jid_and_msg_bytes(jid, message)?;
+                let reference = newsletter_content_reference(&target, message_id)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .edit_message(&reference, new_content)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Revoke (delete) a newsletter message. `messageId` is the message's own"]
     #[doc = r" id, not its `serverId`."]
     # [wasm_bindgen (js_name = newsletterRevokeMessage)]
-    pub async fn newsletter_revoke_message(
-        &self,
-        jid: &str,
-        message_id: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let reference = newsletter_content_reference(&target, message_id)?;
-        let client = self.client.online().await?;
-        client
-            .newsletter()
-            .revoke_message(&reference)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_revoke_message(&self, jid: &str, message_id: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let message_id = message_id.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let message_id: &str = &message_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let reference = newsletter_content_reference(&target, message_id)?;
+                let client = operation_client.online().await?;
+                client
+                    .newsletter()
+                    .revoke_message(&reference)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mute or unmute a newsletter's follower-activity notifications — the channel"]
     #[doc = r" mute a subscriber toggles (WA Web `MUTE_FOLLOWER_ACTIVITY`). `muted = true`"]
@@ -346,11 +671,8 @@ impl WasmWhatsAppClient {
     #[doc = r" `newsletterFollowerMute` is the explicit spelling and does the same"]
     #[doc = r" thing. Kept so existing callers keep working."]
     # [wasm_bindgen (js_name = newsletterMute)]
-    pub async fn newsletter_mute(
-        &self,
-        jid: &str,
-        muted: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        self.newsletter_follower_mute(jid, muted).await
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn newsletter_mute(&self, jid: &str, muted: bool) -> js_sys::Promise {
+        self.newsletter_follower_mute(jid, muted)
     }
 }

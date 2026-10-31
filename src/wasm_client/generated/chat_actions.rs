@@ -5,25 +5,41 @@ impl WasmWhatsAppClient {
     #[doc = r" (a `contact` app-state mutation). `jid` must be a bare phone-number JID"]
     #[doc = r" (the core rejects LID/group/device-specific JIDs)."]
     # [wasm_bindgen (js_name = saveContact)]
-    pub async fn save_contact(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn save_contact(
         &self,
         jid: &str,
         full_name: Option<String>,
         first_name: Option<String>,
         save_on_primary_addressbook: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let contact_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .save_contact(
-                &contact_jid,
-                full_name,
-                first_name,
-                save_on_primary_addressbook,
-            )
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let contact_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .save_contact(
+                        &contact_jid,
+                        full_name,
+                        first_name,
+                        save_on_primary_addressbook,
+                    )
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" React to a DM, group, or status@broadcast message. Empty/null `emoji`"]
     #[doc = r" removes a previous reaction. For group/status targets `key.participant`"]
@@ -34,26 +50,42 @@ impl WasmWhatsAppClient {
     #[doc = r" reactions are rejected there, so this path must be used instead of a"]
     #[doc = r" JS-built `reactionMessage` proto. Returns the reaction's message id."]
     # [wasm_bindgen (js_name = sendReaction)]
-    pub async fn send_reaction(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn send_reaction(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "TargetMessageKey")] key: JsValue,
         emoji: Option<String>,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let key = from_js_input::<crate::result_types::TargetMessageKey>("key", key)?;
-        let chat = parse_jid(jid)?;
-        let mut target_key = waproto::whatsapp::MessageKey::default();
-        target_key.remote_jid = Some(chat.to_string());
-        target_key.from_me = Some(key.from_me);
-        target_key.id = Some(key.id);
-        target_key.participant = key.participant;
-        let client = self.client.online().await?;
-        let value = client
-            .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let key = from_js_input::<crate::result_types::TargetMessageKey>("key", key)?;
+                let chat = parse_jid(jid)?;
+                let mut target_key = waproto::whatsapp::MessageKey::default();
+                target_key.remote_jid = Some(chat.to_string());
+                target_key.from_me = Some(key.from_me);
+                target_key.id = Some(key.id);
+                target_key.participant = key.participant;
+                let client = operation_client.online().await?;
+                let value = client
+                    .send_reaction_raw(chat, target_key, emoji.as_deref().unwrap_or(""))
+                    .await;
+                let value = value
+                    .map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
+                Ok(value.message_id.into_string())
+            })
             .await;
-        let value =
-            value.map_err(|error| crate::errors::send_error_for_key(error, "target_key"))?;
-        Ok(value.message_id.into_string())
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Comment on a channel (CAG) post. `bytes` is the encoded body `Message`"]
     #[doc = r" proto (encoding belongs to JS, like `sendMessageBytes`); `parent_key`"]
@@ -63,58 +95,106 @@ impl WasmWhatsAppClient {
     #[doc = r" received — the core derives the addon key and sends the encrypted"]
     #[doc = r" comment envelope. Returns the comment's message id."]
     # [wasm_bindgen (js_name = sendCommentBytes)]
-    pub async fn send_comment_bytes(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn send_comment_bytes(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "TargetMessageKey")] parent_key: JsValue,
         bytes: &[u8],
-    ) -> Result<String, crate::errors::BridgeError> {
-        let parent_key =
-            from_js_input::<crate::result_types::TargetMessageKey>("parent_key", parent_key)?;
-        if parent_key.participant.is_none() && !parent_key.from_me {
-            return Err(crate::errors::invalid_arg(
-                "parent_key",
-                "needs participant (the post author) or fromMe: true",
-            ));
-        }
-        let (chat, body) = parse_jid_and_msg_bytes(jid, bytes)?;
-        let mut key = waproto::whatsapp::MessageKey::default();
-        key.remote_jid = Some(chat.to_string());
-        key.from_me = Some(parent_key.from_me);
-        key.id = Some(parent_key.id);
-        key.participant = parent_key.participant;
-        let client = self.client.online().await?;
-        let value = client.comments().send_message_raw(chat, key, body).await;
-        let value =
-            value.map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
-        Ok(value.message_id.into_string())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let bytes = bytes.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let bytes: &[u8] = &bytes;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let parent_key = from_js_input::<crate::result_types::TargetMessageKey>(
+                    "parent_key",
+                    parent_key,
+                )?;
+                if parent_key.participant.is_none() && !parent_key.from_me {
+                    return Err(crate::errors::invalid_arg(
+                        "parent_key",
+                        "needs participant (the post author) or fromMe: true",
+                    ));
+                }
+                let (chat, body) = parse_jid_and_msg_bytes(jid, bytes)?;
+                let mut key = waproto::whatsapp::MessageKey::default();
+                key.remote_jid = Some(chat.to_string());
+                key.from_me = Some(parent_key.from_me);
+                key.id = Some(parent_key.id);
+                key.participant = parent_key.participant;
+                let client = operation_client.online().await?;
+                let value = client.comments().send_message_raw(chat, key, body).await;
+                let value = value
+                    .map_err(|error| crate::errors::send_error_for_key(error, "parent_key"))?;
+                Ok(value.message_id.into_string())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mark a chat as read or unread via app state mutation."]
     #[doc = r" Different from readMessages (which sends read receipts)."]
     # [wasm_bindgen (js_name = markChatAsRead)]
-    pub async fn mark_chat_as_read(
-        &self,
-        jid: &str,
-        read: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .mark_chat_as_read(&chat_jid, read, None)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn mark_chat_as_read(&self, jid: &str, read: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .mark_chat_as_read(&chat_jid, read, None)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete a chat via app state mutation."]
     # [wasm_bindgen (js_name = deleteChat)]
-    pub async fn delete_chat(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .delete_chat(&chat_jid, true, None)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn delete_chat(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .delete_chat(&chat_jid, true, None)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Clear a chat's messages while keeping the chat (WA Web's clearChat), via an"]
     #[doc = r" app-state mutation. `delete_starred` also removes starred messages and"]
@@ -122,84 +202,135 @@ impl WasmWhatsAppClient {
     #[doc = r" index, not the proto). Mirrors `deleteChat` in passing `None` for the message"]
     #[doc = r" range, i.e. clears the whole chat."]
     # [wasm_bindgen (js_name = clearChat)]
-    pub async fn clear_chat(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn clear_chat(
         &self,
         jid: &str,
         delete_starred: bool,
         delete_media: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .clear_chat_with_options(
-                &chat_jid,
-                whatsapp_rust::ClearChatOptions::default()
-                    .with_starred_messages(if delete_starred {
-                        whatsapp_rust::StarredMessages::Delete
-                    } else {
-                        whatsapp_rust::StarredMessages::Keep
-                    })
-                    .with_media(if delete_media {
-                        whatsapp_rust::MediaDeletion::Delete
-                    } else {
-                        whatsapp_rust::MediaDeletion::Keep
-                    }),
-                None,
-            )
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .clear_chat_with_options(
+                        &chat_jid,
+                        whatsapp_rust::ClearChatOptions::default()
+                            .with_starred_messages(if delete_starred {
+                                whatsapp_rust::StarredMessages::Delete
+                            } else {
+                                whatsapp_rust::StarredMessages::Keep
+                            })
+                            .with_media(if delete_media {
+                                whatsapp_rust::MediaDeletion::Delete
+                            } else {
+                                whatsapp_rust::MediaDeletion::Keep
+                            }),
+                        None,
+                    )
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete a message for self (not for everyone)."]
     # [wasm_bindgen (js_name = deleteMessageForMe)]
-    pub async fn delete_message_for_me(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn delete_message_for_me(
         &self,
         jid: &str,
         message_id: &str,
         from_me: bool,
         participant: Option<String>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let participant_jid = participant
-            .as_deref()
-            .map(|value| {
-                value
-                    .parse::<Jid>()
-                    .map_err(|error| crate::errors::invalid_arg("participant", error.to_string()))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let message_id = message_id.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let message_id: &str = &message_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let participant_jid = participant
+                    .as_deref()
+                    .map(|value| {
+                        value.parse::<Jid>().map_err(|error| {
+                            crate::errors::invalid_arg("participant", error.to_string())
+                        })
+                    })
+                    .transpose()?;
+                let message_id = whatsapp_rust::MessageId::new(message_id)
+                    .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
+                let target = whatsapp_rust::MessageRef::new(
+                    &chat_jid,
+                    message_id,
+                    participant_jid.as_ref(),
+                    from_me,
+                )
+                .map_err(|error| {
+                    crate::errors::message_reference_error(
+                        &error,
+                        "messageId",
+                        "jid",
+                        "participant",
+                    )
+                })?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .delete_message_for_me(&target, true, None)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
             })
-            .transpose()?;
-        let message_id = whatsapp_rust::MessageId::new(message_id)
-            .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
-        let target = whatsapp_rust::MessageRef::new(
-            &chat_jid,
-            message_id,
-            participant_jid.as_ref(),
-            from_me,
-        )
-        .map_err(|error| {
-            crate::errors::message_reference_error(&error, "messageId", "jid", "participant")
-        })?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .delete_message_for_me(&target, true, None)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mute or unmute a contact's status updates."]
     # [wasm_bindgen (js_name = setUserStatusMute)]
-    pub async fn set_user_status_mute(
-        &self,
-        jid: &str,
-        muted: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let user_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .set_user_status_mute(&user_jid, muted)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_user_status_mute(&self, jid: &str, muted: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let user_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .set_user_status_mute(&user_jid, muted)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove a contact from the address book on every linked device."]
     #[doc = r""]
@@ -208,118 +339,231 @@ impl WasmWhatsAppClient {
     #[doc = r" carrying an empty action would be applied as a rename to the empty"]
     #[doc = r" string. `jid` must be a bare phone-number JID."]
     # [wasm_bindgen (js_name = removeContact)]
-    pub async fn remove_contact(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let contact_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        client
-            .chat_actions()
-            .remove_contact(&contact_jid)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn remove_contact(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let contact_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .chat_actions()
+                    .remove_contact(&contact_jid)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create or rename a label. App state is an upsert keyed by `labelId`, so"]
     #[doc = r" this both creates a label and edits an existing one. `color` is a"]
     #[doc = r" WhatsApp color index."]
     # [wasm_bindgen (js_name = createLabel)]
-    pub async fn create_label(
-        &self,
-        label_id: &str,
-        name: &str,
-        color: i32,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .create_label(label_id, name, color)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn create_label(&self, label_id: &str, name: &str, color: i32) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        let name = name.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let name: &str = &name;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .create_label(label_id, name, color)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete a label."]
     # [wasm_bindgen (js_name = deleteLabel)]
-    pub async fn delete_label(&self, label_id: &str) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .delete_label(label_id)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn delete_label(&self, label_id: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .delete_label(label_id)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Associate a label with a chat."]
     # [wasm_bindgen (js_name = addChatLabel)]
-    pub async fn add_chat_label(
-        &self,
-        label_id: &str,
-        chat_jid: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat = parse_jid(chat_jid)?;
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .add_chat_label(label_id, &chat)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn add_chat_label(&self, label_id: &str, chat_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        let chat_jid = chat_jid.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let chat_jid: &str = &chat_jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat = parse_jid(chat_jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .add_chat_label(label_id, &chat)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove a label association from a chat."]
     # [wasm_bindgen (js_name = removeChatLabel)]
-    pub async fn remove_chat_label(
-        &self,
-        label_id: &str,
-        chat_jid: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat = parse_jid(chat_jid)?;
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .remove_chat_label(label_id, &chat)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn remove_chat_label(&self, label_id: &str, chat_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        let chat_jid = chat_jid.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let chat_jid: &str = &chat_jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat = parse_jid(chat_jid)?;
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .remove_chat_label(label_id, &chat)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Associate a label with a single message."]
     #[doc = r""]
     #[doc = r" Keyed by the message as well as the chat, under a different action than"]
     #[doc = r" the chat association. One message per call, mirroring the wire."]
     # [wasm_bindgen (js_name = addMessageLabel)]
-    pub async fn add_message_label(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn add_message_label(
         &self,
         label_id: &str,
         chat_jid: &str,
         message_id: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat = parse_jid(chat_jid)?;
-        let message_id = {
-            let value = message_id;
-            value
-                .parse::<whatsapp_rust::MessageId>()
-                .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
-        }?;
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .add_message_label(label_id, &chat, &message_id)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        let chat_jid = chat_jid.to_owned();
+        let message_id = message_id.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let chat_jid: &str = &chat_jid;
+            let message_id: &str = &message_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat = parse_jid(chat_jid)?;
+                let message_id = {
+                    let value = message_id;
+                    value
+                        .parse::<whatsapp_rust::MessageId>()
+                        .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
+                }?;
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .add_message_label(label_id, &chat, &message_id)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove a label association from a single message."]
     # [wasm_bindgen (js_name = removeMessageLabel)]
-    pub async fn remove_message_label(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn remove_message_label(
         &self,
         label_id: &str,
         chat_jid: &str,
         message_id: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat = parse_jid(chat_jid)?;
-        let message_id = {
-            let value = message_id;
-            value
-                .parse::<whatsapp_rust::MessageId>()
-                .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
-        }?;
-        let client = self.client.online().await?;
-        client
-            .labels()
-            .remove_message_label(label_id, &chat, &message_id)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let label_id = label_id.to_owned();
+        let chat_jid = chat_jid.to_owned();
+        let message_id = message_id.to_owned();
+        client_operation(cancelled, async move {
+            let label_id: &str = &label_id;
+            let chat_jid: &str = &chat_jid;
+            let message_id: &str = &message_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat = parse_jid(chat_jid)?;
+                let message_id = {
+                    let value = message_id;
+                    value
+                        .parse::<whatsapp_rust::MessageId>()
+                        .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))
+                }?;
+                let client = operation_client.online().await?;
+                client
+                    .labels()
+                    .remove_message_label(label_id, &chat, &message_id)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create or edit a quick reply. App state is an upsert keyed by `id`."]
     #[doc = r""]
@@ -327,30 +571,66 @@ impl WasmWhatsAppClient {
     #[doc = r" `keywords` are extra search terms and `count` the usage tally (`0` for a"]
     #[doc = r" new one)."]
     # [wasm_bindgen (js_name = setQuickReply)]
-    pub async fn set_quick_reply(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_quick_reply(
         &self,
         id: &str,
         shortcut: &str,
         message: &str,
         keywords: Vec<String>,
         count: i32,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .quick_replies()
-            .set_quick_reply(id, shortcut, message, keywords, count)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let id = id.to_owned();
+        let shortcut = shortcut.to_owned();
+        let message = message.to_owned();
+        client_operation(cancelled, async move {
+            let id: &str = &id;
+            let shortcut: &str = &shortcut;
+            let message: &str = &message;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .quick_replies()
+                    .set_quick_reply(id, shortcut, message, keywords, count)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete a quick reply."]
     # [wasm_bindgen (js_name = deleteQuickReply)]
-    pub async fn delete_quick_reply(&self, id: &str) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .quick_replies()
-            .delete_quick_reply(id)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn delete_quick_reply(&self, id: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let id = id.to_owned();
+        client_operation(cancelled, async move {
+            let id: &str = &id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .quick_replies()
+                    .delete_quick_reply(id)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Turn outgoing link previews off or on for the whole account."]
     #[doc = r""]
@@ -358,91 +638,160 @@ impl WasmWhatsAppClient {
     #[doc = r" does not stop this client from attaching a preview it was explicitly"]
     #[doc = r" asked to send."]
     # [wasm_bindgen (js_name = setLinkPreviewsDisabled)]
-    pub async fn set_link_previews_disabled(
-        &self,
-        disabled: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .app_state_settings()
-            .set_link_previews_disabled(disabled)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_link_previews_disabled(&self, disabled: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .app_state_settings()
+                    .set_link_previews_disabled(disabled)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Pin or unpin a chat."]
     # [wasm_bindgen (js_name = pinChat)]
-    pub async fn pin_chat(&self, jid: &str, pin: bool) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        if pin {
-            client.chat_actions().pin_chat(&chat_jid).await
-        } else {
-            client.chat_actions().unpin_chat(&chat_jid).await
-        }
-        .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn pin_chat(&self, jid: &str, pin: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                if pin {
+                    client.chat_actions().pin_chat(&chat_jid).await
+                } else {
+                    client.chat_actions().unpin_chat(&chat_jid).await
+                }
+                .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Mute or unmute a chat."]
     #[doc = r""]
     #[doc = r" Pass a positive timestamp (ms) to mute until that time, or null/undefined to unmute."]
     # [wasm_bindgen (js_name = muteChat)]
-    pub async fn mute_chat(
-        &self,
-        jid: &str,
-        mute_until: Option<f64>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let mute_until = mute_until
-            .map(|timestamp| parse_timestamp_ms("muteUntil", timestamp))
-            .transpose()?;
-        let client = self.client.online().await?;
-        match mute_until {
-            Some(until) => {
-                client
-                    .chat_actions()
-                    .mute_chat_until(&chat_jid, until)
-                    .await
-            }
-            None => client.chat_actions().unmute_chat(&chat_jid).await,
-        }
-        .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn mute_chat(&self, jid: &str, mute_until: Option<f64>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let mute_until = mute_until
+                    .map(|timestamp| parse_timestamp_ms("muteUntil", timestamp))
+                    .transpose()?;
+                let client = operation_client.online().await?;
+                match mute_until {
+                    Some(until) => {
+                        client
+                            .chat_actions()
+                            .mute_chat_until(&chat_jid, until)
+                            .await
+                    }
+                    None => client.chat_actions().unmute_chat(&chat_jid).await,
+                }
+                .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Archive or unarchive a chat."]
     # [wasm_bindgen (js_name = archiveChat)]
-    pub async fn archive_chat(
-        &self,
-        jid: &str,
-        archive: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        if archive {
-            client.chat_actions().archive_chat(&chat_jid, None).await
-        } else {
-            client.chat_actions().unarchive_chat(&chat_jid, None).await
-        }
-        .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn archive_chat(&self, jid: &str, archive: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                if archive {
+                    client.chat_actions().archive_chat(&chat_jid, None).await
+                } else {
+                    client.chat_actions().unarchive_chat(&chat_jid, None).await
+                }
+                .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Star or unstar a message."]
     # [wasm_bindgen (js_name = starMessage)]
-    pub async fn star_message(
-        &self,
-        jid: &str,
-        message_id: &str,
-        star: bool,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let chat_jid = parse_jid(jid)?;
-        let message_id = whatsapp_rust::MessageId::new(message_id)
-            .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
-        let target =
-            whatsapp_rust::MessageRef::new(&chat_jid, message_id, None, true).map_err(|error| {
-                crate::errors::message_reference_error(&error, "messageId", "jid", "participant")
-            })?;
-        let client = self.client.online().await?;
-        if star {
-            client.chat_actions().star_message(&target).await
-        } else {
-            client.chat_actions().unstar_message(&target).await
-        }
-        .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn star_message(&self, jid: &str, message_id: &str, star: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let message_id = message_id.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let message_id: &str = &message_id;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let chat_jid = parse_jid(jid)?;
+                let message_id = whatsapp_rust::MessageId::new(message_id)
+                    .map_err(|error| crate::errors::invalid_arg("messageId", error.to_string()))?;
+                let target = whatsapp_rust::MessageRef::new(&chat_jid, message_id, None, true)
+                    .map_err(|error| {
+                        crate::errors::message_reference_error(
+                            &error,
+                            "messageId",
+                            "jid",
+                            "participant",
+                        )
+                    })?;
+                let client = operation_client.online().await?;
+                if star {
+                    client.chat_actions().star_message(&target).await
+                } else {
+                    client.chat_actions().unstar_message(&target).await
+                }
+                .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
 }

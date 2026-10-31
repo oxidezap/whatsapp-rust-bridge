@@ -3,136 +3,237 @@
 impl WasmWhatsAppClient {
     #[doc = r" Reject an incoming call."]
     # [wasm_bindgen (js_name = rejectCall)]
-    pub async fn reject_call(
-        &self,
-        call_id: &str,
-        peer: &str,
-        call_creator: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let peer = parse_jid(peer)?;
-        let call_creator = parse_jid(call_creator)?;
-        let client = self.client.unwaited(Unwaited::ConnectionBound);
-        client
-            .voip()
-            .reject_call(call_id, &peer, &call_creator)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn reject_call(&self, call_id: &str, peer: &str, call_creator: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let call_id = call_id.to_owned();
+        let peer = peer.to_owned();
+        let call_creator = call_creator.to_owned();
+        client_operation(cancelled, async move {
+            let call_id: &str = &call_id;
+            let peer: &str = &peer;
+            let call_creator: &str = &call_creator;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let peer = parse_jid(peer)?;
+                let call_creator = parse_jid(call_creator)?;
+                let client = operation_client.unwaited(Unwaited::ConnectionBound);
+                client
+                    .voip()
+                    .reject_call(call_id, &peer, &call_creator)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Send a raw binary node stanza to WhatsApp servers."]
     #[doc = r" Accepts a JS object matching `{ tag: string, attrs: Record<string, string>, content?: ... }`."]
     # [wasm_bindgen (js_name = sendNode)]
-    pub async fn send_node(&self, node_js: JsBinaryNode) -> Result<(), crate::errors::BridgeError> {
-        let node_js: JsValue = node_js.into();
-        let node = js_to_node(&node_js)?;
-        let client = self.client.unwaited(Unwaited::Opaque);
-        client
-            .send_node(node)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn send_node(&self, node_js: JsBinaryNode) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let node_js: JsValue = node_js.into();
+                let node = js_to_node(&node_js)?;
+                let client = operation_client.unwaited(Unwaited::Opaque);
+                client
+                    .send_node(node)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Send an IQ node and return the matching response node."]
     # [wasm_bindgen (js_name = queryNode)]
-    pub async fn query_node(
-        &self,
-        node_js: JsBinaryNode,
-        timeout_ms: Option<f64>,
-    ) -> Result<JsBinaryNode, crate::errors::BridgeError> {
-        let node_js: JsValue = node_js.into();
-        let node = js_to_node(&node_js)?;
-        let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
-        let client = self.client.unwaited(Unwaited::Opaque);
-        let source = client.send_iq_node(node, timeout).await?;
-        let value = &source;
-        Ok(node_ref_to_js(value.get())
-            .map_err(crate::errors::BridgeError::from)?
-            .unchecked_into())
+    #[wasm_bindgen(unchecked_return_type = "Promise<BinaryNode>")]
+    pub fn query_node(&self, node_js: JsBinaryNode, timeout_ms: Option<f64>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsBinaryNode, crate::errors::BridgeError> = (async move {
+                let node_js: JsValue = node_js.into();
+                let node = js_to_node(&node_js)?;
+                let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
+                let client = operation_client.unwaited(Unwaited::Opaque);
+                let source = client.send_iq_node(node, timeout).await?;
+                let value = &source;
+                Ok(node_ref_to_js(value.get())
+                    .map_err(crate::errors::BridgeError::from)?
+                    .unchecked_into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Confirm an inbound stanza through the core-owned acknowledgement path."]
     # [wasm_bindgen (js_name = acknowledgeStanza)]
-    pub async fn acknowledge_stanza(
-        &self,
-        stanza_js: JsBinaryNode,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let stanza_js: JsValue = stanza_js.into();
-        let stanza = js_to_node(&stanza_js)?;
-        let client = self.client.unwaited(Unwaited::ConnectionBound);
-        client.acknowledge_stanza(&stanza.as_node_ref()).await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn acknowledge_stanza(&self, stanza_js: JsBinaryNode) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let stanza_js: JsValue = stanza_js.into();
+                let stanza = js_to_node(&stanza_js)?;
+                let client = operation_client.unwaited(Unwaited::ConnectionBound);
+                client.acknowledge_stanza(&stanza.as_node_ref()).await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Reject an inbound stanza through the core-owned acknowledgement path."]
     # [wasm_bindgen (js_name = rejectStanza)]
-    pub async fn reject_stanza(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn reject_stanza(
         &self,
         stanza_js: JsBinaryNode,
         error_code: i32,
         failure_reason: Option<i32>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let stanza_js: JsValue = stanza_js.into();
-        let stanza = js_to_node(&stanza_js)?;
-        let reason = whatsapp_rust::NackReason::from(error_code);
-        let rejection = match reason {
-            whatsapp_rust::NackReason::InvalidProtobuf => {
-                whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
-            }
-            reason => whatsapp_rust::StanzaRejection::new(reason),
-        };
-        let client = self.client.unwaited(Unwaited::ConnectionBound);
-        client
-            .reject_stanza(&stanza.as_node_ref(), rejection)
-            .await?;
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let stanza_js: JsValue = stanza_js.into();
+                let stanza = js_to_node(&stanza_js)?;
+                let reason = whatsapp_rust::NackReason::from(error_code);
+                let rejection = match reason {
+                    whatsapp_rust::NackReason::InvalidProtobuf => {
+                        whatsapp_rust::StanzaRejection::invalid_protobuf(failure_reason)
+                    }
+                    reason => whatsapp_rust::StanzaRejection::new(reason),
+                };
+                let client = operation_client.unwaited(Unwaited::ConnectionBound);
+                client
+                    .reject_stanza(&stanza.as_node_ref(), rejection)
+                    .await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Request retransmission without acknowledging the original stanza."]
     # [wasm_bindgen (js_name = requestMessageRetry)]
-    pub async fn request_message_retry(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn request_message_retry(
         &self,
         stanza_js: JsBinaryNode,
         force_include_keys: Option<bool>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let stanza_js: JsValue = stanza_js.into();
-        let stanza = js_to_node(&stanza_js)?;
-        let options = whatsapp_rust::RetryRequestOptions::new()
-            .with_force_include_keys(force_include_keys.unwrap_or(false));
-        let client = self.client.unwaited(Unwaited::ConnectionBound);
-        client
-            .request_message_retry(&stanza.as_node_ref(), options)
-            .await?;
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let stanza_js: JsValue = stanza_js.into();
+                let stanza = js_to_node(&stanza_js)?;
+                let options = whatsapp_rust::RetryRequestOptions::new()
+                    .with_force_include_keys(force_include_keys.unwrap_or(false));
+                let client = operation_client.unwaited(Unwaited::ConnectionBound);
+                client
+                    .request_message_retry(&stanza.as_node_ref(), options)
+                    .await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Execute a validated typed USync query through the core-owned operation."]
     #[doc = r" The bridge performs exactly one Serde decode and one Serde encode; it"]
     #[doc = r" neither constructs protocol nodes nor translates consumer-facing names."]
     # [wasm_bindgen (js_name = queryUsync)]
-    pub async fn query_usync(
-        &self,
-        query: JsUsyncQuery,
-    ) -> Result<JsUsyncResponse, crate::errors::BridgeError> {
-        let query =
-            crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(query.into(), "query")?;
-        let client = self.client.online().await?;
-        let source = client.query_usync(query).await?;
-        let value = &source;
-        Ok(crate::proto::to_js_value(value)
-            .map_err(crate::errors::BridgeError::from)?
-            .unchecked_into())
+    #[wasm_bindgen(unchecked_return_type = "Promise<UsyncResponse>")]
+    pub fn query_usync(&self, query: JsUsyncQuery) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsUsyncResponse, crate::errors::BridgeError> = (async move {
+                let query = crate::proto::from_js_value::<whatsapp_rust::usync::UsyncQuery>(
+                    query.into(),
+                    "query",
+                )?;
+                let client = operation_client.online().await?;
+                let source = client.query_usync(query).await?;
+                let value = &source;
+                Ok(crate::proto::to_js_value(value)
+                    .map_err(crate::errors::BridgeError::from)?
+                    .unchecked_into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Ensure E2E Signal sessions exist for the given JIDs."]
     #[doc = r" Returns true after sessions are established."]
     #[doc = r""]
     #[doc = r" `force` has no effect — the core exposes no such switch."]
     # [wasm_bindgen (js_name = assertSessions)]
-    pub async fn assert_sessions(
-        &self,
-        jids: Vec<String>,
-        _force: bool,
-    ) -> Result<bool, crate::errors::BridgeError> {
-        let parsed: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        client.signal().assert_sessions(&parsed).await?;
-        Ok(true)
+    #[wasm_bindgen(unchecked_return_type = "Promise<boolean>")]
+    pub fn assert_sessions(&self, jids: Vec<String>, _force: bool) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<bool, crate::errors::BridgeError> = (async move {
+                let parsed: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                client.signal().assert_sessions(&parsed).await?;
+                Ok(true)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the list of known devices for the given user JIDs via usync query."]
     #[doc = r" Returns an array of JID strings (one per device)."]
@@ -140,350 +241,645 @@ impl WasmWhatsAppClient {
     #[doc = r" `useCache` and `ignoreZeroDevices` have no effect — the core's device"]
     #[doc = r" query takes neither."]
     # [wasm_bindgen (js_name = getUSyncDevices)]
-    pub async fn get_usync_devices(
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn get_usync_devices(
         &self,
         jids: Vec<String>,
         _use_cache: bool,
         _ignore_zero_devices: bool,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let parsed: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let devices = client.signal().get_user_devices(&parsed).await?;
-        let arr = js_sys::Array::new_with_length(devices.len() as u32);
-        for (index, jid) in devices.iter().enumerate() {
-            let obj = js_sys::Object::new();
-            {
-                let value: JsValue = jid.user.as_str().into();
-                js_sys::Reflect::set(&obj, &"user".into(), &value)
-                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-            }
-            if jid.device != 0 {
-                let value: JsValue = (jid.device as f64).into();
-                js_sys::Reflect::set(&obj, &"device".into(), &value)
-                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-            }
-            {
-                let value: JsValue = jid.to_string().into();
-                js_sys::Reflect::set(&obj, &"jid".into(), &value)
-                    .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-            }
-            arr.set(index as u32, obj.into());
-        }
-        Ok(arr.into())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let parsed: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let devices = client.signal().get_user_devices(&parsed).await?;
+                let arr = js_sys::Array::new_with_length(devices.len() as u32);
+                for (index, jid) in devices.iter().enumerate() {
+                    let obj = js_sys::Object::new();
+                    {
+                        let value: JsValue = jid.user.as_str().into();
+                        js_sys::Reflect::set(&obj, &"user".into(), &value)
+                            .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                    }
+                    if jid.device != 0 {
+                        let value: JsValue = (jid.device as f64).into();
+                        js_sys::Reflect::set(&obj, &"device".into(), &value)
+                            .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                    }
+                    {
+                        let value: JsValue = jid.to_string().into();
+                        js_sys::Reflect::set(&obj, &"jid".into(), &value)
+                            .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                    }
+                    arr.set(index as u32, obj.into());
+                }
+                Ok(arr.into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Encrypt plaintext for a single recipient."]
     #[doc = r#" Returns `{ type: "msg"|"pkmsg", ciphertext: Uint8Array }`."#]
     # [wasm_bindgen (js_name = signalEncryptMessage)]
-    pub async fn signal_encrypt_message(
-        &self,
-        jid: &str,
-        data: &[u8],
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let parsed = parse_jid(jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let (msg_type, ciphertext) = client.signal().encrypt_message(&parsed, data).await?;
-        let obj = js_sys::Object::new();
-        {
-            let value: JsValue = msg_type.as_wire_str().into();
-            js_sys::Reflect::set(&obj, &"type".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        {
-            let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
-            js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        Ok(obj.into())
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn signal_encrypt_message(&self, jid: &str, data: &[u8]) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let data = data.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let data: &[u8] = &data;
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let parsed = parse_jid(jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let (msg_type, ciphertext) = client.signal().encrypt_message(&parsed, data).await?;
+                let obj = js_sys::Object::new();
+                {
+                    let value: JsValue = msg_type.as_wire_str().into();
+                    js_sys::Reflect::set(&obj, &"type".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                {
+                    let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
+                    js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                Ok(obj.into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r#" Decrypt a Signal protocol message. `msg_type` is "msg", "pkmsg", or "skmsg"."#]
     # [wasm_bindgen (js_name = signalDecryptMessage)]
-    pub async fn signal_decrypt_message(
+    #[wasm_bindgen(unchecked_return_type = "Promise<Uint8Array>")]
+    pub fn signal_decrypt_message(
         &self,
         jid: &str,
         msg_type: &str,
         ciphertext: &[u8],
-    ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
-        let parsed = parse_jid(jid)?;
-        let enc_type = wacore::message_processing::EncType::from_wire(msg_type)
-            .ok_or_else(|| crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}")))?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client
-            .signal()
-            .decrypt_message(&parsed, enc_type, ciphertext)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        let msg_type = msg_type.to_owned();
+        let ciphertext = ciphertext.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let msg_type: &str = &msg_type;
+            let ciphertext: &[u8] = &ciphertext;
+            let result: Result<js_sys::Uint8Array, crate::errors::BridgeError> = (async move {
+                let parsed = parse_jid(jid)?;
+                let enc_type = wacore::message_processing::EncType::from_wire(msg_type)
+                    .ok_or_else(|| {
+                        crate::errors::invalid_arg("msgType", format!("unknown: {msg_type}"))
+                    })?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client
+                    .signal()
+                    .decrypt_message(&parsed, enc_type, ciphertext)
+                    .await;
+                let value = value.map_err(|error| match error {
+                    whatsapp_rust::features::SignalError::Unsupported(detail) => {
+                        crate::errors::invalid_arg("msgType", detail)
+                    }
+                    other => other.into(),
+                })?;
+                Ok(js_sys::Uint8Array::from(value.as_slice()))
+            })
             .await;
-        let value = value.map_err(|error| match error {
-            whatsapp_rust::features::SignalError::Unsupported(detail) => {
-                crate::errors::invalid_arg("msgType", detail)
-            }
-            other => other.into(),
-        })?;
-        Ok(js_sys::Uint8Array::from(value.as_slice()))
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Encrypt plaintext for a group (sender key)."]
     #[doc = r" Returns `{ senderKeyDistributionMessage: Uint8Array, ciphertext: Uint8Array }`."]
     #[doc = r""]
     #[doc = r" `meId` has no effect — the core reads the sender from the store."]
     # [wasm_bindgen (js_name = signalEncryptGroupMessage)]
-    pub async fn signal_encrypt_group_message(
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn signal_encrypt_group_message(
         &self,
         group_jid: &str,
         data: &[u8],
         _me_id: &str,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let parsed = parse_jid(group_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let (skdm, ciphertext) = client.signal().encrypt_group_message(&parsed, data).await?;
-        let obj = js_sys::Object::new();
-        {
-            let value: JsValue = match &skdm {
-                Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
-                None => JsValue::UNDEFINED,
-            };
-            js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        {
-            let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
-            js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        Ok(obj.into())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let data = data.to_owned();
+        let _me_id = _me_id.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let data: &[u8] = &data;
+            let _me_id: &str = &_me_id;
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let parsed = parse_jid(group_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let (skdm, ciphertext) =
+                    client.signal().encrypt_group_message(&parsed, data).await?;
+                let obj = js_sys::Object::new();
+                {
+                    let value: JsValue = match &skdm {
+                        Some(bytes) => js_sys::Uint8Array::from(bytes.as_slice()).into(),
+                        None => JsValue::UNDEFINED,
+                    };
+                    js_sys::Reflect::set(&obj, &"senderKeyDistributionMessage".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                {
+                    let value: JsValue = js_sys::Uint8Array::from(ciphertext.as_slice()).into();
+                    js_sys::Reflect::set(&obj, &"ciphertext".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                Ok(obj.into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Decrypt a group (sender-key) message."]
     # [wasm_bindgen (js_name = signalDecryptGroupMessage)]
-    pub async fn signal_decrypt_group_message(
+    #[wasm_bindgen(unchecked_return_type = "Promise<Uint8Array>")]
+    pub fn signal_decrypt_group_message(
         &self,
         group_jid: &str,
         author_jid: &str,
         msg: &[u8],
-    ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let sender = parse_jid(author_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client
-            .signal()
-            .decrypt_group_message(&group, &sender, msg)
-            .await?;
-        Ok(js_sys::Uint8Array::from(value.as_slice()))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let author_jid = author_jid.to_owned();
+        let msg = msg.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let author_jid: &str = &author_jid;
+            let msg: &[u8] = &msg;
+            let result: Result<js_sys::Uint8Array, crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let sender = parse_jid(author_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client
+                    .signal()
+                    .decrypt_group_message(&group, &sender, msg)
+                    .await?;
+                Ok(js_sys::Uint8Array::from(value.as_slice()))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Install a supplied pairwise pre-key bundle."]
     # [wasm_bindgen (js_name = signalInstallPreKeyBundle)]
-    pub async fn signal_install_prekey_bundle(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn signal_install_prekey_bundle(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "SignalSessionBundleInput")] input: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let input = from_js_input::<crate::result_types::SignalSessionBundleInput>("input", input)?;
-        let parsed = parse_jid(jid)?;
-        let public_identity =
-            wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(&input.identity_key)
-                .map_err(|error| crate::errors::invalid_arg("identityKey", error.to_string()))?;
-        let identity_key = wacore::libsignal::protocol::IdentityKey::new(public_identity);
-        let signed_pre_key = wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
-            &input.signed_pre_key.public_key,
-        )
-        .map_err(|error| crate::errors::invalid_arg("signedPreKey.publicKey", error.to_string()))?;
-        let pre_key = input
-            .pre_key
-            .map(|pre_key| -> Result<_, crate::errors::BridgeError> {
-                let public_key = wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
-                    &pre_key.public_key,
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let input =
+                    from_js_input::<crate::result_types::SignalSessionBundleInput>("input", input)?;
+                let parsed = parse_jid(jid)?;
+                let public_identity =
+                    wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
+                        &input.identity_key,
+                    )
+                    .map_err(|error| {
+                        crate::errors::invalid_arg("identityKey", error.to_string())
+                    })?;
+                let identity_key = wacore::libsignal::protocol::IdentityKey::new(public_identity);
+                let signed_pre_key =
+                    wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
+                        &input.signed_pre_key.public_key,
+                    )
+                    .map_err(|error| {
+                        crate::errors::invalid_arg("signedPreKey.publicKey", error.to_string())
+                    })?;
+                let pre_key = input
+                    .pre_key
+                    .map(|pre_key| -> Result<_, crate::errors::BridgeError> {
+                        let public_key =
+                            wacore::libsignal::protocol::PublicKey::from_djb_public_key_bytes(
+                                &pre_key.public_key,
+                            )
+                            .map_err(|error| {
+                                crate::errors::invalid_arg("preKey.publicKey", error.to_string())
+                            })?;
+                        Ok((pre_key.key_id.into(), public_key))
+                    })
+                    .transpose()?;
+                let bundle = wacore::libsignal::protocol::PreKeyBundle::new(
+                    input.registration_id,
+                    u32::from(parsed.device).into(),
+                    pre_key,
+                    input.signed_pre_key.key_id.into(),
+                    signed_pre_key,
+                    input.signed_pre_key.signature,
+                    identity_key,
                 )
-                .map_err(|error| {
-                    crate::errors::invalid_arg("preKey.publicKey", error.to_string())
-                })?;
-                Ok((pre_key.key_id.into(), public_key))
+                .map_err(|error| crate::errors::invalid_arg("bundle", error.to_string()))?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client
+                    .signal()
+                    .install_prekey_bundle(&parsed, &bundle)
+                    .await?;
+                Ok(())
             })
-            .transpose()?;
-        let bundle = wacore::libsignal::protocol::PreKeyBundle::new(
-            input.registration_id,
-            u32::from(parsed.device).into(),
-            pre_key,
-            input.signed_pre_key.key_id.into(),
-            signed_pre_key,
-            input.signed_pre_key.signature,
-            identity_key,
-        )
-        .map_err(|error| crate::errors::invalid_arg("bundle", error.to_string()))?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client
-            .signal()
-            .install_prekey_bundle(&parsed, &bundle)
-            .await?;
-        Ok(())
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Replenish the server's one-time key pool only when it is low."]
     # [wasm_bindgen (js_name = ensurePreKeys)]
-    pub async fn ensure_pre_keys(&self) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Redriven);
-        client.ensure_pre_keys().await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn ensure_pre_keys(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Redriven);
+                client.ensure_pre_keys().await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Validate the server-side key-bundle digest against local state."]
     # [wasm_bindgen (js_name = validateKeyBundle)]
-    pub async fn validate_key_bundle(&self) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Redriven);
-        client.validate_digest_key().await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn validate_key_bundle(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Redriven);
+                client.validate_digest_key().await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Rotate the signed key advertised by the server."]
     # [wasm_bindgen (js_name = rotateSignedKey)]
-    pub async fn rotate_signed_key(&self) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Redriven);
-        client.rotate_signed_pre_key().await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn rotate_signed_key(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Redriven);
+                client.rotate_signed_pre_key().await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Process a raw sender-key distribution payload."]
     # [wasm_bindgen (js_name = signalProcessSenderKeyDistribution)]
-    pub async fn signal_process_sender_key_distribution(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn signal_process_sender_key_distribution(
         &self,
         group_jid: &str,
         sender_jid: &str,
         distribution: &[u8],
-    ) -> Result<(), crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let sender = parse_jid(sender_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client
-            .signal()
-            .process_sender_key_distribution(&group, &sender, distribution)
-            .await?;
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let sender_jid = sender_jid.to_owned();
+        let distribution = distribution.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let sender_jid: &str = &sender_jid;
+            let distribution: &[u8] = &distribution;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let sender = parse_jid(sender_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client
+                    .signal()
+                    .process_sender_key_distribution(&group, &sender, distribution)
+                    .await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create the current sender-key distribution payload for a group."]
     # [wasm_bindgen (js_name = signalGetSenderKeyDistribution)]
-    pub async fn signal_get_sender_key_distribution(
+    #[wasm_bindgen(unchecked_return_type = "Promise<Uint8Array>")]
+    pub fn signal_get_sender_key_distribution(
         &self,
         group_jid: &str,
         sender_jid: &str,
-    ) -> Result<js_sys::Uint8Array, crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let sender = parse_jid(sender_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client
-            .signal()
-            .sender_key_distribution(&group, &sender)
-            .await?;
-        Ok(crate::wasm_utils::byte_array(&value))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let sender_jid = sender_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let sender_jid: &str = &sender_jid;
+            let result: Result<js_sys::Uint8Array, crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let sender = parse_jid(sender_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client
+                    .signal()
+                    .sender_key_distribution(&group, &sender)
+                    .await?;
+                Ok(crate::wasm_utils::byte_array(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Check whether sender-key state exists for a group and sender."]
     # [wasm_bindgen (js_name = signalHasSenderKey)]
-    pub async fn signal_has_sender_key(
-        &self,
-        group_jid: &str,
-        sender_jid: &str,
-    ) -> Result<bool, crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let sender = parse_jid(sender_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.signal().has_sender_key(&group, &sender).await;
-        let value = value?;
-        Ok(value)
+    #[wasm_bindgen(unchecked_return_type = "Promise<boolean>")]
+    pub fn signal_has_sender_key(&self, group_jid: &str, sender_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let sender_jid = sender_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let sender_jid: &str = &sender_jid;
+            let result: Result<bool, crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let sender = parse_jid(sender_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.signal().has_sender_key(&group, &sender).await;
+                let value = value?;
+                Ok(value)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete one sender-key chain from live and durable state."]
     # [wasm_bindgen (js_name = signalDeleteSenderKey)]
-    pub async fn signal_delete_sender_key(
-        &self,
-        group_jid: &str,
-        sender_jid: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let group = parse_jid(group_jid)?;
-        let sender = parse_jid(sender_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client.signal().delete_sender_key(&group, &sender).await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn signal_delete_sender_key(&self, group_jid: &str, sender_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        let sender_jid = sender_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let sender_jid: &str = &sender_jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let group = parse_jid(group_jid)?;
+                let sender = parse_jid(sender_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.signal().delete_sender_key(&group, &sender).await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Inspect the currently open pairwise session for a JID."]
     # [wasm_bindgen (js_name = signalGetSessionInfo)]
-    pub async fn signal_get_session_info(
-        &self,
-        jid: &str,
-    ) -> Result<Option<Ts<crate::result_types::SignalSessionInfoResult>>, crate::errors::BridgeError>
-    {
-        let parsed = parse_jid(jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.signal().session_info(&parsed).await?;
-        to_ts_opt(value.map(crate::result_types::project_signal_session_info))
+    #[wasm_bindgen(unchecked_return_type = "Promise<SignalSessionInfoResult | undefined>")]
+    pub fn signal_get_session_info(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Option<Ts<crate::result_types::SignalSessionInfoResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let parsed = parse_jid(jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.signal().session_info(&parsed).await?;
+                to_ts_opt(value.map(crate::result_types::project_signal_session_info))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Add linked-identifier mappings through one durable core batch."]
     # [wasm_bindgen (js_name = addLidPnMappings)]
-    pub async fn add_lid_pn_mappings(
+    #[wasm_bindgen(unchecked_return_type = "Promise<number>")]
+    pub fn add_lid_pn_mappings(
         &self,
         #[wasm_bindgen(unchecked_param_type = "LidPnMappingInput[]")] mappings: JsValue,
-    ) -> Result<u32, crate::errors::BridgeError> {
-        let mappings =
-            from_js_input::<Vec<crate::result_types::LidPnMappingInput>>("mappings", mappings)?;
-        let mut pairs = Vec::with_capacity(mappings.len());
-        for (index, mapping) in mappings.into_iter().enumerate() {
-            let lid = parse_jid(&mapping.lid)?;
-            if !lid.server.is_lid_family() {
-                return Err(crate::errors::invalid_arg(
-                    format!("mappings[{index}].lid"),
-                    "must use a linked-identifier namespace",
-                ));
-            }
-            let pn = parse_jid(&mapping.pn)?;
-            if !pn.server.is_pn_family() {
-                return Err(crate::errors::invalid_arg(
-                    format!("mappings[{index}].pn"),
-                    "must use a phone-number namespace",
-                ));
-            }
-            pairs.push((lid.user.to_string(), pn.user.to_string()));
-        }
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client
-            .add_lid_pn_mappings(pairs, whatsapp_rust::lid_pn_cache::LearningSource::Other)
-            .await?;
-        u32::try_from(value).map_err(|_| crate::errors::internal("mapping count exceeds u32"))
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<u32, crate::errors::BridgeError> = (async move {
+                let mappings = from_js_input::<Vec<crate::result_types::LidPnMappingInput>>(
+                    "mappings", mappings,
+                )?;
+                let mut pairs = Vec::with_capacity(mappings.len());
+                for (index, mapping) in mappings.into_iter().enumerate() {
+                    let lid = parse_jid(&mapping.lid)?;
+                    if !lid.server.is_lid_family() {
+                        return Err(crate::errors::invalid_arg(
+                            format!("mappings[{index}].lid"),
+                            "must use a linked-identifier namespace",
+                        ));
+                    }
+                    let pn = parse_jid(&mapping.pn)?;
+                    if !pn.server.is_pn_family() {
+                        return Err(crate::errors::invalid_arg(
+                            format!("mappings[{index}].pn"),
+                            "must use a phone-number namespace",
+                        ));
+                    }
+                    pairs.push((lid.user.to_string(), pn.user.to_string()));
+                }
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client
+                    .add_lid_pn_mappings(pairs, whatsapp_rust::lid_pn_cache::LearningSource::Other)
+                    .await?;
+                u32::try_from(value)
+                    .map_err(|_| crate::errors::internal("mapping count exceeds u32"))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Move pairwise sessions between phone-number and linked-identifier namespaces."]
     # [wasm_bindgen (js_name = signalMigrateSessions)]
-    pub async fn signal_migrate_sessions(
-        &self,
-        from_jid: &str,
-        to_jid: &str,
-    ) -> Result<Ts<crate::result_types::SignalSessionMigrationResult>, crate::errors::BridgeError>
-    {
-        let from = parse_jid(from_jid)?;
-        let to = parse_jid(to_jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.signal().migrate_sessions(&from, &to).await?;
-        to_ts(crate::result_types::project_signal_session_migration(value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<SignalSessionMigrationResult>")]
+    pub fn signal_migrate_sessions(&self, from_jid: &str, to_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let from_jid = from_jid.to_owned();
+        let to_jid = to_jid.to_owned();
+        client_operation(cancelled, async move {
+            let from_jid: &str = &from_jid;
+            let to_jid: &str = &to_jid;
+            let result: Result<
+                Ts<crate::result_types::SignalSessionMigrationResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let from = parse_jid(from_jid)?;
+                let to = parse_jid(to_jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.signal().migrate_sessions(&from, &to).await?;
+                to_ts(crate::result_types::project_signal_session_migration(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Check whether a Signal session exists for the given JID."]
     # [wasm_bindgen (js_name = signalValidateSession)]
-    pub async fn signal_validate_session(
-        &self,
-        jid: &str,
-    ) -> Result<bool, crate::errors::BridgeError> {
-        let parsed = parse_jid(jid)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client
-            .signal()
-            .validate_session(&parsed)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<boolean>")]
+    pub fn signal_validate_session(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<bool, crate::errors::BridgeError> = (async move {
+                let parsed = parse_jid(jid)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client
+                    .signal()
+                    .validate_session(&parsed)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Delete Signal sessions for the given JIDs."]
     # [wasm_bindgen (js_name = signalDeleteSessions)]
-    pub async fn signal_delete_sessions(
-        &self,
-        jids: Vec<String>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let parsed: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client
-            .signal()
-            .delete_sessions(&parsed)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn signal_delete_sessions(&self, jids: Vec<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let parsed: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client
+                    .signal()
+                    .delete_sessions(&parsed)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Look up the LID JID corresponding to a given phone number JID."]
     #[doc = r""]
@@ -495,19 +891,32 @@ impl WasmWhatsAppClient {
     #[doc = r" `JsStoreCallbacks` backend without a list primitive still resolves"]
     #[doc = r" every persisted mapping without an extra usync round trip."]
     # [wasm_bindgen (js_name = lidForPn)]
-    pub async fn lid_for_pn(
-        &self,
-        jid: &str,
-    ) -> Result<Option<String>, crate::errors::BridgeError> {
-        let parsed = if jid.contains('@') {
-            parse_jid(jid)?
-        } else {
-            Jid::pn(jid)
-        };
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.get_lid_pn_entry(&parsed).await;
-        let value = value?;
-        Ok(value.map(|entry| format!("{}@lid", entry.lid)))
+    #[wasm_bindgen(unchecked_return_type = "Promise<string | undefined>")]
+    pub fn lid_for_pn(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<Option<String>, crate::errors::BridgeError> = (async move {
+                let parsed = if jid.contains('@') {
+                    parse_jid(jid)?
+                } else {
+                    Jid::pn(jid)
+                };
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.get_lid_pn_entry(&parsed).await;
+                let value = value?;
+                Ok(value.map(|entry| format!("{}@lid", entry.lid)))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Look up the phone number JID corresponding to a given LID JID."]
     #[doc = r""]
@@ -516,19 +925,32 @@ impl WasmWhatsAppClient {
     #[doc = r" `null` when no mapping is known. Same cache-aside semantics as"]
     #[doc = r" `lidForPn` — see that doc."]
     # [wasm_bindgen (js_name = pnForLid)]
-    pub async fn pn_for_lid(
-        &self,
-        jid: &str,
-    ) -> Result<Option<String>, crate::errors::BridgeError> {
-        let parsed = if jid.contains('@') {
-            parse_jid(jid)?
-        } else {
-            Jid::lid(jid)
-        };
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.get_lid_pn_entry(&parsed).await;
-        let value = value?;
-        Ok(value.map(|entry| format!("{}@s.whatsapp.net", entry.phone_number)))
+    #[wasm_bindgen(unchecked_return_type = "Promise<string | undefined>")]
+    pub fn pn_for_lid(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<Option<String>, crate::errors::BridgeError> = (async move {
+                let parsed = if jid.contains('@') {
+                    parse_jid(jid)?
+                } else {
+                    Jid::lid(jid)
+                };
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.get_lid_pn_entry(&parsed).await;
+                let value = value?;
+                Ok(value.map(|entry| format!("{}@s.whatsapp.net", entry.phone_number)))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Create encrypted participant `<to>` nodes for recipient JIDs."]
     #[doc = r" Returns `{ nodes: [...], shouldIncludeDeviceIdentity: boolean }`."]
@@ -536,59 +958,103 @@ impl WasmWhatsAppClient {
     #[doc = r""]
     #[doc = r" `extraAttrs` has no effect — the core sets the node attributes itself."]
     # [wasm_bindgen (js_name = createParticipantNodesBytes)]
-    pub async fn create_participant_nodes_bytes(
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn create_participant_nodes_bytes(
         &self,
         jids: Vec<String>,
         bytes: &[u8],
         _extra_attrs: JsValue,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let recipient_jids: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let msg = waproto::codec::message_decode(bytes)
-            .map_err(|error| crate::errors::internal(format!("invalid message bytes: {error}")))?;
-        let client = self.client.online().await?;
-        let (nodes, should_include_device_identity) = client
-            .signal()
-            .create_participant_nodes(&recipient_jids, &msg)
-            .await?;
-        let obj = js_sys::Object::new();
-        {
-            let value: JsValue = nodes_to_js_array(&nodes).map_err(|error| {
-                crate::errors::internal(format!("node serialization failed: {error:?}"))
-            })?;
-            js_sys::Reflect::set(&obj, &"nodes".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        {
-            let value: JsValue = should_include_device_identity.into();
-            js_sys::Reflect::set(&obj, &"shouldIncludeDeviceIdentity".into(), &value)
-                .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
-        }
-        Ok(obj.into())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let bytes = bytes.to_owned();
+        client_operation(cancelled, async move {
+            let bytes: &[u8] = &bytes;
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let recipient_jids: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let msg = waproto::codec::message_decode(bytes).map_err(|error| {
+                    crate::errors::internal(format!("invalid message bytes: {error}"))
+                })?;
+                let client = operation_client.online().await?;
+                let (nodes, should_include_device_identity) = client
+                    .signal()
+                    .create_participant_nodes(&recipient_jids, &msg)
+                    .await?;
+                let obj = js_sys::Object::new();
+                {
+                    let value: JsValue = nodes_to_js_array(&nodes).map_err(|error| {
+                        crate::errors::internal(format!("node serialization failed: {error:?}"))
+                    })?;
+                    js_sys::Reflect::set(&obj, &"nodes".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                {
+                    let value: JsValue = should_include_device_identity.into();
+                    js_sys::Reflect::set(&obj, &"shouldIncludeDeviceIdentity".into(), &value)
+                        .map_err(|error| crate::errors::internal(format!("{error:?}")))?;
+                }
+                Ok(obj.into())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Send pre-marshaled bytes through the noise socket."]
     # [wasm_bindgen (js_name = sendRawMessage)]
-    pub async fn send_raw_message(&self, data: &[u8]) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Opaque);
-        client
-            .send_raw_bytes(data.to_vec())
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn send_raw_message(&self, data: &[u8]) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let data = data.to_owned();
+        client_operation(cancelled, async move {
+            let data: &[u8] = &data;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Opaque);
+                client
+                    .send_raw_bytes(data.to_vec())
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Force-refresh the server's one-time key pool."]
     # [wasm_bindgen (js_name = refreshPreKeys)]
-    pub async fn refresh_pre_keys(
-        &self,
-        count: Option<u32>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Redriven);
-        match count {
-            Some(count) => client.refresh_pre_keys_with_count(count as usize).await?,
-            None => client.refresh_pre_keys().await?,
-        }
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn refresh_pre_keys(&self, count: Option<u32>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Redriven);
+                match count {
+                    Some(count) => client.refresh_pre_keys_with_count(count as usize).await?,
+                    None => client.refresh_pre_keys().await?,
+                }
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Convert a JID string to its Signal protocol address representation."]
     # [wasm_bindgen (js_name = jidToSignalProtocolAddress)]

@@ -30,9 +30,10 @@ test("generated operations preserve the published method contracts", async () =>
   const merged = source.statements.find(
     (statement): statement is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(statement) && statement.name.text === "WasmWhatsAppClient"
   );
-  expect(merged).toBeDefined();
+  // Record methods now come from the same generator as ordinary methods.
+  const allMembers = [...client!.members, ...(merged?.members ?? [])];
   for (const [name, signature] of Object.entries(baseline.mergedSignatures)) {
-    const members = merged!.members.filter(member => member.name?.getText(source) === name);
+    const members = allMembers.filter(member => member.name?.getText(source) === name);
     expect(members.length, name).toBe(1);
     expect(members[0]!.getText(source).replace(/\s+/g, " "), name).toBe(signature);
   }

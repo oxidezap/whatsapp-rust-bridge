@@ -12,28 +12,42 @@ impl WasmWhatsAppClient {
     #[doc = r" counterpart and business flag — eliminating the follow-up `fetchUserInfo`"]
     #[doc = r" round trip the previous single-phone API forced callers into."]
     # [wasm_bindgen (js_name = isOnWhatsApp)]
-    pub async fn is_on_whatsapp(
-        &self,
-        phones: Vec<String>,
-    ) -> Result<Vec<Ts<crate::result_types::IsOnWhatsAppResult>>, crate::errors::BridgeError> {
-        let jids: Vec<Jid> = phones
-            .iter()
-            .map(|jid| {
-                if jid.contains('@') {
-                    parse_jid(jid)
-                } else {
-                    Ok(Jid::pn(jid))
-                }
+    #[wasm_bindgen(unchecked_return_type = "Promise<IsOnWhatsAppResult[]>")]
+    pub fn is_on_whatsapp(&self, phones: Vec<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Vec<Ts<crate::result_types::IsOnWhatsAppResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let jids: Vec<Jid> = phones
+                    .iter()
+                    .map(|jid| {
+                        if jid.contains('@') {
+                            parse_jid(jid)
+                        } else {
+                            Ok(Jid::pn(jid))
+                        }
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let client = operation_client.online().await?;
+                let value = client.contacts().is_on_whatsapp(&jids).await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_is_on_whats_app)
+                        .collect(),
+                )
             })
-            .collect::<Result<Vec<_>, _>>()?;
-        let client = self.client.online().await?;
-        let value = client.contacts().is_on_whatsapp(&jids).await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_is_on_whats_app)
-                .collect(),
-        )
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Resolve a Meta username to the account behind it."]
     #[doc = r""]
@@ -46,90 +60,167 @@ impl WasmWhatsAppClient {
     #[doc = r" which some accounts require before the server discloses an identity at"]
     #[doc = r#" all — without it the answer is `{ status: "keyRequired" }`."#]
     # [wasm_bindgen (js_name = findByUsername)]
-    pub async fn find_by_username(
+    #[wasm_bindgen(unchecked_return_type = "Promise<UsernameLookupResult>")]
+    pub fn find_by_username(
         &self,
         username: &str,
         username_key: Option<String>,
-    ) -> Result<Ts<crate::result_types::UsernameLookupResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        to_ts(crate::result_types::project_username_lookup(
-            client
-                .contacts()
-                .find_by_username(username, username_key.as_deref())
-                .await?,
-        )?)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let username = username.to_owned();
+        client_operation(cancelled, async move {
+            let username: &str = &username;
+            let result: Result<
+                Ts<crate::result_types::UsernameLookupResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                to_ts(crate::result_types::project_username_lookup(
+                    client
+                        .contacts()
+                        .find_by_username(username, username_key.as_deref())
+                        .await?,
+                )?)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the profile picture URL for a user or group."]
     #[doc = r""]
     #[doc = r#" `picture_type` should be "preview" or "image"."#]
     # [wasm_bindgen (js_name = profilePictureUrl)]
-    pub async fn profile_picture_url(
+    #[wasm_bindgen(unchecked_return_type = "Promise<ProfilePictureInfo | undefined>")]
+    pub fn profile_picture_url(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "PictureType")] picture_type: JsValue,
         timeout_ms: Option<f64>,
-    ) -> Result<Option<Ts<crate::result_types::ProfilePictureInfo>>, crate::errors::BridgeError>
-    {
-        let picture_type =
-            from_js_input::<crate::result_types::PictureType>("picture_type", picture_type)?;
-        let target = parse_jid(jid)?;
-        let size = match picture_type {
-            crate::result_types::PictureType::Preview => whatsapp_rust::ProfilePictureType::Preview,
-            crate::result_types::PictureType::Image => whatsapp_rust::ProfilePictureType::Full,
-        };
-        let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
-        let client = self.client.online().await?;
-        let value = client
-            .pictures()
-            .lookup(
-                whatsapp_rust::ProfilePictureRequest::new(profile_picture_target(&target), size)
-                    .timeout(timeout),
-            )
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<
+                Option<Ts<crate::result_types::ProfilePictureInfo>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let picture_type = from_js_input::<crate::result_types::PictureType>(
+                    "picture_type",
+                    picture_type,
+                )?;
+                let target = parse_jid(jid)?;
+                let size = match picture_type {
+                    crate::result_types::PictureType::Preview => {
+                        whatsapp_rust::ProfilePictureType::Preview
+                    }
+                    crate::result_types::PictureType::Image => {
+                        whatsapp_rust::ProfilePictureType::Full
+                    }
+                };
+                let timeout = parse_optional_timeout_ms("timeoutMs", timeout_ms)?;
+                let client = operation_client.online().await?;
+                let value = client
+                    .pictures()
+                    .lookup(
+                        whatsapp_rust::ProfilePictureRequest::new(
+                            profile_picture_target(&target),
+                            size,
+                        )
+                        .timeout(timeout),
+                    )
+                    .await;
+                to_ts_opt(
+                    value?
+                        .into_found()
+                        .as_ref()
+                        .map(crate::result_types::project_profile_picture_info),
+                )
+            })
             .await;
-        to_ts_opt(
-            value?
-                .into_found()
-                .as_ref()
-                .map(crate::result_types::project_profile_picture_info),
-        )
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch user info for one or more JIDs."]
-    # [wasm_bindgen (js_name = fetchUserInfo , skip_typescript)]
-    pub async fn fetch_user_info(
-        &self,
-        jids: Vec<String>,
-    ) -> Result<JsValue, crate::errors::BridgeError> {
-        let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let value = client.contacts().get_user_info(&parsed_jids).await?;
-        {
-            let result = js_sys::Object::new();
-            for (key, value) in &value {
-                let entry = crate::result_types::project_user_info(value);
-                let value = serde_wasm_bindgen::to_value(&entry)?;
-                js_sys::Reflect::set(&result, &JsValue::from_str(&key.to_string()), &value)?;
-            }
-            Ok(result.into())
-        }
+    # [wasm_bindgen (js_name = fetchUserInfo)]
+    #[wasm_bindgen(unchecked_return_type = "Promise<Record<string, UserInfoResult>>")]
+    pub fn fetch_user_info(&self, jids: Vec<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let value = client.contacts().get_user_info(&parsed_jids).await?;
+                {
+                    let result = js_sys::Object::new();
+                    for (key, value) in &value {
+                        let entry = crate::result_types::project_user_info(value);
+                        let value = serde_wasm_bindgen::to_value(&entry)?;
+                        js_sys::Reflect::set(
+                            &result,
+                            &JsValue::from_str(&key.to_string()),
+                            &value,
+                        )?;
+                    }
+                    Ok(result.into())
+                }
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set the user's push name (display name)."]
     #[doc = r" A rejection from app-state sync may follow a successful presence send"]
     #[doc = r" and local name update. Its original typed cause is preserved."]
     # [wasm_bindgen (js_name = setPushName)]
-    pub async fn set_push_name(&self, name: &str) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        match client.profile().set_push_name(name).await? {
-            whatsapp_rust::features::PushNameOutcome::Synced => Ok(()),
-            whatsapp_rust::features::PushNameOutcome::SyncPending { source } => {
-                Err(crate::errors::BridgeError::from(source))
-            }
-            other => Err(crate::errors::internal(format!(
-                "unhandled push-name outcome: {other:?}"
-            ))),
-        }
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_push_name(&self, name: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let name = name.to_owned();
+        client_operation(cancelled, async move {
+            let name: &str = &name;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                match client.profile().set_push_name(name).await? {
+                    whatsapp_rust::features::PushNameOutcome::Synced => Ok(()),
+                    whatsapp_rust::features::PushNameOutcome::SyncPending { source } => {
+                        Err(crate::errors::BridgeError::from(source))
+                    }
+                    other => Err(crate::errors::internal(format!(
+                        "unhandled push-name outcome: {other:?}"
+                    ))),
+                }
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Read this account's own Meta username, its state and its username key."]
     #[doc = r""]
@@ -138,32 +229,75 @@ impl WasmWhatsAppClient {
     #[doc = r" key changes the account's identity in a way the server does not undo,"]
     #[doc = r" so the core leaves those two MEX operations unwrapped."]
     # [wasm_bindgen (js_name = getUsername)]
-    pub async fn get_username(
-        &self,
-    ) -> Result<Option<Ts<crate::result_types::OwnUsernameResult>>, crate::errors::BridgeError>
-    {
-        let client = self.client.online().await?;
-        let value = client.mex().get_username().await?;
-        to_ts_opt(value.map(crate::result_types::project_own_username))
+    #[wasm_bindgen(unchecked_return_type = "Promise<OwnUsernameResult | undefined>")]
+    pub fn get_username(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Option<Ts<crate::result_types::OwnUsernameResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.mex().get_username().await?;
+                to_ts_opt(value.map(crate::result_types::project_own_username))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set the profile picture for the logged-in user."]
     # [wasm_bindgen (js_name = updateProfilePicture)]
-    pub async fn update_profile_picture(
-        &self,
-        img_data: Vec<u8>,
-    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client.profile().set_profile_picture(img_data).await?;
-        to_ts(crate::result_types::project_profile_picture(value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<ProfilePictureResult>")]
+    pub fn update_profile_picture(&self, img_data: Vec<u8>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::ProfilePictureResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.profile().set_profile_picture(img_data).await?;
+                to_ts(crate::result_types::project_profile_picture(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove the profile picture for the logged-in user."]
     # [wasm_bindgen (js_name = removeProfilePicture)]
-    pub async fn remove_profile_picture(
-        &self,
-    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client.profile().remove_profile_picture().await?;
-        to_ts(crate::result_types::project_profile_picture(value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<ProfilePictureResult>")]
+    pub fn remove_profile_picture(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::ProfilePictureResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.profile().remove_profile_picture().await?;
+                to_ts(crate::result_types::project_profile_picture(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set the profile picture for a group the user administers."]
     #[doc = r""]
@@ -171,183 +305,341 @@ impl WasmWhatsAppClient {
     #[doc = r" the self update, just routed at the JID level so admins can change a"]
     #[doc = r" group's avatar from JS without an extra capability check."]
     # [wasm_bindgen (js_name = setGroupProfilePicture)]
-    pub async fn set_group_profile_picture(
-        &self,
-        group_jid: &str,
-        img_data: Vec<u8>,
-    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
-        use wacore_binary::JidExt;
-        let target = parse_jid(group_jid)?;
-        if !target.is_group() {
-            return Err(crate::errors::invalid_arg(
-                "groupJid",
-                "must be a group jid",
-            ));
-        }
-        let client = self.client.online().await?;
-        let value = client
-            .execute(wacore::iq::contacts::SetProfilePictureSpec::set_group(
-                &target, img_data,
-            ))
-            .await?;
-        to_ts(crate::result_types::project_profile_picture(value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<ProfilePictureResult>")]
+    pub fn set_group_profile_picture(&self, group_jid: &str, img_data: Vec<u8>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let result: Result<
+                Ts<crate::result_types::ProfilePictureResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                use wacore_binary::JidExt;
+                let target = parse_jid(group_jid)?;
+                if !target.is_group() {
+                    return Err(crate::errors::invalid_arg(
+                        "groupJid",
+                        "must be a group jid",
+                    ));
+                }
+                let client = operation_client.online().await?;
+                let value = client
+                    .execute(wacore::iq::contacts::SetProfilePictureSpec::set_group(
+                        &target, img_data,
+                    ))
+                    .await?;
+                to_ts(crate::result_types::project_profile_picture(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Remove a group's profile picture."]
     # [wasm_bindgen (js_name = removeGroupProfilePicture)]
-    pub async fn remove_group_profile_picture(
-        &self,
-        group_jid: &str,
-    ) -> Result<Ts<crate::result_types::ProfilePictureResult>, crate::errors::BridgeError> {
-        use wacore_binary::JidExt;
-        let target = parse_jid(group_jid)?;
-        if !target.is_group() {
-            return Err(crate::errors::invalid_arg(
-                "groupJid",
-                "must be a group jid",
-            ));
-        }
-        let client = self.client.online().await?;
-        let value = client
-            .execute(wacore::iq::contacts::SetProfilePictureSpec::remove_group(
-                &target,
-            ))
-            .await?;
-        to_ts(crate::result_types::project_profile_picture(value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<ProfilePictureResult>")]
+    pub fn remove_group_profile_picture(&self, group_jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let group_jid = group_jid.to_owned();
+        client_operation(cancelled, async move {
+            let group_jid: &str = &group_jid;
+            let result: Result<
+                Ts<crate::result_types::ProfilePictureResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                use wacore_binary::JidExt;
+                let target = parse_jid(group_jid)?;
+                if !target.is_group() {
+                    return Err(crate::errors::invalid_arg(
+                        "groupJid",
+                        "must be a group jid",
+                    ));
+                }
+                let client = operation_client.online().await?;
+                let value = client
+                    .execute(wacore::iq::contacts::SetProfilePictureSpec::remove_group(
+                        &target,
+                    ))
+                    .await?;
+                to_ts(crate::result_types::project_profile_picture(value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update the user's status text (about)."]
     # [wasm_bindgen (js_name = updateProfileStatus)]
-    pub async fn update_profile_status(
-        &self,
-        status: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .profile()
-            .set_status_text(status)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn update_profile_status(&self, status: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let status = status.to_owned();
+        client_operation(cancelled, async move {
+            let status: &str = &status;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .profile()
+                    .set_status_text(status)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch the full blocklist."]
     # [wasm_bindgen (js_name = fetchBlocklist)]
-    pub async fn fetch_blocklist(
-        &self,
-    ) -> Result<Vec<Ts<crate::result_types::BlocklistEntryResult>>, crate::errors::BridgeError>
-    {
-        let client = self.client.online().await?;
-        let value = client.blocking().get_blocklist().await?;
-        to_ts_vec(
-            value
-                .iter()
-                .map(crate::result_types::project_blocklist_entry)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<BlocklistEntryResult[]>")]
+    pub fn fetch_blocklist(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Vec<Ts<crate::result_types::BlocklistEntryResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.blocking().get_blocklist().await?;
+                to_ts_vec(
+                    value
+                        .iter()
+                        .map(crate::result_types::project_blocklist_entry)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch all privacy settings."]
     # [wasm_bindgen (js_name = fetchPrivacySettings)]
-    pub async fn fetch_privacy_settings(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        {
-            let value = client.fetch_privacy_settings().await?;
-            let map: std::collections::HashMap<&str, &str> = value
-                .settings
-                .iter()
-                .map(|entry| (entry.category.as_str(), entry.value.as_str()))
-                .collect();
-            serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)
-        }
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn fetch_privacy_settings(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                {
+                    let value = client.fetch_privacy_settings().await?;
+                    let map: std::collections::HashMap<&str, &str> = value
+                        .settings
+                        .iter()
+                        .map(|entry| (entry.category.as_str(), entry.value.as_str()))
+                        .collect();
+                    serde_wasm_bindgen::to_value(&map).map_err(crate::errors::BridgeError::from)
+                }
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Update a single privacy setting."]
     # [wasm_bindgen (js_name = updatePrivacySetting)]
-    pub async fn update_privacy_setting(
-        &self,
-        category: &str,
-        value: &str,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .set_privacy_setting(category.into(), value.into())
-            .await?;
-        Ok(())
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn update_privacy_setting(&self, category: &str, value: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let category = category.to_owned();
+        let value = value.to_owned();
+        client_operation(cancelled, async move {
+            let category: &str = &category;
+            let value: &str = &value;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .set_privacy_setting(category.into(), value.into())
+                    .await?;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Set default disappearing messages duration (seconds). 0 to disable."]
     # [wasm_bindgen (js_name = updateDefaultDisappearingMode)]
-    pub async fn update_default_disappearing_mode(
-        &self,
-        duration: u32,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        client
-            .set_default_disappearing_mode(duration)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn update_default_disappearing_mode(&self, duration: u32) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                client
+                    .set_default_disappearing_mode(duration)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r#" Send presence status ("available" or "unavailable")."#]
     # [wasm_bindgen (js_name = sendPresence)]
-    pub async fn send_presence(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn send_presence(
         &self,
         #[wasm_bindgen(unchecked_param_type = "PresenceStatus")] status: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let status = from_js_input::<crate::result_types::PresenceStatus>("status", status)?;
-        let presence_status = match status {
-            crate::result_types::PresenceStatus::Available => {
-                whatsapp_rust::features::PresenceStatus::Available
-            }
-            crate::result_types::PresenceStatus::Unavailable => {
-                whatsapp_rust::features::PresenceStatus::Unavailable
-            }
-        };
-        let client = self.client.unwaited(Unwaited::ConnectionBound);
-        client
-            .presence()
-            .set(presence_status)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let status =
+                    from_js_input::<crate::result_types::PresenceStatus>("status", status)?;
+                let presence_status = match status {
+                    crate::result_types::PresenceStatus::Available => {
+                        whatsapp_rust::features::PresenceStatus::Available
+                    }
+                    crate::result_types::PresenceStatus::Unavailable => {
+                        whatsapp_rust::features::PresenceStatus::Unavailable
+                    }
+                };
+                let client = operation_client.unwaited(Unwaited::ConnectionBound);
+                client
+                    .presence()
+                    .set(presence_status)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Subscribe to a contact's presence updates."]
     # [wasm_bindgen (js_name = presenceSubscribe)]
-    pub async fn presence_subscribe(&self, jid: &str) -> Result<(), crate::errors::BridgeError> {
-        let target = parse_jid(jid)?;
-        let client = self.client.unwaited(Unwaited::Redriven);
-        client
-            .presence()
-            .subscribe(&target)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn presence_subscribe(&self, jid: &str) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let target = parse_jid(jid)?;
+                let client = operation_client.unwaited(Unwaited::Redriven);
+                client
+                    .presence()
+                    .subscribe(&target)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch user status/about text for one or more JIDs."]
     # [wasm_bindgen (js_name = fetchStatus)]
-    pub async fn fetch_status(
-        &self,
-        jids: Vec<String>,
-    ) -> Result<Vec<Ts<crate::result_types::FetchStatusResult>>, crate::errors::BridgeError> {
-        let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
-            .iter()
-            .map(|jid| parse_jid(jid))
-            .collect::<Result<_, _>>()?;
-        let client = self.client.online().await?;
-        let value = client.contacts().get_user_info(&parsed_jids).await?;
-        to_ts_vec(
-            value
-                .values()
-                .map(crate::result_types::project_fetch_status)
-                .collect(),
-        )
+    #[wasm_bindgen(unchecked_return_type = "Promise<FetchStatusResult[]>")]
+    pub fn fetch_status(&self, jids: Vec<String>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Vec<Ts<crate::result_types::FetchStatusResult>>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let parsed_jids: Vec<wacore_binary::jid::Jid> = jids
+                    .iter()
+                    .map(|jid| parse_jid(jid))
+                    .collect::<Result<_, _>>()?;
+                let client = operation_client.online().await?;
+                let value = client.contacts().get_user_info(&parsed_jids).await?;
+                to_ts_vec(
+                    value
+                        .values()
+                        .map(crate::result_types::project_fetch_status)
+                        .collect(),
+                )
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Block or unblock a contact."]
     # [wasm_bindgen (js_name = updateBlockStatus)]
-    pub async fn update_block_status(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn update_block_status(
         &self,
         jid: &str,
         #[wasm_bindgen(unchecked_param_type = "BlockAction")] action: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let action = from_js_input::<crate::result_types::BlockAction>("action", action)?;
-        use crate::result_types::BlockAction;
-        let target = parse_jid(jid)?;
-        let client = self.client.online().await?;
-        match action {
-            BlockAction::Block => client.blocking().block(&target).await?,
-            BlockAction::Unblock => client.blocking().unblock(&target).await?,
-        }
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let jid = jid.to_owned();
+        client_operation(cancelled, async move {
+            let jid: &str = &jid;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let action = from_js_input::<crate::result_types::BlockAction>("action", action)?;
+                use crate::result_types::BlockAction;
+                let target = parse_jid(jid)?;
+                let client = operation_client.online().await?;
+                match action {
+                    BlockAction::Block => client.blocking().block(&target).await?,
+                    BlockAction::Unblock => client.blocking().unblock(&target).await?,
+                }
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
 }

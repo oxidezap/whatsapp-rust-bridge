@@ -17,12 +17,26 @@ impl WasmWhatsAppClient {
     #[doc = r" Returns `null` when the server has no timelock for this account."]
     #[doc = r" Callers map snake_case → idiomatic shape themselves."]
     #[wasm_bindgen(js_name = "fetchReachoutTimelock")]
-    pub async fn fetch_reachout_timelock(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let source = client.mex().fetch_reachout_timelock().await?;
-        let value = &source;
-        serde_wasm_bindgen::to_value(value).map_err(|error| {
-            crate::errors::internal(format!("serialize reachout payload: {error}"))
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn fetch_reachout_timelock(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let client = operation_client.online().await?;
+                let source = client.mex().fetch_reachout_timelock().await?;
+                let value = &source;
+                serde_wasm_bindgen::to_value(value).map_err(|error| {
+                    crate::errors::internal(format!("serialize reachout payload: {error}"))
+                })
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
         })
     }
     #[doc = r" Enable or disable automatic reconnection on disconnect."]
@@ -37,9 +51,23 @@ impl WasmWhatsAppClient {
     #[doc = r" any profile changes (e.g. `setClientProfile`) on the new handshake."]
     #[doc = r" The `run()` loop continues — only the in-flight WebSocket is reset."]
     # [wasm_bindgen (js_name = reconnect)]
-    pub async fn reconnect(&self) {
-        let client = self.client.unwaited(Unwaited::ThisSocket);
-        client.reconnect_immediately().await
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn reconnect(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = Ok((async move {
+                let client = operation_client.unwaited(Unwaited::ThisSocket);
+                client.reconnect_immediately().await
+            })
+            .await);
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Check if the client is connected."]
     # [wasm_bindgen (js_name = isConnected)]
@@ -59,29 +87,54 @@ impl WasmWhatsAppClient {
     #[doc = r" core rejects on expiry rather than reporting it, so this rejects with"]
     #[doc = r" `kind === 'timeout'`."]
     # [wasm_bindgen (js_name = waitForSocket)]
-    pub async fn wait_for_socket(&self, timeout_ms: f64) -> Result<(), crate::errors::BridgeError> {
-        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
-        let client = self.client.unwaited(Unwaited::ThisSocket);
-        client
-            .wait_for_socket_ready(timeout)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn wait_for_socket(&self, timeout_ms: f64) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+                let client = operation_client.unwaited(Unwaited::ThisSocket);
+                client
+                    .wait_for_socket_ready(timeout)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Wait until the client is connected and logged in, or the timeout elapses."]
     #[doc = r""]
     #[doc = r" Stricter than `waitForSocket`: the core resolves this only once the"]
     #[doc = r" connection is fully ready. Rejects with `kind === 'timeout'` on expiry."]
     # [wasm_bindgen (js_name = waitForConnected)]
-    pub async fn wait_for_connected(
-        &self,
-        timeout_ms: f64,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
-        let client = self.client.unwaited(Unwaited::ThisSocket);
-        client
-            .wait_for_session_ready(timeout)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn wait_for_connected(&self, timeout_ms: f64) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let timeout = parse_timeout_ms("timeoutMs", timeout_ms)?;
+                let client = operation_client.unwaited(Unwaited::ThisSocket);
+                client
+                    .wait_for_session_ready(timeout)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Acknowledge a server dirty bit so the server stops re-announcing it."]
     #[doc = r""]
@@ -89,53 +142,92 @@ impl WasmWhatsAppClient {
     #[doc = r" `syncd_app_state`, `newsletter_metadata`); an unrecognized one is"]
     #[doc = r" forwarded as-is, matching the core's fallback."]
     # [wasm_bindgen (js_name = cleanDirtyBits)]
-    pub async fn clean_dirty_bits(
-        &self,
-        dirty_type: &str,
-        timestamp: Option<f64>,
-    ) -> Result<(), crate::errors::BridgeError> {
-        if dirty_type.is_empty() {
-            return Err(crate::errors::invalid_arg("dirtyType", "must not be empty"));
-        }
-        let kind = wacore::iq::dirty::DirtyType::from(dirty_type);
-        let bit = match timestamp {
-            Some(value) => {
-                if !is_representable_millis(value) {
-                    return Err(crate::errors::invalid_arg("timestamp", MILLIS_RANGE));
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn clean_dirty_bits(&self, dirty_type: &str, timestamp: Option<f64>) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let dirty_type = dirty_type.to_owned();
+        client_operation(cancelled, async move {
+            let dirty_type: &str = &dirty_type;
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                if dirty_type.is_empty() {
+                    return Err(crate::errors::invalid_arg("dirtyType", "must not be empty"));
                 }
-                wacore::iq::dirty::DirtyBit::with_timestamp(kind, value as u64)
-            }
-            None => wacore::iq::dirty::DirtyBit::new(kind),
-        };
-        let client = self.client.online().await?;
-        client
-            .clean_dirty_bits(bit)
-            .await
-            .map_err(crate::errors::BridgeError::from)
+                let kind = wacore::iq::dirty::DirtyType::from(dirty_type);
+                let bit = match timestamp {
+                    Some(value) => {
+                        if !is_representable_millis(value) {
+                            return Err(crate::errors::invalid_arg("timestamp", MILLIS_RANGE));
+                        }
+                        wacore::iq::dirty::DirtyBit::with_timestamp(kind, value as u64)
+                    }
+                    None => wacore::iq::dirty::DirtyBit::new(kind),
+                };
+                let client = operation_client.online().await?;
+                client
+                    .clean_dirty_bits(bit)
+                    .await
+                    .map_err(crate::errors::BridgeError::from)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch the bot directory the server offers this account."]
     #[doc = r""]
     #[doc = r" There is no server push for it, so a caller that wants fresh data calls"]
     #[doc = r" this again."]
     # [wasm_bindgen (js_name = getBotList)]
-    pub async fn get_bot_list(
-        &self,
-    ) -> Result<Ts<crate::result_types::BotListResult>, crate::errors::BridgeError> {
-        let client = self.client.online().await?;
-        let value = client.bots().list().await?;
-        to_ts(crate::result_types::project_bot_list(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<BotListResult>")]
+    pub fn get_bot_list(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<Ts<crate::result_types::BotListResult>, crate::errors::BridgeError> =
+                (async move {
+                    let client = operation_client.online().await?;
+                    let value = client.bots().list().await?;
+                    to_ts(crate::result_types::project_bot_list(&value))
+                })
+                .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Fetch how many new chats this account may still start this cycle."]
     # [wasm_bindgen (js_name = fetchNewChatMessageCappingInfo)]
-    pub async fn fetch_new_chat_message_capping_info(
-        &self,
-    ) -> Result<Ts<crate::result_types::NewChatMessageCappingResult>, crate::errors::BridgeError>
-    {
-        let client = self.client.online().await?;
-        let value = client.mex().fetch_new_chat_message_capping_info().await?;
-        to_ts(crate::result_types::project_new_chat_message_capping(
-            &value,
-        ))
+    #[wasm_bindgen(unchecked_return_type = "Promise<NewChatMessageCappingResult>")]
+    pub fn fetch_new_chat_message_capping_info(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::NewChatMessageCappingResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.online().await?;
+                let value = client.mex().fetch_new_chat_message_capping_info().await?;
+                to_ts(crate::result_types::project_new_chat_message_capping(
+                    &value,
+                ))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Persist a push name before the first connection handshake."]
     #[doc = r""]
@@ -143,14 +235,28 @@ impl WasmWhatsAppClient {
     #[doc = r" `BotBuilder::with_push_name`: it only forwards the value into the"]
     #[doc = r" core device state and adds no bridge-specific protocol behavior."]
     # [wasm_bindgen (js_name = setInitialPushName)]
-    pub async fn set_initial_push_name(&self, name: String) {
-        let client = self.client.unwaited(Unwaited::Local);
-        client
-            .persistence_manager()
-            .process_command(whatsapp_rust::wacore::store::DeviceCommand::SetPushName(
-                name,
-            ))
-            .await
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_initial_push_name(&self, name: String) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = Ok((async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                client
+                    .persistence_manager()
+                    .process_command(whatsapp_rust::wacore::store::DeviceCommand::SetPushName(
+                        name,
+                    ))
+                    .await
+            })
+            .await);
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Override `DeviceProps` before initial pairing. Only takes effect on"]
     #[doc = r" the registration node — for already paired sessions this is a no-op"]
@@ -164,14 +270,28 @@ impl WasmWhatsAppClient {
     #[doc = r" is NOT implemented; if the server starts enforcing companion-type"]
     #[doc = r" crypto, those connections may break."]
     # [wasm_bindgen (js_name = setDeviceProps)]
-    pub async fn set_device_props(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_device_props(
         &self,
         #[wasm_bindgen(unchecked_param_type = "DevicePropsInput")] input: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let input = from_js_input::<crate::device_props::DevicePropsInput>("input", input)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client.set_device_props(input.into()).await;
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let input = from_js_input::<crate::device_props::DevicePropsInput>("input", input)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.set_device_props(input.into()).await;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Override the noise-handshake `ClientPayload` profile (UserAgent"]
     #[doc = r" platform/device/os_version/manufacturer + `web_info` presence)."]
@@ -184,14 +304,29 @@ impl WasmWhatsAppClient {
     #[doc = r" Runtime-only — the field is `#[serde(skip)]` in the persisted Device,"]
     #[doc = r" so re-apply on every fresh process before `connect()`."]
     # [wasm_bindgen (js_name = setClientProfile)]
-    pub async fn set_client_profile(
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn set_client_profile(
         &self,
         #[wasm_bindgen(unchecked_param_type = "ClientProfileInput")] input: JsValue,
-    ) -> Result<(), crate::errors::BridgeError> {
-        let input = from_js_input::<crate::client_profile::ClientProfileInput>("input", input)?;
-        let client = self.client.unwaited(Unwaited::Local);
-        client.set_client_profile(input.into()).await;
-        Ok(())
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<(), crate::errors::BridgeError> = (async move {
+                let input =
+                    from_js_input::<crate::client_profile::ClientProfileInput>("input", input)?;
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.set_client_profile(input.into()).await;
+                Ok(())
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    JsValue::UNDEFINED
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Request a pairing code for phone number login (alternative to QR)."]
     #[doc = r""]
@@ -199,64 +334,153 @@ impl WasmWhatsAppClient {
     #[doc = r" throws a `WhatsAppError` with structured fields (`kind`, `serverCode`,"]
     #[doc = r" `serverText`, etc.) — see `errors::BridgeError`."]
     # [wasm_bindgen (js_name = requestPairingCode)]
-    pub async fn request_pairing_code(
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn request_pairing_code(
         &self,
         phone_number: &str,
         custom_code: Option<String>,
-    ) -> Result<String, crate::errors::BridgeError> {
-        let options = whatsapp_rust::pair_code::PairCodeOptions {
-            phone_number: phone_number.to_string(),
-            custom_code,
-            ..Default::default()
-        };
-        let client = self.client.unwaited(Unwaited::ThisSocket);
-        let value = client.pair_with_code(options).await?;
-        Ok(value)
+    ) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        let phone_number = phone_number.to_owned();
+        client_operation(cancelled, async move {
+            let phone_number: &str = &phone_number;
+            let result: Result<String, crate::errors::BridgeError> = (async move {
+                let options = whatsapp_rust::pair_code::PairCodeOptions {
+                    phone_number: phone_number.to_string(),
+                    custom_code,
+                    ..Default::default()
+                };
+                let client = operation_client.unwaited(Unwaited::ThisSocket);
+                let value = client.pair_with_code(options).await?;
+                Ok(value)
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the current push name."]
     # [wasm_bindgen (js_name = getPushName)]
-    pub async fn get_push_name(&self) -> String {
-        let client = self.client.unwaited(Unwaited::Local);
-        client.push_name()
+    #[wasm_bindgen(unchecked_return_type = "Promise<string>")]
+    pub fn get_push_name(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<String, crate::errors::BridgeError> = Ok((async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.push_name()
+            })
+            .await);
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the own JID (phone number JID) if logged in."]
     #[doc = r""]
     #[doc = r#" Returns the non-AD JID (without device suffix), e.g. "559980000014@s.whatsapp.net"."#]
     #[doc = r" This is the JID used for addressing in messages."]
     # [wasm_bindgen (js_name = getJid)]
-    pub async fn get_jid(&self) -> Option<String> {
-        let client = self.client.unwaited(Unwaited::Local);
-        client.pn().map(|j| j.to_non_ad().to_string())
+    #[wasm_bindgen(unchecked_return_type = "Promise<string | undefined>")]
+    pub fn get_jid(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<Option<String>, crate::errors::BridgeError> = Ok((async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.pn().map(|j| j.to_non_ad().to_string())
+            })
+            .await);
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the own LID (linked identity) if available."]
     #[doc = r""]
     #[doc = r#" Returns the non-AD LID (without device suffix), e.g. "100000012345678@lid"."#]
     # [wasm_bindgen (js_name = getLid)]
-    pub async fn get_lid(&self) -> Option<String> {
-        let client = self.client.unwaited(Unwaited::Local);
-        client.lid().map(|j| j.to_non_ad().to_string())
+    #[wasm_bindgen(unchecked_return_type = "Promise<string | undefined>")]
+    pub fn get_lid(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<Option<String>, crate::errors::BridgeError> = Ok((async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                client.lid().map(|j| j.to_non_ad().to_string())
+            })
+            .await);
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Get the ADV signed device identity (account), if available."]
     #[doc = r" Exposes the persisted account identity to credential consumers."]
     # [wasm_bindgen (js_name = getAccount)]
-    pub async fn get_account(&self) -> Result<JsValue, crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Local);
-        let source = client.persistence_manager().get_device_snapshot();
-        match &source.account {
-            Some(value) => crate::camel_serializer::to_js_value_camel(value).map_err(|error| {
-                crate::errors::internal(format!("account serialization: {error:?}"))
-            }),
-            None => Ok(JsValue::UNDEFINED),
-        }
+    #[wasm_bindgen(unchecked_return_type = "Promise<any>")]
+    pub fn get_account(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<JsValue, crate::errors::BridgeError> = (async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                let source = client.persistence_manager().get_device_snapshot();
+                match &source.account {
+                    Some(value) => {
+                        crate::camel_serializer::to_js_value_camel(value).map_err(|error| {
+                            crate::errors::internal(format!("account serialization: {error:?}"))
+                        })
+                    }
+                    None => Ok(JsValue::UNDEFINED),
+                }
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Returns a snapshot of internal memory diagnostics (cache sizes, session counts, etc.)."]
     # [wasm_bindgen (js_name = getMemoryDiagnostics)]
-    pub async fn get_memory_diagnostics(
-        &self,
-    ) -> Result<Ts<crate::result_types::MemoryDiagnosticsResult>, crate::errors::BridgeError> {
-        let client = self.client.unwaited(Unwaited::Local);
-        let value = client.resource_report().await;
-        to_ts(crate::result_types::project_memory_diagnostics(&value))
+    #[wasm_bindgen(unchecked_return_type = "Promise<MemoryDiagnosticsResult>")]
+    pub fn get_memory_diagnostics(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<
+                Ts<crate::result_types::MemoryDiagnosticsResult>,
+                crate::errors::BridgeError,
+            > = (async move {
+                let client = operation_client.unwaited(Unwaited::Local);
+                let value = client.resource_report().await;
+                to_ts(crate::result_types::project_memory_diagnostics(&value))
+            })
+            .await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" What work handed to the client right now can expect."]
     #[doc = r""]
@@ -295,10 +519,20 @@ impl WasmWhatsAppClient {
     #[doc = r" Not from an event handler: the core dispatches on its read loop, so a"]
     #[doc = r" handler that waits here waits on the connection it is blocking."]
     # [wasm_bindgen (js_name = waitUntilReachable)]
-    pub async fn wait_until_reachable(
-        &self,
-    ) -> Result<Ts<crate::result_types::Reachability>, crate::errors::BridgeError> {
-        to_ts(self.client.wait_until_reachable().await)
+    #[wasm_bindgen(unchecked_return_type = "Promise<Reachability>")]
+    pub fn wait_until_reachable(&self) -> js_sys::Promise {
+        let operation_client = self.client.clone();
+        let cancelled = self.client.operation_cancellation();
+        client_operation(cancelled, async move {
+            let result: Result<Ts<crate::result_types::Reachability>, crate::errors::BridgeError> =
+                (async move { to_ts(operation_client.wait_until_reachable().await) }).await;
+            result
+                .map(|value| {
+                    let _ = &value;
+                    value.into()
+                })
+                .map_err(Into::into)
+        })
     }
     #[doc = r" Let go of every call waiting out a reconnect right now, and return how"]
     #[doc = r" many were let go."]

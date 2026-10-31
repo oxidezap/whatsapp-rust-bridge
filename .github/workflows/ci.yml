@@ -326,6 +326,14 @@ jobs:
       # stops being true. It packs with `npm pack`, which runs `prepack` — the
       # same tarball guard a real publish goes through — so the preview is
       # `dist/` as this job built it, with nothing built twice.
+      - name: Preserve the production build for isolated consumer checks
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Publish a preview package
         continue-on-error: true
         run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
@@ -337,36 +345,16 @@ jobs:
   # Packing, installing twice and typechecking twice is far past the per-test
   # clock budget, so it is a job of its own.
   #
-  # This builds the development package, not the release one: wasm-opt never
-  # touches a `.d.ts`, so the declarations are identical either way, and the
-  # release cost — size, shape, drift — stays in `build-and-test`, which owns
-  # those gates. A packaging check that rebuilt the release wasm would pay
-  # most of that job's ~9 minutes a second time for the same bytes.
+  # Reuse the production build. Lifecycle checks must exercise wasm-opt's
+  # shipped bytes as well as the declarations, without paying for a rebuild.
   published-tarball:
     name: Published tarball contract
-    needs: changes
+    needs: [changes, build-and-test]
     if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.99.1
-          targets: wasm32-unknown-unknown
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
-        with:
-          # Same pin as build-and-test: `gen` must see the same protoc, or a
-          # comment-only version line drifts the generated codec here and not
-          # there.
-          tool: wasm-pack@0.15.1,protoc@3.36.2
 
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -381,8 +369,11 @@ jobs:
       - name: Install JavaScript dependencies
         run: bun install
 
-      - name: Build the development package
-        run: bun run build:dev
+      - name: Download the production build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # same pin as release
+        with:
+          name: production-dist
+          path: dist
 
       # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
       # publish goes through), installs it in a directory outside the

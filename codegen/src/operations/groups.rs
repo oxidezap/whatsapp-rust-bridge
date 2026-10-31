@@ -13,7 +13,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -39,7 +39,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     subject: &str,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -68,7 +68,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     description: Option<String>,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -104,7 +104,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             signature: parse_quote!(
                 async fn group_leave(&self, jid: &str) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -129,7 +129,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     label: &str,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(parsed),
@@ -147,7 +147,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             signature: parse_quote!(
                 async fn group_invite_code(&self, jid: &str) -> Result<String, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -169,7 +169,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     expiration: u32,
                 ) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -190,7 +190,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -211,7 +211,7 @@ pub(super) fn catalog() -> Vec<Operation> {
             signature: parse_quote!(
                 async fn deactivate_community(&self, jid: &str) -> Result<(), crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(target),
@@ -233,7 +233,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     subgroup_jids: Vec<String>,
                 ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -264,7 +264,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     remove_orphan_members: bool,
                 ) -> Result<Ts<crate::result_types::CommunityLinkResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -297,7 +297,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     parent_jid: &str,
                 ) -> Result<Vec<Ts<crate::result_types::CommunitySubgroupResult>>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(parent),
@@ -321,7 +321,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     code: &str,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![],
             admission: Admission::Online,
@@ -345,7 +345,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     admin_jid: &str,
                 ) -> Result<String, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -381,7 +381,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     invited_jid: &str,
                 ) -> Result<bool, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![
                 Input::Jid {
@@ -412,7 +412,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     code: &str,
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![],
             admission: Admission::Online,
@@ -434,7 +434,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     jid: &str,
                 ) -> Result<Vec<Ts<crate::result_types::MembershipRequestResult>>, crate::errors::BridgeError>
             ),
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             inputs: vec![Input::Jid {
                 binding: parse_quote!(group_jid),
@@ -466,7 +466,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
             inputs: vec![Input::Preparation(Preparation::GroupCreate)],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.groups().create_group(options)),
@@ -498,7 +498,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 },
                 Input::Preparation(Preparation::Participants),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(participants_update(
@@ -513,7 +513,7 @@ pub(super) fn catalog() -> Vec<Operation> {
         Operation {
             attributes: attributes(quote!(
                 /// Fetch all groups the user is participating in.
-                #[wasm_bindgen(js_name = groupFetchAllParticipating , skip_typescript)]
+                #[wasm_bindgen(js_name = groupFetchAllParticipating)]
             )),
             signature: parse_quote!(
                 async fn group_fetch_all_participating(
@@ -521,7 +521,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<JsValue, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.groups().list_participating()),
@@ -543,7 +543,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<Ts<crate::result_types::GroupMetadataResult>, crate::errors::BridgeError>
             ),
             inputs: vec![Input::Preparation(Preparation::CommunityCreate)],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.community().create(options)),
@@ -576,7 +576,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(parent_jid),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(
@@ -593,7 +593,7 @@ pub(super) fn catalog() -> Vec<Operation> {
         Operation {
             attributes: attributes(quote!(
                 /// Fetch all parent groups the account currently participates in.
-                #[wasm_bindgen(js_name = communityFetchAllParticipating , skip_typescript)]
+                #[wasm_bindgen(js_name = communityFetchAllParticipating)]
             )),
             signature: parse_quote!(
                 async fn community_fetch_all_participating(
@@ -601,7 +601,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 ) -> Result<JsValue, crate::errors::BridgeError>
             ),
             inputs: vec![],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
             call: parse_quote!(client.community().list_participating()),
@@ -630,7 +630,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                 },
                 Input::Preparation(Preparation::Participants),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(participants_update(
@@ -676,7 +676,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     ],
                 }),
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Await,
             admission: Admission::Online,
             call: parse_quote!(client.groups().set_member_add_mode(&group_jid, add_mode)),
@@ -710,7 +710,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(jid),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
@@ -767,7 +767,7 @@ pub(super) fn catalog() -> Vec<Operation> {
                     value: parse_quote!(participants),
                 },
             ],
-            boundary: Boundary::AsyncBorrowed,
+            boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::Immediate,
             admission: Admission::Online,
             call: parse_quote!({
