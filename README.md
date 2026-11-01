@@ -137,3 +137,58 @@ and calls `initVoipSync(wasm, relayTransport)` from `./voip/host` instead of
 `loadVoip`. Install its returned `voipBackend` at client creation the same
 way. Neither engine loader invents a relay connection: the host supplies one
 implementing `VoipRelayTransport` (see `ts/voip-relay-transport.ts`).
+
+### Calling over an existing host
+
+`createCallControl` attaches the same direct-call control and media queues to a
+host that already owns its WhatsApp connection and Signal repository. It does
+not construct a `WasmWhatsAppClient`, open another connection, or copy sessions.
+The host implements the exported `DirectCallHostCallbacks` contract.
+
+```ts
+import { createCallControl } from "@oxidezap/whatsapp-rust-bridge";
+
+const control = await createCallControl(host, {
+  onEvent(event) { handleCallSignaling(event); },
+  onCallEvent(event) { handleCallMedia(event); },
+  onCallPcm(frame) { consumePcm(frame); },
+}, { voipBackend });
+try {
+  const call = await control.dialCallPcm(peer);
+  control.callPushPcm16(call.callId, new Int16Array(960));
+  await control.endCall(call.callId);
+} finally {
+  control.disconnect();
+  control.free();
+}
+```
+
+Feed raw incoming `<call>` nodes to `control.receiveNode(node)`. The host keeps
+ownership of generic stanza ACKs; shared Rust control emits distinct call
+receipts. `watchAck` must register synchronously before the offer is sent and
+return a cancellable registration. Delegate encryption, decryption, token
+storage and identity learning to the existing host's authoritative operations.
+An identity-learning callback must reject when that host cannot safely apply
+its mapping, privacy and session-migration policy.
+`readToken` returns the stored token and timestamp; shared Rust applies its
+default receiver-side expiry policy without changing the stored record. Token
+issuance is best effort and does not gate media readiness; a host must supply
+its own authoritative issuance/deduplication policy.
+
+The standalone API currently supports 1:1 PCM audio. Incoming offers retained by
+`receiveNode` can be answered with `acceptCallPcm(callId)`. It returns the same
+`WasmCallHandle` as the client API; group and video operations require native
+call control. `getCallMediaStats` retains the last eight ended calls.
+`disconnect` cancels pending bridge operations and media without closing the
+host's connection. It cannot undo host operations that already committed.
+Errors from key preparation, decryption, token reads and node sends propagate
+with operation-specific messages; the standalone boundary does not preserve
+every host-specific error kind. Alias lookup failures refuse identity matching.
+
+The constructor bounds the media-backend handshake to 20 seconds and installs
+its required clocks; it does not require
+`initWasmEngine` or a messaging client. Host-supplied WASM initialization and the
+existing `./host` entrypoint remain available. The installed-package fixtures
+exercise standalone control and real media WASM over a synthetic relay with
+fixture-only encryption. They do not validate authenticated WhatsApp calls,
+Signal interoperability, hardware audio or production network traversal.

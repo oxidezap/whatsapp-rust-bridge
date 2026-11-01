@@ -1,5 +1,6 @@
 // Installed production engine regression: local opaque relay, no network or client WASM.
 import assert from "node:assert/strict";
+import { createLocalRelay } from "./voip-local-relay.mjs";
 import { readFileSync } from "node:fs";
 import { initVoipSync } from "@oxidezap/whatsapp-rust-bridge/voip/host";
 const u32 = (n) => Uint8Array.of(n, n >>> 8, n >>> 16, n >>> 24);
@@ -15,28 +16,13 @@ const format = Uint8Array.of(1, 0, ...u32(16_000), ...u32(16_000), 1,
   ...u32(960), ...u32(16_000), ...u32(960), 120);
 
 const wasm = readFileSync(new URL(import.meta.resolve("@oxidezap/whatsapp-rust-bridge/voip/wasm")));
-const endpoints = [], sentAt = [[], []], receivedAt = [[], []], videos = [0, 0], nonSilent = [0, 0];
+const sentAt = [[], []], receivedAt = [[], []], videos = [0, 0], nonSilent = [0, 0];
 const idr = Uint8Array.of(0,0,0,1,0x65,0x88,0x84,0x21,0xa0);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const engines = [0, 1].map(index => initVoipSync(wasm, {
-  async connect(_params, events) {
-    endpoints[index] = events;
-    return {
-      send(packet) {
-        const copy = packet.slice();
-        if (copy[0] === 0 && copy[1] === 3) {
-          const response = copy.slice(0, 20);
-          response[0] = 1; response[1] = 3; response[2] = 0; response[3] = 0;
-          queueMicrotask(() => events.onPacket(response));
-        } else if ((copy[0] & 0xc0) === 0x80) {
-          if ((copy[1] & 0x7f) === 120) sentAt[index].push(performance.now());
-          queueMicrotask(() => endpoints[1-index]?.onPacket(copy));
-        }
-      },
-      reconnect() {}, close() {},
-    };
-  },
-}).voipBackend);
+const relay = createLocalRelay((index, packet) => {
+  if ((packet[1] & 0x7f) === 120) sentAt[index].push(performance.now());
+});
+const engines = [0, 1].map(index => initVoipSync(wasm, relay.transport(index)).voipBackend);
 const opened = engines.map((engine, index) => new Promise(resolve => engine.setPushHandler(packet => {
   if (packet[6] === 4) resolve();
   if (packet[6] === 0x11) {

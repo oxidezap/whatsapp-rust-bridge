@@ -12,6 +12,7 @@
 //! elsewhere-resolution for the id drops it.
 
 use super::*;
+mod external;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
@@ -589,39 +590,7 @@ impl WasmWhatsAppClient {
         call_id: &str,
         samples: &[i16],
     ) -> Result<bool, crate::errors::BridgeError> {
-        if samples.len() != AudioFormat::MLOW_16KHZ_60MS.samples_per_frame as usize {
-            return Err(crate::errors::invalid_arg(
-                "samples",
-                format!(
-                    "PCM frame must contain exactly {} samples",
-                    AudioFormat::MLOW_16KHZ_60MS.samples_per_frame
-                ),
-            ));
-        }
-        let records = self.call_records.borrow();
-        let Some(record) = records.get(call_id) else {
-            return Err(unknown_call());
-        };
-        let CallMic::Pcm { tx, drain } = &record.mic else {
-            return Err(crate::errors::invalid_arg(
-                "callId",
-                "call uses the encoded audio API",
-            ));
-        };
-        if record.mic_muted {
-            return Ok(false);
-        }
-        match tx.try_send(samples.to_vec()) {
-            Ok(()) => Ok(true),
-            Err(async_channel::TrySendError::Full(samples)) => {
-                let _ = drain.try_recv();
-                match tx.try_send(samples) {
-                    Ok(()) => Ok(true),
-                    Err(_) => Ok(false),
-                }
-            }
-            Err(async_channel::TrySendError::Closed(_)) => Ok(false),
-        }
+        push_pcm16(&self.call_records, call_id, samples)
     }
 
     /// End a live call through its handle, and report how much of the peer
@@ -660,26 +629,11 @@ impl WasmWhatsAppClient {
         &self,
         call_id: &str,
     ) -> Result<Ts<crate::result_types::CallMediaStatsResult>, crate::errors::BridgeError> {
-        if let Some(stats) = self
-            .call_records
-            .borrow()
-            .get(call_id)
-            .map(|record| call_media_stats_to_result(&record.handle.media_stats()))
-        {
-            return to_ts(stats);
-        }
-        if let Some(stats) = self
-            .past_call_stats
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .iter()
-            .rev()
-            .find(|(id, _)| id == call_id)
-            .map(|(_, stats)| stats.clone())
-        {
-            return to_ts(stats);
-        }
-        Err(unknown_call())
+        to_ts(media_stats(
+            &self.call_records,
+            &self.past_call_stats,
+            call_id,
+        )?)
     }
 
     /// Every call the bridge currently holds a handle for.
@@ -974,9 +928,74 @@ impl WasmWhatsAppClient {
     }
 }
 
+fn push_pcm16(
+    records: &RefCell<HashMap<String, CallRecord>>,
+    call_id: &str,
+    samples: &[i16],
+) -> Result<bool, crate::errors::BridgeError> {
+    if samples.len() != AudioFormat::MLOW_16KHZ_60MS.samples_per_frame as usize {
+        return Err(crate::errors::invalid_arg(
+            "samples",
+            format!(
+                "PCM frame must contain exactly {} samples",
+                AudioFormat::MLOW_16KHZ_60MS.samples_per_frame
+            ),
+        ));
+    }
+    let records = records.borrow();
+    let Some(record) = records.get(call_id) else {
+        return Err(unknown_call());
+    };
+    let CallMic::Pcm { tx, drain } = &record.mic else {
+        return Err(crate::errors::invalid_arg(
+            "callId",
+            "call uses the encoded audio API",
+        ));
+    };
+    if record.mic_muted {
+        return Ok(false);
+    }
+    match tx.try_send(samples.to_vec()) {
+        Ok(()) => Ok(true),
+        Err(async_channel::TrySendError::Full(samples)) => {
+            let _ = drain.try_recv();
+            match tx.try_send(samples) {
+                Ok(()) => Ok(true),
+                Err(_) => Ok(false),
+            }
+        }
+        Err(async_channel::TrySendError::Closed(_)) => Ok(false),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Call registry
 // ---------------------------------------------------------------------------
+
+fn media_stats(
+    records: &RefCell<HashMap<String, CallRecord>>,
+    past: &Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>,
+    call_id: &str,
+) -> Result<crate::result_types::CallMediaStatsResult, crate::errors::BridgeError> {
+    if let Some(stats) = records
+        .borrow()
+        .get(call_id)
+        .map(|record| call_media_stats_to_result(&record.handle.media_stats()))
+    {
+        return Ok(stats);
+    }
+    if let Some(stats) = past
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .rev()
+        .find(|(id, _)| id == call_id)
+        .map(|(_, stats)| stats.clone())
+    {
+        return Ok(stats);
+    }
+    Err(unknown_call())
+}
 
 impl CallMedia {
     /// The handle and registration generation together, for post-await
@@ -1709,7 +1728,6 @@ fn admits_call(record_count: usize, known_id: bool) -> bool {
 /// path tears down locally whatever the wire did.
 pub(super) async fn terminate_call(
     media: &CallMedia,
-    core: &CoreClient,
     call_id: String,
     peer: Jid,
     call_creator: Jid,
@@ -1718,11 +1736,19 @@ pub(super) async fn terminate_call(
         return media.end_call(call_id).await;
     }
     let offer_generation = current_offer_generation(&media.call_offers, &call_id);
-    core.unwaited(Unwaited::ConnectionBound)
-        .voip()
-        .terminate(&call_id, &peer, &call_creator)
-        .await
-        .map_err(crate::errors::BridgeError::from)?;
+    match &media.control {
+        CallControl::Native(core) => {
+            core.unwaited(Unwaited::ConnectionBound)
+                .voip()
+                .terminate(&call_id, &peer, &call_creator)
+                .await
+        }
+        CallControl::Direct(host) => {
+            whatsapp_rust::voip::direct::terminate(host.as_ref(), &call_id, &peer, &call_creator)
+                .await
+        }
+    }
+    .map_err(crate::errors::BridgeError::from)?;
     // Success ends the ringing, failure keeps the offer for a retry. Only
     // evict the generation that was terminated: a replacement offer that
     // arrived mid-await stays intact.
@@ -1730,6 +1756,12 @@ pub(super) async fn terminate_call(
         evict_offer_generation(&media.call_offers, &call_id, generation);
     }
     Ok(crate::result_types::CallEndResult::PeerNotified)
+}
+
+#[derive(Clone)]
+enum CallControl {
+    Native(CoreClient),
+    Direct(Arc<external::JsDirectCallHost>),
 }
 
 /// Everything a call method touches, owned. Built synchronously at call
@@ -1740,7 +1772,7 @@ pub(super) async fn terminate_call(
 /// runs at free, and the shutdown it signals is what settles the orphan.
 #[derive(Clone)]
 pub(super) struct CallMedia {
-    client: CoreClient,
+    control: CallControl,
     call_records: std::rc::Rc<RefCell<HashMap<String, CallRecord>>>,
     call_offers: Arc<Mutex<OfferCache>>,
     past_call_stats: Arc<Mutex<VecDeque<(String, crate::result_types::CallMediaStatsResult)>>>,
@@ -1756,9 +1788,19 @@ pub(super) struct CallMedia {
 }
 
 impl CallMedia {
+    fn native_client(&self) -> Result<&CoreClient, crate::errors::BridgeError> {
+        match &self.control {
+            CallControl::Native(client) => Ok(client),
+            CallControl::Direct(_) => Err(crate::errors::invalid_arg(
+                "operation",
+                "external calls support one-to-one PCM audio only",
+            )),
+        }
+    }
+
     pub(super) fn of(client: &WasmWhatsAppClient) -> Self {
         Self {
-            client: client.client.clone(),
+            control: CallControl::Native(client.client.clone()),
             call_records: client.call_records.clone(),
             call_offers: client.call_offers.clone(),
             past_call_stats: client.past_call_stats.clone(),
@@ -1809,63 +1851,105 @@ impl CallMedia {
                 return Err(error);
             }
         };
-        let core = match self.client.online().await {
-            Ok(core) => core,
-            Err(error) => {
-                restore_offer(&self.call_offers, &call_id, offer_gen, offer);
-                return Err(error);
-            }
-        };
-        if !matches!(
-            self.call_offers.lock().unwrap_or_else(|e| e.into_inner()).entries.get(&call_id),
-            Some(OfferEntry::Answering(generation)) if *generation == offer_gen
-        ) {
-            return Err(unknown_call());
-        }
-        let voip = core.voip();
-        let (mut builder, registration) = match mode {
-            CallAudioMode::Encoded(format) => {
+        let (handle, registration, video_channels) = match &self.control {
+            CallControl::Direct(host) => {
+                if with_video || !matches!(mode, CallAudioMode::Pcm) {
+                    restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                    return Err(crate::errors::invalid_arg(
+                        "audioFormat",
+                        "external calls support PCM audio only",
+                    ));
+                }
                 let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
                 let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
                 let mic_drain = mic_rx.clone();
-                (
-                    voip.accept(&offer)
-                        .encoded_audio(format, mic_rx, speaker_tx),
-                    CallAudioRegistration::Encoded {
-                        mic_tx,
-                        mic_drain,
-                        speaker_rx,
-                    },
+                let handle = match whatsapp_rust::voip::direct::accept_pcm(
+                    host.clone(),
+                    &offer,
+                    Arc::new(mic_rx),
+                    Arc::new(speaker_tx),
                 )
-            }
-            CallAudioMode::Pcm => {
-                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
-                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
-                let mic_drain = mic_rx.clone();
+                .await
+                {
+                    Ok(handle) => handle,
+                    Err(error) => {
+                        restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                        return Err(call_error_to_bridge(error, operation));
+                    }
+                };
                 (
-                    voip.accept(&offer).audio(mic_rx, speaker_tx),
+                    handle,
                     CallAudioRegistration::Pcm {
                         mic_tx,
                         mic_drain,
                         speaker_rx,
                     },
+                    None,
                 )
             }
-        };
-        let video_channels = if with_video {
-            let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
-            let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
-            builder = builder.video(video_rx, sink_tx);
-            Some((video_tx, sink_rx))
-        } else {
-            None
-        };
+            CallControl::Native(_) => {
+                let core = match self.native_client()?.online().await {
+                    Ok(core) => core,
+                    Err(error) => {
+                        restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                        return Err(error);
+                    }
+                };
+                if !matches!(
+                    self.call_offers.lock().unwrap_or_else(|e| e.into_inner()).entries.get(&call_id),
+                    Some(OfferEntry::Answering(generation)) if *generation == offer_gen
+                ) {
+                    return Err(unknown_call());
+                }
+                let voip = core.voip();
+                let (mut builder, registration) = match mode {
+                    CallAudioMode::Encoded(format) => {
+                        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                        let (speaker_tx, speaker_rx) =
+                            async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                        let mic_drain = mic_rx.clone();
+                        (
+                            voip.accept(&offer)
+                                .encoded_audio(format, mic_rx, speaker_tx),
+                            CallAudioRegistration::Encoded {
+                                mic_tx,
+                                mic_drain,
+                                speaker_rx,
+                            },
+                        )
+                    }
+                    CallAudioMode::Pcm => {
+                        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                        let (speaker_tx, speaker_rx) =
+                            async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                        let mic_drain = mic_rx.clone();
+                        (
+                            voip.accept(&offer).audio(mic_rx, speaker_tx),
+                            CallAudioRegistration::Pcm {
+                                mic_tx,
+                                mic_drain,
+                                speaker_rx,
+                            },
+                        )
+                    }
+                };
+                let video_channels = if with_video {
+                    let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+                    let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+                    builder = builder.video(video_rx, sink_tx);
+                    Some((video_tx, sink_rx))
+                } else {
+                    None
+                };
 
-        let handle = match builder.start().await {
-            Ok(handle) => handle,
-            Err(error) => {
-                restore_offer(&self.call_offers, &call_id, offer_gen, offer);
-                return Err(call_error_to_bridge(error, operation));
+                let handle = match builder.start().await {
+                    Ok(handle) => handle,
+                    Err(error) => {
+                        restore_offer(&self.call_offers, &call_id, offer_gen, offer);
+                        return Err(call_error_to_bridge(error, operation));
+                    }
+                };
+                (handle, registration, video_channels)
             }
         };
         let current = self
@@ -2100,7 +2184,7 @@ impl CallMedia {
         call_id: String,
     ) -> Result<(), crate::errors::BridgeError> {
         let offer = self.ringing_offer(&call_id)?;
-        self.client
+        self.native_client()?
             .unwaited(Unwaited::ConnectionBound)
             .voip()
             .preaccept_group_invite(&offer)
@@ -2110,7 +2194,7 @@ impl CallMedia {
 
     async fn accept_group_invite(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
         let offer = self.ringing_offer(&call_id)?;
-        self.client
+        self.native_client()?
             .unwaited(Unwaited::ConnectionBound)
             .voip()
             .accept_group_invite(&offer)
@@ -2134,50 +2218,85 @@ impl CallMedia {
         // The guard releases on every failure path, converting only when
         // the record below inserts.
         let slot = self.reserve_call_slot(None, operation)?;
-        let online = self.client.online().await?;
-        let voip = online.voip();
-        let (mut builder, registration) = match mode {
-            CallAudioMode::Encoded(format) => {
+        let (handle, registration, video_channels) = match &self.control {
+            CallControl::Direct(host) => {
+                if with_video || !matches!(mode, CallAudioMode::Pcm) {
+                    return Err(crate::errors::invalid_arg(
+                        "audioFormat",
+                        "external calls support PCM audio only",
+                    ));
+                }
                 let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
                 let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
                 let mic_drain = mic_rx.clone();
-                (
-                    voip.call(&peer_jid)
-                        .encoded_audio(format, mic_rx, speaker_tx),
-                    CallAudioRegistration::Encoded {
-                        mic_tx,
-                        mic_drain,
-                        speaker_rx,
-                    },
+                let handle = whatsapp_rust::voip::direct::call_pcm(
+                    host.clone(),
+                    &peer_jid,
+                    Arc::new(mic_rx),
+                    Arc::new(speaker_tx),
                 )
-            }
-            CallAudioMode::Pcm => {
-                let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
-                let (speaker_tx, speaker_rx) = async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
-                let mic_drain = mic_rx.clone();
+                .await
+                .map_err(|error| call_error_to_bridge(error, operation))?;
                 (
-                    voip.call(&peer_jid).audio(mic_rx, speaker_tx),
+                    handle,
                     CallAudioRegistration::Pcm {
                         mic_tx,
                         mic_drain,
                         speaker_rx,
                     },
+                    None,
                 )
             }
-        };
-        let video_channels = if with_video {
-            let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
-            let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
-            builder = builder.video(video_rx, sink_tx);
-            Some((video_tx, sink_rx))
-        } else {
-            None
-        };
+            CallControl::Native(_) => {
+                let online = self.native_client()?.online().await?;
+                let voip = online.voip();
+                let (mut builder, registration) = match mode {
+                    CallAudioMode::Encoded(format) => {
+                        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                        let (speaker_tx, speaker_rx) =
+                            async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                        let mic_drain = mic_rx.clone();
+                        (
+                            voip.call(&peer_jid)
+                                .encoded_audio(format, mic_rx, speaker_tx),
+                            CallAudioRegistration::Encoded {
+                                mic_tx,
+                                mic_drain,
+                                speaker_rx,
+                            },
+                        )
+                    }
+                    CallAudioMode::Pcm => {
+                        let (mic_tx, mic_rx) = async_channel::bounded(MIC_CHANNEL_CAPACITY);
+                        let (speaker_tx, speaker_rx) =
+                            async_channel::bounded(SPEAKER_CHANNEL_CAPACITY);
+                        let mic_drain = mic_rx.clone();
+                        (
+                            voip.call(&peer_jid).audio(mic_rx, speaker_tx),
+                            CallAudioRegistration::Pcm {
+                                mic_tx,
+                                mic_drain,
+                                speaker_rx,
+                            },
+                        )
+                    }
+                };
+                let video_channels = if with_video {
+                    let (video_tx, video_rx) = async_channel::bounded(VIDEO_MIC_CAPACITY);
+                    let (sink_tx, sink_rx) = async_channel::bounded(VIDEO_SPK_CAPACITY);
+                    builder = builder.video(video_rx, sink_tx);
+                    Some((video_tx, sink_rx))
+                } else {
+                    None
+                };
 
-        let handle = builder
-            .start()
-            .await
-            .map_err(|error| call_error_to_bridge(error, operation))?;
+                let handle = builder
+                    .start()
+                    .await
+                    .map_err(|error| call_error_to_bridge(error, operation))?;
+                (handle, registration, video_channels)
+            }
+        };
         // Serialized with concurrent starts under the admission lock:
         // two same-id starters would otherwise interleave termination and
         // insertion so the second insert silently drops the first
@@ -2225,7 +2344,7 @@ impl CallMedia {
             crate::result_types::CallLinkMediaKind::Video => CallLinkMedia::Video,
         };
         let link = self
-            .client
+            .native_client()?
             .online()
             .await?
             .voip()
@@ -2257,7 +2376,7 @@ impl CallMedia {
             crate::result_types::CallLinkMediaKind::Video => CallLinkMedia::Video,
         };
         let preview = self
-            .client
+            .native_client()?
             .online()
             .await?
             .voip()
@@ -2281,7 +2400,7 @@ impl CallMedia {
         raised: bool,
     ) -> Result<(), crate::errors::BridgeError> {
         let call_creator = parse_named_jid("callCreator", &call_creator)?;
-        self.client
+        self.native_client()?
             .unwaited(Unwaited::ConnectionBound)
             .voip()
             .set_hand_raised(&call_id, &call_creator, raised)
@@ -2303,7 +2422,7 @@ impl CallMedia {
             crate::result_types::GroupScreenShareState::Stopped => ScreenShareState::Stopped,
         };
         let screen_share_id = parse_optional_u32("screenShareId", screen_share_id)?;
-        self.client
+        self.native_client()?
             .unwaited(Unwaited::ConnectionBound)
             .voip()
             .set_screen_share(&call_id, &call_creator, state, screen_share_id)
@@ -2334,8 +2453,9 @@ impl CallMedia {
         call_creator: String,
         user: String,
     ) -> Result<(), crate::errors::BridgeError> {
+        let client = self.native_client()?;
         self.resolve_waiting_user(&call_creator, &user, |creator, user| async move {
-            self.client
+            client
                 .unwaited(Unwaited::ConnectionBound)
                 .voip()
                 .admit_waiting_user(&call_id, &creator, &user)
@@ -2350,8 +2470,9 @@ impl CallMedia {
         call_creator: String,
         user: String,
     ) -> Result<(), crate::errors::BridgeError> {
+        let client = self.native_client()?;
         self.resolve_waiting_user(&call_creator, &user, |creator, user| async move {
-            self.client
+            client
                 .unwaited(Unwaited::ConnectionBound)
                 .voip()
                 .deny_waiting_user(&call_id, &creator, &user)

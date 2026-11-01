@@ -78,6 +78,7 @@ impl WasmWhatsAppClient {
         peer: String,
         call_creator: String,
     ) -> js_sys::Promise {
+        #[cfg(not(feature = "client-calls-media"))]
         let core = self.client.clone();
         #[cfg(feature = "client-calls-media")]
         let media = super::calls_audio::CallMedia::of(self);
@@ -85,7 +86,7 @@ impl WasmWhatsAppClient {
         return super::calls_audio::promise_serialized(async move {
             let peer = parse_named_jid("peer", &peer)?;
             let call_creator = parse_named_jid("callCreator", &call_creator)?;
-            super::calls_audio::terminate_call(&media, &core, call_id, peer, call_creator).await
+            super::calls_audio::terminate_call(&media, call_id, peer, call_creator).await
         });
         #[cfg(not(feature = "client-calls-media"))]
         super::promise_serialized(async move {

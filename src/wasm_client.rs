@@ -3306,14 +3306,17 @@ fn settle_client_operation(
     cancelled: async_channel::Receiver<()>,
     operation: std::pin::Pin<Box<dyn std::future::Future<Output = Result<JsValue, JsValue>>>>,
 ) -> js_sys::Promise {
-    wasm_bindgen_futures::future_to_promise(async move {
-        match futures::future::select(Box::pin(cancelled.recv()), operation).await {
-            futures::future::Either::Left(_) => {
-                Err(crate::errors::BridgeError::NotConnected.into())
-            }
-            futures::future::Either::Right((result, _)) => result,
-        }
-    })
+    wasm_bindgen_futures::future_to_promise(settle_client_future(cancelled, operation))
+}
+
+async fn settle_client_future(
+    cancelled: async_channel::Receiver<()>,
+    operation: std::pin::Pin<Box<dyn std::future::Future<Output = Result<JsValue, JsValue>>>>,
+) -> Result<JsValue, JsValue> {
+    match futures::future::select(Box::pin(cancelled.recv()), operation).await {
+        futures::future::Either::Left(_) => Err(crate::errors::BridgeError::NotConnected.into()),
+        futures::future::Either::Right((result, _)) => result,
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -91,6 +91,9 @@ const consumer = (name: string): string => `import {
   proto,
   type WasmWhatsAppClient,
   type WasmCallHandle,
+  createCallControl,
+  type DirectCallHostCallbacks,
+  type WasmCallControl,
   UnpairedSurrogateError,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
@@ -106,6 +109,10 @@ export function voipContracts(transport: VoipRelayTransport, client: WasmWhatsAp
   const dialed: Promise<WasmCallHandle> = client.dialCallPcm("peer@s.whatsapp.net", true);
   const pushed: boolean = client.callPushPcm16("ringing", new Int16Array(960));
   return { plugin, fromHost, packet, accepted, dialed, pushed };
+}
+
+export function directCallContracts(host: DirectCallHostCallbacks, transport: VoipRelayTransport): Promise<WasmCallControl> {
+  return createCallControl(host, { onEvent() {} }, { voipBackend: loadVoip(transport).voipBackend });
 }
 
 // The run-observation contract, derived from the export itself: a
@@ -304,11 +311,20 @@ try {
     }
   }
 
+  writeFileSync(join(smokeDir, "voip-local-relay.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-local-relay.mjs"), "utf8"));
+  writeFileSync(join(smokeDir, "voip-call-signaling.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-call-signaling.mjs"), "utf8"));
   writeFileSync(join(smokeDir, "voip-playout.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-playout.mjs"), "utf8"));
   for (const runtime of ["node", process.execPath]) {
     const playout = await run([runtime, "voip-playout.mjs"], smokeDir, 10_000);
     check(playout.exit === 0 && playout.output.includes("duplex PCM, timed playout and video delivered"), `isolated VoIP playout: ${runtime}`);
     if (playout.exit !== 0) console.error(playout.output);
+  }
+
+  writeFileSync(join(smokeDir, "voip-external-control.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-external-control.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    const direct = await run([runtime, "voip-external-control.mjs"], smokeDir, 15_000);
+    check(direct.exit === 0 && direct.output.includes("standalone control delivered duplex PCM"), `isolated external call control: ${runtime}`);
+    if (direct.exit !== 0) console.error(direct.output);
   }
 
   if (process.env.MOCK_SERVER_URL) {
