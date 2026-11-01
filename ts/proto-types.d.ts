@@ -805,6 +805,7 @@ export namespace proto {
 				DEFAULT = 1,
 				INCOGNITO = 2,
 				SIDE_CHAT = 3,
+				PRIVATE_SEARCH_CHAT = 4,
 			}
 		}
 
@@ -881,6 +882,7 @@ export namespace proto {
 		issueTime?: (Long|null);
 		hostStorage?: (proto.BizAccountLinkInfo.HostStorageType|null);
 		accountType?: (proto.BizAccountLinkInfo.AccountType|null);
+		whatsappAcctEmail?: (string|null);
 	}
 
 	interface BizAccountLinkInfo extends IBizAccountLinkInfo, $ProtoJSON {}
@@ -1166,6 +1168,19 @@ export namespace proto {
 			AI_RICH_RESPONSE_REMINDERS_ENABLED = 69,
 			AI_STOP_GENERATION_ENABLED = 70,
 			AI_RICH_RESPONSE_3P_LINKING_CARD_ENABLED = 71,
+			HATCH_NOTIFICATION_METADATA_EVENT_ENABLED = 72,
+			AI_SUGGESTED_REPLIES_ENABLED = 73,
+			RICH_RESPONSE_IN_APP_SURVEY_BLOKS = 74,
+			RICH_RESPONSE_IMAGE_SOURCE_ATTRIBUTION = 75,
+			HATCH_CONNECTOR_ACTION_CARD_ENABLED = 76,
+			HATCH_SECURE_CREDENTIAL_CARD_ENABLED = 77,
+			HATCH_BROWSER_TASK_CARD_ENABLED = 78,
+			HATCH_ARTIFACT_CARD_ENABLED = 79,
+			AI_STUDY_CENTER_ENABLED = 80,
+			AI_MUSE_JARVIS_SCHEMA_ENABLED = 81,
+			AI_STUDY_QUIZ_ENABLED = 82,
+			HATCH_CVM_ENABLED = 83,
+			RICH_RESPONSE_SOCIAL_ENTITY_PREFETCH_SCHEDULER_ENABLED = 84,
 		}
 	}
 
@@ -1514,6 +1529,22 @@ export namespace proto {
 		}
 	}
 
+	interface IBotInterjectionMetadata {
+		targetPromptMessageId?: (string|null);
+		foldedPromptMessageIds?: string[];
+	}
+
+	interface BotInterjectionMetadata extends IBotInterjectionMetadata, $ProtoJSON {}
+
+	class BotInterjectionMetadata {
+		constructor(p?: IBotInterjectionMetadata);
+		static create(p?: IBotInterjectionMetadata): BotInterjectionMetadata;
+		static fromObject(d: $ProtoObject): BotInterjectionMetadata;
+		static toObject: $ProtoToObject<BotInterjectionMetadata>;
+		static encode: $ProtoEncode<IBotInterjectionMetadata>;
+		static decode: $ProtoDecode<BotInterjectionMetadata>;
+	}
+
 	interface IBotLinkedAccount {
 		type?: (proto.BotLinkedAccount.BotLinkedAccountType|null);
 	}
@@ -1633,6 +1664,7 @@ export namespace proto {
 
 	interface IBotMessageOrigin {
 		type?: (proto.BotMessageOrigin.BotMessageOriginType|null);
+		proactiveMessageCampaignId?: (string|null);
 	}
 
 	interface BotMessageOrigin extends IBotMessageOrigin, $ProtoJSON {}
@@ -1650,6 +1682,7 @@ export namespace proto {
 
 		enum BotMessageOriginType {
 			BOT_MESSAGE_ORIGIN_TYPE_AI_INITIATED = 0,
+			BOT_MESSAGE_ORIGIN_TYPE_META_AI_THREAD_WELCOME = 1,
 		}
 	}
 
@@ -1728,6 +1761,7 @@ export namespace proto {
 		pttPromptMetadata?: (proto.IBotPttPromptMetadata|null);
 		botHistoryShareMetadata?: (proto.IBotHistoryShareMetadata|null);
 		responseStoppedByUser?: (boolean|null);
+		interjectionMetadata?: (proto.IBotInterjectionMetadata|null);
 		internalMetadata?: (Uint8Array|null);
 	}
 
@@ -1793,6 +1827,7 @@ export namespace proto {
 		NEW_CHAT_LIST = 56,
 		CONTACTS_TAB = 57,
 		NEW_3P_AGENT_CREATION = 58,
+		SHARE = 59,
 	}
 
 	interface IBotMetricsMetadata {
@@ -2515,9 +2550,25 @@ export namespace proto {
 			VOICE_CHAT = 2,
 		}
 
+		interface IGuestInfo {
+			pushName?: (string|null);
+		}
+
+		interface GuestInfo extends IGuestInfo, $ProtoJSON {}
+
+		class GuestInfo {
+			constructor(p?: IGuestInfo);
+			static create(p?: IGuestInfo): GuestInfo;
+			static fromObject(d: $ProtoObject): GuestInfo;
+			static toObject: $ProtoToObject<GuestInfo>;
+			static encode: $ProtoEncode<IGuestInfo>;
+			static decode: $ProtoDecode<GuestInfo>;
+		}
+
 		interface IParticipantInfo {
 			userJid?: (string|null);
 			callResult?: (proto.CallLogRecord.CallResult|null);
+			guestInfo?: (proto.CallLogRecord.IGuestInfo|null);
 		}
 
 		interface ParticipantInfo extends IParticipantInfo, $ProtoJSON {}
@@ -2730,6 +2781,7 @@ export namespace proto {
 		isHsThumbnailSyncEnabled?: (boolean|null);
 		subscriptionSyncPayload?: (Uint8Array|null);
 		isBotJidDbMigrated?: (boolean|null);
+		companionAddPeerPayload?: (Uint8Array|null);
 	}
 
 	interface ClientPairingProps extends IClientPairingProps, $ProtoJSON {}
@@ -2780,6 +2832,7 @@ export namespace proto {
 		processingQueueSize?: (number|null);
 		pairedPeripherals?: string[];
 		testIsolationId?: (Uint8Array|null);
+		messageSts?: (Long|null);
 	}
 
 	interface ClientPayload extends IClientPayload, $ProtoJSON {}
@@ -2974,6 +3027,8 @@ export namespace proto {
 				DESKTOP = 2,
 				WEARABLE = 3,
 				VR = 4,
+				SMART_DISPLAY = 5,
+				SMART_SPEAKER = 6,
 			}
 
 			enum DistributionChannel {
@@ -3025,6 +3080,7 @@ export namespace proto {
 				WAIL = 38,
 				WORK_ANDROID = 39,
 				WORK_IOS = 40,
+				AUTOMOTIVE = 41,
 			}
 
 			enum ReleaseChannel {
@@ -3929,6 +3985,8 @@ export namespace proto {
 		aiProvenance?: (proto.IAIProvenance|null);
 		experienceIds?: number[];
 		partnerDeepLinkToken?: (string|null);
+		sourceExperienceId?: (number|null);
+		sourceExperienceIds?: number[];
 	}
 
 	interface ContextInfo extends IContextInfo, $ProtoJSON {}
@@ -4169,6 +4227,14 @@ export namespace proto {
 			agmSubtitleStrategy?: (number|null);
 			agmHeaderInteractionStrategy?: (number|null);
 			containsCtwaFlowsAutoLabel?: (boolean|null);
+			productId?: (string|null);
+			containsCtwaPromo?: (boolean|null);
+			ctwaPromoResponseId?: (string|null);
+			ctwaPromoOfferId?: (string|null);
+			ctwaPromoAdEntryId?: (string|null);
+			ctwaPromoResponseExpiresAtSeconds?: (Long|null);
+			ctwaPromoSchemaVersion?: (number|null);
+			ctwaPromoAdgroupId?: (string|null);
 		}
 
 		interface ExternalAdReplyInfo extends IExternalAdReplyInfo, $ProtoJSON {}
@@ -4278,6 +4344,10 @@ export namespace proto {
 			MOTION_PHOTO_CHILD = 6,
 			HEVC_VIDEO_PARENT = 7,
 			HEVC_VIDEO_CHILD = 8,
+			AV1_VIDEO_PARENT = 9,
+			AV1_VIDEO_CHILD = 10,
+			STREAMED_VIDEO_PARENT = 11,
+			STREAMED_VIDEO_CHILD = 12,
 		}
 
 		interface IPartiallySelectedContent {
@@ -4329,6 +4399,7 @@ export namespace proto {
 			audienceType?: (proto.ContextInfo.StatusAudienceMetadata.AudienceType|null);
 			listName?: (string|null);
 			listEmoji?: (string|null);
+			orgId?: (string|null);
 		}
 
 		interface StatusAudienceMetadata extends IStatusAudienceMetadata, $ProtoJSON {}
@@ -4347,6 +4418,8 @@ export namespace proto {
 			enum AudienceType {
 				UNKNOWN = 0,
 				CLOSE_FRIENDS = 1,
+				CUSTOM_LIST = 2,
+				ORG = 3,
 			}
 		}
 
@@ -4441,6 +4514,7 @@ export namespace proto {
 		authAgentObaPhoneNumber?: (string|null);
 		identityVerification?: (proto.IIdentityVerificationState|null);
 		acp2Setting?: (proto.IACP2Setting|null);
+		acp2HistoryWithheld?: (boolean|null);
 	}
 
 	interface Conversation extends IConversation, $ProtoJSON {}
@@ -5000,6 +5074,10 @@ export namespace proto {
 		aiFbidMigration?: (proto.DeviceCapabilities.IAiFbidMigration|null);
 		bizAiSettingsSync?: (proto.DeviceCapabilities.IBizAiSettingsSync|null);
 		contactRefresh?: (proto.DeviceCapabilities.IContactRefresh|null);
+		reverseHistorySync?: (proto.DeviceCapabilities.IReverseHistorySync|null);
+		newsletterChatsMigration?: (proto.DeviceCapabilities.INewsletterChatsMigration|null);
+		hostWriteMutationSupport?: (proto.DeviceCapabilities.IHostWriteMutationSupport|null);
+		bizAiWebOnboarding?: (proto.DeviceCapabilities.IBizAiWebOnboarding|null);
 	}
 
 	interface DeviceCapabilities extends IDeviceCapabilities, $ProtoJSON {}
@@ -5070,6 +5148,21 @@ export namespace proto {
 			static decode: $ProtoDecode<BizAiSettingsSync>;
 		}
 
+		interface IBizAiWebOnboarding {
+			version?: (number|null);
+		}
+
+		interface BizAiWebOnboarding extends IBizAiWebOnboarding, $ProtoJSON {}
+
+		class BizAiWebOnboarding {
+			constructor(p?: IBizAiWebOnboarding);
+			static create(p?: IBizAiWebOnboarding): BizAiWebOnboarding;
+			static fromObject(d: $ProtoObject): BizAiWebOnboarding;
+			static toObject: $ProtoToObject<BizAiWebOnboarding>;
+			static encode: $ProtoEncode<IBizAiWebOnboarding>;
+			static decode: $ProtoDecode<BizAiWebOnboarding>;
+		}
+
 		interface IBusinessBroadcast {
 			importListEnabled?: (boolean|null);
 			companionSupportEnabled?: (boolean|null);
@@ -5111,6 +5204,21 @@ export namespace proto {
 			static decode: $ProtoDecode<ContactRefresh>;
 		}
 
+		interface IHostWriteMutationSupport {
+			mutationNames?: string[];
+		}
+
+		interface HostWriteMutationSupport extends IHostWriteMutationSupport, $ProtoJSON {}
+
+		class HostWriteMutationSupport {
+			constructor(p?: IHostWriteMutationSupport);
+			static create(p?: IHostWriteMutationSupport): HostWriteMutationSupport;
+			static fromObject(d: $ProtoObject): HostWriteMutationSupport;
+			static toObject: $ProtoToObject<HostWriteMutationSupport>;
+			static encode: $ProtoEncode<IHostWriteMutationSupport>;
+			static decode: $ProtoDecode<HostWriteMutationSupport>;
+		}
+
 		interface ILIDMigration {
 			chatDbMigrationTimestamp?: (Long|null);
 		}
@@ -5130,6 +5238,46 @@ export namespace proto {
 			DISABLED = 0,
 			RECEIVER_ENABLED = 1,
 			SENDER_ENABLED = 2,
+		}
+
+		interface INewsletterChatsMigration {
+			effectiveMigrated?: (boolean|null);
+			countdownEndsAt?: (Long|null);
+			rolledBack?: (boolean|null);
+		}
+
+		interface NewsletterChatsMigration extends INewsletterChatsMigration, $ProtoJSON {}
+
+		class NewsletterChatsMigration {
+			constructor(p?: INewsletterChatsMigration);
+			static create(p?: INewsletterChatsMigration): NewsletterChatsMigration;
+			static fromObject(d: $ProtoObject): NewsletterChatsMigration;
+			static toObject: $ProtoToObject<NewsletterChatsMigration>;
+			static encode: $ProtoEncode<INewsletterChatsMigration>;
+			static decode: $ProtoDecode<NewsletterChatsMigration>;
+		}
+
+		interface IReverseHistorySync {
+			enabledProducts?: proto.DeviceCapabilities.ReverseHistorySync.Product[];
+		}
+
+		interface ReverseHistorySync extends IReverseHistorySync, $ProtoJSON {}
+
+		class ReverseHistorySync {
+			constructor(p?: IReverseHistorySync);
+			static create(p?: IReverseHistorySync): ReverseHistorySync;
+			static fromObject(d: $ProtoObject): ReverseHistorySync;
+			static toObject: $ProtoToObject<ReverseHistorySync>;
+			static encode: $ProtoEncode<IReverseHistorySync>;
+			static decode: $ProtoDecode<ReverseHistorySync>;
+		}
+
+		namespace ReverseHistorySync {
+
+			enum Product {
+				PRODUCT_UNSPECIFIED = 0,
+				HATCH = 1,
+			}
 		}
 
 		interface IUserHasAvatar {
@@ -5276,6 +5424,8 @@ export namespace proto {
 			supportedBotChannelFbids?: string[];
 			supportInlineContacts?: (boolean|null);
 			supportNewsletter?: (boolean|null);
+			supportUniversalReachChat?: (boolean|null);
+			supportOmittedConversationMetadata?: (boolean|null);
 		}
 
 		interface HistorySyncConfig extends IHistorySyncConfig, $ProtoJSON {}
@@ -5318,6 +5468,9 @@ export namespace proto {
 			WAIL = 25,
 			WASS = 26,
 			BUSINESS_BACK_OFFICE = 27,
+			WAIL_WAI = 28,
+			WAIL_ALEXA = 29,
+			AUTOMOTIVE = 30,
 		}
 	}
 
@@ -5699,6 +5852,21 @@ export namespace proto {
 		static toObject: $ProtoToObject<EventAdditionalMetadata>;
 		static encode: $ProtoEncode<IEventAdditionalMetadata>;
 		static decode: $ProtoDecode<EventAdditionalMetadata>;
+	}
+
+	interface IEventInviteAdditionalMetadata {
+		isUpdated?: (boolean|null);
+	}
+
+	interface EventInviteAdditionalMetadata extends IEventInviteAdditionalMetadata, $ProtoJSON {}
+
+	class EventInviteAdditionalMetadata {
+		constructor(p?: IEventInviteAdditionalMetadata);
+		static create(p?: IEventInviteAdditionalMetadata): EventInviteAdditionalMetadata;
+		static fromObject(d: $ProtoObject): EventInviteAdditionalMetadata;
+		static toObject: $ProtoToObject<EventInviteAdditionalMetadata>;
+		static encode: $ProtoEncode<IEventInviteAdditionalMetadata>;
+		static decode: $ProtoDecode<EventInviteAdditionalMetadata>;
 	}
 
 	interface IEventResponse {
@@ -6127,6 +6295,7 @@ export namespace proto {
 		uncountedAssociatedMessageLists?: proto.IUnCountedAssociatedMessageList[];
 		commentMessages?: proto.IWebMessageInfo[];
 		outOfWindowPinnedMessages?: proto.IWebMessageInfo[];
+		themeMessage?: (proto.IWebMessageInfo|null);
 	}
 
 	interface GroupHistory extends IGroupHistory, $ProtoJSON {}
@@ -6189,6 +6358,7 @@ export namespace proto {
 		uncountedAssociatedMessageLists?: proto.IUnCountedAssociatedMessageListWithMessageBytes[];
 		commentMessages?: proto.IWebMessageInfoWithMessageBytes[];
 		outOfWindowPinnedMessages?: proto.IWebMessageInfoWithMessageBytes[];
+		themeMessage?: (proto.IWebMessageInfoWithMessageBytes|null);
 	}
 
 	interface GroupHistoryWithMessageBytes extends IGroupHistoryWithMessageBytes, $ProtoJSON {}
@@ -6411,6 +6581,9 @@ export namespace proto {
 		nctSalt?: (Uint8Array|null);
 		inlineContacts?: proto.IInlineContact[];
 		inlineContactsProvided?: (boolean|null);
+		favoriteStickers?: proto.IStickerMetadata[];
+		omittedConversationMetadata?: (proto.IOmittedConversationMetadata|null);
+		omittedConversationMetadataSnapshotId?: (string|null);
 	}
 
 	interface HistorySync extends IHistorySync, $ProtoJSON {}
@@ -6439,6 +6612,7 @@ export namespace proto {
 			PUSH_NAME = 4,
 			NON_BLOCKING_DATA = 5,
 			ON_DEMAND = 6,
+			RECENT_CONVERSATIONS_ON_DEMAND = 9,
 		}
 	}
 
@@ -7659,6 +7833,10 @@ export namespace proto {
 		newsletterScheduledMessage?: (proto.Message.IFutureProofMessage|null);
 		acp2SettingMessage?: (proto.Message.IFutureProofMessage|null);
 		audioStickerMessage?: (proto.Message.IFutureProofMessage|null);
+		instantImageMessage?: (proto.Message.IImageMessage|null);
+		requestLocationMessage?: (proto.Message.IRequestLocationMessage|null);
+		botGroupParticipantMessage?: (proto.Message.IFutureProofMessage|null);
+		requestLocationUpdateMessage?: (proto.Message.IRequestLocationUpdateMessage|null);
 	}
 
 	interface Message extends IMessage, $ProtoJSON {}
@@ -8160,9 +8338,11 @@ export namespace proto {
 		}
 
 		interface IChatSolidColorWallpaper {
-			colorLight?: (string|null);
-			colorDark?: (string|null);
+			backgroundLightArgb?: (number|null);
+			backgroundDarkArgb?: (number|null);
 			isDoodleEnabled?: (boolean|null);
+			doodleLightArgb?: (number|null);
+			doodleDarkArgb?: (number|null);
 		}
 
 		interface ChatSolidColorWallpaper extends IChatSolidColorWallpaper, $ProtoJSON {}
@@ -8258,6 +8438,22 @@ export namespace proto {
 				static encode: $ProtoEncode<ICloudAPIThreadControlNotificationContent>;
 				static decode: $ProtoDecode<CloudAPIThreadControlNotificationContent>;
 			}
+		}
+
+		interface ICoexConnectionDescriptor {
+			providerId?: (Long|null);
+			product?: (string|null);
+		}
+
+		interface CoexConnectionDescriptor extends ICoexConnectionDescriptor, $ProtoJSON {}
+
+		class CoexConnectionDescriptor {
+			constructor(p?: ICoexConnectionDescriptor);
+			static create(p?: ICoexConnectionDescriptor): CoexConnectionDescriptor;
+			static fromObject(d: $ProtoObject): CoexConnectionDescriptor;
+			static toObject: $ProtoToObject<CoexConnectionDescriptor>;
+			static encode: $ProtoEncode<ICoexConnectionDescriptor>;
+			static decode: $ProtoDecode<CoexConnectionDescriptor>;
 		}
 
 		interface ICommentMessage {
@@ -8465,6 +8661,10 @@ export namespace proto {
 			isCanceled?: (boolean|null);
 			endTime?: (Long|null);
 			callLink?: (string|null);
+			coverImageHandle?: (string|null);
+			locationName?: (string|null);
+			lastUpdatedTsUsec?: (Long|null);
+			status?: (proto.Message.EventInviteMessage.EventStatus|null);
 		}
 
 		interface EventInviteMessage extends IEventInviteMessage, $ProtoJSON {}
@@ -8476,6 +8676,19 @@ export namespace proto {
 			static toObject: $ProtoToObject<EventInviteMessage>;
 			static encode: $ProtoEncode<IEventInviteMessage>;
 			static decode: $ProtoDecode<EventInviteMessage>;
+		}
+
+		namespace EventInviteMessage {
+
+			enum EventStatus {
+				UNKNOWN = 0,
+				ACTIVE = 1,
+				CANCELED = 2,
+				SUSPENDED = 3,
+				DELETED = 4,
+				LEFT_EVENT = 5,
+				REMOVED_FROM_INVITE_LIST = 6,
+			}
 		}
 
 		interface IEventMessage {
@@ -8627,6 +8840,7 @@ export namespace proto {
 			requestId?: (string|null);
 			businessProduct?: (string|null);
 			opaqueClientData?: (Uint8Array|null);
+			connection?: (proto.Message.ICoexConnectionDescriptor|null);
 		}
 
 		interface FullHistorySyncOnDemandRequestMetadata extends IFullHistorySyncOnDemandRequestMetadata, $ProtoJSON {}
@@ -8890,6 +9104,7 @@ export namespace proto {
 			ON_DEMAND = 6,
 			NO_HISTORY = 7,
 			MESSAGE_ACCESS_STATUS = 8,
+			RECENT_CONVERSATIONS_ON_DEMAND = 9,
 		}
 
 		interface IImageMessage {
@@ -9587,6 +9802,7 @@ export namespace proto {
 			messageCount?: (Long|null);
 			nonHistoryReceivers?: string[];
 			oldestMessageTimestampInBundle?: (Long|null);
+			includesChatTheme?: (boolean|null);
 		}
 
 		interface MessageHistoryMetadata extends IMessageHistoryMetadata, $ProtoJSON {}
@@ -9644,6 +9860,7 @@ export namespace proto {
 			artworkUri?: (string|null);
 			style?: (number|null);
 			contextInfo?: (proto.IContextInfo|null);
+			lyrics?: (proto.Message.MusicMessage.ILyrics|null);
 		}
 
 		interface MusicMessage extends IMusicMessage, $ProtoJSON {}
@@ -9659,9 +9876,68 @@ export namespace proto {
 
 		namespace MusicMessage {
 
+			interface ILyrics {
+				lines?: proto.Message.MusicMessage.Lyrics.ILine[];
+			}
+
+			interface Lyrics extends ILyrics, $ProtoJSON {}
+
+			class Lyrics {
+				constructor(p?: ILyrics);
+				static create(p?: ILyrics): Lyrics;
+				static fromObject(d: $ProtoObject): Lyrics;
+				static toObject: $ProtoToObject<Lyrics>;
+				static encode: $ProtoEncode<ILyrics>;
+				static decode: $ProtoDecode<Lyrics>;
+			}
+
+			namespace Lyrics {
+
+				interface ILine {
+					startTimeInMs?: (Long|null);
+					endTimeInMs?: (Long|null);
+					text?: (string|null);
+					wordOffsets?: proto.Message.MusicMessage.Lyrics.Line.IWordOffset[];
+				}
+
+				interface Line extends ILine, $ProtoJSON {}
+
+				class Line {
+					constructor(p?: ILine);
+					static create(p?: ILine): Line;
+					static fromObject(d: $ProtoObject): Line;
+					static toObject: $ProtoToObject<Line>;
+					static encode: $ProtoEncode<ILine>;
+					static decode: $ProtoDecode<Line>;
+				}
+
+				namespace Line {
+
+					interface IWordOffset {
+						startIndex?: (number|null);
+						endIndex?: (number|null);
+						startOffsetMs?: (Long|null);
+						endOffsetMs?: (Long|null);
+					}
+
+					interface WordOffset extends IWordOffset, $ProtoJSON {}
+
+					class WordOffset {
+						constructor(p?: IWordOffset);
+						static create(p?: IWordOffset): WordOffset;
+						static fromObject(d: $ProtoObject): WordOffset;
+						static toObject: $ProtoToObject<WordOffset>;
+						static encode: $ProtoEncode<IWordOffset>;
+						static decode: $ProtoDecode<WordOffset>;
+					}
+				}
+			}
+
 			enum MusicMessageStyle {
 				UNKNOWN = 0,
 				VINYL = 1,
+				MESSAGE_BUBBLE = 2,
+				LYRICS = 3,
 			}
 		}
 
@@ -9927,6 +10203,7 @@ export namespace proto {
 			companionCanonicalUserNonceFetchRequest?: (proto.Message.PeerDataOperationRequestMessage.ICompanionCanonicalUserNonceFetchRequest|null);
 			bizBroadcastInsightsContactListRequest?: (proto.Message.PeerDataOperationRequestMessage.IBizBroadcastInsightsContactListRequest|null);
 			bizBroadcastInsightsRefreshRequest?: (proto.Message.PeerDataOperationRequestMessage.IBizBroadcastInsightsRefreshRequest|null);
+			recentConversationsOnDemandRequest?: (proto.Message.PeerDataOperationRequestMessage.IRecentConversationsOnDemandRequest|null);
 		}
 
 		interface PeerDataOperationRequestMessage extends IPeerDataOperationRequestMessage, $ProtoJSON {}
@@ -10057,6 +10334,7 @@ export namespace proto {
 				oldestMsgTimestampMs?: (Long|null);
 				accountLid?: (string|null);
 				supportInlineResponse?: (boolean|null);
+				mode?: (proto.Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest.Mode|null);
 			}
 
 			interface HistorySyncOnDemandRequest extends IHistorySyncOnDemandRequest, $ProtoJSON {}
@@ -10068,6 +10346,14 @@ export namespace proto {
 				static toObject: $ProtoToObject<HistorySyncOnDemandRequest>;
 				static encode: $ProtoEncode<IHistorySyncOnDemandRequest>;
 				static decode: $ProtoDecode<HistorySyncOnDemandRequest>;
+			}
+
+			namespace HistorySyncOnDemandRequest {
+
+				enum Mode {
+					MODE_UNSPECIFIED = 0,
+					INITIAL_REVERSE_HISTORY = 1,
+				}
 			}
 
 			interface IPlaceholderMessageResendRequest {
@@ -10083,6 +10369,22 @@ export namespace proto {
 				static toObject: $ProtoToObject<PlaceholderMessageResendRequest>;
 				static encode: $ProtoEncode<IPlaceholderMessageResendRequest>;
 				static decode: $ProtoDecode<PlaceholderMessageResendRequest>;
+			}
+
+			interface IRecentConversationsOnDemandRequest {
+				conversationCount?: (number|null);
+				messagesPerConversation?: (number|null);
+			}
+
+			interface RecentConversationsOnDemandRequest extends IRecentConversationsOnDemandRequest, $ProtoJSON {}
+
+			class RecentConversationsOnDemandRequest {
+				constructor(p?: IRecentConversationsOnDemandRequest);
+				static create(p?: IRecentConversationsOnDemandRequest): RecentConversationsOnDemandRequest;
+				static fromObject(d: $ProtoObject): RecentConversationsOnDemandRequest;
+				static toObject: $ProtoToObject<RecentConversationsOnDemandRequest>;
+				static encode: $ProtoEncode<IRecentConversationsOnDemandRequest>;
+				static decode: $ProtoDecode<RecentConversationsOnDemandRequest>;
 			}
 
 			interface IRequestStickerReupload {
@@ -10473,6 +10775,7 @@ export namespace proto {
 			BUSINESS_BROADCAST_INSIGHTS_DELIVERED_TO = 12,
 			BUSINESS_BROADCAST_INSIGHTS_REFRESH = 13,
 			CONTACT_REFRESH_REQUEST = 14,
+			RECENT_CONVERSATIONS_ON_DEMAND_REQUEST = 15,
 		}
 
 		interface IPinInChatMessage {
@@ -10797,6 +11100,7 @@ export namespace proto {
 			acp2Setting?: (proto.IACP2Setting|null);
 			sharedDeviceContactHashKeyShare?: (proto.Message.ISharedDeviceContactHashKeyShare|null);
 			sharedDeviceContactHashKeyRequest?: (proto.Message.ISharedDeviceContactHashKeyRequest|null);
+			additionalPromptIds?: string[];
 		}
 
 		interface ProtocolMessage extends IProtocolMessage, $ProtoJSON {}
@@ -10883,6 +11187,46 @@ export namespace proto {
 			static toObject: $ProtoToObject<ReactionMessage>;
 			static encode: $ProtoEncode<IReactionMessage>;
 			static decode: $ProtoDecode<ReactionMessage>;
+		}
+
+		interface IRequestLocationMessage {
+			contextInfo?: (proto.IContextInfo|null);
+		}
+
+		interface RequestLocationMessage extends IRequestLocationMessage, $ProtoJSON {}
+
+		class RequestLocationMessage {
+			constructor(p?: IRequestLocationMessage);
+			static create(p?: IRequestLocationMessage): RequestLocationMessage;
+			static fromObject(d: $ProtoObject): RequestLocationMessage;
+			static toObject: $ProtoToObject<RequestLocationMessage>;
+			static encode: $ProtoEncode<IRequestLocationMessage>;
+			static decode: $ProtoDecode<RequestLocationMessage>;
+		}
+
+		interface IRequestLocationUpdateMessage {
+			key?: (proto.IMessageKey|null);
+			updateType?: (proto.Message.RequestLocationUpdateMessage.UpdateType|null);
+			senderTimestampMs?: (Long|null);
+		}
+
+		interface RequestLocationUpdateMessage extends IRequestLocationUpdateMessage, $ProtoJSON {}
+
+		class RequestLocationUpdateMessage {
+			constructor(p?: IRequestLocationUpdateMessage);
+			static create(p?: IRequestLocationUpdateMessage): RequestLocationUpdateMessage;
+			static fromObject(d: $ProtoObject): RequestLocationUpdateMessage;
+			static toObject: $ProtoToObject<RequestLocationUpdateMessage>;
+			static encode: $ProtoEncode<IRequestLocationUpdateMessage>;
+			static decode: $ProtoDecode<RequestLocationUpdateMessage>;
+		}
+
+		namespace RequestLocationUpdateMessage {
+
+			enum UpdateType {
+				UNKNOWN = 0,
+				CANCEL = 1,
+			}
 		}
 
 		interface IRequestPaymentMessage {
@@ -11591,6 +11935,7 @@ export namespace proto {
 			metadataUrl?: (string|null);
 			videoSourceType?: (proto.Message.VideoMessage.VideoSourceType|null);
 			dashManifestUrl?: (string|null);
+			smartThumbnailTs?: (Long|null);
 		}
 
 		interface VideoMessage extends IVideoMessage, $ProtoJSON {}
@@ -11650,6 +11995,7 @@ export namespace proto {
 			EVENT_RESPONSE = 2,
 			POLL_UPDATE = 3,
 			PIN_IN_CHAT = 4,
+			REQUEST_LOCATION_UPDATE = 5,
 		}
 	}
 
@@ -11710,6 +12056,8 @@ export namespace proto {
 			STATUS_REACTION = 18,
 			HEVC_VIDEO_DUAL_UPLOAD = 19,
 			POLL_ADD_OPTION = 20,
+			AV1_VIDEO_DUAL_UPLOAD = 21,
+			STREAMED_HD_VIDEO_DUAL_UPLOAD = 22,
 		}
 	}
 
@@ -11735,6 +12083,7 @@ export namespace proto {
 		associatedPrimaryIdentityKey?: (Uint8Array|null);
 		teeContextAnchorMessageId?: (string|null);
 		acp2Setting?: (proto.IACP2Setting|null);
+		lightE2Ee?: (boolean|null);
 	}
 
 	interface MessageContextInfo extends IMessageContextInfo, $ProtoJSON {}
@@ -12345,6 +12694,8 @@ export namespace proto {
 		sharableEventInviteCallLink?: (string|null);
 		mediaPngThumbnail?: (string|null);
 		qrUrl?: (string|null);
+		musicData?: (proto.MsgOpaqueData.IMusicData|null);
+		pollAddedOptionName?: (string|null);
 	}
 
 	interface MsgOpaqueData extends IMsgOpaqueData, $ProtoJSON {}
@@ -12380,6 +12731,82 @@ export namespace proto {
 			static decode: $ProtoDecode<EventLocation>;
 		}
 
+		interface IMusicData {
+			musicContentMediaId?: (string|null);
+			songId?: (string|null);
+			author?: (string|null);
+			title?: (string|null);
+			songUri?: (string|null);
+			artworkUri?: (string|null);
+			style?: (number|null);
+			songStartTimeMs?: (number|null);
+			clipDurationMs?: (number|null);
+			isExplicit?: (boolean|null);
+			countryBlocklist?: (Uint8Array|null);
+			artistAttribution?: (string|null);
+			artworkDirectPath?: (string|null);
+			artworkSha256?: (Uint8Array|null);
+			artworkEncSha256?: (Uint8Array|null);
+			artworkMediaKey?: (Uint8Array|null);
+			consumptionCheckedAtS?: (Long|null);
+			isAvailableForConsumption?: (boolean|null);
+			lyrics?: proto.MsgOpaqueData.MusicData.ILyricsLine[];
+			lyricsConfirmedAtS?: (Long|null);
+		}
+
+		interface MusicData extends IMusicData, $ProtoJSON {}
+
+		class MusicData {
+			constructor(p?: IMusicData);
+			static create(p?: IMusicData): MusicData;
+			static fromObject(d: $ProtoObject): MusicData;
+			static toObject: $ProtoToObject<MusicData>;
+			static encode: $ProtoEncode<IMusicData>;
+			static decode: $ProtoDecode<MusicData>;
+		}
+
+		namespace MusicData {
+
+			interface ILyricsLine {
+				startTimeMs?: (number|null);
+				endTimeMs?: (number|null);
+				text?: (string|null);
+				wordOffsets?: proto.MsgOpaqueData.MusicData.LyricsLine.IWordOffset[];
+			}
+
+			interface LyricsLine extends ILyricsLine, $ProtoJSON {}
+
+			class LyricsLine {
+				constructor(p?: ILyricsLine);
+				static create(p?: ILyricsLine): LyricsLine;
+				static fromObject(d: $ProtoObject): LyricsLine;
+				static toObject: $ProtoToObject<LyricsLine>;
+				static encode: $ProtoEncode<ILyricsLine>;
+				static decode: $ProtoDecode<LyricsLine>;
+			}
+
+			namespace LyricsLine {
+
+				interface IWordOffset {
+					startIndex?: (number|null);
+					endIndex?: (number|null);
+					startOffsetMs?: (number|null);
+					endOffsetMs?: (number|null);
+				}
+
+				interface WordOffset extends IWordOffset, $ProtoJSON {}
+
+				class WordOffset {
+					constructor(p?: IWordOffset);
+					static create(p?: IWordOffset): WordOffset;
+					static fromObject(d: $ProtoObject): WordOffset;
+					static toObject: $ProtoToObject<WordOffset>;
+					static encode: $ProtoEncode<IWordOffset>;
+					static decode: $ProtoDecode<WordOffset>;
+				}
+			}
+		}
+
 		enum PollContentType {
 			UNKNOWN = 0,
 			TEXT = 1,
@@ -12390,6 +12817,8 @@ export namespace proto {
 			name?: (string|null);
 			hash?: (string|null);
 			addOptionMsgKey?: (string|null);
+			localId?: (number|null);
+			addOptionMsgT?: (number|null);
 		}
 
 		interface PollOption extends IPollOption, $ProtoJSON {}
@@ -12547,6 +12976,11 @@ export namespace proto {
 		SHARED_DEVICE_ALLOWLIST_ACTION = 94,
 		CONTACT_MANAGER_METADATA_ACTION = 95,
 		BUSINESS_FOLDER_ACTIVATION_ACTION = 96,
+		GROUP_HISTORY_TOGGLE_ACTION = 97,
+		BB_PRO_PENDING_CUSTOMER_BASE_ACTION = 98,
+		COMMUNITY_NESTING_STATE_ACTION = 99,
+		SHARED_DEVICE_SECRET_ACTION = 100,
+		HATCH_CVM_SECRET_ACTION = 101,
 		SHARE_OWN_PN = 10001,
 		BUSINESS_BROADCAST_ACTION = 10002,
 		AI_THREAD_DELETE_ACTION = 10003,
@@ -12650,6 +13084,26 @@ export namespace proto {
 		static toObject: $ProtoToObject<NotificationSettings>;
 		static encode: $ProtoEncode<INotificationSettings>;
 		static decode: $ProtoDecode<NotificationSettings>;
+	}
+
+	interface IOmittedConversationMetadata {
+		snapshotId?: (string|null);
+		snapshotTimestampMs?: (Long|null);
+		batchIndex?: (number|null);
+		batchCount?: (number|null);
+		complete?: (boolean|null);
+		conversations?: proto.IConversation[];
+	}
+
+	interface OmittedConversationMetadata extends IOmittedConversationMetadata, $ProtoJSON {}
+
+	class OmittedConversationMetadata {
+		constructor(p?: IOmittedConversationMetadata);
+		static create(p?: IOmittedConversationMetadata): OmittedConversationMetadata;
+		static fromObject(d: $ProtoObject): OmittedConversationMetadata;
+		static toObject: $ProtoToObject<OmittedConversationMetadata>;
+		static encode: $ProtoEncode<IOmittedConversationMetadata>;
+		static decode: $ProtoDecode<OmittedConversationMetadata>;
 	}
 
 	interface IOrfThreadIdInput {
@@ -13003,6 +13457,7 @@ export namespace proto {
 	interface IPollAdditionalMetadata {
 		pollInvalidated?: (boolean|null);
 		pollNameHashHistory?: proto.PollAdditionalMetadata.IPollNameHashHistoryEntry[];
+		originalOptions?: proto.Message.PollCreationMessage.IOption[];
 	}
 
 	interface PollAdditionalMetadata extends IPollAdditionalMetadata, $ProtoJSON {}
@@ -14232,6 +14687,11 @@ export namespace proto {
 		sharedDeviceAllowlistAction?: (proto.SyncActionValue.ISharedDeviceAllowlistAction|null);
 		contactManagerMetadataAction?: (proto.SyncActionValue.IContactManagerMetadataAction|null);
 		businessFolderActivationAction?: (proto.SyncActionValue.IBusinessFolderActivationAction|null);
+		groupHistoryToggleAction?: (proto.SyncActionValue.IGroupHistoryToggleAction|null);
+		bbProPendingCustomerBaseAction?: (proto.SyncActionValue.IBBProPendingCustomerBaseAction|null);
+		communityNestingStateAction?: (proto.SyncActionValue.ICommunityNestingStateAction|null);
+		sharedDeviceSecretAction?: (proto.SyncActionValue.ISharedDeviceSecretAction|null);
+		hatchCvmSecretAction?: (proto.SyncActionValue.IHatchCVMSecretAction|null);
 	}
 
 	interface SyncActionValue extends ISyncActionValue, $ProtoJSON {}
@@ -14348,6 +14808,21 @@ export namespace proto {
 				CREATED = 1,
 				DELETED = 2,
 			}
+		}
+
+		interface IBBProPendingCustomerBaseAction {
+			pending?: (boolean|null);
+		}
+
+		interface BBProPendingCustomerBaseAction extends IBBProPendingCustomerBaseAction, $ProtoJSON {}
+
+		class BBProPendingCustomerBaseAction {
+			constructor(p?: IBBProPendingCustomerBaseAction);
+			static create(p?: IBBProPendingCustomerBaseAction): BBProPendingCustomerBaseAction;
+			static fromObject(d: $ProtoObject): BBProPendingCustomerBaseAction;
+			static toObject: $ProtoToObject<BBProPendingCustomerBaseAction>;
+			static encode: $ProtoEncode<IBBProPendingCustomerBaseAction>;
+			static decode: $ProtoDecode<BBProPendingCustomerBaseAction>;
 		}
 
 		interface IBizAISettingsNudgeAction {
@@ -14616,6 +15091,30 @@ export namespace proto {
 			static decode: $ProtoDecode<CoexV2VersionAction>;
 		}
 
+		interface ICommunityNestingStateAction {
+			nestingState?: (proto.SyncActionValue.CommunityNestingStateAction.NestingState|null);
+		}
+
+		interface CommunityNestingStateAction extends ICommunityNestingStateAction, $ProtoJSON {}
+
+		class CommunityNestingStateAction {
+			constructor(p?: ICommunityNestingStateAction);
+			static create(p?: ICommunityNestingStateAction): CommunityNestingStateAction;
+			static fromObject(d: $ProtoObject): CommunityNestingStateAction;
+			static toObject: $ProtoToObject<CommunityNestingStateAction>;
+			static encode: $ProtoEncode<ICommunityNestingStateAction>;
+			static decode: $ProtoDecode<CommunityNestingStateAction>;
+		}
+
+		namespace CommunityNestingStateAction {
+
+			enum NestingState {
+				PLATFORM_DEFAULT = 0,
+				NESTED = 1,
+				UNNESTED = 2,
+			}
+		}
+
 		interface IContactAction {
 			fullName?: (string|null);
 			firstName?: (string|null);
@@ -14623,6 +15122,7 @@ export namespace proto {
 			saveOnPrimaryAddressbook?: (boolean|null);
 			pnJid?: (string|null);
 			username?: (string|null);
+			birthday?: (string|null);
 		}
 
 		interface ContactAction extends IContactAction, $ProtoJSON {}
@@ -14865,6 +15365,46 @@ export namespace proto {
 			}
 		}
 
+		interface IGroupHistoryToggleAction {
+			groupHistoryToggleMode?: (proto.SyncActionValue.GroupHistoryToggleAction.GroupHistoryToggleMode|null);
+		}
+
+		interface GroupHistoryToggleAction extends IGroupHistoryToggleAction, $ProtoJSON {}
+
+		class GroupHistoryToggleAction {
+			constructor(p?: IGroupHistoryToggleAction);
+			static create(p?: IGroupHistoryToggleAction): GroupHistoryToggleAction;
+			static fromObject(d: $ProtoObject): GroupHistoryToggleAction;
+			static toObject: $ProtoToObject<GroupHistoryToggleAction>;
+			static encode: $ProtoEncode<IGroupHistoryToggleAction>;
+			static decode: $ProtoDecode<GroupHistoryToggleAction>;
+		}
+
+		namespace GroupHistoryToggleAction {
+
+			enum GroupHistoryToggleMode {
+				GROUP_HISTORY_TOGGLE_MODE_UNKNOWN = 0,
+				GROUP_HISTORY_TOGGLE_MODE_ON = 1,
+				GROUP_HISTORY_TOGGLE_MODE_OFF = 2,
+			}
+		}
+
+		interface IHatchCVMSecretAction {
+			secret?: (Uint8Array|null);
+			generation?: (Long|null);
+		}
+
+		interface HatchCVMSecretAction extends IHatchCVMSecretAction, $ProtoJSON {}
+
+		class HatchCVMSecretAction {
+			constructor(p?: IHatchCVMSecretAction);
+			static create(p?: IHatchCVMSecretAction): HatchCVMSecretAction;
+			static fromObject(d: $ProtoObject): HatchCVMSecretAction;
+			static toObject: $ProtoToObject<HatchCVMSecretAction>;
+			static encode: $ProtoEncode<IHatchCVMSecretAction>;
+			static decode: $ProtoDecode<HatchCVMSecretAction>;
+		}
+
 		interface IInteractiveMessageAction {
 			type?: (proto.SyncActionValue.InteractiveMessageAction.InteractiveMessageActionMode|null);
 			agmId?: (string|null);
@@ -14964,6 +15504,8 @@ export namespace proto {
 				LEAD = 16,
 				MENTIONS_AND_REPLIES = 17,
 				REQUESTS = 18,
+				BUSINESS = 19,
+				ONE_ON_ONE = 20,
 			}
 		}
 
@@ -15001,6 +15543,7 @@ export namespace proto {
 			fullName?: (string|null);
 			firstName?: (string|null);
 			username?: (string|null);
+			birthday?: (string|null);
 		}
 
 		interface LidContactAction extends ILidContactAction, $ProtoJSON {}
@@ -15593,6 +16136,7 @@ export namespace proto {
 			chatThemeId?: (string|null);
 			colorSchemeId?: (string|null);
 			stockWallpaperImageId?: (string|null);
+			mediaAutoDownloadQuality?: (proto.SyncActionValue.SettingsSyncAction.MediaAutoDownloadQualitySetting|null);
 		}
 
 		interface SettingsSyncAction extends ISettingsSyncAction, $ProtoJSON {}
@@ -15613,6 +16157,13 @@ export namespace proto {
 				ALWAYS = 1,
 				NEVER = 2,
 				ONLY_WHEN_APP_IS_OPEN = 3,
+			}
+
+			enum MediaAutoDownloadQualitySetting {
+				MEDIA_AUTO_DOWNLOAD_QUALITY_UNKNOWN = 0,
+				MEDIA_AUTO_DOWNLOAD_QUALITY_STANDARD = 1,
+				MEDIA_AUTO_DOWNLOAD_QUALITY_HD = 2,
+				MEDIA_AUTO_DOWNLOAD_QUALITY_AUTO = 3,
 			}
 
 			enum MediaQualitySetting {
@@ -15657,6 +16208,7 @@ export namespace proto {
 				CHAT_THEME_ID = 32,
 				COLOR_SCHEME_ID = 33,
 				STOCK_WALLPAPER_IMAGE_ID = 34,
+				MEDIA_AUTO_DOWNLOAD_QUALITY = 35,
 			}
 
 			enum SettingPlatform {
@@ -15681,6 +16233,22 @@ export namespace proto {
 			static toObject: $ProtoToObject<SharedDeviceAllowlistAction>;
 			static encode: $ProtoEncode<ISharedDeviceAllowlistAction>;
 			static decode: $ProtoDecode<SharedDeviceAllowlistAction>;
+		}
+
+		interface ISharedDeviceSecretAction {
+			secret?: (Uint8Array|null);
+			ttlMs?: (Long|null);
+		}
+
+		interface SharedDeviceSecretAction extends ISharedDeviceSecretAction, $ProtoJSON {}
+
+		class SharedDeviceSecretAction {
+			constructor(p?: ISharedDeviceSecretAction);
+			static create(p?: ISharedDeviceSecretAction): SharedDeviceSecretAction;
+			static fromObject(d: $ProtoObject): SharedDeviceSecretAction;
+			static toObject: $ProtoToObject<SharedDeviceSecretAction>;
+			static encode: $ProtoEncode<ISharedDeviceSecretAction>;
+			static decode: $ProtoDecode<SharedDeviceSecretAction>;
 		}
 
 		interface IStarAction {
@@ -16748,6 +17316,7 @@ export namespace proto {
 		scheduledMessageMetadata?: (proto.IScheduledMessageMetadata|null);
 		decisionId?: (string|null);
 		decisionSources?: string[];
+		eventInviteAdditionalMetadata?: (proto.IEventInviteAdditionalMetadata|null);
 	}
 
 	interface WebMessageInfo extends IWebMessageInfo, $ProtoJSON {}
@@ -17011,7 +17580,42 @@ export namespace proto {
 			IDENTITY_TRUST_REVOKED = 228,
 			CTWA_CONSUMER_DISCLOSURE = 230,
 			CHANGE_ACP2_SETTING = 240,
+			BIZ_CALLBACK_DISABLED = 244,
+			BIZ_CALLBACK_ENABLED = 247,
 			EPHEMERAL_CHANGED_FOR_COEX = 248,
+			UGC_BOT_PROFILE_UPDATED = 249,
+			ORDER_EPHEMERAL_EXEMPTION = 250,
+			GROUP_DEFAULT_SUB_GROUP_DEMOTE = 251,
+			BIZ_BUSINESS_BROADCAST_ENTRY_POINT = 252,
+			BOT_INLINE_TOS_CHAT = 253,
+			CAMEO_CHAT_CREATED = 254,
+			SENDER_SIDE_CONTACT_INFO = 255,
+			CAMEO_TRANSITIONED = 256,
+			CAMEO_REGISTERED_WITH_NEW_CHAT = 257,
+			PRIVACY_SYSTEM_MESSAGE = 258,
+			BIZ_AI_LEARNING_ENABLED_DISCLOSURE = 259,
+			BIZ_AI_LEARNING_DISABLED_DISCLOSURE = 260,
+			BIZ_AI_REPLIES_MUTED_HISTORICAL_CHAT = 261,
+			INVITE_FROM_IG = 262,
+			GROUP_ADMIN_FIRST_JOIN_VIA_LINK = 263,
+			GROUP_ADMIN_FLOOD_JOIN_VIA_LINK = 264,
+			BIZ_AI_REPLIES_MUTED_IRRELEVANT_HISTORICAL_CHAT = 265,
+			PENDING_INVITE_CREATED = 266,
+			CAMEO_CHAT_EXPIRED = 267,
+			GROUP_PUSHNAME_SHARED = 270,
+			BIZ_POST_SEND_OPT_OUT = 271,
+			BB_PRO_BROADCAST_CHAT_CARD = 272,
+			BOT_PROACTIVE_MESSAGE_ENABLED = 273,
+			BOT_PROACTIVE_MESSAGE_DISABLED = 274,
+			BOT_PROACTIVE_MESSAGE_FIRST_TIME = 275,
+			DYNAMIC_AUDIENCE_LIST_CREATE = 276,
+			DYNAMIC_AUDIENCE_LIST_UPDATE_LINK = 277,
+			CHAT_WITH_BUSINESS_IN_DIRECTORY = 283,
+			META_AI_THREAD_CREATED = 284,
+			META_AI_CONNECTOR_LINKED = 285,
+			SPLIT_PAYMENT_MARKED_AS_PAID = 289,
+			POLL_OPTIONS_REMOVED = 290,
+			POLL_ADDED_OPTION_REMOVED = 291,
 		}
 	}
 

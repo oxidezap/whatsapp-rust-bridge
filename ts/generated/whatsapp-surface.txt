@@ -100,6 +100,7 @@ Conversation.GroupAppealStatus	enum
 DeviceCapabilities.ChatLockSupportLevel	enum
 DeviceCapabilities.MemberNameTagPrimarySupport	enum
 DeviceCapabilities.AiThread.SupportLevel	enum
+DeviceCapabilities.ReverseHistorySync.Product	enum
 DeviceProps.PlatformType	enum
 DisappearingMode.Initiator	enum
 DisappearingMode.Trigger	enum
@@ -126,6 +127,7 @@ Message.CallLogMessage.CallOutcome	enum
 Message.CallLogMessage.CallType	enum
 Message.CloudAPIThreadControlNotification.CloudAPIThreadControl	enum
 Message.ConditionalRevealMessage.ConditionalRevealMessageType	enum
+Message.EventInviteMessage.EventStatus	enum
 Message.EventResponseMessage.EventResponseType	enum
 Message.ExtendedTextMessage.FontType	enum
 Message.ExtendedTextMessage.InviteLinkGroupType	enum
@@ -150,11 +152,13 @@ Message.PaymentLinkMetadata.PaymentLinkHeader.PaymentLinkHeaderType	enum
 Message.PaymentReminderMessage.ReminderFrequency	enum
 Message.PaymentReminderMessage.ReminderStatus	enum
 Message.PeerDataOperationRequestMessage.GalaxyFlowAction.GalaxyFlowActionType	enum
+Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest.Mode	enum
 Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.FullHistorySyncOnDemandResponseCode	enum
 Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.HistorySyncChunkRetryResponseCode	enum
 Message.PinInChatMessage.Type	enum
 Message.PlaceholderMessage.PlaceholderType	enum
 Message.ProtocolMessage.Type	enum
+Message.RequestLocationUpdateMessage.UpdateType	enum
 Message.RequestWelcomeMessageMetadata.LocalChatState	enum
 Message.RequestWelcomeMessageMetadata.WelcomeTrigger	enum
 Message.ScheduledCallCreationMessage.CallType	enum
@@ -195,6 +199,8 @@ SyncActionValue.BusinessBroadcastCampaignBBProStatus	enum
 SyncActionValue.BusinessBroadcastCampaignStatus	enum
 SyncActionValue.AvatarUpdatedAction.AvatarEventType	enum
 SyncActionValue.BizAISettingsNudgeAction.BizAISettingsCategory	enum
+SyncActionValue.CommunityNestingStateAction.NestingState	enum
+SyncActionValue.GroupHistoryToggleAction.GroupHistoryToggleMode	enum
 SyncActionValue.InteractiveMessageAction.InteractiveMessageActionMode	enum
 SyncActionValue.LabelEditAction.ListType	enum
 SyncActionValue.MaibaAIFeaturesControlAction.MaibaAIFeatureStatus	enum
@@ -206,6 +212,7 @@ SyncActionValue.NotificationActivitySettingAction.NotificationActivitySetting	en
 SyncActionValue.PaymentTosAction.PaymentNotice	enum
 SyncActionValue.PrivateProcessingSettingAction.PrivateProcessingStatus	enum
 SyncActionValue.SettingsSyncAction.DisplayMode	enum
+SyncActionValue.SettingsSyncAction.MediaAutoDownloadQualitySetting	enum
 SyncActionValue.SettingsSyncAction.MediaQualitySetting	enum
 SyncActionValue.SettingsSyncAction.SettingKey	enum
 SyncActionValue.SettingsSyncAction.SettingPlatform	enum
@@ -371,6 +378,7 @@ BizAccountLinkInfo	whatsappAcctNumber	2	optional	string
 BizAccountLinkInfo	issueTime	3	optional	uint64
 BizAccountLinkInfo	hostStorage	4	optional	enum	BizAccountLinkInfo.HostStorageType=0,1
 BizAccountLinkInfo	accountType	5	optional	enum	BizAccountLinkInfo.AccountType=0
+BizAccountLinkInfo	whatsappAcctEmail	6	optional	string
 BizAccountPayload	vnameCert	1	optional	message	VerifiedNameCertificate
 BizAccountPayload	bizAcctLinkInfo	2	optional	bytes
 BizIdentityInfo	vlevel	1	optional	enum	BizIdentityInfo.VerifiedLevelValue=0,1
@@ -435,6 +443,8 @@ BotImagineMetadata	shortPrompt	2	optional	string
 BotInfrastructureDiagnostics	botBackend	1	optional	enum	BotInfrastructureDiagnostics.BotBackend=0,1
 BotInfrastructureDiagnostics	toolsUsed	2	repeated	string
 BotInfrastructureDiagnostics	isThinking	3	optional	bool
+BotInterjectionMetadata	targetPromptMessageId	1	optional	string
+BotInterjectionMetadata	foldedPromptMessageIds	2	repeated	string
 BotLinkedAccount	type	1	optional	enum	BotLinkedAccount.BotLinkedAccountType=0
 BotLinkedAccountsMetadata	accounts	1	repeated	message	BotLinkedAccount
 BotLinkedAccountsMetadata	acAuthTokens	2	optional	bytes
@@ -452,7 +462,8 @@ BotMemoryMetadata	addedFacts	1	repeated	message	BotMemoryFact
 BotMemoryMetadata	removedFacts	2	repeated	message	BotMemoryFact
 BotMemoryMetadata	disclaimer	3	optional	string
 BotMemuMetadata	faceImages	1	repeated	message	BotMediaMetadata
-BotMessageOrigin	type	1	optional	enum	BotMessageOrigin.BotMessageOriginType=0
+BotMessageOrigin	type	1	optional	enum	BotMessageOrigin.BotMessageOriginType=0,1
+BotMessageOrigin	proactiveMessageCampaignId	2	optional	string
 BotMessageOriginMetadata	origins	1	repeated	message	BotMessageOrigin
 BotMessageSharingInfo	botEntryPointOrigin	1	optional	enum	BotMetricsEntryPoint=0,1
 BotMessageSharingInfo	forwardScore	2	optional	uint32
@@ -499,6 +510,7 @@ BotMetadata	subscriptionUpsellMetadata	41	optional	message	AISubscriptionUpsellM
 BotMetadata	pttPromptMetadata	42	optional	message	BotPttPromptMetadata
 BotMetadata	botHistoryShareMetadata	43	optional	message	BotHistoryShareMetadata
 BotMetadata	responseStoppedByUser	44	optional	bool
+BotMetadata	interjectionMetadata	45	optional	message	BotInterjectionMetadata
 BotMetadata	internalMetadata	999	optional	bytes
 BotMetricsMetadata	destinationId	1	optional	string
 BotMetricsMetadata	destinationEntryPoint	2	optional	enum	BotMetricsEntryPoint=0,1
@@ -606,8 +618,10 @@ CallLogRecord	callCreatorJid	12	optional	string
 CallLogRecord	groupJid	13	optional	string
 CallLogRecord	participants	14	repeated	message	CallLogRecord.ParticipantInfo
 CallLogRecord	callType	15	optional	enum	CallLogRecord.CallType=0,1
+CallLogRecord.GuestInfo	pushName	1	optional	string
 CallLogRecord.ParticipantInfo	userJid	1	optional	string
 CallLogRecord.ParticipantInfo	callResult	2	optional	enum	CallLogRecord.CallResult=0,1
+CallLogRecord.ParticipantInfo	guestInfo	3	optional	message	CallLogRecord.GuestInfo
 CertChain	leaf	1	optional	message	CertChain.NoiseCertificate
 CertChain	intermediate	2	optional	message	CertChain.NoiseCertificate
 CertChain.NoiseCertificate	details	1	optional	bytes
@@ -651,6 +665,7 @@ ClientPairingProps	isSyncdSnapshotRecoveryEnabled	3	optional	bool
 ClientPairingProps	isHsThumbnailSyncEnabled	4	optional	bool
 ClientPairingProps	subscriptionSyncPayload	5	optional	bytes
 ClientPairingProps	isBotJidDbMigrated	6	optional	bool
+ClientPairingProps	companionAddPeerPayload	7	optional	bytes
 ClientPayload	username	1	optional	uint64
 ClientPayload	passive	3	optional	bool
 ClientPayload	userAgent	5	optional	message	ClientPayload.UserAgent
@@ -687,6 +702,7 @@ ClientPayload	preacksCount	45	optional	int32
 ClientPayload	processingQueueSize	46	optional	int32
 ClientPayload	pairedPeripherals	47	repeated	string
 ClientPayload	testIsolationId	48	optional	bytes
+ClientPayload	messageSts	49	optional	int64
 ClientPayload.DNSSource	dnsMethod	15	optional	enum	ClientPayload.DNSSource.DNSResolutionMethod=0,1
 ClientPayload.DNSSource	appCached	16	optional	bool
 ClientPayload.DevicePairingRegistrationData	eRegid	1	optional	bytes
@@ -823,6 +839,8 @@ ContextInfo	instagramThreadLink	80	optional	message	ContextInfo.InstagramThreadL
 ContextInfo	aiProvenance	81	optional	message	AIProvenance
 ContextInfo	experienceIds	82	repeated packed	uint32
 ContextInfo	partnerDeepLinkToken	83	optional	string
+ContextInfo	sourceExperienceId	84	optional	uint32
+ContextInfo	sourceExperienceIds	85	repeated packed	uint32
 ContextInfo.AdReplyInfo	advertiserName	1	optional	string
 ContextInfo.AdReplyInfo	mediaType	2	optional	enum	ContextInfo.AdReplyInfo.MediaType=0,1
 ContextInfo.AdReplyInfo	jpegThumbnail	16	optional	bytes
@@ -884,6 +902,14 @@ ContextInfo.ExternalAdReplyInfo	agmTitleStrategy	30	optional	int32
 ContextInfo.ExternalAdReplyInfo	agmSubtitleStrategy	31	optional	int32
 ContextInfo.ExternalAdReplyInfo	agmHeaderInteractionStrategy	32	optional	int32
 ContextInfo.ExternalAdReplyInfo	containsCtwaFlowsAutoLabel	33	optional	bool
+ContextInfo.ExternalAdReplyInfo	productId	34	optional	string
+ContextInfo.ExternalAdReplyInfo	containsCtwaPromo	35	optional	bool
+ContextInfo.ExternalAdReplyInfo	ctwaPromoResponseId	36	optional	string
+ContextInfo.ExternalAdReplyInfo	ctwaPromoOfferId	37	optional	string
+ContextInfo.ExternalAdReplyInfo	ctwaPromoAdEntryId	38	optional	string
+ContextInfo.ExternalAdReplyInfo	ctwaPromoResponseExpiresAtSeconds	39	optional	uint64
+ContextInfo.ExternalAdReplyInfo	ctwaPromoSchemaVersion	40	optional	uint32
+ContextInfo.ExternalAdReplyInfo	ctwaPromoAdgroupId	41	optional	string
 ContextInfo.FeatureEligibilities	cannotBeReactedTo	1	optional	bool
 ContextInfo.FeatureEligibilities	cannotBeRanked	2	optional	bool
 ContextInfo.FeatureEligibilities	canRequestFeedback	3	optional	bool
@@ -903,6 +929,7 @@ ContextInfo.QuestionReplyQuotedMessage	quotedResponse	3	optional	message	Message
 ContextInfo.StatusAudienceMetadata	audienceType	1	optional	enum	ContextInfo.StatusAudienceMetadata.AudienceType=0,1
 ContextInfo.StatusAudienceMetadata	listName	2	optional	string
 ContextInfo.StatusAudienceMetadata	listEmoji	3	optional	string
+ContextInfo.StatusAudienceMetadata	orgId	4	optional	string
 ContextInfo.UTMInfo	utmSource	1	optional	string
 ContextInfo.UTMInfo	utmCampaign	2	optional	string
 Conversation	id	1	required	string
@@ -969,6 +996,7 @@ Conversation	authAgentParentCompanyName	61	optional	string
 Conversation	authAgentObaPhoneNumber	62	optional	string
 Conversation	identityVerification	63	optional	message	IdentityVerificationState
 Conversation	acp2Setting	64	optional	message	ACP2Setting
+Conversation	acp2HistoryWithheld	65	optional	bool
 DeviceCapabilities	chatLockSupportLevel	1	optional	enum	DeviceCapabilities.ChatLockSupportLevel=0,1
 DeviceCapabilities	lidMigration	2	optional	message	DeviceCapabilities.LIDMigration
 DeviceCapabilities	businessBroadcast	3	optional	message	DeviceCapabilities.BusinessBroadcast
@@ -978,10 +1006,15 @@ DeviceCapabilities	aiThread	6	optional	message	DeviceCapabilities.AiThread
 DeviceCapabilities	aiFbidMigration	7	optional	message	DeviceCapabilities.AiFbidMigration
 DeviceCapabilities	bizAiSettingsSync	8	optional	message	DeviceCapabilities.BizAiSettingsSync
 DeviceCapabilities	contactRefresh	9	optional	message	DeviceCapabilities.ContactRefresh
+DeviceCapabilities	reverseHistorySync	10	optional	message	DeviceCapabilities.ReverseHistorySync
+DeviceCapabilities	newsletterChatsMigration	11	optional	message	DeviceCapabilities.NewsletterChatsMigration
+DeviceCapabilities	hostWriteMutationSupport	12	optional	message	DeviceCapabilities.HostWriteMutationSupport
+DeviceCapabilities	bizAiWebOnboarding	13	optional	message	DeviceCapabilities.BizAiWebOnboarding
 DeviceCapabilities.AiFbidMigration	chatDbMigrationTimestamp	1	optional	uint64
 DeviceCapabilities.AiFbidMigration	supportVersion	2	optional	uint32
 DeviceCapabilities.AiThread	supportLevel	1	optional	enum	DeviceCapabilities.AiThread.SupportLevel=0,1
 DeviceCapabilities.BizAiSettingsSync	handoffRemovalTimingEnabled	1	optional	bool
+DeviceCapabilities.BizAiWebOnboarding	version	1	optional	uint32
 DeviceCapabilities.BusinessBroadcast	importListEnabled	1	optional	bool
 DeviceCapabilities.BusinessBroadcast	companionSupportEnabled	2	optional	bool
 DeviceCapabilities.BusinessBroadcast	campaignSyncEnabled	3	optional	bool
@@ -989,7 +1022,12 @@ DeviceCapabilities.BusinessBroadcast	insightsSyncEnabled	4	optional	bool
 DeviceCapabilities.BusinessBroadcast	recipientLimit	5	optional	int32
 DeviceCapabilities.BusinessBroadcast	proCompanionSupportEnabled	6	optional	bool
 DeviceCapabilities.ContactRefresh	refreshSupported	1	optional	bool
+DeviceCapabilities.HostWriteMutationSupport	mutationNames	1	repeated	string
 DeviceCapabilities.LIDMigration	chatDbMigrationTimestamp	1	optional	uint64
+DeviceCapabilities.NewsletterChatsMigration	effectiveMigrated	1	optional	bool
+DeviceCapabilities.NewsletterChatsMigration	countdownEndsAt	2	optional	int64
+DeviceCapabilities.NewsletterChatsMigration	rolledBack	3	optional	bool
+DeviceCapabilities.ReverseHistorySync	enabledProducts	1	repeated	enum	DeviceCapabilities.ReverseHistorySync.Product=0,1
 DeviceCapabilities.UserHasAvatar	userHasAvatar	1	optional	bool
 DeviceConsistencyCodeMessage	generation	1	optional	uint32
 DeviceConsistencyCodeMessage	signature	2	optional	bytes
@@ -1036,6 +1074,8 @@ DeviceProps.HistorySyncConfig	supportHatchHistory	22	optional	bool
 DeviceProps.HistorySyncConfig	supportedBotChannelFbids	23	repeated	string
 DeviceProps.HistorySyncConfig	supportInlineContacts	24	optional	bool
 DeviceProps.HistorySyncConfig	supportNewsletter	25	optional	bool
+DeviceProps.HistorySyncConfig	supportUniversalReachChat	26	optional	bool
+DeviceProps.HistorySyncConfig	supportOmittedConversationMetadata	28	optional	bool
 DisappearingMode	initiator	1	optional	enum	DisappearingMode.Initiator=0,1
 DisappearingMode	trigger	2	optional	enum	DisappearingMode.Trigger=0,1
 DisappearingMode	initiatorDeviceJid	3	optional	string
@@ -1063,6 +1103,7 @@ EncryptedPairingRequest	iv	2	optional	bytes
 EphemeralSetting	duration	1	optional	sfixed32
 EphemeralSetting	timestamp	2	optional	sfixed64
 EventAdditionalMetadata	isStale	1	optional	bool
+EventInviteAdditionalMetadata	isUpdated	1	optional	bool
 EventResponse	eventResponseMessageKey	1	optional	message	MessageKey
 EventResponse	timestampMs	2	optional	int64
 EventResponse	eventResponseMessage	3	optional	message	Message.EventResponseMessage
@@ -1113,6 +1154,7 @@ GroupHistory	messages	1	repeated	message	WebMessageInfo
 GroupHistory	uncountedAssociatedMessageLists	2	repeated	message	UnCountedAssociatedMessageList
 GroupHistory	commentMessages	3	repeated	message	WebMessageInfo
 GroupHistory	outOfWindowPinnedMessages	4	repeated	message	WebMessageInfo
+GroupHistory	themeMessage	5	optional	message	WebMessageInfo
 GroupHistoryBundleInfo	deprecatedMessageHistoryBundle	1	optional	message	Message.MessageHistoryBundle
 GroupHistoryBundleInfo	processState	2	optional	enum	GroupHistoryBundleInfo.ProcessState=0,1
 GroupHistoryIndividualMessageInfo	bundleMessageKey	1	optional	message	MessageKey
@@ -1121,6 +1163,7 @@ GroupHistoryWithMessageBytes	messages	1	repeated	message	WebMessageInfoWithMessa
 GroupHistoryWithMessageBytes	uncountedAssociatedMessageLists	2	repeated	message	UnCountedAssociatedMessageListWithMessageBytes
 GroupHistoryWithMessageBytes	commentMessages	3	repeated	message	WebMessageInfoWithMessageBytes
 GroupHistoryWithMessageBytes	outOfWindowPinnedMessages	4	repeated	message	WebMessageInfoWithMessageBytes
+GroupHistoryWithMessageBytes	themeMessage	5	optional	message	WebMessageInfoWithMessageBytes
 GroupMention	groupJid	1	optional	string
 GroupMention	groupSubject	2	optional	string
 GroupParticipant	userJid	1	required	string
@@ -1178,6 +1221,9 @@ HistorySync	accounts	18	repeated	message	Account
 HistorySync	nctSalt	19	optional	bytes
 HistorySync	inlineContacts	20	repeated	message	InlineContact
 HistorySync	inlineContactsProvided	21	optional	bool
+HistorySync	favoriteStickers	22	repeated	message	StickerMetadata
+HistorySync	omittedConversationMetadata	25	optional	message	OmittedConversationMetadata
+HistorySync	omittedConversationMetadataSnapshotId	26	optional	string
 HistorySyncMsg	message	1	optional	message	WebMessageInfo
 HistorySyncMsg	msgOrderId	2	optional	uint64
 HydratedTemplateButton	index	4	optional	uint32
@@ -1416,6 +1462,10 @@ Message	botPlatformRegistrationSuccessMessage	131	optional	message	Message.Futur
 Message	newsletterScheduledMessage	132	optional	message	Message.FutureProofMessage
 Message	acp2SettingMessage	133	optional	message	Message.FutureProofMessage
 Message	audioStickerMessage	134	optional	message	Message.FutureProofMessage
+Message	instantImageMessage	135	optional	message	Message.ImageMessage
+Message	requestLocationMessage	136	optional	message	Message.RequestLocationMessage
+Message	botGroupParticipantMessage	137	optional	message	Message.FutureProofMessage
+Message	requestLocationUpdateMessage	138	optional	message	Message.RequestLocationUpdateMessage
 Message.AlbumMessage	expectedImageCount	2	optional	uint32
 Message.AlbumMessage	expectedVideoCount	3	optional	uint32
 Message.AlbumMessage	contextInfo	17	optional	message	ContextInfo
@@ -1506,9 +1556,11 @@ Message.ChatCustomImageWallpaper	fileEncSha256	3	optional	bytes
 Message.ChatCustomImageWallpaper	fileSha256	4	optional	bytes
 Message.ChatCustomImageWallpaper	dimLevel	5	optional	float
 Message.ChatDefaultWallpaper	isDoodleEnabled	1	optional	bool
-Message.ChatSolidColorWallpaper	colorLight	1	optional	string
-Message.ChatSolidColorWallpaper	colorDark	2	optional	string
+Message.ChatSolidColorWallpaper	backgroundLightArgb	1	optional	fixed32
+Message.ChatSolidColorWallpaper	backgroundDarkArgb	2	optional	fixed32
 Message.ChatSolidColorWallpaper	isDoodleEnabled	3	optional	bool
+Message.ChatSolidColorWallpaper	doodleLightArgb	4	optional	fixed32
+Message.ChatSolidColorWallpaper	doodleDarkArgb	5	optional	fixed32
 Message.ChatStockImageWallpaper	stockImageId	1	optional	string
 Message.ChatStockImageWallpaper	dimLevel	2	optional	float
 Message.ChatThemeSetting	settingTimestampMs	1	optional	int64
@@ -1527,6 +1579,8 @@ Message.CloudAPIThreadControlNotification	notificationContent	5	optional	message
 Message.CloudAPIThreadControlNotification	shouldSuppressNotification	6	optional	bool
 Message.CloudAPIThreadControlNotification.CloudAPIThreadControlNotificationContent	handoffNotificationText	1	optional	string
 Message.CloudAPIThreadControlNotification.CloudAPIThreadControlNotificationContent	extraJson	2	optional	string
+Message.CoexConnectionDescriptor	providerId	1	optional	int64
+Message.CoexConnectionDescriptor	product	2	optional	string
 Message.CommentMessage	message	1	optional	message	Message
 Message.CommentMessage	targetMessageKey	2	optional	message	MessageKey
 Message.ConditionalRevealMessage	encPayload	1	optional	bytes
@@ -1583,6 +1637,10 @@ Message.EventInviteMessage	caption	6	optional	string
 Message.EventInviteMessage	isCanceled	7	optional	bool
 Message.EventInviteMessage	endTime	8	optional	int64
 Message.EventInviteMessage	callLink	9	optional	string
+Message.EventInviteMessage	coverImageHandle	10	optional	string
+Message.EventInviteMessage	locationName	11	optional	string
+Message.EventInviteMessage	lastUpdatedTsUsec	12	optional	int64
+Message.EventInviteMessage	status	13	optional	enum	Message.EventInviteMessage.EventStatus=0,1
 Message.EventMessage	contextInfo	1	optional	message	ContextInfo
 Message.EventMessage	isCanceled	2	optional	bool
 Message.EventMessage	name	3	optional	string
@@ -1635,6 +1693,7 @@ Message.FullHistorySyncOnDemandConfig	historyDurationDays	2	optional	uint32
 Message.FullHistorySyncOnDemandRequestMetadata	requestId	1	optional	string
 Message.FullHistorySyncOnDemandRequestMetadata	businessProduct	2	optional	string
 Message.FullHistorySyncOnDemandRequestMetadata	opaqueClientData	3	optional	bytes
+Message.FullHistorySyncOnDemandRequestMetadata	connection	4	optional	message	Message.CoexConnectionDescriptor
 Message.FutureProofMessage	message	1	optional	message	Message
 Message.GroupInviteMessage	groupJid	1	optional	string
 Message.GroupInviteMessage	inviteCode	2	optional	string
@@ -1862,6 +1921,7 @@ Message.MessageHistoryMetadata	oldestMessageTimestampInWindow	2	optional	int64
 Message.MessageHistoryMetadata	messageCount	3	optional	int64
 Message.MessageHistoryMetadata	nonHistoryReceivers	4	repeated	string
 Message.MessageHistoryMetadata	oldestMessageTimestampInBundle	5	optional	int64
+Message.MessageHistoryMetadata	includesChatTheme	6	optional	bool
 Message.MessageHistoryNotice	contextInfo	1	optional	message	ContextInfo
 Message.MessageHistoryNotice	messageHistoryMetadata	2	optional	message	Message.MessageHistoryMetadata
 Message.MessageHistoryNotice	botHistoryShareSyncMetadata	3	optional	message	Message.BotHistoryShareSyncMetadata
@@ -1870,6 +1930,16 @@ Message.MusicMessage	songUri	2	optional	string
 Message.MusicMessage	artworkUri	3	optional	string
 Message.MusicMessage	style	4	optional	int32
 Message.MusicMessage	contextInfo	5	optional	message	ContextInfo
+Message.MusicMessage	lyrics	6	optional	message	Message.MusicMessage.Lyrics
+Message.MusicMessage.Lyrics	lines	1	repeated	message	Message.MusicMessage.Lyrics.Line
+Message.MusicMessage.Lyrics.Line	startTimeInMs	1	optional	int64
+Message.MusicMessage.Lyrics.Line	endTimeInMs	2	optional	int64
+Message.MusicMessage.Lyrics.Line	text	3	optional	string
+Message.MusicMessage.Lyrics.Line	wordOffsets	4	repeated	message	Message.MusicMessage.Lyrics.Line.WordOffset
+Message.MusicMessage.Lyrics.Line.WordOffset	startIndex	1	optional	int32
+Message.MusicMessage.Lyrics.Line.WordOffset	endIndex	2	optional	int32
+Message.MusicMessage.Lyrics.Line.WordOffset	startOffsetMs	3	optional	int64
+Message.MusicMessage.Lyrics.Line.WordOffset	endOffsetMs	4	optional	int64
 Message.NewsletterAdminInviteMessage	newsletterJid	1	optional	string
 Message.NewsletterAdminInviteMessage	newsletterName	2	optional	string
 Message.NewsletterAdminInviteMessage	jpegThumbnail	3	optional	bytes
@@ -1931,6 +2001,7 @@ Message.PeerDataOperationRequestMessage	galaxyFlowAction	9	optional	message	Mess
 Message.PeerDataOperationRequestMessage	companionCanonicalUserNonceFetchRequest	10	optional	message	Message.PeerDataOperationRequestMessage.CompanionCanonicalUserNonceFetchRequest
 Message.PeerDataOperationRequestMessage	bizBroadcastInsightsContactListRequest	11	optional	message	Message.PeerDataOperationRequestMessage.BizBroadcastInsightsContactListRequest
 Message.PeerDataOperationRequestMessage	bizBroadcastInsightsRefreshRequest	12	optional	message	Message.PeerDataOperationRequestMessage.BizBroadcastInsightsRefreshRequest
+Message.PeerDataOperationRequestMessage	recentConversationsOnDemandRequest	13	optional	message	Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest
 Message.PeerDataOperationRequestMessage.BizBroadcastInsightsContactListRequest	campaignId	1	optional	string
 Message.PeerDataOperationRequestMessage.BizBroadcastInsightsRefreshRequest	campaignId	1	optional	string
 Message.PeerDataOperationRequestMessage.CompanionCanonicalUserNonceFetchRequest	registrationTraceId	1	optional	string
@@ -1953,7 +2024,10 @@ Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest	onDemandMsgCo
 Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest	oldestMsgTimestampMs	5	optional	int64
 Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest	accountLid	6	optional	string
 Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest	supportInlineResponse	7	optional	bool
+Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest	mode	8	optional	enum	Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest.Mode=0,1
 Message.PeerDataOperationRequestMessage.PlaceholderMessageResendRequest	messageKey	1	optional	message	MessageKey
+Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest	conversationCount	1	optional	uint32
+Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest	messagesPerConversation	2	optional	uint32
 Message.PeerDataOperationRequestMessage.RequestStickerReupload	fileSha256	1	optional	string
 Message.PeerDataOperationRequestMessage.RequestUrlPreview	url	1	optional	string
 Message.PeerDataOperationRequestMessage.RequestUrlPreview	includeHqThumbnail	2	optional	bool
@@ -2119,12 +2193,17 @@ Message.ProtocolMessage	coexStateSync	33	optional	message	CoexStateSync
 Message.ProtocolMessage	acp2Setting	35	optional	message	ACP2Setting
 Message.ProtocolMessage	sharedDeviceContactHashKeyShare	36	optional	message	Message.SharedDeviceContactHashKeyShare
 Message.ProtocolMessage	sharedDeviceContactHashKeyRequest	37	optional	message	Message.SharedDeviceContactHashKeyRequest
+Message.ProtocolMessage	additionalPromptIds	38	repeated	string
 Message.QuestionResponseMessage	key	1	optional	message	MessageKey
 Message.QuestionResponseMessage	text	2	optional	string
 Message.ReactionMessage	key	1	optional	message	MessageKey
 Message.ReactionMessage	text	2	optional	string
 Message.ReactionMessage	groupingKey	3	optional	string
 Message.ReactionMessage	senderTimestampMs	4	optional	int64
+Message.RequestLocationMessage	contextInfo	1	optional	message	ContextInfo
+Message.RequestLocationUpdateMessage	key	1	optional	message	MessageKey
+Message.RequestLocationUpdateMessage	updateType	2	optional	enum	Message.RequestLocationUpdateMessage.UpdateType=0,1
+Message.RequestLocationUpdateMessage	senderTimestampMs	3	optional	int64
 Message.RequestPaymentMessage	noteMessage	4	optional	message	Message
 Message.RequestPaymentMessage	currencyCodeIso4217	1	optional	string
 Message.RequestPaymentMessage	amount1000	2	optional	uint64
@@ -2303,6 +2382,7 @@ Message.VideoMessage	motionPhotoPresentationOffsetMs	29	optional	uint64
 Message.VideoMessage	metadataUrl	30	optional	string
 Message.VideoMessage	videoSourceType	31	optional	enum	Message.VideoMessage.VideoSourceType=0,1
 Message.VideoMessage	dashManifestUrl	33	optional	string
+Message.VideoMessage	smartThumbnailTs	34	optional	int64
 MessageAddOn	messageAddOnType	1	optional	enum	MessageAddOn.MessageAddOnType=0,1
 MessageAddOn	messageAddOn	2	optional	message	Message
 MessageAddOn	senderTimestampMs	3	optional	int64
@@ -2337,6 +2417,7 @@ MessageContextInfo	accountEncryptionAttestation	18	optional	message	NonE2EEAttes
 MessageContextInfo	associatedPrimaryIdentityKey	19	optional	bytes
 MessageContextInfo	teeContextAnchorMessageId	20	optional	string
 MessageContextInfo	acp2Setting	21	optional	message	ACP2Setting
+MessageContextInfo	lightE2Ee	22	optional	bool
 MessageKey	remoteJid	1	optional	string
 MessageKey	fromMe	2	optional	bool
 MessageKey	id	3	optional	string
@@ -2404,15 +2485,47 @@ MsgOpaqueData	sharableEventInviteJpegThumbnail	59	optional	bytes
 MsgOpaqueData	sharableEventInviteCallLink	60	optional	string
 MsgOpaqueData	mediaPngThumbnail	61	optional	string
 MsgOpaqueData	qrUrl	62	optional	string
+MsgOpaqueData	musicData	63	optional	message	MsgOpaqueData.MusicData
+MsgOpaqueData	pollAddedOptionName	64	optional	string
 MsgOpaqueData.EventLocation	degreesLatitude	1	optional	double
 MsgOpaqueData.EventLocation	degreesLongitude	2	optional	double
 MsgOpaqueData.EventLocation	name	3	optional	string
 MsgOpaqueData.EventLocation	address	4	optional	string
 MsgOpaqueData.EventLocation	url	5	optional	string
 MsgOpaqueData.EventLocation	jpegThumbnail	6	optional	bytes
+MsgOpaqueData.MusicData	musicContentMediaId	1	optional	string
+MsgOpaqueData.MusicData	songId	2	optional	string
+MsgOpaqueData.MusicData	author	3	optional	string
+MsgOpaqueData.MusicData	title	4	optional	string
+MsgOpaqueData.MusicData	songUri	5	optional	string
+MsgOpaqueData.MusicData	artworkUri	6	optional	string
+MsgOpaqueData.MusicData	style	7	optional	int32
+MsgOpaqueData.MusicData	songStartTimeMs	8	optional	int32
+MsgOpaqueData.MusicData	clipDurationMs	9	optional	int32
+MsgOpaqueData.MusicData	isExplicit	10	optional	bool
+MsgOpaqueData.MusicData	countryBlocklist	11	optional	bytes
+MsgOpaqueData.MusicData	artistAttribution	12	optional	string
+MsgOpaqueData.MusicData	artworkDirectPath	13	optional	string
+MsgOpaqueData.MusicData	artworkSha256	14	optional	bytes
+MsgOpaqueData.MusicData	artworkEncSha256	15	optional	bytes
+MsgOpaqueData.MusicData	artworkMediaKey	16	optional	bytes
+MsgOpaqueData.MusicData	consumptionCheckedAtS	17	optional	int64
+MsgOpaqueData.MusicData	isAvailableForConsumption	18	optional	bool
+MsgOpaqueData.MusicData	lyrics	19	repeated	message	MsgOpaqueData.MusicData.LyricsLine
+MsgOpaqueData.MusicData	lyricsConfirmedAtS	20	optional	int64
+MsgOpaqueData.MusicData.LyricsLine	startTimeMs	1	optional	int32
+MsgOpaqueData.MusicData.LyricsLine	endTimeMs	2	optional	int32
+MsgOpaqueData.MusicData.LyricsLine	text	3	optional	string
+MsgOpaqueData.MusicData.LyricsLine	wordOffsets	4	repeated	message	MsgOpaqueData.MusicData.LyricsLine.WordOffset
+MsgOpaqueData.MusicData.LyricsLine.WordOffset	startIndex	1	optional	int32
+MsgOpaqueData.MusicData.LyricsLine.WordOffset	endIndex	2	optional	int32
+MsgOpaqueData.MusicData.LyricsLine.WordOffset	startOffsetMs	3	optional	int32
+MsgOpaqueData.MusicData.LyricsLine.WordOffset	endOffsetMs	4	optional	int32
 MsgOpaqueData.PollOption	name	1	optional	string
 MsgOpaqueData.PollOption	hash	2	optional	string
 MsgOpaqueData.PollOption	addOptionMsgKey	3	optional	string
+MsgOpaqueData.PollOption	localId	4	optional	uint32
+MsgOpaqueData.PollOption	addOptionMsgT	5	optional	uint32
 MsgOpaqueData.PollVoteSnapshot	option	1	optional	message	MsgOpaqueData.PollOption
 MsgOpaqueData.PollVoteSnapshot	optionVoteCount	2	optional	int32
 MsgOpaqueData.PollVotesSnapshot	pollVotes	1	repeated	message	MsgOpaqueData.PollVoteSnapshot
@@ -2436,6 +2549,12 @@ NotificationSettings	messageLight	3	optional	string
 NotificationSettings	lowPriorityNotifications	4	optional	bool
 NotificationSettings	reactionsMuted	5	optional	bool
 NotificationSettings	callVibrate	6	optional	string
+OmittedConversationMetadata	snapshotId	1	optional	string
+OmittedConversationMetadata	snapshotTimestampMs	2	optional	uint64
+OmittedConversationMetadata	batchIndex	3	optional	uint32
+OmittedConversationMetadata	batchCount	4	optional	uint32
+OmittedConversationMetadata	complete	5	optional	bool
+OmittedConversationMetadata	conversations	6	repeated	message	Conversation
 PairingRequest	companionPublicKey	1	optional	bytes
 PairingRequest	companionIdentityKey	2	optional	bytes
 PairingRequest	advSecret	3	optional	bytes
@@ -2499,6 +2618,7 @@ Point	x	3	optional	double
 Point	y	4	optional	double
 PollAdditionalMetadata	pollInvalidated	1	optional	bool
 PollAdditionalMetadata	pollNameHashHistory	2	repeated	message	PollAdditionalMetadata.PollNameHashHistoryEntry
+PollAdditionalMetadata	originalOptions	3	repeated	message	Message.PollCreationMessage.Option
 PollAdditionalMetadata.PollNameHashHistoryEntry	editStanzaId	1	optional	string
 PollAdditionalMetadata.PollNameHashHistoryEntry	pollNameHash	2	optional	bytes
 PollEncValue	encPayload	1	optional	bytes
@@ -2772,6 +2892,11 @@ SyncActionValue	ctwaMessageReceivedAction	93	optional	message	SyncActionValue.Ct
 SyncActionValue	sharedDeviceAllowlistAction	94	optional	message	SyncActionValue.SharedDeviceAllowlistAction
 SyncActionValue	contactManagerMetadataAction	95	optional	message	SyncActionValue.ContactManagerMetadataAction
 SyncActionValue	businessFolderActivationAction	96	optional	message	SyncActionValue.BusinessFolderActivationAction
+SyncActionValue	groupHistoryToggleAction	97	optional	message	SyncActionValue.GroupHistoryToggleAction
+SyncActionValue	bbProPendingCustomerBaseAction	98	optional	message	SyncActionValue.BBProPendingCustomerBaseAction
+SyncActionValue	communityNestingStateAction	99	optional	message	SyncActionValue.CommunityNestingStateAction
+SyncActionValue	sharedDeviceSecretAction	100	optional	message	SyncActionValue.SharedDeviceSecretAction
+SyncActionValue	hatchCvmSecretAction	101	optional	message	SyncActionValue.HatchCVMSecretAction
 SyncActionValue.AgentAction	name	1	optional	string
 SyncActionValue.AgentAction	deviceId	2	optional	int32
 SyncActionValue.AgentAction	isDeleted	3	optional	bool
@@ -2782,6 +2907,7 @@ SyncActionValue.ArchiveChatAction	messageRange	2	optional	message	SyncActionValu
 SyncActionValue.AutoOrganizeBusinessChatSetting	autoOrganize	1	optional	bool
 SyncActionValue.AvatarUpdatedAction	eventType	1	optional	enum	SyncActionValue.AvatarUpdatedAction.AvatarEventType=0,1
 SyncActionValue.AvatarUpdatedAction	recentAvatarStickers	2	repeated	message	SyncActionValue.StickerAction
+SyncActionValue.BBProPendingCustomerBaseAction	pending	1	optional	bool
 SyncActionValue.BizAISettingsNudgeAction	category	1	optional	enum	SyncActionValue.BizAISettingsNudgeAction.BizAISettingsCategory=0,1
 SyncActionValue.BizAISettingsNudgeAction	version	2	optional	int64
 SyncActionValue.BizAISettingsNudgeAction	updatedAtMs	3	optional	int64
@@ -2818,12 +2944,14 @@ SyncActionValue.ChatAssignmentAction	deviceAgentId	1	optional	string
 SyncActionValue.ChatAssignmentOpenedStatusAction	chatOpened	1	optional	bool
 SyncActionValue.ClearChatAction	messageRange	1	optional	message	SyncActionValue.SyncActionMessageRange
 SyncActionValue.CoexV2VersionAction	version	1	optional	uint64
+SyncActionValue.CommunityNestingStateAction	nestingState	1	optional	enum	SyncActionValue.CommunityNestingStateAction.NestingState=0,1
 SyncActionValue.ContactAction	fullName	1	optional	string
 SyncActionValue.ContactAction	firstName	2	optional	string
 SyncActionValue.ContactAction	lidJid	3	optional	string
 SyncActionValue.ContactAction	saveOnPrimaryAddressbook	4	optional	bool
 SyncActionValue.ContactAction	pnJid	5	optional	string
 SyncActionValue.ContactAction	username	6	optional	string
+SyncActionValue.ContactAction	birthday	7	optional	string
 SyncActionValue.ContactManagerMetadataAction	isHidden	1	optional	bool
 SyncActionValue.CtwaMessageReceivedAction	isCtwaMessageReceived	1	optional	bool
 SyncActionValue.CtwaPerCustomerDataSharingAction	isCtwaPerCustomerDataSharingEnabled	1	optional	bool
@@ -2854,6 +2982,9 @@ SyncActionValue.DetectedOutcomesStatusAction	isEnabled	1	optional	bool
 SyncActionValue.ExternalWebBetaAction	isOptIn	1	optional	bool
 SyncActionValue.FavoritesAction	favorites	1	repeated	message	SyncActionValue.FavoritesAction.Favorite
 SyncActionValue.FavoritesAction.Favorite	id	1	optional	string
+SyncActionValue.GroupHistoryToggleAction	groupHistoryToggleMode	1	optional	enum	SyncActionValue.GroupHistoryToggleAction.GroupHistoryToggleMode=0,1
+SyncActionValue.HatchCVMSecretAction	secret	1	optional	bytes
+SyncActionValue.HatchCVMSecretAction	generation	2	optional	int64
 SyncActionValue.InteractiveMessageAction	type	1	required	enum	SyncActionValue.InteractiveMessageAction.InteractiveMessageActionMode=1
 SyncActionValue.InteractiveMessageAction	agmId	2	optional	string
 SyncActionValue.KeyExpiration	expiredKeyEpoch	1	optional	int32
@@ -2873,6 +3004,7 @@ SyncActionValue.LabelSublistAction	subListId	1	optional	int32
 SyncActionValue.LidContactAction	fullName	1	optional	string
 SyncActionValue.LidContactAction	firstName	2	optional	string
 SyncActionValue.LidContactAction	username	3	optional	string
+SyncActionValue.LidContactAction	birthday	4	optional	string
 SyncActionValue.LocaleSetting	locale	1	optional	string
 SyncActionValue.LockChatAction	locked	1	optional	bool
 SyncActionValue.MaibaAIFeaturesControlAction	aiFeatureStatus	1	optional	enum	SyncActionValue.MaibaAIFeaturesControlAction.MaibaAIFeatureStatus=0,1
@@ -2962,7 +3094,10 @@ SyncActionValue.SettingsSyncAction	shouldPlaySoundForCallNotification	31	optiona
 SyncActionValue.SettingsSyncAction	chatThemeId	32	optional	string
 SyncActionValue.SettingsSyncAction	colorSchemeId	33	optional	string
 SyncActionValue.SettingsSyncAction	stockWallpaperImageId	34	optional	string
+SyncActionValue.SettingsSyncAction	mediaAutoDownloadQuality	35	optional	enum	SyncActionValue.SettingsSyncAction.MediaAutoDownloadQualitySetting=0,1
 SyncActionValue.SharedDeviceAllowlistAction	allowed	1	optional	bool
+SyncActionValue.SharedDeviceSecretAction	secret	1	optional	bytes
+SyncActionValue.SharedDeviceSecretAction	ttlMs	2	optional	int64
 SyncActionValue.StarAction	starred	1	optional	bool
 SyncActionValue.StatusPostOptInNotificationPreferencesAction	enabled	1	optional	bool
 SyncActionValue.StatusPrivacyAction	mode	1	optional	enum	SyncActionValue.StatusPrivacyAction.StatusDistributionMode=0,1
@@ -3219,6 +3354,7 @@ WebMessageInfo	ephemeralExpirationTimestamp	80	optional	uint64
 WebMessageInfo	scheduledMessageMetadata	81	optional	message	ScheduledMessageMetadata
 WebMessageInfo	decisionId	82	optional	string
 WebMessageInfo	decisionSources	83	repeated	string
+WebMessageInfo	eventInviteAdditionalMetadata	84	optional	message	EventInviteAdditionalMetadata
 WebMessageInfoWithMessageBytes	key	1	optional	message	MessageKey
 WebMessageInfoWithMessageBytes	messageBytes	2	optional	bytes
 WebNotificationsInfo	timestamp	2	optional	uint64

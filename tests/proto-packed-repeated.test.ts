@@ -27,6 +27,14 @@ const expectBytes = (actual: Uint8Array, expected: Uint8Array) => {
 };
 
 describe("repeated fields declared [packed = true]", () => {
+  test("ContextInfo.sourceExperienceIds uses packed field 85 and accepts unpacked input", () => {
+    const packed = bytes(0xaa, 0x05, 0x02, 0x01, 0x02);
+    expectBytes(encodeProto("ContextInfo", { sourceExperienceIds: [1, 2] }), packed);
+    expect(decodeProto("ContextInfo", packed)).toMatchObject({ sourceExperienceIds: [1, 2] });
+    expect(decodeProto("ContextInfo", bytes(0xa8, 0x05, 0x01, 0xa8, 0x05, 0x02)))
+      .toMatchObject({ sourceExperienceIds: [1, 2] });
+  });
+
   test("ContextInfo.experienceIds uses its new packed field 82", () => {
     const packed = bytes(0x92, 0x05, 0x02, 0x01, 0x02);
     expectBytes(encodeProto("ContextInfo", { experienceIds: [1, 2] }), packed);
@@ -240,12 +248,13 @@ describe("the generated codec packs exactly the fields the schema declares", () 
   const PACKED_BY_SCHEMA = [
     "ADVKeyIndexList.validIndexes",
     "ContextInfo.experienceIds",
+    "ContextInfo.sourceExperienceIds",
     "DeviceListMetadata.senderKeyIndexes",
     "DeviceListMetadata.recipientKeyIndexes",
     "Message_AppStateSyncKeyFingerprint.deviceIndexes",
   ];
 
-  test("no field packs beyond the five declared [packed = true]", () => {
+  test("no field packs beyond the six declared [packed = true]", () => {
     const source = readFileSync(
       new URL("../ts/generated/whatsapp.ts", import.meta.url),
       "utf8",
