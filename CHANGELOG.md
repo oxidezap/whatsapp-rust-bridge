@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.3...v0.26.4) (2026-11-01)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for latest protocol snapshot ([#158](https://github.com/oxidezap/whatsapp-rust-bridge/issues/158)) ([854e834](https://github.com/oxidezap/whatsapp-rust-bridge/commit/854e8345c46a449ce20c4482fe0918d06ba1b481))
+
 ## [0.26.3](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.2...v0.26.3) (2026-10-31)
 
 
