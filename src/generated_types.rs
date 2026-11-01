@@ -599,7 +599,7 @@ export interface EncDecryptFailed {
 export type EncDecryptFailureReason = "MalformedNode" | "UnsupportedEncType" | "MalformedCiphertext" | "NoSession" | "NoSenderKey" | "UnknownPreKey" | "UntrustedIdentity" | "BadMac" | "InvalidMessage" | "NoMessageSecret" | "LocalCryptoFailure" | "SignalError" | "StorageFailure" | "PlaintextUnusable" | "NotAttempted";
 
 /** The `mediatype` attribute of an `<enc>` node.  A hint about the payload the ciphertext carries, available before the decryption that would reveal it. It is the sender's claim and nothing checks it against the decrypted message.  Generated from `EncMediaType` in `WAWebBackendJobs.flow`.  Keep a wildcard when matching: future wire values can gain named variants. */
-export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | "music" | string;
+export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | "music" | "collection" | string;
 
 /** A sticker was favorited or unfavorited on a linked device (`favoriteSticker`). Unfavoriting is the same `Set` with `action.is_favorite == Some(false)`; the event is only emitted when the flag is present. */
 export interface FavoriteStickerUpdate {
@@ -1221,7 +1221,7 @@ export type NormalizedGroupActionType = "create" | "add" | "delete" | "remove" |
 export type NormalizedMembershipRequestMethod = "NonAdminAdd" | "InviteLink" | "LinkedGroupJoin";
 
 /** The `type` attribute of an incoming `<notification>`.  Every value WA Web routes. This client handles a subset and forwards the rest as a raw event, so a variant here is a value the protocol carries, not a promise that anything acts on it. */
-export type NotificationType = "account_sync" | "business" | "companion_reg_refresh" | "contacts" | "crsc_continuation" | "devices" | "digital_commerce_subscription" | "disappearing_mode" | "encrypt" | "fb:update" | "hosted" | "link_code_companion_reg" | "mediaretry" | "mex" | "newsletter" | "passkey_prologue_request" | "pay" | "picture" | "privacy_token" | "psa" | "registration" | "server" | "server_sync" | "status" | "w:gp2" | "w:growth" | "waffle";
+export type NotificationType = "account_sync" | "biz_thread_data" | "biz_thread_data_bulk" | "business" | "companion_reg_refresh" | "contacts" | "crsc_continuation" | "devices" | "digital_commerce_subscription" | "disappearing_mode" | "encrypt" | "fb:update" | "hosted" | "link_code_companion_reg" | "mediaretry" | "mex" | "newsletter" | "passkey_prologue_request" | "pay" | "picture" | "privacy_token" | "psa" | "registration" | "server" | "server_sync" | "status" | "w:gp2" | "w:growth" | "waffle";
 
 export interface OfflineSyncCompleted {
   count: number;
