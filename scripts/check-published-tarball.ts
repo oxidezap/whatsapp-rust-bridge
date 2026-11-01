@@ -90,9 +90,30 @@ const consumer = (name: string): string => `import {
   encodeProto,
   proto,
   type WasmWhatsAppClient,
+  type WasmCallHandle,
+  createCallControl,
+  type DirectCallHostCallbacks,
+  type WasmCallControl,
   UnpairedSurrogateError,
 } from "${name}";
 import { proto as protoSub } from "${name}/proto-types";
+import { loadVoip, packetizeOpusForMlow } from "${name}/voip";
+import { initVoipSync } from "${name}/voip/host";
+import type { VoipRelayTransport } from "${name}";
+
+export function voipContracts(transport: VoipRelayTransport, client: WasmWhatsAppClient) {
+  const plugin = loadVoip(transport).voipBackend;
+  const fromHost = initVoipSync(new Uint8Array(), transport).voipBackend;
+  const packet: Uint8Array = packetizeOpusForMlow(new Uint8Array([0xbb, 3]));
+  const accepted: Promise<WasmCallHandle> = client.acceptCallPcm("ringing", true);
+  const dialed: Promise<WasmCallHandle> = client.dialCallPcm("peer@s.whatsapp.net", true);
+  const pushed: boolean = client.callPushPcm16("ringing", new Int16Array(960));
+  return { plugin, fromHost, packet, accepted, dialed, pushed };
+}
+
+export function directCallContracts(host: DirectCallHostCallbacks, transport: VoipRelayTransport): Promise<WasmCallControl> {
+  return createCallControl(host, { onEvent() {} }, { voipBackend: loadVoip(transport).voipBackend });
+}
 
 // The run-observation contract, derived from the export itself: a
 // declaration change that moves a field breaks this fixture at the access
@@ -136,6 +157,7 @@ export function roundtrip(): boolean {
 const smoke = (name: string): string => `import * as root from "${name}";
 import { proto } from "${name}/proto-types";
 import { proto as rootProto } from "${name}";
+import { loadVoip, packetizeOpusForMlow, MlowAudioDecoder } from "${name}/voip";
 
 const assert = (cond, label) => {
   if (!cond) {
@@ -157,6 +179,12 @@ assert(
 );
 const reader = new root.BinaryReader(bytes);
 assert(reader.len === bytes.length, "BinaryReader over the wire bytes");
+const voip = loadVoip({ connect: async () => { throw Error("offline"); } });
+assert(typeof voip.voipBackend.sendFrame === "function", "voip plugin exports");
+assert(packetizeOpusForMlow(new Uint8Array([0xbb, 3, 1, 2]))[0] === 0xdd, "voip codec");
+const decoder = new MlowAudioDecoder();
+assert(decoder.decode(new Uint8Array(), undefined).length === 960, "voip decoder");
+decoder.free();
 console.log("smoke: ok");
 `;
 
@@ -271,6 +299,42 @@ try {
       const lifecycle = await run(command, smokeDir, 120_000, { BRIDGE_ENTRY: entry });
       check(lifecycle.exit === 0, `isolated production lifecycle: ${runtime} ${entry}`);
       if (lifecycle.exit !== 0) console.error(lifecycle.output);
+    }
+  }
+
+  writeFileSync(join(smokeDir, "voip-lifecycle.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-lifecycle.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    for (const entry of ["root", "host"]) {
+      const lifecycle = await run([runtime, "voip-lifecycle.mjs"], smokeDir, 30_000, { VOIP_ENTRY: entry });
+      check(lifecycle.exit === 0 && lifecycle.output.includes("opened and closed"), `isolated VoIP codecs and lifecycle: ${runtime} ${entry}`);
+      if (lifecycle.exit !== 0) console.error(lifecycle.output);
+    }
+  }
+
+  writeFileSync(join(smokeDir, "voip-local-relay.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-local-relay.mjs"), "utf8"));
+  writeFileSync(join(smokeDir, "voip-call-signaling.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-call-signaling.mjs"), "utf8"));
+  writeFileSync(join(smokeDir, "voip-playout.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-playout.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    const playout = await run([runtime, "voip-playout.mjs"], smokeDir, 10_000);
+    check(playout.exit === 0 && playout.output.includes("duplex PCM, timed playout and video delivered"), `isolated VoIP playout: ${runtime}`);
+    if (playout.exit !== 0) console.error(playout.output);
+  }
+
+  writeFileSync(join(smokeDir, "voip-external-control.mjs"), readFileSync(join(ROOT, "tests/fixtures/voip-external-control.mjs"), "utf8"));
+  for (const runtime of ["node", process.execPath]) {
+    const direct = await run([runtime, "voip-external-control.mjs"], smokeDir, 15_000);
+    check(direct.exit === 0 && direct.output.includes("standalone control delivered duplex PCM"), `isolated external call control: ${runtime}`);
+    if (direct.exit !== 0) console.error(direct.output);
+  }
+
+  if (process.env.MOCK_SERVER_URL) {
+    for (const file of ["voip-public-video.mjs", "voip-testsrc-idr.h264"]) {
+      writeFileSync(join(smokeDir, file), readFileSync(join(ROOT, "tests/fixtures", file)));
+    }
+    for (const runtime of ["node", process.execPath]) {
+      const video = await run([runtime, "voip-public-video.mjs"], smokeDir, 30_000, { NODE_TLS_REJECT_UNAUTHORIZED: "0" });
+      check(video.exit === 0 && video.output.includes("public callPushVideo delivered matching H.264 through both WASMs"), `isolated public video: ${runtime}`);
+      if (video.exit !== 0) console.error(video.output);
     }
   }
 

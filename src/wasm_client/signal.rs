@@ -1,8 +1,11 @@
-//! Calls, Signal protocol and raw transport.
+//! Signal protocol and raw transport.
 //!
 //! One of the per-domain `impl` blocks for [`WasmWhatsAppClient`];
 //! see `wasm_client.rs` for the type, its construction and the shared
 //! conversion helpers.
+//!
+//! Call control lives in `calls.rs`; only the stanza-level ack/reject
+//! primitives stay here.
 
 use super::*;
 

@@ -1,0 +1,17 @@
+[package]
+name = "voip-abi"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# No dependencies, ever: the ABI is a hand-written little-endian binary
+# protocol (magic OZVP, versioned header, length-prefixed fields). JSON,
+# protobuf, or any serialization framework would put a second schema language
+# and a second parser on the hot path between the two WASMs; a `cargo tree`
+# with any third-party crate in it fails the point of this crate. CI asserts
+# the empty graph beside the format, lint, and unit-test gates.
+[dependencies]
+
+[lib]
+name = "voip_abi"
+path = "src/lib.rs"

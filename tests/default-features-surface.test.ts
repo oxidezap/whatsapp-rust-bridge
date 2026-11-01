@@ -1,8 +1,8 @@
 /**
  * The published default carries every optional domain.
  *
- * The `client-*` features and `legacy-session` exist so a consumer building
- * from source can subtract from the artifact (see
+ * The default `client-*` features and `legacy-session` exist so a consumer
+ * building from source can subtract from the artifact (see
  * `docs/wasm-artifact-private-memory.md`). Nothing else about them is a
  * choice: `default` has all of them, and dropping one from `default` removes
  * exports from the published package. That is a shape change to argue for, not
@@ -27,6 +27,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** One export per feature, chosen because only that feature can emit it. */
 const WITNESSES: Record<string, string> = {
   "client-business": "getBusinessProfile",
+  "client-calls": "terminateCall",
+  "client-calls-media": "acceptCall",
   "client-chat-actions": "pinChat",
   "client-contacts": "isOnWhatsApp",
   "client-groups": "getGroupMetadata",
@@ -35,6 +37,16 @@ const WITNESSES: Record<string, string> = {
   "client-signal": "signalDecryptGroupMessage",
   "legacy-session": "importLegacySessionRecordV1",
 };
+
+/**
+ * Features in `default` that enable core code without gating a bridge export.
+ * `client-voip-control` turns on the core's neutral call-control seam
+ * (`whatsapp-rust/voip-control`); every export it makes reachable is emitted
+ * by another domain, so no witness here can name it. Its presence in the
+ * default set is still pinned below, and `check:voip-control-seam` proves
+ * what it resolves to.
+ */
+const SEAM_FEATURES: string[] = ["client-voip-control"];
 
 /** The `default = [...]` list, in declaration order. */
 function defaultFeatures(): string[] {
@@ -47,8 +59,11 @@ function defaultFeatures(): string[] {
 test("every gated domain is in the default feature set", () => {
   // Both directions: a feature added to `default` without a witness here would
   // otherwise go unpinned, and a witness whose feature left `default` is the
-  // regression this file exists for.
-  expect(defaultFeatures().sort()).toEqual(Object.keys(WITNESSES).sort());
+  // regression this file exists for. Seam features have no export to witness
+  // with, so they are pinned by name instead.
+  expect(defaultFeatures().sort()).toEqual(
+    [...Object.keys(WITNESSES), ...SEAM_FEATURES].sort()
+  );
 });
 
 test("the built declarations carry every gated domain's exports", () => {
@@ -58,7 +73,7 @@ test("the built declarations carry every gated domain's exports", () => {
   // being gated out. Searching for the bare name reported five of eight
   // domains missing from an artifact that had lost all eight.
   const declared = (exported: string) =>
-    new RegExp(`^\\s*(export function )?${exported}\\(`, "m").test(dts);
+    new RegExp(`^\\s*(?:export (?:function|class) )?${exported}\\s*[\\({]`, "m").test(dts);
   const missing = Object.entries(WITNESSES)
     .filter(([, exported]) => !declared(exported))
     .map(([feature, exported]) => `${feature} (${exported})`);

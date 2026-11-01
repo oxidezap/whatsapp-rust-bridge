@@ -309,6 +309,70 @@ fn enqueue_spawn(task: SpawnTask) {
     }
 }
 
+thread_local! {
+    /// Wakers of spawn drains parked between batches. Kept out of
+    /// `SLEEP_WAKERS` on purpose: the drain's yield is scheduler-internal
+    /// and has a separate callback and queue from user sleeps.
+    static DRAIN_WAKERS: RefCell<VecDeque<Waker>> = const { RefCell::new(VecDeque::new()) };
+    static DRAIN_TIMER_CB: RefCell<Option<JsValue>> = const { RefCell::new(None) };
+}
+
+/// Create the shared drain-timer callback once.
+fn ensure_drain_callback() {
+    DRAIN_TIMER_CB.with(|cached| {
+        if cached.borrow().is_some() {
+            return;
+        }
+        let callback = Closure::wrap(Box::new(|| {
+            DRAIN_WAKERS.with(|wakers| {
+                if let Some(waker) = wakers.borrow_mut().pop_front() {
+                    waker.wake();
+                }
+            });
+        }) as Box<dyn FnMut()>);
+        *cached.borrow_mut() = Some(callback.into_js_value());
+    });
+}
+
+/// Yield to the JS timer queue without touching the sleep registry. Same
+/// `setTimeout(0)` as `set_timeout_yield`, minus the accounting — and, like
+/// `SetImmediateYield`, with no `Drop` cleanup: a stale waker wakes a dead
+/// task, which the executor ignores.
+fn drain_timer_yield() -> Pin<Box<dyn Future<Output = ()>>> {
+    struct DrainYield {
+        registered: bool,
+    }
+    impl Future for DrainYield {
+        type Output = ();
+
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+            if self.registered {
+                return Poll::Ready(());
+            }
+            self.registered = true;
+            ensure_drain_callback();
+            let armed = DRAIN_TIMER_CB.with(|cached| {
+                let cached = cached.borrow();
+                let cb = cached.as_ref()?;
+                let set_timeout_fn = get_set_timeout()?;
+                set_timeout_fn.call1(&JsValue::NULL, cb).ok()?;
+                DRAIN_WAKERS.with(|wakers| {
+                    wakers.borrow_mut().push_back(cx.waker().clone());
+                });
+                Some(())
+            });
+            // No timer could be armed; parking here would stall every later
+            // spawn, so complete instead. The waker only queues after a
+            // successful call, so there is nothing to clean up.
+            if armed.is_none() {
+                return Poll::Ready(());
+            }
+            Poll::Pending
+        }
+    }
+    Box::pin(DrainYield { registered: false })
+}
+
 /// Drain loop: starts tasks in batches, yielding to the JS timer queue between
 /// batches so setTimeout/setInterval/Promise callbacks can run.
 async fn drain_spawn_queue() {
@@ -334,7 +398,9 @@ async fn drain_spawn_queue() {
         // Yield to the JS timer queue between batches. Uses setTimeout(0) so
         // timer callbacks (setInterval, storage Promises) can interleave.
         // MessageChannel has higher priority than timers and would still starve.
-        set_timeout_yield().await;
+        // The drain's own timer stays out of the sleep registry (see
+        // `drain_timer_yield`) so a parked drain never disturbs sleep accounting.
+        drain_timer_yield().await;
 
         // After yielding, check if more tasks were enqueued while we were waiting
     }
@@ -514,24 +580,46 @@ mod tests {
         SLEEP_WAKERS.with(|wakers| wakers.borrow().len())
     }
 
+    fn registered(id: SleepId) -> bool {
+        SLEEP_WAKERS.with(|wakers| wakers.borrow().contains_key(&id))
+    }
+
     #[wasm_bindgen_test]
     async fn sleep_fires_and_leaves_no_registration() {
-        let before = pending_sleeps();
-        make_sleep(1).await;
-        assert_eq!(
-            pending_sleeps(),
-            before,
-            "a fired timer must deregister its waker"
+        // Another task's timer may expire while this test is suspended.
+        // A global before/after count would report a false leak in that case.
+        let mut unrelated = Box::pin(make_sleep(1));
+        assert!(futures::poll!(unrelated.as_mut()).is_pending());
+        let unrelated_id = unrelated.armed.as_ref().unwrap().id;
+        let mut sleep = Box::pin(make_sleep(8));
+        assert!(futures::poll!(sleep.as_mut()).is_pending());
+        let id = sleep.armed.as_ref().unwrap().id;
+        assert!(registered(id));
+        sleep.as_mut().await;
+        assert!(
+            !registered(id),
+            "a fired timer must deregister its own waker"
+        );
+        assert!(
+            !registered(unrelated_id),
+            "the unrelated earlier timer also fired"
         );
     }
 
     #[wasm_bindgen_test]
     async fn concurrent_sleeps_each_wake_their_own_future() {
-        let before = pending_sleeps();
-        // Distinct durations so they complete out of registration order.
-        let (a, b, c) = futures::join!(make_sleep(8), make_sleep(1), make_sleep(4));
-        assert_eq!((a, b, c), ((), (), ()));
-        assert_eq!(pending_sleeps(), before);
+        let mut a = Box::pin(make_sleep(8));
+        let mut b = Box::pin(make_sleep(1));
+        let mut c = Box::pin(make_sleep(4));
+        let mut ids = Vec::new();
+        for sleep in [&mut a, &mut b, &mut c] {
+            assert!(futures::poll!(sleep.as_mut()).is_pending());
+            ids.push(sleep.armed.as_ref().unwrap().id);
+        }
+        assert!(ids.iter().all(|id| registered(*id)));
+        let completed = futures::join!(a.as_mut(), b.as_mut(), c.as_mut());
+        assert_eq!(completed, ((), (), ()));
+        assert!(ids.iter().all(|id| !registered(*id)));
     }
 
     /// The whole point of the design: a dropped sleep must clear both its JS
@@ -559,20 +647,18 @@ mod tests {
     /// Cancelling must not disturb sleeps that are still waiting.
     #[wasm_bindgen_test]
     async fn cancelling_one_sleep_leaves_the_others_running() {
-        let before = pending_sleeps();
         let mut long = Box::pin(make_sleep(60_000));
         assert!(futures::poll!(long.as_mut()).is_pending());
-        let mut other = Box::pin(make_sleep(60_000));
+        let long_id = long.armed.as_ref().unwrap().id;
+        let mut other = Box::pin(make_sleep(1));
         assert!(futures::poll!(other.as_mut()).is_pending());
-        assert_eq!(pending_sleeps(), before + 2);
-
+        let other_id = other.armed.as_ref().unwrap().id;
+        assert_ne!(long_id, other_id);
+        assert!(registered(long_id) && registered(other_id));
         drop(long);
-        assert_eq!(pending_sleeps(), before + 1);
-
-        // The survivor still completes on its own terms.
-        drop(other);
-        assert_eq!(pending_sleeps(), before);
-        make_sleep(1).await;
-        assert_eq!(pending_sleeps(), before);
+        assert!(!registered(long_id));
+        assert!(registered(other_id));
+        other.as_mut().await;
+        assert!(!registered(other_id));
     }
 }

@@ -64,8 +64,11 @@ test("generated event callbacks preserve required and optional public signatures
   const baseline = JSON.parse(readFileSync(join(import.meta.dir, "fixtures/generated-event-contract.json"), "utf8")) as {members: Record<string,string>};
   const source=await ts.createSourceFile("bridge.d.ts",readFileSync(join(import.meta.dir,"../pkg/whatsapp_rust_bridge.d.ts"),"utf8"));
   const declarations=source.statements.filter((node): node is ts.InterfaceDeclaration=>ts.isInterfaceDeclaration(node)&&node.name.text==="WhatsAppEventCallbacks");
-  expect(declarations.length).toBe(1);
-  expect(Object.fromEntries(declarations[0]!.members.map(member=>[member.name!.getText(source),member.getText(source).replace(/\s+/g," ")]))).toEqual(baseline.members);
+  expect(declarations.length).toBeGreaterThan(0);
+  const members = declarations.flatMap(declaration => [...declaration.members]);
+  const names = members.map(member => member.name!.getText(source));
+  expect(new Set(names).size).toBe(names.length);
+  expect(Object.fromEntries(members.map(member => [member.name!.getText(source), member.getText(source).replace(/\s+/g, " ")]))).toEqual(baseline.members);
 });
 
 // Frozen from the compiled pre-refactor package, independently of variant tables.
