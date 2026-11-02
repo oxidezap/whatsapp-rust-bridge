@@ -78,18 +78,18 @@ try {
   assert.equal(relay.activeConnections, 2);
   assert.equal(sent[1].filter(item => item.tag === "receipt" && item.content?.[0]?.tag === "offer").length, 1, "one distinct offer receipt");
   assert.equal(sent.flat().filter(item => item.tag === "ack").length, 0, "shared call control leaves generic ACKs to its host");
+  await assert.rejects(caller.rejectVideo(), error =>
+    error.kind === "invalid-argument" && /not supported by the pinned core/.test(error.message));
+  assert.equal(sent.flat().filter(item => item.content?.some(child => child.tag === "video")).length, 0,
+    "unsupported peer rejection must not send a local-stop video stanza");
 
   const samples = Int16Array.from({ length: 960 }, (_, i) => Math.round(6000 * Math.sin(i * Math.PI / 20)));
-  for (let frame = 0; frame < 15; frame++) {
+  for (let frame = 0; frame < 6; frame++) {
     for (const control of controls) assert.equal(control.callPushPcm16(caller.callId, samples), true);
     await sleep(60);
   }
   await until(() => pcm.every(frames => frames.some(frame => frame.some(sample => Math.abs(sample) > 100))), "two-way non-silent PCM");
-  await until(() => controls.every(control => control.getCallMediaStats(caller.callId).rtpReceived > 0), "media stats push observed");
-  for (const control of controls) {
-    const stats = control.getCallMediaStats(caller.callId);
-    assert.ok(stats.rtpReceived > 0, "actual received media counters");
-  }
+  // Do not wait for a periodic stats push: close must flush the short call.
   assert.ok(counts.every(count => count.packets > 0));
   assert.deepEqual(ingressErrors, []);
 
@@ -102,7 +102,9 @@ try {
   for (let index = 0; index < controls.length; index++) {
     const stats = controls[index].getCallMediaStats(caller.callId);
     assert.ok(stats.rtpReceived > 0, "final stats survive record teardown");
-    assert.equal(events[index].filter(event => event.type === "media" && event.data.kind === "ended").length, 1);
+    const ended = events[index].filter(event => event.type === "media" && event.data.kind === "ended");
+    assert.equal(ended.length, 1);
+    assert.equal(ended[0].data.stats.rtpReceived, stats.rtpReceived, "ended carries the final snapshot");
     assert.equal(pending[index].size, 0, "ACK observers released");
   }
 

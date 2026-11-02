@@ -19,9 +19,9 @@
  *    carries no engine code symbol in its `name` custom section. An opt-in
  *    resident-engine build carries them; a stripped release artifact carries
  *    no names either way, so this scan refuses an artifact without a section.
- * 3. The control-only dependency set is a subset of the default one: enabling
- *    the seam explicitly must not add a runtime crate beyond
- *    `whatsapp-rust/voip-control` (which was already on transitively).
+ * 3. Relative to the same domains without the media/control seam, only the
+ *    dependency-free `voip-abi` boundary crate may be added. A new runtime
+ *    dependency introduced by either seam feature fails this comparison.
  *
  *   node scripts/check-voip-control-seam.mjs [artifact.wasm]
  *
@@ -35,7 +35,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -154,20 +154,27 @@ function packageNames(extraArgs) {
 }
 
 const controlPkgs = packageNames(["--no-default-features", "--features", CONTROL_FEATURES.join(",")]);
-const defaultPkgs = packageNames([]);
-const added = [...controlPkgs].filter((p) => !defaultPkgs.has(p));
+// Remove both the explicit seam and the public media feature that enables it.
+// Comparing to defaults would compare the control graph to itself.
+const baselineFeatures = CONTROL_FEATURES.filter(
+  (feature) => feature !== "client-voip-control" && feature !== "client-calls-media",
+);
+const baselinePkgs = packageNames([
+  "--no-default-features", "--features", baselineFeatures.join(","),
+]);
+const added = [...controlPkgs].filter((p) => !baselinePkgs.has(p) && p !== "voip-abi");
 if (added.length > 0) {
-  fail(`control-only graph adds crates beyond default: ${added.join(", ")}`);
+  fail(`control-only graph adds runtime crates beyond the pre-seam baseline: ${added.join(", ")}`);
 }
 console.log(
-  `check-voip-control-seam: deps ok (${controlPkgs.size} control-only crates, all within default's ${defaultPkgs.size})`
+  `check-voip-control-seam: deps ok (${controlPkgs.size} control-only crates; ${baselinePkgs.size} baseline crates plus the voip-abi boundary)`
 );
 
 // --- leg 2: no engine code in the control-only artifact ---------------------
 
 const artifactArg = process.argv[2];
 const artifact = artifactArg
-  ? join(root, artifactArg)
+  ? resolve(root, artifactArg)
   : join(root, "target/wasm32-unknown-unknown/debug/whatsapp_rust_bridge.wasm");
 if (!artifactArg) {
   // Warnings denied: this configuration compiles in no other gate, so a

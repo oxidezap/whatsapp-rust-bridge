@@ -2664,7 +2664,15 @@ pub async fn create_whatsapp_client(
     #[cfg(feature = "client-voip-control")]
     let builder = match extensions.voip_backend {
         Some(callbacks) => {
-            let agreed = crate::voip::handshake(&callbacks).await?;
+            let agreed = wacore::runtime::timeout(
+                &*runtime,
+                crate::voip::OPEN_CEILING,
+                crate::voip::handshake(&callbacks),
+            )
+            .await
+            .map_err(|_| {
+                crate::errors::invalid_arg("extensions", "VoIP backend handshake timed out")
+            })??;
             crate::voip::install(builder, callbacks, agreed, runtime.clone())?
         }
         None => builder,

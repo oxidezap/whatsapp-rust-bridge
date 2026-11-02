@@ -75,7 +75,7 @@ describe("published VoIP facade", () => {
     } finally { client.free(); }
   });
 
-  test("host init accepts provided bytes without loading the core entrypoint", async () => {
+  test("host init accepts provided bytes and negotiates PCM/video capabilities", async () => {
     const bytes = readFileSync(new URL("../dist/whatsapp_rust_voip_bg.wasm", import.meta.url));
     const engine = initVoipSync(bytes, noRelay);
     const hello = new Uint8Array([79, 90, 86, 80, 1, 0, 1, 0, 0, 5, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff]);

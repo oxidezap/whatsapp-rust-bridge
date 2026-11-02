@@ -39,6 +39,9 @@ struct FakeState {
     begin: BeginAnswer,
     cancel_gate: Option<js_sys::Promise>,
     fail_reserve: bool,
+    reserve_gate: Option<js_sys::Promise>,
+    hello_error: bool,
+    stats_on_close: Option<abi::StatsData>,
     reservations: Mutex<std::collections::HashSet<u32>>,
     command_busy: std::sync::atomic::AtomicUsize,
     command_accepted: Mutex<Option<futures::channel::oneshot::Sender<()>>>,
@@ -48,6 +51,13 @@ impl FakeState {
     fn answer(&self, frame: &abi::Frame) -> abi::Frame {
         match frame.opcode {
             abi::Opcode::Hello => {
+                if self.hello_error {
+                    return abi::Frame::fail(
+                        frame,
+                        abi::AbiErrorCode::NotSupported,
+                        Some("fixture refusal"),
+                    );
+                }
                 let mut resp = abi::Frame::respond(
                     frame,
                     abi::HelloResponse {
@@ -158,6 +168,19 @@ impl FakeState {
             }
             abi::Opcode::Close => {
                 let request = abi::CloseRequest::decode(&frame.payload).unwrap();
+                if let Some(stats) = &self.stats_on_close {
+                    self.push(
+                        &abi::Frame::request(
+                            abi::Opcode::Stats,
+                            abi::StatsPush {
+                                session: request.session,
+                                stats: stats.clone(),
+                            }
+                            .encode(),
+                        )
+                        .encode(),
+                    );
+                }
                 self.reservations
                     .lock()
                     .unwrap()
@@ -191,6 +214,11 @@ fn fake_callbacks(state: Arc<Mutex<FakeState>>) -> VoipBackendCallbacks {
                 .push((frame.opcode.as_u8(), frame.payload.clone()));
             let raw = st.answer(&frame).encode();
             let raw = JsValue::from(js_sys::Uint8Array::from(raw.as_slice()));
+            if frame.opcode == abi::Opcode::Reserve
+                && let Some(gate) = st.reserve_gate.clone()
+            {
+                return gate;
+            }
             if frame.opcode == abi::Opcode::CancelOpen
                 && let Some(gate) = st.cancel_gate.clone()
             {
@@ -298,6 +326,9 @@ fn fake_state() -> Arc<Mutex<FakeState>> {
         begin: BeginAnswer::Ack,
         cancel_gate: None,
         fail_reserve: false,
+        reserve_gate: None,
+        hello_error: false,
+        stats_on_close: None,
         reservations: Mutex::new(std::collections::HashSet::new()),
         command_busy: std::sync::atomic::AtomicUsize::new(0),
         command_accepted: Mutex::new(None),
@@ -1494,4 +1525,114 @@ async fn bridge_audio_overflow_is_counted_once_and_survives_terminal_stats() {
         );
         sleep_ms(5).await;
     }
+}
+
+#[test]
+async fn dropping_backend_and_session_aborts_blocked_sources_without_close() {
+    use vc::VoipMediaBackend;
+    let (backend, _) = backend_with(fake_state(), None);
+    let key = test_key(904);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let mut ctx = test_ctx();
+    let (mic, mic_rx) = async_channel::bounded(1);
+    let (speaker, _) = async_channel::bounded(1);
+    ctx.audio = vc::MediaAudioPorts::Encoded {
+        source: Arc::new(TestEncodedMic { rx: mic_rx }),
+        sink: Arc::new(TestEncodedSpeaker { tx: speaker }),
+    };
+    backend.open(test_spec(key), ctx).await.unwrap();
+    assert!(!mic.is_closed());
+    drop(session);
+    drop(backend);
+    sleep_ms(5).await;
+    assert!(
+        mic.is_closed(),
+        "the shared task registry must not retain its own pumps"
+    );
+}
+
+#[test]
+async fn local_close_caches_final_engine_counters_before_returning() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    let (backend, seen) = backend_with(state.clone(), None);
+    let key = test_key(902);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    backend.open(test_spec(key), test_ctx()).await.unwrap();
+    assert_eq!(session.stats().rtp_received, 0);
+    state.lock().unwrap().stats_on_close = Some(abi::StatsData {
+        rtp_received: 13,
+        ..Default::default()
+    });
+    session.close(vc::MediaCloseReason::Local);
+    assert_eq!(
+        session.stats().rtp_received,
+        13,
+        "no timer tick or await after close"
+    );
+    assert!(seen_opcodes(&seen).contains(&abi::Opcode::Close.as_u8()));
+    let replacement = backend.reserve(&test_key(903), vc::CallDirection::Outgoing);
+    push_frame(
+        &state,
+        &abi::Frame::request(
+            abi::Opcode::Stats,
+            abi::StatsPush {
+                session: abi::SessionId {
+                    handle: 1,
+                    generation: 902,
+                },
+                stats: abi::StatsData {
+                    rtp_received: 99,
+                    ..Default::default()
+                },
+            }
+            .encode(),
+        ),
+    );
+    assert_eq!(session.stats().rtp_received, 13);
+    assert_eq!(replacement.stats().rtp_received, 0);
+    replacement.close(vc::MediaCloseReason::Local);
+}
+
+#[test]
+async fn handshake_preserves_engine_refusal_detail() {
+    let state = fake_state();
+    state.lock().unwrap().hello_error = true;
+    let error = handshake(&fake_callbacks(state)).await.unwrap_err();
+    assert!(format!("{error:?}").contains("fixture refusal"));
+}
+
+#[test]
+async fn reservation_callback_is_bounded_before_begin_open() {
+    use vc::VoipMediaBackend;
+    let state = fake_state();
+    state.lock().unwrap().reserve_gate = Some(js_sys::Promise::new(&mut |_, _| {}));
+    let (backend, seen) = backend_with(state, Some(std::time::Duration::from_millis(10)));
+    let key = test_key(900);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let result = backend.open(test_spec(key), test_ctx()).await;
+    assert!(matches!(result, Err(vc::MediaSetupError::Connect(_))));
+    assert!(!seen_opcodes(&seen).contains(&abi::Opcode::BeginOpen.as_u8()));
+    session.close(vc::MediaCloseReason::Local);
+}
+
+#[test]
+async fn media_disabled_open_does_not_consume_source_frames() {
+    use vc::VoipMediaBackend;
+    let (backend, seen) = backend_with(fake_state(), None);
+    let key = test_key(901);
+    let session = backend.reserve(&key, vc::CallDirection::Outgoing);
+    let mut spec = test_spec(key);
+    spec.enable_media = false;
+    let mut ctx = test_ctx();
+    let (mic, mic_rx) = async_channel::bounded(1);
+    let (speaker, _) = async_channel::bounded(1);
+    ctx.audio = vc::MediaAudioPorts::Encoded {
+        source: Arc::new(TestEncodedMic { rx: mic_rx }),
+        sink: Arc::new(TestEncodedSpeaker { tx: speaker }),
+    };
+    backend.open(spec, ctx).await.unwrap();
+    assert!(mic.is_closed(), "disabled sources retain no pump receiver");
+    assert!(!seen_opcodes(&seen).contains(&abi::Opcode::EncodedAudioIn.as_u8()));
+    session.close(vc::MediaCloseReason::Local);
 }

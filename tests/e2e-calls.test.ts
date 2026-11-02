@@ -44,6 +44,7 @@ const hasMockServer = await mockServerReachable();
 
 describe.skipIf(!hasMockServer)("E2E call signaling", () => {
   let client: WasmWhatsAppClient;
+  let transport: ReturnType<typeof createTransport>;
   let events: WhatsAppEvent[];
 
   beforeAll(async () => {
@@ -51,8 +52,9 @@ describe.skipIf(!hasMockServer)("E2E call signaling", () => {
     // Mock opt-in, per client: the mock server cannot sign a chain rooted in
     // WhatsApp's issuer, so every client in this file names the testing
     // bypass at construction. Production callers keep the default.
+    transport = createTransport("calls");
     client = await createWhatsAppClient(
-      createTransport("calls"),
+      transport,
       createHttp(),
       (event: WhatsAppEvent) => {
         events.push(event);
@@ -72,8 +74,15 @@ describe.skipIf(!hasMockServer)("E2E call signaling", () => {
   }, 90000);
 
   afterAll(async () => {
-    await client.disconnect();
-    client.free();
+    if (!client) {
+      transport?.disconnect();
+      return;
+    }
+    try {
+      await client.disconnect();
+    } finally {
+      client.free();
+    }
   });
 
   test("rejectCall sends without error", async () => {

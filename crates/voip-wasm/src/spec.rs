@@ -55,7 +55,7 @@ pub fn spec_from_params(
         peer_orientations: params.peer_orientations.clone(),
         epoch: params.group.as_ref().and_then(|g| {
             match (g.epoch_transaction_id, g.epoch.as_ref()) {
-                (Some(tx), Some(epoch)) => Some((tx, epoch.as_bytes().to_vec())),
+                (Some(tx), Some(epoch)) => Some((tx, epoch.clone())),
                 _ => None,
             }
         }),
@@ -99,7 +99,7 @@ pub struct OpenCtx {
     /// Rotations peers announced before media attached, replayed as
     /// orientation commands once the drive loop owns the video mailbox.
     pub peer_orientations: Vec<(Option<String>, u8)>,
-    pub epoch: Option<(u32, Vec<u8>)>,
+    pub epoch: Option<(u32, voip_abi::SecretBytes)>,
 }
 
 fn codec_from_wire(codec: AudioCodecWire) -> MediaAudioCodec {
@@ -154,7 +154,7 @@ fn group_spec_from_dto(spec: GroupOpenSpec) -> Result<MediaGroupSpec, String> {
         .build())
 }
 
-fn update_from_dto(
+pub(crate) fn update_from_dto(
     dto: &GroupCallUpdateDto,
     parse_jid: &dyn Fn(&str) -> Result<Jid, String>,
 ) -> Result<wacore::types::group_call::GroupCallUpdate, String> {
@@ -207,19 +207,23 @@ fn update_from_dto(
                         r.endpoints
                             .iter()
                             .map(|e| {
-                                GroupCallRelayEndpoint::builder()
-                                    .relay_id(e.relay_id)
-                                    .token_id(e.token_id)
-                                    .auth_token_id(e.auth_token_id)
-                                    .relay_name(e.relay_name.clone())
-                                    .maybe_domain_name(e.domain_name.clone())
-                                    .maybe_rtt_ms(e.rtt_ms)
-                                    .is_fna(e.is_fna != 0)
-                                    .maybe_ipv4(e.ipv4.clone())
-                                    .maybe_port(e.port.map(|p| p as u16))
-                                    .build()
+                                Ok::<_, String>(
+                                    GroupCallRelayEndpoint::builder()
+                                        .relay_id(e.relay_id)
+                                        .token_id(e.token_id)
+                                        .auth_token_id(e.auth_token_id)
+                                        .relay_name(e.relay_name.clone())
+                                        .maybe_domain_name(e.domain_name.clone())
+                                        .maybe_rtt_ms(e.rtt_ms)
+                                        .is_fna(e.is_fna != 0)
+                                        .maybe_ipv4(e.ipv4.clone())
+                                        .maybe_port(e.port.map(u16::try_from).transpose().map_err(
+                                            |_| "group relay endpoint port out of range".to_owned(),
+                                        )?)
+                                        .build(),
+                                )
                             })
-                            .collect(),
+                            .collect::<Result<Vec<_>, _>>()?,
                     )
                     .build(),
             )
@@ -238,4 +242,55 @@ fn update_from_dto(
         .participants(participants)
         .maybe_relay(relay)
         .build())
+}
+
+#[cfg(test)]
+mod boundary_tests {
+    use super::*;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn group_relay_ports_do_not_wrap_at_the_abi_boundary() {
+        let mut dto = GroupCallUpdateDto {
+            call_id: "group-port".into(),
+            call_creator: "123@lid".into(),
+            group_jid: None,
+            transaction_id: 1,
+            media: "audio".into(),
+            connected_limit: 8,
+            joinable: 0,
+            av_upgradable: 0,
+            rekey_requested: 0,
+            participants: Vec::new(),
+            relay: Some(voip_abi::GroupRelayDto {
+                transaction_id: None,
+                self_pid: None,
+                uuid: String::new(),
+                participant_uuid: String::new(),
+                attribute_padding: 0,
+                warp_mi_tag_len: None,
+                endpoints: vec![voip_abi::GroupRelayEndpointDto {
+                    relay_id: 1,
+                    token_id: 1,
+                    auth_token_id: 1,
+                    relay_name: String::new(),
+                    domain_name: None,
+                    rtt_ms: None,
+                    is_fna: 0,
+                    ipv4: None,
+                    port: Some(65536),
+                }],
+            }),
+        };
+        let parse = |raw: &str| raw.parse::<Jid>().map_err(|e| e.to_string());
+        assert!(
+            update_from_dto(&dto, &parse)
+                .err()
+                .unwrap()
+                .contains("port out of range")
+        );
+        dto.relay.as_mut().unwrap().endpoints[0].port = Some(65535);
+        assert!(update_from_dto(&dto, &parse).is_ok());
+    }
 }

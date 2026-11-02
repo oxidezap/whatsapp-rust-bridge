@@ -9,6 +9,29 @@
 use std::collections::HashMap;
 use voip_abi::*;
 
+#[test]
+fn stale_direct_removal_cannot_delete_a_replacement() {
+    let mut sessions = SessionTable::new();
+    let old = SessionId {
+        handle: 7,
+        generation: 1,
+    };
+    let replacement = SessionId {
+        handle: 7,
+        generation: 2,
+    };
+    sessions.reserve(old, "old").unwrap();
+    assert!(sessions.remove(old));
+    sessions.reserve(replacement, "replacement").unwrap();
+    assert!(!sessions.remove(old));
+    assert_eq!(
+        sessions.validate(replacement).unwrap().call_id,
+        "replacement"
+    );
+    assert!(sessions.remove(replacement));
+    assert!(!sessions.remove(replacement));
+}
+
 /// The engine side of the wire, holding no core type.
 struct FakeBackend {
     sessions: SessionTable,
@@ -80,6 +103,9 @@ impl FakeBackend {
             }
             Opcode::CancelOpen => {
                 let req = CancelOpenRequest::decode(&frame.payload).expect("CANCEL_OPEN body");
+                if let Err(e) = self.sessions.validate(req.session) {
+                    return Frame::fail(&frame, stale_or_unknown(&e), None).encode();
+                }
                 let outcome = if self.open.get(&req.session.handle) == Some(&req.session.generation)
                 {
                     CancelOutcome::AlreadyOpen
@@ -92,9 +118,16 @@ impl FakeBackend {
             }
             Opcode::Close => {
                 let req = CloseRequest::decode(&frame.payload).expect("CLOSE body");
+                match self.sessions.validate(req.session) {
+                    Ok(_) => {}
+                    Err(SessionError::Unknown) => {
+                        return Frame::respond(&frame, Vec::new()).encode();
+                    }
+                    Err(e) => return Frame::fail(&frame, stale_or_unknown(&e), None).encode(),
+                }
                 self.opening.remove(&req.session.handle);
                 self.open.remove(&req.session.handle);
-                self.sessions.remove(req.session.handle);
+                self.sessions.remove(req.session);
                 Frame::respond(&frame, Vec::new()).encode()
             }
             Opcode::Command | Opcode::GroupFits | Opcode::Stats => {
@@ -474,6 +507,50 @@ fn stale_generation_never_touches_the_replacement() {
     assert!(resp.is_error());
     let body = ErrorBody::decode(&resp.payload).expect("stale body");
     assert_eq!(body.code, AbiErrorCode::StaleGeneration);
+
+    round_trip(
+        &mut backend,
+        Opcode::BeginOpen,
+        BeginOpenRequest {
+            session: new,
+            params: test_params(),
+        }
+        .encode(),
+    );
+    for completed in [false, true] {
+        if completed {
+            backend.complete_open(new);
+        }
+        for (opcode, payload) in [
+            (
+                Opcode::CancelOpen,
+                CancelOpenRequest { session: old }.encode(),
+            ),
+            (
+                Opcode::Close,
+                CloseRequest {
+                    session: old,
+                    reason: CloseReason::Replaced,
+                    detail: None,
+                }
+                .encode(),
+            ),
+        ] {
+            let request = Frame::request(opcode, payload);
+            let response = Frame::decode(&backend.handle(&request.encode())).unwrap();
+            assert!(response.is_error());
+            assert_eq!(
+                ErrorBody::decode(&response.payload).unwrap().code,
+                AbiErrorCode::StaleGeneration
+            );
+            assert!(backend.sessions.validate(new).is_ok());
+            if completed {
+                assert_eq!(backend.open.get(&new.handle), Some(&new.generation));
+            } else {
+                assert_eq!(backend.opening.get(&new.handle), Some(&new.generation));
+            }
+        }
+    }
 
     // The replacement is untouched and usable.
     round_trip(
@@ -917,5 +994,62 @@ fn encoded_audio_format_extension_preserves_legacy_and_rejects_truncation() {
     assert_eq!(EncodedFrameDto::decode(&encoded).unwrap(), frame);
     for missing in 1..=test_format().encode().len() {
         assert!(EncodedFrameDto::decode(&encoded[..encoded.len() - missing]).is_err());
+    }
+}
+
+#[test]
+fn outer_frame_rejects_suffix_but_preserves_additive_body_fields() {
+    let frame = Frame::request(
+        Opcode::BeginOpen,
+        BeginOpenRequest {
+            session: SessionId {
+                handle: 7,
+                generation: 1,
+            },
+            params: test_params(),
+        }
+        .encode(),
+    );
+    for suffix in [vec![0], frame.encode()] {
+        let mut bytes = frame.encode();
+        bytes.extend(suffix);
+        assert!(matches!(
+            Frame::decode(&bytes),
+            Err(DecodeError::TrailingFrameBytes { .. })
+        ));
+    }
+    let mut body = frame.payload.clone();
+    body.extend([0xaa, 0xbb]);
+    let extended = Frame::request(Opcode::BeginOpen, body);
+    let decoded = Frame::decode(&extended.encode()).unwrap();
+    assert!(BeginOpenRequest::decode(&decoded.payload).is_ok());
+}
+
+#[test]
+fn relay_endpoint_port_preserves_wire_width_and_rejects_overflow() {
+    let mut endpoint = GroupRelayEndpointDto {
+        relay_id: 1,
+        token_id: 2,
+        auth_token_id: 3,
+        relay_name: "relay".into(),
+        domain_name: None,
+        rtt_ms: None,
+        is_fna: 0,
+        ipv4: None,
+        port: None,
+    };
+    for port in [None, Some(0), Some(65535)] {
+        endpoint.port = port;
+        assert_eq!(
+            GroupRelayEndpointDto::decode(&endpoint.encode()).unwrap(),
+            endpoint
+        );
+    }
+    for port in [65536, u32::MAX] {
+        endpoint.port = Some(port);
+        assert!(matches!(
+            GroupRelayEndpointDto::decode(&endpoint.encode()),
+            Err(DecodeError::OutOfRange { field: "port", .. })
+        ));
     }
 }

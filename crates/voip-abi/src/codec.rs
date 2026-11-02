@@ -1,5 +1,5 @@
 //! Hand-written little-endian primitives. The repertoire is fixed: `u8`,
-//! `u32`/`u64` LE, length-prefixed bytes, length-prefixed UTF-8, and an
+//! `u32`/`u64`/`i32` LE, length-prefixed bytes, length-prefixed UTF-8, and an
 //! option flag plus value. Anything else is a second encoding waiting to
 //! disagree with the first.
 
@@ -12,6 +12,10 @@ pub enum DecodeError {
     TruncatedHeader { len: usize },
     /// The payload is shorter than `payload_len` promised.
     TruncatedPayload { want: usize, got: usize },
+    /// Bytes remain outside the declared outer frame.
+    TrailingFrameBytes { len: usize },
+    /// A numeric field exceeds its supported range.
+    OutOfRange { field: &'static str, value: u64 },
     /// A field ran past the payload end.
     Overrun,
     /// A `u8` discriminant names nothing this side knows.
@@ -42,6 +46,12 @@ impl core::fmt::Display for DecodeError {
             }
             DecodeError::TruncatedPayload { want, got } => {
                 write!(f, "voip ABI payload truncated: want {want}, got {got}")
+            }
+            DecodeError::TrailingFrameBytes { len } => {
+                write!(f, "voip ABI frame has {len} trailing bytes")
+            }
+            DecodeError::OutOfRange { field, value } => {
+                write!(f, "voip ABI {field} is out of range: {value}")
             }
             DecodeError::Overrun => write!(f, "voip ABI field ran past the payload end"),
             DecodeError::UnknownOpcode(op) => write!(f, "unknown voip ABI opcode {op:#04x}"),
@@ -103,7 +113,7 @@ impl Writer {
 
     /// `u32` length prefix plus the raw bytes.
     pub fn bytes_raw(&mut self, v: &[u8]) {
-        self.u32_le(v.len() as u32);
+        self.u32_le(u32::try_from(v.len()).expect("voip ABI byte field exceeds u32 length"));
         self.buf.extend_from_slice(v);
     }
 

@@ -406,7 +406,7 @@ pub fn event_to_call_event(
             received_rates: received_rates.clone(),
         }),
         abi::AbiEvent::RelayAllocateFailed(code) => Some(vc::MediaEvent::RelayAllocateFailed(
-            u16::try_from(*code).unwrap_or(u16::MAX),
+            u16::try_from(*code).ok()?,
         )),
         abi::AbiEvent::RelayAllocateTimedOut => Some(vc::MediaEvent::RelayAllocateTimedOut),
         abi::AbiEvent::MediaSetupFailed(detail) => {
@@ -604,4 +604,25 @@ pub fn stats_to_core(stats: &abi::StatsData) -> vc::MediaStats {
         .forwarding_envelope_rejected(stats.forwarding_envelope_rejected)
         .codec_switches(u16::try_from(stats.codec_switches).unwrap_or(u16::MAX))
         .build()
+}
+
+#[cfg(test)]
+mod relay_error_tests {
+    use super::*;
+
+    #[test]
+    fn relay_error_codes_never_invent_a_representable_code() {
+        let format = vc::MediaAudioFormat::MLOW_16KHZ_60MS;
+        for code in [0, u32::from(u16::MAX)] {
+            assert!(
+                matches!(event_to_call_event(&abi::AbiEvent::RelayAllocateFailed(code), &format),
+                Some(vc::MediaEvent::RelayAllocateFailed(actual)) if u32::from(actual) == code)
+            );
+        }
+        for code in [u32::from(u16::MAX) + 1, u32::MAX] {
+            assert!(
+                event_to_call_event(&abi::AbiEvent::RelayAllocateFailed(code), &format).is_none()
+            );
+        }
+    }
 }

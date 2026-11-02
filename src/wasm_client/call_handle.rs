@@ -194,17 +194,15 @@ impl WasmCallHandle {
         })
     }
 
-    /// Reject an incoming video upgrade request. Clears the pending upgrade
-    /// token so future `acceptVideo` calls will report no pending request.
+    /// The pinned core does not expose token-safe peer video rejection yet.
+    /// Refuse explicitly without changing the pending request or local video.
     #[wasm_bindgen(js_name = rejectVideo, unchecked_return_type = "Promise<void>")]
     pub fn reject_video_js(&self) -> js_sys::Promise {
-        let media = self.media.clone();
-        let call_id = self.call_id.clone();
-        let generation = self.generation;
-        super::promise_void(async move {
-            media
-                .stop_call_video_by_generation(call_id, generation)
-                .await
+        super::promise_void(async {
+            Err(crate::errors::invalid_arg(
+                "rejectVideo",
+                "peer video rejection is not supported by the pinned core",
+            ))
         })
     }
 }

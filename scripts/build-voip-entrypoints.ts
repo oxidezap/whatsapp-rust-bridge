@@ -25,8 +25,7 @@ try {
   });
 
   if (!built.success) {
-    console.error(built.logs.map(String).join("\n"));
-    process.exit(1);
+    throw new Error(built.logs.map(String).join("\n"));
   }
 
   const outputs = readdirSync(SCRATCH).filter((name) => name.endsWith(".js"));

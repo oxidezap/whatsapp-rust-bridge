@@ -39,13 +39,16 @@ copyFileSync(join(ROOT, "pkg-voip", "whatsapp_rust_voip.d.ts"), join(DIST, "what
 for (const entryDts of ["surface.d.ts", "host.d.ts", "voip-host.d.ts"]) {
   const entryPath = join(DIST, entryDts);
   const source = readFileSync(entryPath, "utf8");
+  const expected = entryDts === "voip-host.d.ts"
+    ? "../pkg-voip/whatsapp_rust_voip.js"
+    : "../pkg/whatsapp_rust_bridge.js";
   const rewritten = source.replaceAll(
-    entryDts === "voip-host.d.ts" ? "../pkg-voip/whatsapp_rust_voip.js" : "../pkg/whatsapp_rust_bridge.js",
+    expected,
     entryDts === "voip-host.d.ts" ? "./whatsapp_rust_voip.js" : "./whatsapp_rust_bridge.js",
   );
   if (rewritten === source) {
     throw new Error(
-      `dist/${entryDts} no longer references ../pkg/whatsapp_rust_bridge.js — update finalize-dist.ts`,
+      `dist/${entryDts} no longer references ${expected} — update finalize-dist.ts`,
     );
   }
   writeFileSync(entryPath, rewritten);

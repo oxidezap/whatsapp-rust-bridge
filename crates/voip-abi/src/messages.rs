@@ -1290,6 +1290,13 @@ impl GroupRelayEndpointDto {
             });
         }
         let ipv4 = r.option_str()?.map(str::to_owned);
+        let port = decode_option_u32(&mut r, "port")?;
+        if let Some(value) = port.filter(|value| *value > u32::from(u16::MAX)) {
+            return Err(DecodeError::OutOfRange {
+                field: "port",
+                value: u64::from(value),
+            });
+        }
         Ok(GroupRelayEndpointDto {
             relay_id,
             token_id,
@@ -1299,7 +1306,7 @@ impl GroupRelayEndpointDto {
             rtt_ms,
             is_fna,
             ipv4,
-            port: decode_option_u32(&mut r, "port")?,
+            port,
         })
     }
 }

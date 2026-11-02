@@ -200,8 +200,8 @@ that has lost its last caller.
 ## Build and test
 
 ```
-bun run build         gen → wasm-pack (release) → bundle → tsc + finalize
-bun run build:dev     same, with a --dev wasm build
+bun run build         gen → wasm-pack (core, then crates/voip-wasm → pkg-voip/) → bundle → tsc + finalize
+bun run build:dev     same, with --dev wasm builds
 bun test              both test directories
 bun run test:rust     wasm-pack test --node
 ```
@@ -212,7 +212,7 @@ imports it — `build-variant.sh` produces one artifact per feature set,
 the code section belongs to. It needs `wasm-bindgen` and `wasm-opt` on PATH and
 does not go through `wasm-pack`.
 
-Build order matters: `pkg/` must exist before the TypeScript bundling that copies out of it.
+Build order matters: `pkg/` and `pkg-voip/` must exist before the TypeScript bundling that copies out of them.
 
 The release wasm build runs `wasm-opt` and is memory-hungry — it can be killed on a small machine. Building with `build:wasm:dev` locally and letting CI run the real thing is fine; say so in the PR when you do.
 

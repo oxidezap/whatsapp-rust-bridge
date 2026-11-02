@@ -12,7 +12,10 @@
 //! driver's own publisher. `Close` aborts the drive task, which drops the
 //! transport `Arc` and closes the relay channel with it.
 
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicU8, Ordering},
+};
 
 use bytes::Bytes;
 use voip_abi::{
@@ -60,8 +63,30 @@ pub struct LiveCall {
     events: async_channel::Receiver<MediaEvent>,
     stats: Arc<media_stats::MediaStatsCell>,
     task: wacore::runtime::AbortHandle,
-    _stats_task: wacore::runtime::AbortHandle,
+    fans: Vec<wacore::runtime::AbortHandle>,
+    pushes: Arc<PushState>,
     muted: bool,
+}
+
+// Terminal delivery stops regular fans; explicit CLOSE also fences a terminal
+// fan re-entered through a synchronous JS callback.
+#[derive(Default)]
+struct PushState(AtomicU8);
+impl PushState {
+    fn active(&self) -> bool {
+        self.0.load(Ordering::Acquire) == 0
+    }
+    fn terminal(&self) -> bool {
+        self.0
+            .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+    }
+    fn closed(&self) -> bool {
+        self.0.load(Ordering::Acquire) == 2
+    }
+    fn close(&self) -> bool {
+        self.0.swap(2, Ordering::AcqRel) == 0
+    }
 }
 
 /// The push callbacks `open_async` installs, one per push opcode.
@@ -189,11 +214,12 @@ impl LiveCall {
             events: ev_rx,
             stats,
             task,
-            _stats_task: wacore::runtime::AbortHandle::noop(),
+            fans: Vec::new(),
+            pushes: Arc::new(PushState::default()),
             muted: ctx.muted,
         };
         live.replay_orientations(&ctx.peer_orientations);
-        live._stats_task = live.spawn_fans(spk_rx, enc_out_rx, vout_rx, sinks);
+        live.fans = live.spawn_fans(spk_rx, enc_out_rx, vout_rx, sinks);
         Ok(live)
     }
 
@@ -203,8 +229,14 @@ impl LiveCall {
         encoded_out: async_channel::Receiver<MediaEncodedFrame>,
         video_out: async_channel::Receiver<wacore::voip_control::ports::VideoFrame>,
         sinks: PushSinks,
-    ) -> wacore::runtime::AbortHandle {
-        spawn_event_fan(self.id, self.events.clone(), self.stats.clone(), &sinks);
+    ) -> Vec<wacore::runtime::AbortHandle> {
+        let mut fans = vec![spawn_event_fan(
+            self.id,
+            self.events.clone(),
+            self.stats.clone(),
+            &sinks,
+            self.pushes.clone(),
+        )];
         let PushSinks {
             event: _,
             stats: push_stats,
@@ -213,37 +245,45 @@ impl LiveCall {
             video: push_video,
             ended: _,
         } = sinks;
+        fans.push(spawn_pcm_fan(
+            self.id,
+            speaker,
+            push_pcm,
+            self.pushes.clone(),
+        ));
         let id = self.id;
-        wasm_bindgen_futures::spawn_local(async move {
-            let mut seq = 0u32;
-            while let Ok(samples) = speaker.recv().await {
-                let mut bytes = Vec::with_capacity(samples.len() * 2);
-                for sample in samples {
-                    bytes.extend_from_slice(&sample.to_le_bytes());
-                }
-                push_pcm(id, seq, bytes);
-                seq = seq.wrapping_add(1);
-            }
-        });
-        let id = self.id;
-        wasm_bindgen_futures::spawn_local(async move {
+        let pushes = self.pushes.clone();
+        fans.push(EngineRuntime.spawn(Box::pin(async move {
             let mut seq = 0u32;
             while let Ok(frame) = encoded_out.recv().await {
+                if !pushes.active() {
+                    break;
+                }
                 if let Some(frame) = encoded_frame_to_dto(&frame) {
                     push_encoded(id, seq, frame);
                 }
                 seq = seq.wrapping_add(1);
             }
-        });
+        })));
         let id = self.id;
-        wasm_bindgen_futures::spawn_local(async move {
+        let pushes = self.pushes.clone();
+        fans.push(EngineRuntime.spawn(Box::pin(async move {
             let mut seq = 0u32;
             while let Ok(frame) = video_out.recv().await {
+                if !pushes.active() {
+                    break;
+                }
                 push_video(id, seq, video_frame_to_dto(&frame));
                 seq = seq.wrapping_add(1);
             }
-        });
-        spawn_stats_fan(self.id, self.stats.clone(), push_stats)
+        })));
+        fans.push(spawn_stats_fan(
+            self.id,
+            self.stats.clone(),
+            push_stats,
+            self.pushes.clone(),
+        ));
+        fans
     }
 
     /// Feeds one inbound PCM frame to the engine's mic mailbox. Loss
@@ -465,21 +505,49 @@ impl LiveCall {
 
     /// Ends the call: aborts the drive task, which drops the transport and
     /// closes the relay channel with it.
-    pub fn close(self) -> (SessionId, String) {
-        let call_id = self.call_id.clone();
-        let id = self.id;
-        (id, call_id)
+    pub fn close(mut self) -> (SessionId, String, Option<StatsData>) {
+        let publish_final = self.pushes.close();
+        for fan in self.fans.drain(..) {
+            fan.abort();
+        }
+        let stats = publish_final.then(|| self.stats());
+        (self.id, self.call_id.clone(), stats)
     }
 }
 
 impl Drop for LiveCall {
     fn drop(&mut self) {
+        self.pushes.close();
+        for fan in self.fans.drain(..) {
+            fan.abort();
+        }
         if let Some(close) = self.relay_close.take() {
             close();
         }
         self.task.abort();
-        self._stats_task.abort();
     }
+}
+
+fn spawn_pcm_fan(
+    id: SessionId,
+    speaker: async_channel::Receiver<Vec<i16>>,
+    push_pcm: Arc<dyn Fn(SessionId, u32, Vec<u8>) + Send + Sync>,
+    pushes: Arc<PushState>,
+) -> wacore::runtime::AbortHandle {
+    EngineRuntime.spawn(Box::pin(async move {
+        let mut seq = 0u32;
+        while let Ok(samples) = speaker.recv().await {
+            if !pushes.active() {
+                break;
+            }
+            let mut bytes = Vec::with_capacity(samples.len() * 2);
+            for sample in samples {
+                bytes.extend_from_slice(&sample.to_le_bytes());
+            }
+            push_pcm(id, seq, bytes);
+            seq = seq.wrapping_add(1);
+        }
+    }))
 }
 
 fn spawn_event_fan(
@@ -487,23 +555,31 @@ fn spawn_event_fan(
     events: async_channel::Receiver<MediaEvent>,
     stats: Arc<media_stats::MediaStatsCell>,
     sinks: &PushSinks,
-) {
+    pushes: Arc<PushState>,
+) -> wacore::runtime::AbortHandle {
     let push_event = sinks.event.clone();
     let push_stats = sinks.stats.clone();
     let push_ended = sinks.ended.clone();
-    wasm_bindgen_futures::spawn_local(async move {
+    EngineRuntime.spawn(Box::pin(async move {
         while let Ok(event) = events.recv().await {
+            if !pushes.active() {
+                break;
+            }
             if let MediaEvent::Closed(reason) = &event {
-                let (wire, detail) = close_reason_to_wire(reason);
-                push_stats(id, stats_to_wire(&stats.snapshot()));
-                push_ended(id, wire, detail);
+                if pushes.terminal() {
+                    let (wire, detail) = close_reason_to_wire(reason);
+                    push_stats(id, stats_to_wire(&stats.snapshot()));
+                    if !pushes.closed() {
+                        push_ended(id, wire, detail);
+                    }
+                }
                 break;
             }
             if let Some(wire) = event_to_wire(&event) {
                 push_event(id, wire);
             }
         }
-    });
+    }))
 }
 
 /// The counters fan polls the cell the drive loop publishes into. Unlike the
@@ -513,11 +589,15 @@ fn spawn_stats_fan(
     id: SessionId,
     stats: Arc<media_stats::MediaStatsCell>,
     push_stats: Arc<dyn Fn(SessionId, StatsData) + Send + Sync>,
+    pushes: Arc<PushState>,
 ) -> wacore::runtime::AbortHandle {
     EngineRuntime.spawn(Box::pin(async move {
         let mut last = wacore::voip_control::MediaStats::default();
         loop {
             set_timeout_ms(1000).await;
+            if !pushes.active() {
+                break;
+            }
             let now = stats.snapshot();
             if now != last {
                 last = now;
@@ -597,7 +677,7 @@ fn apply_open_ctx(engine: &mut CallEngine, ctx: &OpenCtx) -> Result<(), String> 
     use wacore::voip::engine::CodecDecisionSource;
     if let Some((transaction_id, epoch)) = ctx.epoch.as_ref() {
         engine
-            .apply_group_raw_epoch(*transaction_id, epoch)
+            .apply_group_raw_epoch(*transaction_id, epoch.as_bytes())
             .map_err(|e| format!("pre-attach epoch refused: {e:?}"))?;
     }
     if let Some(codec) = ctx.initial_codec {
@@ -625,82 +705,10 @@ fn parts_group_channel(
 fn group_update_from_dto(
     dto: &voip_abi::GroupCallUpdateDto,
 ) -> Result<wacore::types::group_call::GroupCallUpdate, String> {
-    let parse_jid = |raw: &str| {
+    crate::spec::update_from_dto(dto, &|raw| {
         raw.parse::<Jid>()
             .map_err(|_| format!("group JID refused: {raw}"))
-    };
-    let participants = dto
-        .participants
-        .iter()
-        .map(|p| {
-            use wacore::types::group_call::{GroupCallDevice, GroupCallParticipant};
-            Ok::<_, String>(
-                GroupCallParticipant::builder()
-                    .jid(parse_jid(&p.jid)?)
-                    .maybe_pn(p.pn.as_deref().map(parse_jid).transpose()?)
-                    .maybe_state(p.state.clone())
-                    .maybe_participant_type(p.participant_type.clone())
-                    .devices(
-                        p.devices
-                            .iter()
-                            .map(|d| {
-                                Ok::<_, String>(
-                                    GroupCallDevice::builder()
-                                        .jid(parse_jid(&d.jid)?)
-                                        .maybe_platform(d.platform.clone())
-                                        .maybe_pid(d.pid)
-                                        .maybe_capability_version(d.capability_version)
-                                        .build(),
-                                )
-                            })
-                            .collect::<Result<Vec<_>, _>>()?,
-                    )
-                    .build(),
-            )
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    use wacore::types::group_call::{GroupCallRelay, GroupCallRelayEndpoint, GroupCallUpdate};
-    let relay = dto.relay.as_ref().map(|r| {
-        GroupCallRelay::builder()
-            .maybe_transaction_id(r.transaction_id)
-            .maybe_self_pid(r.self_pid)
-            .uuid(r.uuid.clone())
-            .participant_uuid(r.participant_uuid.clone())
-            .attribute_padding(r.attribute_padding != 0)
-            .maybe_warp_mi_tag_len(r.warp_mi_tag_len)
-            .endpoints(
-                r.endpoints
-                    .iter()
-                    .map(|e| {
-                        GroupCallRelayEndpoint::builder()
-                            .relay_id(e.relay_id)
-                            .token_id(e.token_id)
-                            .auth_token_id(e.auth_token_id)
-                            .relay_name(e.relay_name.clone())
-                            .maybe_domain_name(e.domain_name.clone())
-                            .maybe_rtt_ms(e.rtt_ms)
-                            .is_fna(e.is_fna != 0)
-                            .maybe_ipv4(e.ipv4.clone())
-                            .maybe_port(e.port.map(|p| p as u16))
-                            .build()
-                    })
-                    .collect(),
-            )
-            .build()
-    });
-    Ok(GroupCallUpdate::builder()
-        .call_id(dto.call_id.clone())
-        .call_creator(parse_jid(&dto.call_creator)?)
-        .maybe_group_jid(dto.group_jid.as_deref().map(parse_jid).transpose()?)
-        .transaction_id(dto.transaction_id)
-        .media(dto.media.clone())
-        .connected_limit(dto.connected_limit)
-        .joinable(dto.joinable != 0)
-        .av_upgradable(dto.av_upgradable != 0)
-        .rekey_requested(dto.rekey_requested != 0)
-        .participants(participants)
-        .maybe_relay(relay)
-        .build())
+    })
 }
 
 fn close_reason_to_wire(reason: &MediaCloseReason) -> (CloseReason, Option<String>) {
@@ -1108,6 +1116,7 @@ pub(crate) mod tests {
             },
             cell.clone(),
             push,
+            Arc::new(PushState::default()),
         );
         cell.publish(
             wacore::voip_control::MediaStats::builder()
@@ -1179,6 +1188,100 @@ pub(crate) mod tests {
         }
 
         #[wasm_bindgen_test(async)]
+        async fn a_reentrant_close_stops_the_already_polling_pcm_fan() {
+            let state = Arc::new(PushState::default());
+            let callback_state = state.clone();
+            let count = Arc::new(std::sync::atomic::AtomicU32::new(0));
+            let callbacks = count.clone();
+            let (sender, receiver) = async_channel::bounded(2);
+            sender.try_send(vec![1, 2]).unwrap();
+            sender.try_send(vec![3, 4]).unwrap();
+            let _fan = spawn_pcm_fan(
+                SessionId {
+                    handle: 80,
+                    generation: 1,
+                },
+                receiver,
+                Arc::new(move |_, _, _| {
+                    callbacks.fetch_add(1, Ordering::Relaxed);
+                    callback_state.close();
+                }),
+                state,
+            );
+            set_timeout_ms(0).await;
+            assert_eq!(
+                count.load(Ordering::Relaxed),
+                1,
+                "AbortHandle alone cannot stop a currently polling fan after synchronous CLOSE"
+            );
+        }
+
+        #[wasm_bindgen_test(async)]
+        async fn aborting_an_idle_fan_releases_its_callback_and_receiver() {
+            let token = Arc::new(std::sync::atomic::AtomicU32::new(0));
+            let weak = Arc::downgrade(&token);
+            let (sender, receiver) = async_channel::bounded(1);
+            let fan = spawn_pcm_fan(
+                SessionId {
+                    handle: 81,
+                    generation: 1,
+                },
+                receiver,
+                Arc::new(move |_, _, _| {
+                    token.fetch_add(1, Ordering::Relaxed);
+                }),
+                Arc::new(PushState::default()),
+            );
+            set_timeout_ms(0).await;
+            drop(fan);
+            set_timeout_ms(0).await;
+            assert!(weak.upgrade().is_none());
+            assert!(sender.is_closed());
+        }
+
+        #[wasm_bindgen_test(async)]
+        #[allow(clippy::arc_with_non_send_sync)] // The core stats cell uses Arc on local WASM.
+        async fn explicit_close_during_terminal_stats_suppresses_later_ended() {
+            let state = Arc::new(PushState::default());
+            let callback_state = state.clone();
+            let ended = Arc::new(std::sync::atomic::AtomicU32::new(0));
+            let ended_count = ended.clone();
+            let sinks = PushSinks {
+                event: Arc::new(|_, _| {}),
+                stats: Arc::new(move |_, _| {
+                    callback_state.close();
+                }),
+                pcm: Arc::new(|_, _, _| {}),
+                encoded: Arc::new(|_, _, _| {}),
+                video: Arc::new(|_, _, _| {}),
+                ended: Arc::new(move |_, _, _| {
+                    ended_count.fetch_add(1, Ordering::Relaxed);
+                }),
+            };
+            let (sender, receiver) = async_channel::bounded(1);
+            let _fan = spawn_event_fan(
+                SessionId {
+                    handle: 82,
+                    generation: 1,
+                },
+                receiver,
+                Arc::new(media_stats::MediaStatsCell::default()),
+                &sinks,
+                state.clone(),
+            );
+            sender
+                .try_send(MediaEvent::Closed(MediaCloseReason::Local))
+                .unwrap();
+            set_timeout_ms(0).await;
+            assert!(state.closed());
+            assert_eq!(
+                ended.load(Ordering::Relaxed),
+                0,
+                "no callback may follow the reentrant CLOSE acknowledgement"
+            );
+        }
+
+        #[wasm_bindgen_test(async)]
         async fn terminal_event_flushes_fresh_stats_before_ended() {
             for previous_tick in [false, true] {
                 let id = SessionId {
@@ -1206,7 +1309,13 @@ pub(crate) mod tests {
                         .build(),
                 );
                 let (sender, events) = async_channel::bounded(1);
-                spawn_event_fan(id, events, stats.clone(), &sinks);
+                let _fan = spawn_event_fan(
+                    id,
+                    events,
+                    stats.clone(),
+                    &sinks,
+                    Arc::new(PushState::default()),
+                );
                 sender
                     .send(MediaEvent::Closed(MediaCloseReason::Local))
                     .await

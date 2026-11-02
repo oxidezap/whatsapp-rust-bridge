@@ -58,7 +58,7 @@ pub struct ForeignVoipSession {
     alive: Arc<AtomicBool>,
     media: Mutex<Option<MediaSinks>>,
     video_teardown: Mutex<Option<whatsapp_rust::voip_control::VideoTeardownHook>>,
-    pump_handles: Mutex<Vec<whatsapp_rust::wacore::runtime::AbortHandle>>,
+    pump_handles: Arc<Mutex<Vec<whatsapp_rust::wacore::runtime::AbortHandle>>>,
     on_closed: Mutex<Option<vc::VideoTeardownHook>>,
 }
 
@@ -76,9 +76,23 @@ struct MediaSinks {
     video_sink: async_channel::Sender<vc::VideoFrame>,
 }
 
+impl Drop for ForeignVoipSession {
+    fn drop(&mut self) {
+        // Pumps share this registry so one failed link can wake the rest. The
+        // session must still release it if its owner is dropped without close.
+        self.alive.store(false, Ordering::SeqCst);
+        if let Ok(mut handles) = self.pump_handles.lock() {
+            for handle in handles.drain(..) {
+                handle.abort();
+            }
+        }
+    }
+}
+
 impl ForeignVoipSession {
     /// Creates the reserved session. The event stream exists from here, so
     /// signaling published before media attaches reaches the same queue.
+    #[allow(clippy::arc_with_non_send_sync)] // Core sessions use Arc; WASM abort handles are local.
     pub fn new(
         handle: u32,
         key: vc::MediaSessionKey,
@@ -118,7 +132,7 @@ impl ForeignVoipSession {
             alive: Arc::new(AtomicBool::new(true)),
             media: Mutex::new(None),
             video_teardown: Mutex::new(None),
-            pump_handles: Mutex::new(Vec::new()),
+            pump_handles: Arc::new(Mutex::new(Vec::new())),
             on_closed: Mutex::new(None),
         }
     }
@@ -234,7 +248,12 @@ impl ForeignVoipSession {
 
     /// Starts source pumps after OPEN and clears the retained pre-attach epoch.
     /// Sinks and the teardown hook are already installed before BEGIN_OPEN.
-    pub fn attach(&self, format: &vc::MediaAudioFormat, ctx: vc::MediaOpenContext) {
+    pub fn attach(
+        &self,
+        format: &vc::MediaAudioFormat,
+        ctx: vc::MediaOpenContext,
+        enable_media: bool,
+    ) {
         if let Ok(mut slot) = self.format.lock() {
             *slot = *format;
         }
@@ -259,6 +278,7 @@ impl ForeignVoipSession {
             }
         };
         let inputs = media_pump::PumpInputs {
+            enable_media,
             audio,
             video_in: ctx.video_channels.video_in,
             timed_in: ctx.video_channels.timed_video_in,
@@ -281,9 +301,17 @@ impl ForeignVoipSession {
             self.agreed,
             self.alive.clone(),
             self.events_tx.clone(),
+            self.pump_handles.clone(),
         );
         if let Ok(mut pump_handles) = self.pump_handles.lock() {
-            pump_handles.extend(handles);
+            if self.alive.load(Ordering::SeqCst) {
+                pump_handles.extend(handles);
+            } else {
+                // A runtime may poll a pump before spawn_all returns.
+                for task in handles {
+                    task.abort();
+                }
+            }
         }
     }
 
@@ -365,6 +393,11 @@ impl ForeignVoipSession {
 
     /// Routes one validated push frame into the session.
     pub fn deliver_push(&self, frame: abi::Frame) {
+        // A synchronous CLOSE may publish its final snapshot before routing is
+        // pruned. All other late callbacks remain fenced after local teardown.
+        if self.is_closed() && frame.opcode != abi::Opcode::Stats {
+            return;
+        }
         match frame.opcode {
             abi::Opcode::Open => match abi::OpenNotification::decode(&frame.payload) {
                 Ok(notice) if notice.session == self.session_id() => self.on_opened(),
@@ -544,6 +577,11 @@ impl ForeignVoipSession {
         {
             return false;
         }
+        if self.agreed & abi::Capabilities::GROUP_CALLS == 0
+            && command.kind_name().starts_with("GROUP_")
+        {
+            return false;
+        }
         let bytes = abi::CommandRequest {
             session: self.session_id(),
             command,
@@ -606,12 +644,9 @@ impl vc::VoipMediaSession for ForeignVoipSession {
         self.submit_inner(command, true)
     }
 
-    fn group_update_fits(&self, _update: &vc::GroupCallUpdate, _is_call_link: bool) -> bool {
-        // The preflight cannot cross synchronously: `submit` is sync and
-        // the engine answers over the wire. The delivery answer stays
-        // authoritative — a refused delivery leaves the committed signaling
-        // state unconsumed — so the preflight admits and the mailbox decides.
-        true
+    fn group_update_fits(&self, _update: &vc::GroupCallUpdate, is_call_link: bool) -> bool {
+        self.agreed & abi::Capabilities::GROUP_CALLS != 0
+            && (!is_call_link || self.agreed & abi::Capabilities::CALL_LINKS != 0)
     }
 
     fn pending_group_epoch(&self) -> Option<u32> {
@@ -646,9 +681,6 @@ impl vc::VoipMediaSession for ForeignVoipSession {
             return;
         }
         let on_closed = self.on_closed.lock().unwrap().take();
-        if let Some(hook) = on_closed {
-            hook();
-        }
         self.alive.store(false, Ordering::SeqCst);
         self.media.lock().unwrap().take();
         // An open parked on the `OPEN` notification ends here instead of
@@ -682,14 +714,21 @@ impl vc::VoipMediaSession for ForeignVoipSession {
             detail,
         };
         let bytes = abi::Frame::request(abi::Opcode::Close, close.encode()).encode();
-        let callbacks = self.callbacks.clone();
-        // Detached: dropping the handle aborts the task, which would kill
-        // the send before its first poll. Fire-and-forget is the point —
-        // the session is gone either way, and awaiting here would park
-        // teardown on a plugin that may never answer.
+        // The shipped engine handles CLOSE synchronously and pushes final
+        // counters before answering. Invoke it before pruning, then await only
+        // its acknowledgement in a bounded task. Genuinely asynchronous custom
+        // plugins retain the last snapshot observed before synchronous close.
+        let reply = self.callbacks.start_send(&bytes);
+        if let Some(hook) = on_closed {
+            hook();
+        }
+        let Ok(reply) = reply else { return };
+        let runtime = self.runtime.clone();
         self.runtime
             .spawn(Box::pin(async move {
-                let _ = callbacks.send(&bytes).await;
+                let _ =
+                    whatsapp_rust::wacore::runtime::timeout(&*runtime, super::OPEN_CEILING, reply)
+                        .await;
             }))
             .detach();
     }
@@ -754,5 +793,62 @@ mod teardown_tests {
         assert_eq!(session.retained_bytes(), 0);
         assert!(!session.enqueue(abi::MediaCommand::AudioMute(1), false));
         session.close(vc::MediaCloseReason::Local);
+    }
+}
+
+#[cfg(test)]
+mod capability_tests {
+    use super::*;
+    use vc::VoipMediaSession;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn group_mailbox_rejects_unnegotiated_commands_before_retention() {
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &object,
+            &"sendFrame".into(),
+            &js_sys::Function::new_with_args("frame", "return Promise.resolve(frame)"),
+        )
+        .unwrap();
+        js_sys::Reflect::set(
+            &object,
+            &"setPushHandler".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .unwrap();
+        let session = ForeignVoipSession::new(
+            1,
+            vc::MediaSessionKey::builder()
+                .call_id("no-group-capability".into())
+                .generation(1)
+                .build(),
+            vc::CallDirection::Outgoing,
+            VoipBackendCallbacks::from_js(&object.into()).unwrap(),
+            Arc::new(crate::runtime::WasmRuntime),
+            abi::Capabilities::PCM,
+        );
+        let update = vc::GroupCallUpdate::builder()
+            .call_id("no-group-capability".to_owned())
+            .call_creator("123@lid".parse().unwrap())
+            .transaction_id(1)
+            .media("audio".to_owned())
+            .connected_limit(32)
+            .joinable(true)
+            .av_upgradable(true)
+            .rekey_requested(false)
+            .participants(Vec::new())
+            .build();
+        assert!(!session.group_update_fits(&update, false));
+        assert!(!session.group_update_fits(&update, true));
+        assert!(!session.enqueue(
+            abi::MediaCommand::GroupApplyEpoch {
+                transaction_id: 1,
+                epoch: abi::SecretBytes::new(vec![0x33; 4096]),
+            },
+            false
+        ));
+        assert_eq!(session.retained_bytes(), 0);
+        assert!(session.commands_rx.is_empty());
     }
 }

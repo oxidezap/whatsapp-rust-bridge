@@ -131,6 +131,12 @@ encoded H.264 Annex-B access units, not raw pixels. The engine converts
 outgoing CELT Opus to MLOW escape on an `"opus-mlow"` call; inbound MLOW can
 be decoded with a stateful `MlowAudioDecoder` per call. The codec helpers are
 exported only from `./voip`, not the core entrypoint.
+`rejectVideo()` currently rejects with an explicit capability error: the pinned
+core has no token-safe peer rejection operation. It does not stop local video
+or consume the pending request. `acceptVideo()` and `stopVideo()` retain their
+separate operations.
+The supplied engine flushes final counters synchronously on local close; custom
+plugins that defer CLOSE retain their last observed snapshot at synchronous teardown.
 
 A host without `node:fs` imports `@oxidezap/whatsapp-rust-bridge/voip/wasm`
 and calls `initVoipSync(wasm, relayTransport)` from `./voip/host` instead of

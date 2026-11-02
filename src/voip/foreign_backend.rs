@@ -37,10 +37,6 @@ struct BackendInner {
     next_handle: AtomicU32,
     sessions: Mutex<HashMap<u32, Arc<ForeignVoipSession>>>,
     keys: Mutex<HashMap<(String, u64), u32>>,
-    /// Latest handle per call. A new generation for a call whose session
-    /// already ended reuses it, so the wire identity stays stable and the
-    /// generation check keeps late pushes for the old generation out.
-    handles: Mutex<HashMap<String, u32>>,
 }
 
 impl ForeignVoipBackend {
@@ -72,7 +68,6 @@ impl ForeignVoipBackend {
                 next_handle: AtomicU32::new(FIRST_HANDLE),
                 sessions: Mutex::new(HashMap::new()),
                 keys: Mutex::new(HashMap::new()),
-                handles: Mutex::new(HashMap::new()),
             }),
         }
     }
@@ -108,9 +103,6 @@ impl BackendInner {
         sessions.retain(|_, session| !session.is_closed());
         if let Ok(mut keys) = self.keys.lock() {
             keys.retain(|_, handle| sessions.contains_key(handle));
-        }
-        if let Ok(mut handles) = self.handles.lock() {
-            handles.retain(|_, handle| sessions.contains_key(handle));
         }
     }
 
@@ -259,34 +251,11 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
         direction: vc::CallDirection,
     ) -> Arc<dyn vc::VoipMediaSession> {
         self.inner.prune_closed();
-        // A call whose session already ended keeps its handle: the new
-        // generation replaces the old under the same wire identity. A call
-        // that is still live mints fresh, so the replacement cannot steal
-        // the live session's pushes.
-        let reuse = if let (Ok(handles), Ok(sessions)) =
-            (self.inner.handles.lock(), self.inner.sessions.lock())
-        {
-            handles
-                .get(&key.call_id)
-                .copied()
-                .filter(|handle| sessions.get(handle).map(|s| s.is_closed()).unwrap_or(true))
-        } else {
-            None
-        };
-        let handle = match reuse {
-            Some(handle) => handle,
-            None => {
-                let handle = self.inner.next_handle.fetch_add(1, Ordering::Relaxed);
-                // `u32::MAX` sessions without a close is a leak, not a
-                // wrap: fail the reservation rather than reuse handle 0.
-                if handle == 0 {
-                    self.inner
-                        .next_handle
-                        .store(FIRST_HANDLE, Ordering::Relaxed);
-                    FIRST_HANDLE
-                } else {
-                    handle
-                }
+        // Fresh nonzero identities prevent late pushes from targeting a replacement.
+        let handle = loop {
+            let candidate = self.inner.next_handle.fetch_add(1, Ordering::Relaxed);
+            if candidate != 0 && !self.inner.sessions.lock().unwrap().contains_key(&candidate) {
+                break candidate;
             }
         };
         let session = Arc::new(ForeignVoipSession::new(
@@ -312,9 +281,6 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
         }
         if let Ok(mut keys) = self.inner.keys.lock() {
             keys.insert((key.call_id.clone(), key.generation), handle);
-        }
-        if let Ok(mut handles) = self.inner.handles.lock() {
-            handles.insert(key.call_id.clone(), handle);
         }
         session
     }
@@ -343,6 +309,11 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
                 Some("media mode not negotiated"),
             ));
         }
+        // Local conversion must not issue cancellation for a request never sent.
+        let params = conv::params_from_spec(&spec, &session.ctx_bits(&ctx, spec.enable_video))?;
+        let direction = conv::map_direction(session.direction()).ok_or_else(|| {
+            vc::MediaSetupError::Backend("call direction this bridge predates".to_owned())
+        })?;
         whatsapp_rust::wacore::runtime::timeout(
             &*self.inner.runtime,
             self.inner.ceiling,
@@ -357,21 +328,27 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
         let mut guard = OpenGuard::new(session.clone(), self.inner.clone());
         let mut ctx = ctx;
         session.prepare_teardown(ctx.video_teardown.take());
-        let params = conv::params_from_spec(&spec, &session.ctx_bits(&ctx, spec.enable_video))?;
         session.prepare_sinks(&spec.audio.format, &ctx);
 
         if !session.engine_reserved() {
             let reserve = abi::ReserveRequest {
                 session: session.session_id(),
                 call_id: spec.key.call_id.clone(),
-                direction: conv::map_direction(session.direction()).ok_or_else(|| {
-                    vc::MediaSetupError::Backend("call direction this bridge predates".to_owned())
-                })?,
+                direction,
             };
-            self.inner
-                .request(abi::Opcode::Reserve, reserve.encode())
-                .await
-                .map_err(|e| e.into_setup("reserve"))?;
+            whatsapp_rust::wacore::runtime::timeout(
+                &*self.inner.runtime,
+                self.inner.ceiling,
+                self.inner.request(abi::Opcode::Reserve, reserve.encode()),
+            )
+            .await
+            .map_err(|_| {
+                vc::MediaSetupError::Connect(
+                    "voip plugin did not acknowledge reservation within the dial ceiling"
+                        .to_owned(),
+                )
+            })?
+            .map_err(|e| e.into_setup("reserve"))?;
             session.mark_engine_reserved();
         }
 
@@ -407,7 +384,7 @@ impl vc::VoipMediaBackend for ForeignVoipBackend {
                 "voip plugin media did not come up within the dial ceiling".to_owned(),
             )
         })??;
-        session.attach(&spec.audio.format, ctx);
+        session.attach(&spec.audio.format, ctx, spec.enable_media);
         guard.disarm();
         Ok(())
     }
@@ -452,18 +429,71 @@ impl Drop for OpenGuard {
                 let cancel = abi::CancelOpenRequest {
                     session: session.session_id(),
                 };
-                match inner
-                    .request(abi::Opcode::CancelOpen, cancel.encode())
-                    .await
+                match whatsapp_rust::wacore::runtime::timeout(
+                    &*inner.runtime,
+                    inner.ceiling,
+                    inner.request(abi::Opcode::CancelOpen, cancel.encode()),
+                )
+                .await
                 {
-                    Ok(_) => {}
-                    Err(e) => log::warn!(
+                    Ok(Ok(_)) => {}
+                    Ok(Err(e)) => log::warn!(
                         "voip plugin cancel-open failed: {}",
                         e.into_setup("cancel open")
                     ),
+                    Err(_) => log::warn!("voip plugin cancel-open timed out"),
                 }
                 let _ = cancelled.send(());
             }))
             .detach();
+    }
+}
+
+#[cfg(test)]
+mod allocation_tests {
+    use super::*;
+    use vc::VoipMediaBackend;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn allocation_wrap_preserves_live_nonzero_handles() {
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &object,
+            &"sendFrame".into(),
+            &js_sys::Function::new_with_args("frame", "return Promise.resolve(frame)"),
+        )
+        .unwrap();
+        js_sys::Reflect::set(
+            &object,
+            &"setPushHandler".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .unwrap();
+        let callbacks = VoipBackendCallbacks::from_js(&object.into()).unwrap();
+        let backend =
+            ForeignVoipBackend::new(callbacks, u32::MAX, Arc::new(crate::runtime::WasmRuntime));
+        let key = |generation| {
+            vc::MediaSessionKey::builder()
+                .call_id("wrap".into())
+                .generation(generation)
+                .build()
+        };
+        let original = backend.reserve(&key(1), vc::CallDirection::Outgoing);
+        backend.inner.next_handle.store(u32::MAX, Ordering::Relaxed);
+        let maximum = backend.reserve(&key(2), vc::CallDirection::Outgoing);
+        let wrapped = backend.reserve(&key(3), vc::CallDirection::Outgoing);
+        let sessions = backend.inner.sessions.lock().unwrap();
+        assert_eq!(sessions.len(), 3);
+        assert!(sessions.contains_key(&1));
+        assert!(sessions.contains_key(&u32::MAX));
+        assert!(sessions.contains_key(&2));
+        assert!(!sessions.contains_key(&0));
+        drop(sessions);
+        assert_eq!(
+            backend.inner.keys.lock().unwrap().get(&("wrap".into(), 1)),
+            Some(&1)
+        );
+        drop((original, maximum, wrapped));
     }
 }

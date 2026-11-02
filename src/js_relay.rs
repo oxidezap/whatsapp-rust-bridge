@@ -168,7 +168,9 @@ fn push_close(
         return;
     }
     match tx.try_send(event) {
-        Ok(()) => {}
+        Ok(()) => {
+            tx.close();
+        }
         Err(async_channel::TrySendError::Full(event)) => {
             let tx = tx.clone();
             wasm_bindgen_futures::spawn_local(async move {
@@ -187,19 +189,28 @@ fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> 
     let obj = js_sys::Object::new();
     let drops = Arc::new(AtomicU32::new(0));
 
-    let tx = event_tx.clone();
+    let ingress = std::rc::Rc::new(std::cell::RefCell::new(Some(event_tx)));
+    let packets = ingress.clone();
     let drops_packets = drops.clone();
     let on_packet = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
+        let sender = packets.borrow();
+        let Some(tx) = sender.as_ref() else {
+            return;
+        };
         push_packet(
-            &tx,
+            tx,
             &drops_packets,
             Bytes::from(crate::js_bytes::to_vec(&data)),
         );
     }) as Box<dyn FnMut(js_sys::Uint8Array)>);
     let _ = js_sys::Reflect::set(&obj, &"onPacket".into(), &on_packet.into_js_value());
 
-    let tx = event_tx.clone();
+    let opens = ingress.clone();
     let on_open = Closure::wrap(Box::new(move || {
+        let sender = opens.borrow();
+        let Some(tx) = sender.as_ref() else {
+            return;
+        };
         // Informational: the drive loop ignores it, so a drop here costs
         // nothing and must not close a healthy call behind it.
         if tx.try_send(RelayTransportEvent::Connected).is_err() {
@@ -208,9 +219,12 @@ fn relay_events_object(event_tx: async_channel::Sender<RelayTransportEvent>) -> 
     }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(&obj, &"onOpen".into(), &on_open.into_js_value());
 
-    let tx = event_tx;
     let on_close = Closure::wrap(Box::new(move |reason: JsValue| {
-        let event = if let Some(reason) = reason.as_string().filter(|r| !r.is_empty()) {
+        // Fence ingress synchronously, including while a full queue drains.
+        let Some(tx) = ingress.borrow_mut().take() else {
+            return;
+        };
+        let event = if let Some(reason) = reason.as_string() {
             RelayTransportEvent::Disconnected(RelayDisconnectReason::ReadError(reason))
         } else {
             RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)
@@ -523,6 +537,69 @@ mod relay_event_tests {
             rx.recv().await.unwrap(),
             RelayTransportEvent::InboundDropped(3)
         ));
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)
+        ));
+        assert!(rx.recv().await.is_err());
+    }
+    #[test]
+    async fn close_with_capacity_closes_after_its_terminal_event() {
+        let (tx, rx) = async_channel::bounded(3);
+        let drops = AtomicU32::new(0);
+        push_close(
+            &tx,
+            &drops,
+            RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed),
+        );
+        push_packet(&tx, &drops, packet(9));
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)
+        ));
+        assert!(rx.recv().await.is_err());
+    }
+
+    #[test]
+    async fn close_fences_callbacks_even_while_a_full_queue_drains() {
+        use wasm_bindgen::JsCast;
+        let (tx, rx) = async_channel::bounded(1);
+        let events = relay_events_object(tx);
+        let callback = |name: &str| {
+            js_sys::Reflect::get(&events, &name.into())
+                .unwrap()
+                .unchecked_into::<js_sys::Function>()
+        };
+        let packet = callback("onPacket");
+        packet
+            .call1(&JsValue::UNDEFINED, &js_sys::Uint8Array::from(&[1u8][..]))
+            .unwrap();
+        let close = callback("onClose");
+        close
+            .call1(&JsValue::UNDEFINED, &JsValue::from_str(""))
+            .unwrap();
+        packet
+            .call1(&JsValue::UNDEFINED, &js_sys::Uint8Array::from(&[2u8][..]))
+            .unwrap();
+        callback("onOpen").call0(&JsValue::UNDEFINED).unwrap();
+        close.call0(&JsValue::UNDEFINED).unwrap();
+        assert!(
+            matches!(rx.recv().await.unwrap(), RelayTransportEvent::PacketReceived(data) if data.as_ref() == [1])
+        );
+        assert!(
+            matches!(rx.recv().await.unwrap(), RelayTransportEvent::Disconnected(RelayDisconnectReason::ReadError(reason)) if reason.is_empty())
+        );
+        assert!(rx.recv().await.is_err());
+    }
+    #[test]
+    async fn omitted_close_reason_is_normal_closure() {
+        use wasm_bindgen::JsCast;
+        let (tx, rx) = async_channel::bounded(1);
+        let events = relay_events_object(tx);
+        let close = js_sys::Reflect::get(&events, &"onClose".into())
+            .unwrap()
+            .unchecked_into::<js_sys::Function>();
+        close.call0(&JsValue::UNDEFINED).unwrap();
         assert!(matches!(
             rx.recv().await.unwrap(),
             RelayTransportEvent::Disconnected(RelayDisconnectReason::Closed)

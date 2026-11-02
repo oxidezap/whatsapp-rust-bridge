@@ -5,21 +5,31 @@ export function createLocalRelay(onRtp) {
     transport(index) {
       return {
         async connect(_params, events) {
-          endpoints[index] = events;
+          const endpoint = { events, closed: false };
+          endpoints[index] = endpoint;
           return {
             send(packet) {
+              if (endpoint.closed) return;
               const copy = packet.slice();
               if (copy[0] === 0 && copy[1] === 3) {
                 const response = copy.slice(0, 20);
                 response[0] = 1; response[1] = 3; response[2] = 0; response[3] = 0;
-                queueMicrotask(() => endpoints[index]?.onPacket(response));
+                queueMicrotask(() => {
+                  if (!endpoint.closed && endpoints[index] === endpoint) events.onPacket(response);
+                });
               } else if ((copy[0] & 0xc0) === 0x80) {
                 onRtp(index, copy);
-                queueMicrotask(() => endpoints[1 - index]?.onPacket(copy));
+                const target = endpoints[1 - index];
+                queueMicrotask(() => {
+                  if (!endpoint.closed && target && !target.closed && endpoints[1 - index] === target)
+                    target.events.onPacket(copy);
+                });
               }
             },
-            reconnect() {},
-            close() { endpoints[index] = undefined; },
+            close() {
+              endpoint.closed = true;
+              if (endpoints[index] === endpoint) endpoints[index] = undefined;
+            },
           };
         },
       };

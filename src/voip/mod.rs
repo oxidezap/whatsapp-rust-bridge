@@ -106,19 +106,36 @@ impl VoipBackendCallbacks {
 
     /// One request frame across, one response frame back.
     pub async fn send(&self, frame: &[u8]) -> Result<Vec<u8>, BackendCommsError> {
+        self.start_send(frame)?.await
+    }
+
+    /// Begin the JS crossing synchronously, retaining the input until its reply.
+    /// CLOSE uses this so the shipped engine can publish its final snapshot
+    /// before the synchronous core teardown reads statistics and prunes routing.
+    pub(super) fn start_send(
+        &self,
+        frame: &[u8],
+    ) -> Result<
+        impl std::future::Future<Output = Result<Vec<u8>, BackendCommsError>> + use<>,
+        BackendCommsError,
+    > {
         let bytes = js_sys::Uint8Array::from(frame);
-        let _wipe = WipeJsBytes(bytes.clone());
+        let wipe = WipeJsBytes(bytes.clone());
         let ret = self
             .send_frame
             .call1(&self.receiver, bytes.as_ref())
             .map_err(|e| BackendCommsError(format!("sendFrame threw: {e:?}")))?;
-        let resolved: JsValue = JsFuture::from(js_sys::Promise::resolve(&ret))
-            .await
-            .map_err(|e| BackendCommsError(format!("sendFrame rejected: {e:?}")))?;
-        let bytes = resolved
-            .dyn_into::<js_sys::Uint8Array>()
-            .map_err(|_| BackendCommsError("sendFrame resolved to a non-Uint8Array".to_owned()))?;
-        Ok(crate::js_bytes::to_vec(&bytes))
+        let reply = JsFuture::from(js_sys::Promise::resolve(&ret));
+        Ok(async move {
+            let _wipe = wipe;
+            let resolved: JsValue = reply
+                .await
+                .map_err(|e| BackendCommsError(format!("sendFrame rejected: {e:?}")))?;
+            let bytes = resolved.dyn_into::<js_sys::Uint8Array>().map_err(|_| {
+                BackendCommsError("sendFrame resolved to a non-Uint8Array".to_owned())
+            })?;
+            Ok(crate::js_bytes::to_vec(&bytes))
+        })
     }
 }
 
@@ -186,6 +203,22 @@ pub async fn handshake(callbacks: &VoipBackendCallbacks) -> Result<u32, BridgeEr
                 "voipBackend speaks ABI major {}, this bridge speaks {}",
                 resp.major,
                 voip_abi::ABI_MAJOR
+            ),
+        ));
+    }
+    if resp.opcode == voip_abi::Opcode::Hello && resp.is_error() {
+        let error = voip_abi::ErrorBody::decode(&resp.payload).map_err(|error| {
+            invalid_arg(
+                "extensions",
+                format!("voipBackend handshake error misformed: {error}"),
+            )
+        })?;
+        return Err(invalid_arg(
+            "extensions",
+            format!(
+                "voipBackend handshake refused: {:?}: {}",
+                error.code,
+                error.detail.as_deref().unwrap_or(""),
             ),
         ));
     }

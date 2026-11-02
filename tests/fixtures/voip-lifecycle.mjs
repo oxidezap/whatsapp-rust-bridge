@@ -28,7 +28,7 @@ const begin = frame(3, concat(session, bytes(params)));
 const close = frame(8, concat(session, Uint8Array.of(1, 0)));
 const transport = {
   async connect() {
-    return { send() {}, async reconnect() {}, close() {} };
+    return { send() {}, close() {} };
   },
 };
 const wasm = readFileSync(new URL(import.meta.resolve("@oxidezap/whatsapp-rust-bridge/voip/wasm")));

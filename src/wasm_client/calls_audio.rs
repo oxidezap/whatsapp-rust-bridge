@@ -1508,14 +1508,14 @@ impl CallMedia {
         generation: u64,
     ) -> Result<(), crate::errors::BridgeError> {
         let (handle, record_generation, token) = {
-            let mut records = self.call_records.borrow_mut();
-            let Some(record) = records.get_mut(call_id) else {
+            let records = self.call_records.borrow();
+            let Some(record) = records.get(call_id) else {
                 return Err(unknown_call());
             };
             if record.generation != generation {
                 return Err(unknown_call());
             }
-            let token = record.pending_upgrade.take();
+            let token = record.pending_upgrade;
             (record.handle.clone(), record.generation, token)
         };
         let Some(token) = token else {
@@ -1524,10 +1524,32 @@ impl CallMedia {
                 "no pending video upgrade request for this call",
             ));
         };
-        self.attach_video_plane(call_id, record_generation, "acceptVideo", |rx, tx| {
-            handle.accept_video(token, rx, tx)
-        })
-        .await
+        let result = self
+            .attach_video_plane(call_id, record_generation, "acceptVideo", |rx, tx| {
+                handle.accept_video(token, rx, tx)
+            })
+            .await;
+        if let Some(record) = self
+            .call_records
+            .borrow_mut()
+            .get_mut(call_id)
+            .filter(|record| record.generation == record_generation)
+        {
+            reconcile_video_accept(&mut record.pending_upgrade, token, result.is_ok());
+        }
+        result
+    }
+}
+
+// This is a bounded cache. Core validates the exact token under its transition lane;
+// a failed attempt may leave an inert stale token until the next peer event replaces it.
+fn reconcile_video_accept(
+    pending: &mut Option<VideoUpgradeToken>,
+    attempted: VideoUpgradeToken,
+    succeeded: bool,
+) {
+    if succeeded && *pending == Some(attempted) {
+        *pending = None;
     }
 }
 
@@ -2073,24 +2095,9 @@ impl CallMedia {
     }
 
     async fn accept_call_video(&self, call_id: String) -> Result<(), crate::errors::BridgeError> {
-        let (handle, generation, token) = {
-            let mut records = self.call_records.borrow_mut();
-            let Some(record) = records.get_mut(&call_id) else {
-                return Err(unknown_call());
-            };
-            let token = record.pending_upgrade.take();
-            (record.handle.clone(), record.generation, token)
-        };
-        let Some(token) = token else {
-            return Err(crate::errors::invalid_arg(
-                "callId",
-                "no pending video upgrade request for this call",
-            ));
-        };
-        self.attach_video_plane(&call_id, generation, "acceptCallVideo", |rx, tx| {
-            handle.accept_video(token, rx, tx)
-        })
-        .await
+        let (_, generation) = self.live_record(&call_id)?;
+        self.accept_call_video_by_generation(&call_id, generation)
+            .await
     }
 
     pub(super) async fn stop_call_video(
@@ -2798,6 +2805,33 @@ mod call_media_tests {
     use whatsapp_rust::wacore::stanza::call::parse_call_stanza;
     use whatsapp_rust::wacore_binary::jid::Jid;
     use whatsapp_rust::wacore_binary::node::{Attrs, Node, NodeContent, NodeValue};
+
+    #[test]
+    fn failed_video_accept_retains_the_request_for_retry() {
+        let token = VideoUpgradeToken::builder().generation(7).epoch(1).build();
+        let mut pending = Some(token);
+        reconcile_video_accept(&mut pending, token, false);
+        assert_eq!(pending, Some(token));
+        reconcile_video_accept(&mut pending, token, true);
+        assert_eq!(pending, None);
+    }
+
+    #[test]
+    fn old_accept_completion_preserves_a_newer_request() {
+        let old = VideoUpgradeToken::builder().generation(7).epoch(1).build();
+        let latest = VideoUpgradeToken::builder().generation(7).epoch(2).build();
+        let mut pending = Some(latest);
+        reconcile_video_accept(&mut pending, old, true);
+        assert_eq!(pending, Some(latest));
+        reconcile_video_accept(&mut pending, old, false);
+        assert_eq!(pending, Some(latest));
+        reconcile_video_accept(&mut pending, latest, true);
+        reconcile_video_accept(&mut pending, latest, false);
+        assert_eq!(
+            pending, None,
+            "a losing concurrent attempt cannot resurrect a consumed token"
+        );
+    }
 
     fn jid(user: &str) -> Jid {
         format!("{user}@s.whatsapp.net")

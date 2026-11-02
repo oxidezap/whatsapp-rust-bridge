@@ -12,15 +12,15 @@
 //!
 //! `major` equal is mandatory: a peer whose major differs fails the handshake
 //! before any call exists (see [`negotiate`]). `minor` is additive-only: a
-//! decoder rejects a truncated payload but ignores trailing bytes, so a newer
+//! payload decoder rejects truncated fields but ignores additive trailing fields, so a newer
 //! minor may append fields an older reader skips. [`messages`] pins the
 //! trailing-tolerance with a test.
 //!
 //! Responses echo the request opcode with the `RESPONSE` flag; failures add
 //! the `ERROR` flag and carry an [`AbiErrorCode`] plus an optional detail.
-//! Three notifications flow `voip -> core` without a response: [`Opcode::Open`]
-//! (setup completed), [`Opcode::Event`], [`Opcode::MediaEnded`], and
-//! [`Opcode::Stats`] pushes. Everything else is a request.
+//! Notifications flow `voip -> core` without a response: [`Opcode::Open`]
+//! (setup completed), [`Opcode::Event`], [`Opcode::MediaEnded`], [`Opcode::Stats`],
+//! [`Opcode::PcmOut`], [`Opcode::EncodedAudioOut`] and [`Opcode::VideoOut`].
 //!
 //! The open handshake is three messages, because setup is asynchronous and
 //! the core may walk away mid-flight:

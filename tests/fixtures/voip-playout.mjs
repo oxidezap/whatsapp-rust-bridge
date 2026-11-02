@@ -11,7 +11,7 @@ const text = (value) => bytes(new TextEncoder().encode(value));
 const frame = (opcode, body) =>
   concat(Uint8Array.of(79, 90, 86, 80, 1, 1, opcode, 0, 0), u32(body.length), body);
 const session = concat(u32(1), u64(1));
-const reserve = frame(2, concat(session, text("LIFECYCLE"), Uint8Array.of(1)));
+const reserve = index => frame(2, concat(session, text("LIFECYCLE"), Uint8Array.of(index)));
 const format = Uint8Array.of(1, 0, ...u32(16_000), ...u32(16_000), 1,
   ...u32(960), ...u32(16_000), ...u32(960), 120);
 
@@ -50,7 +50,7 @@ const params = index => concat(
 const close = frame(8, concat(session, Uint8Array.of(1, 0)));
 try {
   for (const [index, engine] of engines.entries()) {
-    assert.equal((await engine.sendFrame(reserve))[7], 1);
+    assert.equal((await engine.sendFrame(reserve(index)))[7], 1);
     assert.equal((await engine.sendFrame(frame(3, concat(session, bytes(params(index))))))[7], 1);
   }
   await Promise.all(opened);

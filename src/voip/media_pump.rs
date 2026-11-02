@@ -7,7 +7,7 @@
 //! behind it applies the backpressure the core documents.
 
 use std::sync::{
-    Arc,
+    Arc, Mutex,
     atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 use std::time::Duration;
@@ -31,6 +31,7 @@ pub enum AudioInputs {
 
 /// Everything one attach fans out into pumps.
 pub struct PumpInputs {
+    pub enable_media: bool,
     /// The microphone side.
     pub audio: AudioInputs,
     /// Untimed outbound access units.
@@ -74,6 +75,7 @@ pub fn spawn_all(
     agreed: u32,
     alive: Arc<AtomicBool>,
     failures: Sender<vc::MediaEvent>,
+    task_handles: Arc<Mutex<Vec<whatsapp_rust::wacore::runtime::AbortHandle>>>,
 ) -> Vec<whatsapp_rust::wacore::runtime::AbortHandle> {
     let mut handles = Vec::new();
     let pump = Pump {
@@ -85,22 +87,27 @@ pub fn spawn_all(
         failures,
         muted: inputs.muted.clone(),
         initial_muted: inputs.initial_muted,
+        task_handles,
     };
 
     handles.push(pump.spawn_command(pipe.rx, pipe.queued_bytes.clone()));
 
     match inputs.audio {
-        AudioInputs::Pcm(mic) if agreed & abi::Capabilities::PCM != 0 => {
+        AudioInputs::Pcm(mic) if inputs.enable_media && agreed & abi::Capabilities::PCM != 0 => {
             handles.push(pump.spawn_pcm(mic));
         }
-        AudioInputs::Encoded(mic) if agreed & abi::Capabilities::ENCODED_AUDIO != 0 => {
+        AudioInputs::Encoded(mic)
+            if inputs.enable_media && agreed & abi::Capabilities::ENCODED_AUDIO != 0 =>
+        {
             handles.push(pump.spawn_encoded(mic));
         }
         _ => log::warn!("voip microphone pump ungated by the handshake, not started"),
     }
 
     if agreed & abi::Capabilities::VIDEO != 0 {
-        handles.push(pump.spawn_video(inputs.video_in, inputs.timed_in));
+        if inputs.enable_media {
+            handles.push(pump.spawn_video(inputs.video_in, inputs.timed_in));
+        }
         handles.push(pump.spawn_control(
             inputs.control,
             pipe.tx.clone(),
@@ -123,6 +130,7 @@ struct Pump {
     failures: Sender<vc::MediaEvent>,
     muted: Arc<AtomicBool>,
     initial_muted: bool,
+    task_handles: Arc<Mutex<Vec<whatsapp_rust::wacore::runtime::AbortHandle>>>,
 }
 
 impl Pump {
@@ -338,12 +346,23 @@ impl Pump {
     /// One frame across with its acknowledgement. `false` ends the pump:
     /// the link broke, the plugin answered wrong, or the session ended.
     async fn send(&self, opcode: abi::Opcode, body: Vec<u8>, what: &str) -> bool {
-        let success = self.send_checked(opcode, body, what).await;
+        // Bound the whole operation, including host promises and BUSY retries.
+        let success = whatsapp_rust::wacore::runtime::timeout(
+            &*self.runtime,
+            super::OPEN_CEILING,
+            self.send_checked(opcode, body, what),
+        )
+        .await
+        .unwrap_or(false);
         if !success && self.alive.swap(false, Ordering::SeqCst) {
-            let _ = self.failures.try_send(vc::MediaEvent::MediaSetupFailed(
+            let _ = self.failures.force_send(vc::MediaEvent::MediaSetupFailed(
                 "voip plugin link failed".to_owned(),
             ));
             self.failures.close();
+            // Wake every blocked source/control pump, even without a core event consumer.
+            for task in self.task_handles.lock().unwrap().drain(..) {
+                task.abort();
+            }
         }
         success
     }
@@ -387,6 +406,20 @@ impl Pump {
                 {
                     return true;
                 }
+                Ok(resp)
+                    if resp.major == abi::ABI_MAJOR
+                        && resp.opcode == opcode
+                        && resp.is_error()
+                        && opcode == abi::Opcode::Command
+                        && abi::ErrorBody::decode(&resp.payload).is_ok() =>
+                {
+                    // An engine refusal rejects this command, not the established link.
+                    log::warn!(
+                        "voip plugin refused command {what} (handle {})",
+                        self.handle
+                    );
+                    return true;
+                }
                 Ok(resp) => {
                     log::warn!("voip plugin refused {what} (handle {})", self.handle);
                     let _ = resp;
@@ -410,4 +443,100 @@ async fn sleep(runtime: &dyn whatsapp_rust::wacore::runtime::Runtime, duration: 
         futures::future::pending::<()>(),
     )
     .await;
+}
+
+#[cfg(test)]
+mod failure_tests {
+    use super::*;
+    use wasm_bindgen::JsValue;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn callbacks(refuse: bool) -> VoipBackendCallbacks {
+        let send = wasm_bindgen::closure::Closure::wrap(Box::new(move |value: JsValue| {
+            if !refuse {
+                return js_sys::Promise::reject(&JsValue::from_str("fixture disconnected"));
+            }
+            let bytes = js_sys::Uint8Array::new(&value).to_vec();
+            let request = abi::Frame::decode(&bytes).unwrap();
+            let response = if request.opcode == abi::Opcode::Command {
+                abi::Frame::fail(
+                    &request,
+                    abi::AbiErrorCode::NotSupported,
+                    Some("fixture refused"),
+                )
+            } else {
+                abi::Frame::respond(&request, Vec::new())
+            };
+            let response: JsValue = js_sys::Uint8Array::from(response.encode().as_slice()).into();
+            js_sys::Promise::resolve(&response)
+        })
+            as Box<dyn FnMut(JsValue) -> js_sys::Promise>);
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(&object, &"sendFrame".into(), &send.into_js_value()).unwrap();
+        js_sys::Reflect::set(
+            &object,
+            &"setPushHandler".into(),
+            &js_sys::Function::new_no_args(""),
+        )
+        .unwrap();
+        VoipBackendCallbacks::from_js(&object.into()).unwrap()
+    }
+
+    #[allow(clippy::arc_with_non_send_sync)] // Match the production session's shared task registry.
+    fn pump(refuse: bool, failures: Sender<vc::MediaEvent>) -> Pump {
+        Pump {
+            handle: 1,
+            session: abi::SessionId {
+                handle: 1,
+                generation: 1,
+            },
+            callbacks: callbacks(refuse),
+            runtime: Arc::new(crate::runtime::WasmRuntime),
+            alive: Arc::new(AtomicBool::new(true)),
+            failures,
+            muted: Arc::new(AtomicBool::new(false)),
+            initial_muted: false,
+            task_handles: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn typed_command_refusal_preserves_a_healthy_media_link() {
+        let (events, rx) = async_channel::bounded(1);
+        let pump = pump(true, events);
+        assert!(
+            pump.send(abi::Opcode::Command, vec![], "fixture command")
+                .await
+        );
+        assert!(pump.running());
+        assert!(
+            pump.send(abi::Opcode::PcmIn, vec![], "next media frame")
+                .await
+        );
+        assert!(rx.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    async fn failed_link_replaces_full_diagnostics_and_aborts_blocked_sources() {
+        let (events, rx) = async_channel::bounded(1);
+        events
+            .try_send(vc::MediaEvent::MediaSetupFailed("old diagnostic".into()))
+            .unwrap();
+        let pump = pump(false, events);
+        let (input, input_rx) = async_channel::bounded(1);
+        let blocked = pump.spawn_encoded(input_rx);
+        pump.task_handles.lock().unwrap().push(blocked);
+        assert!(
+            !pump
+                .send(abi::Opcode::Command, vec![], "fixture failure")
+                .await
+        );
+        assert!(
+            matches!(rx.recv().await.unwrap(), vc::MediaEvent::MediaSetupFailed(detail) if detail == "voip plugin link failed")
+        );
+        assert!(pump.task_handles.lock().unwrap().is_empty());
+        // Poll the cancelled task so its owned receiver is released.
+        sleep(&*pump.runtime, Duration::from_millis(1)).await;
+        assert!(input.is_closed());
+    }
 }

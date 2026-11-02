@@ -295,13 +295,15 @@ impl Frame {
 
     /// Serializes header plus payload into one buffer.
     pub fn encode(&self) -> Vec<u8> {
+        let payload_len =
+            u32::try_from(self.payload.len()).expect("voip ABI payload exceeds u32 length");
         let mut out = Vec::with_capacity(HEADER_LEN + self.payload.len());
         out.extend_from_slice(&MAGIC);
         out.push(self.major);
         out.push(self.minor);
         out.push(self.opcode.as_u8());
         out.extend_from_slice(&self.flags.to_le_bytes());
-        out.extend_from_slice(&(self.payload.len() as u32).to_le_bytes());
+        out.extend_from_slice(&payload_len.to_le_bytes());
         out.extend_from_slice(&self.payload);
         out
     }
@@ -323,6 +325,11 @@ impl Frame {
             return Err(DecodeError::TruncatedPayload {
                 want: len,
                 got: buf.len() - HEADER_LEN,
+            });
+        }
+        if buf.len() - HEADER_LEN > len {
+            return Err(DecodeError::TrailingFrameBytes {
+                len: buf.len() - HEADER_LEN - len,
             });
         }
         Ok(Frame {

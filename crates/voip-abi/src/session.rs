@@ -1,6 +1,8 @@
 //! Session identity: a `u32` handle plus a `u64` generation, validated on
 //! every callback. A stale generation never touches its replacement, which
-//! keeps the ABA protection across the WASM boundary.
+//! keeps the ABA protection across the WASM boundary. The caller allocates fresh
+//! generations; a retired identity must never be reserved again. This table keeps
+//! active reservations only, not unbounded history for caller-supplied identities.
 
 use std::collections::HashMap;
 
@@ -105,10 +107,13 @@ impl SessionTable {
         }
     }
 
-    /// Releases a handle. Closing is idempotent: dropping half-open state
-    /// twice is normal on the teardown path.
-    pub fn remove(&mut self, handle: u32) {
-        self.reserved.remove(&handle);
+    /// Releases only this exact identity. Unknown or stale teardown is a no-op.
+    pub fn remove(&mut self, session: SessionId) -> bool {
+        if self.validate(session).is_err() {
+            return false;
+        }
+        self.reserved.remove(&session.handle);
+        true
     }
 
     /// True while the handle is reserved at any generation.

@@ -12,8 +12,8 @@
  * This is the contract only. No werift, no node-datachannel, no wrtc, no
  * Node implementation lives here: the host chooses the WebRTC stack, and
  * the existing `relay-transport.ts` RTCPeerConnection adapter stays the
- * default for the resident-engine path. A fake in-memory transport proves
- * the contract in `tests/voip-relay-transport.test.ts`.
+ * default for the resident-engine path. Installed-package fixtures exercise
+ * the real engine with an opaque in-memory relay.
  */
 
 /** One WhatsApp relay endpoint, as the engine names it. */
@@ -40,19 +40,14 @@ export interface VoipRelayConnectionEvents {
 
 /**
  * One live packet pipe to a relay endpoint. A dumb pipe: `send` ships one
- * opaque datagram, `reconnect` replaces the channel with one to a newly
- * selected endpoint, `close` releases it. VoIP is loss tolerant, so an
+ * opaque datagram and `close` releases it. Relay migration calls the factory's
+ * `connect` again with fresh event callbacks, then closes the retired pipe.
+ * VoIP is loss tolerant, so an
  * implementation may drop under backpressure rather than block or error.
  */
 export interface VoipRelayConnection {
   /** Send one packet to the relay. */
   send(packet: Uint8Array): void | Promise<void>;
-  /**
-   * Replace this channel with one connected to a newly selected relay
-   * endpoint. Implementations that cannot redial reject, and the engine
-   * ends the call instead of sending to the retired relay.
-   */
-  reconnect(endpoint: VoipRelayEndpoint): Promise<void>;
   /** Close the channel. */
   close(): void | Promise<void>;
 }
@@ -64,7 +59,7 @@ export interface VoipRelayConnection {
  * ones into the call engine.
  */
 export interface VoipRelayTransport {
-  /** Connect to the relay and return the channel. */
+  /** Connect initially or on migration; every result owns a separate channel. */
   connect(
     endpoint: VoipRelayEndpoint,
     events: VoipRelayConnectionEvents,

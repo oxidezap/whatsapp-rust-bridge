@@ -9,7 +9,7 @@
 
 use std::sync::{
     Arc, Mutex, OnceLock,
-    atomic::{AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicU32, Ordering},
 };
 
 use async_trait::async_trait;
@@ -80,9 +80,11 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
         .connect
         .call2(&transport.receiver, &endpoint_js, events.handler_object())
         .map_err(|_| "relay connect threw".to_owned())?;
-    let connection = JsFuture::from(js_sys::Promise::resolve(&promise))
-        .await
-        .map_err(|_| "relay connect rejected".to_owned())?;
+    let promise = js_sys::Promise::resolve(&promise);
+    let mut pending = PendingConnect(Some(promise.clone()));
+    let result = JsFuture::from(promise).await;
+    pending.0.take();
+    let connection = result.map_err(|_| "relay connect rejected".to_owned())?;
     let pipe = JsPipe::from_value(&connection)?;
     // The channel is open when `connect` resolved: report it so the driver
     // starts its allocate instead of waiting on an `onOpen` that already
@@ -90,7 +92,7 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
     tx.try_send(RelayTransportEvent::Connected).ok();
     let closing = pipe.clone();
     let close: wacore::voip_control::VideoTeardownHook = Box::new(move || {
-        close_detached(&closing.close, &closing.this);
+        closing.close_once_detached();
     });
     Ok(Dialed {
         close,
@@ -98,7 +100,6 @@ pub async fn dial(endpoint: RelayEndpointParams) -> Result<Dialed, String> {
             pipe,
             events,
             endpoint,
-            relay_events: rx.clone(),
         }) as Arc<dyn RelayTransport>,
         relay_events: rx,
     })
@@ -311,7 +312,6 @@ impl JsEvents {
 struct ConnectedPipe {
     pipe: JsPipe,
     endpoint: RelayEndpointParams,
-    relay_events: async_channel::Receiver<RelayTransportEvent>,
     /// Held so the `onPacket`/`onOpen`/`onClose` closures stay able to reach
     /// the sender: they hold only a weak backref, which this keeps alive.
     #[allow(dead_code)]
@@ -323,22 +323,69 @@ struct ConnectedPipe {
 struct JsPipe {
     send: js_sys::Function,
     close: js_sys::Function,
-    reconnect: js_sys::Function,
     this: JsValue,
+    closed: Arc<AtomicBool>,
+}
+
+fn observe_close(result: JsValue) {
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_futures::spawn_local(async move {
+        let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
+    });
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = result;
 }
 
 fn close_detached(close: &js_sys::Function, receiver: &JsValue) {
     if let Ok(result) = close.call0(receiver) {
-        #[cfg(target_arch = "wasm32")]
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
-        });
-        #[cfg(not(target_arch = "wasm32"))]
-        let _ = result;
+        observe_close(result);
+    }
+}
+
+// Cancellation must release the engine immediately, not wait for a host Promise.
+// Only a JS-owned, capture-free cleanup remains to close a late connection.
+struct PendingConnect(Option<js_sys::Promise>);
+
+impl Drop for PendingConnect {
+    fn drop(&mut self) {
+        let Some(promise) = self.0.take() else { return };
+        let close = Closure::wrap(Box::new(|value: JsValue| {
+            if let Ok(close) = js_sys::Reflect::get(&value, &"close".into())
+                && let Ok(close) = close.dyn_into::<js_sys::Function>()
+            {
+                close_detached(&close, &value);
+            }
+        }) as Box<dyn FnMut(JsValue)>)
+        .into_js_value();
+        let ignore =
+            Closure::wrap(Box::new(|_: JsValue| {}) as Box<dyn FnMut(JsValue)>).into_js_value();
+        if let Ok(then) = js_sys::Reflect::get(promise.as_ref(), &"then".into())
+            && let Ok(then) = then.dyn_into::<js_sys::Function>()
+        {
+            let _ = then.call2(promise.as_ref(), &close, &ignore);
+        }
+    }
+}
+
+impl Drop for ConnectedPipe {
+    fn drop(&mut self) {
+        self.pipe.close_once_detached();
     }
 }
 
 impl JsPipe {
+    fn begin_close(&self) -> Option<JsValue> {
+        if self.closed.swap(true, Ordering::AcqRel) {
+            return None;
+        }
+        self.close.call0(&self.this).ok()
+    }
+
+    fn close_once_detached(&self) {
+        if let Some(result) = self.begin_close() {
+            observe_close(result);
+        }
+    }
     fn from_value(value: &JsValue) -> Result<Self, String> {
         let get = |name: &str| {
             js_sys::Reflect::get(value, &JsValue::from_str(name))
@@ -347,10 +394,8 @@ impl JsPipe {
                 .ok_or_else(|| format!("relay connection has no {name}"))
         };
         let close = get("close")?;
-        let methods =
-            get("send").and_then(|send| get("reconnect").map(|reconnect| (send, reconnect)));
-        let (send, reconnect) = match methods {
-            Ok(methods) => methods,
+        let send = match get("send") {
+            Ok(send) => send,
             Err(error) => {
                 close_detached(&close, value);
                 return Err(error);
@@ -359,8 +404,8 @@ impl JsPipe {
         Ok(JsPipe {
             send,
             close,
-            reconnect,
             this: value.clone(),
+            closed: Arc::new(AtomicBool::new(false)),
         })
     }
 }
@@ -369,6 +414,9 @@ impl JsPipe {
 #[async_trait(?Send)]
 impl RelayTransport for ConnectedPipe {
     async fn send(&self, data: Bytes) -> anyhow::Result<()> {
+        if self.pipe.closed.load(Ordering::Acquire) {
+            anyhow::bail!("relay transport is disconnected");
+        }
         let bytes = js_sys::Uint8Array::from(data.as_ref());
         let result = self
             .pipe
@@ -390,27 +438,12 @@ impl RelayTransport for ConnectedPipe {
     )> {
         let mut endpoint = self.endpoint.clone();
         endpoint.addr = address;
-        let result = self
-            .pipe
-            .reconnect
-            .call1(&self.pipe.this, &js_endpoint(&endpoint))
-            .map_err(|_| anyhow::anyhow!("relay reconnect threw"))?;
-        JsFuture::from(js_sys::Promise::resolve(&result))
-            .await
-            .map_err(|_| anyhow::anyhow!("relay reconnect rejected"))?;
-        Ok((
-            Arc::new(ConnectedPipe {
-                pipe: self.pipe.clone(),
-                events: self.events.clone(),
-                endpoint,
-                relay_events: self.relay_events.clone(),
-            }),
-            self.relay_events.clone(),
-        ))
+        let fresh = dial(endpoint).await.map_err(anyhow::Error::msg)?;
+        Ok((fresh.transport, fresh.relay_events))
     }
 
     async fn disconnect(&self) {
-        if let Ok(result) = self.pipe.close.call0(&self.pipe.this) {
+        if let Some(result) = self.pipe.begin_close() {
             let _ = JsFuture::from(js_sys::Promise::resolve(&result)).await;
         }
     }
@@ -430,6 +463,79 @@ impl RelayTransport for ConnectedPipe {
 mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test(async)]
+    async fn reconnect_has_fresh_ingress_and_independent_close_ownership() {
+        let provider = js_sys::Function::new_no_args(r#"
+          return {connections:[],events:[],connect(endpoint,events) {
+            const connection={closed:0,sends:0,send(){this.sends++},close(){this.closed++;events.onClose()}};
+            this.connections.push(connection);this.events.push(events);
+            return Promise.resolve(connection);
+          }};
+        "#).call0(&JsValue::UNDEFINED).unwrap();
+        set_relay_transport(provider.clone()).unwrap();
+        let first = dial(RelayEndpointParams {
+            addr: "127.0.0.1:1234".parse().unwrap(),
+            ice_ufrag: "ufrag".into(),
+            ice_pwd: "password".into(),
+        })
+        .await
+        .unwrap();
+        let events =
+            js_sys::Array::from(&js_sys::Reflect::get(&provider, &"events".into()).unwrap());
+        let old = events.get(0);
+        let closed: js_sys::Function = js_sys::Reflect::get(&old, &"onClose".into())
+            .unwrap()
+            .unchecked_into();
+        closed.call0(&old).unwrap();
+        let (replacement, received) = first
+            .transport
+            .reconnect("127.0.0.1:5678".parse().unwrap())
+            .await
+            .unwrap();
+        first.transport.disconnect().await;
+        (first.close)();
+        let connections =
+            js_sys::Array::from(&js_sys::Reflect::get(&provider, &"connections".into()).unwrap());
+        let count = |index: u32| {
+            js_sys::Reflect::get(&connections.get(index), &"closed".into())
+                .unwrap()
+                .as_f64()
+                .unwrap()
+        };
+        assert_eq!(count(0), 1.0);
+        assert_eq!(
+            count(1),
+            0.0,
+            "retiring the old pipe must not close its replacement"
+        );
+        let events =
+            js_sys::Array::from(&js_sys::Reflect::get(&provider, &"events".into()).unwrap());
+        let fresh = events.get(1);
+        assert!(!js_sys::Object::is(&old, &fresh));
+        let packet: js_sys::Function = js_sys::Reflect::get(&fresh, &"onPacket".into())
+            .unwrap()
+            .unchecked_into();
+        packet
+            .call1(&fresh, &js_sys::Uint8Array::from(&[42][..]))
+            .unwrap();
+        assert!(matches!(
+            received.try_recv().unwrap(),
+            RelayTransportEvent::Connected
+        ));
+        assert!(
+            matches!(received.try_recv().unwrap(),RelayTransportEvent::PacketReceived(data) if data.as_ref()==[42])
+        );
+        replacement.send(Bytes::from_static(&[7])).await.unwrap();
+        drop(replacement);
+        assert_eq!(
+            count(1),
+            1.0,
+            "aborting/dropping the current transport must close the replacement"
+        );
+        drop(first.transport);
+        assert_eq!(count(0), 1.0, "Drop must share the close-once guard");
+    }
 
     #[wasm_bindgen_test]
     fn overflow_is_reported_once_before_subsequent_packets() {
@@ -537,38 +643,36 @@ mod tests {
         let make = js_sys::Function::new_no_args(
             "return {closed:0,send(){},reconnect(){},close(){this.closed++;return Promise.resolve();}};",
         );
-        for method in ["send", "reconnect"] {
-            for kind in 0..3 {
-                let handle: js_sys::Object =
-                    make.call0(&JsValue::UNDEFINED).unwrap().unchecked_into();
-                if kind == 2 {
-                    let descriptor = js_sys::Object::new();
-                    js_sys::Reflect::set(
-                        &descriptor,
-                        &"get".into(),
-                        &js_sys::Function::new_no_args("throw new Error('bad getter');"),
-                    )
-                    .unwrap();
-                    js_sys::Object::define_property(&handle, &method.into(), &descriptor);
+        let method = "send";
+        for kind in 0..3 {
+            let handle: js_sys::Object = make.call0(&JsValue::UNDEFINED).unwrap().unchecked_into();
+            if kind == 2 {
+                let descriptor = js_sys::Object::new();
+                js_sys::Reflect::set(
+                    &descriptor,
+                    &"get".into(),
+                    &js_sys::Function::new_no_args("throw new Error('bad getter');"),
+                )
+                .unwrap();
+                js_sys::Object::define_property(&handle, &method.into(), &descriptor);
+            } else {
+                let value = if kind == 0 {
+                    JsValue::UNDEFINED
                 } else {
-                    let value = if kind == 0 {
-                        JsValue::UNDEFINED
-                    } else {
-                        42.into()
-                    };
-                    js_sys::Reflect::set(&handle, &method.into(), &value).unwrap();
-                }
-                let error = JsPipe::from_value(&handle)
-                    .err()
-                    .expect("invalid method refused");
-                assert!(error.contains(method));
-                assert_eq!(
-                    js_sys::Reflect::get(&handle, &"closed".into())
-                        .unwrap()
-                        .as_f64(),
-                    Some(1.0)
-                );
+                    42.into()
+                };
+                js_sys::Reflect::set(&handle, &method.into(), &value).unwrap();
             }
+            let error = JsPipe::from_value(&handle)
+                .err()
+                .expect("invalid method refused");
+            assert!(error.contains(method));
+            assert_eq!(
+                js_sys::Reflect::get(&handle, &"closed".into())
+                    .unwrap()
+                    .as_f64(),
+                Some(1.0)
+            );
         }
         let valid = make.call0(&JsValue::UNDEFINED).unwrap();
         assert!(JsPipe::from_value(&valid).is_ok());

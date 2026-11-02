@@ -65,8 +65,9 @@ struct EngineSession {
     /// handle, never on this.
     #[allow(dead_code)]
     call_id: String,
-    /// Whether `BeginOpen` has been acknowledged for this session.
-    opening: bool,
+    direction: voip_abi::Direction,
+    /// Cancelling this owner drops setup, including its engine and call keys.
+    open_task: Option<wacore::runtime::AbortHandle>,
     open_attempt: u64,
     /// The running call, once `BeginOpen` built its engine and the `OPEN`
     /// push went out. `None` while setup is still in flight.
@@ -182,7 +183,7 @@ pub fn set_push_handler(handler: js_sys::Function) {
 
 /// One request frame in, one response frame out. The core never sends a
 /// notification opcode here; pushes leave through the installed handler.
-/// Media `_In` frames are acknowledged (the stub engine consumes them);
+/// Media `_In` frames require an open live engine and return `Busy` before OPEN;
 /// `_Out` frames never arrive here — they leave as pushes.
 #[wasm_bindgen]
 pub fn send_frame(frame: Vec<u8>) -> Result<js_sys::Uint8Array, JsValue> {
@@ -197,6 +198,13 @@ pub fn send_frame(frame: Vec<u8>) -> Result<js_sys::Uint8Array, JsValue> {
 /// response frame the core awaits; notifications to the core leave through
 /// [`push`], never here.
 fn route(req: &Frame) -> Frame {
+    if req.major != ABI_MAJOR {
+        return Frame::fail(
+            req,
+            AbiErrorCode::BadVersion,
+            Some("request speaks another major"),
+        );
+    }
     match req.opcode {
         Opcode::Hello => on_hello(req),
         Opcode::Reserve => on_reserve(req),
@@ -282,7 +290,8 @@ fn on_reserve(req: &Frame) -> Frame {
         EngineSession {
             id: reserve.session,
             call_id: reserve.call_id,
-            opening: false,
+            direction: reserve.direction,
+            open_task: None,
             open_attempt: 0,
             live_call: None,
         },
@@ -300,13 +309,24 @@ fn on_begin_open(req: &Frame) -> Frame {
     let Ok(begin) = BeginOpenRequest::decode(&req.payload) else {
         return Frame::fail(req, AbiErrorCode::BadPayload, Some("BEGIN_OPEN misformed"));
     };
-    let (call_id, params, attempt) = match state().lock() {
+    let (call_id, params, attempt, registration) = match state().lock() {
         Ok(mut st) => {
             if begin.params.enable_video != 0 && st.agreed_capabilities & Capabilities::VIDEO == 0 {
                 return Frame::fail(
                     req,
                     AbiErrorCode::NotSupported,
                     Some("video metadata was not negotiated"),
+                );
+            }
+            let audio_capability = match begin.params.audio_io {
+                voip_abi::AudioIo::Pcm => Capabilities::PCM,
+                voip_abi::AudioIo::Encoded => Capabilities::ENCODED_AUDIO,
+            };
+            if st.agreed_capabilities & audio_capability == 0 {
+                return Frame::fail(
+                    req,
+                    AbiErrorCode::NotSupported,
+                    Some("audio mode was not negotiated"),
                 );
             }
             if let Err(e) = st.sessions.validate(begin.session) {
@@ -326,12 +346,25 @@ fn on_begin_open(req: &Frame) -> Frame {
                     Some("session generation is not current"),
                 );
             }
-            if session.opening || session.live_call.is_some() {
+            if session.direction != begin.params.direction {
+                return Frame::fail(
+                    req,
+                    AbiErrorCode::BadPayload,
+                    Some("open direction differs from reservation"),
+                );
+            }
+            if session.open_task.is_some() || session.live_call.is_some() {
                 return Frame::fail(req, AbiErrorCode::Busy, Some("open already in flight"));
             }
-            session.opening = true;
+            let (abort, registration) = futures::future::AbortHandle::new_pair();
+            session.open_task = Some(wacore::runtime::AbortHandle::new(move || abort.abort()));
             session.open_attempt += 1;
-            (session.call_id.clone(), begin.params, session.open_attempt)
+            (
+                session.call_id.clone(),
+                begin.params,
+                session.open_attempt,
+                registration,
+            )
         }
         Err(_) => {
             return Frame::fail(req, AbiErrorCode::Internal, Some("engine state is wedged"));
@@ -340,7 +373,11 @@ fn on_begin_open(req: &Frame) -> Frame {
     let ack = Frame::respond(req, Vec::new());
     let session = begin.session;
     wasm_bindgen_futures::spawn_local(async move {
-        open_async(session, call_id, params, attempt).await;
+        let _ = futures::future::Abortable::new(
+            open_async(session, call_id, params, attempt),
+            registration,
+        )
+        .await;
     });
     ack
 }
@@ -357,6 +394,8 @@ async fn open_async(
     attempt: u64,
 ) {
     use crate::call::PushSinks;
+    #[cfg(all(test, target_arch = "wasm32"))]
+    let _opening_liveness = lifecycle_tests::track_open_liveness();
     let live = LiveCall::open(
         session,
         call_id,
@@ -375,19 +414,22 @@ async fn open_async(
     let Some(entry) = st.live.get_mut(&session.handle) else {
         return;
     };
-    if entry.id.generation != session.generation || !entry.opening || entry.open_attempt != attempt
+    if entry.id.generation != session.generation
+        || entry.open_task.is_none()
+        || entry.open_attempt != attempt
     {
         return;
     }
+    if let Some(task) = entry.open_task.take() {
+        task.detach();
+    }
     match live {
         Ok(call) => {
-            entry.opening = false;
             entry.live_call = Some(call);
             drop(st);
             push_open(session);
         }
         Err(error) => {
-            entry.opening = false;
             drop(st);
             push_setup_failed(session, &error);
         }
@@ -507,13 +549,11 @@ fn on_cancel_open(req: &Frame) -> Frame {
     if let Err(e) = st.sessions.validate(cancel.session) {
         return session_error(req, e);
     }
+    let mut pending = None;
     let outcome = match st.live.get_mut(&cancel.session.handle) {
         Some(session) if session.id.generation == cancel.session.generation => {
-            if session.opening {
-                // The spawned open still runs, but its completion finds no
-                // opening session and drops the call it built: the abort is
-                // what the core was promised, even if the task outlives it.
-                session.opening = false;
+            if session.open_task.is_some() {
+                pending = session.open_task.take();
                 session.open_attempt += 1;
                 CancelOutcome::Aborted
             } else if session.live_call.is_some() {
@@ -524,6 +564,8 @@ fn on_cancel_open(req: &Frame) -> Frame {
         }
         _ => CancelOutcome::Unknown,
     };
+    drop(st);
+    drop(pending);
     Frame::respond(req, CancelOpenResponse { outcome }.encode())
 }
 
@@ -641,12 +683,15 @@ fn on_close(req: &Frame) -> Frame {
         }
     }
     let session = st.live.remove(&close.session.handle);
-    st.sessions.remove(close.session.handle);
+    st.sessions.remove(close.session);
     drop(st);
     if let Some(session) = session
         && let Some(call) = session.live_call
     {
-        call.close();
+        let (id, _, final_stats) = call.close();
+        if let Some(stats) = final_stats {
+            push(stats_push(id, stats));
+        }
     }
     Frame::respond(req, Vec::new())
 }
@@ -676,9 +721,8 @@ fn on_stats(req: &Frame) -> Frame {
 }
 
 /// Consumes one inbound media frame into the live call's mailboxes. The
-/// bytes decoded and the generation matched; a session with no running
-/// engine still acks, because media may overtake the `OPEN` push. The ack
-/// is the whole of the behavior.
+/// bytes are decoded and the generation matched. A session without an open
+/// engine returns `Busy`; acknowledged input has reached a live mailbox.
 fn on_media_in(req: &Frame) -> Frame {
     let opcode = req.opcode;
     match opcode {
@@ -764,8 +808,7 @@ fn on_video_in(req: &Frame) -> Frame {
     Frame::respond(req, Vec::new())
 }
 
-/// Zero counters: the stub engine has counted nothing. The shape the core
-/// caches, with no counters invented.
+/// Initial counters for a session whose media engine has not opened yet.
 fn zero_stats() -> StatsData {
     StatsData::default()
 }
@@ -799,6 +842,15 @@ mod lifecycle_tests {
     use std::rc::Rc;
     use wasm_bindgen_test::wasm_bindgen_test;
 
+    thread_local! {
+        static OPEN_LIVENESS: RefCell<Option<std::rc::Weak<()>>> = const { RefCell::new(None) };
+    }
+    pub(super) fn track_open_liveness() -> Rc<()> {
+        let token = Rc::new(());
+        OPEN_LIVENESS.with(|slot| *slot.borrow_mut() = Some(Rc::downgrade(&token)));
+        token
+    }
+
     #[wasm_bindgen_test(async)]
     async fn init_installs_instance_local_wall_and_monotonic_clocks() {
         init(1, 1).unwrap();
@@ -824,7 +876,15 @@ mod lifecycle_tests {
 
     #[wasm_bindgen_test(async)]
     async fn a_cancelled_open_closes_its_late_relay_without_installing_a_call() {
+        cancelled_open_releases_setup(false).await;
+    }
+    #[wasm_bindgen_test(async)]
+    async fn closing_a_pending_open_drops_setup_before_the_relay_settles() {
+        cancelled_open_releases_setup(true).await;
+    }
+    async fn cancelled_open_releases_setup(close_session: bool) {
         *state().lock().unwrap() = State::new();
+        init(ABI_MAJOR.into(), ABI_MINOR.into()).unwrap();
         let (started_tx, started_rx) = futures::channel::oneshot::channel();
         let started = Rc::new(RefCell::new(Some(started_tx)));
         let resolver = Rc::new(RefCell::new(None));
@@ -871,17 +931,39 @@ mod lifecycle_tests {
             Opcode::CancelOpen,
             CancelOpenRequest { session: id }.encode(),
         );
-        let cancelled = on_cancel_open(&cancel);
-        assert_eq!(
-            CancelOpenResponse::decode(&cancelled.payload)
-                .unwrap()
-                .outcome,
-            CancelOutcome::Aborted
+        if close_session {
+            let close = Frame::request(
+                Opcode::Close,
+                voip_abi::CloseRequest {
+                    session: id,
+                    reason: voip_abi::CloseReason::LocalHangup,
+                    detail: None,
+                }
+                .encode(),
+            );
+            assert!(!on_close(&close).is_error());
+        } else {
+            let cancelled = on_cancel_open(&cancel);
+            assert_eq!(
+                CancelOpenResponse::decode(&cancelled.payload)
+                    .unwrap()
+                    .outcome,
+                CancelOutcome::Aborted
+            );
+        }
+
+        crate::runtime::set_timeout_future(0).await;
+        assert!(
+            OPEN_LIVENESS.with(|slot| slot.borrow().as_ref().unwrap().upgrade().is_none()),
+            "cancel must drop the Rust setup before the host connect settles"
         );
 
         let (closed_tx, closed_rx) = futures::channel::oneshot::channel();
         let closed = Rc::new(RefCell::new(Some(closed_tx)));
+        let close_count = Rc::new(std::cell::Cell::new(0));
+        let count = close_count.clone();
         let close = Closure::wrap(Box::new(move || {
+            count.set(count.get() + 1);
             if let Some(tx) = closed.borrow_mut().take() {
                 let _ = tx.send(());
             }
@@ -903,13 +985,23 @@ mod lifecycle_tests {
             .call1(&JsValue::UNDEFINED, &connection)
             .unwrap();
         closed_rx.await.expect("late relay is explicitly closed");
-        let state = state().lock().unwrap();
-        let entry = state.live.get(&id.handle).unwrap();
-        assert!(!entry.opening);
-        assert!(
-            entry.live_call.is_none(),
-            "cancelled setup must not resurrect its call"
+        crate::runtime::set_timeout_future(0).await;
+        assert_eq!(
+            close_count.get(),
+            1,
+            "late connection is closed exactly once"
         );
+        let state = state().lock().unwrap();
+        if close_session {
+            assert!(!state.live.contains_key(&id.handle));
+        } else {
+            let entry = state.live.get(&id.handle).unwrap();
+            assert!(entry.open_task.is_none());
+            assert!(
+                entry.live_call.is_none(),
+                "cancelled setup must not resurrect its call"
+            );
+        }
     }
 }
 
@@ -919,6 +1011,111 @@ mod wire_tests {
     static TEST_STATE: Mutex<()> = Mutex::new(());
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    fn incompatible_major_cannot_reserve_a_session() {
+        let _guard = TEST_STATE.lock().unwrap();
+        *state().lock().unwrap() = State::new();
+        let id = SessionId {
+            handle: 101,
+            generation: 1,
+        };
+        let mut req = Frame::request(
+            Opcode::Reserve,
+            ReserveRequest {
+                session: id,
+                call_id: "bad-major".into(),
+                direction: voip_abi::Direction::Incoming,
+            }
+            .encode(),
+        );
+        req.major = ABI_MAJOR + 1;
+        let response = route(&req);
+        assert_eq!(
+            voip_abi::ErrorBody::decode(&response.payload).unwrap().code,
+            AbiErrorCode::BadVersion
+        );
+        assert!(state().lock().unwrap().live.is_empty());
+    }
+
+    #[test]
+    fn audio_capability_and_reserved_direction_are_checked_before_setup() {
+        let _guard = TEST_STATE.lock().unwrap();
+        for (audio, capability) in [
+            (voip_abi::AudioIo::Encoded, Capabilities::PCM),
+            (voip_abi::AudioIo::Pcm, Capabilities::ENCODED_AUDIO),
+        ] {
+            *state().lock().unwrap() = State::new();
+            state().lock().unwrap().agreed_capabilities = capability;
+            let mut params = call::tests::open_params();
+            params.audio_io = audio;
+            let req = Frame::request(
+                Opcode::BeginOpen,
+                BeginOpenRequest {
+                    session: SessionId {
+                        handle: 102,
+                        generation: 1,
+                    },
+                    params,
+                }
+                .encode(),
+            );
+            assert_eq!(
+                voip_abi::ErrorBody::decode(&on_begin_open(&req).payload)
+                    .unwrap()
+                    .code,
+                AbiErrorCode::NotSupported
+            );
+            assert!(state().lock().unwrap().live.is_empty());
+        }
+        *state().lock().unwrap() = State::new();
+        state().lock().unwrap().agreed_capabilities = ENGINE_CAPABILITIES;
+        let id = SessionId {
+            handle: 103,
+            generation: 1,
+        };
+        let params = call::tests::open_params();
+        let opposite = match params.direction {
+            voip_abi::Direction::Incoming => voip_abi::Direction::Outgoing,
+            voip_abi::Direction::Outgoing => voip_abi::Direction::Incoming,
+        };
+        assert!(
+            !on_reserve(&Frame::request(
+                Opcode::Reserve,
+                ReserveRequest {
+                    session: id,
+                    call_id: "direction".into(),
+                    direction: opposite
+                }
+                .encode()
+            ))
+            .is_error()
+        );
+        let req = Frame::request(
+            Opcode::BeginOpen,
+            BeginOpenRequest {
+                session: id,
+                params,
+            }
+            .encode(),
+        );
+        assert_eq!(
+            voip_abi::ErrorBody::decode(&on_begin_open(&req).payload)
+                .unwrap()
+                .code,
+            AbiErrorCode::BadPayload
+        );
+        assert!(
+            state()
+                .lock()
+                .unwrap()
+                .live
+                .get(&id.handle)
+                .unwrap()
+                .open_task
+                .is_none()
+        );
+    }
 
     #[test]
     fn legacy_peers_keep_audio_but_cannot_enable_or_feed_video() {
