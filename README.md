@@ -91,3 +91,110 @@ initSync({ module: wasm });
 Call `initSync` once per isolate, and on workerd create clients inside a
 request handler rather than at global scope (`crypto.getRandomValues` is
 unavailable during global-scope evaluation).
+
+## VoIP media (opt-in engine)
+
+`acceptCall`/`dialCall` (encoded audio), `acceptCallPcm`/`dialCallPcm`
+(decoded mono PCM), video push, call callbacks and stats are available on the
+default client, but media requires the separate engine.
+Loading the normal entrypoint does **not** load `voip.wasm`. Call `loadVoip`
+(or `initVoipSync`) once **per client**: each call creates an independent WASM
+instance, so two sockets cannot exchange session handles, relay transports or
+media callbacks. A Node/Bun host supplies a relay transport (ICE/DTLS/SCTP over
+a pre-negotiated DataChannel) before constructing each client:
+
+```ts
+import { createWhatsAppClient, initWasmEngine } from "@oxidezap/whatsapp-rust-bridge";
+import { loadVoip, MlowAudioDecoder, depacketizeOpusFromMlow } from "@oxidezap/whatsapp-rust-bridge/voip";
+
+initWasmEngine();
+const { voipBackend } = loadVoip(relayTransport);
+const client = await createWhatsAppClient(
+  transport, httpClient,
+  { onEvent(event) {}, onCallAudio(frame) {}, onCallPcm(frame) {}, onCallVideo(frame) {}, onCallEvent(event) {} },
+  null, null, null, null, null, null, { voipBackend },
+);
+const call = await client.acceptCall(callId, "opus-mlow", false, offerHandle);
+client.callPushAudio(call.callId, opusCeltPacket);
+await call.terminate();
+```
+
+`offerHandle` comes from the incoming offer event; a `callId` alone also
+works. For decoded audio, call `acceptCallPcm(callId)` or `dialCallPcm(peer)`, pass
+one `Int16Array(960)` of mono 16 kHz PCM to `callPushPcm16(callId, samples)`,
+and handle decoded `Int16Array` frames in `onCallPcm`; voip.wasm handles
+MLOW encoding and decoding. Both PCM and encoded methods return `WasmCallHandle`
+(with `callId`,
+`mediaStats`, `waitEnded`, and video controls); `endCall(callId)` and
+`getCallMediaStats(callId)` are available on the client. Video push accepts
+encoded H.264 Annex-B access units, not raw pixels. The engine converts
+outgoing CELT Opus to MLOW escape on an `"opus-mlow"` call; inbound MLOW can
+be decoded with a stateful `MlowAudioDecoder` per call. The codec helpers are
+exported only from `./voip`, not the core entrypoint.
+`rejectVideo()` currently rejects with an explicit capability error: the pinned
+core has no token-safe peer rejection operation. It does not stop local video
+or consume the pending request. `acceptVideo()` and `stopVideo()` retain their
+separate operations.
+The supplied engine flushes final counters synchronously on local close; custom
+plugins that defer CLOSE retain their last observed snapshot at synchronous teardown.
+
+A host without `node:fs` imports `@oxidezap/whatsapp-rust-bridge/voip/wasm`
+and calls `initVoipSync(wasm, relayTransport)` from `./voip/host` instead of
+`loadVoip`. Install its returned `voipBackend` at client creation the same
+way. Neither engine loader invents a relay connection: the host supplies one
+implementing `VoipRelayTransport` (see `ts/voip-relay-transport.ts`).
+
+### Calling over an existing host
+
+`createCallControl` attaches the same direct-call control and media queues to a
+host that already owns its WhatsApp connection and Signal repository. It does
+not construct a `WasmWhatsAppClient`, open another connection, or copy sessions.
+The host implements the exported `DirectCallHostCallbacks` contract.
+
+```ts
+import { createCallControl } from "@oxidezap/whatsapp-rust-bridge";
+
+const control = await createCallControl(host, {
+  onEvent(event) { handleCallSignaling(event); },
+  onCallEvent(event) { handleCallMedia(event); },
+  onCallPcm(frame) { consumePcm(frame); },
+}, { voipBackend });
+try {
+  const call = await control.dialCallPcm(peer);
+  control.callPushPcm16(call.callId, new Int16Array(960));
+  await control.endCall(call.callId);
+} finally {
+  control.disconnect();
+  control.free();
+}
+```
+
+Feed raw incoming `<call>` nodes to `control.receiveNode(node)`. The host keeps
+ownership of generic stanza ACKs; shared Rust control emits distinct call
+receipts. `watchAck` must register synchronously before the offer is sent and
+return a cancellable registration. Delegate encryption, decryption, token
+storage and identity learning to the existing host's authoritative operations.
+An identity-learning callback must reject when that host cannot safely apply
+its mapping, privacy and session-migration policy.
+`readToken` returns the stored token and timestamp; shared Rust applies its
+default receiver-side expiry policy without changing the stored record. Token
+issuance is best effort and does not gate media readiness; a host must supply
+its own authoritative issuance/deduplication policy.
+
+The standalone API currently supports 1:1 PCM audio. Incoming offers retained by
+`receiveNode` can be answered with `acceptCallPcm(callId)`. It returns the same
+`WasmCallHandle` as the client API; group and video operations require native
+call control. `getCallMediaStats` retains the last eight ended calls.
+`disconnect` cancels pending bridge operations and media without closing the
+host's connection. It cannot undo host operations that already committed.
+Errors from key preparation, decryption, token reads and node sends propagate
+with operation-specific messages; the standalone boundary does not preserve
+every host-specific error kind. Alias lookup failures refuse identity matching.
+
+The constructor bounds the media-backend handshake to 20 seconds and installs
+its required clocks; it does not require
+`initWasmEngine` or a messaging client. Host-supplied WASM initialization and the
+existing `./host` entrypoint remain available. The installed-package fixtures
+exercise standalone control and real media WASM over a synthetic relay with
+fixture-only encryption. They do not validate authenticated WhatsApp calls,
+Signal interoperability, hardware audio or production network traversal.

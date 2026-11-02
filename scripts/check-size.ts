@@ -12,10 +12,41 @@
  */
 import { packedContents } from "./pack";
 
-// The stable dependency/toolchain upgrade measures 8,458,300 bytes against
-// 0.26.1's 8,278,236. Keep a narrow margin over that measured floor; the
-// 110,000-byte function-body budget and inlining flags stay unchanged.
-const MAX_UNPACKED_BYTES = 8_500_000;
+/**
+ * Headroom over 0.6.5's 7,133,345 bytes, at roughly five times the per-release
+ * drift above — enough that ordinary work does not trip it, tight enough that
+ * a jump does.
+ *
+ * Raised from 7,500,000 when the core regenerated its whatspec bundle at
+ * 2.3000.1044659339: a WhatsApp schema release adds messages and enums across
+ * the proto, and the derived declarations and codec grow with it. That is the
+ * one kind of growth this budget cannot ask anyone to trim, so it buys the same
+ * headroom again over the new floor rather than tracking it.
+ *
+ * Raised from 7,900,000 for the same reason at 2.3000.1045368834, which grew
+ * the package by 217,140 bytes across `index.js` and `proto-types.d.ts` and
+ * left the wasm 791 bytes smaller. Same headroom over the new floor.
+ *
+ * Raised from 8,300,000 for the encoded-audio calls slice, which grew the
+ * package by ~470,000 bytes: the core's sans-IO media engine plus its
+ * AES-GCM/SFrame crypto under `client-calls-audio`, the JS relay-transport
+ * adapter, and the RTC helper. The wasm holds nearly all of it (5.91 MB to
+ * 6.41 MB); trimming would mean cutting the slice, so it buys the same
+ * headroom over the new floor instead.
+ *
+ * Raised from 10,000,000 for the wired call engine in `voip.wasm` (PR #115),
+ * which grew the package by ~980,000 bytes: the engine skeleton's 67K stub
+ * became a 1.05 MB `whatsapp_rust_voip_bg.wasm` carrying the real `CallEngine`,
+ * the MLOW codec, and the OZVP frame routing (`BeginOpen` builds the engine
+ * and drives `run_call`; `Command`/`GroupFits`/`Close`/media route to the
+ * live call; events/stats/media fan back out as pushes). Trimming would mean
+ * unwiring the engine, so it buys the same headroom over the new floor.
+ */
+// PR #115 VoIP MLOW performance under Variant C (wacore opt-level = 2) measured
+// 9.81 MB unpacked. The maintainer approved opt=2 for 2.1x faster encoder throughput.
+// PR #115 wired engine measured 10.97 MB unpacked; same headroom over the new floor.
+const MAX_UNPACKED_BYTES = 11_500_000;
+
 
 const { files, unpackedSize: total } = packedContents();
 
@@ -25,7 +56,11 @@ const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 // metadata and nothing else, and a near-zero total would clear the budget by
 // the whole budget. A gate that reports 7.5 MB of headroom because it measured
 // no package is worse than no gate, so require what has to be there.
-const REQUIRED = ["dist/index.js", "dist/whatsapp_rust_bridge_bg.wasm"];
+const REQUIRED = [
+  "dist/index.js",
+  "dist/whatsapp_rust_bridge_bg.wasm",
+  "dist/whatsapp_rust_voip_bg.wasm",
+];
 const missing = REQUIRED.filter((path) => !files.some((f) => f.path === path));
 if (missing.length > 0) {
   console.error(
