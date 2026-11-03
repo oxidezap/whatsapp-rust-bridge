@@ -157,3 +157,26 @@ describe("Signal record component boundary", () => {
     );
   });
 });
+
+// Synthetic capture made with the pre-rewrite bridge artifact. Keep these
+// bytes fixed so decoder and encoder cannot hide the same storage regression.
+const historicalSessionRecord = "CqgDCAMSIQUBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBARohBQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIiADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAygAMmsKIQUEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBBIgBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUaJAgAEiAGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBjqjAQohBQcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHGiQIARIgCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgiWAgMEiAVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRogFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYiEBcXFxcXFxcXFxcXFxcXFxdQCVgKYABqIQULCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCxLNAggDEiEFAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEaIQUCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiIgAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMoADJrCiEFBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQSIAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGiQIABIgBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgY6SQohBQcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHGiQIARIgCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAhQCVgKYABqIQULCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCw==";
+
+test("reads a historical archived session and expanded skipped key", () => {
+  const persisted = new Uint8Array(Buffer.from(historicalSessionRecord, "base64"));
+  const decoded = decodeSessionRecordComponents(persisted);
+  assert.equal(decoded.previousSessions.length, 1);
+  assert.deepEqual(decoded.previousSessions[0]?.rootKey, bytes(32, 3));
+  const key = decoded.currentSession?.receiverChains[0]?.messageKeys[0];
+  assert.equal(key?.index, 12);
+  assert.deepEqual(key?.material, {
+    kind: "derived",
+    cipherKey: bytes(32, 21),
+    macKey: bytes(32, 22),
+    iv: bytes(16, 23),
+  });
+  assert.deepEqual(
+    decodeSessionRecordComponents(encodeSessionRecordComponents(decoded)),
+    decoded,
+  );
+});
