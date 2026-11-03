@@ -180,3 +180,26 @@ test("reads a historical archived session and expanded skipped key", () => {
     decoded,
   );
 });
+
+// Synthetic dual-material historical shape, encoded and accepted by rebuilt
+// bridge ddb405f1 / core aab35eb4; expanded with its HKDF implementation.
+const historicalSeedRecord = "CrgCCAMSIQUBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBARohBQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIiADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAygAOqABCiEFBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQiewgLogYgBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUSIHrf9hxIETYqZIV8XP+Lq99A/L+ZC/cDykPAPJ1DimNYGiD++bpyIY3e6hLbLmsyHlQhcXIrhh63+ngkUVM0eeIqliIQnY0q20QDa07+xBP9lBh7k1AJWApgAGohBQsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsL";
+
+test("retains a matching historical seed beside expanded skipped keys", () => {
+  const decoded = decodeSessionRecordComponents(new Uint8Array(Buffer.from(historicalSeedRecord, "base64")));
+  const key = decoded.currentSession?.receiverChains[0]?.messageKeys[0];
+  assert.equal(key?.index, 11);
+  assert.deepEqual(key?.material, {kind: "seed", seed: bytes(32, 5)});
+  assert.deepEqual(decodeSessionRecordComponents(encodeSessionRecordComponents(decoded)), decoded);
+});
+
+test("keeps expanded historical material when the redundant seed disagrees", () => {
+  const persisted = Buffer.from(historicalSeedRecord, "base64");
+  const seedTag = Buffer.from([0xa2, 0x06, 0x20, ...bytes(32, 5)]);
+  const seedOffset = persisted.indexOf(seedTag);
+  assert.ok(seedOffset >= 0);
+  persisted[seedOffset + 3] = 6;
+  const material = decodeSessionRecordComponents(new Uint8Array(persisted))
+    .currentSession?.receiverChains[0]?.messageKeys[0]?.material;
+  assert.equal(material?.kind, "derived");
+});

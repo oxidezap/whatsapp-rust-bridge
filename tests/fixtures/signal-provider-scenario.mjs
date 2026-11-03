@@ -73,6 +73,9 @@ try {
   bad[bad.length - 1] ^= 1;
   await assert.rejects(receiver.signalDecryptGroupMessage(group, author, bad));
   assert.deepEqual(await receiver.signalDecryptGroupMessage(group, author, third.ciphertext), payload);
+  // A duplicate distribution must retain consumed counters and delayed keys.
+  await receiver.signalProcessSenderKeyDistribution(group, author, first.senderKeyDistributionMessage);
+  await assert.rejects(receiver.signalDecryptGroupMessage(group, author, third.ciphertext));
   await receiver.disconnect();
   const restarted = await client(receiverRows);
   assert.deepEqual(await restarted.signalDecryptGroupMessage(group, author, first.ciphertext), new Uint8Array(12288).fill(7));
