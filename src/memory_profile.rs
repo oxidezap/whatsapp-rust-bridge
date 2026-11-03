@@ -750,6 +750,13 @@ mod imp {
 
     #[async_trait::async_trait(?Send)]
     impl Runtime for TraceContextRuntime {
+        fn crypto_provider(
+            &self,
+        ) -> Option<Arc<dyn whatsapp_rust::wacore::libsignal::crypto::SymmetricCryptoProvider>>
+        {
+            self.inner.crypto_provider()
+        }
+
         fn spawn(&self, future: Pin<Box<dyn Future<Output = ()> + 'static>>) -> AbortHandle {
             let parent = tracing::Span::current();
             self.inner.spawn(Box::pin(future.instrument(parent)))

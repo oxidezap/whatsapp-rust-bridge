@@ -85,7 +85,8 @@ pub fn aes_gcm_256_encrypt(
     let key = fixed_bytes::<32>("key", key)?;
     let nonce = fixed_bytes::<12>("nonce", nonce)?;
     let mut output = Vec::with_capacity(plaintext.len() + 16);
-    signal_crypto::aes_256_gcm_encrypt(&key, &nonce, aad, plaintext, &mut output)
+    crate::js_crypto::default_provider()
+        .aes_256_gcm_encrypt(&key, &nonce, aad, plaintext, &mut output)
         .map_err(|error| crypto_failure("AES-256-GCM encrypt", error))?;
     Ok(byte_array(&output))
 }
@@ -108,7 +109,8 @@ pub fn aes_gcm_256_decrypt(
         });
     }
     let mut output = Vec::with_capacity(ciphertext_with_tag.len() - 16);
-    signal_crypto::aes_256_gcm_decrypt(&key, &nonce, aad, ciphertext_with_tag, &mut output)
+    crate::js_crypto::default_provider()
+        .aes_256_gcm_decrypt(&key, &nonce, aad, ciphertext_with_tag, &mut output)
         .map_err(|error| crypto_failure("AES-256-GCM decrypt", error))?;
     Ok(byte_array(&output))
 }

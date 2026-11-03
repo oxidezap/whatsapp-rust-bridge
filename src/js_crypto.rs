@@ -1,4 +1,4 @@
-//! `SignalCryptoProvider` backed by host JS crypto callbacks.
+//! Host crypto callbacks retained by each client runtime.
 //!
 //! When installed, large AES-CBC / AES-GCM operations are delegated to the
 //! host (e.g. `node:crypto`), which runs them in native OpenSSL. Small AES,
@@ -20,10 +20,10 @@
 
 use crate::js_bytes;
 use js_sys::Uint8Array;
+use std::{cell::RefCell, sync::Arc};
 use wasm_bindgen::prelude::*;
 use whatsapp_rust::wacore::libsignal::crypto::{
-    CryptoProviderError, GcmInPlaceBuffer, RustCryptoProvider, SignalCryptoProvider, TransportAead,
-    set_crypto_provider,
+    CryptoProviderError, GcmInPlaceBuffer, RustCryptoProvider, SymmetricCryptoProvider,
 };
 
 /// Payload size at which the host's native cipher starts winning, per operation.
@@ -74,15 +74,6 @@ crate::wasm_send_sync!(JsCryptoAdapter);
 /// overwrites it — pure waste. We use `reserve` + `spare_capacity_mut` +
 /// `set_len` to let the copy write straight into the uninit tail.
 #[inline]
-fn append_returned_bytes(out: &mut Vec<u8>, value: JsValue) -> Result<(), CryptoProviderError> {
-    let arr: Uint8Array = value
-        .dyn_into()
-        .map_err(|_| CryptoProviderError::BackendFailed)?;
-    js_bytes::append(out, &arr);
-    Ok(())
-}
-
-#[inline]
 fn append_exact_returned_bytes(
     out: &mut Vec<u8>,
     value: JsValue,
@@ -99,16 +90,16 @@ fn append_exact_returned_bytes(
 }
 
 #[inline]
-fn copy_hmac_result(value: JsValue) -> [u8; HMAC_SHA256_BYTES] {
+fn copy_hmac_result(value: JsValue) -> Result<[u8; HMAC_SHA256_BYTES], CryptoProviderError> {
     let arr: Uint8Array = value
         .dyn_into()
-        .expect("HMAC-SHA256 callback must return Uint8Array");
-    // The length check lives in `copy_to`, which panics unless the array is
-    // exactly `dst.len()` long. Asserting it here first only bought a nicer
-    // message, at the price of a second `length` crossing per HMAC.
+        .map_err(|_| CryptoProviderError::BackendFailed)?;
+    if arr.length() as usize != HMAC_SHA256_BYTES {
+        return Err(CryptoProviderError::BackendFailed);
+    }
     let mut out = [0u8; HMAC_SHA256_BYTES];
     arr.copy_to(&mut out);
-    out
+    Ok(out)
 }
 
 /// Invoke a 3-arg crypto callback with zero-copy `Uint8Array::view`s.
@@ -149,7 +140,7 @@ unsafe fn call4_bytes(
         .map_err(|_| CryptoProviderError::BackendFailed)
 }
 
-impl SignalCryptoProvider for JsCryptoAdapter {
+impl SymmetricCryptoProvider for JsCryptoAdapter {
     fn aes_256_cbc_encrypt(
         &self,
         key: &[u8; 32],
@@ -158,7 +149,11 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
         let ret = unsafe { call3_bytes(&self.aes_cbc_encrypt, key, iv, plaintext)? };
-        append_returned_bytes(out, ret)
+        let padded = plaintext
+            .len()
+            .checked_add(AES_CBC_BLOCK_BYTES - plaintext.len() % AES_CBC_BLOCK_BYTES)
+            .ok_or(CryptoProviderError::BadInput)?;
+        append_exact_returned_bytes(out, ret, padded)
     }
 
     fn aes_256_cbc_decrypt(
@@ -168,9 +163,22 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         ciphertext: &[u8],
         out: &mut Vec<u8>,
     ) -> Result<(), CryptoProviderError> {
-        out.clear();
+        if ciphertext.is_empty() || !ciphertext.len().is_multiple_of(AES_CBC_BLOCK_BYTES) {
+            return Err(CryptoProviderError::BadInput);
+        }
         let ret = unsafe { call3_bytes(&self.aes_cbc_decrypt, key, iv, ciphertext)? };
-        append_returned_bytes(out, ret)
+        let plaintext: Uint8Array = ret
+            .dyn_into()
+            .map_err(|_| CryptoProviderError::BackendFailed)?;
+        if !ciphertext
+            .len()
+            .checked_sub(plaintext.length() as usize)
+            .is_some_and(|padding| (1..=AES_CBC_BLOCK_BYTES).contains(&padding))
+        {
+            return Err(CryptoProviderError::BackendFailed);
+        }
+        js_bytes::append(out, &plaintext);
+        Ok(())
     }
 
     fn aes_256_cbc_decrypt_in_place(
@@ -239,27 +247,26 @@ impl SignalCryptoProvider for JsCryptoAdapter {
         append_exact_returned_bytes(out, ret, expected_len)
     }
 
-    fn hmac_sha256(&self, key: &[u8], input: &[u8]) -> [u8; 32] {
-        // Zero alloc on Rust side: stack [u8; 32] + single memcpy from JS Buffer.
-        // Input path is zero-copy via views. Trait signature is infallible —
-        // the JS callback is expected to never throw for valid byte inputs
-        // (node:crypto's HMAC never throws).
+    fn hmac_sha256(&self, key: &[u8], parts: &[&[u8]]) -> Result<[u8; 32], CryptoProviderError> {
+        if let [first, second] = parts
+            && let Some(callback) = &self.hmac_sha256_two_part
+        {
+            return copy_hmac_result(unsafe { call3_bytes(callback, key, first, second)? });
+        }
+        let joined;
+        let input = if let [part] = parts {
+            *part
+        } else {
+            joined = parts.concat();
+            &joined
+        };
         let key_view = unsafe { Uint8Array::view(key) };
         let data_view = unsafe { Uint8Array::view(input) };
-        let ret = self
+        let result = self
             .hmac_sha256
             .call2(&JsValue::NULL, &key_view, &data_view)
-            .expect("hmacSha256 callback threw");
-        copy_hmac_result(ret)
-    }
-
-    fn hmac_sha256_two_part(&self, key: &[u8], first: &[u8], second: &[u8]) -> [u8; 32] {
-        let Some(hmac) = &self.hmac_sha256_two_part else {
-            return RustCryptoProvider.hmac_sha256_two_part(key, first, second);
-        };
-        let ret = unsafe { call3_bytes(hmac, key, first, second) }
-            .expect("hmacSha256TwoPart callback threw");
-        copy_hmac_result(ret)
+            .map_err(|_| CryptoProviderError::BackendFailed)?;
+        copy_hmac_result(result)
     }
 
     /// Override: write JS result directly into the caller's buffer instead of
@@ -330,7 +337,7 @@ fn gcm_plaintext_len(ciphertext_len: usize) -> usize {
     ciphertext_len.saturating_sub(GCM_AUTH_TAG_BYTES)
 }
 
-impl SignalCryptoProvider for HybridCryptoAdapter {
+impl SymmetricCryptoProvider for HybridCryptoAdapter {
     fn aes_256_cbc_encrypt(
         &self,
         key: &[u8; 32],
@@ -406,15 +413,14 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
         }
     }
 
-    fn hmac_sha256(&self, key: &[u8], input: &[u8]) -> [u8; 32] {
-        self.rust.hmac_sha256(key, input)
-    }
-
-    fn hmac_sha256_two_part(&self, key: &[u8], first: &[u8], second: &[u8]) -> [u8; 32] {
-        if first.len().saturating_add(second.len()) >= NATIVE_HMAC_MIN_BYTES {
-            self.js.hmac_sha256_two_part(key, first, second)
+    fn hmac_sha256(&self, key: &[u8], parts: &[&[u8]]) -> Result<[u8; 32], CryptoProviderError> {
+        let len = parts
+            .iter()
+            .fold(0usize, |len, part| len.saturating_add(part.len()));
+        if use_native(len, NATIVE_HMAC_MIN_BYTES) {
+            self.js.hmac_sha256(key, parts)
         } else {
-            self.rust.hmac_sha256_two_part(key, first, second)
+            self.rust.hmac_sha256(key, parts)
         }
     }
 
@@ -450,17 +456,19 @@ impl SignalCryptoProvider for HybridCryptoAdapter {
                 .aes_256_gcm_decrypt_in_place(key, nonce, aad, buffer)
         }
     }
-
-    fn transport_aead(
-        &'static self,
-        key: &[u8; 32],
-    ) -> Result<Box<dyn TransportAead>, CryptoProviderError> {
-        self.rust.transport_aead(key)
-    }
 }
 
-/// Install `JsCryptoAdapter` as the global crypto provider, if `cfg` is a JS
-/// object implementing the callback interface. No-op if `cfg` is null/undefined.
+thread_local! {
+    static DEFAULT_PROVIDER: RefCell<Option<Arc<dyn SymmetricCryptoProvider>>> = RefCell::new(None);
+}
+
+pub(crate) fn default_provider() -> Arc<dyn SymmetricCryptoProvider> {
+    DEFAULT_PROVIDER
+        .with(|slot| slot.borrow().clone())
+        .unwrap_or_else(|| Arc::new(RustCryptoProvider))
+}
+
+/// Existing clients retain their runtime's backend when initialization is repeated.
 pub fn try_install_from_js(cfg: &JsValue) -> Result<bool, JsValue> {
     if cfg.is_null() || cfg.is_undefined() {
         return Ok(false);
@@ -469,15 +477,15 @@ pub fn try_install_from_js(cfg: &JsValue) -> Result<bool, JsValue> {
         js: JsCryptoAdapter::from_js(cfg)?,
         rust: RustCryptoProvider,
     };
-    // If a provider was already installed (e.g. hot-reload), surface the error
-    // as a warning and keep the existing provider.
-    match set_crypto_provider(adapter) {
-        Ok(()) => Ok(true),
-        Err(_) => {
+    DEFAULT_PROVIDER.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        if slot.is_some() {
             log::warn!("crypto provider already set; ignoring JsCryptoAdapter install");
-            Ok(false)
+            return Ok(false);
         }
-    }
+        *slot = Some(Arc::new(adapter));
+        Ok(true)
+    })
 }
 
 #[cfg(test)]
@@ -572,5 +580,45 @@ mod generated_host_callback_tests {
             JsCryptoAdapter::from_js(&value).err().unwrap().as_f64(),
             Some(17.0)
         );
+    }
+}
+
+#[cfg(test)]
+mod provider_contract_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn adapter(body: &str) -> JsCryptoAdapter {
+        let value = js_sys::eval(&format!("({{aesCbc256Encrypt(){{}},aesCbc256Decrypt(){{}},aesGcm256Encrypt(){{}},aesGcm256Decrypt(){{}},hmacSha256(){{{body}}}}})")).unwrap();
+        JsCryptoAdapter::from_js(&value).unwrap()
+    }
+
+    #[test]
+    fn hmac_failures_are_fallible_without_fallback_or_panic() {
+        for body in [
+            "throw new Error('host failure');",
+            "return 42;",
+            "return new Uint8Array(31);",
+            "return new Uint8Array(33);",
+        ] {
+            assert!(matches!(
+                adapter(body).hmac_sha256(b"key", &[b"part"]),
+                Err(CryptoProviderError::BackendFailed)
+            ));
+        }
+    }
+
+    #[test]
+    fn hmac_preserves_part_order_and_validates_the_optional_callback() {
+        let value = js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(k,p){if(p.join(',')!=='1,2,3')throw Error('order');return new Uint8Array(32).fill(7);},hmacSha256TwoPart(){throw Error('two part failure');}})").unwrap();
+        let provider = JsCryptoAdapter::from_js(&value).unwrap();
+        assert_eq!(
+            provider.hmac_sha256(b"key", &[&[1], &[2], &[3]]).unwrap(),
+            [7; 32]
+        );
+        assert!(matches!(
+            provider.hmac_sha256(b"key", &[&[1], &[2]]),
+            Err(CryptoProviderError::BackendFailed)
+        ));
     }
 }

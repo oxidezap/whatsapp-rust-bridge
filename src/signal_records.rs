@@ -22,6 +22,17 @@ use whatsapp_rust::wacore::libsignal::protocol::{
 
 use crate::wasm_utils::{byte_array, error_value};
 
+// The core's Display intentionally omits InvalidArgument's structured reason.
+// At this caller-input boundary, retain the field diagnostic for JS callers.
+fn record_error(error: whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError) -> JsValue {
+    match error {
+        whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError::InvalidArgument(
+            reason,
+        ) => error_value(reason),
+        error => error_value(error),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRecordComponents {
@@ -488,7 +499,7 @@ pub fn encode_session_record_components(
     let value = value.to_rust().map_err(error_value)?;
     let bytes = SessionRecord::from_components(value.try_into()?)
         .and_then(|record| record.serialize())
-        .map_err(error_value)?;
+        .map_err(record_error)?;
     Ok(byte_array(&bytes))
 }
 
@@ -510,7 +521,7 @@ pub fn encode_sender_key_record_components(
     let value = value.to_rust().map_err(error_value)?;
     let bytes = SenderKeyRecord::from_components(value.into())
         .and_then(|record| record.serialize())
-        .map_err(error_value)?;
+        .map_err(record_error)?;
     Ok(byte_array(&bytes))
 }
 

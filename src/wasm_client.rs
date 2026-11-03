@@ -2303,7 +2303,12 @@ pub async fn create_whatsapp_client(
     let history_sync_admission =
         crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
 
-    let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
+    // The core owns runtime ports through Arc even on the local WASM executor.
+    #[allow(clippy::arc_with_non_send_sync)]
+    let base_runtime = Arc::new(wacore::runtime::CryptoRuntime::new(
+        Arc::new(WasmRuntime),
+        crate::js_crypto::default_provider(),
+    )) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
     let (runtime, alloc_meter): (
         Arc<dyn wacore::runtime::Runtime>,
