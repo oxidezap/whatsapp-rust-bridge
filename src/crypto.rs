@@ -122,7 +122,8 @@ pub fn sha256_digest(input: &[u8]) -> Result<Uint8Array, BridgeError> {
         }
     })?;
     hash.update(input);
-    let digest = hash.finalize_sha256_array()
+    let digest = hash
+        .finalize_sha256_array()
         .map_err(|error| BridgeError::Internal {
             message: format!("finalize SHA-256: {error}"),
         })?;
