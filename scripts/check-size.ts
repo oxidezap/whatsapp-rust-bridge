@@ -12,10 +12,10 @@
  */
 import { packedContents } from "./pack";
 
-// The Signal rewrite with per-client host crypto measures 8,500,328 bytes
-// with Binaryen 133. Keep less than 10 KB of headroom; the 110,000-byte
-// function-body budget and inlining flags stay unchanged.
-const MAX_UNPACKED_BYTES = 8_510_000;
+// The Signal rewrite measures 8,559,822 bytes with CI's Bun 1.4.4, Node
+// 26.13.0, wasm-pack 0.15.1 and Binaryen 133. Keep about 10 KB headroom;
+// the 110,000-byte function budget and inlining flags stay unchanged.
+const MAX_UNPACKED_BYTES = 8_570_000;
 
 const { files, unpackedSize: total } = packedContents();
 
@@ -41,7 +41,7 @@ for (const file of [...files].sort((a, b) => b.size - a.size).slice(0, 5)) {
 
 if (total > MAX_UNPACKED_BYTES) {
   console.error(
-    `check-size: ${mb(total)} unpacked, over the ${mb(MAX_UNPACKED_BYTES)} budget ` +
+    `check-size: ${mb(total)} (${total} bytes) unpacked, over the ${mb(MAX_UNPACKED_BYTES)} budget ` +
       `by ${mb(total - MAX_UNPACKED_BYTES)}.\n` +
       `check-size: trim it, or raise MAX_UNPACKED_BYTES in scripts/check-size.ts ` +
       `in the commit that spends the bytes.`
@@ -55,6 +55,6 @@ if (total > MAX_UNPACKED_BYTES) {
 }
 
 console.log(
-  `check-size: ${mb(total)} unpacked across ${files.length} files, ` +
+  `check-size: ${mb(total)} (${total} bytes) unpacked across ${files.length} files, ` +
     `${mb(MAX_UNPACKED_BYTES - total)} under budget`
 );
