@@ -12,10 +12,10 @@
  */
 import { packedContents } from "./pack";
 
-// The stable dependency/toolchain upgrade measures 8,458,300 bytes against
-// 0.26.1's 8,278,236. Keep a narrow margin over that measured floor; the
-// 110,000-byte function-body budget and inlining flags stay unchanged.
-const MAX_UNPACKED_BYTES = 8_500_000;
+// The Signal rewrite with per-client host crypto measures 8,500,328 bytes
+// with Binaryen 133. Keep less than 10 KB of headroom; the 110,000-byte
+// function-body budget and inlining flags stay unchanged.
+const MAX_UNPACKED_BYTES = 8_510_000;
 
 const { files, unpackedSize: total } = packedContents();
 
