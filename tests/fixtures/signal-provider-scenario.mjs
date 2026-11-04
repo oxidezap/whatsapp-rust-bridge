@@ -63,7 +63,7 @@ try {
   const oldClient = await client(freshRows());
   initWasmEngine(undefined, callbacks);
   const senderRows = freshRows();
-  const sender = await client(senderRows);
+  let sender = await client(senderRows);
   const receiverRows = freshRows();
   const receiver = await client(receiverRows);
   for (const user of ['1'.repeat(43), '1'.repeat(44), 'λ'.repeat(23), '🦀'.repeat(12), 'λ'.repeat(2048)]) {
@@ -173,6 +173,8 @@ try {
       'malformed CBC output must not advance persisted sessions');
   }
   malformedCbcLength = null;
+  await sender.disconnect();
+  sender = await client(senderRows);
   const directRetry = await sender.signalEncryptMessage(bobJid, payload);
   const receiverSessionsBefore = [...bobRows].filter(([key]) => key.startsWith('session:'));
   failHmac = true;
