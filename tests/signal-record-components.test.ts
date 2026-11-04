@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { beforeAll, describe, test } from "bun:test";
 import {
   decodeSenderKeyRecordComponents,
@@ -127,6 +128,28 @@ describe("Signal record component boundary", () => {
     // `derived`, which has no inverse.
     assert.equal(material?.kind, "seed");
     assert.deepEqual(material?.kind === "seed" ? material.seed : undefined, seed);
+  });
+
+  test("sender component projection preserves duplicate skipped keys and canonical public keys", () => {
+    const states = [0, 127, 128, 0xffffffff].map((iteration, index) => ({
+      keyId: iteration,
+      chainKey: { iteration, seed: bytes(32, index + 1) },
+      signingKey: {
+        public: index % 2 === 0 ? bytes(32, index + 2) : publicKey(index + 2),
+        private: index % 2 === 0 ? bytes(32, 9) : undefined,
+      },
+      messageKeys: [128, 0, 128, 0xffffffff].map((iteration) => ({ iteration, seed: bytes(32, 7) })),
+    }));
+    const encoded = encodeSenderKeyRecordComponents({ states });
+    assert.equal(createHash("sha256").update(encoded).digest("hex"),
+      "cd58fc7d88e3de26e5767d02e6d54723e6feb9a76a4a5870b8dea6b08ee801da");
+    const decoded = decodeSenderKeyRecordComponents(encoded);
+    assert.deepEqual(decoded.states.map((state) => state.keyId), states.map((state) => state.keyId));
+    for (const [index, state] of decoded.states.entries()) {
+      assert.deepEqual(state.signingKey.public, publicKey(index + 2));
+      assert.deepEqual(state.messageKeys, states[index]!.messageKeys);
+    }
+    assert.deepEqual(encodeSenderKeyRecordComponents(decoded), encoded);
   });
 
   test("round-trips sender-key state and rejects invalid public keys", () => {
