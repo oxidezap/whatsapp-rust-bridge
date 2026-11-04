@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createCipheriv, createDecipheriv, createHmac } from 'node:crypto';
-import { initWasmEngine, generateKeyPair, createWhatsAppClient } from '../../dist/index.js';
+import { initWasmEngine, generateKeyPair, calculateSignature, createWhatsAppClient } from '../../dist/index.js';
 
 const group = '120363000000000000@g.us';
 const author = '5511000000001:1@s.whatsapp.net';
 const counts = { encrypt: 0, decrypt: 0, hmac: 0 };
+const hmacParts = [];
 let failEncrypt = false;
+let failHmac = false;
 const callbacks = {
   aesCbc256Encrypt(key, iv, plaintext) {
     counts.encrypt++;
@@ -21,8 +23,8 @@ const callbacks = {
   },
   aesGcm256Encrypt() { throw new Error('unexpected GCM'); },
   aesGcm256Decrypt() { throw new Error('unexpected GCM'); },
-  hmacSha256(key, data) { counts.hmac++; return createHmac('sha256', key).update(data).digest(); },
-  hmacSha256TwoPart(key, first, second) { counts.hmac++; return createHmac('sha256', key).update(first).update(second).digest(); },
+  hmacSha256(key, data) { counts.hmac++; if (failHmac) throw Error('synthetic HMAC failure'); return createHmac('sha256', key).update(data).digest(); },
+  hmacSha256TwoPart(key, first, second) { hmacParts.push([first.length, second.length]); counts.hmac++; if (failHmac) throw Error('synthetic HMAC failure'); return createHmac('sha256', key).update(first).update(second).digest(); },
 };
 function memoryStore(rows) {
   return {
@@ -53,7 +55,7 @@ const device = {
   push_name: 'synthetic', app_version_primary: 2, app_version_secondary: 3000, app_version_tertiary: 0,
   app_version_last_fetched_ms: 0,
 };
-const freshRows = () => new Map([['device:device', new TextEncoder().encode(JSON.stringify(device))]]);
+const freshRows = (record = device) => new Map([['device:device', new TextEncoder().encode(JSON.stringify(record))]]);
 try {
   const oldClient = await client(freshRows());
   initWasmEngine(undefined, callbacks);
@@ -88,6 +90,34 @@ try {
   const retried = await sender.signalEncryptGroupMessage(group, payload.fill(10), '');
   assert.deepEqual(await restarted.signalDecryptGroupMessage(group, author, retried.ciphertext), payload);
   assert.ok(counts.decrypt >= 4, 'group receive must call host backend');
+  const bobKey = generateKeyPair();
+  const bobPair = [...bobKey.privKey, ...bobKey.pubKey.slice(1)];
+  const signature = calculateSignature(bobKey.privKey, bobKey.pubKey);
+  const bobDevice = { ...device, pn: { ...device.pn, user: '5511000000002' },
+    registration_id: 456, noise_key: bobPair, identity_key: bobPair,
+    signed_pre_key: bobPair, signed_pre_key_signature: [...signature] };
+  const bob = await client(freshRows(bobDevice));
+  const bobJid = '5511000000002:1@s.whatsapp.net';
+  await sender.signalInstallPreKeyBundle(bobJid, {
+    registrationId: 456, identityKey: bobKey.pubKey.slice(1),
+    signedPreKey: { keyId: 1, publicKey: bobKey.pubKey.slice(1), signature },
+  });
+  const hmacBefore = counts.hmac;
+  const direct = await sender.signalEncryptMessage(bobJid, payload.fill(11));
+  assert.ok(counts.hmac > hmacBefore, 'large pairwise authentication must call the host HMAC');
+  assert.ok(hmacParts.some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),
+    'three-part authentication must pass the small identity prefix separately from the payload');
+  const directSnapshot = direct.ciphertext.slice();
+  assert.deepEqual(await bob.signalDecryptMessage(author, direct.type, direct.ciphertext), payload);
+  const sessionsBefore = [...senderRows].filter(([key]) => key.startsWith('session:'));
+  assert.ok(sessionsBefore.length > 0, 'pairwise state must be persisted before publication');
+  failHmac = true;
+  await assert.rejects(sender.signalEncryptMessage(bobJid, payload.fill(12)));
+  assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('session:')), sessionsBefore);
+  failHmac = false;
+  const directRetry = await sender.signalEncryptMessage(bobJid, payload);
+  assert.deepEqual(await bob.signalDecryptMessage(author, directRetry.type, directRetry.ciphertext), payload);
+  assert.deepEqual(direct.ciphertext, directSnapshot, 'later sends must not mutate returned JS bytes');
   const history = JSON.parse(readFileSync(new URL('./signal-group-historical.json', import.meta.url), 'utf8'));
   const historicalRows = new Map(history.rows.map(([key, value]) => [key, new Uint8Array(Buffer.from(value, 'base64'))]));
   const historicalClient = await client(historicalRows);
@@ -95,7 +125,7 @@ try {
     const opened = await historicalClient.signalDecryptGroupMessage(history.group, history.author, new Uint8Array(Buffer.from(message.ciphertext, 'base64')));
     assert.deepEqual(opened, new Uint8Array(Buffer.from(message.plaintext, 'base64')));
   }
-  console.log('synthetic group roundtrip, restart, skipped keys, provider isolation and failure rollback passed');
+  console.log('synthetic group/pairwise roundtrip, restart, skipped keys, provider isolation and failure rollback passed');
 } finally {
   await Promise.all(clients.map(value => value.disconnect()));
 }

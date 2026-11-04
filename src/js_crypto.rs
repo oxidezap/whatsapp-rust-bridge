@@ -248,10 +248,20 @@ impl SymmetricCryptoProvider for JsCryptoAdapter {
     }
 
     fn hmac_sha256(&self, key: &[u8], parts: &[&[u8]]) -> Result<[u8; 32], CryptoProviderError> {
-        if let [first, second] = parts
+        if parts.len() >= 2
             && let Some(callback) = &self.hmac_sha256_two_part
         {
-            return copy_hmac_result(unsafe { call3_bytes(callback, key, first, second)? });
+            // Signal authenticates two identity keys followed by the message.
+            // Join only the small prefix so the payload stays borrowed.
+            let (last, prefix) = parts.split_last().expect("at least two parts");
+            let joined_prefix;
+            let first = if let [first] = prefix {
+                *first
+            } else {
+                joined_prefix = prefix.concat();
+                &joined_prefix
+            };
+            return copy_hmac_result(unsafe { call3_bytes(callback, key, first, last)? });
         }
         let joined;
         let input = if let [part] = parts {
@@ -610,7 +620,7 @@ mod provider_contract_tests {
 
     #[test]
     fn hmac_preserves_part_order_and_validates_the_optional_callback() {
-        let value = js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(k,p){if(p.join(',')!=='1,2,3')throw Error('order');return new Uint8Array(32).fill(7);},hmacSha256TwoPart(){throw Error('two part failure');}})").unwrap();
+        let value = js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(){throw Error('unexpected fallback');},hmacSha256TwoPart(k,a,b){if(a.join(',')!=='1,2'||b.join(',')!=='3')throw Error('order');return new Uint8Array(32).fill(7);}})").unwrap();
         let provider = JsCryptoAdapter::from_js(&value).unwrap();
         assert_eq!(
             provider.hmac_sha256(b"key", &[&[1], &[2], &[3]]).unwrap(),
