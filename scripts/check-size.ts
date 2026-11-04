@@ -12,9 +12,9 @@
  */
 import { packedContents } from "./pack";
 
-// The Signal rewrite measures 8,559,822 bytes with CI's Bun 1.4.4, Node
-// 26.13.0, wasm-pack 0.15.1 and Binaryen 133. Keep about 10 KB headroom;
-// the 110,000-byte function budget and inlining flags stay unchanged.
+// d720 measures 8,558,945 bytes with CI's Bun 1.4.4, Node 26.13.0,
+// wasm-pack 0.15.1 and Binaryen 133. Keep 11 KB headroom; the
+// 110,000-byte function budget and inlining flags stay unchanged.
 const MAX_UNPACKED_BYTES = 8_570_000;
 
 const { files, unpackedSize: total } = packedContents();
