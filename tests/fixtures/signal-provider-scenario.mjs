@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createCipheriv, createDecipheriv, createHmac } from 'node:crypto';
-import { initWasmEngine, generateKeyPair, calculateSignature, createWhatsAppClient } from '../../dist/index.js';
+import { initWasmEngine, generateKeyPair, calculateSignature, verifySignature, createWhatsAppClient } from '../../dist/index.js';
 
 const group = '120363000000000000@g.us';
 const author = '5511000000001:1@s.whatsapp.net';
@@ -108,7 +108,13 @@ try {
   const bobDevice = { ...device, pn: { ...device.pn, user: '5511000000002' },
     registration_id: 456, noise_key: bobPair, identity_key: bobPair,
     signed_pre_key: bobPair, signed_pre_key_signature: [...signature] };
-  const bob = await client(freshRows(bobDevice));
+  assert.equal(verifySignature(bobKey.pubKey, bobKey.pubKey, signature), true);
+  assert.equal(verifySignature(key.pubKey, bobKey.pubKey, signature), false);
+  const changedSignature = signature.slice();
+  changedSignature[0] ^= 1;
+  assert.equal(verifySignature(bobKey.pubKey, bobKey.pubKey, changedSignature), false);
+  const bobRows = freshRows(bobDevice);
+  const bob = await client(bobRows);
   const bobJid = '5511000000002:1@s.whatsapp.net';
   await sender.signalInstallPreKeyBundle(bobJid, {
     registrationId: 456, identityKey: bobKey.pubKey.slice(1),
@@ -120,7 +126,10 @@ try {
   assert.ok(hmacParts.some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),
     'three-part authentication must pass the small identity prefix separately from the payload');
   const directSnapshot = direct.ciphertext.slice();
+  const receivePartsBefore = hmacParts.length;
   assert.deepEqual(await bob.signalDecryptMessage(author, direct.type, direct.ciphertext), payload);
+  assert.ok(hmacParts.slice(receivePartsBefore).some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),
+    'received authentication must keep the identity prefix separate from the payload');
   const sessionsBefore = [...senderRows].filter(([key]) => key.startsWith('session:'));
   assert.ok(sessionsBefore.length > 0, 'pairwise state must be persisted before publication');
   failHmac = true;
@@ -128,6 +137,12 @@ try {
   assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('session:')), sessionsBefore);
   failHmac = false;
   const directRetry = await sender.signalEncryptMessage(bobJid, payload);
+  const receiverSessionsBefore = [...bobRows].filter(([key]) => key.startsWith('session:'));
+  failHmac = true;
+  await assert.rejects(bob.signalDecryptMessage(author, directRetry.type, directRetry.ciphertext));
+  assert.deepEqual([...bobRows].filter(([key]) => key.startsWith('session:')), receiverSessionsBefore,
+    'failed receive authentication must preserve persisted sessions and counters');
+  failHmac = false;
   assert.deepEqual(await bob.signalDecryptMessage(author, directRetry.type, directRetry.ciphertext), payload);
   assert.deepEqual(direct.ciphertext, directSnapshot, 'later sends must not mutate returned JS bytes');
   const history = JSON.parse(readFileSync(new URL('./signal-group-historical.json', import.meta.url), 'utf8'));

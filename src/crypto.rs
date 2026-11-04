@@ -193,3 +193,85 @@ pub fn verify_signature(
     let public = PublicKey::deserialize(public_key).map_err(error_value)?;
     Ok(public.verify_signature(message, signature))
 }
+
+#[cfg(test)]
+mod signal_checkpoint_tests {
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::libsignal::{
+        core::{PreparedSigningKey, PrivateKey},
+        engine::{CryptoProvider, Error, RandomSource, Result, RustCrypto},
+    };
+
+    struct FixedRandom;
+    impl RandomSource for FixedRandom {
+        fn fill(&mut self, destination: &mut [u8]) -> Result<()> {
+            destination.fill(17);
+            Ok(())
+        }
+    }
+    struct FailedRandom;
+    impl RandomSource for FailedRandom {
+        fn fill(&mut self, _: &mut [u8]) -> Result<()> {
+            Err(Error::Crypto)
+        }
+    }
+
+    #[test]
+    fn prepared_signature_matches_private_backend_and_rejects_tampering() {
+        let private = PrivateKey::deserialize(&[7; 32]).unwrap();
+        let public = private.public_key().unwrap();
+        let other = PrivateKey::deserialize(&[8; 32])
+            .unwrap()
+            .public_key()
+            .unwrap();
+        let prepared = PreparedSigningKey::new(&private);
+        let message = b"synthetic bridge signature";
+        let signature = prepared
+            .calculate_signature_with_random_source(message, &mut FixedRandom)
+            .unwrap();
+        assert_eq!(
+            signature,
+            RustCrypto
+                .sign(private.serialize(), message, &mut FixedRandom)
+                .unwrap()
+        );
+        assert!(public.verify_signature(message, &signature));
+        assert!(!other.verify_signature(message, &signature));
+        assert!(!public.verify_signature(b"changed", &signature));
+        assert!(
+            prepared
+                .calculate_signature_with_random_source(message, &mut FailedRandom)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn zero_salt_hkdf_matches_rfc5869_and_output_boundaries() {
+        let mut actual = [0; 42];
+        RustCrypto
+            .hkdf_sha256_zero_salt(&[11; 22], b"", &mut actual)
+            .unwrap();
+        let expected = [
+            0x8d, 0xa4, 0xe7, 0x75, 0xa5, 0x63, 0xc1, 0x8f, 0x71, 0x5f, 0x80, 0x2a, 0x06, 0x3c,
+            0x5a, 0x31, 0xb8, 0xa1, 0x1f, 0x5c, 0x5e, 0xe1, 0x87, 0x9e, 0xc3, 0x45, 0x4e, 0x5f,
+            0x3c, 0x73, 0x8d, 0x2d, 0x9d, 0x20, 0x13, 0x95, 0xfa, 0xa4, 0xb6, 0x1a, 0x96, 0xc8,
+        ];
+        assert_eq!(actual, expected);
+        for input_length in [0, 63, 64, 65, 1024] {
+            for length in [0, 31, 32, 33, 80, 255 * 32, 255 * 32 + 1] {
+                let input = vec![9; input_length];
+                let mut specialized = vec![0xa5; length];
+                let mut generic = specialized.clone();
+                let first = RustCrypto.hkdf_sha256_zero_salt(
+                    &input,
+                    b"WhisperMessageKeys",
+                    &mut specialized,
+                );
+                let second =
+                    RustCrypto.hkdf_sha256(&[0; 32], &input, b"WhisperMessageKeys", &mut generic);
+                assert_eq!(first, second);
+                assert_eq!(specialized, generic);
+            }
+        }
+    }
+}
