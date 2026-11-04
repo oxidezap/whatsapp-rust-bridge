@@ -63,6 +63,18 @@ try {
   const sender = await client(senderRows);
   const receiverRows = freshRows();
   const receiver = await client(receiverRows);
+  for (const user of ['1'.repeat(43), '1'.repeat(44), 'λ'.repeat(23), '🦀'.repeat(12), 'λ'.repeat(2048)]) {
+    const jid = `${user}:127@s.whatsapp.net`;
+    assert.equal(sender.jidToSignalProtocolAddress(jid), `${user}:127@c.us.0`);
+    await assert.rejects(sender.signalEncryptMessage(jid, new Uint8Array([1])), error => {
+      assert.ok(error instanceof Error);
+      assert.equal(error.name, 'WhatsAppError');
+      assert.equal(error.kind, 'internal');
+      assert.match(error.message, /^no session for pn#[a-f0-9]{16}:127@s\.whatsapp\.net\.0$/);
+      assert.ok(!error.message.includes(user), 'diagnostics must retain address redaction');
+      return true;
+    });
+  }
   const payload = new Uint8Array(12288).fill(7);
   await oldClient.signalEncryptGroupMessage(group, payload, '');
   assert.equal(counts.encrypt, 0, 'existing client must retain Rust backend');

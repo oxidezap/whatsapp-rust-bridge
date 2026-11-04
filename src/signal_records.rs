@@ -535,3 +535,37 @@ pub fn decode_sender_key_record_components(
     let result: SenderKeyRecordComponents = components.into();
     result.into_ts().map_err(error_value)
 }
+
+#[cfg(test)]
+mod address_compatibility_tests {
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::libsignal::core::ProtocolAddress;
+
+    #[test]
+    fn canonical_address_json_survives_utf8_overflow_clone_and_reuse() {
+        for name in [
+            String::new(),
+            "a".repeat(45),
+            "a".repeat(46),
+            "λ".repeat(23),
+            "🦀".repeat(12),
+            "λ".repeat(2048),
+        ] {
+            for device in [0, 127, u32::MAX] {
+                let address = ProtocolAddress::new(&name, device.into());
+                let text = format!("{name}.{device}");
+                let expected =
+                    serde_json::json!({"text":text,"name_len":name.len(),"device":device});
+                assert_eq!(serde_json::to_value(&address).unwrap(), expected);
+                let restored: ProtocolAddress = serde_json::from_value(expected).unwrap();
+                assert_eq!(restored.name(), name);
+                assert_eq!(restored.as_str(), text);
+                let mut reused = restored.clone();
+                reused.reset_with(|out| out.push_str("short-λ"));
+                assert_eq!(reused.as_str(), format!("short-λ.{device}"));
+                assert_eq!(restored.as_str(), text);
+                assert_eq!(address, restored);
+            }
+        }
+    }
+}
