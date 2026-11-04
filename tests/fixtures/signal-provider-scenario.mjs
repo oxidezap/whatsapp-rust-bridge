@@ -126,6 +126,12 @@ try {
   assert.ok(hmacParts.some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),
     'three-part authentication must pass the small identity prefix separately from the payload');
   const directSnapshot = direct.ciphertext.slice();
+  const beforeMalformed = [...bobRows].filter(([key]) => key.startsWith('session:'));
+  for (const truncated of [new Uint8Array(), direct.ciphertext.slice(0, 1), direct.ciphertext.slice(0, Math.floor(direct.ciphertext.length / 2))]) {
+    await assert.rejects(bob.signalDecryptMessage(author, direct.type, truncated));
+    assert.deepEqual([...bobRows].filter(([key]) => key.startsWith('session:')), beforeMalformed,
+      'rejected envelope parsing must not persist a partial session');
+  }
   const receivePartsBefore = hmacParts.length;
   assert.deepEqual(await bob.signalDecryptMessage(author, direct.type, direct.ciphertext), payload);
   assert.ok(hmacParts.slice(receivePartsBefore).some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),

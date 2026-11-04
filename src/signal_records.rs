@@ -542,6 +542,29 @@ mod address_compatibility_tests {
     use whatsapp_rust::wacore::libsignal::core::ProtocolAddress;
 
     #[test]
+    fn address_diagnostics_redact_names_without_changing_storage() {
+        use whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError;
+        for name in ["15550001234".to_owned(), "synthetic-secret-λ".repeat(256)] {
+            let address = ProtocolAddress::new(&name, 127.into());
+            let observed = address.observe().to_string();
+            assert!(!observed.contains(&name));
+            assert_eq!(format!("{address:?}"), observed);
+            assert_eq!(format!("{address:#?}"), observed);
+            for error in [
+                SignalProtocolError::SessionNotFound(address.clone().into()),
+                SignalProtocolError::UntrustedIdentity(address.clone().into()),
+            ] {
+                assert!(!format!("{error:?}").contains(&name));
+                assert!(!format!("{error}").contains(&name));
+            }
+            assert_eq!(
+                serde_json::to_value(&address).unwrap()["text"],
+                format!("{name}.127")
+            );
+        }
+    }
+
+    #[test]
     fn canonical_address_json_survives_utf8_overflow_clone_and_reuse() {
         for name in [
             String::new(),
