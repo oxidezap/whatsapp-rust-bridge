@@ -8,6 +8,7 @@ const author = '5511000000001:1@s.whatsapp.net';
 const counts = { encrypt: 0, decrypt: 0, hmac: 0 };
 const hmacParts = [];
 let failEncrypt = false;
+let rejectSenderKeyWrites = false;
 let malformedCbcLength = null;
 let failHmac = false;
 const callbacks = {
@@ -31,7 +32,7 @@ const callbacks = {
 function memoryStore(rows) {
   return {
     async get(store, key) { return rows.get(`${store}:${key}`)?.slice() ?? null; },
-    async set(store, key, value) { rows.set(`${store}:${key}`, value.slice()); },
+    async set(store, key, value) { if (store === 'sender_key' && rejectSenderKeyWrites) throw Error('synthetic sender-key write failure'); rows.set(`${store}:${key}`, value.slice()); },
     async delete(store, key) { rows.delete(`${store}:${key}`); },
     async commitPatch() { throw Error('unexpected appstate'); },
     async touchTcTokenSenderTimestamp() { throw Error('unexpected token'); },
@@ -85,6 +86,16 @@ try {
   await receiver.signalProcessSenderKeyDistribution(group, author, first.senderKeyDistributionMessage);
   const second = await sender.signalEncryptGroupMessage(group, payload.fill(8), '');
   const third = await sender.signalEncryptGroupMessage(group, payload.fill(9), '');
+  const distribution = await sender.signalGetSenderKeyDistribution(group, author);
+  const beforeDistribution = [...senderRows].filter(([key]) => key.startsWith('sender_key:'));
+  rejectSenderKeyWrites = true;
+  try {
+    assert.deepEqual(await sender.signalGetSenderKeyDistribution(group, author), distribution);
+    assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('sender_key:')), beforeDistribution,
+      'reexporting the current distribution must preserve persisted sender keys');
+  } finally {
+    rejectSenderKeyWrites = false;
+  }
   const bad = third.ciphertext.slice();
   bad[bad.length - 1] ^= 1;
   await assert.rejects(receiver.signalDecryptGroupMessage(group, author, bad));

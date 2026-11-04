@@ -341,4 +341,61 @@ mod signal_checkpoint_tests {
             }
         }
     }
+    #[test]
+    fn selected_provider_receives_destination_and_restores_partial_failures() {
+        use whatsapp_rust::wacore::libsignal::crypto::{
+            CryptoProviderError, ProviderCrypto, RustCryptoProvider, SymmetricCryptoProvider,
+        };
+        struct Append {
+            mode: u8,
+        }
+        impl SymmetricCryptoProvider for Append {
+            fn aes_256_cbc_encrypt(
+                &self,
+                key: &[u8; 32],
+                iv: &[u8; 16],
+                plaintext: &[u8],
+                output: &mut Vec<u8>,
+            ) -> std::result::Result<(), CryptoProviderError> {
+                assert_eq!(
+                    output, &[9; 47],
+                    "provider must receive the existing envelope prefix"
+                );
+                if self.mode == 0 {
+                    RustCryptoProvider.aes_256_cbc_encrypt(key, iv, plaintext, output)
+                } else {
+                    output.extend_from_slice(plaintext);
+                    if self.mode == 1 {
+                        Err(CryptoProviderError::BackendFailed)
+                    } else {
+                        Ok(())
+                    }
+                }
+            }
+        }
+        for mode in [0, 1, 2] {
+            let provider = Append { mode };
+            let mut output = Vec::with_capacity(47 + 32);
+            output.extend_from_slice(&[9; 47]);
+            let pointer = output.as_ptr();
+            let result = ProviderCrypto::new(&provider).encrypt_cbc_into(
+                &[3; 32],
+                &[4; 16],
+                b"partial plaintext",
+                &mut output,
+            );
+            assert_eq!(&output[..47], &[9; 47]);
+            if mode == 0 {
+                assert!(result.is_ok());
+                assert_eq!(output.len(), 47 + 32);
+                assert_eq!(output.as_ptr(), pointer);
+            } else {
+                assert!(result.is_err());
+                assert_eq!(
+                    output, [9; 47],
+                    "failed or malformed append must discard its suffix"
+                );
+            }
+        }
+    }
 }
