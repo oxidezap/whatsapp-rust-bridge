@@ -274,4 +274,71 @@ mod signal_checkpoint_tests {
             }
         }
     }
+    #[test]
+    fn native_and_selected_cbc_append_match_node_vectors_and_preserve_prefix() {
+        use whatsapp_rust::wacore::libsignal::crypto::{ProviderCrypto, RustCryptoProvider};
+        let provider = RustCryptoProvider;
+        let selected = ProviderCrypto::new(&provider);
+        // Digests generated independently with Node crypto AES-256-CBC/PKCS#7.
+        for (length, expected) in [
+            (
+                0,
+                "0f37715d5a35131aa7dd1f4ca32a0a27db73e54f76fea45db11d9a6704ae39d7",
+            ),
+            (
+                1,
+                "3b6ec739359e2b30ba639d60dbe1f4f667b62ae80acf303fc81434b06abdc06d",
+            ),
+            (
+                15,
+                "345ba30db042c277a9da567140ad278c237e3be641bf069c0eaaff564b1a8e60",
+            ),
+            (
+                16,
+                "05ff56598eb2ce8e9b1cc6083ca02c2ef6b4b36416c629f087b13006134bfb98",
+            ),
+            (
+                17,
+                "d598d8f5667c50334a06f191aff5b998613cab41989f53d9407ba5ab3f0a6af7",
+            ),
+            (
+                127,
+                "4767cbbf2275bd36429fd3146ab8935b1bcd47f377d2fdbaeef5d76a86982109",
+            ),
+            (
+                128,
+                "fc26e51de9f41d6b149d618a75580051e7e84947745108bfde715d5bde23bc9d",
+            ),
+            (
+                129,
+                "9a36d70c011fa7f98805e532029b1cb72dd9b0cc763da5fb60fa291f8ea3183e",
+            ),
+            (
+                512,
+                "6b4a539221e18690426c19c21cfac6d1fe7bf623a8735ecaed97eb282292f001",
+            ),
+            (
+                8192,
+                "49c5b864161b14e0145b53789adc16e092698733fba58333a2c43eb255f80a8b",
+            ),
+        ] {
+            let plaintext = vec![(length % 251) as u8; length];
+            for prefix_length in [0, 1, 47, 64, 129] {
+                for crypto in [&RustCrypto as &dyn CryptoProvider, &selected] {
+                    let mut output = Vec::with_capacity(prefix_length + (length / 16 + 1) * 16);
+                    output.resize(prefix_length, 9);
+                    let pointer = output.as_ptr();
+                    crypto
+                        .encrypt_cbc_into(&[3; 32], &[4; 16], &plaintext, &mut output)
+                        .unwrap();
+                    assert_eq!(output.as_ptr(), pointer);
+                    assert_eq!(&output[..prefix_length], vec![9; prefix_length]);
+                    assert_eq!(output.len() - prefix_length, (length / 16 + 1) * 16);
+                    let digest = crypto.sha256(&output[prefix_length..]);
+                    let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+                    assert_eq!(hex, expected);
+                }
+            }
+        }
+    }
 }

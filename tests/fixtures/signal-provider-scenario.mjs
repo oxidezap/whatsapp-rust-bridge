@@ -8,11 +8,13 @@ const author = '5511000000001:1@s.whatsapp.net';
 const counts = { encrypt: 0, decrypt: 0, hmac: 0 };
 const hmacParts = [];
 let failEncrypt = false;
+let malformedCbcLength = null;
 let failHmac = false;
 const callbacks = {
   aesCbc256Encrypt(key, iv, plaintext) {
     counts.encrypt++;
     if (failEncrypt) throw new Error('synthetic host failure');
+    if (malformedCbcLength !== null) return new Uint8Array(malformedCbcLength);
     const cipher = createCipheriv('aes-256-cbc', key, iv);
     return Buffer.concat([cipher.update(plaintext), cipher.final()]);
   },
@@ -99,6 +101,13 @@ try {
   await assert.rejects(sender.signalEncryptGroupMessage(group, payload, ''));
   assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('sender_key:')), persistedBefore);
   failEncrypt = false;
+  for (const wrongLength of [0, 1, 15, 16, 17, payload.length, payload.length + 32]) {
+    malformedCbcLength = wrongLength;
+    await assert.rejects(sender.signalEncryptGroupMessage(group, payload, ''));
+    assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('sender_key:')), persistedBefore,
+      'malformed CBC output must not advance persisted sender keys');
+  }
+  malformedCbcLength = null;
   const retried = await sender.signalEncryptGroupMessage(group, payload.fill(10), '');
   assert.deepEqual(await restarted.signalDecryptGroupMessage(group, author, retried.ciphertext), payload);
   assert.ok(counts.decrypt >= 4, 'group receive must call host backend');
@@ -142,6 +151,17 @@ try {
   await assert.rejects(sender.signalEncryptMessage(bobJid, payload.fill(12)));
   assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('session:')), sessionsBefore);
   failHmac = false;
+  failEncrypt = true;
+  await assert.rejects(sender.signalEncryptMessage(bobJid, payload));
+  assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('session:')), sessionsBefore);
+  failEncrypt = false;
+  for (const wrongLength of [0, 1, 15, 16, 17, payload.length, payload.length + 32]) {
+    malformedCbcLength = wrongLength;
+    await assert.rejects(sender.signalEncryptMessage(bobJid, payload));
+    assert.deepEqual([...senderRows].filter(([key]) => key.startsWith('session:')), sessionsBefore,
+      'malformed CBC output must not advance persisted sessions');
+  }
+  malformedCbcLength = null;
   const directRetry = await sender.signalEncryptMessage(bobJid, payload);
   const receiverSessionsBefore = [...bobRows].filter(([key]) => key.startsWith('session:'));
   failHmac = true;
@@ -151,6 +171,14 @@ try {
   failHmac = false;
   assert.deepEqual(await bob.signalDecryptMessage(author, directRetry.type, directRetry.ciphertext), payload);
   assert.deepEqual(direct.ciphertext, directSnapshot, 'later sends must not mutate returned JS bytes');
+  for (const length of [0, 1, 15, 16, 17, 127, 128, 129, 511, 512, 513, 2031, 2032, 2033, 8191, 8192, 8193]) {
+    const input = new Uint8Array(length).fill(length % 251);
+    const encryptsBefore = counts.encrypt;
+    const encrypted = await sender.signalEncryptMessage(bobJid, input);
+    assert.equal(counts.encrypt - encryptsBefore, length >= 512 ? 1 : 0,
+      'CBC callback selection must retain the bridge size policy');
+    assert.deepEqual(await bob.signalDecryptMessage(author, encrypted.type, encrypted.ciphertext), input);
+  }
   const history = JSON.parse(readFileSync(new URL('./signal-group-historical.json', import.meta.url), 'utf8'));
   const historicalRows = new Map(history.rows.map(([key, value]) => [key, new Uint8Array(Buffer.from(value, 'base64'))]));
   const historicalClient = await client(historicalRows);
