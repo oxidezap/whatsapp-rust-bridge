@@ -134,7 +134,7 @@ try {
   changedSignature[0] ^= 1;
   assert.equal(verifySignature(bobKey.pubKey, bobKey.pubKey, changedSignature), false);
   const bobRows = freshRows(bobDevice);
-  const bob = await client(bobRows);
+  let bob = await client(bobRows);
   const bobJid = '5511000000002:1@s.whatsapp.net';
   await sender.signalInstallPreKeyBundle(bobJid, {
     registrationId: 456, identityKey: bobKey.pubKey.slice(1),
@@ -192,6 +192,30 @@ try {
       'CBC callback selection must retain the bridge size policy');
     assert.deepEqual(await bob.signalDecryptMessage(author, encrypted.type, encrypted.ciphertext), input);
   }
+  const delayedArchivePlaintext = new Uint8Array(128).fill(61);
+  const delayedArchive = await sender.signalEncryptMessage(bobJid, delayedArchivePlaintext);
+  await sender.signalInstallPreKeyBundle(bobJid, {
+    registrationId: 456, identityKey: bobKey.pubKey.slice(1),
+    signedPreKey: { keyId: 1, publicKey: bobKey.pubKey.slice(1), signature },
+  });
+  const replacementPlaintext = new Uint8Array(129).fill(62);
+  const replacement = await sender.signalEncryptMessage(bobJid, replacementPlaintext);
+  assert.equal(replacement.type, 'pkmsg');
+  assert.deepEqual(await bob.signalDecryptMessage(author, replacement.type, replacement.ciphertext), replacementPlaintext);
+  await bob.disconnect();
+  bob = await client(bobRows);
+  assert.deepEqual(await bob.signalDecryptMessage(author, delayedArchive.type, delayedArchive.ciphertext), delayedArchivePlaintext,
+    'a delayed message must promote the matching persisted archive after reload');
+  for (const reload of [false, true]) {
+    if (reload) { await bob.disconnect(); bob = await client(bobRows); }
+    const beforeReplay = [...bobRows].filter(([key]) => key.startsWith('session:'));
+    await assert.rejects(bob.signalDecryptMessage(author, delayedArchive.type, delayedArchive.ciphertext));
+    assert.deepEqual([...bobRows].filter(([key]) => key.startsWith('session:')), beforeReplay,
+      'prekey replay must preserve the selected session and persisted archives');
+  }
+  const afterPromotion = await sender.signalEncryptMessage(bobJid, new Uint8Array(127).fill(63));
+  assert.deepEqual(await bob.signalDecryptMessage(author, afterPromotion.type, afterPromotion.ciphertext), new Uint8Array(127).fill(63),
+    'the newer session must remain usable after archive promotion and rejected replay');
   const history = JSON.parse(readFileSync(new URL('./signal-group-historical.json', import.meta.url), 'utf8'));
   const historicalRows = new Map(history.rows.map(([key, value]) => [key, new Uint8Array(Buffer.from(value, 'base64'))]));
   const historicalClient = await client(historicalRows);
