@@ -65,6 +65,10 @@ separate writes, a non-transactional batch, or an adapter-local mutex are insuff
 Resolve only at the host's persistence boundary and propagate post-commit errors.
 The generated callback declarations describe the existing namespaces and byte layouts.
 
+Hosted identity recovery requires `listKeys` with `capabilities.enumerate: true`,
+including historical state in the account scope. Otherwise it fails with a
+storage error. The in-memory backend supports this directly.
+
 ## Host-loaded runtimes
 
 On Node and Bun the default entrypoint finds and loads the wasm itself:

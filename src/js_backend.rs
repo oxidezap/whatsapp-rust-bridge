@@ -632,6 +632,37 @@ generated_signal_store! {
         }
     }
 
+    async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
+        let mut addresses = Vec::<Arc<str>>::new();
+        if self.has_enumerate {
+            for store in [STORE_SESSION, STORE_IDENTITY] {
+                for address in self.js_list_keys(store, Some(user)).await? {
+                    if signal_address_matches_user(&address, user)
+                        && !addresses.iter().any(|known| known.as_ref() == address)
+                    {
+                        addresses.push(Arc::from(address));
+                    }
+                }
+            }
+            for group in self.js_list_keys(STORE_SENDER_KEY_DEVICES, None).await? {
+                for (address, _) in self.get_sender_key_devices(&group).await? {
+                    if signal_address_matches_user(&address, user)
+                        && !addresses.iter().any(|known| known.as_ref() == address)
+                    {
+                        addresses.push(Arc::from(address));
+                    }
+                }
+            }
+        } else {
+            // An index of new writes cannot account for state predating this adapter.
+            return Err(wacore::store::error::StoreError::Io(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "hosted identity recovery requires listKeys with capabilities.enumerate",
+            )));
+        }
+        Ok(addresses)
+    }
+
     async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
         // Non-enumerating stores cannot prove absence, so preserve the trait's
         // conservative answer. Enumerating stores can avoid the core's full
@@ -2832,5 +2863,162 @@ mod atomic_storage_contract_tests {
         assert_eq!(row.token, b"old");
         assert_eq!(row.token_timestamp, 10);
         assert_eq!(row.sender_timestamp, None);
+    }
+}
+
+#[cfg(test)]
+mod signal_address_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn host(slot: &str) -> JsValue {
+        js_sys::Function::new_with_args(
+            "slot",
+            include_str!("../tests/fixtures/signal-address-storage.js"),
+        )
+        .call1(&JsValue::NULL, &slot.into())
+        .unwrap()
+    }
+    fn backend(value: &JsValue) -> JsBackend {
+        JsBackend::new(JsBackendHandles::from_js(value).unwrap())
+    }
+    async fn addresses(store: &dyn SignalStore, user: &str) -> Vec<String> {
+        let mut result = store
+            .get_signal_addresses_for_user(user)
+            .await
+            .unwrap()
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        result.sort();
+        result
+    }
+
+    #[test]
+    async fn durable_enumeration_unions_namespaces_and_sources_across_adapters() {
+        let first = backend(&host("signal-union"));
+        first
+            .put_session("Alice:1@s.whatsapp.net", b"session")
+            .await
+            .unwrap();
+        first
+            .put_identities_batch(&[
+                (Arc::from("Alice:2@lid"), [1; 32]),
+                (Arc::from("Alice:1@s.whatsapp.net"), [2; 32]),
+            ])
+            .await
+            .unwrap();
+        first
+            .set_sender_key_status(
+                "group",
+                &[
+                    ("Alice:3@lid", false),
+                    ("Alice:1@s.whatsapp.net", true),
+                    ("Alicee:3@lid", true),
+                ],
+            )
+            .await
+            .unwrap();
+        for other in [
+            "Alicee:1@lid",
+            "alice:1@lid",
+            "Alice_1:1@lid",
+            "Alice%:1@lid",
+            "Alice",
+        ] {
+            first.put_session(other, b"other").await.unwrap();
+        }
+        let second = backend(&host("signal-union"));
+        assert_eq!(
+            addresses(&second, "Alice").await,
+            ["Alice:1@s.whatsapp.net", "Alice:2@lid", "Alice:3@lid"]
+        );
+        assert_eq!(addresses(&second, "Alice_1").await, ["Alice_1:1@lid"]);
+        assert_eq!(addresses(&second, "Alice%").await, ["Alice%:1@lid"]);
+        assert_eq!(addresses(&second, "alice").await, ["alice:1@lid"]);
+        let isolated = backend(&host("signal-other-account"));
+        assert!(addresses(&isolated, "Alice").await.is_empty());
+        second
+            .delete_session("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second
+            .delete_identity("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second.clear_sender_key_devices("group").await.unwrap();
+        assert_eq!(addresses(&first, "Alice").await, ["Alice:2@lid"]);
+    }
+
+    #[test]
+    async fn unavailable_or_failed_enumeration_never_returns_a_partial_set() {
+        let value = host("signal-errors");
+        let fail = js_sys::Function::new_with_args(
+            "store",
+            "if(store === 'identity') throw new Error('identity scan failed'); return ['a:1@lid'];",
+        );
+        js_sys::Reflect::set(&value, &"listKeys".into(), &fail).unwrap();
+        let error = backend(&value)
+            .get_signal_addresses_for_user("a")
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("identity scan failed")
+        );
+        js_sys::Reflect::set(&value, &"capabilities".into(), &JsValue::NULL).unwrap();
+        assert!(
+            matches!(backend(&value).get_signal_addresses_for_user("a").await.unwrap_err(), wacore::store::error::StoreError::Io(error) if error.kind() == std::io::ErrorKind::Unsupported)
+        );
+    }
+
+    #[test]
+    async fn builtin_memory_backend_enumerates_identity_and_sender_tracking_without_sessions() {
+        let store = new_in_memory_backend();
+        store.put_identity("a@lid.2", [2; 32]).await.unwrap();
+        store
+            .set_sender_key_status("group", &[("a@s.whatsapp.net.3", false)])
+            .await
+            .unwrap();
+        let mut result = store.get_signal_addresses_for_user("a").await.unwrap();
+        result.sort();
+        assert_eq!(
+            result,
+            vec![Arc::<str>::from("a@lid.2"), Arc::from("a@s.whatsapp.net.3")]
+        );
+    }
+
+    #[test]
+    async fn core_cache_collects_cached_and_durable_addresses_through_js_adapter() {
+        use wacore::libsignal::protocol::{ProtocolAddress, SessionRecord};
+        use wacore::store::signal_cache::SignalStoreCache;
+        let durable = backend(&host("signal-cache-union"));
+        durable.put_identity("a:2@lid", [2; 32]).await.unwrap();
+        durable
+            .set_sender_key_status("group", &[("a:3@lid", true)])
+            .await
+            .unwrap();
+        let cache = SignalStoreCache::new();
+        cache
+            .put_session(
+                &ProtocolAddress::new("a@s.whatsapp.net", 1.into()),
+                SessionRecord::new_fresh(),
+            )
+            .await;
+        let result = cache
+            .signal_addresses_for_user("a", &durable)
+            .await
+            .unwrap();
+        assert!(
+            result
+                .iter()
+                .any(|address| address.as_ref() == "a@s.whatsapp.net.1")
+        );
+        assert!(result.iter().any(|address| address.as_ref() == "a:2@lid"));
+        assert!(result.iter().any(|address| address.as_ref() == "a:3@lid"));
     }
 }
