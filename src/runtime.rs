@@ -514,24 +514,43 @@ mod tests {
         SLEEP_WAKERS.with(|wakers| wakers.borrow().len())
     }
 
+    fn sleep_is_registered(id: SleepId) -> bool {
+        SLEEP_WAKERS.with(|wakers| wakers.borrow().contains_key(&id))
+    }
+
     #[wasm_bindgen_test]
     async fn sleep_fires_and_leaves_no_registration() {
-        let before = pending_sleeps();
-        make_sleep(1).await;
-        assert_eq!(
-            pending_sleeps(),
-            before,
+        let mut sleep = Box::pin(make_sleep(1));
+        assert!(futures::poll!(sleep.as_mut()).is_pending());
+        let id = sleep.armed.as_ref().unwrap().id;
+        assert!(sleep_is_registered(id));
+        sleep.await;
+        assert!(
+            !sleep_is_registered(id),
             "a fired timer must deregister its waker"
         );
     }
 
     #[wasm_bindgen_test]
     async fn concurrent_sleeps_each_wake_their_own_future() {
-        let before = pending_sleeps();
         // Distinct durations so they complete out of registration order.
-        let (a, b, c) = futures::join!(make_sleep(8), make_sleep(1), make_sleep(4));
+        let mut sleeps = [
+            Box::pin(make_sleep(8)),
+            Box::pin(make_sleep(1)),
+            Box::pin(make_sleep(4)),
+        ];
+        let mut ids = Vec::new();
+        for sleep in &mut sleeps {
+            assert!(futures::poll!(sleep.as_mut()).is_pending());
+            let id = sleep.armed.as_ref().unwrap().id;
+            assert!(sleep_is_registered(id));
+            ids.push(id);
+        }
+        let [a, b, c] = sleeps;
+        let (a, b, c) = futures::join!(a, b, c);
         assert_eq!((a, b, c), ((), (), ()));
-        assert_eq!(pending_sleeps(), before);
+        // Other async tests may register or finish unrelated timers while we await.
+        assert!(ids.into_iter().all(|id| !sleep_is_registered(id)));
     }
 
     /// The whole point of the design: a dropped sleep must clear both its JS
