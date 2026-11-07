@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.5](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.4...v0.26.5) (2026-11-07)
+
+
+### Bug Fixes
+
+* **signal:** update core and configure static media hosts ([#161](https://github.com/oxidezap/whatsapp-rust-bridge/issues/161)) ([318ab5a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/318ab5a5e76cc16aa47d3249efe1b92eb708217a))
+
 ## [0.26.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.3...v0.26.4) (2026-11-01)
 
 
