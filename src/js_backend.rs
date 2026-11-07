@@ -138,7 +138,6 @@ pub(crate) fn new_js_backend(handles: JsBackendHandles) -> Arc<JsBackend> {
 
 /// Storage backend that delegates all persistence to JavaScript callbacks.
 pub struct JsBackend {
-    signal_addresses_fn: Option<js_sys::Function>,
     commit_patch_fn: Option<js_sys::Function>,
     touch_tc_token_fn: Option<js_sys::Function>,
     store_received_tc_token_fn: Option<js_sys::Function>,
@@ -180,7 +179,6 @@ impl JsBackend {
         let has_enumerate = h.cap_enumerate && h.list_keys_fn.is_some();
         let has_prefix_delete = h.cap_prefix_delete && h.delete_prefix_fn.is_some();
         Self {
-            signal_addresses_fn: h.signal_addresses_fn,
             commit_patch_fn: h.commit_patch_fn,
             touch_tc_token_fn: h.touch_tc_token_fn,
             store_received_tc_token_fn: h.store_received_tc_token_fn,
@@ -636,20 +634,7 @@ generated_signal_store! {
 
     async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
         let mut addresses = std::collections::HashSet::new();
-        if let Some(callback) = &self.signal_addresses_fn {
-            let result = callback.call1(&JsValue::NULL, &user.into())
-                .map_err(|error| js_err_to_store_err("getSignalAddressesForUser", error))?;
-            let value = resolve_promise(result).await
-                .map_err(|error| js_err_to_store_err("getSignalAddressesForUser", error))?;
-            let values = value.dyn_into::<js_sys::Array>().map_err(|_| {
-                js_err_to_store_err("getSignalAddressesForUser", JsValue::from_str("expected array"))
-            })?;
-            for value in values.iter() {
-                let address = value.as_string().filter(|address| signal_address_matches_user(address, user))
-                    .ok_or_else(|| js_err_to_store_err("getSignalAddressesForUser", JsValue::from_str("expected an address for the exact user")))?;
-                addresses.insert(Arc::from(address));
-            }
-        } else if self.has_enumerate {
+        if self.has_enumerate {
             for store in [STORE_SESSION, STORE_IDENTITY] {
                 for address in self.js_list_keys(store, Some(user)).await? {
                     if signal_address_matches_user(&address, user) {
@@ -668,7 +653,7 @@ generated_signal_store! {
             // An index of new writes cannot account for state predating this adapter.
             return Err(wacore::store::error::StoreError::Io(std::io::Error::new(
                 std::io::ErrorKind::Unsupported,
-                "hosted identity recovery requires listKeys with capabilities.enumerate or getSignalAddressesForUser",
+                "hosted identity recovery requires listKeys with capabilities.enumerate",
             )));
         }
         Ok(addresses.into_iter().collect())
@@ -1705,7 +1690,6 @@ mod batch_store_tests {
     fn recording_backend(slot: &str) -> JsBackend {
         let refuse = js_sys::Function::new_no_args("throw new Error('per-key write')");
         JsBackend::new(JsBackendHandles {
-            signal_addresses_fn: None,
             commit_patch_fn: None,
             touch_tc_token_fn: None,
             store_received_tc_token_fn: None,
@@ -1828,7 +1812,6 @@ mod device_account_authority_tests {
         )
         .expect("slot init");
         JsBackendHandles {
-            signal_addresses_fn: None,
             commit_patch_fn: None,
             touch_tc_token_fn: None,
             store_received_tc_token_fn: None,
@@ -2306,7 +2289,7 @@ mod generated_callback_tests {
             r#"(() => {
             const reads = [];
             const store = { reads };
-            for (const name of ['get','set','delete','commitPatch','touchTcTokenSenderTimestamp','storeReceivedTcToken','getSignalAddressesForUser','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
+            for (const name of ['get','set','delete','commitPatch','touchTcTokenSenderTimestamp','storeReceivedTcToken','setMany','deleteMany','getMany','listKeys','deletePrefix']) {
                 Object.defineProperty(store, name, { get() { reads.push(name); return () => null; } });
             }
             Object.defineProperty(store, 'capabilities', { get() { reads.push('capabilities'); return {}; } });
@@ -2334,7 +2317,6 @@ mod generated_callback_tests {
                 "commitPatch",
                 "touchTcTokenSenderTimestamp",
                 "storeReceivedTcToken",
-                "getSignalAddressesForUser",
                 "setMany",
                 "deleteMany",
                 "getMany",
@@ -2963,42 +2945,6 @@ mod signal_address_tests {
             .unwrap();
         second.clear_sender_key_devices("group").await.unwrap();
         assert_eq!(addresses(&first, "Alice").await, ["Alice:2@lid"]);
-    }
-
-    #[test]
-    async fn callback_supports_non_enumerating_hosts_and_rejects_partial_shapes() {
-        let value = host("signal-callback");
-        js_sys::Reflect::set(&value, &"capabilities".into(), &JsValue::NULL).unwrap();
-        let callback = js_sys::Function::new_with_args(
-            "user",
-            "if(user !== 'a') throw new Error('exact user'); return Promise.resolve(['a:2@lid','a:1@s.whatsapp.net','a:2@lid']);",
-        );
-        js_sys::Reflect::set(&value, &"getSignalAddressesForUser".into(), &callback).unwrap();
-        assert_eq!(
-            addresses(&backend(&value), "a").await,
-            ["a:1@s.whatsapp.net", "a:2@lid"]
-        );
-        for body in [
-            "return null",
-            "return [42]",
-            "return ['ab:1@lid']",
-            "return ['A:1@lid']",
-            "return Promise.reject(new Error('enumeration failed'))",
-        ] {
-            js_sys::Reflect::set(
-                &value,
-                &"getSignalAddressesForUser".into(),
-                &js_sys::Function::new_no_args(body),
-            )
-            .unwrap();
-            assert!(
-                backend(&value)
-                    .get_signal_addresses_for_user("a")
-                    .await
-                    .is_err(),
-                "{body}"
-            );
-        }
     }
 
     #[test]

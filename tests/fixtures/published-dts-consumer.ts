@@ -11,7 +11,6 @@
  */
 
 import type {
-  JsStoreCallbacks,
   ArchiveUpdate,
   ClientPolicies,
   createWhatsAppClient,
@@ -191,6 +190,3 @@ import wasm from "@oxidezap/whatsapp-rust-bridge/wasm";
 
 type _WasmFeedsInitSync = Assert<Resolves<typeof wasm, SyncInitInput>>;
 initSync({ module: wasm });
-
-// Hosted recovery may use the host's durable index without general listKeys support.
-type _SignalEnumeration = Assert<Resolves<JsStoreCallbacks["getSignalAddressesForUser"], ((user: string) => Promise<string[]>) | undefined>>;

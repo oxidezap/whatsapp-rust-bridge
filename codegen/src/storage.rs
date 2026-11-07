@@ -100,20 +100,6 @@ fn catalog() -> Vec<Callback> {
              * There is no non-atomic fallback. */"###,
         },
         Callback {
-            name: "getSignalAddressesForUser",
-            field: "signal_addresses_fn",
-            support: Support::Optional,
-            capability: None,
-            parameters: "user: string",
-            result: "string[]",
-            doc: r###"/** Enumerate all durable Signal addresses for this exact, case-sensitive user,
-             * including sessions, identities and sender_key_devices across PN/LID namespaces.
-             * Scope results to this store's account. Return full addresses unchanged, deduplicated.
-             * Required for hosted identity recovery when capabilities.enumerate/listKeys are absent.
-             * Must include pre-existing state, not just writes observed by this adapter.
-             * Throw if complete enumeration is unavailable. No partial or cache-only results. */"###,
-        },
-        Callback {
             name: "setMany",
             field: "set_many_fn",
             support: Support::Optional,
