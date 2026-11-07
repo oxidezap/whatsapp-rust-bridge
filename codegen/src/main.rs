@@ -1916,6 +1916,23 @@ fn type_aliases_in(content: &str) -> BTreeMap<String, String> {
         return collected;
     };
     for item in &file.items {
+        // Serde newtypes write their single field, including private fields.
+        // Resolve these like aliases so mobile binding wrappers cannot leave
+        // dangling names in generated consumer declarations.
+        if let Item::Struct(value) = item
+            && is_pub(&value.vis)
+            && value.generics.params.is_empty()
+            && has_serde_derive(&value.attrs)
+            && serde_container_shadow(&value.attrs).is_none()
+            && let Fields::Unnamed(fields) = &value.fields
+            && fields.unnamed.len() == 1
+            && fields.unnamed[0].attrs.is_empty()
+        {
+            collected.insert(
+                value.ident.to_string(),
+                fields.unnamed[0].ty.to_token_stream().to_string(),
+            );
+        }
         if let Item::Type(alias) = item
             && is_pub(&alias.vis)
             && alias.generics.type_params().next().is_none()
@@ -2376,6 +2393,23 @@ mod tests {
         assert_eq!(ts_of("AliasUnderTest"), "Uint8Array");
         assert_eq!(ts_of("Vec<AliasUnderTest>"), "Uint8Array[]");
         assert_eq!(ts_of("Option<AliasUnderTest>"), "Uint8Array | null");
+    }
+
+    #[test]
+    fn serde_newtypes_resolve_the_private_field_they_serialize() {
+        type_aliases().lock().unwrap().extend(type_aliases_in(
+            r#"
+            #[derive(Serialize, Deserialize)]
+            pub struct BindingUnderTest([u8; 32]);
+            pub struct NotSerializedUnderTest([u8; 32]);
+            #[derive(Serialize)]
+            pub struct TupleUnderTest(u32, u32);
+        "#,
+        ));
+        assert_eq!(ts_of("BindingUnderTest"), "Uint8Array");
+        assert_eq!(ts_of("Option<BindingUnderTest>"), "Uint8Array | null");
+        assert_eq!(ts_of("NotSerializedUnderTest"), "NotSerializedUnderTest");
+        assert_eq!(ts_of("TupleUnderTest"), "TupleUnderTest");
     }
 
     /// The mapping must not swallow the ordinary case: a type this generator

@@ -511,6 +511,13 @@ export interface HistorySyncAdmissionMetadata {
 
 export interface ClientPolicies {
   /**
+   * Additional exact HTTPS authorities for static media, e.g. "cdn.example:8443".
+   * No schemes, paths, wildcards or redirects. The core validates the origin;
+   * the HTTP adapter owns TLS trust and must not follow redirects.
+   * Captured per client at construction; omitted means no additional hosts.
+   */
+  additionalStaticMediaHosts?: readonly string[];
+  /**
    * Synchronously decide whether to accept a history-sync chunk.
     * Only the boolean true accepts. False permanently acknowledges the chunk
     * and prevents retry. Thrown errors and non-boolean results do the same,
@@ -2302,6 +2309,8 @@ pub async fn create_whatsapp_client(
     let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
     let history_sync_admission =
         crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
+    let additional_static_media_hosts =
+        crate::history_sync_admission::static_media_hosts(policies_js.as_ref())?;
 
     // The core owns runtime ports through Arc even on the local WASM executor.
     #[allow(clippy::arc_with_non_send_sync)]
@@ -2365,7 +2374,10 @@ pub async fn create_whatsapp_client(
     let override_version = parse_optional_version(version_js.as_ref())?;
     let wanted_pre_key_count = parse_optional_count(wanted_pre_key_count_js.as_ref())?;
 
+    let mut options = whatsapp_rust::client::ClientOptions::default();
+    options.additional_static_media_hosts = additional_static_media_hosts;
     let builder = whatsapp_rust::client::ClientBuilder::new()
+        .with_options(options)
         .with_runtime_arc(runtime.clone())
         .with_persistence_manager(persistence_manager.clone())
         .with_transport_factory_arc(transport_factory)
@@ -2428,6 +2440,89 @@ pub async fn create_whatsapp_client(
         teardown_kind: Arc::new(std::sync::atomic::AtomicU8::new(0)),
         alloc_meter,
     })
+}
+
+#[cfg(all(test, feature = "client-media"))]
+mod static_media_policy_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    async fn client(policies: Option<JsValue>, http: JsValue) -> WasmWhatsAppClient {
+        let transport = js_sys::eval("({connect(){},send(){},disconnect(){}})").unwrap();
+        create_whatsapp_client(
+            transport, http, None, None, None, None, None, None, policies,
+        )
+        .await
+        .unwrap()
+    }
+
+    #[test]
+    async fn configured_static_hosts_are_exact_copied_and_per_client() {
+        // The HTTP adapter calls with a null receiver, so capture state in a closure.
+        let http = js_sys::eval("(() => {const calls=[];return {calls,execute:async url=>{calls.push(url);return {statusCode:302,body:new Uint8Array()}}}})()").unwrap();
+        let policies = js_sys::eval("({additionalStaticMediaHosts:['cdn.example:8443']})").unwrap();
+        let strict = client(None, http.clone()).await;
+        let configured = client(Some(policies.clone()), http.clone()).await;
+        let original =
+            js_sys::Reflect::get(&policies, &"additionalStaticMediaHosts".into()).unwrap();
+        js_sys::Reflect::set(&original, &0.into(), &"elsewhere.example".into()).unwrap();
+        let calls: js_sys::Array = js_sys::Reflect::get(&http, &"calls".into())
+            .unwrap()
+            .unchecked_into();
+        let mut image = whatsapp_rust::waproto::whatsapp::message::ImageMessage::default();
+        image.static_url = Some("https://cdn.example:8443/fixture".into());
+        image.media_key = Some(vec![0; 32]);
+        image.file_sha256 = Some(vec![0; 32]);
+        image.file_enc_sha256 = Some(vec![0; 32]);
+        let limits = whatsapp_rust::download::DownloadLimits::default();
+        assert!(
+            strict
+                .client
+                .unwaited(Unwaited::Local)
+                .download(&image, limits)
+                .await
+                .is_err()
+        );
+        assert_eq!(calls.length(), 0);
+        assert!(
+            configured
+                .client
+                .unwaited(Unwaited::Local)
+                .download(&image, limits)
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            calls.length(),
+            1,
+            "the authorized origin must reach HTTP; 302 must not be followed"
+        );
+        for url in [
+            "https://cdn.example:8444/fixture",
+            "http://cdn.example:8443/fixture",
+            "https://cdn.example.evil:8443/fixture",
+            "https://elsewhere.example/fixture",
+        ] {
+            image.static_url = Some(url.into());
+            assert!(
+                configured
+                    .client
+                    .unwaited(Unwaited::Local)
+                    .download(&image, limits)
+                    .await
+                    .is_err()
+            );
+            assert_eq!(calls.length(), 1, "untrusted origin reached HTTP");
+        }
+        strict
+            .client
+            .unwaited(Unwaited::Local)
+            .signal_shutdown_sync();
+        configured
+            .client
+            .unwaited(Unwaited::Local)
+            .signal_shutdown_sync();
+    }
 }
 
 // ---------------------------------------------------------------------------

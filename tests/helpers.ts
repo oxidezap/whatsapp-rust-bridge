@@ -104,6 +104,7 @@ export function createHttp(): JsHttpClientConfig {
     ) {
       try {
         const res = await fetch(url, {
+          redirect: "error",
           method,
           headers,
           body: body ?? undefined,

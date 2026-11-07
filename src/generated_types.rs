@@ -63,6 +63,12 @@ export interface ArchiveUpdate {
   from_full_sync: boolean;
 }
 
+/** Correlates a completion with its persisted run, environment, keys and attempt. */
+export interface AttemptToken {
+  sequence: number;
+  context: Uint8Array;
+}
+
 /** How a [`MessageBatch`] was delivered. This describes the delivery shape, not a message's provenance: whether a stanza came from the offline queue is `info.is_offline` on each [`InboundMessage`]. */
 export type BatchOrigin = "Live" | "OfflineDrain";
 
@@ -400,6 +406,7 @@ export interface DeleteMessageForMeUpdate {
 }
 
 export interface Device {
+  mobile_session?: MobileSessionBinding | null;
   pn?: Jid | null;
   lid?: Jid | null;
   registration_id: number;
@@ -571,6 +578,7 @@ export type DisconnectReason =
   | { "server_close": { code?: number | null; reason: string } }
   | "stream_ended"
   | { "read_error": string }
+  | "primary_app_state_initialization_failed"
   | "unknown";
 
 export interface Disconnected {
@@ -600,6 +608,12 @@ export type EncDecryptFailureReason = "MalformedNode" | "UnsupportedEncType" | "
 
 /** The `mediatype` attribute of an `<enc>` node.  A hint about the payload the ciphertext carries, available before the decryption that would reveal it. It is the sender's claim and nothing checks it against the decrypted message.  Generated from `EncMediaType` in `WAWebBackendJobs.flow`.  Keep a wildcard when matching: future wire values can gain named variants. */
 export type EncMediaType = "image" | "video" | "ptv" | "audio" | "ptt" | "location" | "vcard" | "document" | "url" | "call" | "gif" | "future" | "contact_array" | "livelocation" | "profile_pic" | "sticker" | "sticker_pack" | "hsm" | "product_image" | "template" | "md_app_state" | "md_history_sync" | "list" | "list_response" | "button" | "button_response" | "order" | "product" | "native_flow_response" | "group_history" | "music" | "collection" | string;
+
+/** A persisted value that must be checked against the selected environment. No Debug implementation is provided because the value may contain secrets. */
+export interface EnvironmentBound<T> {
+  binding: Uint8Array;
+  value: T;
+}
 
 /** A sticker was favorited or unfavorited on a linked device (`favoriteSticker`). Unfavoriting is the same `Set` with `action.is_favorite == Some(false)`; the event is only emitted when the flag is present. */
 export interface FavoriteStickerUpdate {
@@ -1119,6 +1133,18 @@ export interface MissedCall {
 /** Why a call surfaced as missed rather than ringing. */
 export type MissedReason = "offline" | "remote";
 
+/** Registration context may contain credentials; its Debug representation is redacted. */
+export interface MobileSessionBinding {
+  schema_version: number;
+  environment_hash: Uint8Array;
+  identity_hash: Uint8Array;
+  platform: StoredMobilePlatform;
+  role: StoredMobileRole;
+  registration_context: Uint8Array;
+  registration_checkpoint?: Uint8Array | null;
+  primary_state?: Uint8Array | null;
+}
+
 export interface MsgBotInfo {
   edit_type?: BotEditType | null;
   edit_target_id?: string | null;
@@ -1430,6 +1456,55 @@ export type ReceiptType =
   | "HistorySync"
   | { "Other": string };
 
+/** Versioned local checkpoint. This contains no phone number, PIN, OTP or keys.  Persist it alongside environment-bound identity material before sending an attempt. Restoring an in-flight operation yields OutcomeUnknown, never an automatic resend. The host owns atomic publication and durable writes. */
+export interface RegistrationCheckpoint {
+  schema_version: number;
+  environment: Uint8Array;
+  identity: Uint8Array;
+  run_id: Uint8Array;
+  policy: RegistrationPolicy;
+  stage: RegistrationStage;
+  attempts: number;
+  retry_stage: RegistrationStage;
+  retry_not_before_ms: number | string;
+  last_time_ms: number | string;
+}
+
+/** Known verification-route hints. No entered OTP/PIN or challenge bytes are held. Strings may include telephone prefixes and deliberately have no Debug output. */
+export interface RegistrationDeliveryHints {
+  code_length?: number | null;
+  flash_filter?: string | null;
+  flash_prefix?: string | null;
+  flash_country_code?: string | null;
+  flash_timeout_seconds?: number | null;
+}
+
+/** A relative registration operation, never a production destination. */
+export type RegistrationEndpointPath = "/exist" | "/code" | "/register" | "/challenge" | "/security";
+
+/** Local workflow operations, not endpoint names or wire values. */
+export type RegistrationOperation = "CheckAccount" | "RequestCode" | "SubmitCode" | "SubmitChallenge" | "SubmitPin";
+
+export type RegistrationPlatform = "Android" | "SMBA" | "iOS" | "SMB iOS";
+
+export interface RegistrationPolicy {
+  max_attempts: number;
+  request_timeout_ms: number | string;
+}
+
+export type RegistrationResponseStatus = "ok" | "sent" | "verified" | "fail" | string;
+
+export type RegistrationStage =
+  | "Ready"
+  | { "InFlight": { token: AttemptToken; operation: RegistrationOperation; deadline_ms: number | string } }
+  | "AwaitingCode"
+  | "AwaitingChallenge"
+  | "AwaitingPin"
+  | { "OutcomeUnknown": { token: AttemptToken; operation: RegistrationOperation } }
+  | "Verified"
+  | "Registered"
+  | "Rejected";
+
 /** A sticker was removed from the recent-stickers list on a linked device (`removeRecentSticker`). */
 export interface RemoveRecentStickerUpdate {
   /** WA Web's sticker `filehash` (the index key). */
@@ -1522,6 +1597,10 @@ export interface StatusPrivacyUpdate {
   action: import('./proto-types').proto.SyncActionValue.IStatusPrivacyAction;
   from_full_sync: boolean;
 }
+
+export type StoredMobilePlatform = "android" | "android_business" | "ios" | "ios_business";
+
+export type StoredMobileRole = "primary";
 
 export interface StreamError {
   code: string;
@@ -1782,6 +1861,8 @@ export interface UsyncUserResult {
   pn_jid?: Jid | null;
   protocols: UsyncProtocolResult[];
 }
+
+export type VerificationMethod = "sms" | "voice" | "wa_old" | "flash" | "email_otp";
 
 /** Verified name certificate information. */
 export interface VerifiedName {

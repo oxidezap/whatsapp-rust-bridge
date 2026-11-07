@@ -142,7 +142,7 @@ web-sys = { version = "0.3.107", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "dbf76c30d56181902fa35a224caa6775f6b005d3", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "15371d1b9f434baf3ad4a11e68353e6a12e437e1", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only

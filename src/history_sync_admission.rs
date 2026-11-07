@@ -4,6 +4,35 @@ use whatsapp_rust::{HistorySyncAdmission, HistorySyncDecision, HistorySyncMetada
 
 use crate::errors::BridgeError;
 
+pub(crate) fn static_media_hosts(
+    policies: Option<&JsValue>,
+) -> Result<Vec<whatsapp_rust::wacore::download::MediaHost>, BridgeError> {
+    let Some(policies) = policies.filter(|value| !value.is_null() && !value.is_undefined()) else {
+        return Ok(Vec::new());
+    };
+    let field = "policies.additionalStaticMediaHosts";
+    let invalid =
+        || crate::errors::invalid_arg("policies", format!("{field} must be an array of strings"));
+    let value =
+        Reflect::get(policies, &"additionalStaticMediaHosts".into()).map_err(|_| invalid())?;
+    if value.is_null() || value.is_undefined() {
+        return Ok(Vec::new());
+    }
+    if !Array::is_array(&value) {
+        return Err(invalid());
+    }
+    let array: Array = value.unchecked_into();
+    let mut hosts = Vec::with_capacity(array.length() as usize);
+    for index in 0..array.length() {
+        let hostname = Reflect::get(&array, &JsValue::from_f64(index as f64))
+            .map_err(|_| invalid())?
+            .as_string()
+            .ok_or_else(invalid)?;
+        hosts.push(whatsapp_rust::wacore::download::MediaHost::new(hostname));
+    }
+    Ok(hosts)
+}
+
 pub(crate) struct JsHistorySyncAdmission {
     callback: Function,
     receiver: JsValue,
