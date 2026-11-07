@@ -22,6 +22,17 @@ use whatsapp_rust::wacore::libsignal::protocol::{
 
 use crate::wasm_utils::{byte_array, error_value};
 
+/// Retain structured input diagnostics that the core's general Display omits.
+/// Other error variants keep their existing redacted representation.
+fn record_error(error: whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError) -> JsValue {
+    match error {
+        whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError::InvalidArgument(
+            reason,
+        ) => error_value(reason),
+        error => error_value(error),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionRecordComponents {
@@ -481,6 +492,8 @@ impl From<CoreSenderKeyRecordComponents> for SenderKeyRecordComponents {
     }
 }
 
+/// Encode typed session state into the core's compatible persistent record format.
+/// Invalid component fields are reported to the caller before bytes are returned.
 #[wasm_bindgen(js_name = encodeSessionRecordComponents)]
 pub fn encode_session_record_components(
     value: Ts<SessionRecordComponents>,
@@ -488,10 +501,12 @@ pub fn encode_session_record_components(
     let value = value.to_rust().map_err(error_value)?;
     let bytes = SessionRecord::from_components(value.try_into()?)
         .and_then(|record| record.serialize())
-        .map_err(error_value)?;
+        .map_err(record_error)?;
     Ok(byte_array(&bytes))
 }
 
+/// Project a persisted session record into typed components, preserving archives
+/// and skipped-key material according to the core's storage compatibility rules.
 #[wasm_bindgen(js_name = decodeSessionRecordComponents)]
 pub fn decode_session_record_components(
     bytes: &[u8],
@@ -503,6 +518,7 @@ pub fn decode_session_record_components(
     result.into_ts().map_err(error_value)
 }
 
+/// Encode sender-key components without silently replacing invalid key material.
 #[wasm_bindgen(js_name = encodeSenderKeyRecordComponents)]
 pub fn encode_sender_key_record_components(
     value: Ts<SenderKeyRecordComponents>,
@@ -510,10 +526,11 @@ pub fn encode_sender_key_record_components(
     let value = value.to_rust().map_err(error_value)?;
     let bytes = SenderKeyRecord::from_components(value.into())
         .and_then(|record| record.serialize())
-        .map_err(error_value)?;
+        .map_err(record_error)?;
     Ok(byte_array(&bytes))
 }
 
+/// Decode persisted sender-key states and their retained skipped-message seeds.
 #[wasm_bindgen(js_name = decodeSenderKeyRecordComponents)]
 pub fn decode_sender_key_record_components(
     bytes: &[u8],
@@ -523,4 +540,63 @@ pub fn decode_sender_key_record_components(
         .map_err(error_value)?;
     let result: SenderKeyRecordComponents = components.into();
     result.into_ts().map_err(error_value)
+}
+
+#[cfg(test)]
+mod address_compatibility_tests {
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+    use whatsapp_rust::wacore::libsignal::core::ProtocolAddress;
+
+    /// Diagnostics must redact identifiers while serialized storage remains exact.
+    #[test]
+    fn address_diagnostics_redact_names_without_changing_storage() {
+        use whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError;
+        for name in ["15550001234".to_owned(), "synthetic-secret-λ".repeat(256)] {
+            let address = ProtocolAddress::new(&name, 127.into());
+            let observed = address.observe().to_string();
+            assert!(!observed.contains(&name));
+            assert_eq!(format!("{address:?}"), observed);
+            assert_eq!(format!("{address:#?}"), observed);
+            for error in [
+                SignalProtocolError::SessionNotFound(address.clone().into()),
+                SignalProtocolError::UntrustedIdentity(address.clone().into()),
+            ] {
+                assert!(!format!("{error:?}").contains(&name));
+                assert!(!format!("{error}").contains(&name));
+            }
+            assert_eq!(
+                serde_json::to_value(&address).unwrap()["text"],
+                format!("{name}.127")
+            );
+        }
+    }
+
+    /// Pin byte offsets and ownership across inline, UTF-8 and overflow addresses.
+    #[test]
+    fn canonical_address_json_survives_utf8_overflow_clone_and_reuse() {
+        for name in [
+            String::new(),
+            "a".repeat(45),
+            "a".repeat(46),
+            "λ".repeat(23),
+            "🦀".repeat(12),
+            "λ".repeat(2048),
+        ] {
+            for device in [0, 127, u32::MAX] {
+                let address = ProtocolAddress::new(&name, device.into());
+                let text = format!("{name}.{device}");
+                let expected =
+                    serde_json::json!({"text":text,"name_len":name.len(),"device":device});
+                assert_eq!(serde_json::to_value(&address).unwrap(), expected);
+                let restored: ProtocolAddress = serde_json::from_value(expected).unwrap();
+                assert_eq!(restored.name(), name);
+                assert_eq!(restored.as_str(), text);
+                let mut reused = restored.clone();
+                reused.reset_with(|out| out.push_str("short-λ"));
+                assert_eq!(reused.as_str(), format!("short-λ.{device}"));
+                assert_eq!(restored.as_str(), text);
+                assert_eq!(address, restored);
+            }
+        }
+    }
 }

@@ -156,15 +156,18 @@ describe("synchronous crypto exports", () => {
     const script = `
       import { initWasmEngine, aesGcm256Encrypt, aesGcm256Decrypt } from "./dist/index.js";
       import { createCipheriv, createDecipheriv } from "node:crypto";
+      let encryptCalls = 0, decryptCalls = 0;
       const callbacks = {
         aesCbc256Encrypt() { return new Uint8Array(); },
         aesCbc256Decrypt() { return new Uint8Array(); },
         aesGcm256Encrypt(key, nonce, aad, plaintext) {
+          encryptCalls++;
           const cipher = createCipheriv("aes-256-gcm", key, nonce);
           cipher.setAAD(aad);
           return new Uint8Array(Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]));
         },
         aesGcm256Decrypt(key, nonce, aad, ciphertext) {
+          decryptCalls++;
           const decipher = createDecipheriv("aes-256-gcm", key, nonce);
           decipher.setAAD(aad);
           decipher.setAuthTag(ciphertext.slice(-16));
@@ -180,6 +183,8 @@ describe("synchronous crypto exports", () => {
       const plaintext = new Uint8Array(4096).fill(9);
       const sealed = aesGcm256Encrypt(key, nonce, aad, plaintext);
       const opened = aesGcm256Decrypt(key, nonce, aad, sealed);
+      if (process.env.CRYPTO_PROVIDER === "host" && (encryptCalls !== 1 || decryptCalls !== 1))
+        throw new Error("host callbacks were bypassed");
       console.log(Buffer.from(sealed).toString("hex"), Buffer.from(opened).toString("hex"));
     `;
     const run = (mode: string) =>

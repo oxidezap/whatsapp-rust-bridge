@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { beforeAll, describe, test } from "bun:test";
 import {
   decodeSenderKeyRecordComponents,
@@ -129,6 +130,28 @@ describe("Signal record component boundary", () => {
     assert.deepEqual(material?.kind === "seed" ? material.seed : undefined, seed);
   });
 
+  test("sender component projection preserves duplicate skipped keys and canonical public keys", () => {
+    const states = [0, 127, 128, 0xffffffff].map((iteration, index) => ({
+      keyId: iteration,
+      chainKey: { iteration, seed: bytes(32, index + 1) },
+      signingKey: {
+        public: index % 2 === 0 ? bytes(32, index + 2) : publicKey(index + 2),
+        private: index % 2 === 0 ? bytes(32, 9) : undefined,
+      },
+      messageKeys: [128, 0, 128, 0xffffffff].map((iteration) => ({ iteration, seed: bytes(32, 7) })),
+    }));
+    const encoded = encodeSenderKeyRecordComponents({ states });
+    assert.equal(createHash("sha256").update(encoded).digest("hex"),
+      "cd58fc7d88e3de26e5767d02e6d54723e6feb9a76a4a5870b8dea6b08ee801da");
+    const decoded = decodeSenderKeyRecordComponents(encoded);
+    assert.deepEqual(decoded.states.map((state) => state.keyId), states.map((state) => state.keyId));
+    for (const [index, state] of decoded.states.entries()) {
+      assert.deepEqual(state.signingKey.public, publicKey(index + 2));
+      assert.deepEqual(state.messageKeys, states[index]!.messageKeys);
+    }
+    assert.deepEqual(encodeSenderKeyRecordComponents(decoded), encoded);
+  });
+
   test("round-trips sender-key state and rejects invalid public keys", () => {
     const record = {
       states: [
@@ -155,5 +178,56 @@ describe("Signal record component boundary", () => {
         }),
       /sender signing public key/,
     );
+  });
+});
+
+// Synthetic capture verified against bridge ddb405f1, core aab35eb4. Keep
+// these bytes fixed so encoder and decoder cannot hide the same regression.
+const historicalSessionRecord = "CqgDCAMSIQUBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBARohBQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIiADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAygAMmsKIQUEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBBIgBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUaJAgAEiAGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBjqjAQohBQcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHGiQIARIgCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgiWAgMEiAVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRogFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYiEBcXFxcXFxcXFxcXFxcXFxdQCVgKYABqIQULCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCxLNAggDEiEFAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEaIQUCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAiIgAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMoADJrCiEFBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQSIAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGiQIABIgBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgY6SQohBQcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHGiQIARIgCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAhQCVgKYABqIQULCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCw==";
+
+test("reads a historical archived session and expanded skipped key", () => {
+  const persisted = new Uint8Array(Buffer.from(historicalSessionRecord, "base64"));
+  const decoded = decodeSessionRecordComponents(persisted);
+  assert.equal(decoded.previousSessions.length, 1);
+  assert.deepEqual(decoded.previousSessions[0]?.rootKey, bytes(32, 3));
+  const key = decoded.currentSession?.receiverChains[0]?.messageKeys[0];
+  assert.equal(key?.index, 12);
+  assert.deepEqual(key?.material, {
+    kind: "derived",
+    cipherKey: bytes(32, 21),
+    macKey: bytes(32, 22),
+    iv: bytes(16, 23),
+  });
+  assert.deepEqual(
+    decodeSessionRecordComponents(encodeSessionRecordComponents(decoded)),
+    decoded,
+  );
+});
+
+// Synthetic dual-material historical shape, encoded and accepted by rebuilt
+// bridge ddb405f1 / core aab35eb4; expanded with its HKDF implementation.
+const historicalSeedRecord = "CrgCCAMSIQUBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBARohBQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICIiADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAygAOqABCiEFBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQiewgLogYgBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUSIHrf9hxIETYqZIV8XP+Lq99A/L+ZC/cDykPAPJ1DimNYGiD++bpyIY3e6hLbLmsyHlQhcXIrhh63+ngkUVM0eeIqliIQnY0q20QDa07+xBP9lBh7k1AJWApgAGohBQsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsL";
+
+test("retains a matching historical seed beside expanded skipped keys", () => {
+  const decoded = decodeSessionRecordComponents(new Uint8Array(Buffer.from(historicalSeedRecord, "base64")));
+  const key = decoded.currentSession?.receiverChains[0]?.messageKeys[0];
+  assert.equal(key?.index, 11);
+  assert.deepEqual(key?.material, {kind: "seed", seed: bytes(32, 5)});
+  assert.deepEqual(decodeSessionRecordComponents(encodeSessionRecordComponents(decoded)), decoded);
+});
+
+test("keeps expanded historical material when the redundant seed disagrees", () => {
+  const persisted = Buffer.from(historicalSeedRecord, "base64");
+  const seedTag = Buffer.from([0xa2, 0x06, 0x20, ...bytes(32, 5)]);
+  const seedOffset = persisted.indexOf(seedTag);
+  assert.ok(seedOffset >= 0);
+  persisted[seedOffset + 3] = 6;
+  const material = decodeSessionRecordComponents(new Uint8Array(persisted))
+    .currentSession?.receiverChains[0]?.messageKeys[0]?.material;
+  assert.deepEqual(material, {
+    kind: "derived",
+    cipherKey: new Uint8Array(Buffer.from("7adff61c4811362a64857c5cff8babdf40fcbf990bf703ca43c03c9d438a6358", "hex")),
+    macKey: new Uint8Array(Buffer.from("fef9ba72218ddeea12db2e6b321e542171722b861eb7fa782451533479e22a96", "hex")),
+    iv: new Uint8Array(Buffer.from("9d8d2adb44036b4efec413fd94187b93", "hex")),
   });
 });
