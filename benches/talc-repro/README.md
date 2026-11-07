@@ -1,0 +1,98 @@
+# The talc bugs, as tests
+
+This bridge used talc as its `#[global_allocator]` and dropped it in June 2026,
+because talc 5.0.3 had two bugs that this workload reached in production. Both
+were fixed in 5.0.4 and both are pinned here, so the next person who wants to
+reopen the question starts from a red/green run instead of a changelog entry.
+
+It is a standalone crate on purpose: showing a fix means running the same test
+bodies against two versions of talc, and the bridge's own manifest pins one.
+
+Every command below runs from this directory, so that cargo picks up this
+manifest and the `.cargo/config.toml` beside it rather than the bridge's.
+
+Run each test on its own. The tests share one wasm instance and one linear
+memory, so a test that exhausts memory takes the next ones down with it, and a
+failure read off a whole-suite run can belong to another test:
+
+```sh
+cd benches/talc-repro
+
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+  WASM_BINDGEN_TEST_ONLY_NODE=1 \
+  cargo test --target wasm32-unknown-unknown --lib \
+  -- --exact repro::tests::aes_gcm_plaintext_size_does_not_run_away
+```
+
+The runner variables are not optional and `.cargo/config.toml` does not set
+them: without them cargo tries to execute the wasm artifact directly. Unlike
+`bun run test:rust`, which goes through `wasm-pack` and gets a matching runner
+from its own cache, this one takes `wasm-bindgen-test-runner` off `PATH`, so
+install it pinned to the version both lockfiles resolve:
+
+```sh
+cargo install wasm-bindgen-cli --version 0.2.126
+```
+
+That pin is also why `wasm-bindgen-test` is `=0.3.76` here rather than a range:
+a runner rejects an artifact whose generated schema version it does not match,
+and one installed runner has to serve both suites.
+
+That is the green run, on the version the lockfile is committed at. The red run
+is the same three invocations against 5.0.3:
+
+```sh
+# a subshell, so the trap below fires when the block ends rather than whenever
+# an interactive shell is eventually closed
+(
+  cd benches/talc-repro
+  export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner
+  export WASM_BINDGEN_TEST_ONLY_NODE=1
+
+  # back to what the lockfile is committed at on any exit, or the tree stays
+  # dirty and the next `bun run test:talc-repro` runs the broken version. The
+  # INT trap exits rather than returning, because a handler that returns
+  # suppresses the signal and the loop would carry on against 5.1.0
+  trap 'cargo update -p talc --precise 5.1.0' EXIT
+  trap 'exit 130' INT
+  cargo update -p talc --precise 5.0.3 || exit 1
+
+  for t in repro::tests::aes_gcm_plaintext_size_does_not_run_away \
+           repro::tests::extending_over_a_16_mib_gap_reuses_it \
+           repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size; do
+    cargo test --target wasm32-unknown-unknown --lib -- --exact "$t"
+  done
+)
+```
+
+Each of those three exits non-zero on 5.0.3 and zero after the restore. The
+subshell matters: an `EXIT` trap set directly in an interactive shell fires when
+that shell closes, not when the block finishes, so pasting this without the
+parentheses leaves the lockfile on 5.0.3 for the rest of the session.
+
+`--exact` matches the **registered** name, which carries the module path. A bare
+`aes_gcm_plaintext_size_does_not_run_away` matches nothing and the run still
+exits 0, which on the broken version reads exactly like a pass. The names in the
+table below are given in full for that reason.
+
+`.cargo/config.toml` caps linear memory at 256 MiB. Without it the 5.0.3
+runaway walks to 4 GiB before it gives up.
+
+## What is red on 5.0.3
+
+| test | 5.0.3 | 5.1.0 |
+|---|---|---|
+| `repro::tests::aes_gcm_plaintext_size_does_not_run_away` | fails: allocation of 65,520 bytes fails after growing to the cap | passes |
+| `repro::tests::extending_over_a_16_mib_gap_reuses_it` | fails: the 40 MiB request lands at `0x1550000` instead of the freed `0x130160` | passes |
+| `repro::tests::freeing_above_a_16_mib_gap_does_not_grow_its_recorded_size` | fails: the gap's recorded size gains 33,554,432 bytes | passes |
+| `repro::tests::aes_gcm_plaintext_size_does_not_run_away_when_extending` | passes | passes |
+| `stress::tests::grow_and_extend_survives_history_sync_churn` | passes (1,615 pages) | passes (1,603 pages) |
+| `stress::tests::extend_commits_less_than_claim_on_a_growing_buffer` | passes | passes |
+| `upstream::tests::a_doubling_buffer_is_copied_about_once_in_full` | passes | passes |
+| `upstream::tests::memory_grow_hands_back_zeroed_pages` | passes | passes |
+
+The last four are not repros and say so in their doc comments. The two stress
+tests are guards for the next allocator change; the two `upstream` ones are the
+runnable half of the "what both of them miss" section of
+`docs/wasm-allocator-talc-5-1-0.md`, which is about gaps shared by dlmalloc and
+talc rather than about anything talc got wrong.
