@@ -12,10 +12,11 @@
  */
 import { packedContents } from "./pack";
 
-// e790 with multipart host HMAC measures 8,558,955 bytes with CI's Bun 1.4.4, Node 26.13.0,
-// wasm-pack 0.15.1 and Binaryen 133. Keep 11 KB headroom; the
-// 110,000-byte function budget and inlining flags stay unchanged.
-const MAX_UNPACKED_BYTES = 8_570_000;
+// Core 15371d1b plus per-client static-media hosts measures 8,573,134 bytes
+// with Bun 1.4.4, Node 26.13.0, wasm-pack 0.15.1 and Binaryen 133.
+// Keep about 12 KB headroom. The function budget and inlining flags stay
+// unchanged; this artifact allowance makes no CPU or memory parity claim.
+const MAX_UNPACKED_BYTES = 8_585_000;
 
 const { files, unpackedSize: total } = packedContents();
 
