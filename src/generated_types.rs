@@ -841,9 +841,9 @@ export interface IdentityChange {
   /** `true` when detected locally while saving a peer's new identity during decrypt (mirrors WA Web `saveIdentity` -> `handleNewIdentity`), `false` when triggered by the server's `<identity/>` notification. */
   implicit: boolean;
   /** Previous raw Curve25519 public identity key, without the Signal type byte. Absent when a custom store reports a change without retaining the keys, or a storage error prevented reading the prior key. */
-  previous_identity_key?: Uint8Array | null;
+  previous_identity_key?: number[] | null;
   /** Replacement raw public key. Server identity notifications contain no new key, so this is absent until a subsequent key fetch or local replacement. */
-  current_identity_key?: Uint8Array | null;
+  current_identity_key?: number[] | null;
 }
 
 /** One decrypted inbound message. The same items (and order) back both consumer surfaces: the durability hook's batch and [`Event::Messages`]. */

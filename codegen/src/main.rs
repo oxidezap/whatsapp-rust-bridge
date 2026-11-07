@@ -678,6 +678,8 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
     parse_source(&content, types);
 }
 
+/// Read Serde-visible shapes, including private fields and serialization shadows,
+/// so generated declarations describe data that actually crosses the boundary.
 fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
     let Ok(file) = syn::parse_file(content) else {
         return;
@@ -761,6 +763,7 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                             let (ts_type, optional) = timestamp_module_type(f)
                                 .or_else(|| serialize_with_type(f))
                                 .or_else(|| boundary_stringified_jid(&name, f))
+                                .or_else(|| boundary_identity_key(&name, f))
                                 .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
@@ -1468,6 +1471,38 @@ fn boundary_stringified_jid(struct_name: &str, field: &syn::Field) -> Option<(St
         }
         _ => None,
     }
+}
+
+/// These event fields use the ordinary Serde tuple-array path, not the byte
+/// serializer used by proto and record projections. Describe that runtime
+/// representation without changing other byte-oriented declarations.
+fn boundary_identity_key(struct_name: &str, field: &syn::Field) -> Option<(String, bool)> {
+    let name = field.ident.as_ref()?.to_string();
+    if struct_name != "IdentityChange"
+        || !matches!(
+            name.as_str(),
+            "previous_identity_key" | "current_identity_key"
+        )
+    {
+        return None;
+    }
+    let Type::Path(TypePath { path, .. }) = &field.ty else {
+        return None;
+    };
+    let last = path.segments.last()?;
+    if last.ident != "Option" {
+        return None;
+    }
+    let PathArguments::AngleBracketed(args) = &last.arguments else {
+        return None;
+    };
+    let GenericArgument::Type(Type::Array(array)) = args.args.first()? else {
+        return None;
+    };
+    if !matches!(array.elem.as_ref(), Type::Path(TypePath { path, .. }) if path.is_ident("u8")) {
+        return None;
+    }
+    Some(("number[] | null".to_owned(), true))
 }
 
 /// The function a field's `serialize_with` names, ignoring `with` — unlike
@@ -2410,6 +2445,23 @@ mod tests {
         assert_eq!(ts_of("Option<BindingUnderTest>"), "Uint8Array | null");
         assert_eq!(ts_of("NotSerializedUnderTest"), "NotSerializedUnderTest");
         assert_eq!(ts_of("TupleUnderTest"), "TupleUnderTest");
+    }
+
+    #[test]
+    fn identity_event_key_declarations_follow_ordinary_serde_arrays() {
+        let declaration = generated_type(
+            r#"
+            #[derive(Serialize)]
+            pub struct IdentityChange {
+                pub previous_identity_key: Option<[u8; 32]>,
+                pub current_identity_key: Option<[u8; 32]>,
+            }
+        "#,
+            "IdentityChange",
+        );
+        assert!(declaration.contains("previous_identity_key?: number[] | null"));
+        assert!(declaration.contains("current_identity_key?: number[] | null"));
+        assert_eq!(ts_of("Option<[u8; 32]>"), "Uint8Array | null");
     }
 
     /// The mapping must not swallow the ordinary case: a type this generator

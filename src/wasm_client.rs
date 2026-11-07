@@ -2456,6 +2456,7 @@ mod static_media_policy_tests {
         .unwrap()
     }
 
+    /// Exercise origin checks through actual constructed clients and HTTP callbacks.
     #[test]
     async fn configured_static_hosts_are_exact_copied_and_per_client() {
         // The HTTP adapter calls with a null receiver, so capture state in a closure.
@@ -4373,6 +4374,39 @@ mod dispatched_event_tests {
 
     fn timestamp() -> DateTime<Utc> {
         DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
+    }
+
+    /// Pin the dispatched Serde array representation used by generated key types.
+    #[test]
+    async fn identity_change_keys_preserve_array_values_and_omission() {
+        use wacore::types::events::IdentityChange;
+        for present in [false, true] {
+            let event = if present {
+                IdentityChange::builder()
+                    .user(jid("100@s.whatsapp.net"))
+                    .implicit(true)
+                    .previous_identity_key([11; 32])
+                    .current_identity_key([22; 32])
+                    .build()
+            } else {
+                IdentityChange::builder()
+                    .user(jid("100@s.whatsapp.net"))
+                    .implicit(false)
+                    .build()
+            };
+            let (name, data) = deliver(Event::IdentityChange(event)).await;
+            assert_eq!(name, "identity_change");
+            for (key, byte) in [("previous_identity_key", 11), ("current_identity_key", 22)] {
+                if present {
+                    let value = field(&data, key);
+                    assert!(js_sys::Array::is_array(&value));
+                    let bytes: Vec<u8> = serde_wasm_bindgen::from_value(value).unwrap();
+                    assert_eq!(bytes, vec![byte; 32]);
+                } else {
+                    assert!(!js_sys::Reflect::has(&data, &key.into()).unwrap());
+                }
+            }
+        }
     }
 
     #[test]

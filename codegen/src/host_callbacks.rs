@@ -44,6 +44,7 @@ fn callback(
         doc: "",
     }
 }
+/// Define callback validation and consumer declarations from one host contract.
 fn catalog() -> Vec<Adapter> {
     vec![
         Adapter {
@@ -139,7 +140,7 @@ fn catalog() -> Vec<Adapter> {
             constructor_public: true,
             prefix: "httpClient",
             interface: "JsHttpClientConfig",
-            interface_doc: "/**\n * JS HTTP client callbacks. Implement using fetch() or any HTTP library.\n * Do not follow redirects. With fetch, use redirect: 'error' or 'manual'.\n * Return the original 3xx status or reject; the core cannot authorize unseen\n * redirect destinations. The adapter also owns TLS certificate verification.\n */",
+            interface_doc: "/**\n * JS HTTP client callbacks. Implement using fetch() or any HTTP library.\n * Do not follow redirects. Prefer fetch with redirect: 'error'.\n * Return an observable original 3xx status or reject. With manual redirects,\n * reject opaque-redirect responses (status 0); never forward them as success.\n * The core cannot authorize unseen redirect destinations.\n * The adapter also owns TLS certificate verification.\n */",
             callbacks: vec![callback(
                 "execute_fn",
                 "execute",

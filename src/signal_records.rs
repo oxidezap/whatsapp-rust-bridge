@@ -22,8 +22,8 @@ use whatsapp_rust::wacore::libsignal::protocol::{
 
 use crate::wasm_utils::{byte_array, error_value};
 
-// The core's Display intentionally omits InvalidArgument's structured reason.
-// At this caller-input boundary, retain the field diagnostic for JS callers.
+/// Retain structured input diagnostics that the core's general Display omits.
+/// Other error variants keep their existing redacted representation.
 fn record_error(error: whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError) -> JsValue {
     match error {
         whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError::InvalidArgument(
@@ -492,6 +492,8 @@ impl From<CoreSenderKeyRecordComponents> for SenderKeyRecordComponents {
     }
 }
 
+/// Encode typed session state into the core's compatible persistent record format.
+/// Invalid component fields are reported to the caller before bytes are returned.
 #[wasm_bindgen(js_name = encodeSessionRecordComponents)]
 pub fn encode_session_record_components(
     value: Ts<SessionRecordComponents>,
@@ -503,6 +505,8 @@ pub fn encode_session_record_components(
     Ok(byte_array(&bytes))
 }
 
+/// Project a persisted session record into typed components, preserving archives
+/// and skipped-key material according to the core's storage compatibility rules.
 #[wasm_bindgen(js_name = decodeSessionRecordComponents)]
 pub fn decode_session_record_components(
     bytes: &[u8],
@@ -514,6 +518,7 @@ pub fn decode_session_record_components(
     result.into_ts().map_err(error_value)
 }
 
+/// Encode sender-key components without silently replacing invalid key material.
 #[wasm_bindgen(js_name = encodeSenderKeyRecordComponents)]
 pub fn encode_sender_key_record_components(
     value: Ts<SenderKeyRecordComponents>,
@@ -525,6 +530,7 @@ pub fn encode_sender_key_record_components(
     Ok(byte_array(&bytes))
 }
 
+/// Decode persisted sender-key states and their retained skipped-message seeds.
 #[wasm_bindgen(js_name = decodeSenderKeyRecordComponents)]
 pub fn decode_sender_key_record_components(
     bytes: &[u8],
@@ -541,6 +547,7 @@ mod address_compatibility_tests {
     use wasm_bindgen_test::wasm_bindgen_test as test;
     use whatsapp_rust::wacore::libsignal::core::ProtocolAddress;
 
+    /// Diagnostics must redact identifiers while serialized storage remains exact.
     #[test]
     fn address_diagnostics_redact_names_without_changing_storage() {
         use whatsapp_rust::wacore::libsignal::protocol::SignalProtocolError;
@@ -564,6 +571,7 @@ mod address_compatibility_tests {
         }
     }
 
+    /// Pin byte offsets and ownership across inline, UTF-8 and overflow addresses.
     #[test]
     fn canonical_address_json_survives_utf8_overflow_clone_and_reuse() {
         for name in [

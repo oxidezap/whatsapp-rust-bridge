@@ -296,8 +296,8 @@ describe.skipIf(!hasMockServer)("Two-client E2E messaging", () => {
   test("group sends preserve supplied message context across small and large payloads", async () => {
     const metadata = await alice.client.createGroup("Synthetic context regression", [bobJid]);
     expect(metadata.id.endsWith("@g.us")).toBe(true);
-    const secret = new Uint8Array(32).fill(37);
-    for (const text of ["synthetic group context", "synthetic group payload ".repeat(1024)]) {
+    for (const [index, text] of ["synthetic group context", "synthetic group payload ".repeat(1024)].entries()) {
+      const secret = new Uint8Array(32).fill(37 + index);
       const before = bob.events.length;
       const encoded = encodeProto("Message", {
         conversation: text,

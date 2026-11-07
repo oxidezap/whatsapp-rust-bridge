@@ -245,6 +245,7 @@ mod signal_checkpoint_tests {
         );
     }
 
+    /// Pin an independent RFC5869 vector and the 255-block acceptance boundary.
     #[test]
     fn zero_salt_hkdf_matches_rfc5869_and_output_boundaries() {
         let mut actual = [0; 42];
@@ -269,11 +270,13 @@ mod signal_checkpoint_tests {
                 );
                 let second =
                     RustCrypto.hkdf_sha256(&[0; 32], &input, b"WhisperMessageKeys", &mut generic);
+                assert_eq!(first.is_ok(), length <= 255 * 32);
                 assert_eq!(first, second);
                 assert_eq!(specialized, generic);
             }
         }
     }
+    /// Compare both CBC routes with independent Node vectors and existing prefixes.
     #[test]
     fn native_and_selected_cbc_append_match_node_vectors_and_preserve_prefix() {
         use whatsapp_rust::wacore::libsignal::crypto::{ProviderCrypto, RustCryptoProvider};
@@ -341,6 +344,7 @@ mod signal_checkpoint_tests {
             }
         }
     }
+    /// A selected provider must see the real destination and restore failed writes.
     #[test]
     fn selected_provider_receives_destination_and_restores_partial_failures() {
         use whatsapp_rust::wacore::libsignal::crypto::{
@@ -350,6 +354,7 @@ mod signal_checkpoint_tests {
             mode: u8,
         }
         impl SymmetricCryptoProvider for Append {
+            /// Write partial bytes before injected failure to test envelope rollback.
             fn aes_256_cbc_encrypt(
                 &self,
                 key: &[u8; 32],

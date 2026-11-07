@@ -1,7 +1,26 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createCipheriv, createDecipheriv, createHmac } from 'node:crypto';
-import { initWasmEngine, generateKeyPair, calculateSignature, verifySignature, createWhatsAppClient } from '../../dist/index.js';
+import { initWasmEngine, generateKeyPair, calculateSignature, verifySignature, createWhatsAppClient, BinaryReader } from '../../dist/index.js';
+
+/** Read one public protobuf field independently of the SDK's record projections. */
+function wireField(body, number, wireType) {
+  const reader = new BinaryReader(body);
+  while (reader.pos < reader.len) {
+    const tag = reader.uint32();
+    if ((tag >>> 3) === number) {
+      assert.equal(tag & 7, wireType);
+      return wireType === 0 ? reader.uint32() : reader.bytes();
+    }
+    reader.skip(tag & 7);
+  }
+  throw Error(`missing synthetic wire field ${number}`);
+}
+/** Unwrap a prekey envelope when present and inspect the authenticated counter. */
+function pairwiseCounter(packet) {
+  const message = packet.type === 'pkmsg' ? wireField(packet.ciphertext.subarray(1), 4, 2) : packet.ciphertext;
+  return wireField(message.subarray(1, -8), 2, 0);
+}
 
 const group = '120363000000000000@g.us';
 const author = '5511000000001:1@s.whatsapp.net';
@@ -12,6 +31,7 @@ let rejectSenderKeyWrites = false;
 let malformedCbcLength = null;
 let failHmac = false;
 const callbacks = {
+  /** Inject failures before native encryption to expose sender rollback defects. */
   aesCbc256Encrypt(key, iv, plaintext) {
     counts.encrypt++;
     if (failEncrypt) throw new Error('synthetic host failure');
@@ -26,12 +46,17 @@ const callbacks = {
   },
   aesGcm256Encrypt() { throw new Error('unexpected GCM'); },
   aesGcm256Decrypt() { throw new Error('unexpected GCM'); },
+  /** Compute a reference digest while exposing the shared failure switch. */
   hmacSha256(key, data) { counts.hmac++; if (failHmac) throw Error('synthetic HMAC failure'); return createHmac('sha256', key).update(data).digest(); },
+  /** Preserve split-input order in the independent Node reference implementation. */
   hmacSha256TwoPart(key, first, second) { hmacParts.push([first.length, second.length]); counts.hmac++; if (failHmac) throw Error('synthetic HMAC failure'); return createHmac('sha256', key).update(first).update(second).digest(); },
 };
+/** Keep synthetic rows durable across client reloads and inject selected write failures. */
 function memoryStore(rows) {
   return {
+    /** Return copies so later WASM writes cannot mutate an earlier storage read. */
     async get(store, key) { return rows.get(`${store}:${key}`)?.slice() ?? null; },
+    /** Commit complete copied rows, or fail before writing selected sender-key rows. */
     async set(store, key, value) { if (store === 'sender_key' && rejectSenderKeyWrites) throw Error('synthetic sender-key write failure'); rows.set(`${store}:${key}`, value.slice()); },
     async delete(store, key) { rows.delete(`${store}:${key}`); },
     async commitPatch() { throw Error('unexpected appstate'); },
@@ -40,6 +65,7 @@ function memoryStore(rows) {
   };
 }
 const clients = [];
+/** Create an offline client over the supplied synthetic persistent rows. */
 async function client(rows) {
   const result = await createWhatsAppClient(
     { connect() { throw Error('network forbidden'); }, send() { throw Error('network forbidden'); }, disconnect() {} },
@@ -120,6 +146,9 @@ try {
   }
   malformedCbcLength = null;
   const retried = await sender.signalEncryptGroupMessage(group, payload.fill(10), '');
+  assert.equal(wireField(third.ciphertext.subarray(1, -64), 2, 0), 2);
+  assert.equal(wireField(retried.ciphertext.subarray(1, -64), 2, 0), 3,
+    'same-client group failures must not burn a sender counter');
   assert.deepEqual(await restarted.signalDecryptGroupMessage(group, author, retried.ciphertext), payload);
   assert.ok(counts.decrypt >= 4, 'group receive must call host backend');
   const bobKey = generateKeyPair();
@@ -142,6 +171,7 @@ try {
   });
   const hmacBefore = counts.hmac;
   const direct = await sender.signalEncryptMessage(bobJid, payload.fill(11));
+  assert.equal(pairwiseCounter(direct), 0);
   assert.ok(counts.hmac > hmacBefore, 'large pairwise authentication must call the host HMAC');
   assert.ok(hmacParts.some(([prefix, ciphertext]) => prefix === 66 && ciphertext >= payload.length),
     'three-part authentication must pass the small identity prefix separately from the payload');
@@ -173,6 +203,9 @@ try {
       'malformed CBC output must not advance persisted sessions');
   }
   malformedCbcLength = null;
+  const liveRetry = await sender.signalEncryptMessage(bobJid, payload);
+  assert.equal(pairwiseCounter(liveRetry), 1, 'same-client pairwise failures must not burn a sender counter');
+  assert.deepEqual(await bob.signalDecryptMessage(author, liveRetry.type, liveRetry.ciphertext), payload);
   await sender.disconnect();
   sender = await client(senderRows);
   const directRetry = await sender.signalEncryptMessage(bobJid, payload);

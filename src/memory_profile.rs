@@ -750,6 +750,7 @@ mod imp {
 
     #[async_trait::async_trait(?Send)]
     impl Runtime for TraceContextRuntime {
+        /// Preserve the client's selected crypto backend through instrumentation.
         fn crypto_provider(
             &self,
         ) -> Option<Arc<dyn whatsapp_rust::wacore::libsignal::crypto::SymmetricCryptoProvider>>

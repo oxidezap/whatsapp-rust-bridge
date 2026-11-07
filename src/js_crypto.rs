@@ -89,6 +89,7 @@ fn append_exact_returned_bytes(
     Ok(())
 }
 
+/// Validate the host's digest type and exact SHA-256 length before copying it.
 #[inline]
 fn copy_hmac_result(value: JsValue) -> Result<[u8; HMAC_SHA256_BYTES], CryptoProviderError> {
     let arr: Uint8Array = value
@@ -141,6 +142,8 @@ unsafe fn call4_bytes(
 }
 
 impl SymmetricCryptoProvider for JsCryptoAdapter {
+    /// Append a host CBC result only after checking its full PKCS#7 output size.
+    /// Callback errors and malformed output remain fallible, without fallback.
     fn aes_256_cbc_encrypt(
         &self,
         key: &[u8; 32],
@@ -156,6 +159,7 @@ impl SymmetricCryptoProvider for JsCryptoAdapter {
         append_exact_returned_bytes(out, ret, padded)
     }
 
+    /// Reject malformed CBC envelopes and host plaintext lengths before append.
     fn aes_256_cbc_decrypt(
         &self,
         key: &[u8; 32],
@@ -247,6 +251,8 @@ impl SymmetricCryptoProvider for JsCryptoAdapter {
         append_exact_returned_bytes(out, ret, expected_len)
     }
 
+    /// Preserve part order, borrowing the final payload for the optional split
+    /// callback. Every callback path requires an exact 32-byte digest.
     fn hmac_sha256(&self, key: &[u8], parts: &[&[u8]]) -> Result<[u8; 32], CryptoProviderError> {
         if parts.len() >= 2
             && let Some(callback) = &self.hmac_sha256_two_part
@@ -423,6 +429,7 @@ impl SymmetricCryptoProvider for HybridCryptoAdapter {
         }
     }
 
+    /// Select by total input size without retrying a failed host operation in Rust.
     fn hmac_sha256(&self, key: &[u8], parts: &[&[u8]]) -> Result<[u8; 32], CryptoProviderError> {
         let len = parts
             .iter()
@@ -472,6 +479,7 @@ thread_local! {
     static DEFAULT_PROVIDER: RefCell<Option<Arc<dyn SymmetricCryptoProvider>>> = RefCell::new(None);
 }
 
+/// Snapshot the current provider for a new client; existing client Arcs stay fixed.
 pub(crate) fn default_provider() -> Arc<dyn SymmetricCryptoProvider> {
     DEFAULT_PROVIDER
         .with(|slot| slot.borrow().clone())
@@ -603,6 +611,7 @@ mod provider_contract_tests {
         JsCryptoAdapter::from_js(&value).unwrap()
     }
 
+    /// Host failures and invalid digest shapes must become errors, never fallback.
     #[test]
     fn hmac_failures_are_fallible_without_fallback_or_panic() {
         for body in [
@@ -618,6 +627,7 @@ mod provider_contract_tests {
         }
     }
 
+    /// Pin split-input ordering and digest validation independently of the fallback.
     #[test]
     fn hmac_preserves_part_order_and_validates_the_optional_callback() {
         let value = js_sys::eval("({aesCbc256Encrypt(){},aesCbc256Decrypt(){},aesGcm256Encrypt(){},aesGcm256Decrypt(){},hmacSha256(){throw Error('unexpected fallback');},hmacSha256TwoPart(k,a,b){if(a.join(',')!=='1,2'||b.join(',')!=='3')throw Error('order');return new Uint8Array(32).fill(7);}})").unwrap();
@@ -630,5 +640,18 @@ mod provider_contract_tests {
             provider.hmac_sha256(b"key", &[&[1], &[2]]),
             Err(CryptoProviderError::BackendFailed)
         ));
+        for body in [
+            "return 42;",
+            "return new Uint8Array(31);",
+            "return new Uint8Array(33);",
+        ] {
+            let value = js_sys::eval(&format!("({{aesCbc256Encrypt(){{}},aesCbc256Decrypt(){{}},aesGcm256Encrypt(){{}},aesGcm256Decrypt(){{}},hmacSha256(){{throw Error('unexpected fallback')}},hmacSha256TwoPart(){{{body}}}}})")).unwrap();
+            assert!(matches!(
+                JsCryptoAdapter::from_js(&value)
+                    .unwrap()
+                    .hmac_sha256(b"key", &[&[1], &[2]]),
+                Err(CryptoProviderError::BackendFailed)
+            ));
+        }
     }
 }

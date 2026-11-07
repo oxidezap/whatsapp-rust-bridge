@@ -224,5 +224,10 @@ test("keeps expanded historical material when the redundant seed disagrees", () 
   persisted[seedOffset + 3] = 6;
   const material = decodeSessionRecordComponents(new Uint8Array(persisted))
     .currentSession?.receiverChains[0]?.messageKeys[0]?.material;
-  assert.equal(material?.kind, "derived");
+  assert.deepEqual(material, {
+    kind: "derived",
+    cipherKey: new Uint8Array(Buffer.from("7adff61c4811362a64857c5cff8babdf40fcbf990bf703ca43c03c9d438a6358", "hex")),
+    macKey: new Uint8Array(Buffer.from("fef9ba72218ddeea12db2e6b321e542171722b861eb7fa782451533479e22a96", "hex")),
+    iv: new Uint8Array(Buffer.from("9d8d2adb44036b4efec413fd94187b93", "hex")),
+  });
 });

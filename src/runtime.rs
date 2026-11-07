@@ -518,6 +518,7 @@ mod tests {
         SLEEP_WAKERS.with(|wakers| wakers.borrow().contains_key(&id))
     }
 
+    /// Completion must remove this sleep's registration, regardless of other tasks.
     #[wasm_bindgen_test]
     async fn sleep_fires_and_leaves_no_registration() {
         let mut sleep = Box::pin(make_sleep(1));
@@ -531,6 +532,7 @@ mod tests {
         );
     }
 
+    /// Independently armed sleeps must complete and release each of their own slots.
     #[wasm_bindgen_test]
     async fn concurrent_sleeps_each_wake_their_own_future() {
         // Distinct durations so they complete out of registration order.
