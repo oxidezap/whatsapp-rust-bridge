@@ -1,8 +1,15 @@
-use js_sys::{Array, Function, Object, Reflect};
-use wasm_bindgen::{JsCast, JsValue};
+use js_sys::{Function, Object, Reflect};
+use wasm_bindgen::{JsCast, JsValue, prelude::wasm_bindgen};
 use whatsapp_rust::{HistorySyncAdmission, HistorySyncDecision, HistorySyncMetadata};
 
 use crate::errors::BridgeError;
+
+#[wasm_bindgen]
+extern "C" {
+    // Array.isArray also throws for a revoked Proxy.
+    #[wasm_bindgen(catch, js_namespace = Array, js_name = isArray)]
+    fn try_is_array(value: &JsValue) -> Result<bool, JsValue>;
+}
 
 pub(crate) fn static_media_hosts(
     policies: Option<&JsValue>,
@@ -18,13 +25,23 @@ pub(crate) fn static_media_hosts(
     if value.is_null() || value.is_undefined() {
         return Ok(Vec::new());
     }
-    if !Array::is_array(&value) {
+    if !try_is_array(&value).map_err(|_| invalid())? {
         return Err(invalid());
     }
-    let array: Array = value.unchecked_into();
-    let mut hosts = Vec::with_capacity(array.length() as usize);
-    for index in 0..array.length() {
-        let hostname = Reflect::get(&array, &JsValue::from_f64(index as f64))
+    let length = Reflect::get(&value, &"length".into())
+        .map_err(|_| invalid())?
+        .as_f64()
+        .filter(|length| {
+            length.is_finite()
+                && *length >= 0.0
+                && *length <= u32::MAX as f64
+                && length.fract() == 0.0
+        })
+        .ok_or_else(invalid)? as u32;
+    let mut hosts = Vec::new();
+    hosts.try_reserve(length as usize).map_err(|_| invalid())?;
+    for index in 0..length {
+        let hostname = Reflect::get(&value, &JsValue::from_f64(index as f64))
             .map_err(|_| invalid())?
             .as_string()
             .ok_or_else(invalid)?;
@@ -45,7 +62,10 @@ impl JsHistorySyncAdmission {
         let Some(value) = value.filter(|value| !value.is_null() && !value.is_undefined()) else {
             return Ok(None);
         };
-        if !value.is_object() || Array::is_array(value) {
+        if !value.is_object()
+            || try_is_array(value)
+                .map_err(|_| crate::errors::invalid_arg("policies", "must be an object"))?
+        {
             return Err(crate::errors::invalid_arg("policies", "must be an object"));
         }
         let callback = Reflect::get(value, &"historySyncAdmission".into()).map_err(|_| {

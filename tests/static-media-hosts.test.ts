@@ -8,6 +8,24 @@ test("static media host configuration rejects malformed JS before constructing a
       { additionalStaticMediaHosts: hosts } as never,
     )).rejects.toMatchObject({ kind: "invalid-argument", field: "policies" });
   }
+  const revoked = Proxy.revocable([], {});
+  revoked.revoke();
+  for (const hosts of [
+    new Proxy([], { get() { throw new Error("length"); } }),
+    new Proxy([], { get: (value, key) => key === "length" ? NaN : Reflect.get(value, key) }),
+    new Proxy([], { get: (value, key) => key === "length" ? 0.5 : Reflect.get(value, key) }),
+    revoked.proxy,
+  ]) {
+    await expect(createWhatsAppClient(
+      {} as never, {} as never, null, null, null, null, null, null,
+      { additionalStaticMediaHosts: hosts },
+    )).rejects.toMatchObject({ kind: "invalid-argument", field: "policies" });
+  }
+  const revokedPolicies = Proxy.revocable({}, {});
+  revokedPolicies.revoke();
+  await expect(createWhatsAppClient(
+    {} as never, {} as never, null, null, null, null, null, null, revokedPolicies.proxy,
+  )).rejects.toMatchObject({ kind: "invalid-argument", field: "policies" });
   const policies = { get additionalStaticMediaHosts(): string[] { throw new Error("getter"); } };
   await expect(createWhatsAppClient(
     {} as never, {} as never, null, null, null, null, null, null, policies,
