@@ -635,7 +635,7 @@ generated_signal_store! {
     }
 
     async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
-        let mut addresses = std::collections::BTreeSet::new();
+        let mut addresses = std::collections::HashSet::new();
         if let Some(callback) = &self.signal_addresses_fn {
             let result = callback.call1(&JsValue::NULL, &user.into())
                 .map_err(|error| js_err_to_store_err("getSignalAddressesForUser", error))?;
