@@ -65,6 +65,15 @@ separate writes, a non-transactional batch, or an adapter-local mutex are insuff
 Resolve only at the host's persistence boundary and propagate post-commit errors.
 The generated callback declarations describe the existing namespaces and byte layouts.
 
+Hosted identity recovery also needs complete durable Signal address enumeration.
+Provide `listKeys` with `capabilities.enumerate: true`, or implement
+`getSignalAddressesForUser(user): Promise<string[]>`. The latter must include
+addresses retained in `session`, `identity`, and every `sender_key_devices` row,
+including state written before this adapter was created. Match the user exactly
+and case-sensitively, preserve PN/LID namespaces, and scope results to the current
+account. The bridge deduplicates results. Without either mechanism, recovery
+returns a storage error; it cannot safely infer absence from a new-write index.
+
 ## Host-loaded runtimes
 
 On Node and Bun the default entrypoint finds and loads the wasm itself:
