@@ -65,12 +65,9 @@ separate writes, a non-transactional batch, or an adapter-local mutex are insuff
 Resolve only at the host's persistence boundary and propagate post-commit errors.
 The generated callback declarations describe the existing namespaces and byte layouts.
 
-Hosted identity recovery requires `listKeys` with `capabilities.enumerate: true`.
-It enumerates `session`, `identity`, and `sender_key_devices`, including existing
-state. Keep enumeration scoped to the current account. The bridge matches users
-case-sensitively, preserves PN/LID namespaces, and deduplicates addresses.
-Without enumeration, recovery returns a storage error rather than treating
-untracked historical state as absent. The in-memory backend supports it directly.
+Hosted identity recovery requires `listKeys` with `capabilities.enumerate: true`,
+including historical state in the account scope. Otherwise it fails with a
+storage error. The in-memory backend supports this directly.
 
 ## Host-loaded runtimes
 

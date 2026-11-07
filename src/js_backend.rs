@@ -633,19 +633,23 @@ generated_signal_store! {
     }
 
     async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
-        let mut addresses = std::collections::HashSet::new();
+        let mut addresses = Vec::<Arc<str>>::new();
         if self.has_enumerate {
             for store in [STORE_SESSION, STORE_IDENTITY] {
                 for address in self.js_list_keys(store, Some(user)).await? {
-                    if signal_address_matches_user(&address, user) {
-                        addresses.insert(Arc::from(address));
+                    if signal_address_matches_user(&address, user)
+                        && !addresses.iter().any(|known| known.as_ref() == address)
+                    {
+                        addresses.push(Arc::from(address));
                     }
                 }
             }
             for group in self.js_list_keys(STORE_SENDER_KEY_DEVICES, None).await? {
                 for (address, _) in self.get_sender_key_devices(&group).await? {
-                    if signal_address_matches_user(&address, user) {
-                        addresses.insert(Arc::from(address));
+                    if signal_address_matches_user(&address, user)
+                        && !addresses.iter().any(|known| known.as_ref() == address)
+                    {
+                        addresses.push(Arc::from(address));
                     }
                 }
             }
@@ -656,7 +660,7 @@ generated_signal_store! {
                 "hosted identity recovery requires listKeys with capabilities.enumerate",
             )));
         }
-        Ok(addresses.into_iter().collect())
+        Ok(addresses)
     }
 
     async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
