@@ -104,6 +104,7 @@ fn pair_refs<K, V>(entries: &[(K, V)]) -> impl Iterator<Item = (&K, &V)> + Clone
     entries.iter().map(|(key, value)| (key, value))
 }
 
+/// Match a case-sensitive user only at a Signal namespace or device boundary.
 #[inline]
 fn signal_address_matches_user(address: &str, user: &str) -> bool {
     address
