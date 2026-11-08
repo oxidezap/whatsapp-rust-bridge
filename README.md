@@ -66,8 +66,9 @@ Resolve only at the host's persistence boundary and propagate post-commit errors
 The generated callback declarations describe the existing namespaces and byte layouts.
 
 ADV identity recovery requires `listKeys` with `capabilities.enumerate: true`,
-including historical state in the account scope. Otherwise it fails with a
-storage error. The in-memory backend supports this directly.
+including historical state in the account scope. If enumeration is unavailable,
+recovery fails with a storage error. The backend cannot detect incomplete
+successful `listKeys` results. The in-memory backend supports this directly.
 
 ## Host-loaded runtimes
 

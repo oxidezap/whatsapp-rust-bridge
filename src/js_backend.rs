@@ -3014,6 +3014,7 @@ mod signal_address_tests {
             .unwrap()
     }
 
+    /// Prove 1,025 tracking rows use bounded batches and retain each exact-user address once.
     #[test]
     async fn sender_tracking_reads_are_bounded_and_deduplicated() {
         let value = host("signal-bounded");
@@ -3058,6 +3059,7 @@ mod signal_address_tests {
         );
     }
 
+    /// Prove non-batch hosts use per-key reads and tolerate rows removed after listing.
     #[test]
     async fn sender_tracking_falls_back_by_key_and_skips_missing_rows() {
         let value = host("signal-fallback");
@@ -3092,6 +3094,7 @@ mod signal_address_tests {
         );
     }
 
+    /// Prove invalid JSON and tuple shapes retain their store/key context with either host profile.
     #[test]
     async fn invalid_sender_rows_preserve_json_context_in_both_host_profiles() {
         for batching in [false, true] {
