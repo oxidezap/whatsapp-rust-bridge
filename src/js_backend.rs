@@ -104,12 +104,22 @@ fn pair_refs<K, V>(entries: &[(K, V)]) -> impl Iterator<Item = (&K, &V)> + Clone
     entries.iter().map(|(key, value)| (key, value))
 }
 
+/// Match a case-sensitive user only at a Signal namespace or device boundary.
 #[inline]
 fn signal_address_matches_user(address: &str, user: &str) -> bool {
     address
         .strip_prefix(user)
         .and_then(|rest| rest.as_bytes().first())
         .is_some_and(|separator| matches!(separator, b'@' | b':'))
+}
+
+/// Keep only exact-user addresses and avoid allocating duplicate shared strings.
+fn collect_signal_address(addresses: &mut Vec<Arc<str>>, address: &str, user: &str) {
+    if signal_address_matches_user(address, user)
+        && !addresses.iter().any(|known| known.as_ref() == address)
+    {
+        addresses.push(Arc::from(address));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -595,6 +605,22 @@ impl JsBackend {
         }
     }
 
+    /// Keep the namespace and key attached to failures in single and batch reads.
+    fn decode_json<T: serde::de::DeserializeOwned>(
+        bytes: &[u8],
+        store: &str,
+        key: &str,
+    ) -> Result<T> {
+        serde_json::from_slice(bytes).map_err(|source| {
+            wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError {
+                op: "deserialize",
+                store: store.into(),
+                key: key.into(),
+                source,
+            }))
+        })
+    }
+
     async fn js_set_json<T: serde::Serialize>(
         &self,
         store: &str,
@@ -630,6 +656,38 @@ generated_signal_store! {
             })?)),
             None => Ok(None),
         }
+    }
+
+    /// Recover durable addresses across all Signal namespaces, including sender tracking.
+    /// Enumeration must cover historical state; unsupported hosts fail closed.
+    async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
+        let mut addresses = Vec::<Arc<str>>::new();
+        if self.has_enumerate {
+            for store in [STORE_SESSION, STORE_IDENTITY, STORE_SENDER_KEY_DEVICES] {
+                let keys = self.js_list_keys(store, (store != STORE_SENDER_KEY_DEVICES).then_some(user)).await?;
+                if store == STORE_SENDER_KEY_DEVICES {
+                    for chunk in keys.chunks(SCAN_CHUNK) {
+                        for (group, bytes) in self.js_get_many(store, chunk).await? {
+                            let devices: Vec<(String, bool)> = Self::decode_json(&bytes, store, &group)?;
+                            for (address, _) in devices {
+                                collect_signal_address(&mut addresses, &address, user);
+                            }
+                        }
+                    }
+                } else {
+                    for address in keys {
+                        collect_signal_address(&mut addresses, &address, user);
+                    }
+                }
+            }
+        } else {
+            // An index of new writes cannot account for state predating this adapter.
+            return Err(wacore::store::error::StoreError::Io(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "identity recovery requires listKeys with capabilities.enumerate",
+            )));
+        }
+        Ok(addresses)
     }
 
     async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
@@ -2832,5 +2890,281 @@ mod atomic_storage_contract_tests {
         assert_eq!(row.token, b"old");
         assert_eq!(row.token_timestamp, 10);
         assert_eq!(row.sender_timestamp, None);
+    }
+}
+
+#[cfg(test)]
+mod signal_address_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn host(slot: &str) -> JsValue {
+        js_sys::eval(include_str!("../tests/fixtures/signal-address-storage.js"))
+            .unwrap()
+            .dyn_into::<js_sys::Function>()
+            .unwrap()
+            .call1(&JsValue::NULL, &slot.into())
+            .unwrap()
+    }
+    fn backend(value: &JsValue) -> JsBackend {
+        JsBackend::new(JsBackendHandles::from_js(value).unwrap())
+    }
+    async fn addresses(store: &dyn SignalStore, user: &str) -> Vec<String> {
+        let mut result = store
+            .get_signal_addresses_for_user(user)
+            .await
+            .unwrap()
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        result.sort();
+        result
+    }
+
+    #[test]
+    async fn durable_enumeration_unions_namespaces_and_sources_across_adapters() {
+        let first = backend(&host("signal-union"));
+        first
+            .put_session("Alice:1@s.whatsapp.net", b"session")
+            .await
+            .unwrap();
+        first
+            .put_identities_batch(&[
+                (Arc::from("Alice:2@lid"), [1; 32]),
+                (Arc::from("Alice:1@s.whatsapp.net"), [2; 32]),
+            ])
+            .await
+            .unwrap();
+        first
+            .set_sender_key_status(
+                "group",
+                &[
+                    ("Alice:3@lid", false),
+                    ("Alice:1@s.whatsapp.net", true),
+                    ("Alicee:3@lid", true),
+                ],
+            )
+            .await
+            .unwrap();
+        for other in [
+            "Alicee:1@lid",
+            "alice:1@lid",
+            "Alice_1:1@lid",
+            "Alice%:1@lid",
+            "Alice",
+        ] {
+            first.put_session(other, b"other").await.unwrap();
+        }
+        let second = backend(&host("signal-union"));
+        assert_eq!(
+            addresses(&second, "Alice").await,
+            ["Alice:1@s.whatsapp.net", "Alice:2@lid", "Alice:3@lid"]
+        );
+        assert_eq!(addresses(&second, "Alice_1").await, ["Alice_1:1@lid"]);
+        assert_eq!(addresses(&second, "Alice%").await, ["Alice%:1@lid"]);
+        assert_eq!(addresses(&second, "alice").await, ["alice:1@lid"]);
+        let isolated = backend(&host("signal-other-account"));
+        assert!(addresses(&isolated, "Alice").await.is_empty());
+        second
+            .delete_session("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second
+            .delete_identity("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second.clear_sender_key_devices("group").await.unwrap();
+        assert_eq!(addresses(&first, "Alice").await, ["Alice:2@lid"]);
+    }
+
+    #[test]
+    async fn unavailable_or_failed_enumeration_never_returns_a_partial_set() {
+        let value = host("signal-errors");
+        let fail = js_sys::Function::new_with_args(
+            "store",
+            "if(store === 'identity') throw new Error('identity scan failed'); return ['a:1@lid'];",
+        );
+        js_sys::Reflect::set(&value, &"listKeys".into(), &fail).unwrap();
+        let error = backend(&value)
+            .get_signal_addresses_for_user("a")
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("identity scan failed")
+        );
+        js_sys::Reflect::set(&value, &"capabilities".into(), &JsValue::NULL).unwrap();
+        assert!(
+            matches!(backend(&value).get_signal_addresses_for_user("a").await.unwrap_err(), wacore::store::error::StoreError::Io(error) if error.kind() == std::io::ErrorKind::Unsupported)
+        );
+    }
+
+    fn set_batch(value: &JsValue, enabled: bool) {
+        let capabilities = js_sys::Reflect::get(value, &"capabilities".into()).unwrap();
+        js_sys::Reflect::set(&capabilities, &"batch".into(), &enabled.into()).unwrap();
+    }
+
+    fn reads(value: &JsValue) -> js_sys::Array {
+        js_sys::Reflect::get(value, &"reads".into())
+            .unwrap()
+            .dyn_into()
+            .unwrap()
+    }
+
+    /// Prove 1,025 tracking rows use bounded batches and retain each exact-user address once.
+    #[test]
+    async fn sender_tracking_reads_are_bounded_and_deduplicated() {
+        let value = host("signal-bounded");
+        set_batch(&value, true);
+        let store = backend(&value);
+        for index in 0..(SCAN_CHUNK * 2 + 1) {
+            store
+                .js_set_json(
+                    STORE_SENDER_KEY_DEVICES,
+                    &format!("group-{index}"),
+                    &vec![
+                        ("a:2@lid", false),
+                        ("a@s.whatsapp.net.1", true),
+                        ("aa:1@lid", true),
+                    ],
+                )
+                .await
+                .unwrap();
+        }
+        assert_eq!(
+            addresses(&store, "a").await,
+            ["a:2@lid", "a@s.whatsapp.net.1"]
+        );
+        assert_eq!(reads(&value).length(), 3);
+        let calls: Vec<(String, String, usize)> =
+            serde_wasm_bindgen::from_value(reads(&value).into()).unwrap();
+        assert_eq!(
+            calls,
+            vec![
+                (
+                    "getMany".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    SCAN_CHUNK
+                ),
+                (
+                    "getMany".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    SCAN_CHUNK
+                ),
+                ("getMany".into(), STORE_SENDER_KEY_DEVICES.into(), 1),
+            ]
+        );
+    }
+
+    /// Prove non-batch hosts use per-key reads and tolerate rows removed after listing.
+    #[test]
+    async fn sender_tracking_falls_back_by_key_and_skips_missing_rows() {
+        let value = host("signal-fallback");
+        let store = backend(&value);
+        store
+            .js_set_json(STORE_SENDER_KEY_DEVICES, "group", &vec![("a@lid.1", true)])
+            .await
+            .unwrap();
+        let list = js_sys::Function::new_with_args(
+            "store",
+            "return store === 'sender_key_devices' ? ['missing','group'] : [];",
+        );
+        js_sys::Reflect::set(&value, &"listKeys".into(), &list).unwrap();
+        let store = backend(&value);
+        assert_eq!(addresses(&store, "a").await, ["a@lid.1"]);
+        let calls: Vec<(String, String, String)> =
+            serde_wasm_bindgen::from_value(reads(&value).into()).unwrap();
+        assert_eq!(
+            calls,
+            vec![
+                (
+                    "get".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    "missing".into()
+                ),
+                (
+                    "get".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    "group".into()
+                ),
+            ]
+        );
+    }
+
+    /// Prove invalid JSON and tuple shapes retain their store/key context with either host profile.
+    #[test]
+    async fn invalid_sender_rows_preserve_json_context_in_both_host_profiles() {
+        for batching in [false, true] {
+            let value = host(if batching {
+                "signal-bad-batch"
+            } else {
+                "signal-bad-single"
+            });
+            set_batch(&value, batching);
+            let store = backend(&value);
+            for bytes in [b"not json".as_slice(), b"[[42,true]]".as_slice()] {
+                store
+                    .js_set(STORE_SENDER_KEY_DEVICES, "bad-group", bytes)
+                    .await
+                    .unwrap();
+                let error = store.get_signal_addresses_for_user("a").await.unwrap_err();
+                let wacore::store::error::StoreError::Serialization(source) = error else {
+                    panic!("expected JSON error")
+                };
+                let text = source.to_string();
+                assert!(text.contains("sender_key_devices"), "{text}");
+                assert!(text.contains("bad-group"), "{text}");
+            }
+        }
+    }
+
+    #[test]
+    async fn builtin_memory_backend_enumerates_identity_and_sender_tracking_without_sessions() {
+        let store = new_in_memory_backend();
+        store.put_identity("a@lid.2", [2; 32]).await.unwrap();
+        store
+            .set_sender_key_status("group", &[("a@s.whatsapp.net.3", false)])
+            .await
+            .unwrap();
+        let mut result = store.get_signal_addresses_for_user("a").await.unwrap();
+        result.sort();
+        assert_eq!(
+            result,
+            vec![Arc::<str>::from("a@lid.2"), Arc::from("a@s.whatsapp.net.3")]
+        );
+    }
+
+    #[test]
+    async fn core_cache_collects_cached_and_durable_addresses_through_js_adapter() {
+        use wacore::libsignal::protocol::{ProtocolAddress, SessionRecord};
+        use wacore::store::signal_cache::SignalStoreCache;
+        let durable = backend(&host("signal-cache-union"));
+        durable.put_identity("a:2@lid", [2; 32]).await.unwrap();
+        durable
+            .set_sender_key_status("group", &[("a:3@lid", true)])
+            .await
+            .unwrap();
+        let cache = SignalStoreCache::new();
+        cache
+            .put_session(
+                &ProtocolAddress::new("a@s.whatsapp.net", 1.into()),
+                SessionRecord::new_fresh(),
+            )
+            .await;
+        let result = cache
+            .signal_addresses_for_user("a", &durable)
+            .await
+            .unwrap();
+        assert!(
+            result
+                .iter()
+                .any(|address| address.as_ref() == "a@s.whatsapp.net.1")
+        );
+        assert!(result.iter().any(|address| address.as_ref() == "a:2@lid"));
+        assert!(result.iter().any(|address| address.as_ref() == "a:3@lid"));
     }
 }
