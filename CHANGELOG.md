@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.6](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.5...v0.26.6) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for ADV recovery and storage enumeration ([#163](https://github.com/oxidezap/whatsapp-rust-bridge/issues/163)) ([c9e1f9c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c9e1f9cb635a46e93b15fe6090beed895783c43a))
+
 ## [0.26.5](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.4...v0.26.5) (2026-11-07)
 
 
