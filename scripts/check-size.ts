@@ -12,11 +12,12 @@
  */
 import { packedContents } from "./pack";
 
-// Core 15371d1b plus per-client static-media hosts measures 8,573,134 bytes
-// with Bun 1.4.4, Node 26.13.0, wasm-pack 0.15.1 and Binaryen 133.
-// Keep about 12 KB headroom. The function budget and inlining flags stay
-// unchanged; this artifact allowance makes no CPU or memory parity claim.
-const MAX_UNPACKED_BYTES = 8_585_000;
+// Core f077a5d4 with durable Signal enumeration measures 8,600,969 bytes
+// in CI with Bun 1.4.4, Node 26.13.0, wasm-pack 0.15.1 and Binaryen 133:
+// 27,835 bytes above the previous 15371d1b reference. Keep 12,031 bytes
+// headroom. The function budget and inlining flags stay unchanged;
+// this artifact allowance makes no CPU or memory parity claim.
+const MAX_UNPACKED_BYTES = 8_613_000;
 
 const { files, unpackedSize: total } = packedContents();
 
