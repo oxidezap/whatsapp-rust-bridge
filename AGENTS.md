@@ -195,6 +195,11 @@ that has lost its last caller.
 
 ## Build and test
 
+Rust 1.100.0 stable is pinned in `rust-toolchain.toml` and the CI, release and
+autofix workflows. The bridge uses the distributed `wasm32-unknown-unknown`
+standard library, without nightly features or `build-std`. Native codegen tools
+use the same compiler with an explicit host target. Keep these pins aligned.
+
 ```
 bun run build         gen → wasm-pack (release) → bundle → tsc + finalize
 bun run build:dev     same, with a --dev wasm build

@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RUST_TOOLCHAIN: 1.99.1
+  RUST_TOOLCHAIN: 1.100.0
   NODE_VERSION: 26.13.0
 
 jobs:
