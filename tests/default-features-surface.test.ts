@@ -22,6 +22,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import * as ts from "../scripts/typescript-api";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** One export per feature, chosen because only that feature can emit it. */
@@ -51,16 +53,23 @@ test("every gated domain is in the default feature set", () => {
   expect(defaultFeatures().sort()).toEqual(Object.keys(WITNESSES).sort());
 });
 
-test("the built declarations carry every gated domain's exports", () => {
+test("the built declarations carry every gated domain's exports", async () => {
   const dts = readFileSync(join(ROOT, "dist", "whatsapp_rust_bridge.d.ts"), "utf8");
-  // The declaration, not the name: `result_types` documents the method that
-  // returns each result struct, and those doc comments survive their domain
-  // being gated out. Searching for the bare name reported five of eight
-  // domains missing from an artifact that had lost all eight.
-  const declared = (exported: string) =>
-    new RegExp(`^\\s*(export function )?${exported}\\(`, "m").test(dts);
+  const source = await ts.createSourceFile("surface.d.ts", dts);
+  const declared = new Set<string>();
+  for (const declaration of source.statements) {
+    if (ts.isFunctionDeclaration(declaration) && declaration.name) declared.add(declaration.name.text);
+    if ((ts.isClassDeclaration(declaration) || ts.isInterfaceDeclaration(declaration)) &&
+        declaration.name?.text === "WasmWhatsAppClient") {
+      for (const member of declaration.members) {
+        if ((ts.isMethodDeclaration(member) || ts.isMethodSignatureDeclaration(member)) && ts.isIdentifier(member.name)) {
+          declared.add(member.name.text);
+        }
+      }
+    }
+  }
   const missing = Object.entries(WITNESSES)
-    .filter(([, exported]) => !declared(exported))
+    .filter(([, exported]) => !declared.has(exported))
     .map(([feature, exported]) => `${feature} (${exported})`);
   expect(missing).toEqual([]);
 });

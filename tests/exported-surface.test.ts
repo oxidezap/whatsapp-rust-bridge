@@ -22,66 +22,36 @@ import { describe, test, expect, beforeAll } from "bun:test";
 import { readFileSync } from "node:fs";
 import { initWasmEngine, createWhatsAppClient } from "../dist/index.js";
 import { createHttp } from "./helpers.js";
+import * as ts from "../scripts/typescript-api";
 
 const DTS = new URL("../dist/whatsapp_rust_bridge.d.ts", import.meta.url);
 
 type Method = { name: string; params: string[] };
 
-/** The body of a declaration block, by its opening line. */
-function block(dts: string, opening: string): string {
-  const start = dts.indexOf(opening);
-  if (start < 0) throw new Error(`${opening} is missing from the emitted .d.ts`);
-  return dts.slice(start, dts.indexOf("\n}", start));
-}
-
-/** The methods declared on the exported client, with their parameter types. */
-function readSurface(): { methods: Method[]; unions: Map<string, string> } {
-  const dts = readFileSync(DTS, "utf8");
-
-  // Include merged interfaces if a future binding needs one. Ordinary methods,
-  // including Record returns, are now declared by the operation generator.
+/** Read declarations structurally so package whitespace is not a test input. */
+async function readSurface(): Promise<{ methods: Method[]; unions: Map<string, string> }> {
+  const source = await ts.createSourceFile("surface.d.ts", readFileSync(DTS, "utf8"));
   const methods: Method[] = [];
-  for (const opening of [
-    "export class WasmWhatsAppClient {",
-    "interface WasmWhatsAppClient {",
-  ]) {
-    if (!dts.includes(opening)) continue;
-    const before = methods.length;
-    for (const line of block(dts, opening).split("\n")) {
-      // Every callable member has to end up parsed or named as a known
-      // non-method. Recognising only one declaration shape and moving on is
-      // how a method goes unswept while this file still reports a pass.
-      // Indentation is not part of the contract: the class comes out of
-      // wasm-bindgen and the interface out of a hand-written custom section,
-      // and they do not have to agree on a width.
-      const member = line.trim();
-      if (!/^\s+\S.*\(.*;$/.test(line)) continue;
-      if (member === "private constructor();") continue;
-      if (member === "[Symbol.dispose](): void;") continue;
-
-      const m = /^([a-zA-Z_][A-Za-z0-9_]*)\(([^)]*)\): [^;]+;$/.exec(member);
-      if (!m) throw new Error(`unparsed member declaration: ${member}`);
-
-      const list = m[2].trim();
-      // Splitting on "," is only safe while no parameter type carries one of
-      // its own. A generic would, so fail loudly rather than synthesise
-      // nonsense.
-      if (list.includes("<")) throw new Error(`generic parameter in ${m[1]}: ${list}`);
-      methods.push({
-        name: m[1],
-        params: list ? list.split(",").map((p) => p.slice(p.indexOf(":") + 1).trim()) : [],
-      });
-    }
-    // And a block that yields nothing at all — the slice went wrong rather
-    // than a line failing to parse, which no per-line check would notice.
-    if (methods.length === before) throw new Error(`no methods parsed from ${opening}`);
-  }
-
   const unions = new Map<string, string>();
-  for (const u of dts.matchAll(/^export type (\w+) = ("[^"]*")(?: \| "[^"]*")*;$/gm)) {
-    unions.set(u[1], JSON.parse(u[2]));
+  for (const declaration of source.statements) {
+    if ((ts.isClassDeclaration(declaration) || ts.isInterfaceDeclaration(declaration)) &&
+        declaration.name?.text === "WasmWhatsAppClient") {
+      for (const member of declaration.members) {
+        if (ts.isConstructorDeclaration(member)) continue;
+        if (!ts.isMethodDeclaration(member) && !ts.isMethodSignatureDeclaration(member)) {
+          throw new Error(`unparsed client member: ${member.getText(source)}`);
+        }
+        if (ts.isComputedPropertyName(member.name) && member.name.expression.getText(source) === "Symbol.dispose") continue;
+        if (!ts.isIdentifier(member.name)) throw new Error(`unnamed client method: ${member.getText(source)}`);
+        methods.push({ name: member.name.text, params: member.parameters.map(p => p.type?.getText(source) ?? "any") });
+      }
+    }
+    if (ts.isTypeAliasDeclaration(declaration) && ts.isUnionTypeNode(declaration.type) &&
+        declaration.type.types.every(t => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal))) {
+      const first = declaration.type.types[0] as ts.LiteralTypeNode;
+      unions.set(declaration.name.text, (first.literal as ts.StringLiteral).text);
+    }
   }
-
   return { methods, unions };
 }
 
@@ -163,7 +133,7 @@ beforeAll(() => {
 
 describe("the exported surface", () => {
   test("every method settles rather than leaving its promise pending", async () => {
-    const { methods, unions } = readSurface();
+    const { methods, unions } = await readSurface();
 
     // A regex that stopped matching would leave this test green while testing
     // nothing, so hold it to the size the surface actually has.
