@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.7](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.6...v0.26.7) (2026-11-12)
+
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust within existing size budget ([#167](https://github.com/oxidezap/whatsapp-rust-bridge/issues/167)) ([0938ac5](https://github.com/oxidezap/whatsapp-rust-bridge/commit/0938ac585bedef3b7b70c6f0ca9e55e34c5a53c3))
+
 ## [0.26.6](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.5...v0.26.6) (2026-11-08)
 
 
