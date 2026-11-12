@@ -79,6 +79,7 @@
         "@types/bun": "^1.4.4",
         "@types/node": "^26.6.6",
         "pkg-pr-new": "^0.0.93",
+        "terser": "5.51.2",
         "ts-proto": "^2.18.3",
         "typescript": "^7.0.2"
     },
