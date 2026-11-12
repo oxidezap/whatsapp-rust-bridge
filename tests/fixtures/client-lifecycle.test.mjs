@@ -142,6 +142,25 @@ test('resolved operations retain their result after free', async () => {
 });
 
 for (const reject of [false, true]) {
+  test(`disconnect settles connect before a late transport ${reject ? 'rejection' : 'resolution'}`, { timeout: 5000 }, async () => {
+    let entered, release;
+    const checkpoint = new Promise(resolve => { entered = resolve; });
+    const callback = new Promise((resolve, rejectCallback) => {
+      release = reject ? () => rejectCallback(new Error('late transport failure')) : resolve;
+    });
+    const c = await client({ connect() { entered(); return callback; } });
+    const pending = outcome(c.connect());
+    try {
+      await checkpoint;
+      await c.disconnect();
+      // The host callback remains unresolved until the connect promise settles.
+      assert.equal((await pending).error?.kind, 'not-connected');
+    } finally {
+      release();
+      c.free();
+    }
+  });
+
   test(`late transport ${reject ? 'rejection' : 'resolution'} after free`, { timeout: 5000 }, async () => {
     let entered, release;
     const checkpoint = new Promise(resolve => { entered = resolve; });
