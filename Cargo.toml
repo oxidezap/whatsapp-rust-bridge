@@ -71,7 +71,7 @@ default = [
 ]
 audio = ["dep:symphonia"]
 image = ["dep:image"]
-sticker = ["dep:img-parts"]
+sticker = ["dep:img-parts", "dep:uuid"]
 
 # One per `#[wasm_bindgen]` domain in `src/wasm_client/`. Connection and
 # messaging have no feature: a client that cannot connect or send is not a
@@ -131,7 +131,7 @@ thiserror = { version = "2.0.21", default-features = false }
 tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
-uuid = { version = "1.29.0", default-features = false, features = ["v4", "js"] }
+uuid = { version = "1.29.0", default-features = false, features = ["v4", "js"], optional = true }
 
 wasm-bindgen = "0.2.130"
 wasm-bindgen-futures = "0.4.80"
