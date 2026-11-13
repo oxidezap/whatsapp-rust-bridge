@@ -48,6 +48,9 @@ What it is not is a release. Preview builds carry the version
 install is a deliberate pin, and it stays on that commit until you change it.
 They are for trying a change, not for running one.
 
+`bun run build` normalizes source roots to `bridge`, `core`, crate/version and
+`rust/library`. Diagnostic filenames and line numbers remain available.
+
 ## Persistent storage
 
 Persistent storage hosts must implement all six `JsStoreCallbacks` methods:

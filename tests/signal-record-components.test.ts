@@ -51,6 +51,18 @@ const sessionRecord = (): SessionRecordComponents => ({
 beforeAll(() => initWasmEngine());
 
 describe("Signal record component boundary", () => {
+  test("keeps the recovery fence through empty sender-key component handoffs", () => {
+    const fenced = new Uint8Array([0xb0, 0x06, 1]);
+    const components = decodeSenderKeyRecordComponents(fenced);
+    assert.deepEqual(components.states, []);
+    assert.deepEqual(encodeSenderKeyRecordComponents(components), fenced);
+    assert.deepEqual(encodeSenderKeyRecordComponents({ states: [] }), fenced);
+    assert.deepEqual(
+      encodeSenderKeyRecordComponents(decodeSenderKeyRecordComponents(new Uint8Array())),
+      fenced,
+    );
+  });
+
   test("round-trips a complete session through the canonical record codec", () => {
     const decoded = decodeSessionRecordComponents(encodeSessionRecordComponents(sessionRecord()));
 
@@ -141,8 +153,11 @@ describe("Signal record component boundary", () => {
       messageKeys: [128, 0, 128, 0xffffffff].map((iteration) => ({ iteration, seed: bytes(32, 7) })),
     }));
     const encoded = encodeSenderKeyRecordComponents({ states });
-    assert.equal(createHash("sha256").update(encoded).digest("hex"),
+    assert.deepEqual(encoded.slice(-3), new Uint8Array([0xb0, 0x06, 1]));
+    assert.equal(createHash("sha256").update(encoded.subarray(0, -3)).digest("hex"),
       "cd58fc7d88e3de26e5767d02e6d54723e6feb9a76a4a5870b8dea6b08ee801da");
+    assert.equal(createHash("sha256").update(encoded).digest("hex"),
+      "6f7b551ee6ad4b042cdcd902c7bd4cc8edd47c41c49db6965c3230571a2324f6");
     const decoded = decodeSenderKeyRecordComponents(encoded);
     assert.deepEqual(decoded.states.map((state) => state.keyId), states.map((state) => state.keyId));
     for (const [index, state] of decoded.states.entries()) {

@@ -252,10 +252,19 @@ try {
   const history = JSON.parse(readFileSync(new URL('./signal-group-historical.json', import.meta.url), 'utf8'));
   const historicalRows = new Map(history.rows.map(([key, value]) => [key, new Uint8Array(Buffer.from(value, 'base64'))]));
   const historicalClient = await client(historicalRows);
+  const redistribution = new Uint8Array(Buffer.from(history.redistribution, 'base64'));
+  const historicalCiphertext = new Uint8Array(Buffer.from(history.delayed[0].ciphertext, 'base64'));
+  const legacyRow = history.rows.find(([key]) => key.startsWith('sender_key:'));
+  await assert.rejects(historicalClient.signalDecryptGroupMessage(history.group, history.author, historicalCiphertext));
+  await historicalClient.signalProcessSenderKeyDistribution(history.group, history.author, redistribution);
   for (const message of history.delayed) {
     const opened = await historicalClient.signalDecryptGroupMessage(history.group, history.author, new Uint8Array(Buffer.from(message.ciphertext, 'base64')));
     assert.deepEqual(opened, new Uint8Array(Buffer.from(message.plaintext, 'base64')));
   }
+  assert.deepEqual(historicalRows.get(legacyRow[0]), new Uint8Array(Buffer.from(legacyRow[1], 'base64')),
+    'authenticated migration must preserve the historical bare-address row');
+  await historicalClient.signalProcessSenderKeyDistribution(history.group, history.author, redistribution);
+  await assert.rejects(historicalClient.signalDecryptGroupMessage(history.group, history.author, historicalCiphertext));
   console.log('synthetic group/pairwise roundtrip, restart, skipped keys, provider isolation and failure rollback passed');
 } finally {
   await Promise.all(clients.map(value => value.disconnect()));
