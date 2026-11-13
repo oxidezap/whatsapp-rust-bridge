@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,18 +8,23 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-export function targetFlags(config: unknown): string[] {
-  const flags = record(record(record(config).target)["wasm32-unknown-unknown"]).rustflags;
-  if (!Array.isArray(flags) || !flags.every((flag): flag is string => typeof flag === "string")) {
-    throw new TypeError("invalid WASM target rustflags");
+export async function withSourcePathConfig<T>(flags: string[], work: (path: string) => Promise<T>): Promise<T> {
+  const folder = mkdtempSync(join(tmpdir(), "bridge-build-paths-"));
+  try {
+    const path = join(folder, "source-paths.toml");
+    writeFileSync(path, `[target.wasm32-unknown-unknown]\nrustflags = ${JSON.stringify(flags)}\n`, { mode: 0o600 });
+    return await work(path);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
   }
-  return flags;
 }
 
-export function inheritedFlags(env: NodeJS.ProcessEnv, configured: string[]): string[] {
-  if (env.CARGO_ENCODED_RUSTFLAGS !== undefined) return env.CARGO_ENCODED_RUSTFLAGS.split("\x1f").filter(Boolean);
-  if (env.RUSTFLAGS !== undefined) return env.RUSTFLAGS.split(/\s+/).filter(Boolean);
-  return configured;
+export function wasmPackCommand(config: string, args: string[]): string[] {
+  const separator = args.indexOf("--");
+  const options = separator < 0 ? args : args.slice(0, separator);
+  const cargo = separator < 0 ? [] : args.slice(separator + 1);
+  return ["wasm-pack", "build", "--target", "web", "--out-dir", "pkg", "--no-pack",
+    ...options, "--", "--config", config, ...cargo];
 }
 
 export function sourcePathFlags(metadata: unknown, root: string, sysroot: string): string[] {
@@ -52,17 +58,13 @@ if (import.meta.main) {
     return result.stdout.toString().trim();
   };
   const metadata: unknown = JSON.parse(output("cargo", ["metadata", "--locked", "--format-version", "1"]));
-  const config: unknown = Bun.TOML.parse(readFileSync(join(root, ".cargo/config.toml"), "utf8"));
-  const flags = [
-    ...inheritedFlags(process.env, targetFlags(config)),
-    ...sourcePathFlags(metadata, root, output("rustc", ["--print", "sysroot"])),
-  ];
-  const child = Bun.spawn([
-    "wasm-pack", "build", "--target", "web", "--out-dir", "pkg", "--no-pack", ...Bun.argv.slice(2),
-  ], {
-    cwd: root,
-    env: { ...process.env, CARGO_ENCODED_RUSTFLAGS: flags.join("\x1f") },
-    stdin: "inherit", stdout: "inherit", stderr: "inherit",
+  const flags = sourcePathFlags(metadata, root, output("rustc", ["--print", "sysroot"]));
+  const status = await withSourcePathConfig(flags, async config => {
+    const child = Bun.spawn(wasmPackCommand(config, Bun.argv.slice(2)), {
+      cwd: root,
+      stdin: "inherit", stdout: "inherit", stderr: "inherit",
+    });
+    return await child.exited;
   });
-  process.exit(await child.exited);
+  process.exit(status);
 }
