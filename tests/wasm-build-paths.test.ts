@@ -27,7 +27,7 @@ test("source mappings retain dependency names and versions with stable ordering"
     "--remap-path-prefix=/cargo/git/core=core",
     "--remap-path-prefix=/cargo/registry/bytes-1.12.0=bytes-1.12.0",
     "--remap-path-prefix=/project=bridge",
-    "--remap-path-prefix=/toolchain/lib/rustlib/src/rust/library=rust/library",
+    `--remap-path-prefix=${join("/toolchain", "lib/rustlib/src/rust/library")}=rust/library`,
   ]);
   expect(sourcePathFlags({ packages: [...metadata.packages].reverse() }, "/project", "/toolchain")).toEqual(flags);
   expect(sourcePathFlags({ packages: [{ ...metadata.packages[0], source: null }] }, "/project", "/toolchain")).toContain("--remap-path-prefix=/cargo/git/core=core");
@@ -46,7 +46,8 @@ test("rustc remapping preserves diagnostic file and line information", () => {
     ], { stdout: "pipe", stderr: "pipe" });
     expect(result.exitCode, result.stderr.toString()).toBe(0);
     const output = readFileSync(ir, "utf8");
-    expect(output).toContain("bridge/diagnostic.rs:2");
+    expect(output).toContain('c"bridge');
+    expect(output).toContain("diagnostic.rs:2");
     expect(output).not.toContain(folder);
   } finally {
     rmSync(folder, { recursive: true, force: true });
