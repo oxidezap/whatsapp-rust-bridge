@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.8](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.7...v0.26.8) (2026-11-14)
+
+
+### Bug Fixes
+
+* **deps:** adopt Rust 1.100 stable and scope UUID to stickers ([#169](https://github.com/oxidezap/whatsapp-rust-bridge/issues/169)) ([ac89b63](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ac89b632381e3c3b028223202cbf045eb549eddd))
+* **deps:** bump whatsapp-rust pin for group sync and history fixes ([#173](https://github.com/oxidezap/whatsapp-rust-bridge/issues/173)) ([890af43](https://github.com/oxidezap/whatsapp-rust-bridge/commit/890af43b11ae945e6dbd8e7566268f5ad171f6da))
+* **deps:** bump whatsapp-rust pin for Signal and crypto updates ([#171](https://github.com/oxidezap/whatsapp-rust-bridge/issues/171)) ([9bc96a6](https://github.com/oxidezap/whatsapp-rust-bridge/commit/9bc96a63d96889c8bcdc6f6eec786b14c13d1eea))
+
 ## [0.26.7](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.6...v0.26.7) (2026-11-12)
 
 
