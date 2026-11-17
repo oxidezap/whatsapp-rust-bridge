@@ -33,6 +33,7 @@ AIRichResponseContentItemsMetadata.ContentType	enum
 AIRichResponseDynamicMetadata.AIRichResponseDynamicMetadataType	enum
 AIRichResponseInlineImageMetadata.AIRichResponseImageAlignment	enum
 AIThreadInfo.AIThreadClientInfo.AIThreadType	enum
+Account.PnLearnState	enum
 BizAIMetadataSync.ServerEvent.ProtocolEvent	enum
 BizAccountLinkInfo.AccountType	enum
 BizAccountLinkInfo.HostStorageType	enum
@@ -104,6 +105,8 @@ DeviceCapabilities.ReverseHistorySync.Product	enum
 DeviceProps.PlatformType	enum
 DisappearingMode.Initiator	enum
 DisappearingMode.Trigger	enum
+EventInviteAdditionalMetadata.AccessStatus	enum
+EventInviteAdditionalMetadata.RsvpStatus	enum
 FingerprintData.HostedState	enum
 GroupHistoryBundleInfo.ProcessState	enum
 GroupParticipant.Rank	enum
@@ -146,6 +149,8 @@ Message.ListResponseMessage.ListType	enum
 Message.MusicMessage.MusicMessageStyle	enum
 Message.OrderMessage.OrderStatus	enum
 Message.OrderMessage.OrderSurface	enum
+Message.PaymentDetailsMessage.ServiceType	enum
+Message.PaymentDetailsMessage.Status	enum
 Message.PaymentInviteMessage.InviteType	enum
 Message.PaymentInviteMessage.ServiceType	enum
 Message.PaymentLinkMetadata.PaymentLinkHeader.PaymentLinkHeaderType	enum
@@ -173,6 +178,7 @@ Message.StatusStickerInteractionMessage.StatusStickerType	enum
 Message.StickerPackMessage.StickerPackOrigin	enum
 Message.VideoMessage.Attribution	enum
 Message.VideoMessage.VideoSourceType	enum
+Message.VpcRequestMessage.ScopeHint	enum
 MessageAddOn.MessageAddOnType	enum
 MessageAssociation.AssociationType	enum
 MessageContextInfo.MessageAddonExpiryType	enum
@@ -186,6 +192,7 @@ PaymentInfo.Currency	enum
 PaymentInfo.Status	enum
 PaymentInfo.TxnStatus	enum
 PinInChat.Type	enum
+PollAdditionalMetadata.PollOptionReplayEntry.Type	enum
 ProcessedVideo.VideoQuality	enum
 QP.ClauseType	enum
 QP.FilterClientNotSupportedConfig	enum
@@ -357,18 +364,34 @@ Account	lid	1	optional	string
 Account	username	2	optional	string
 Account	countryCode	3	optional	string
 Account	isUsernameDeleted	4	optional	bool
+Account	pnLearnState	6	optional	enum	Account.PnLearnState=0,1
 AccountLinkingOpaqueData	accesstoken	1	optional	string
 AccountLinkingOpaqueData	fbid	2	optional	string
 AccountLinkingOpaqueData	nonce	3	optional	string
 AccountLinkingOpaqueData	encryptedPassword	4	optional	string
 ActionLink	url	1	optional	string
 ActionLink	buttonTitle	2	optional	string
+AddDeviceKeysOutput	devicePublicKey	1	required	bytes
+AddDeviceKeysOutput	epochAuthPublicKey	2	required	bytes
+AddDeviceKeysOutput	epochAuthPublicKeySig	3	required	bytes
+AddDeviceKeysOutput	epochStoragePublicKey	4	required	bytes
+AddDeviceKeysOutput	epochStoragePublicKeySig	5	required	bytes
+AddDeviceKeysOutput	epochStoragePrivateKey	6	required	bytes
+AddDeviceKeysOutput	orfClientState	7	required	bytes
+AddDeviceSyncEpochInput	epochId	1	required	uint64
+AddDeviceSyncEpochInput	epochAnonId	2	required	int32
+AddDeviceSyncEpochInput	encryptedEpochKey	3	optional	bytes
+AddDeviceSyncEpochInput	senderAuthPubKey	4	required	bytes
+AddDeviceSyncEpochInput	nextEpochId	5	optional	uint64
 AutoDownloadSettings	downloadImages	1	optional	bool
 AutoDownloadSettings	downloadAudio	2	optional	bool
 AutoDownloadSettings	downloadVideo	3	optional	bool
 AutoDownloadSettings	downloadDocuments	4	optional	bool
 AvatarUserSettings	fbid	1	optional	string
 AvatarUserSettings	password	2	optional	string
+WebBackwardEdge	encryptedPrevEpochAnonId	1	required	bytes
+WebBackwardEdge	encryptedPrevEpochRootKey	2	required	bytes
+WebBackwardEdge	prevEpochRootKeyFingerprint	3	required	bytes
 BizAIMetadataSync	serverEvent	1	optional	message	BizAIMetadataSync.ServerEvent
 BizAIMetadataSync.ServerEvent	protocolEvent	1	optional	enum	BizAIMetadataSync.ServerEvent.ProtocolEvent=0,1
 BizAIMetadataSync.ServerEvent	agentOnboardingStarted	2	optional	message	BizAIMetadataSync.ServerEvent.AgentOnboardingStarted
@@ -666,6 +689,7 @@ ClientPairingProps	isHsThumbnailSyncEnabled	4	optional	bool
 ClientPairingProps	subscriptionSyncPayload	5	optional	bytes
 ClientPairingProps	isBotJidDbMigrated	6	optional	bool
 ClientPairingProps	companionAddPeerPayload	7	optional	bytes
+ClientPairingProps	isCompanionRegistrationFgsEnabled	8	optional	bool
 ClientPayload	username	1	optional	uint64
 ClientPayload	passive	3	optional	bool
 ClientPayload	userAgent	5	optional	message	ClientPayload.UserAgent
@@ -703,6 +727,7 @@ ClientPayload	processingQueueSize	46	optional	int32
 ClientPayload	pairedPeripherals	47	repeated	string
 ClientPayload	testIsolationId	48	optional	bytes
 ClientPayload	messageSts	49	optional	int64
+ClientPayload	integrationAttestation	50	optional	message	ClientPayload.IntegrationAttestation
 ClientPayload.DNSSource	dnsMethod	15	optional	enum	ClientPayload.DNSSource.DNSResolutionMethod=0,1
 ClientPayload.DNSSource	appCached	16	optional	bool
 ClientPayload.DevicePairingRegistrationData	eRegid	1	optional	bytes
@@ -713,6 +738,8 @@ ClientPayload.DevicePairingRegistrationData	eSkeyVal	5	optional	bytes
 ClientPayload.DevicePairingRegistrationData	eSkeySig	6	optional	bytes
 ClientPayload.DevicePairingRegistrationData	buildHash	7	optional	bytes
 ClientPayload.DevicePairingRegistrationData	deviceProps	8	optional	bytes
+ClientPayload.IntegrationAttestation	staticUnbound	1	optional	string
+ClientPayload.IntegrationAttestation	onlineSigned	3	optional	string
 ClientPayload.InteropData	accountId	1	optional	uint64
 ClientPayload.InteropData	token	2	optional	bytes
 ClientPayload.InteropData	enableReadReceipts	3	optional	bool
@@ -771,8 +798,16 @@ CompanionCommitment	hash	1	optional	bytes
 CompanionEphemeralIdentity	publicKey	1	optional	bytes
 CompanionEphemeralIdentity	deviceType	2	optional	enum	DeviceProps.PlatformType=0,1
 CompanionEphemeralIdentity	ref	3	optional	string
+CompanionTestMessageThreadIdInput
+CompanionTestMessageThreadIdOutput	success	1	optional	message	CompanionTestMessageThreadIdSuccess
+CompanionTestMessageThreadIdOutput	error	2	optional	string
+CompanionTestMessageThreadIdSuccess	threadId	1	required	string
+ComputeClientSealTokenInput	orfClientState	1	required	bytes
+ComputeClientSealTokenInput	backupId	2	required	uint64
+ComputeClientSealTokenOutput	success	1	optional	message	ComputeClientSealTokenSuccess
+ComputeClientSealTokenOutput	error	2	optional	string
+ComputeClientSealTokenSuccess	clientSealToken	1	required	bytes
 Config	field	1	map	map<uint32,message>	Field
-Config	version	2	optional	uint32
 ContextInfo	stanzaId	1	optional	string
 ContextInfo	participant	2	optional	string
 ContextInfo	quotedMessage	3	optional	message	Message
@@ -841,6 +876,8 @@ ContextInfo	experienceIds	82	repeated packed	uint32
 ContextInfo	partnerDeepLinkToken	83	optional	string
 ContextInfo	sourceExperienceId	84	optional	uint32
 ContextInfo	sourceExperienceIds	85	repeated packed	uint32
+ContextInfo	foaMutualsSignature	86	optional	bytes
+ContextInfo	forwardReachScore	87	optional	fixed32
 ContextInfo.AdReplyInfo	advertiserName	1	optional	string
 ContextInfo.AdReplyInfo	mediaType	2	optional	enum	ContextInfo.AdReplyInfo.MediaType=0,1
 ContextInfo.AdReplyInfo	jpegThumbnail	16	optional	bytes
@@ -997,6 +1034,43 @@ Conversation	authAgentObaPhoneNumber	62	optional	string
 Conversation	identityVerification	63	optional	message	IdentityVerificationState
 Conversation	acp2Setting	64	optional	message	ACP2Setting
 Conversation	acp2HistoryWithheld	65	optional	bool
+Conversation	groupRootKeys	66	repeated	message	GroupRootKey
+Conversation	isWorkGroup	67	optional	bool
+Conversation	nonE2EeType	68	optional	int32
+Conversation	contactAccountEncryptionAttestationType	69	optional	enum	NonE2EEAttestation.AccountType=0,1
+CreateBackupInput	recoveryCode	1	required	string
+CreateBackupInput	userId	2	required	uint64
+WebCreateBackupOutput	success	1	optional	message	CreateBackupSuccess
+WebCreateBackupOutput	error	2	optional	string
+CreateBackupSuccess	device	1	required	message	WebDeviceOutput
+CreateBackupSuccess	virtualDevice	2	required	message	WebVirtualDeviceOutput
+CreateBackupSuccess	epoch0	3	required	message	WebEpoch0Output
+CreateBackupSuccess	mailboxRootKey	4	required	bytes
+WebDecryptMessageInput	epochRootKey	1	required	bytes
+WebDecryptMessageInput	epochAnonId	2	required	int32
+WebDecryptMessageInput	threadId	3	required	string
+WebDecryptMessageInput	encryptionVersion	4	required	int32
+WebDecryptMessageInput	ciphertext	5	required	bytes
+WebDecryptMessageOutput	success	1	optional	message	DecryptMessageSuccess
+WebDecryptMessageOutput	error	2	optional	string
+DecryptMessageSuccess	plaintextPayload	1	required	bytes
+DeriveEpochsInput	epochStoragePrivateKey	1	required	bytes
+DeriveEpochsInput	epochs	2	repeated	message	EpochKey
+DeriveEpochsInput	edges	3	repeated	message	EpochDerivationEdge
+DeriveEpochsOutput	success	1	optional	message	DeriveEpochsSuccess
+DeriveEpochsOutput	error	2	optional	string
+DeriveEpochsSuccess	epochs	1	repeated	message	EpochKey
+WebDeriveMessageKeyInput	epochRootKey	1	required	bytes
+WebDeriveMessageKeyInput	epochAnonId	2	required	int32
+WebDeriveMessageKeyInput	threadId	3	required	string
+WebDeriveMessageKeyOutput	success	1	optional	message	DeriveMessageKeySuccess
+WebDeriveMessageKeyOutput	error	2	optional	string
+DeriveMessageKeySuccess	messageKey	1	required	bytes
+DeriveVirtualDeviceIdInput	recoveryCode	1	required	string
+DeriveVirtualDeviceIdInput	userId	2	required	uint64
+DeriveVirtualDeviceIdOutput	success	1	optional	message	DeriveVirtualDeviceIdSuccess
+DeriveVirtualDeviceIdOutput	error	2	optional	string
+DeriveVirtualDeviceIdSuccess	virtualDeviceId	1	required	bytes
 DeviceCapabilities	chatLockSupportLevel	1	optional	enum	DeviceCapabilities.ChatLockSupportLevel=0,1
 DeviceCapabilities	lidMigration	2	optional	message	DeviceCapabilities.LIDMigration
 DeviceCapabilities	businessBroadcast	3	optional	message	DeviceCapabilities.BusinessBroadcast
@@ -1010,6 +1084,7 @@ DeviceCapabilities	reverseHistorySync	10	optional	message	DeviceCapabilities.Rev
 DeviceCapabilities	newsletterChatsMigration	11	optional	message	DeviceCapabilities.NewsletterChatsMigration
 DeviceCapabilities	hostWriteMutationSupport	12	optional	message	DeviceCapabilities.HostWriteMutationSupport
 DeviceCapabilities	bizAiWebOnboarding	13	optional	message	DeviceCapabilities.BizAiWebOnboarding
+DeviceCapabilities	phoneNumberSharing	14	optional	message	DeviceCapabilities.PhoneNumberSharing
 DeviceCapabilities.AiFbidMigration	chatDbMigrationTimestamp	1	optional	uint64
 DeviceCapabilities.AiFbidMigration	supportVersion	2	optional	uint32
 DeviceCapabilities.AiThread	supportLevel	1	optional	enum	DeviceCapabilities.AiThread.SupportLevel=0,1
@@ -1027,6 +1102,7 @@ DeviceCapabilities.LIDMigration	chatDbMigrationTimestamp	1	optional	uint64
 DeviceCapabilities.NewsletterChatsMigration	effectiveMigrated	1	optional	bool
 DeviceCapabilities.NewsletterChatsMigration	countdownEndsAt	2	optional	int64
 DeviceCapabilities.NewsletterChatsMigration	rolledBack	3	optional	bool
+DeviceCapabilities.PhoneNumberSharing	phoneSharingSupported	1	optional	bool
 DeviceCapabilities.ReverseHistorySync	enabledProducts	1	repeated	enum	DeviceCapabilities.ReverseHistorySync.Product=0,1
 DeviceCapabilities.UserHasAvatar	userHasAvatar	1	optional	bool
 DeviceConsistencyCodeMessage	generation	1	optional	uint32
@@ -1039,11 +1115,24 @@ DeviceListMetadata	receiverAccountType	5	optional	enum	ADVEncryptionType=0,1
 DeviceListMetadata	recipientKeyHash	8	optional	bytes
 DeviceListMetadata	recipientTimestamp	9	optional	uint64
 DeviceListMetadata	recipientKeyIndexes	10	repeated packed	uint32
+WebDeviceOutput	publicKey	1	required	bytes
+WebDeviceOutput	epochAuthPublicKey	2	required	bytes
+WebDeviceOutput	epochAuthPublicKeySig	3	required	bytes
+WebDeviceOutput	epochStoragePublicKey	4	required	bytes
+WebDeviceOutput	epochStoragePublicKeySig	5	required	bytes
+WebDeviceOutput	supportedEncryptionVersions	6	repeated	int32
+WebDeviceOutput	encryptionVersionSignature	7	required	bytes
+WebDeviceOutput	clientVersion	8	required	int32
+WebDeviceOutput	ocmfClientState	9	required	bytes
+WebDeviceOutput	epochStoragePrivateKey	10	required	bytes
+WebDeviceOutput	epochAuthPrivateKey	11	required	bytes
+WebDeviceOutput	deviceEpochHmac	12	required	bytes
 DeviceProps	os	1	optional	string
 DeviceProps	version	2	optional	message	DeviceProps.AppVersion
 DeviceProps	platformType	3	optional	enum	DeviceProps.PlatformType=0,1
 DeviceProps	requireFullSync	4	optional	bool
 DeviceProps	historySyncConfig	5	optional	message	DeviceProps.HistorySyncConfig
+DeviceProps	deviceName	6	optional	string
 DeviceProps.AppVersion	primary	1	optional	uint32
 DeviceProps.AppVersion	secondary	2	optional	uint32
 DeviceProps.AppVersion	tertiary	3	optional	uint32
@@ -1098,12 +1187,53 @@ EmbeddedMusic	artworkMediaKey	11	optional	bytes
 EmbeddedMusic	musicSongStartTimeInMs	12	optional	int64
 EmbeddedMusic	derivedContentStartTimeInMs	13	optional	int64
 EmbeddedMusic	overlapDurationInMs	14	optional	int64
+WebEncryptMessageInput	epochRootKey	1	required	bytes
+WebEncryptMessageInput	mailboxRootKey	2	required	bytes
+WebEncryptMessageInput	orfClientState	3	required	bytes
+WebEncryptMessageInput	epochAnonId	4	required	int32
+WebEncryptMessageInput	epochId	5	required	uint64
+WebEncryptMessageInput	threadId	6	required	string
+WebEncryptMessageInput	waCanonicalUserFbid	7	required	uint64
+WebEncryptMessageInput	timestampMs	8	required	uint64
+WebEncryptMessageInput	backupId	9	required	uint64
+WebEncryptMessageInput	plaintextPayload	10	required	bytes
+WebEncryptMessageInput	stanzaId	11	required	string
+WebEncryptMessageOutput	success	1	optional	message	EncryptMessageSuccess
+WebEncryptMessageOutput	error	2	optional	string
+EncryptMessageSuccess	encryptedProtobuf	1	required	bytes
+EncryptMessageSuccess	orfThreadId	2	required	bytes
+EncryptMessageSuccess	valueSecretRef	3	required	string
+EncryptMessageSuccess	offlineThreadingId	4	required	uint64
+EncryptMessageSuccess	timestampMs	5	required	uint64
 EncryptedPairingRequest	encryptedPayload	1	optional	bytes
 EncryptedPairingRequest	iv	2	optional	bytes
+WebEncryptedSecretValuesOutput	encryptedDevicePrivateKey	1	required	bytes
+WebEncryptedSecretValuesOutput	encryptedObliviousValidationTokenBlob	2	required	bytes
+WebEncryptedSecretValuesOutput	encryptedEpochStoragePrivateKey	3	required	bytes
+WebEncryptedSecretValuesOutput	encryptedOcmfClientState	4	required	bytes
+WebEncryptedSecretValuesOutput	encryptedMailboxRootKeyBlob	6	required	bytes
+WebEncryptedSecretValuesOutput	encryptedEpochAnonId	7	required	bytes
+WebEncryptedSecretValuesOutput	encryptedEpochRootKey	8	required	bytes
 EphemeralSetting	duration	1	optional	sfixed32
 EphemeralSetting	timestamp	2	optional	sfixed64
+WebEpoch0Output	epochAnonId	2	required	int32
+WebEpoch0Output	epochRootKeyFingerprint	6	required	bytes
+WebEpoch0Output	epochRootKey	7	required	bytes
+EpochDerivationEdge	fromEpoch	1	required	message	EpochIds
+EpochDerivationEdge	toEpoch	2	required	message	EpochIds
+EpochDerivationEdge	forwardEdge	3	optional	message	ForwardEdgeInput
+EpochDerivationEdge	backwardEdge	4	optional	bytes
+EpochIds	serverEpochId	1	required	uint64
+EpochIds	epochAnonId	2	required	int32
+EpochKey	serverEpochId	1	required	uint64
+EpochKey	epochAnonId	2	required	int32
+EpochKey	epochRootKey	3	required	bytes
 EventAdditionalMetadata	isStale	1	optional	bool
 EventInviteAdditionalMetadata	isUpdated	1	optional	bool
+EventInviteAdditionalMetadata	selfAccessStatus	2	optional	enum	EventInviteAdditionalMetadata.AccessStatus=0,1
+EventInviteAdditionalMetadata	selfRsvpStatus	3	optional	enum	EventInviteAdditionalMetadata.RsvpStatus=0,1
+EventInviteAdditionalMetadata	selfAdditionalGuestCount	4	optional	uint32
+EventInviteAdditionalMetadata	selfInviteeLastUpdatedTsUsec	5	optional	int64
 EventResponse	eventResponseMessageKey	1	optional	message	MessageKey
 EventResponse	timestampMs	2	optional	int64
 EventResponse	eventResponseMessage	3	optional	message	Message.EventResponseMessage
@@ -1118,7 +1248,6 @@ ExternalBlobReference	fileSha256	5	optional	bytes
 ExternalBlobReference	fileEncSha256	6	optional	bytes
 Field	minVersion	1	optional	uint32
 Field	maxVersion	2	optional	uint32
-Field	notReportableMinVersion	3	optional	uint32
 Field	isMessage	4	optional	bool
 Field	subfield	5	map	map<uint32,message>	Field
 FingerprintData	publicKey	1	optional	bytes
@@ -1127,6 +1256,8 @@ FingerprintData	lidIdentifier	3	optional	bytes
 FingerprintData	usernameIdentifier	4	optional	bytes
 FingerprintData	hostedState	5	optional	enum	FingerprintData.HostedState=0,1
 FingerprintData	hashedPublicKey	6	optional	bytes
+ForwardEdgeInput	encryptedEntropy	1	required	bytes
+ForwardEdgeInput	authPublicKey	2	required	bytes
 ForwardedAIBotMessageInfo	botName	1	optional	string
 ForwardedAIBotMessageInfo	botJid	2	optional	string
 ForwardedAIBotMessageInfo	creatorName	3	optional	string
@@ -1164,11 +1295,26 @@ GroupHistoryWithMessageBytes	uncountedAssociatedMessageLists	2	repeated	message	
 GroupHistoryWithMessageBytes	commentMessages	3	repeated	message	WebMessageInfoWithMessageBytes
 GroupHistoryWithMessageBytes	outOfWindowPinnedMessages	4	repeated	message	WebMessageInfoWithMessageBytes
 GroupHistoryWithMessageBytes	themeMessage	5	optional	message	WebMessageInfoWithMessageBytes
+GroupMembershipForm	questions	1	repeated	message	GroupMembershipFormQuestion
+GroupMembershipForm	memberTagPrompt	2	optional	string
+GroupMembershipForm	schemaVersion	3	optional	uint32
+GroupMembershipFormMemberTagAnswer	prompt	1	optional	string
+GroupMembershipFormMemberTagAnswer	memberTag	2	optional	string
+GroupMembershipFormQuestion	text	1	optional	string
+GroupMembershipFormQuestionAnswer	question	1	optional	message	GroupMembershipFormQuestion
+GroupMembershipFormQuestionAnswer	answer	2	optional	string
+GroupMembershipFormSubmission	questionAnswers	1	repeated	message	GroupMembershipFormQuestionAnswer
+GroupMembershipFormSubmission	memberTagAnswer	2	optional	message	GroupMembershipFormMemberTagAnswer
+GroupMembershipFormSubmission	schemaVersion	3	optional	uint32
 GroupMention	groupJid	1	optional	string
 GroupMention	groupSubject	2	optional	string
 GroupParticipant	userJid	1	required	string
 GroupParticipant	rank	2	optional	enum	GroupParticipant.Rank=0,1
 GroupParticipant	memberLabel	3	optional	message	MemberLabel
+GroupRootKey	keyId	1	optional	string
+GroupRootKey	rootKey	2	optional	bytes
+GroupRootKey	isCurrent	3	optional	bool
+GroupRootKeyRequest	keyId	1	optional	string
 GroupRootKeyShare	keys	1	repeated	message	GroupRootKeyShareEntry
 GroupRootKeyShareEntry	groupRootKey	1	optional	bytes
 GroupRootKeyShareEntry	keyId	2	optional	string
@@ -1300,6 +1446,21 @@ LIDMigrationMapping	assignedLid	2	required	uint64
 LIDMigrationMapping	latestLid	3	optional	uint64
 LIDMigrationMappingSyncPayload	pnToLidMappings	1	repeated	message	LIDMigrationMapping
 LIDMigrationMappingSyncPayload	chatDbMigrationTimestamp	2	optional	uint64
+WebLabyrinthWaCommand	createBackupInput	1	optional	message	CreateBackupInput
+WebLabyrinthWaCommand	encryptMessageInput	2	optional	message	WebEncryptMessageInput
+WebLabyrinthWaCommand	decryptMessageInput	3	optional	message	WebDecryptMessageInput
+WebLabyrinthWaCommand	orfThreadIdInput	4	optional	message	OrfThreadIdInput
+WebLabyrinthWaCommand	deriveMessageKeyInput	5	optional	message	WebDeriveMessageKeyInput
+WebLabyrinthWaCommand	rotateEpochInput	6	optional	message	WebRotateEpochInput
+WebLabyrinthWaCommand	deriveVirtualDeviceIdInput	7	optional	message	DeriveVirtualDeviceIdInput
+WebLabyrinthWaCommand	prepareAddDeviceInput	8	optional	message	PrepareAddDeviceInput
+WebLabyrinthWaCommand	computeClientSealTokenInput	9	optional	message	ComputeClientSealTokenInput
+WebLabyrinthWaCommand	openSealedThreadIdInput	10	optional	message	OpenSealedThreadIdInput
+WebLabyrinthWaCommand	deriveEpochsInput	11	optional	message	DeriveEpochsInput
+WebLabyrinthWaCommand	sealThreadIdInput	12	optional	message	SealThreadIdInput
+WebLabyrinthWaCommand	prepareAddPeerDeviceInput	13	optional	message	PrepareAddPeerDeviceInput
+WebLabyrinthWaCommand	companionTestMessageThreadIdInput	14	optional	message	CompanionTestMessageThreadIdInput
+WebLabyrinthWaCommand	parseCompanionTestMessageInput	15	optional	message	ParseCompanionTestMessageInput
 LegacyMessage	eventResponseMessage	1	optional	message	Message.EventResponseMessage
 LegacyMessage	pollVote	2	optional	message	Message.PollVoteMessage
 LimitSharing	sharingLimited	1	optional	bool
@@ -1349,6 +1510,10 @@ MediaRetryNotification	result	3	optional	enum	MediaRetryNotification.ResultType=
 MediaRetryNotification	messageSecret	4	optional	bytes
 MemberLabel	label	1	optional	string
 MemberLabel	labelTimestamp	2	optional	int64
+MemberLabel	showAdminBadge	3	optional	bool
+MembershipFormKeyFingerprintVerification	requestId	1	optional	string
+MembershipFormKeyFingerprintVerification	keyId	2	optional	string
+MembershipFormKeyFingerprintVerification	keyFingerprint	3	optional	bytes
 Message	conversation	1	optional	string
 Message	senderKeyDistributionMessage	2	optional	message	Message.SenderKeyDistributionMessage
 Message	imageMessage	3	optional	message	Message.ImageMessage
@@ -1466,6 +1631,9 @@ Message	instantImageMessage	135	optional	message	Message.ImageMessage
 Message	requestLocationMessage	136	optional	message	Message.RequestLocationMessage
 Message	botGroupParticipantMessage	137	optional	message	Message.FutureProofMessage
 Message	requestLocationUpdateMessage	138	optional	message	Message.RequestLocationUpdateMessage
+Message	vpcRequestMessage	139	optional	message	Message.VpcRequestMessage
+Message	instantVideoMessage	140	optional	message	Message.VideoMessage
+Message	paymentDetailsMessage	141	optional	message	Message.PaymentDetailsMessage
 Message.AlbumMessage	expectedImageCount	2	optional	uint32
 Message.AlbumMessage	expectedVideoCount	3	optional	uint32
 Message.AlbumMessage	contextInfo	17	optional	message	ContextInfo
@@ -1619,6 +1787,7 @@ Message.DocumentMessage	thumbnailHeight	18	optional	uint32
 Message.DocumentMessage	thumbnailWidth	19	optional	uint32
 Message.DocumentMessage	caption	20	optional	string
 Message.DocumentMessage	accessibilityLabel	21	optional	string
+Message.DocumentMessage	qrUrl	23	optional	string
 Message.EncCommentMessage	targetMessageKey	1	optional	message	MessageKey
 Message.EncCommentMessage	encPayload	2	optional	bytes
 Message.EncCommentMessage	encIv	3	optional	bytes
@@ -1848,6 +2017,7 @@ Message.LinkPreviewMetadata	linkInlineVideoMuted	6	optional	bool
 Message.LinkPreviewMetadata	videoContentUrl	7	optional	string
 Message.LinkPreviewMetadata	musicMetadata	8	optional	message	EmbeddedMusic
 Message.LinkPreviewMetadata	videoContentCaption	9	optional	string
+Message.LinkPreviewMetadata	videoId	10	optional	string
 Message.ListMessage	title	1	optional	string
 Message.ListMessage	description	2	optional	string
 Message.ListMessage	buttonText	3	optional	string
@@ -1966,6 +2136,14 @@ Message.OrderMessage	contextInfo	17	optional	message	ContextInfo
 Message.OrderMessage	messageVersion	12	optional	int32
 Message.OrderMessage	orderRequestMessageId	13	optional	message	MessageKey
 Message.OrderMessage	catalogType	15	optional	string
+Message.PaymentDetailsMessage	serviceType	1	optional	enum	Message.PaymentDetailsMessage.ServiceType=0,1
+Message.PaymentDetailsMessage	amount	2	optional	message	Money
+Message.PaymentDetailsMessage	payeeName	3	optional	string
+Message.PaymentDetailsMessage	payerName	4	optional	string
+Message.PaymentDetailsMessage	transactionTimestampMs	5	optional	int64
+Message.PaymentDetailsMessage	transactionId	6	optional	string
+Message.PaymentDetailsMessage	status	7	optional	enum	Message.PaymentDetailsMessage.Status=0,1
+Message.PaymentDetailsMessage	contextInfo	17	optional	message	ContextInfo
 Message.PaymentExtendedMetadata	type	1	optional	uint32
 Message.PaymentExtendedMetadata	platform	2	optional	string
 Message.PaymentExtendedMetadata	messageParamsJson	3	optional	string
@@ -2194,6 +2372,9 @@ Message.ProtocolMessage	acp2Setting	35	optional	message	ACP2Setting
 Message.ProtocolMessage	sharedDeviceContactHashKeyShare	36	optional	message	Message.SharedDeviceContactHashKeyShare
 Message.ProtocolMessage	sharedDeviceContactHashKeyRequest	37	optional	message	Message.SharedDeviceContactHashKeyRequest
 Message.ProtocolMessage	additionalPromptIds	38	repeated	string
+Message.ProtocolMessage	groupRootKeyRequest	39	optional	message	GroupRootKeyRequest
+Message.ProtocolMessage	membershipFormKeyFingerprintVerification	40	optional	message	MembershipFormKeyFingerprintVerification
+Message.ProtocolMessage	groupRootKeyShare	41	optional	message	GroupRootKeyShare
 Message.QuestionResponseMessage	key	1	optional	message	MessageKey
 Message.QuestionResponseMessage	text	2	optional	string
 Message.ReactionMessage	key	1	optional	message	MessageKey
@@ -2383,6 +2564,9 @@ Message.VideoMessage	metadataUrl	30	optional	string
 Message.VideoMessage	videoSourceType	31	optional	enum	Message.VideoMessage.VideoSourceType=0,1
 Message.VideoMessage	dashManifestUrl	33	optional	string
 Message.VideoMessage	smartThumbnailTs	34	optional	int64
+Message.VpcRequestMessage	payloadSchemaVersion	1	optional	uint32
+Message.VpcRequestMessage	requestId	2	optional	string
+Message.VpcRequestMessage	scopeHint	3	optional	enum	Message.VpcRequestMessage.ScopeHint=0,1
 MessageAddOn	messageAddOnType	1	optional	enum	MessageAddOn.MessageAddOnType=0,1
 MessageAddOn	messageAddOn	2	optional	message	Message
 MessageAddOn	senderTimestampMs	3	optional	int64
@@ -2487,6 +2671,10 @@ MsgOpaqueData	mediaPngThumbnail	61	optional	string
 MsgOpaqueData	qrUrl	62	optional	string
 MsgOpaqueData	musicData	63	optional	message	MsgOpaqueData.MusicData
 MsgOpaqueData	pollAddedOptionName	64	optional	string
+MsgOpaqueData	sharableEventInviteStatus	65	optional	string
+MsgOpaqueData	sharableEventInviteLocationName	66	optional	string
+MsgOpaqueData	sharableEventInviteCoverImageHandle	67	optional	string
+MsgOpaqueData	sharableEventInviteLastUpdatedTsUsec	68	optional	int64
 MsgOpaqueData.EventLocation	degreesLatitude	1	optional	double
 MsgOpaqueData.EventLocation	degreesLongitude	2	optional	double
 MsgOpaqueData.EventLocation	name	3	optional	string
@@ -2555,9 +2743,25 @@ OmittedConversationMetadata	batchIndex	3	optional	uint32
 OmittedConversationMetadata	batchCount	4	optional	uint32
 OmittedConversationMetadata	complete	5	optional	bool
 OmittedConversationMetadata	conversations	6	repeated	message	Conversation
+OpenSealedThreadIdInput	backupId	1	required	uint64
+OpenSealedThreadIdInput	sealedThreadId	2	required	bytes
+OpenSealedThreadIdInput	epochs	3	repeated	message	EpochKey
+OpenSealedThreadIdOutput	success	1	optional	message	OpenSealedThreadIdSuccess
+OpenSealedThreadIdOutput	error	2	optional	string
+OpenSealedThreadIdSuccess	threadId	1	required	string
+OpenSealedThreadIdSuccess	sealEpochAnonId	2	required	int32
+OrfThreadIdInput	orfClientState	1	required	bytes
+OrfThreadIdInput	threadId	2	required	string
+WebOrfThreadIdOutput	success	1	optional	message	OrfThreadIdSuccess
+WebOrfThreadIdOutput	error	2	optional	string
+OrfThreadIdSuccess	orfThreadId	1	required	bytes
 PairingRequest	companionPublicKey	1	optional	bytes
 PairingRequest	companionIdentityKey	2	optional	bytes
 PairingRequest	advSecret	3	optional	bytes
+ParseCompanionTestMessageInput	plaintext	1	required	bytes
+ParseCompanionTestMessageOutput	success	1	optional	message	ParseCompanionTestMessageSuccess
+ParseCompanionTestMessageOutput	error	2	optional	string
+ParseCompanionTestMessageSuccess	createdAtMs	1	required	uint64
 PastParticipant	userJid	1	optional	string
 PastParticipant	leaveReason	2	optional	enum	PastParticipant.LeaveReason=0,1
 PastParticipant	leaveTs	3	optional	uint64
@@ -2619,8 +2823,22 @@ Point	y	4	optional	double
 PollAdditionalMetadata	pollInvalidated	1	optional	bool
 PollAdditionalMetadata	pollNameHashHistory	2	repeated	message	PollAdditionalMetadata.PollNameHashHistoryEntry
 PollAdditionalMetadata	originalOptions	3	repeated	message	Message.PollCreationMessage.Option
+PollAdditionalMetadata	pollOptionReplayEntries	4	repeated	message	PollAdditionalMetadata.PollOptionReplayEntry
+PollAdditionalMetadata	pollOptionReplayBase	5	optional	message	PollAdditionalMetadata.PollOptionReplayBase
 PollAdditionalMetadata.PollNameHashHistoryEntry	editStanzaId	1	optional	string
 PollAdditionalMetadata.PollNameHashHistoryEntry	pollNameHash	2	optional	bytes
+PollAdditionalMetadata.PollOptionReplayBase	boundaryTimestampMs	1	optional	int64
+PollAdditionalMetadata.PollOptionReplayBase	editTimestampMs	2	optional	int64
+PollAdditionalMetadata.PollOptionReplayBase	options	3	repeated	message	PollAdditionalMetadata.PollOptionReplayBase.Option
+PollAdditionalMetadata.PollOptionReplayBase.Option	optionHash	1	optional	bytes
+PollAdditionalMetadata.PollOptionReplayBase.Option	enteredTimestampMs	2	optional	int64
+PollAdditionalMetadata.PollOptionReplayBase.Option	addMessageKey	3	optional	message	MessageKey
+PollAdditionalMetadata.PollOptionReplayEntry	type	1	optional	enum	PollAdditionalMetadata.PollOptionReplayEntry.Type=0,1
+PollAdditionalMetadata.PollOptionReplayEntry	messageKey	2	optional	message	MessageKey
+PollAdditionalMetadata.PollOptionReplayEntry	serverTimestampMs	3	optional	int64
+PollAdditionalMetadata.PollOptionReplayEntry	editTimestampMs	4	optional	int64
+PollAdditionalMetadata.PollOptionReplayEntry	optionHashes	5	repeated	bytes
+PollAdditionalMetadata.PollOptionReplayEntry	revokedMessageKey	6	optional	message	MessageKey
 PollEncValue	encPayload	1	optional	bytes
 PollEncValue	encIv	2	optional	bytes
 PollUpdate	pollUpdateMessageKey	1	optional	message	MessageKey
@@ -2641,6 +2859,34 @@ PreKeySignalMessage	message	4	optional	bytes
 PreKeySignalMessage	kyberPreKeyId	7	optional	uint32
 PreKeySignalMessage	kyberCiphertext	8	optional	bytes
 PremiumMessageInfo	serverCampaignId	1	optional	string
+PrepareAddDeviceInput	recoveryCode	1	required	string
+PrepareAddDeviceInput	userId	2	required	uint64
+PrepareAddDeviceInput	encryptedSecretValuesJson	3	required	string
+PrepareAddDeviceInput	virtualDeviceBaseEpochId	4	required	uint64
+PrepareAddDeviceInput	activeEpochId	5	required	uint64
+PrepareAddDeviceInput	syncEpochs	6	repeated	message	AddDeviceSyncEpochInput
+PrepareAddDeviceOutput	success	1	optional	message	PrepareAddDeviceSuccess
+PrepareAddDeviceOutput	error	2	optional	string
+PrepareAddDeviceSuccess	deviceKeys	1	required	message	AddDeviceKeysOutput
+PrepareAddDeviceSuccess	currentEpoch	2	required	message	EpochKey
+PrepareAddDeviceSuccess	mailboxRootSalt	3	required	bytes
+PrepareAddDeviceSuccess	orfRotationToken	4	required	bytes
+PrepareAddDeviceSuccess	deviceEpochHmac	5	required	bytes
+PrepareAddDeviceSuccess	epochRootKeyFingerprint	6	required	bytes
+PrepareAddDeviceSuccess	supportedEncryptionVersions	7	repeated	int32
+PrepareAddDeviceSuccess	encryptionVersionSignature	8	required	bytes
+PrepareAddDeviceSuccess	clientVersion	9	required	int32
+PrepareAddPeerDeviceInput	advSecret	1	required	bytes
+PrepareAddPeerDeviceInput	sealedPayload	2	required	bytes
+PrepareAddPeerDeviceInput	backupId	3	required	uint64
+PrepareAddPeerDeviceInput	userId	4	required	uint64
+PrepareAddPeerDeviceInput	companionIdentityPub	5	required	bytes
+PrepareAddPeerDeviceInput	activeEpochId	6	required	uint64
+PrepareAddPeerDeviceOutput	success	1	optional	message	PrepareAddPeerDeviceSuccess
+PrepareAddPeerDeviceOutput	error	2	optional	string
+PrepareAddPeerDeviceSuccess	enrolment	1	required	message	PrepareAddDeviceSuccess
+PrepareAddPeerDeviceSuccess	serverDataId	2	required	uint64
+PrepareAddPeerDeviceSuccess	companionDeviceBinding	3	required	bytes
 PrimaryEphemeralIdentity	publicKey	1	optional	bytes
 PrimaryEphemeralIdentity	nonce	2	optional	bytes
 ProcessedVideo	directPath	1	optional	string
@@ -2676,12 +2922,28 @@ RecentEmojiWeight	emoji	1	optional	string
 RecentEmojiWeight	weight	2	optional	float
 RecordStructure	currentSession	1	optional	message	SessionStructure
 RecordStructure	previousSessions	2	repeated	message	SessionStructure
-Reportable	minVersion	1	optional	uint32
-Reportable	maxVersion	2	optional	uint32
-Reportable	notReportableMinVersion	3	optional	uint32
-Reportable	never	4	optional	bool
 ReportingTokenInfo	reportingTag	1	optional	bytes
 ReportingTokenInfo	reportingTagTimestamp	2	optional	uint64
+WebRotateEpochInput	currentEpochRootKey	1	required	bytes
+WebRotateEpochInput	currentEpochAnonId	2	required	int32
+WebRotateEpochInput	currentEpochFbid	3	required	uint64
+WebRotateEpochInput	epochStorageAuthPrivateKey	4	required	bytes
+WebRotateEpochInput	members	5	repeated	message	WebRotateEpochMemberInput
+WebRotateEpochMemberEdge	deviceId	1	required	uint64
+WebRotateEpochMemberEdge	encryptedEpochKey	2	required	bytes
+WebRotateEpochMemberEdge	deviceEpochHmac	3	required	bytes
+WebRotateEpochMemberInput	deviceId	1	required	uint64
+WebRotateEpochMemberInput	epochStoragePublicKey	2	required	bytes
+WebRotateEpochMemberInput	devicePublicKey	3	required	bytes
+WebRotateEpochMemberInput	prevDeviceEpochHmac	4	required	bytes
+WebRotateEpochMemberInput	epochStoragePublicKeySig	5	required	bytes
+WebRotateEpochOutput	success	1	optional	message	RotateEpochSuccess
+WebRotateEpochOutput	error	2	optional	string
+RotateEpochSuccess	newEpochRootKey	1	required	bytes
+RotateEpochSuccess	newEpochAnonId	2	required	int32
+RotateEpochSuccess	backwardEdge	4	required	message	WebBackwardEdge
+RotateEpochSuccess	memberEdges	5	repeated	message	WebRotateEpochMemberEdge
+RotateEpochSuccess	epochRootKeyFingerprint	6	required	bytes
 RoutingInfo	regionId	1	repeated	int32
 RoutingInfo	clusterId	2	repeated	int32
 RoutingInfo	taskId	3	optional	int32
@@ -2691,6 +2953,13 @@ RoutingInfo	tcpKeepalive	6	optional	bool
 ScheduledMessageMetadata	revealKeyId	1	optional	string
 ScheduledMessageMetadata	revealKey	2	optional	bytes
 ScheduledMessageMetadata	scheduledTime	3	optional	uint64
+SealThreadIdInput	epochRootKey	1	required	bytes
+SealThreadIdInput	epochAnonId	2	required	int32
+SealThreadIdInput	backupId	3	required	uint64
+SealThreadIdInput	threadId	4	required	string
+SealThreadIdOutput	success	1	optional	message	SealThreadIdSuccess
+SealThreadIdOutput	error	2	optional	string
+SealThreadIdSuccess	sealedThreadId	1	required	bytes
 SenderKeyDistributionMessage	id	1	optional	uint32
 SenderKeyDistributionMessage	iteration	2	optional	uint32
 SenderKeyDistributionMessage	chainKey	3	optional	bytes
@@ -2765,6 +3034,7 @@ StatusAttribution	music	5	optional	message	StatusAttribution.Music
 StatusAttribution	groupStatus	6	optional	message	StatusAttribution.GroupStatus
 StatusAttribution	rlAttribution	7	optional	message	StatusAttribution.RLAttribution
 StatusAttribution	aiCreatedAttribution	8	optional	message	StatusAttribution.AiCreatedAttribution
+StatusAttribution	statusTemplate	9	optional	message	StatusAttribution.StatusTemplate
 StatusAttribution.AiCreatedAttribution	source	1	optional	enum	StatusAttribution.AiCreatedAttribution.Source=0,1
 StatusAttribution.ExternalShare	actionUrl	1	optional	string
 StatusAttribution.ExternalShare	source	2	optional	enum	StatusAttribution.ExternalShare.Source=0,1
@@ -2784,6 +3054,9 @@ StatusAttribution.StatusReshare.Metadata	duration	1	optional	int32
 StatusAttribution.StatusReshare.Metadata	channelJid	2	optional	string
 StatusAttribution.StatusReshare.Metadata	channelMessageId	3	optional	int32
 StatusAttribution.StatusReshare.Metadata	hasMultipleReshares	4	optional	bool
+StatusAttribution.StatusTemplate	templateId	1	optional	string
+StatusAttribution.StatusTemplate	templateName	2	optional	string
+StatusAttribution.StatusTemplate	thumbnailUrl	3	optional	string
 StatusMentionMessage	quotedStatus	1	optional	message	Message
 StatusPSA	campaignId	44	required	uint64
 StatusPSA	campaignExpirationTimestamp	45	optional	uint64
@@ -3234,6 +3507,13 @@ VerifiedNameCertificate.Details	issuer	2	optional	string
 VerifiedNameCertificate.Details	verifiedName	4	optional	string
 VerifiedNameCertificate.Details	localizedNames	8	repeated	message	LocalizedName
 VerifiedNameCertificate.Details	issueTime	10	optional	uint64
+WebVirtualDeviceOutput	vdId	1	required	bytes
+WebVirtualDeviceOutput	vdPublicKey	2	required	bytes
+WebVirtualDeviceOutput	vdEpochStoragePublicKey	3	required	bytes
+WebVirtualDeviceOutput	vdEpochStoragePublicKeySig	4	required	bytes
+WebVirtualDeviceOutput	ocmfRotationToken	5	required	bytes
+WebVirtualDeviceOutput	deviceEpochHmac	6	required	bytes
+WebVirtualDeviceOutput	encryptedSecretValues	7	required	message	WebEncryptedSecretValuesOutput
 WallpaperSettings	filename	1	optional	string
 WallpaperSettings	opacity	2	optional	uint32
 WallpaperSettings	isGenAi	3	optional	bool
@@ -3355,6 +3635,7 @@ WebMessageInfo	scheduledMessageMetadata	81	optional	message	ScheduledMessageMeta
 WebMessageInfo	decisionId	82	optional	string
 WebMessageInfo	decisionSources	83	repeated	string
 WebMessageInfo	eventInviteAdditionalMetadata	84	optional	message	EventInviteAdditionalMetadata
+WebMessageInfo	groupHistoryLastCountedMessageTimestamp	85	optional	uint64
 WebMessageInfoWithMessageBytes	key	1	optional	message	MessageKey
 WebMessageInfoWithMessageBytes	messageBytes	2	optional	bytes
 WebNotificationsInfo	timestamp	2	optional	uint64
@@ -3467,8 +3748,6 @@ ConsumerApplication.VideoMessage	video	1	optional	message	SubProtocol
 ConsumerApplication.VideoMessage	caption	2	optional	message	MessageText
 ConsumerApplication.ViewOnceMessage	imageMessage	1	optional	message	ConsumerApplication.ImageMessage
 ConsumerApplication.ViewOnceMessage	videoMessage	2	optional	message	ConsumerApplication.VideoMessage
-CreateBackupInput	recoveryCode	1	required	string
-CreateBackupInput	userId	2	required	uint64
 CreateBackupOutput	device	1	optional	message	DeviceOutput
 CreateBackupOutput	virtualDevice	2	optional	message	VirtualDeviceOutput
 CreateBackupOutput	epoch0	3	optional	message	Epoch0Output
@@ -3849,8 +4128,6 @@ MmkDistributionToMailbox	recipMailboxHeadHash	2	required	bytes
 MmkFromDetachedDevice	mmk	1	required	message	MessagingMailboxPublicData
 MmkFromDetachedDevice	fromDetachedDevice	2	required	message	DetachedDevicePublicData
 MmkFromDetachedDevice	membershipProof	3	required	message	MerkleMembershipProof
-OrfThreadIdInput	orfClientState	1	required	bytes
-OrfThreadIdInput	threadId	2	required	string
 OrfThreadIdOutput	orfThreadId	1	optional	bytes
 OrfThreadIdOutput	error	2	optional	string
 RotateEpochInput	currentEpochRootKey	1	required	bytes
@@ -3888,3 +4165,7 @@ WrapTransportSigningPublicKeyInput	keyBytes	1	required	bytes
 WrapTransportSigningPublicKeyResult	prefixedKey	1	required	bytes
 WrapTransportSigningSecretKeyInput	keyBytes	1	required	bytes
 WrapTransportSigningSecretKeyResult	prefixedKey	1	required	bytes
+Reportable	minVersion	1	optional	uint32
+Reportable	maxVersion	2	optional	uint32
+Reportable	notReportableMinVersion	3	optional	uint32
+Reportable	never	4	optional	bool

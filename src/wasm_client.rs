@@ -4031,7 +4031,7 @@ mod event_delivery_tests {
             Receipt::builder()
                 .source(source)
                 .message_ids(vec![id.into()])
-                .timestamp(wacore::chrono::DateTime::from_timestamp(1, 0).expect("valid timestamp"))
+                .timestamp(wacore::Timestamp::from_secs(1).expect("valid timestamp"))
                 .r#type(ReceiptType::Delivered)
                 .offline(false)
                 .build(),
@@ -4309,7 +4309,7 @@ mod dispatched_event_tests {
     use std::time::Duration;
     use wasm_bindgen::closure::Closure;
     use wasm_bindgen_test::wasm_bindgen_test as test;
-    use whatsapp_rust::wacore::chrono::{DateTime, Utc};
+    use whatsapp_rust::Timestamp;
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
         AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
@@ -4372,8 +4372,8 @@ mod dispatched_event_tests {
         raw.parse().expect("valid jid")
     }
 
-    fn timestamp() -> DateTime<Utc> {
-        DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
+    fn timestamp() -> Timestamp {
+        Timestamp::from_secs(1_700_000_000).expect("valid timestamp")
     }
 
     /// Pin the dispatched Serde array representation used by generated key types.
@@ -4441,10 +4441,7 @@ mod dispatched_event_tests {
         use wacore::types::events::{LabelSublistChange, LabelSublistUpdate};
         for (change, time) in [
             (LabelSublistChange::Upsert { sub_list_id: 0 }, None),
-            (
-                LabelSublistChange::Remove,
-                Some(DateTime::from_timestamp(0, 0).unwrap()),
-            ),
+            (LabelSublistChange::Remove, Some(Timestamp::UNIX_EPOCH)),
         ] {
             let update = LabelSublistUpdate::builder()
                 .predefined_id(-123)
@@ -4475,10 +4472,7 @@ mod dispatched_event_tests {
                         field(&data, "change").as_string().as_deref(),
                         Some("Remove")
                     );
-                    assert_eq!(
-                        field(&data, "action_timestamp").as_string().as_deref(),
-                        Some("1970-01-01T00:00:00Z")
-                    );
+                    assert_eq!(field(&data, "action_timestamp").as_f64(), Some(0.0));
                 }
                 _ => unreachable!(),
             }
@@ -4523,11 +4517,9 @@ mod dispatched_event_tests {
             Some("5511999")
         );
         assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
-        // A `DateTime<Utc>` with no serde attribute crosses as chrono's RFC 3339
-        // string, the same as every app-state event already exposed.
         assert_eq!(
-            field(&data, "timestamp").as_string().as_deref(),
-            Some("2023-11-14T22:13:20Z")
+            field(&data, "timestamp").as_f64(),
+            Some(1_700_000_000_000.0)
         );
     }
 

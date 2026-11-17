@@ -292,16 +292,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono"
-version = "0.4.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
-dependencies = [
- "num-traits",
- "serde",
-]
-
-[[package]]
 name = "cipher"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1511,7 +1501,7 @@ dependencies = [
 [[package]]
 name = "wacore"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "aes",
  "anyhow",
@@ -1524,7 +1514,6 @@ dependencies = [
  "buffa-build",
  "bytes",
  "cbc",
- "chrono",
  "compact_str",
  "ctr",
  "event-listener",
@@ -1560,7 +1549,7 @@ dependencies = [
 [[package]]
 name = "wacore-appstate"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1582,7 +1571,7 @@ dependencies = [
 [[package]]
 name = "wacore-binary"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "bytes",
  "compact_str",
@@ -1601,7 +1590,7 @@ dependencies = [
 [[package]]
 name = "wacore-derive"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1611,7 +1600,7 @@ dependencies = [
 [[package]]
 name = "wacore-libsignal"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -1621,7 +1610,6 @@ dependencies = [
  "buffa",
  "bytes",
  "cbc",
- "chrono",
  "ctr",
  "hex",
  "hkdf",
@@ -1643,7 +1631,7 @@ dependencies = [
 [[package]]
 name = "wacore-noise"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "anyhow",
  "buffa",
@@ -1671,7 +1659,7 @@ dependencies = [
 [[package]]
 name = "waproto"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "buffa",
  "buffa-build",
@@ -1804,7 +1792,7 @@ dependencies = [
 [[package]]
 name = "whatsapp-rust"
 version = "0.7.0"
-source = "git+https://github.com/oxidezap/whatsapp-rust?rev=4772efbee2cce7f6b3639156bfee900a96ce3a12#4772efbee2cce7f6b3639156bfee900a96ce3a12"
+source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1814,7 +1802,6 @@ dependencies = [
  "bon",
  "buffa",
  "bytes",
- "chrono",
  "event-listener",
  "flate2",
  "futures",
