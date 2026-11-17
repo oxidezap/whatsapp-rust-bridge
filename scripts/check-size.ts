@@ -12,12 +12,11 @@
  */
 import { packedContents } from "./pack";
 
-// Core f077a5d4 with durable Signal enumeration measures 8,600,969 bytes
-// in CI with Bun 1.4.4, Node 26.13.0, wasm-pack 0.15.1 and Binaryen 133:
-// 27,835 bytes above the previous 15371d1b reference. Keep 12,031 bytes
-// headroom. The function budget and inlining flags stay unchanged;
-// this artifact allowance makes no CPU or memory parity claim.
-const MAX_UNPACKED_BYTES = 8_613_000;
+// The published 0.26.8 package is 8,609,080 bytes unpacked. The hosted
+// release build with batch reads (#177) is 8,616,598 bytes, an increase of
+// 7,518 bytes. Allow that measured package size for reducing up to 512
+// per-key reads to one host callback. The WASM function limit is separate.
+const MAX_UNPACKED_BYTES = 8_616_598;
 
 const { files, unpackedSize: total } = packedContents();
 
