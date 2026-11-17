@@ -28,4 +28,7 @@ describe("client teardown", () => {
   test("disconnect is a barrier before free", async () => {
     expect(await runFixture("teardown-barrier.ts")).toBe("");
   });
+  test("ingress overflow allows the host logger to signal disconnect", async () => {
+    expect(await runFixture("ingress-reentrant-logger.ts")).toBe("");
+  });
 });

@@ -13,9 +13,9 @@
 import { packedContents } from "./pack";
 
 // Main at a9a303a measured 8,617,116 bytes on CI after the dependency bump.
-// The paired local ingress build adds about 270 bytes. The WASM function
+// The paired local ingress build adds 389 bytes. The WASM function
 // budget remains separate.
-const MAX_UNPACKED_BYTES = 8_617_400;
+const MAX_UNPACKED_BYTES = 8_617_550;
 
 const { files, unpackedSize: total } = packedContents();
 

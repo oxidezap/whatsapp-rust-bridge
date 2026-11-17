@@ -124,31 +124,65 @@ struct Ingress {
     byte_limit: usize,
 }
 
-impl Ingress {
-    fn has_room(&mut self, size: usize) -> bool {
-        if !self.tx.is_closed() {
-            // The JS handle owns all producers. They enqueue synchronously on
-            // one thread, so a reduction in the channel length is a FIFO drain.
-            let queued = self.tx.len();
-            while self.sizes.len() > queued {
-                self.queued_bytes -= self.sizes.pop_front().expect("queued event size");
-            }
-            if !self.tx.is_full() && size <= self.byte_limit - self.queued_bytes {
-                return true;
-            }
-            // Losing encrypted data invalidates the Noise counter for this socket.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Admission {
+    Ready,
+    Closed,
+    Overflow,
+}
+
+impl Admission {
+    fn report(self) -> bool {
+        if self == Self::Overflow {
             log::error!("Transport ingress budget exceeded; closing to force reconnect");
-            self.tx.close();
         }
-        self.sizes = VecDeque::new();
-        self.queued_bytes = 0;
-        false
+        self == Self::Ready
+    }
+}
+
+impl Ingress {
+    fn admission(&mut self, size: usize) -> Admission {
+        if self.tx.is_closed() {
+            self.clear();
+            return Admission::Closed;
+        }
+        // The JS handle owns all producers. They enqueue synchronously on
+        // one thread, so a reduction in the channel length is a FIFO drain.
+        let queued = self.tx.len();
+        while self.sizes.len() > queued {
+            self.queued_bytes -= self.sizes.pop_front().expect("queued event size");
+        }
+        if !self.tx.is_full() && size <= self.byte_limit - self.queued_bytes {
+            return Admission::Ready;
+        }
+        self.close_on_overflow()
     }
 
-    fn enqueue(&mut self, size: usize, event: TransportEvent) {
-        if self.has_room(size) && self.tx.try_send(event).is_ok() {
-            self.sizes.push_back(size);
-            self.queued_bytes += size;
+    fn clear(&mut self) {
+        self.sizes = VecDeque::new();
+        self.queued_bytes = 0;
+    }
+
+    fn close_on_overflow(&mut self) -> Admission {
+        // Losing encrypted data invalidates the Noise counter for this socket.
+        self.tx.close();
+        self.clear();
+        Admission::Overflow
+    }
+
+    fn enqueue(&mut self, size: usize, event: TransportEvent) -> Admission {
+        let admission = self.admission(size);
+        if admission != Admission::Ready {
+            return admission;
+        }
+        match self.tx.try_send(event) {
+            Ok(()) => {
+                self.sizes.push_back(size);
+                self.queued_bytes += size;
+                Admission::Ready
+            }
+            Err(async_channel::TrySendError::Closed(_)) => Admission::Closed,
+            Err(async_channel::TrySendError::Full(_)) => self.close_on_overflow(),
         }
     }
 }
@@ -164,26 +198,32 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>, byte_limit:
 
     let queue = ingress.clone();
     let on_data = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
-        if !queue.borrow_mut().has_room(data.length() as usize) {
+        // Logging can call a JS host callback that re-enters this handle.
+        let size = data.length() as usize;
+        let admission = queue.borrow_mut().admission(size);
+        if !admission.report() {
             return;
         }
         let bytes = Bytes::from(crate::js_bytes::to_vec(&data));
-        queue
+        let admission = queue
             .borrow_mut()
             .enqueue(bytes.len(), TransportEvent::DataReceived(bytes));
+        admission.report();
     }) as Box<dyn FnMut(js_sys::Uint8Array)>);
     let _ = js_sys::Reflect::set(&obj, &"onData".into(), &on_data.into_js_value());
 
     let queue = ingress.clone();
     let on_connected = Closure::wrap(Box::new(move || {
-        queue.borrow_mut().enqueue(0, TransportEvent::Connected);
+        let admission = queue.borrow_mut().enqueue(0, TransportEvent::Connected);
+        admission.report();
     }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(&obj, &"onConnected".into(), &on_connected.into_js_value());
 
     let on_disconnected = Closure::wrap(Box::new(move || {
-        ingress
+        let admission = ingress
             .borrow_mut()
             .enqueue(0, TransportEvent::Disconnected(DisconnectReason::Unknown));
+        admission.report();
     }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(
         &obj,
