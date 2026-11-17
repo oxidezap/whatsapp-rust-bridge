@@ -1377,10 +1377,10 @@ fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
     let module = serde_timestamp_module(&field.attrs)?;
     let module = module.rsplit("::").next().unwrap_or_default();
     match module {
-        "serde_seconds" | "ts_seconds" | "ts_milliseconds" | "ts_microseconds" | "ts_nanoseconds" => {
-            Some(("number".to_string(), false))
-        }
-        "serde_seconds_option" | "ts_seconds_option"
+        "serde_seconds" | "ts_seconds" | "ts_milliseconds" | "ts_microseconds"
+        | "ts_nanoseconds" => Some(("number".to_string(), false)),
+        "serde_seconds_option"
+        | "ts_seconds_option"
         | "ts_milliseconds_option"
         | "ts_microseconds_option"
         | "ts_nanoseconds_option" => Some(("number | null".to_string(), true)),
