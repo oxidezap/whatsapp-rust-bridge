@@ -178,10 +178,11 @@ pub struct JsBackend {
 
 crate::wasm_send_sync!(JsBackend);
 
-/// Chunk size for value-scanning enumeration (delete-expired sweeps). Bounds
-/// how many values are materialized across the FFI boundary at once so a
-/// 20k-entry namespace doesn't spike JS-side memory in a single call.
+/// Bounds the rows materialized per JS call in read batches and expiry sweeps.
 const SCAN_CHUNK: usize = 512;
+
+type IndexedRows = Vec<(usize, Vec<u8>)>;
+
 impl JsBackend {
     fn new(h: JsBackendHandles) -> Self {
         // A capability is only honored when its required method is actually
@@ -273,62 +274,64 @@ impl JsBackend {
         self.js_get_many_raw(store, keys).await
     }
 
-    async fn js_read_batch<K: AsRef<str>>(
-        &self,
-        store: &str,
-        keys: &[K],
-    ) -> Result<Vec<(usize, Vec<u8>)>> {
-        let mut values = Vec::new();
-        if self.get_many_fn.is_none() {
-            for (index, key) in keys.iter().enumerate() {
-                if let Some(value) = self.js_get(store, key.as_ref()).await? {
-                    values.push((index, value));
-                }
-            }
-            return Ok(values);
-        }
-
-        for (chunk_index, chunk) in keys.chunks(SCAN_CHUNK).enumerate() {
-            let mut requested = HashMap::with_capacity(chunk.len());
-            let mut unique = Vec::with_capacity(chunk.len());
-            for key in chunk.iter().map(AsRef::as_ref) {
-                match requested.entry(key) {
-                    Entry::Vacant(entry) => {
-                        entry.insert((1, None));
-                        unique.push(key);
-                    }
-                    Entry::Occupied(mut entry) => entry.get_mut().0 += 1,
-                }
-            }
-            for (key, value) in self.js_get_many_raw(store, &unique).await? {
-                match requested.get_mut(key.as_str()) {
-                    Some((_, slot @ None)) => *slot = Some(value),
-                    _ => {
-                        return Err(js_err_to_store_err(
-                            "getMany",
-                            JsValue::from_str("returned an unrequested or duplicate key"),
-                        ));
+    // Share one poll implementation across the three storage traits in the release WASM.
+    #[inline(never)]
+    fn js_read_batch<'a>(
+        &'a self,
+        store: &'static str,
+        keys: &'a [&str],
+    ) -> wacore::runtime::BoxFuture<'a, Result<IndexedRows>> {
+        Box::pin(async move {
+            let mut values = Vec::new();
+            let Some(callback) = &self.get_many_fn else {
+                for (index, key) in keys.iter().enumerate() {
+                    if let Some(value) = self.js_get(store, key).await? {
+                        values.push((index, value));
                     }
                 }
-            }
+                return Ok(values);
+            };
 
-            let offset = chunk_index * SCAN_CHUNK;
-            for (index, key) in chunk.iter().enumerate() {
-                let (remaining, slot) = requested
-                    .get_mut(key.as_ref())
-                    .expect("inserted request key");
-                *remaining -= 1;
-                let value = if *remaining == 0 {
-                    slot.take()
-                } else {
-                    slot.clone()
-                };
-                if let Some(value) = value {
-                    values.push((offset + index, value));
+            for (chunk_index, chunk) in keys.chunks(SCAN_CHUNK).enumerate() {
+                let mut requested = HashMap::with_capacity(chunk.len());
+                let unique = js_sys::Array::new();
+                for &key in chunk {
+                    match requested.entry(key) {
+                        Entry::Vacant(entry) => {
+                            entry.insert((1, None));
+                            unique.push(&key.into());
+                        }
+                        Entry::Occupied(mut entry) => entry.get_mut().0 += 1,
+                    }
+                }
+                for (key, value) in Self::call_get_many(callback, store, unique).await? {
+                    match requested.get_mut(key.as_str()) {
+                        Some((_, slot @ None)) => *slot = Some(value),
+                        _ => {
+                            return Err(js_err_to_store_err(
+                                "getMany",
+                                JsValue::from_str("returned an unrequested or duplicate key"),
+                            ));
+                        }
+                    }
+                }
+
+                let offset = chunk_index * SCAN_CHUNK;
+                for (index, key) in chunk.iter().enumerate() {
+                    let (remaining, slot) = requested.get_mut(key).expect("inserted request key");
+                    *remaining -= 1;
+                    let value = if *remaining == 0 {
+                        slot.take()
+                    } else {
+                        slot.clone()
+                    };
+                    if let Some(value) = value {
+                        values.push((offset + index, value));
+                    }
                 }
             }
-        }
-        Ok(values)
+            Ok(values)
+        })
     }
 
     async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
@@ -455,33 +458,40 @@ impl JsBackend {
     async fn js_get_many_raw(
         &self,
         store: &str,
-        keys: &[impl AsRef<str>],
+        keys: &[String],
     ) -> Result<Vec<(String, Vec<u8>)>> {
         if keys.is_empty() {
             return Ok(Vec::new());
         }
-        if let Some(f) = self.get_many_fn.as_ref() {
+        if let Some(callback) = self.get_many_fn.as_ref() {
             let arr = js_sys::Array::new();
-            for k in keys {
-                arr.push(&JsValue::from_str(k.as_ref()));
+            for key in keys {
+                arr.push(&JsValue::from_str(key));
             }
-            let result = f
-                .call2(&JsValue::NULL, &store.into(), &arr.into())
-                .map_err(|e| js_err_to_store_err("getMany", e))?;
-            let resolved = resolve_promise(result)
-                .await
-                .map_err(|e| js_err_to_store_err("getMany", e))?;
-            return parse_entry_array(resolved, "getMany", keys.len());
+            return Self::call_get_many(callback, store, arr).await;
         }
-        // Fallback: per-key gets (raw — this IS the raw path; the cache-aware
-        // js_get_many handles caching before delegating here).
         let mut out = Vec::with_capacity(keys.len());
         for k in keys {
-            if let Some(v) = self.js_get_raw(store, k.as_ref()).await? {
-                out.push((k.as_ref().to_owned(), v));
+            if let Some(v) = self.js_get_raw(store, k).await? {
+                out.push((k.clone(), v));
             }
         }
         Ok(out)
+    }
+
+    async fn call_get_many(
+        callback: &js_sys::Function,
+        store: &str,
+        keys: js_sys::Array,
+    ) -> Result<Vec<(String, Vec<u8>)>> {
+        let len = keys.length() as usize;
+        let result = callback
+            .call2(&JsValue::NULL, &store.into(), &keys)
+            .map_err(|error| js_err_to_store_err("getMany", error))?;
+        let resolved = resolve_promise(result)
+            .await
+            .map_err(|error| js_err_to_store_err("getMany", error))?;
+        parse_entry_array(resolved, "getMany", len)
     }
 
     /// Enumerate live keys in `store` (optionally prefix-filtered) via the
@@ -696,8 +706,9 @@ generated_signal_store! {
 
 
     async fn get_sessions_batch(&self, addresses: &[Arc<str>]) -> Result<Vec<(Arc<str>, Bytes)>> {
+        let keys: Vec<_> = addresses.iter().map(AsRef::as_ref).collect();
         Ok(self
-            .js_read_batch(STORE_SESSION, addresses)
+            .js_read_batch(STORE_SESSION, &keys)
             .await?
             .into_iter()
             .map(|(index, value)| (Arc::clone(&addresses[index]), Bytes::from(value)))
@@ -969,7 +980,8 @@ generated_app_sync_store! {
                 .iter()
                 .map(|mac| format!("{}:{}", name, to_hex(mac)))
                 .collect();
-            for (index, value) in self.js_read_batch(STORE_MUTATION_MAC, &keys).await? {
+            let key_refs: Vec<_> = keys.iter().map(String::as_str).collect();
+            for (index, value) in self.js_read_batch(STORE_MUTATION_MAC, &key_refs).await? {
                 macs.insert(chunk[index], value);
             }
         }
