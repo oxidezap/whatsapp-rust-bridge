@@ -9,6 +9,7 @@
 //!
 //! Complex types (Device, AppStateSyncKey, HashState, etc.) are serialized as JSON bytes.
 
+use std::collections::{HashMap, hash_map::Entry};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, Ordering};
 
@@ -272,6 +273,64 @@ impl JsBackend {
         self.js_get_many_raw(store, keys).await
     }
 
+    async fn js_read_batch<K: AsRef<str>>(
+        &self,
+        store: &str,
+        keys: &[K],
+    ) -> Result<Vec<(usize, Vec<u8>)>> {
+        let mut values = Vec::new();
+        if self.get_many_fn.is_none() {
+            for (index, key) in keys.iter().enumerate() {
+                if let Some(value) = self.js_get(store, key.as_ref()).await? {
+                    values.push((index, value));
+                }
+            }
+            return Ok(values);
+        }
+
+        for (chunk_index, chunk) in keys.chunks(SCAN_CHUNK).enumerate() {
+            let mut requested = HashMap::with_capacity(chunk.len());
+            let mut unique = Vec::with_capacity(chunk.len());
+            for key in chunk.iter().map(AsRef::as_ref) {
+                match requested.entry(key) {
+                    Entry::Vacant(entry) => {
+                        entry.insert((1, None));
+                        unique.push(key);
+                    }
+                    Entry::Occupied(mut entry) => entry.get_mut().0 += 1,
+                }
+            }
+            for (key, value) in self.js_get_many_raw(store, &unique).await? {
+                match requested.get_mut(key.as_str()) {
+                    Some((_, slot @ None)) => *slot = Some(value),
+                    _ => {
+                        return Err(js_err_to_store_err(
+                            "getMany",
+                            JsValue::from_str("returned an unrequested or duplicate key"),
+                        ));
+                    }
+                }
+            }
+
+            let offset = chunk_index * SCAN_CHUNK;
+            for (index, key) in chunk.iter().enumerate() {
+                let (remaining, slot) = requested
+                    .get_mut(key.as_ref())
+                    .expect("inserted request key");
+                *remaining -= 1;
+                let value = if *remaining == 0 {
+                    slot.take()
+                } else {
+                    slot.clone()
+                };
+                if let Some(value) = value {
+                    values.push((offset + index, value));
+                }
+            }
+        }
+        Ok(values)
+    }
+
     async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
         self.js_list_keys_raw(store, prefix).await
     }
@@ -396,7 +455,7 @@ impl JsBackend {
     async fn js_get_many_raw(
         &self,
         store: &str,
-        keys: &[String],
+        keys: &[impl AsRef<str>],
     ) -> Result<Vec<(String, Vec<u8>)>> {
         if keys.is_empty() {
             return Ok(Vec::new());
@@ -404,7 +463,7 @@ impl JsBackend {
         if let Some(f) = self.get_many_fn.as_ref() {
             let arr = js_sys::Array::new();
             for k in keys {
-                arr.push(&JsValue::from_str(k));
+                arr.push(&JsValue::from_str(k.as_ref()));
             }
             let result = f
                 .call2(&JsValue::NULL, &store.into(), &arr.into())
@@ -412,14 +471,14 @@ impl JsBackend {
             let resolved = resolve_promise(result)
                 .await
                 .map_err(|e| js_err_to_store_err("getMany", e))?;
-            return parse_entry_array(resolved, "getMany");
+            return parse_entry_array(resolved, "getMany", keys.len());
         }
         // Fallback: per-key gets (raw — this IS the raw path; the cache-aware
         // js_get_many handles caching before delegating here).
         let mut out = Vec::with_capacity(keys.len());
         for k in keys {
-            if let Some(v) = self.js_get_raw(store, k).await? {
-                out.push((k.clone(), v));
+            if let Some(v) = self.js_get_raw(store, k.as_ref()).await? {
+                out.push((k.as_ref().to_owned(), v));
             }
         }
         Ok(out)
@@ -589,20 +648,10 @@ impl JsBackend {
         store: &str,
         key: &str,
     ) -> Result<Option<T>> {
-        match self.js_get(store, key).await? {
-            Some(bytes) => {
-                let value: T = serde_json::from_slice(&bytes).map_err(|e| {
-                    wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError {
-                        op: "deserialize",
-                        store: store.to_string(),
-                        key: key.to_string(),
-                        source: e,
-                    }))
-                })?;
-                Ok(Some(value))
-            }
-            None => Ok(None),
-        }
+        self.js_get(store, key)
+            .await?
+            .map(|bytes| Self::decode_json(&bytes, store, key))
+            .transpose()
     }
 
     /// Keep the namespace and key attached to failures in single and batch reads.
@@ -645,6 +694,15 @@ impl JsBackend {
 
 generated_signal_store! {
 
+
+    async fn get_sessions_batch(&self, addresses: &[Arc<str>]) -> Result<Vec<(Arc<str>, Bytes)>> {
+        Ok(self
+            .js_read_batch(STORE_SESSION, addresses)
+            .await?
+            .into_iter()
+            .map(|(index, value)| (Arc::clone(&addresses[index]), Bytes::from(value)))
+            .collect())
+    }
 
     async fn load_identity(&self, address: &str) -> Result<Option<[u8; 32]>> {
         match self.js_get(STORE_IDENTITY, address).await? {
@@ -900,6 +958,24 @@ generated_app_sync_store! {
         self.js_get(STORE_MUTATION_MAC, &key).await
     }
 
+    async fn get_mutation_macs(
+        &self,
+        name: &str,
+        index_macs: &[[u8; 32]],
+    ) -> Result<HashMap<[u8; 32], Vec<u8>>> {
+        let mut macs = HashMap::new();
+        for chunk in index_macs.chunks(SCAN_CHUNK) {
+            let keys: Vec<_> = chunk
+                .iter()
+                .map(|mac| format!("{}:{}", name, to_hex(mac)))
+                .collect();
+            for (index, value) in self.js_read_batch(STORE_MUTATION_MAC, &keys).await? {
+                macs.insert(chunk[index], value);
+            }
+        }
+        Ok(macs)
+    }
+
     async fn delete_mutation_macs(&self, name: &str, index_macs: &[Vec<u8>]) -> Result<()> {
         for im in index_macs {
             let key = format!("{}:{}", name, to_hex(im));
@@ -987,6 +1063,23 @@ generated_app_sync_store! {
 // ---------------------------------------------------------------------------
 
 generated_protocol_store! {
+
+    async fn get_devices_batch(&self, users: &[&str]) -> Result<Vec<DeviceListRecord>> {
+        if self.get_many_fn.is_none() {
+            let mut records = Vec::new();
+            for user in users {
+                if let Some(record) = self.get_devices(user).await? {
+                    records.push(record);
+                }
+            }
+            return Ok(records);
+        }
+        self.js_read_batch(STORE_DEVICE_LIST, users)
+            .await?
+            .into_iter()
+            .map(|(index, value)| Self::decode_json(&value, STORE_DEVICE_LIST, users[index]))
+            .collect()
+    }
 
     // --- Sender Key Device Tracking ---
 
@@ -1611,13 +1704,24 @@ impl DeviceStore for JsBackend {
 /// batch rather than being silently dropped — a dropped entry would look like a
 /// missing key to the caller, which on the expiry path can prune a live key
 /// from the self-index while its value is still stored.
-fn parse_entry_array(value: JsValue, context: &'static str) -> Result<Vec<(String, Vec<u8>)>> {
+fn parse_entry_array(
+    value: JsValue,
+    context: &'static str,
+    max_entries: usize,
+) -> Result<Vec<(String, Vec<u8>)>> {
     let arr: js_sys::Array = value
         .dyn_into()
         .map_err(|_| js_err_to_store_err(context, JsValue::from_str("expected array")))?;
+    let len = arr.length() as usize;
+    if len > max_entries {
+        return Err(js_err_to_store_err(
+            context,
+            JsValue::from_str("returned more rows than requested keys"),
+        ));
+    }
     let malformed =
         || js_err_to_store_err(context, JsValue::from_str("malformed [key, value] entry"));
-    let mut out = Vec::with_capacity(arr.length() as usize);
+    let mut out = Vec::with_capacity(len);
     for entry in arr.iter() {
         let tuple = entry.dyn_into::<js_sys::Array>().map_err(|_| malformed())?;
         let key = tuple.get(0).as_string().ok_or_else(malformed)?;
@@ -1738,6 +1842,162 @@ mod batch_store_tests {
             cap_enumerate: false,
             cap_prefix_delete: false,
         })
+    }
+
+    fn read_backend(slot: &str, callback: &str) -> JsBackend {
+        let mut handles = super::device_account_authority_tests::mem_handles(slot);
+        handles.get_fn = js_sys::Function::new_no_args("throw new Error('per-key read')");
+        handles.get_many_fn = Some(js_sys::Function::new_with_args("store, keys", callback));
+        JsBackend::new(handles)
+    }
+
+    #[test]
+    async fn read_batches_use_one_host_call_per_chunk_and_preserve_found_rows() {
+        let slot = "__batchReads";
+        let calls = js_sys::Array::new();
+        js_sys::Reflect::set(&js_sys::global(), &"__batchReadCalls".into(), &calls).unwrap();
+        let backend = read_backend(
+            slot,
+            r#"
+                globalThis.__batchReadCalls.push([store, keys.length]);
+                return Promise.resolve(keys.slice().reverse().flatMap(key => {
+                    const value = globalThis.__batchReads.get(store + ':' + key);
+                    return value === undefined ? [] : [[key, value]];
+                }));
+            "#,
+        );
+        backend.put_session("alice:7", b"valid").await.unwrap();
+        backend.put_session("bob:2", b"").await.unwrap();
+        let mut addresses: Vec<Arc<str>> = (0..SCAN_CHUNK - 3)
+            .map(|i| Arc::from(format!("missing:{i}")))
+            .collect();
+        addresses.extend(["alice:7", "bob:2", "alice:7", "absent"].map(Arc::from));
+        let sessions = backend.get_sessions_batch(&addresses).await.unwrap();
+        let expected = [
+            ("alice:7", &b"valid"[..]),
+            ("bob:2", &b""[..]),
+            ("alice:7", &b"valid"[..]),
+        ];
+        assert_eq!(
+            sessions
+                .iter()
+                .map(|(key, bytes)| (key.as_ref(), bytes.as_ref()))
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert!(backend.get_sessions_batch(&[]).await.unwrap().is_empty());
+
+        let record = DeviceListRecord {
+            user: Arc::from("alice"),
+            devices: Box::new([]),
+            timestamp: 123,
+            phash: None,
+            raw_id: None,
+        };
+        backend.update_device_list(record).await.unwrap();
+        let records = backend
+            .get_devices_batch(&["missing", "alice"])
+            .await
+            .unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].user.as_ref(), "alice");
+        assert_eq!(records[0].timestamp, 123);
+
+        let index_mac = [3; 32];
+        let key = format!("regular:{}", to_hex(&index_mac));
+        backend
+            .js_set(STORE_MUTATION_MAC, &key, b"mac")
+            .await
+            .unwrap();
+        let macs = backend
+            .get_mutation_macs("regular", &[[9; 32], index_mac])
+            .await
+            .unwrap();
+        assert_eq!(macs, HashMap::from([(index_mac, b"mac".to_vec())]));
+
+        let seen = calls
+            .iter()
+            .map(|call| {
+                let call = js_sys::Array::from(&call);
+                (
+                    call.get(0).as_string().unwrap(),
+                    call.get(1).as_f64().unwrap() as usize,
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            seen,
+            [
+                (STORE_SESSION.into(), SCAN_CHUNK - 1),
+                (STORE_SESSION.into(), 1),
+                (STORE_DEVICE_LIST.into(), 2),
+                (STORE_MUTATION_MAC.into(), 2),
+            ]
+        );
+    }
+
+    #[test]
+    async fn read_batches_work_without_get_many() {
+        let backend = JsBackend::new(super::device_account_authority_tests::mem_handles(
+            "__singleReads",
+        ));
+        backend.put_session("bob:2", b"old").await.unwrap();
+        assert_eq!(
+            backend
+                .get_sessions_batch(&[Arc::from("absent"), Arc::from("bob:2")])
+                .await
+                .unwrap(),
+            vec![(Arc::from("bob:2"), Bytes::from_static(b"old"))]
+        );
+        assert!(
+            backend
+                .get_devices_batch(&["absent"])
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            backend
+                .get_mutation_macs("regular", &[[4; 32]])
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    async fn invalid_batch_responses_fail_without_single_read_fallback() {
+        for (callback, expected) in [
+            (
+                "return [['unrequested', new Uint8Array(1)]];",
+                "unrequested or duplicate",
+            ),
+            (
+                "return [[keys[0], new Uint8Array(1)], [keys[0], new Uint8Array(1)]];",
+                "unrequested or duplicate",
+            ),
+            ("return [[keys[0], 'malformed']];", "malformed"),
+            (
+                "return [[keys[0], new Uint8Array(1)], [keys[1], new Uint8Array(1)], [keys[0], new Uint8Array(1)]];",
+                "more rows than requested keys",
+            ),
+            (
+                "return Promise.reject(new Error('read failed'));",
+                "read failed",
+            ),
+        ] {
+            let backend = read_backend("__badBatch", callback);
+            let error = backend
+                .get_sessions_batch(&[Arc::from("alice:7"), Arc::from("bob:2")])
+                .await
+                .unwrap_err();
+            assert!(
+                std::error::Error::source(&error)
+                    .unwrap()
+                    .to_string()
+                    .contains(expected)
+            );
+        }
     }
 
     fn recorded(slot: &str) -> (String, js_sys::Array) {
