@@ -12,12 +12,11 @@
  */
 import { packedContents } from "./pack";
 
-// Core f077a5d4 with durable Signal enumeration measures 8,600,969 bytes
-// in CI with Bun 1.4.4, Node 26.13.0, wasm-pack 0.15.1 and Binaryen 133:
-// 27,835 bytes above the previous 15371d1b reference. Keep 12,031 bytes
-// headroom. The function budget and inlining flags stay unchanged;
-// this artifact allowance makes no CPU or memory parity claim.
-const MAX_UNPACKED_BYTES = 8_613_000;
+// The SDK pin at 8b58ebaa, including its updated protobuf schema, measures
+// 8,773,254 bytes unpacked in CI run 44201922025 with Binaryen 133.
+// Bridge main at a9a303a measures 8,617,116 bytes in CI run 44190810381.
+// Budget the measured artifact without adding headroom.
+const MAX_UNPACKED_BYTES = 8_773_254;
 
 const { files, unpackedSize: total } = packedContents();
 
