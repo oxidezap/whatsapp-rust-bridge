@@ -5,6 +5,9 @@
 //! object slab with RefCell-like borrowing that panics on reentrant calls
 //! (e.g. disconnect → ws.close → ws.onclose → reconnect → connect).
 
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -110,61 +113,77 @@ impl Drop for DisconnectCallbackGuard<'_> {
 // Transport handle — JS pushes WebSocket events through this
 // ---------------------------------------------------------------------------
 
-/// Handle given to JS `connect()` for pushing WebSocket events into Rust.
-/// Create a JS handle object with onConnected/onData/onDisconnected closures.
-///
-/// Returns a plain JS object (not a wasm-bindgen struct) to avoid reentrancy.
-/// Closures push events into the async_channel without entering WASM.
-fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>) -> JsValue {
-    let obj = js_sys::Object::new();
+const INGRESS_EVENT_LIMIT: usize = 32768;
+// Room for three maximum-size Noise frames, their headers, and the next read.
+const INGRESS_BYTE_LIMIT: usize = 64 * 1024 * 1024;
 
-    let tx = event_tx.clone();
-    let on_data = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
-        let bytes = crate::js_bytes::to_vec(&data);
-        match tx.try_send(TransportEvent::DataReceived(Bytes::from(bytes))) {
-            Ok(()) => {}
-            Err(async_channel::TrySendError::Closed(_)) => {
-                log::debug!("Transport channel closed, data event dropped (shutdown in progress)");
+struct Ingress {
+    tx: async_channel::Sender<TransportEvent>,
+    sizes: VecDeque<usize>,
+    queued_bytes: usize,
+    byte_limit: usize,
+}
+
+impl Ingress {
+    fn has_room(&mut self, size: usize) -> bool {
+        if !self.tx.is_closed() {
+            // The JS handle owns all producers. They enqueue synchronously on
+            // one thread, so a reduction in the channel length is a FIFO drain.
+            let queued = self.tx.len();
+            while self.sizes.len() > queued {
+                self.queued_bytes -= self.sizes.pop_front().expect("queued event size");
             }
-            Err(async_channel::TrySendError::Full(_)) => {
-                // Dropping a frame desyncs the noise counter; force reconnect
-                // instead — WA redelivers unacked messages on resume.
-                log::error!("Transport channel full; closing to force reconnect");
-                tx.close();
+            if !self.tx.is_full() && size <= self.byte_limit - self.queued_bytes {
+                return true;
             }
+            // Losing encrypted data invalidates the Noise counter for this socket.
+            log::error!("Transport ingress budget exceeded; closing to force reconnect");
+            self.tx.close();
         }
+        self.sizes = VecDeque::new();
+        self.queued_bytes = 0;
+        false
+    }
+
+    fn enqueue(&mut self, size: usize, event: TransportEvent) {
+        if self.has_room(size) && self.tx.try_send(event).is_ok() {
+            self.sizes.push_back(size);
+            self.queued_bytes += size;
+        }
+    }
+}
+
+fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>, byte_limit: usize) -> JsValue {
+    let obj = js_sys::Object::new();
+    let ingress = Rc::new(RefCell::new(Ingress {
+        tx: event_tx,
+        sizes: VecDeque::new(),
+        queued_bytes: 0,
+        byte_limit,
+    }));
+
+    let queue = ingress.clone();
+    let on_data = Closure::wrap(Box::new(move |data: js_sys::Uint8Array| {
+        if !queue.borrow_mut().has_room(data.length() as usize) {
+            return;
+        }
+        let bytes = Bytes::from(crate::js_bytes::to_vec(&data));
+        queue
+            .borrow_mut()
+            .enqueue(bytes.len(), TransportEvent::DataReceived(bytes));
     }) as Box<dyn FnMut(js_sys::Uint8Array)>);
     let _ = js_sys::Reflect::set(&obj, &"onData".into(), &on_data.into_js_value());
 
-    let tx = event_tx.clone();
-    let on_connected =
-        Closure::wrap(
-            Box::new(move || match tx.try_send(TransportEvent::Connected) {
-                Ok(()) => {}
-                Err(async_channel::TrySendError::Closed(_)) => {
-                    log::debug!("Transport channel closed, Connected event dropped");
-                }
-                Err(async_channel::TrySendError::Full(_)) => {
-                    log::error!("Transport channel full on Connected; closing");
-                    tx.close();
-                }
-            }) as Box<dyn FnMut()>,
-        );
+    let queue = ingress.clone();
+    let on_connected = Closure::wrap(Box::new(move || {
+        queue.borrow_mut().enqueue(0, TransportEvent::Connected);
+    }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(&obj, &"onConnected".into(), &on_connected.into_js_value());
 
-    let tx = event_tx;
     let on_disconnected = Closure::wrap(Box::new(move || {
-        match tx.try_send(TransportEvent::Disconnected(DisconnectReason::Unknown)) {
-            Ok(()) => {}
-            Err(async_channel::TrySendError::Closed(_)) => {
-                log::debug!("Transport channel closed, Disconnected event dropped");
-            }
-            Err(async_channel::TrySendError::Full(_)) => {
-                // Receiver treats channel close as Disconnected (client.rs recv Err).
-                log::error!("Transport channel full on Disconnected; closing");
-                tx.close();
-            }
-        }
+        ingress
+            .borrow_mut()
+            .enqueue(0, TransportEvent::Disconnected(DisconnectReason::Unknown));
     }) as Box<dyn FnMut()>);
     let _ = js_sys::Reflect::set(
         &obj,
@@ -316,11 +335,11 @@ impl TransportFactory for JsTransportFactory {
     ) -> Result<(Arc<dyn Transport>, Receiver<TransportEvent>), anyhow::Error> {
         log::debug!("JsTransportFactory::create_transport called");
         // Sized for burst absorption; overflow is a real lag signal, not noise.
-        let (event_tx, event_rx) = async_channel::bounded(32768);
+        let (event_tx, event_rx) = async_channel::bounded(INGRESS_EVENT_LIMIT);
         self.callbacks
             .callback_state
             .register_event_stream(&event_tx);
-        let handle = create_js_handle(event_tx);
+        let handle = create_js_handle(event_tx, INGRESS_BYTE_LIMIT);
 
         log::debug!("Calling JS connect(handle)...");
         self.callbacks.call_connect_js(handle).await?;
@@ -372,5 +391,78 @@ mod generated_host_callback_tests {
             assert!(!callbacks.send_borrowed_checked.get());
             assert_eq!(callbacks._js_obj, value);
         }
+    }
+}
+
+#[cfg(test)]
+mod ingress_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn invoke(handle: &JsValue, name: &str, data: Option<u32>) {
+        let callback = js_sys::Reflect::get(handle, &name.into())
+            .unwrap()
+            .dyn_into::<js_sys::Function>()
+            .unwrap();
+        match data {
+            Some(len) => callback.call1(handle, &js_sys::Uint8Array::new_with_length(len)),
+            None => callback.call0(handle),
+        }
+        .unwrap();
+    }
+
+    #[wasm_bindgen_test]
+    fn ingress_charges_only_queued_bytes_and_closes_on_overflow() {
+        let (tx, rx) = async_channel::bounded(16);
+        let handle = create_js_handle(tx, 8);
+        invoke(&handle, "onConnected", None);
+        invoke(&handle, "onData", Some(5));
+        invoke(&handle, "onData", Some(3));
+        assert!(matches!(rx.try_recv().unwrap(), TransportEvent::Connected));
+        assert!(
+            matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.len() == 5)
+        );
+        invoke(&handle, "onData", Some(5));
+        assert!(!rx.is_closed());
+        invoke(&handle, "onData", Some(1));
+        assert!(rx.is_closed());
+        invoke(&handle, "onData", Some(1));
+        for size in [3, 5] {
+            assert!(
+                matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.len() == size)
+            );
+        }
+        assert!(matches!(
+            rx.try_recv(),
+            Err(async_channel::TryRecvError::Closed)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    fn ingress_keeps_event_limit_and_isolates_connections() {
+        let (tx, rx) = async_channel::bounded(1);
+        let handle = create_js_handle(tx, 8);
+        invoke(&handle, "onData", Some(0));
+        invoke(&handle, "onDisconnected", None);
+        assert!(rx.is_closed());
+        assert!(
+            matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.is_empty())
+        );
+
+        let (tx, rx) = async_channel::bounded(1);
+        let handle = create_js_handle(tx, 8);
+        invoke(&handle, "onData", Some(9));
+        assert!(matches!(
+            rx.try_recv(),
+            Err(async_channel::TryRecvError::Closed)
+        ));
+
+        let (tx, rx) = async_channel::bounded(1);
+        let handle = create_js_handle(tx, 8);
+        invoke(&handle, "onData", Some(8));
+        assert!(!rx.is_closed());
+        assert!(
+            matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.len() == 8)
+        );
     }
 }
