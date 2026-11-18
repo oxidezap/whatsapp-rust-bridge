@@ -30,7 +30,7 @@
 
 import * as gen from "./generated/whatsapp";
 import { encodeProto } from "./proto";
-import { BinaryReader } from "./proto-reader";
+import { BinaryReader, USE_NODE_PROTO_FAST_PATH, prepareProtoDecodeInput } from "./proto-reader";
 
 // Tag the union type loosely — the generated module is huge and individual
 // member types matter less than the shape we extract from each value.
@@ -79,16 +79,17 @@ const wrapMessage = (typeName: string, fns: MessageFnsLike) => ({
     };
   },
   decode(buffer: BinaryReader | Uint8Array | ArrayBuffer | ArrayBufferView, length?: number): any {
-    const reader =
-      buffer instanceof BinaryReader
+    let reader: Uint8Array | BinaryReader;
+    if (buffer instanceof BinaryReader) {
+      reader = buffer;
+    } else {
+      const data = buffer instanceof Uint8Array
         ? buffer
-        : new BinaryReader(
-            buffer instanceof Uint8Array
-              ? buffer
-              : ArrayBuffer.isView(buffer)
-                ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-                : new Uint8Array(buffer as ArrayBuffer),
-          );
+        : ArrayBuffer.isView(buffer)
+          ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+          : new Uint8Array(buffer as ArrayBuffer);
+      reader = USE_NODE_PROTO_FAST_PATH ? prepareProtoDecodeInput(data) : data;
+    }
     // The wrapper already captured the generated codec while assembling the
     // namespace. Decode through that typed reference instead of resolving the
     // same type name in the string registry for every message.

@@ -15,7 +15,8 @@ import { packedContents } from "./pack";
 // SDK pin 8b58ebaa measures 8,773,254 bytes in CI run 44201922025.
 // CI run 44204626051 measures 8,773,651 bytes with main merged.
 // The Node writer cache adds 342 bytes to the same shared JS build.
-const MAX_UNPACKED_BYTES = 8_773_993;
+// The Node reader adds 1,160 bytes to the shared JS and declarations.
+const MAX_UNPACKED_BYTES = 8_775_153;
 
 const { files, unpackedSize: total } = packedContents();
 
