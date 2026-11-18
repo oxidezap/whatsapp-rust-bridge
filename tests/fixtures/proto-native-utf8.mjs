@@ -34,6 +34,24 @@ Object.defineProperty(customized, "subarray", {
 assert.equal(decodeProto("Message", customized).conversation, "z");
 assert.equal(proto.Message.decode(customized).conversation, "z");
 
+const customSpecies = new Uint8Array(input);
+customSpecies.constructor = {
+  [Symbol.species]: class extends Uint8Array {
+    constructor(buffer, byteOffset, length) {
+      super(buffer, byteOffset, length);
+      if (length === 6) return new Uint8Array([0x7a]);
+    }
+  },
+};
+assert.equal(decodeProto("Message", customSpecies).conversation, "z");
+assert.equal(proto.Message.decode(customSpecies).conversation, "z");
+
+const customBuffer = Buffer.from(input);
+const spoofed = Buffer.alloc(customBuffer.length);
+Object.defineProperty(customBuffer, "buffer", { value: spoofed.buffer });
+Object.defineProperty(customBuffer, "byteOffset", { value: spoofed.byteOffset });
+assert.equal(decodeProto("Message", customBuffer).conversation, "\0".repeat(6));
+
 const storage = new ArrayBuffer(input.length, { maxByteLength: input.length + 19 });
 const resizable = new Uint8Array(storage);
 resizable.set(input);

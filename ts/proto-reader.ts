@@ -482,6 +482,8 @@ export function prepareProtoDecodeInput(data: Uint8Array): Uint8Array | BinaryRe
 }
 
 function nativeUtf8Input(buffer: typeof Buffer, data: Uint8Array): Uint8Array | BinaryReader {
+  if (Object.hasOwn(data, "buffer") || Object.hasOwn(data, "byteOffset") ||
+    Object.hasOwn(data, "byteLength")) return data;
   const store = data.buffer;
   if (!(store instanceof ArrayBuffer) || ("resizable" in store && store.resizable)) return data;
   const prototype = Object.getPrototypeOf(data);
@@ -489,7 +491,8 @@ function nativeUtf8Input(buffer: typeof Buffer, data: Uint8Array): Uint8Array | 
     data.toString === buffer.prototype.toString) {
     return new NativeUtf8Reader(data, data as Buffer);
   }
-  if (prototype === Uint8Array.prototype && data.subarray === Uint8Array.prototype.subarray) {
+  if (prototype === Uint8Array.prototype && data.subarray === Uint8Array.prototype.subarray &&
+    !Object.hasOwn(data, "constructor")) {
     const view = buffer.from(store, data.byteOffset, data.byteLength);
     return new NativeUtf8Reader(data, view);
   }
