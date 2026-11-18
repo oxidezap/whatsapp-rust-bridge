@@ -1377,10 +1377,10 @@ fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
     let module = serde_timestamp_module(&field.attrs)?;
     let module = module.rsplit("::").next().unwrap_or_default();
     match module {
-        "ts_seconds" | "ts_milliseconds" | "ts_microseconds" | "ts_nanoseconds" => {
-            Some(("number".to_string(), false))
-        }
-        "ts_seconds_option"
+        "serde_seconds" | "ts_seconds" | "ts_milliseconds" | "ts_microseconds"
+        | "ts_nanoseconds" => Some(("number".to_string(), false)),
+        "serde_seconds_option"
+        | "ts_seconds_option"
         | "ts_milliseconds_option"
         | "ts_microseconds_option"
         | "ts_nanoseconds_option" => Some(("number | null".to_string(), true)),
@@ -1432,6 +1432,7 @@ fn serialize_with_type(field: &syn::Field) -> Option<(String, bool)> {
     match path.rsplit("::").next().unwrap_or_default() {
         // Writes the bytes the field's own `Option<Vec<u8>>` already names.
         "serialize_optional_bytes" => None,
+        "serialize_duration" => Some(("[number, number]".to_string(), false)),
         // `GroupInfo::lid_pn` is a slice of pairs sorted for binary search that
         // writes the `lid_to_pn_map` object the persisted blob has always
         // carried, so the type and the wire shape disagree by design.
@@ -1558,7 +1559,7 @@ fn is_datetime(ty: &Type) -> bool {
             let Some(last) = path.segments.last() else {
                 return false;
             };
-            if last.ident == "DateTime" {
+            if last.ident == "DateTime" || last.ident == "Timestamp" {
                 return true;
             }
             match last.ident.to_string().as_str() {
@@ -1697,6 +1698,7 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                 // `Serialize` writes. A field annotated with one of chrono's
                 // `ts_*` modules writes a number instead; that is read off the
                 // field, which this sees nothing of.
+                "Timestamp" => ("number".to_string(), false),
                 "DateTime" => ("string".to_string(), false),
 
                 // Jid → Jid (structured object with user, server, device, etc.)

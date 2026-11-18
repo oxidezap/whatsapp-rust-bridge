@@ -570,7 +570,7 @@ impl MessageWireBatch {
             recipient_alt,
             id,
             push_name,
-            info.timestamp.timestamp() as f64,
+            info.timestamp.as_secs() as f64,
             flags as f64,
             unavailable_request_id,
             edit,
@@ -1134,7 +1134,7 @@ impl PackedEventBatch for ReceiptWireBatch {
         ] {
             self.writer.write_slot(slot);
         }
-        self.writer.write_f64(receipt.timestamp.timestamp() as f64);
+        self.writer.write_f64(receipt.timestamp.as_secs() as f64);
         self.writer.write_slot(id_count);
         for id in &receipt.message_ids {
             self.writer.write_inline(id);
@@ -1200,7 +1200,7 @@ impl PackedEventBatch for ServerAckWireBatch {
         self.writer.write_slot(error);
         // NaN marks an absent timestamp; a real one is always finite.
         self.writer
-            .write_f64(ack.timestamp.map_or(f64::NAN, |t| t.timestamp() as f64));
+            .write_f64(ack.timestamp.map_or(f64::NAN, |t| t.as_secs() as f64));
         // Ack ids are unique per stanza, so they stay out of the cache.
         self.writer.write_inline(&ack.id);
         self.writer.record_count += 1;
@@ -1612,11 +1612,7 @@ mod tests {
         info.source.sender = "5511:7@s.whatsapp.net".parse().expect("valid sender jid");
         info.id = "WIRE-1".into();
         info.push_name = "Alice".into();
-        assert_eq!(
-            info.timestamp.timestamp(),
-            0,
-            "the fixture pins timestamp 0"
-        );
+        assert_eq!(info.timestamp.as_secs(), 0, "the fixture pins timestamp 0");
 
         let mut batch = MessageWireBatch::default();
         batch

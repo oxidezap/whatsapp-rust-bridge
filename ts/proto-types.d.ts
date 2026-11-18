@@ -27,6 +27,7 @@ export namespace proto {
 		username?: (string|null);
 		countryCode?: (string|null);
 		isUsernameDeleted?: (boolean|null);
+		pnLearnState?: (proto.Account.PnLearnState|null);
 	}
 
 	interface Account extends IAccount, $ProtoJSON {}
@@ -38,6 +39,15 @@ export namespace proto {
 		static toObject: $ProtoToObject<Account>;
 		static encode: $ProtoEncode<IAccount>;
 		static decode: $ProtoDecode<Account>;
+	}
+
+	namespace Account {
+
+		enum PnLearnState {
+			UNSET = 0,
+			SHARED = 1,
+			HIDDEN = 2,
+		}
 	}
 
 	interface IAccountLinkingOpaqueData {
@@ -90,6 +100,46 @@ export namespace proto {
 		static toObject: $ProtoToObject<ActionLink>;
 		static encode: $ProtoEncode<IActionLink>;
 		static decode: $ProtoDecode<ActionLink>;
+	}
+
+	interface IAddDeviceKeysOutput {
+		devicePublicKey?: (Uint8Array|null);
+		epochAuthPublicKey?: (Uint8Array|null);
+		epochAuthPublicKeySig?: (Uint8Array|null);
+		epochStoragePublicKey?: (Uint8Array|null);
+		epochStoragePublicKeySig?: (Uint8Array|null);
+		epochStoragePrivateKey?: (Uint8Array|null);
+		orfClientState?: (Uint8Array|null);
+	}
+
+	interface AddDeviceKeysOutput extends IAddDeviceKeysOutput, $ProtoJSON {}
+
+	class AddDeviceKeysOutput {
+		constructor(p?: IAddDeviceKeysOutput);
+		static create(p?: IAddDeviceKeysOutput): AddDeviceKeysOutput;
+		static fromObject(d: $ProtoObject): AddDeviceKeysOutput;
+		static toObject: $ProtoToObject<AddDeviceKeysOutput>;
+		static encode: $ProtoEncode<IAddDeviceKeysOutput>;
+		static decode: $ProtoDecode<AddDeviceKeysOutput>;
+	}
+
+	interface IAddDeviceSyncEpochInput {
+		epochId?: (Long|null);
+		epochAnonId?: (number|null);
+		encryptedEpochKey?: (Uint8Array|null);
+		senderAuthPubKey?: (Uint8Array|null);
+		nextEpochId?: (Long|null);
+	}
+
+	interface AddDeviceSyncEpochInput extends IAddDeviceSyncEpochInput, $ProtoJSON {}
+
+	class AddDeviceSyncEpochInput {
+		constructor(p?: IAddDeviceSyncEpochInput);
+		static create(p?: IAddDeviceSyncEpochInput): AddDeviceSyncEpochInput;
+		static fromObject(d: $ProtoObject): AddDeviceSyncEpochInput;
+		static toObject: $ProtoToObject<AddDeviceSyncEpochInput>;
+		static encode: $ProtoEncode<IAddDeviceSyncEpochInput>;
+		static decode: $ProtoDecode<AddDeviceSyncEpochInput>;
 	}
 
 	interface IADVDeviceIdentity {
@@ -1181,6 +1231,11 @@ export namespace proto {
 			AI_STUDY_QUIZ_ENABLED = 82,
 			HATCH_CVM_ENABLED = 83,
 			RICH_RESPONSE_SOCIAL_ENTITY_PREFETCH_SCHEDULER_ENABLED = 84,
+			AI_MUSE_JARVIS_EXTENDED_CARDS_ENABLED = 85,
+			AI_INTERJECTIONS_ENABLED = 86,
+			AI_RICH_RESPONSE_READ_ALOUD_ENABLED = 87,
+			AI_RICH_RESPONSE_ITEM_LISTS_ENABLED = 88,
+			RICH_RESPONSE_SIDE_BY_SIDE_BUFFER_BOTH = 89,
 		}
 	}
 
@@ -1828,6 +1883,7 @@ export namespace proto {
 		CONTACTS_TAB = 57,
 		NEW_3P_AGENT_CREATION = 58,
 		SHARE = 59,
+		BIRTHDAY_BANNER = 60,
 	}
 
 	interface IBotMetricsMetadata {
@@ -2782,6 +2838,7 @@ export namespace proto {
 		subscriptionSyncPayload?: (Uint8Array|null);
 		isBotJidDbMigrated?: (boolean|null);
 		companionAddPeerPayload?: (Uint8Array|null);
+		isCompanionRegistrationFgsEnabled?: (boolean|null);
 	}
 
 	interface ClientPairingProps extends IClientPairingProps, $ProtoJSON {}
@@ -2833,6 +2890,7 @@ export namespace proto {
 		pairedPeripherals?: string[];
 		testIsolationId?: (Uint8Array|null);
 		messageSts?: (Long|null);
+		integrationAttestation?: (proto.ClientPayload.IIntegrationAttestation|null);
 	}
 
 	interface ClientPayload extends IClientPayload, $ProtoJSON {}
@@ -2933,6 +2991,22 @@ export namespace proto {
 			}
 		}
 
+		interface IIntegrationAttestation {
+			staticUnbound?: (string|null);
+			onlineSigned?: (string|null);
+		}
+
+		interface IntegrationAttestation extends IIntegrationAttestation, $ProtoJSON {}
+
+		class IntegrationAttestation {
+			constructor(p?: IIntegrationAttestation);
+			static create(p?: IIntegrationAttestation): IntegrationAttestation;
+			static fromObject(d: $ProtoObject): IntegrationAttestation;
+			static toObject: $ProtoToObject<IntegrationAttestation>;
+			static encode: $ProtoEncode<IIntegrationAttestation>;
+			static decode: $ProtoDecode<IntegrationAttestation>;
+		}
+
 		interface IInteropData {
 			accountId?: (Long|null);
 			token?: (Uint8Array|null);
@@ -3029,6 +3103,7 @@ export namespace proto {
 				VR = 4,
 				SMART_DISPLAY = 5,
 				SMART_SPEAKER = 6,
+				AGENT = 7,
 			}
 
 			enum DistributionChannel {
@@ -3300,9 +3375,100 @@ export namespace proto {
 		static decode: $ProtoDecode<CompanionEphemeralIdentity>;
 	}
 
+	interface ICompanionTestMessageThreadIdInput {
+	}
+
+	interface CompanionTestMessageThreadIdInput extends ICompanionTestMessageThreadIdInput, $ProtoJSON {}
+
+	class CompanionTestMessageThreadIdInput {
+		constructor(p?: ICompanionTestMessageThreadIdInput);
+		static create(p?: ICompanionTestMessageThreadIdInput): CompanionTestMessageThreadIdInput;
+		static fromObject(d: $ProtoObject): CompanionTestMessageThreadIdInput;
+		static toObject: $ProtoToObject<CompanionTestMessageThreadIdInput>;
+		static encode: $ProtoEncode<ICompanionTestMessageThreadIdInput>;
+		static decode: $ProtoDecode<CompanionTestMessageThreadIdInput>;
+	}
+
+	interface ICompanionTestMessageThreadIdOutput {
+		success?: (proto.ICompanionTestMessageThreadIdSuccess|null);
+		error?: (string|null);
+	}
+
+	interface CompanionTestMessageThreadIdOutput extends ICompanionTestMessageThreadIdOutput, $ProtoJSON {}
+
+	class CompanionTestMessageThreadIdOutput {
+		constructor(p?: ICompanionTestMessageThreadIdOutput);
+		static create(p?: ICompanionTestMessageThreadIdOutput): CompanionTestMessageThreadIdOutput;
+		static fromObject(d: $ProtoObject): CompanionTestMessageThreadIdOutput;
+		static toObject: $ProtoToObject<CompanionTestMessageThreadIdOutput>;
+		static encode: $ProtoEncode<ICompanionTestMessageThreadIdOutput>;
+		static decode: $ProtoDecode<CompanionTestMessageThreadIdOutput>;
+	}
+
+	interface ICompanionTestMessageThreadIdSuccess {
+		threadId?: (string|null);
+	}
+
+	interface CompanionTestMessageThreadIdSuccess extends ICompanionTestMessageThreadIdSuccess, $ProtoJSON {}
+
+	class CompanionTestMessageThreadIdSuccess {
+		constructor(p?: ICompanionTestMessageThreadIdSuccess);
+		static create(p?: ICompanionTestMessageThreadIdSuccess): CompanionTestMessageThreadIdSuccess;
+		static fromObject(d: $ProtoObject): CompanionTestMessageThreadIdSuccess;
+		static toObject: $ProtoToObject<CompanionTestMessageThreadIdSuccess>;
+		static encode: $ProtoEncode<ICompanionTestMessageThreadIdSuccess>;
+		static decode: $ProtoDecode<CompanionTestMessageThreadIdSuccess>;
+	}
+
+	interface IComputeClientSealTokenInput {
+		orfClientState?: (Uint8Array|null);
+		backupId?: (Long|null);
+	}
+
+	interface ComputeClientSealTokenInput extends IComputeClientSealTokenInput, $ProtoJSON {}
+
+	class ComputeClientSealTokenInput {
+		constructor(p?: IComputeClientSealTokenInput);
+		static create(p?: IComputeClientSealTokenInput): ComputeClientSealTokenInput;
+		static fromObject(d: $ProtoObject): ComputeClientSealTokenInput;
+		static toObject: $ProtoToObject<ComputeClientSealTokenInput>;
+		static encode: $ProtoEncode<IComputeClientSealTokenInput>;
+		static decode: $ProtoDecode<ComputeClientSealTokenInput>;
+	}
+
+	interface IComputeClientSealTokenOutput {
+		success?: (proto.IComputeClientSealTokenSuccess|null);
+		error?: (string|null);
+	}
+
+	interface ComputeClientSealTokenOutput extends IComputeClientSealTokenOutput, $ProtoJSON {}
+
+	class ComputeClientSealTokenOutput {
+		constructor(p?: IComputeClientSealTokenOutput);
+		static create(p?: IComputeClientSealTokenOutput): ComputeClientSealTokenOutput;
+		static fromObject(d: $ProtoObject): ComputeClientSealTokenOutput;
+		static toObject: $ProtoToObject<ComputeClientSealTokenOutput>;
+		static encode: $ProtoEncode<IComputeClientSealTokenOutput>;
+		static decode: $ProtoDecode<ComputeClientSealTokenOutput>;
+	}
+
+	interface IComputeClientSealTokenSuccess {
+		clientSealToken?: (Uint8Array|null);
+	}
+
+	interface ComputeClientSealTokenSuccess extends IComputeClientSealTokenSuccess, $ProtoJSON {}
+
+	class ComputeClientSealTokenSuccess {
+		constructor(p?: IComputeClientSealTokenSuccess);
+		static create(p?: IComputeClientSealTokenSuccess): ComputeClientSealTokenSuccess;
+		static fromObject(d: $ProtoObject): ComputeClientSealTokenSuccess;
+		static toObject: $ProtoToObject<ComputeClientSealTokenSuccess>;
+		static encode: $ProtoEncode<IComputeClientSealTokenSuccess>;
+		static decode: $ProtoDecode<ComputeClientSealTokenSuccess>;
+	}
+
 	interface IConfig {
 		field?: ({ [key: number]: Field }|null);
-		version?: (number|null);
 	}
 
 	interface Config extends IConfig, $ProtoJSON {}
@@ -3987,6 +4153,8 @@ export namespace proto {
 		partnerDeepLinkToken?: (string|null);
 		sourceExperienceId?: (number|null);
 		sourceExperienceIds?: number[];
+		foaMutualsSignature?: (Uint8Array|null);
+		forwardReachScore?: (number|null);
 	}
 
 	interface ContextInfo extends IContextInfo, $ProtoJSON {}
@@ -4348,6 +4516,8 @@ export namespace proto {
 			AV1_VIDEO_CHILD = 10,
 			STREAMED_VIDEO_PARENT = 11,
 			STREAMED_VIDEO_CHILD = 12,
+			ORIGINAL_VIDEO_CHILD = 13,
+			ORIGINAL_IMAGE_CHILD = 14,
 		}
 
 		interface IPartiallySelectedContent {
@@ -4515,6 +4685,10 @@ export namespace proto {
 		identityVerification?: (proto.IIdentityVerificationState|null);
 		acp2Setting?: (proto.IACP2Setting|null);
 		acp2HistoryWithheld?: (boolean|null);
+		groupRootKeys?: proto.IGroupRootKey[];
+		isWorkGroup?: (boolean|null);
+		nonE2EeType?: (number|null);
+		contactAccountEncryptionAttestationType?: (proto.NonE2EEAttestation.AccountType|null);
 	}
 
 	interface Conversation extends IConversation, $ProtoJSON {}
@@ -4578,6 +4752,24 @@ export namespace proto {
 		static toObject: $ProtoToObject<CreateBackupOutput>;
 		static encode: $ProtoEncode<ICreateBackupOutput>;
 		static decode: $ProtoDecode<CreateBackupOutput>;
+	}
+
+	interface ICreateBackupSuccess {
+		device?: (proto.IWebDeviceOutput|null);
+		virtualDevice?: (proto.IWebVirtualDeviceOutput|null);
+		epoch0?: (proto.IWebEpoch0Output|null);
+		mailboxRootKey?: (Uint8Array|null);
+	}
+
+	interface CreateBackupSuccess extends ICreateBackupSuccess, $ProtoJSON {}
+
+	class CreateBackupSuccess {
+		constructor(p?: ICreateBackupSuccess);
+		static create(p?: ICreateBackupSuccess): CreateBackupSuccess;
+		static fromObject(d: $ProtoObject): CreateBackupSuccess;
+		static toObject: $ProtoToObject<CreateBackupSuccess>;
+		static encode: $ProtoEncode<ICreateBackupSuccess>;
+		static decode: $ProtoDecode<CreateBackupSuccess>;
 	}
 
 	interface IDecryptMekForDistributionFromTransportSenderInput {
@@ -4742,6 +4934,21 @@ export namespace proto {
 		static decode: $ProtoDecode<DecryptMessageOutput>;
 	}
 
+	interface IDecryptMessageSuccess {
+		plaintextPayload?: (Uint8Array|null);
+	}
+
+	interface DecryptMessageSuccess extends IDecryptMessageSuccess, $ProtoJSON {}
+
+	class DecryptMessageSuccess {
+		constructor(p?: IDecryptMessageSuccess);
+		static create(p?: IDecryptMessageSuccess): DecryptMessageSuccess;
+		static fromObject(d: $ProtoObject): DecryptMessageSuccess;
+		static toObject: $ProtoToObject<DecryptMessageSuccess>;
+		static encode: $ProtoEncode<IDecryptMessageSuccess>;
+		static decode: $ProtoDecode<DecryptMessageSuccess>;
+	}
+
 	interface IDecryptSelfMmkDistributionInput {
 		encryptedMmk?: (Uint8Array|null);
 		exportRootKey?: (Uint8Array|null);
@@ -4848,6 +5055,54 @@ export namespace proto {
 		static toObject: $ProtoToObject<DeriveAttachmentPrimaryKeySecretResult>;
 		static encode: $ProtoEncode<IDeriveAttachmentPrimaryKeySecretResult>;
 		static decode: $ProtoDecode<DeriveAttachmentPrimaryKeySecretResult>;
+	}
+
+	interface IDeriveEpochsInput {
+		epochStoragePrivateKey?: (Uint8Array|null);
+		epochs?: proto.IEpochKey[];
+		edges?: proto.IEpochDerivationEdge[];
+	}
+
+	interface DeriveEpochsInput extends IDeriveEpochsInput, $ProtoJSON {}
+
+	class DeriveEpochsInput {
+		constructor(p?: IDeriveEpochsInput);
+		static create(p?: IDeriveEpochsInput): DeriveEpochsInput;
+		static fromObject(d: $ProtoObject): DeriveEpochsInput;
+		static toObject: $ProtoToObject<DeriveEpochsInput>;
+		static encode: $ProtoEncode<IDeriveEpochsInput>;
+		static decode: $ProtoDecode<DeriveEpochsInput>;
+	}
+
+	interface IDeriveEpochsOutput {
+		success?: (proto.IDeriveEpochsSuccess|null);
+		error?: (string|null);
+	}
+
+	interface DeriveEpochsOutput extends IDeriveEpochsOutput, $ProtoJSON {}
+
+	class DeriveEpochsOutput {
+		constructor(p?: IDeriveEpochsOutput);
+		static create(p?: IDeriveEpochsOutput): DeriveEpochsOutput;
+		static fromObject(d: $ProtoObject): DeriveEpochsOutput;
+		static toObject: $ProtoToObject<DeriveEpochsOutput>;
+		static encode: $ProtoEncode<IDeriveEpochsOutput>;
+		static decode: $ProtoDecode<DeriveEpochsOutput>;
+	}
+
+	interface IDeriveEpochsSuccess {
+		epochs?: proto.IEpochKey[];
+	}
+
+	interface DeriveEpochsSuccess extends IDeriveEpochsSuccess, $ProtoJSON {}
+
+	class DeriveEpochsSuccess {
+		constructor(p?: IDeriveEpochsSuccess);
+		static create(p?: IDeriveEpochsSuccess): DeriveEpochsSuccess;
+		static fromObject(d: $ProtoObject): DeriveEpochsSuccess;
+		static toObject: $ProtoToObject<DeriveEpochsSuccess>;
+		static encode: $ProtoEncode<IDeriveEpochsSuccess>;
+		static decode: $ProtoDecode<DeriveEpochsSuccess>;
 	}
 
 	interface IDeriveMailboxAuthKeypairInput {
@@ -4995,6 +5250,21 @@ export namespace proto {
 		static decode: $ProtoDecode<DeriveMessageKeyOutput>;
 	}
 
+	interface IDeriveMessageKeySuccess {
+		messageKey?: (Uint8Array|null);
+	}
+
+	interface DeriveMessageKeySuccess extends IDeriveMessageKeySuccess, $ProtoJSON {}
+
+	class DeriveMessageKeySuccess {
+		constructor(p?: IDeriveMessageKeySuccess);
+		static create(p?: IDeriveMessageKeySuccess): DeriveMessageKeySuccess;
+		static fromObject(d: $ProtoObject): DeriveMessageKeySuccess;
+		static toObject: $ProtoToObject<DeriveMessageKeySuccess>;
+		static encode: $ProtoEncode<IDeriveMessageKeySuccess>;
+		static decode: $ProtoDecode<DeriveMessageKeySuccess>;
+	}
+
 	interface IDeriveMessagingMailboxKeypairsInput {
 		mmkSeed?: (Uint8Array|null);
 	}
@@ -5044,6 +5314,53 @@ export namespace proto {
 		static decode: $ProtoDecode<DeriveMessagingMailboxKeypairsSuccess>;
 	}
 
+	interface IDeriveVirtualDeviceIdInput {
+		recoveryCode?: (string|null);
+		userId?: (Long|null);
+	}
+
+	interface DeriveVirtualDeviceIdInput extends IDeriveVirtualDeviceIdInput, $ProtoJSON {}
+
+	class DeriveVirtualDeviceIdInput {
+		constructor(p?: IDeriveVirtualDeviceIdInput);
+		static create(p?: IDeriveVirtualDeviceIdInput): DeriveVirtualDeviceIdInput;
+		static fromObject(d: $ProtoObject): DeriveVirtualDeviceIdInput;
+		static toObject: $ProtoToObject<DeriveVirtualDeviceIdInput>;
+		static encode: $ProtoEncode<IDeriveVirtualDeviceIdInput>;
+		static decode: $ProtoDecode<DeriveVirtualDeviceIdInput>;
+	}
+
+	interface IDeriveVirtualDeviceIdOutput {
+		success?: (proto.IDeriveVirtualDeviceIdSuccess|null);
+		error?: (string|null);
+	}
+
+	interface DeriveVirtualDeviceIdOutput extends IDeriveVirtualDeviceIdOutput, $ProtoJSON {}
+
+	class DeriveVirtualDeviceIdOutput {
+		constructor(p?: IDeriveVirtualDeviceIdOutput);
+		static create(p?: IDeriveVirtualDeviceIdOutput): DeriveVirtualDeviceIdOutput;
+		static fromObject(d: $ProtoObject): DeriveVirtualDeviceIdOutput;
+		static toObject: $ProtoToObject<DeriveVirtualDeviceIdOutput>;
+		static encode: $ProtoEncode<IDeriveVirtualDeviceIdOutput>;
+		static decode: $ProtoDecode<DeriveVirtualDeviceIdOutput>;
+	}
+
+	interface IDeriveVirtualDeviceIdSuccess {
+		virtualDeviceId?: (Uint8Array|null);
+	}
+
+	interface DeriveVirtualDeviceIdSuccess extends IDeriveVirtualDeviceIdSuccess, $ProtoJSON {}
+
+	class DeriveVirtualDeviceIdSuccess {
+		constructor(p?: IDeriveVirtualDeviceIdSuccess);
+		static create(p?: IDeriveVirtualDeviceIdSuccess): DeriveVirtualDeviceIdSuccess;
+		static fromObject(d: $ProtoObject): DeriveVirtualDeviceIdSuccess;
+		static toObject: $ProtoToObject<DeriveVirtualDeviceIdSuccess>;
+		static encode: $ProtoEncode<IDeriveVirtualDeviceIdSuccess>;
+		static decode: $ProtoDecode<DeriveVirtualDeviceIdSuccess>;
+	}
+
 	interface IDetachedDevicePublicData {
 		deviceId?: (Long|null);
 		name?: (Uint8Array|null);
@@ -5078,6 +5395,7 @@ export namespace proto {
 		newsletterChatsMigration?: (proto.DeviceCapabilities.INewsletterChatsMigration|null);
 		hostWriteMutationSupport?: (proto.DeviceCapabilities.IHostWriteMutationSupport|null);
 		bizAiWebOnboarding?: (proto.DeviceCapabilities.IBizAiWebOnboarding|null);
+		phoneNumberSharing?: (proto.DeviceCapabilities.IPhoneNumberSharing|null);
 	}
 
 	interface DeviceCapabilities extends IDeviceCapabilities, $ProtoJSON {}
@@ -5257,6 +5575,21 @@ export namespace proto {
 			static decode: $ProtoDecode<NewsletterChatsMigration>;
 		}
 
+		interface IPhoneNumberSharing {
+			phoneSharingSupported?: (boolean|null);
+		}
+
+		interface PhoneNumberSharing extends IPhoneNumberSharing, $ProtoJSON {}
+
+		class PhoneNumberSharing {
+			constructor(p?: IPhoneNumberSharing);
+			static create(p?: IPhoneNumberSharing): PhoneNumberSharing;
+			static fromObject(d: $ProtoObject): PhoneNumberSharing;
+			static toObject: $ProtoToObject<PhoneNumberSharing>;
+			static encode: $ProtoEncode<IPhoneNumberSharing>;
+			static decode: $ProtoDecode<PhoneNumberSharing>;
+		}
+
 		interface IReverseHistorySync {
 			enabledProducts?: proto.DeviceCapabilities.ReverseHistorySync.Product[];
 		}
@@ -5364,6 +5697,7 @@ export namespace proto {
 		platformType?: (proto.DeviceProps.PlatformType|null);
 		requireFullSync?: (boolean|null);
 		historySyncConfig?: (proto.DeviceProps.IHistorySyncConfig|null);
+		deviceName?: (string|null);
 	}
 
 	interface DeviceProps extends IDeviceProps, $ProtoJSON {}
@@ -5766,6 +6100,25 @@ export namespace proto {
 		static decode: $ProtoDecode<EncryptMessageOutput>;
 	}
 
+	interface IEncryptMessageSuccess {
+		encryptedProtobuf?: (Uint8Array|null);
+		orfThreadId?: (Uint8Array|null);
+		valueSecretRef?: (string|null);
+		offlineThreadingId?: (Long|null);
+		timestampMs?: (Long|null);
+	}
+
+	interface EncryptMessageSuccess extends IEncryptMessageSuccess, $ProtoJSON {}
+
+	class EncryptMessageSuccess {
+		constructor(p?: IEncryptMessageSuccess);
+		static create(p?: IEncryptMessageSuccess): EncryptMessageSuccess;
+		static fromObject(d: $ProtoObject): EncryptMessageSuccess;
+		static toObject: $ProtoToObject<EncryptMessageSuccess>;
+		static encode: $ProtoEncode<IEncryptMessageSuccess>;
+		static decode: $ProtoDecode<EncryptMessageSuccess>;
+	}
+
 	interface IEphemeralSetting {
 		duration?: (number|null);
 		timestamp?: (Long|null);
@@ -5801,6 +6154,57 @@ export namespace proto {
 		static toObject: $ProtoToObject<Epoch0Output>;
 		static encode: $ProtoEncode<IEpoch0Output>;
 		static decode: $ProtoDecode<Epoch0Output>;
+	}
+
+	interface IEpochDerivationEdge {
+		fromEpoch?: (proto.IEpochIds|null);
+		toEpoch?: (proto.IEpochIds|null);
+		forwardEdge?: (proto.IForwardEdgeInput|null);
+		backwardEdge?: (Uint8Array|null);
+	}
+
+	interface EpochDerivationEdge extends IEpochDerivationEdge, $ProtoJSON {}
+
+	class EpochDerivationEdge {
+		constructor(p?: IEpochDerivationEdge);
+		static create(p?: IEpochDerivationEdge): EpochDerivationEdge;
+		static fromObject(d: $ProtoObject): EpochDerivationEdge;
+		static toObject: $ProtoToObject<EpochDerivationEdge>;
+		static encode: $ProtoEncode<IEpochDerivationEdge>;
+		static decode: $ProtoDecode<EpochDerivationEdge>;
+	}
+
+	interface IEpochIds {
+		serverEpochId?: (Long|null);
+		epochAnonId?: (number|null);
+	}
+
+	interface EpochIds extends IEpochIds, $ProtoJSON {}
+
+	class EpochIds {
+		constructor(p?: IEpochIds);
+		static create(p?: IEpochIds): EpochIds;
+		static fromObject(d: $ProtoObject): EpochIds;
+		static toObject: $ProtoToObject<EpochIds>;
+		static encode: $ProtoEncode<IEpochIds>;
+		static decode: $ProtoDecode<EpochIds>;
+	}
+
+	interface IEpochKey {
+		serverEpochId?: (Long|null);
+		epochAnonId?: (number|null);
+		epochRootKey?: (Uint8Array|null);
+	}
+
+	interface EpochKey extends IEpochKey, $ProtoJSON {}
+
+	class EpochKey {
+		constructor(p?: IEpochKey);
+		static create(p?: IEpochKey): EpochKey;
+		static fromObject(d: $ProtoObject): EpochKey;
+		static toObject: $ProtoToObject<EpochKey>;
+		static encode: $ProtoEncode<IEpochKey>;
+		static decode: $ProtoDecode<EpochKey>;
 	}
 
 	interface IEpochPublicData {
@@ -5856,6 +6260,10 @@ export namespace proto {
 
 	interface IEventInviteAdditionalMetadata {
 		isUpdated?: (boolean|null);
+		selfAccessStatus?: (proto.EventInviteAdditionalMetadata.AccessStatus|null);
+		selfRsvpStatus?: (proto.EventInviteAdditionalMetadata.RsvpStatus|null);
+		selfAdditionalGuestCount?: (number|null);
+		selfInviteeLastUpdatedTsUsec?: (Long|null);
 	}
 
 	interface EventInviteAdditionalMetadata extends IEventInviteAdditionalMetadata, $ProtoJSON {}
@@ -5867,6 +6275,25 @@ export namespace proto {
 		static toObject: $ProtoToObject<EventInviteAdditionalMetadata>;
 		static encode: $ProtoEncode<IEventInviteAdditionalMetadata>;
 		static decode: $ProtoDecode<EventInviteAdditionalMetadata>;
+	}
+
+	namespace EventInviteAdditionalMetadata {
+
+		enum AccessStatus {
+			ACCESS_STATUS_UNKNOWN = 0,
+			HAS_ACCESS = 1,
+			LEFT_EVENT = 2,
+			REMOVED_FROM_INVITE_LIST = 3,
+			UNAVAILABLE = 4,
+		}
+
+		enum RsvpStatus {
+			RSVP_STATUS_UNKNOWN = 0,
+			GOING = 1,
+			NOT_GOING = 2,
+			MAYBE = 3,
+			NO_RESPONSE = 4,
+		}
 	}
 
 	interface IEventResponse {
@@ -6110,7 +6537,6 @@ export namespace proto {
 	interface IField {
 		minVersion?: (number|null);
 		maxVersion?: (number|null);
-		notReportableMinVersion?: (number|null);
 		isMessage?: (boolean|null);
 		subfield?: ({ [key: number]: Field }|null);
 	}
@@ -6188,6 +6614,22 @@ export namespace proto {
 		static toObject: $ProtoToObject<ForwardedAIBotMessageInfo>;
 		static encode: $ProtoEncode<IForwardedAIBotMessageInfo>;
 		static decode: $ProtoDecode<ForwardedAIBotMessageInfo>;
+	}
+
+	interface IForwardEdgeInput {
+		encryptedEntropy?: (Uint8Array|null);
+		authPublicKey?: (Uint8Array|null);
+	}
+
+	interface ForwardEdgeInput extends IForwardEdgeInput, $ProtoJSON {}
+
+	class ForwardEdgeInput {
+		constructor(p?: IForwardEdgeInput);
+		static create(p?: IForwardEdgeInput): ForwardEdgeInput;
+		static fromObject(d: $ProtoObject): ForwardEdgeInput;
+		static toObject: $ProtoToObject<ForwardEdgeInput>;
+		static encode: $ProtoEncode<IForwardEdgeInput>;
+		static decode: $ProtoDecode<ForwardEdgeInput>;
 	}
 
 	enum futureProofBehavior {
@@ -6372,6 +6814,87 @@ export namespace proto {
 		static decode: $ProtoDecode<GroupHistoryWithMessageBytes>;
 	}
 
+	interface IGroupMembershipForm {
+		questions?: proto.IGroupMembershipFormQuestion[];
+		memberTagPrompt?: (string|null);
+		schemaVersion?: (number|null);
+	}
+
+	interface GroupMembershipForm extends IGroupMembershipForm, $ProtoJSON {}
+
+	class GroupMembershipForm {
+		constructor(p?: IGroupMembershipForm);
+		static create(p?: IGroupMembershipForm): GroupMembershipForm;
+		static fromObject(d: $ProtoObject): GroupMembershipForm;
+		static toObject: $ProtoToObject<GroupMembershipForm>;
+		static encode: $ProtoEncode<IGroupMembershipForm>;
+		static decode: $ProtoDecode<GroupMembershipForm>;
+	}
+
+	interface IGroupMembershipFormMemberTagAnswer {
+		prompt?: (string|null);
+		memberTag?: (string|null);
+	}
+
+	interface GroupMembershipFormMemberTagAnswer extends IGroupMembershipFormMemberTagAnswer, $ProtoJSON {}
+
+	class GroupMembershipFormMemberTagAnswer {
+		constructor(p?: IGroupMembershipFormMemberTagAnswer);
+		static create(p?: IGroupMembershipFormMemberTagAnswer): GroupMembershipFormMemberTagAnswer;
+		static fromObject(d: $ProtoObject): GroupMembershipFormMemberTagAnswer;
+		static toObject: $ProtoToObject<GroupMembershipFormMemberTagAnswer>;
+		static encode: $ProtoEncode<IGroupMembershipFormMemberTagAnswer>;
+		static decode: $ProtoDecode<GroupMembershipFormMemberTagAnswer>;
+	}
+
+	interface IGroupMembershipFormQuestion {
+		text?: (string|null);
+	}
+
+	interface GroupMembershipFormQuestion extends IGroupMembershipFormQuestion, $ProtoJSON {}
+
+	class GroupMembershipFormQuestion {
+		constructor(p?: IGroupMembershipFormQuestion);
+		static create(p?: IGroupMembershipFormQuestion): GroupMembershipFormQuestion;
+		static fromObject(d: $ProtoObject): GroupMembershipFormQuestion;
+		static toObject: $ProtoToObject<GroupMembershipFormQuestion>;
+		static encode: $ProtoEncode<IGroupMembershipFormQuestion>;
+		static decode: $ProtoDecode<GroupMembershipFormQuestion>;
+	}
+
+	interface IGroupMembershipFormQuestionAnswer {
+		question?: (proto.IGroupMembershipFormQuestion|null);
+		answer?: (string|null);
+	}
+
+	interface GroupMembershipFormQuestionAnswer extends IGroupMembershipFormQuestionAnswer, $ProtoJSON {}
+
+	class GroupMembershipFormQuestionAnswer {
+		constructor(p?: IGroupMembershipFormQuestionAnswer);
+		static create(p?: IGroupMembershipFormQuestionAnswer): GroupMembershipFormQuestionAnswer;
+		static fromObject(d: $ProtoObject): GroupMembershipFormQuestionAnswer;
+		static toObject: $ProtoToObject<GroupMembershipFormQuestionAnswer>;
+		static encode: $ProtoEncode<IGroupMembershipFormQuestionAnswer>;
+		static decode: $ProtoDecode<GroupMembershipFormQuestionAnswer>;
+	}
+
+	interface IGroupMembershipFormSubmission {
+		questionAnswers?: proto.IGroupMembershipFormQuestionAnswer[];
+		memberTagAnswer?: (proto.IGroupMembershipFormMemberTagAnswer|null);
+		schemaVersion?: (number|null);
+	}
+
+	interface GroupMembershipFormSubmission extends IGroupMembershipFormSubmission, $ProtoJSON {}
+
+	class GroupMembershipFormSubmission {
+		constructor(p?: IGroupMembershipFormSubmission);
+		static create(p?: IGroupMembershipFormSubmission): GroupMembershipFormSubmission;
+		static fromObject(d: $ProtoObject): GroupMembershipFormSubmission;
+		static toObject: $ProtoToObject<GroupMembershipFormSubmission>;
+		static encode: $ProtoEncode<IGroupMembershipFormSubmission>;
+		static decode: $ProtoDecode<GroupMembershipFormSubmission>;
+	}
+
 	interface IGroupMention {
 		groupJid?: (string|null);
 		groupSubject?: (string|null);
@@ -6412,6 +6935,38 @@ export namespace proto {
 			ADMIN = 1,
 			SUPERADMIN = 2,
 		}
+	}
+
+	interface IGroupRootKey {
+		keyId?: (string|null);
+		rootKey?: (Uint8Array|null);
+		isCurrent?: (boolean|null);
+	}
+
+	interface GroupRootKey extends IGroupRootKey, $ProtoJSON {}
+
+	class GroupRootKey {
+		constructor(p?: IGroupRootKey);
+		static create(p?: IGroupRootKey): GroupRootKey;
+		static fromObject(d: $ProtoObject): GroupRootKey;
+		static toObject: $ProtoToObject<GroupRootKey>;
+		static encode: $ProtoEncode<IGroupRootKey>;
+		static decode: $ProtoDecode<GroupRootKey>;
+	}
+
+	interface IGroupRootKeyRequest {
+		keyId?: (string|null);
+	}
+
+	interface GroupRootKeyRequest extends IGroupRootKeyRequest, $ProtoJSON {}
+
+	class GroupRootKeyRequest {
+		constructor(p?: IGroupRootKeyRequest);
+		static create(p?: IGroupRootKeyRequest): GroupRootKeyRequest;
+		static fromObject(d: $ProtoObject): GroupRootKeyRequest;
+		static toObject: $ProtoToObject<GroupRootKeyRequest>;
+		static encode: $ProtoEncode<IGroupRootKeyRequest>;
+		static decode: $ProtoDecode<GroupRootKeyRequest>;
 	}
 
 	interface IGroupRootKeyShare {
@@ -7666,6 +8221,7 @@ export namespace proto {
 	interface IMemberLabel {
 		label?: (string|null);
 		labelTimestamp?: (Long|null);
+		showAdminBadge?: (boolean|null);
 	}
 
 	interface MemberLabel extends IMemberLabel, $ProtoJSON {}
@@ -7677,6 +8233,23 @@ export namespace proto {
 		static toObject: $ProtoToObject<MemberLabel>;
 		static encode: $ProtoEncode<IMemberLabel>;
 		static decode: $ProtoDecode<MemberLabel>;
+	}
+
+	interface IMembershipFormKeyFingerprintVerification {
+		requestId?: (string|null);
+		keyId?: (string|null);
+		keyFingerprint?: (Uint8Array|null);
+	}
+
+	interface MembershipFormKeyFingerprintVerification extends IMembershipFormKeyFingerprintVerification, $ProtoJSON {}
+
+	class MembershipFormKeyFingerprintVerification {
+		constructor(p?: IMembershipFormKeyFingerprintVerification);
+		static create(p?: IMembershipFormKeyFingerprintVerification): MembershipFormKeyFingerprintVerification;
+		static fromObject(d: $ProtoObject): MembershipFormKeyFingerprintVerification;
+		static toObject: $ProtoToObject<MembershipFormKeyFingerprintVerification>;
+		static encode: $ProtoEncode<IMembershipFormKeyFingerprintVerification>;
+		static decode: $ProtoDecode<MembershipFormKeyFingerprintVerification>;
 	}
 
 	interface IMention {
@@ -7837,6 +8410,9 @@ export namespace proto {
 		requestLocationMessage?: (proto.Message.IRequestLocationMessage|null);
 		botGroupParticipantMessage?: (proto.Message.IFutureProofMessage|null);
 		requestLocationUpdateMessage?: (proto.Message.IRequestLocationUpdateMessage|null);
+		vpcRequestMessage?: (proto.Message.IVpcRequestMessage|null);
+		instantVideoMessage?: (proto.Message.IVideoMessage|null);
+		paymentDetailsMessage?: (proto.Message.IPaymentDetailsMessage|null);
 	}
 
 	interface Message extends IMessage, $ProtoJSON {}
@@ -8587,6 +9163,7 @@ export namespace proto {
 			thumbnailWidth?: (number|null);
 			caption?: (string|null);
 			accessibilityLabel?: (string|null);
+			qrUrl?: (string|null);
 		}
 
 		interface DocumentMessage extends IDocumentMessage, $ProtoJSON {}
@@ -9511,6 +10088,7 @@ export namespace proto {
 			videoContentUrl?: (string|null);
 			musicMetadata?: (proto.IEmbeddedMusic|null);
 			videoContentCaption?: (string|null);
+			videoId?: (string|null);
 		}
 
 		interface LinkPreviewMetadata extends ILinkPreviewMetadata, $ProtoJSON {}
@@ -10019,6 +10597,41 @@ export namespace proto {
 
 			enum OrderSurface {
 				CATALOG = 1,
+			}
+		}
+
+		interface IPaymentDetailsMessage {
+			serviceType?: (proto.Message.PaymentDetailsMessage.ServiceType|null);
+			amount?: (proto.IMoney|null);
+			payeeName?: (string|null);
+			payerName?: (string|null);
+			transactionTimestampMs?: (Long|null);
+			transactionId?: (string|null);
+			status?: (proto.Message.PaymentDetailsMessage.Status|null);
+			contextInfo?: (proto.IContextInfo|null);
+		}
+
+		interface PaymentDetailsMessage extends IPaymentDetailsMessage, $ProtoJSON {}
+
+		class PaymentDetailsMessage {
+			constructor(p?: IPaymentDetailsMessage);
+			static create(p?: IPaymentDetailsMessage): PaymentDetailsMessage;
+			static fromObject(d: $ProtoObject): PaymentDetailsMessage;
+			static toObject: $ProtoToObject<PaymentDetailsMessage>;
+			static encode: $ProtoEncode<IPaymentDetailsMessage>;
+			static decode: $ProtoDecode<PaymentDetailsMessage>;
+		}
+
+		namespace PaymentDetailsMessage {
+
+			enum ServiceType {
+				UNKNOWN = 0,
+				UPI = 1,
+			}
+
+			enum Status {
+				STATUS_UNKNOWN = 0,
+				SUCCESS = 1,
 			}
 		}
 
@@ -11101,6 +11714,9 @@ export namespace proto {
 			sharedDeviceContactHashKeyShare?: (proto.Message.ISharedDeviceContactHashKeyShare|null);
 			sharedDeviceContactHashKeyRequest?: (proto.Message.ISharedDeviceContactHashKeyRequest|null);
 			additionalPromptIds?: string[];
+			groupRootKeyRequest?: (proto.IGroupRootKeyRequest|null);
+			membershipFormKeyFingerprintVerification?: (proto.IMembershipFormKeyFingerprintVerification|null);
+			groupRootKeyShare?: (proto.IGroupRootKeyShare|null);
 		}
 
 		interface ProtocolMessage extends IProtocolMessage, $ProtoJSON {}
@@ -11152,6 +11768,9 @@ export namespace proto {
 				ACP2_SETTING = 39,
 				SHARED_DEVICE_CONTACT_HASH_KEY_SHARE = 40,
 				SHARED_DEVICE_CONTACT_HASH_KEY_REQUEST = 41,
+				GROUP_ROOT_KEY_REQUEST = 42,
+				MEMBERSHIP_FORM_KEY_FINGERPRINT_VERIFICATION = 43,
+				GROUP_ROOT_KEY_SHARE = 44,
 			}
 		}
 
@@ -11963,6 +12582,35 @@ export namespace proto {
 				AI_GENERATED = 1,
 			}
 		}
+
+		interface IVpcRequestMessage {
+			payloadSchemaVersion?: (number|null);
+			requestId?: (string|null);
+			scopeHint?: (proto.Message.VpcRequestMessage.ScopeHint|null);
+		}
+
+		interface VpcRequestMessage extends IVpcRequestMessage, $ProtoJSON {}
+
+		class VpcRequestMessage {
+			constructor(p?: IVpcRequestMessage);
+			static create(p?: IVpcRequestMessage): VpcRequestMessage;
+			static fromObject(d: $ProtoObject): VpcRequestMessage;
+			static toObject: $ProtoToObject<VpcRequestMessage>;
+			static encode: $ProtoEncode<IVpcRequestMessage>;
+			static decode: $ProtoDecode<VpcRequestMessage>;
+		}
+
+		namespace VpcRequestMessage {
+
+			enum ScopeHint {
+				UNKNOWN = 0,
+				WA_ONLY = 1,
+				WAFFLE = 2,
+				WA_META_AI = 3,
+				META_AI_ONLY = 4,
+				FOA_ONLY = 5,
+			}
+		}
 	}
 
 	interface IMessageAddOn {
@@ -12058,6 +12706,8 @@ export namespace proto {
 			POLL_ADD_OPTION = 20,
 			AV1_VIDEO_DUAL_UPLOAD = 21,
 			STREAMED_HD_VIDEO_DUAL_UPLOAD = 22,
+			ORIGINAL_VIDEO_DUAL_UPLOAD = 23,
+			ORIGINAL_IMAGE_DUAL_UPLOAD = 24,
 		}
 	}
 
@@ -12696,6 +13346,10 @@ export namespace proto {
 		qrUrl?: (string|null);
 		musicData?: (proto.MsgOpaqueData.IMusicData|null);
 		pollAddedOptionName?: (string|null);
+		sharableEventInviteStatus?: (string|null);
+		sharableEventInviteLocationName?: (string|null);
+		sharableEventInviteCoverImageHandle?: (string|null);
+		sharableEventInviteLastUpdatedTsUsec?: (Long|null);
 	}
 
 	interface MsgOpaqueData extends IMsgOpaqueData, $ProtoJSON {}
@@ -13106,6 +13760,55 @@ export namespace proto {
 		static decode: $ProtoDecode<OmittedConversationMetadata>;
 	}
 
+	interface IOpenSealedThreadIdInput {
+		backupId?: (Long|null);
+		sealedThreadId?: (Uint8Array|null);
+		epochs?: proto.IEpochKey[];
+	}
+
+	interface OpenSealedThreadIdInput extends IOpenSealedThreadIdInput, $ProtoJSON {}
+
+	class OpenSealedThreadIdInput {
+		constructor(p?: IOpenSealedThreadIdInput);
+		static create(p?: IOpenSealedThreadIdInput): OpenSealedThreadIdInput;
+		static fromObject(d: $ProtoObject): OpenSealedThreadIdInput;
+		static toObject: $ProtoToObject<OpenSealedThreadIdInput>;
+		static encode: $ProtoEncode<IOpenSealedThreadIdInput>;
+		static decode: $ProtoDecode<OpenSealedThreadIdInput>;
+	}
+
+	interface IOpenSealedThreadIdOutput {
+		success?: (proto.IOpenSealedThreadIdSuccess|null);
+		error?: (string|null);
+	}
+
+	interface OpenSealedThreadIdOutput extends IOpenSealedThreadIdOutput, $ProtoJSON {}
+
+	class OpenSealedThreadIdOutput {
+		constructor(p?: IOpenSealedThreadIdOutput);
+		static create(p?: IOpenSealedThreadIdOutput): OpenSealedThreadIdOutput;
+		static fromObject(d: $ProtoObject): OpenSealedThreadIdOutput;
+		static toObject: $ProtoToObject<OpenSealedThreadIdOutput>;
+		static encode: $ProtoEncode<IOpenSealedThreadIdOutput>;
+		static decode: $ProtoDecode<OpenSealedThreadIdOutput>;
+	}
+
+	interface IOpenSealedThreadIdSuccess {
+		threadId?: (string|null);
+		sealEpochAnonId?: (number|null);
+	}
+
+	interface OpenSealedThreadIdSuccess extends IOpenSealedThreadIdSuccess, $ProtoJSON {}
+
+	class OpenSealedThreadIdSuccess {
+		constructor(p?: IOpenSealedThreadIdSuccess);
+		static create(p?: IOpenSealedThreadIdSuccess): OpenSealedThreadIdSuccess;
+		static fromObject(d: $ProtoObject): OpenSealedThreadIdSuccess;
+		static toObject: $ProtoToObject<OpenSealedThreadIdSuccess>;
+		static encode: $ProtoEncode<IOpenSealedThreadIdSuccess>;
+		static decode: $ProtoDecode<OpenSealedThreadIdSuccess>;
+	}
+
 	interface IOrfThreadIdInput {
 		orfClientState?: (Uint8Array|null);
 		threadId?: (string|null);
@@ -13138,6 +13841,21 @@ export namespace proto {
 		static decode: $ProtoDecode<OrfThreadIdOutput>;
 	}
 
+	interface IOrfThreadIdSuccess {
+		orfThreadId?: (Uint8Array|null);
+	}
+
+	interface OrfThreadIdSuccess extends IOrfThreadIdSuccess, $ProtoJSON {}
+
+	class OrfThreadIdSuccess {
+		constructor(p?: IOrfThreadIdSuccess);
+		static create(p?: IOrfThreadIdSuccess): OrfThreadIdSuccess;
+		static fromObject(d: $ProtoObject): OrfThreadIdSuccess;
+		static toObject: $ProtoToObject<OrfThreadIdSuccess>;
+		static encode: $ProtoEncode<IOrfThreadIdSuccess>;
+		static decode: $ProtoDecode<OrfThreadIdSuccess>;
+	}
+
 	interface IPairingRequest {
 		companionPublicKey?: (Uint8Array|null);
 		companionIdentityKey?: (Uint8Array|null);
@@ -13153,6 +13871,52 @@ export namespace proto {
 		static toObject: $ProtoToObject<PairingRequest>;
 		static encode: $ProtoEncode<IPairingRequest>;
 		static decode: $ProtoDecode<PairingRequest>;
+	}
+
+	interface IParseCompanionTestMessageInput {
+		plaintext?: (Uint8Array|null);
+	}
+
+	interface ParseCompanionTestMessageInput extends IParseCompanionTestMessageInput, $ProtoJSON {}
+
+	class ParseCompanionTestMessageInput {
+		constructor(p?: IParseCompanionTestMessageInput);
+		static create(p?: IParseCompanionTestMessageInput): ParseCompanionTestMessageInput;
+		static fromObject(d: $ProtoObject): ParseCompanionTestMessageInput;
+		static toObject: $ProtoToObject<ParseCompanionTestMessageInput>;
+		static encode: $ProtoEncode<IParseCompanionTestMessageInput>;
+		static decode: $ProtoDecode<ParseCompanionTestMessageInput>;
+	}
+
+	interface IParseCompanionTestMessageOutput {
+		success?: (proto.IParseCompanionTestMessageSuccess|null);
+		error?: (string|null);
+	}
+
+	interface ParseCompanionTestMessageOutput extends IParseCompanionTestMessageOutput, $ProtoJSON {}
+
+	class ParseCompanionTestMessageOutput {
+		constructor(p?: IParseCompanionTestMessageOutput);
+		static create(p?: IParseCompanionTestMessageOutput): ParseCompanionTestMessageOutput;
+		static fromObject(d: $ProtoObject): ParseCompanionTestMessageOutput;
+		static toObject: $ProtoToObject<ParseCompanionTestMessageOutput>;
+		static encode: $ProtoEncode<IParseCompanionTestMessageOutput>;
+		static decode: $ProtoDecode<ParseCompanionTestMessageOutput>;
+	}
+
+	interface IParseCompanionTestMessageSuccess {
+		createdAtMs?: (Long|null);
+	}
+
+	interface ParseCompanionTestMessageSuccess extends IParseCompanionTestMessageSuccess, $ProtoJSON {}
+
+	class ParseCompanionTestMessageSuccess {
+		constructor(p?: IParseCompanionTestMessageSuccess);
+		static create(p?: IParseCompanionTestMessageSuccess): ParseCompanionTestMessageSuccess;
+		static fromObject(d: $ProtoObject): ParseCompanionTestMessageSuccess;
+		static toObject: $ProtoToObject<ParseCompanionTestMessageSuccess>;
+		static encode: $ProtoEncode<IParseCompanionTestMessageSuccess>;
+		static decode: $ProtoDecode<ParseCompanionTestMessageSuccess>;
 	}
 
 	interface IPastParticipant {
@@ -13458,6 +14222,8 @@ export namespace proto {
 		pollInvalidated?: (boolean|null);
 		pollNameHashHistory?: proto.PollAdditionalMetadata.IPollNameHashHistoryEntry[];
 		originalOptions?: proto.Message.PollCreationMessage.IOption[];
+		pollOptionReplayEntries?: proto.PollAdditionalMetadata.IPollOptionReplayEntry[];
+		pollOptionReplayBase?: (proto.PollAdditionalMetadata.IPollOptionReplayBase|null);
 	}
 
 	interface PollAdditionalMetadata extends IPollAdditionalMetadata, $ProtoJSON {}
@@ -13487,6 +14253,73 @@ export namespace proto {
 			static toObject: $ProtoToObject<PollNameHashHistoryEntry>;
 			static encode: $ProtoEncode<IPollNameHashHistoryEntry>;
 			static decode: $ProtoDecode<PollNameHashHistoryEntry>;
+		}
+
+		interface IPollOptionReplayBase {
+			boundaryTimestampMs?: (Long|null);
+			editTimestampMs?: (Long|null);
+			options?: proto.PollAdditionalMetadata.PollOptionReplayBase.IOption[];
+		}
+
+		interface PollOptionReplayBase extends IPollOptionReplayBase, $ProtoJSON {}
+
+		class PollOptionReplayBase {
+			constructor(p?: IPollOptionReplayBase);
+			static create(p?: IPollOptionReplayBase): PollOptionReplayBase;
+			static fromObject(d: $ProtoObject): PollOptionReplayBase;
+			static toObject: $ProtoToObject<PollOptionReplayBase>;
+			static encode: $ProtoEncode<IPollOptionReplayBase>;
+			static decode: $ProtoDecode<PollOptionReplayBase>;
+		}
+
+		namespace PollOptionReplayBase {
+
+			interface IOption {
+				optionHash?: (Uint8Array|null);
+				enteredTimestampMs?: (Long|null);
+				addMessageKey?: (proto.IMessageKey|null);
+			}
+
+			interface Option extends IOption, $ProtoJSON {}
+
+			class Option {
+				constructor(p?: IOption);
+				static create(p?: IOption): Option;
+				static fromObject(d: $ProtoObject): Option;
+				static toObject: $ProtoToObject<Option>;
+				static encode: $ProtoEncode<IOption>;
+				static decode: $ProtoDecode<Option>;
+			}
+		}
+
+		interface IPollOptionReplayEntry {
+			type?: (proto.PollAdditionalMetadata.PollOptionReplayEntry.Type|null);
+			messageKey?: (proto.IMessageKey|null);
+			serverTimestampMs?: (Long|null);
+			editTimestampMs?: (Long|null);
+			optionHashes?: Uint8Array[];
+			revokedMessageKey?: (proto.IMessageKey|null);
+		}
+
+		interface PollOptionReplayEntry extends IPollOptionReplayEntry, $ProtoJSON {}
+
+		class PollOptionReplayEntry {
+			constructor(p?: IPollOptionReplayEntry);
+			static create(p?: IPollOptionReplayEntry): PollOptionReplayEntry;
+			static fromObject(d: $ProtoObject): PollOptionReplayEntry;
+			static toObject: $ProtoToObject<PollOptionReplayEntry>;
+			static encode: $ProtoEncode<IPollOptionReplayEntry>;
+			static decode: $ProtoDecode<PollOptionReplayEntry>;
+		}
+
+		namespace PollOptionReplayEntry {
+
+			enum Type {
+				UNKNOWN = 0,
+				EDIT = 1,
+				ADD = 2,
+				REVOKE = 3,
+			}
 		}
 	}
 
@@ -13578,6 +14411,118 @@ export namespace proto {
 		static toObject: $ProtoToObject<PremiumMessageInfo>;
 		static encode: $ProtoEncode<IPremiumMessageInfo>;
 		static decode: $ProtoDecode<PremiumMessageInfo>;
+	}
+
+	interface IPrepareAddDeviceInput {
+		recoveryCode?: (string|null);
+		userId?: (Long|null);
+		encryptedSecretValuesJson?: (string|null);
+		virtualDeviceBaseEpochId?: (Long|null);
+		activeEpochId?: (Long|null);
+		syncEpochs?: proto.IAddDeviceSyncEpochInput[];
+	}
+
+	interface PrepareAddDeviceInput extends IPrepareAddDeviceInput, $ProtoJSON {}
+
+	class PrepareAddDeviceInput {
+		constructor(p?: IPrepareAddDeviceInput);
+		static create(p?: IPrepareAddDeviceInput): PrepareAddDeviceInput;
+		static fromObject(d: $ProtoObject): PrepareAddDeviceInput;
+		static toObject: $ProtoToObject<PrepareAddDeviceInput>;
+		static encode: $ProtoEncode<IPrepareAddDeviceInput>;
+		static decode: $ProtoDecode<PrepareAddDeviceInput>;
+	}
+
+	interface IPrepareAddDeviceOutput {
+		success?: (proto.IPrepareAddDeviceSuccess|null);
+		error?: (string|null);
+	}
+
+	interface PrepareAddDeviceOutput extends IPrepareAddDeviceOutput, $ProtoJSON {}
+
+	class PrepareAddDeviceOutput {
+		constructor(p?: IPrepareAddDeviceOutput);
+		static create(p?: IPrepareAddDeviceOutput): PrepareAddDeviceOutput;
+		static fromObject(d: $ProtoObject): PrepareAddDeviceOutput;
+		static toObject: $ProtoToObject<PrepareAddDeviceOutput>;
+		static encode: $ProtoEncode<IPrepareAddDeviceOutput>;
+		static decode: $ProtoDecode<PrepareAddDeviceOutput>;
+	}
+
+	interface IPrepareAddDeviceSuccess {
+		deviceKeys?: (proto.IAddDeviceKeysOutput|null);
+		currentEpoch?: (proto.IEpochKey|null);
+		mailboxRootSalt?: (Uint8Array|null);
+		orfRotationToken?: (Uint8Array|null);
+		deviceEpochHmac?: (Uint8Array|null);
+		epochRootKeyFingerprint?: (Uint8Array|null);
+		supportedEncryptionVersions?: number[];
+		encryptionVersionSignature?: (Uint8Array|null);
+		clientVersion?: (number|null);
+	}
+
+	interface PrepareAddDeviceSuccess extends IPrepareAddDeviceSuccess, $ProtoJSON {}
+
+	class PrepareAddDeviceSuccess {
+		constructor(p?: IPrepareAddDeviceSuccess);
+		static create(p?: IPrepareAddDeviceSuccess): PrepareAddDeviceSuccess;
+		static fromObject(d: $ProtoObject): PrepareAddDeviceSuccess;
+		static toObject: $ProtoToObject<PrepareAddDeviceSuccess>;
+		static encode: $ProtoEncode<IPrepareAddDeviceSuccess>;
+		static decode: $ProtoDecode<PrepareAddDeviceSuccess>;
+	}
+
+	interface IPrepareAddPeerDeviceInput {
+		advSecret?: (Uint8Array|null);
+		sealedPayload?: (Uint8Array|null);
+		backupId?: (Long|null);
+		userId?: (Long|null);
+		companionIdentityPub?: (Uint8Array|null);
+		activeEpochId?: (Long|null);
+	}
+
+	interface PrepareAddPeerDeviceInput extends IPrepareAddPeerDeviceInput, $ProtoJSON {}
+
+	class PrepareAddPeerDeviceInput {
+		constructor(p?: IPrepareAddPeerDeviceInput);
+		static create(p?: IPrepareAddPeerDeviceInput): PrepareAddPeerDeviceInput;
+		static fromObject(d: $ProtoObject): PrepareAddPeerDeviceInput;
+		static toObject: $ProtoToObject<PrepareAddPeerDeviceInput>;
+		static encode: $ProtoEncode<IPrepareAddPeerDeviceInput>;
+		static decode: $ProtoDecode<PrepareAddPeerDeviceInput>;
+	}
+
+	interface IPrepareAddPeerDeviceOutput {
+		success?: (proto.IPrepareAddPeerDeviceSuccess|null);
+		error?: (string|null);
+	}
+
+	interface PrepareAddPeerDeviceOutput extends IPrepareAddPeerDeviceOutput, $ProtoJSON {}
+
+	class PrepareAddPeerDeviceOutput {
+		constructor(p?: IPrepareAddPeerDeviceOutput);
+		static create(p?: IPrepareAddPeerDeviceOutput): PrepareAddPeerDeviceOutput;
+		static fromObject(d: $ProtoObject): PrepareAddPeerDeviceOutput;
+		static toObject: $ProtoToObject<PrepareAddPeerDeviceOutput>;
+		static encode: $ProtoEncode<IPrepareAddPeerDeviceOutput>;
+		static decode: $ProtoDecode<PrepareAddPeerDeviceOutput>;
+	}
+
+	interface IPrepareAddPeerDeviceSuccess {
+		enrolment?: (proto.IPrepareAddDeviceSuccess|null);
+		serverDataId?: (Long|null);
+		companionDeviceBinding?: (Uint8Array|null);
+	}
+
+	interface PrepareAddPeerDeviceSuccess extends IPrepareAddPeerDeviceSuccess, $ProtoJSON {}
+
+	class PrepareAddPeerDeviceSuccess {
+		constructor(p?: IPrepareAddPeerDeviceSuccess);
+		static create(p?: IPrepareAddPeerDeviceSuccess): PrepareAddPeerDeviceSuccess;
+		static fromObject(d: $ProtoObject): PrepareAddPeerDeviceSuccess;
+		static toObject: $ProtoToObject<PrepareAddPeerDeviceSuccess>;
+		static encode: $ProtoEncode<IPrepareAddPeerDeviceSuccess>;
+		static decode: $ProtoDecode<PrepareAddPeerDeviceSuccess>;
 	}
 
 	interface IPrimaryEphemeralIdentity {
@@ -13927,6 +14872,25 @@ export namespace proto {
 		static decode: $ProtoDecode<RotateEpochOutput>;
 	}
 
+	interface IRotateEpochSuccess {
+		newEpochRootKey?: (Uint8Array|null);
+		newEpochAnonId?: (number|null);
+		backwardEdge?: (proto.IWebBackwardEdge|null);
+		memberEdges?: proto.IWebRotateEpochMemberEdge[];
+		epochRootKeyFingerprint?: (Uint8Array|null);
+	}
+
+	interface RotateEpochSuccess extends IRotateEpochSuccess, $ProtoJSON {}
+
+	class RotateEpochSuccess {
+		constructor(p?: IRotateEpochSuccess);
+		static create(p?: IRotateEpochSuccess): RotateEpochSuccess;
+		static fromObject(d: $ProtoObject): RotateEpochSuccess;
+		static toObject: $ProtoToObject<RotateEpochSuccess>;
+		static encode: $ProtoEncode<IRotateEpochSuccess>;
+		static decode: $ProtoDecode<RotateEpochSuccess>;
+	}
+
 	interface IRoutingInfo {
 		regionId?: number[];
 		clusterId?: number[];
@@ -13962,6 +14926,55 @@ export namespace proto {
 		static toObject: $ProtoToObject<ScheduledMessageMetadata>;
 		static encode: $ProtoEncode<IScheduledMessageMetadata>;
 		static decode: $ProtoDecode<ScheduledMessageMetadata>;
+	}
+
+	interface ISealThreadIdInput {
+		epochRootKey?: (Uint8Array|null);
+		epochAnonId?: (number|null);
+		backupId?: (Long|null);
+		threadId?: (string|null);
+	}
+
+	interface SealThreadIdInput extends ISealThreadIdInput, $ProtoJSON {}
+
+	class SealThreadIdInput {
+		constructor(p?: ISealThreadIdInput);
+		static create(p?: ISealThreadIdInput): SealThreadIdInput;
+		static fromObject(d: $ProtoObject): SealThreadIdInput;
+		static toObject: $ProtoToObject<SealThreadIdInput>;
+		static encode: $ProtoEncode<ISealThreadIdInput>;
+		static decode: $ProtoDecode<SealThreadIdInput>;
+	}
+
+	interface ISealThreadIdOutput {
+		success?: (proto.ISealThreadIdSuccess|null);
+		error?: (string|null);
+	}
+
+	interface SealThreadIdOutput extends ISealThreadIdOutput, $ProtoJSON {}
+
+	class SealThreadIdOutput {
+		constructor(p?: ISealThreadIdOutput);
+		static create(p?: ISealThreadIdOutput): SealThreadIdOutput;
+		static fromObject(d: $ProtoObject): SealThreadIdOutput;
+		static toObject: $ProtoToObject<SealThreadIdOutput>;
+		static encode: $ProtoEncode<ISealThreadIdOutput>;
+		static decode: $ProtoDecode<SealThreadIdOutput>;
+	}
+
+	interface ISealThreadIdSuccess {
+		sealedThreadId?: (Uint8Array|null);
+	}
+
+	interface SealThreadIdSuccess extends ISealThreadIdSuccess, $ProtoJSON {}
+
+	class SealThreadIdSuccess {
+		constructor(p?: ISealThreadIdSuccess);
+		static create(p?: ISealThreadIdSuccess): SealThreadIdSuccess;
+		static fromObject(d: $ProtoObject): SealThreadIdSuccess;
+		static toObject: $ProtoToObject<SealThreadIdSuccess>;
+		static encode: $ProtoEncode<ISealThreadIdSuccess>;
+		static decode: $ProtoDecode<SealThreadIdSuccess>;
 	}
 
 	interface ISenderKeyDistributionMessage {
@@ -14308,6 +15321,7 @@ export namespace proto {
 		groupStatus?: (proto.StatusAttribution.IGroupStatus|null);
 		rlAttribution?: (proto.StatusAttribution.IRLAttribution|null);
 		aiCreatedAttribution?: (proto.StatusAttribution.IAiCreatedAttribution|null);
+		statusTemplate?: (proto.StatusAttribution.IStatusTemplate|null);
 	}
 
 	interface StatusAttribution extends IStatusAttribution, $ProtoJSON {}
@@ -14489,6 +15503,23 @@ export namespace proto {
 			}
 		}
 
+		interface IStatusTemplate {
+			templateId?: (string|null);
+			templateName?: (string|null);
+			thumbnailUrl?: (string|null);
+		}
+
+		interface StatusTemplate extends IStatusTemplate, $ProtoJSON {}
+
+		class StatusTemplate {
+			constructor(p?: IStatusTemplate);
+			static create(p?: IStatusTemplate): StatusTemplate;
+			static fromObject(d: $ProtoObject): StatusTemplate;
+			static toObject: $ProtoToObject<StatusTemplate>;
+			static encode: $ProtoEncode<IStatusTemplate>;
+			static decode: $ProtoDecode<StatusTemplate>;
+		}
+
 		enum Type {
 			UNKNOWN = 0,
 			RESHARE = 1,
@@ -14503,6 +15534,7 @@ export namespace proto {
 			STATUS_CLOSE_SHARING = 10,
 			PAID_PARTNERSHIP = 11,
 			USERNAME_STATUS = 12,
+			STATUS_TEMPLATES = 13,
 		}
 	}
 
@@ -17169,6 +18201,212 @@ export namespace proto {
 		static decode: $ProtoDecode<WallpaperSettings>;
 	}
 
+	interface IWebBackwardEdge {
+		encryptedPrevEpochAnonId?: (Uint8Array|null);
+		encryptedPrevEpochRootKey?: (Uint8Array|null);
+		prevEpochRootKeyFingerprint?: (Uint8Array|null);
+	}
+
+	interface WebBackwardEdge extends IWebBackwardEdge, $ProtoJSON {}
+
+	class WebBackwardEdge {
+		constructor(p?: IWebBackwardEdge);
+		static create(p?: IWebBackwardEdge): WebBackwardEdge;
+		static fromObject(d: $ProtoObject): WebBackwardEdge;
+		static toObject: $ProtoToObject<WebBackwardEdge>;
+		static encode: $ProtoEncode<IWebBackwardEdge>;
+		static decode: $ProtoDecode<WebBackwardEdge>;
+	}
+
+	interface IWebCreateBackupOutput {
+		success?: (proto.ICreateBackupSuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebCreateBackupOutput extends IWebCreateBackupOutput, $ProtoJSON {}
+
+	class WebCreateBackupOutput {
+		constructor(p?: IWebCreateBackupOutput);
+		static create(p?: IWebCreateBackupOutput): WebCreateBackupOutput;
+		static fromObject(d: $ProtoObject): WebCreateBackupOutput;
+		static toObject: $ProtoToObject<WebCreateBackupOutput>;
+		static encode: $ProtoEncode<IWebCreateBackupOutput>;
+		static decode: $ProtoDecode<WebCreateBackupOutput>;
+	}
+
+	interface IWebDecryptMessageInput {
+		epochRootKey?: (Uint8Array|null);
+		epochAnonId?: (number|null);
+		threadId?: (string|null);
+		encryptionVersion?: (number|null);
+		ciphertext?: (Uint8Array|null);
+	}
+
+	interface WebDecryptMessageInput extends IWebDecryptMessageInput, $ProtoJSON {}
+
+	class WebDecryptMessageInput {
+		constructor(p?: IWebDecryptMessageInput);
+		static create(p?: IWebDecryptMessageInput): WebDecryptMessageInput;
+		static fromObject(d: $ProtoObject): WebDecryptMessageInput;
+		static toObject: $ProtoToObject<WebDecryptMessageInput>;
+		static encode: $ProtoEncode<IWebDecryptMessageInput>;
+		static decode: $ProtoDecode<WebDecryptMessageInput>;
+	}
+
+	interface IWebDecryptMessageOutput {
+		success?: (proto.IDecryptMessageSuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebDecryptMessageOutput extends IWebDecryptMessageOutput, $ProtoJSON {}
+
+	class WebDecryptMessageOutput {
+		constructor(p?: IWebDecryptMessageOutput);
+		static create(p?: IWebDecryptMessageOutput): WebDecryptMessageOutput;
+		static fromObject(d: $ProtoObject): WebDecryptMessageOutput;
+		static toObject: $ProtoToObject<WebDecryptMessageOutput>;
+		static encode: $ProtoEncode<IWebDecryptMessageOutput>;
+		static decode: $ProtoDecode<WebDecryptMessageOutput>;
+	}
+
+	interface IWebDeriveMessageKeyInput {
+		epochRootKey?: (Uint8Array|null);
+		epochAnonId?: (number|null);
+		threadId?: (string|null);
+	}
+
+	interface WebDeriveMessageKeyInput extends IWebDeriveMessageKeyInput, $ProtoJSON {}
+
+	class WebDeriveMessageKeyInput {
+		constructor(p?: IWebDeriveMessageKeyInput);
+		static create(p?: IWebDeriveMessageKeyInput): WebDeriveMessageKeyInput;
+		static fromObject(d: $ProtoObject): WebDeriveMessageKeyInput;
+		static toObject: $ProtoToObject<WebDeriveMessageKeyInput>;
+		static encode: $ProtoEncode<IWebDeriveMessageKeyInput>;
+		static decode: $ProtoDecode<WebDeriveMessageKeyInput>;
+	}
+
+	interface IWebDeriveMessageKeyOutput {
+		success?: (proto.IDeriveMessageKeySuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebDeriveMessageKeyOutput extends IWebDeriveMessageKeyOutput, $ProtoJSON {}
+
+	class WebDeriveMessageKeyOutput {
+		constructor(p?: IWebDeriveMessageKeyOutput);
+		static create(p?: IWebDeriveMessageKeyOutput): WebDeriveMessageKeyOutput;
+		static fromObject(d: $ProtoObject): WebDeriveMessageKeyOutput;
+		static toObject: $ProtoToObject<WebDeriveMessageKeyOutput>;
+		static encode: $ProtoEncode<IWebDeriveMessageKeyOutput>;
+		static decode: $ProtoDecode<WebDeriveMessageKeyOutput>;
+	}
+
+	interface IWebDeviceOutput {
+		publicKey?: (Uint8Array|null);
+		epochAuthPublicKey?: (Uint8Array|null);
+		epochAuthPublicKeySig?: (Uint8Array|null);
+		epochStoragePublicKey?: (Uint8Array|null);
+		epochStoragePublicKeySig?: (Uint8Array|null);
+		supportedEncryptionVersions?: number[];
+		encryptionVersionSignature?: (Uint8Array|null);
+		clientVersion?: (number|null);
+		ocmfClientState?: (Uint8Array|null);
+		epochStoragePrivateKey?: (Uint8Array|null);
+		epochAuthPrivateKey?: (Uint8Array|null);
+		deviceEpochHmac?: (Uint8Array|null);
+	}
+
+	interface WebDeviceOutput extends IWebDeviceOutput, $ProtoJSON {}
+
+	class WebDeviceOutput {
+		constructor(p?: IWebDeviceOutput);
+		static create(p?: IWebDeviceOutput): WebDeviceOutput;
+		static fromObject(d: $ProtoObject): WebDeviceOutput;
+		static toObject: $ProtoToObject<WebDeviceOutput>;
+		static encode: $ProtoEncode<IWebDeviceOutput>;
+		static decode: $ProtoDecode<WebDeviceOutput>;
+	}
+
+	interface IWebEncryptedSecretValuesOutput {
+		encryptedDevicePrivateKey?: (Uint8Array|null);
+		encryptedObliviousValidationTokenBlob?: (Uint8Array|null);
+		encryptedEpochStoragePrivateKey?: (Uint8Array|null);
+		encryptedOcmfClientState?: (Uint8Array|null);
+		encryptedMailboxRootKeyBlob?: (Uint8Array|null);
+		encryptedEpochAnonId?: (Uint8Array|null);
+		encryptedEpochRootKey?: (Uint8Array|null);
+	}
+
+	interface WebEncryptedSecretValuesOutput extends IWebEncryptedSecretValuesOutput, $ProtoJSON {}
+
+	class WebEncryptedSecretValuesOutput {
+		constructor(p?: IWebEncryptedSecretValuesOutput);
+		static create(p?: IWebEncryptedSecretValuesOutput): WebEncryptedSecretValuesOutput;
+		static fromObject(d: $ProtoObject): WebEncryptedSecretValuesOutput;
+		static toObject: $ProtoToObject<WebEncryptedSecretValuesOutput>;
+		static encode: $ProtoEncode<IWebEncryptedSecretValuesOutput>;
+		static decode: $ProtoDecode<WebEncryptedSecretValuesOutput>;
+	}
+
+	interface IWebEncryptMessageInput {
+		epochRootKey?: (Uint8Array|null);
+		mailboxRootKey?: (Uint8Array|null);
+		orfClientState?: (Uint8Array|null);
+		epochAnonId?: (number|null);
+		epochId?: (Long|null);
+		threadId?: (string|null);
+		waCanonicalUserFbid?: (Long|null);
+		timestampMs?: (Long|null);
+		backupId?: (Long|null);
+		plaintextPayload?: (Uint8Array|null);
+		stanzaId?: (string|null);
+	}
+
+	interface WebEncryptMessageInput extends IWebEncryptMessageInput, $ProtoJSON {}
+
+	class WebEncryptMessageInput {
+		constructor(p?: IWebEncryptMessageInput);
+		static create(p?: IWebEncryptMessageInput): WebEncryptMessageInput;
+		static fromObject(d: $ProtoObject): WebEncryptMessageInput;
+		static toObject: $ProtoToObject<WebEncryptMessageInput>;
+		static encode: $ProtoEncode<IWebEncryptMessageInput>;
+		static decode: $ProtoDecode<WebEncryptMessageInput>;
+	}
+
+	interface IWebEncryptMessageOutput {
+		success?: (proto.IEncryptMessageSuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebEncryptMessageOutput extends IWebEncryptMessageOutput, $ProtoJSON {}
+
+	class WebEncryptMessageOutput {
+		constructor(p?: IWebEncryptMessageOutput);
+		static create(p?: IWebEncryptMessageOutput): WebEncryptMessageOutput;
+		static fromObject(d: $ProtoObject): WebEncryptMessageOutput;
+		static toObject: $ProtoToObject<WebEncryptMessageOutput>;
+		static encode: $ProtoEncode<IWebEncryptMessageOutput>;
+		static decode: $ProtoDecode<WebEncryptMessageOutput>;
+	}
+
+	interface IWebEpoch0Output {
+		epochAnonId?: (number|null);
+		epochRootKeyFingerprint?: (Uint8Array|null);
+		epochRootKey?: (Uint8Array|null);
+	}
+
+	interface WebEpoch0Output extends IWebEpoch0Output, $ProtoJSON {}
+
+	class WebEpoch0Output {
+		constructor(p?: IWebEpoch0Output);
+		static create(p?: IWebEpoch0Output): WebEpoch0Output;
+		static fromObject(d: $ProtoObject): WebEpoch0Output;
+		static toObject: $ProtoToObject<WebEpoch0Output>;
+		static encode: $ProtoEncode<IWebEpoch0Output>;
+		static decode: $ProtoDecode<WebEpoch0Output>;
+	}
+
 	interface IWebFeatures {
 		labelsDisplay?: (proto.WebFeatures.Flag|null);
 		voipIndividualOutgoing?: (proto.WebFeatures.Flag|null);
@@ -17236,6 +18474,35 @@ export namespace proto {
 			DEVELOPMENT = 2,
 			PRODUCTION = 3,
 		}
+	}
+
+	interface IWebLabyrinthWaCommand {
+		createBackupInput?: (proto.ICreateBackupInput|null);
+		encryptMessageInput?: (proto.IWebEncryptMessageInput|null);
+		decryptMessageInput?: (proto.IWebDecryptMessageInput|null);
+		orfThreadIdInput?: (proto.IOrfThreadIdInput|null);
+		deriveMessageKeyInput?: (proto.IWebDeriveMessageKeyInput|null);
+		rotateEpochInput?: (proto.IWebRotateEpochInput|null);
+		deriveVirtualDeviceIdInput?: (proto.IDeriveVirtualDeviceIdInput|null);
+		prepareAddDeviceInput?: (proto.IPrepareAddDeviceInput|null);
+		computeClientSealTokenInput?: (proto.IComputeClientSealTokenInput|null);
+		openSealedThreadIdInput?: (proto.IOpenSealedThreadIdInput|null);
+		deriveEpochsInput?: (proto.IDeriveEpochsInput|null);
+		sealThreadIdInput?: (proto.ISealThreadIdInput|null);
+		prepareAddPeerDeviceInput?: (proto.IPrepareAddPeerDeviceInput|null);
+		companionTestMessageThreadIdInput?: (proto.ICompanionTestMessageThreadIdInput|null);
+		parseCompanionTestMessageInput?: (proto.IParseCompanionTestMessageInput|null);
+	}
+
+	interface WebLabyrinthWaCommand extends IWebLabyrinthWaCommand, $ProtoJSON {}
+
+	class WebLabyrinthWaCommand {
+		constructor(p?: IWebLabyrinthWaCommand);
+		static create(p?: IWebLabyrinthWaCommand): WebLabyrinthWaCommand;
+		static fromObject(d: $ProtoObject): WebLabyrinthWaCommand;
+		static toObject: $ProtoToObject<WebLabyrinthWaCommand>;
+		static encode: $ProtoEncode<IWebLabyrinthWaCommand>;
+		static decode: $ProtoDecode<WebLabyrinthWaCommand>;
 	}
 
 	enum WebLinkRenderConfig {
@@ -17317,6 +18584,7 @@ export namespace proto {
 		decisionId?: (string|null);
 		decisionSources?: string[];
 		eventInviteAdditionalMetadata?: (proto.IEventInviteAdditionalMetadata|null);
+		groupHistoryLastCountedMessageTimestamp?: (Long|null);
 	}
 
 	interface WebMessageInfo extends IWebMessageInfo, $ProtoJSON {}
@@ -17616,6 +18884,7 @@ export namespace proto {
 			SPLIT_PAYMENT_MARKED_AS_PAID = 289,
 			POLL_OPTIONS_REMOVED = 290,
 			POLL_ADDED_OPTION_REMOVED = 291,
+			GROUP_CUSTOM_REACTIONS = 293,
 		}
 	}
 
@@ -17651,6 +18920,114 @@ export namespace proto {
 		static toObject: $ProtoToObject<WebNotificationsInfo>;
 		static encode: $ProtoEncode<IWebNotificationsInfo>;
 		static decode: $ProtoDecode<WebNotificationsInfo>;
+	}
+
+	interface IWebOrfThreadIdOutput {
+		success?: (proto.IOrfThreadIdSuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebOrfThreadIdOutput extends IWebOrfThreadIdOutput, $ProtoJSON {}
+
+	class WebOrfThreadIdOutput {
+		constructor(p?: IWebOrfThreadIdOutput);
+		static create(p?: IWebOrfThreadIdOutput): WebOrfThreadIdOutput;
+		static fromObject(d: $ProtoObject): WebOrfThreadIdOutput;
+		static toObject: $ProtoToObject<WebOrfThreadIdOutput>;
+		static encode: $ProtoEncode<IWebOrfThreadIdOutput>;
+		static decode: $ProtoDecode<WebOrfThreadIdOutput>;
+	}
+
+	interface IWebRotateEpochInput {
+		currentEpochRootKey?: (Uint8Array|null);
+		currentEpochAnonId?: (number|null);
+		currentEpochFbid?: (Long|null);
+		epochStorageAuthPrivateKey?: (Uint8Array|null);
+		members?: proto.IWebRotateEpochMemberInput[];
+	}
+
+	interface WebRotateEpochInput extends IWebRotateEpochInput, $ProtoJSON {}
+
+	class WebRotateEpochInput {
+		constructor(p?: IWebRotateEpochInput);
+		static create(p?: IWebRotateEpochInput): WebRotateEpochInput;
+		static fromObject(d: $ProtoObject): WebRotateEpochInput;
+		static toObject: $ProtoToObject<WebRotateEpochInput>;
+		static encode: $ProtoEncode<IWebRotateEpochInput>;
+		static decode: $ProtoDecode<WebRotateEpochInput>;
+	}
+
+	interface IWebRotateEpochMemberEdge {
+		deviceId?: (Long|null);
+		encryptedEpochKey?: (Uint8Array|null);
+		deviceEpochHmac?: (Uint8Array|null);
+	}
+
+	interface WebRotateEpochMemberEdge extends IWebRotateEpochMemberEdge, $ProtoJSON {}
+
+	class WebRotateEpochMemberEdge {
+		constructor(p?: IWebRotateEpochMemberEdge);
+		static create(p?: IWebRotateEpochMemberEdge): WebRotateEpochMemberEdge;
+		static fromObject(d: $ProtoObject): WebRotateEpochMemberEdge;
+		static toObject: $ProtoToObject<WebRotateEpochMemberEdge>;
+		static encode: $ProtoEncode<IWebRotateEpochMemberEdge>;
+		static decode: $ProtoDecode<WebRotateEpochMemberEdge>;
+	}
+
+	interface IWebRotateEpochMemberInput {
+		deviceId?: (Long|null);
+		epochStoragePublicKey?: (Uint8Array|null);
+		devicePublicKey?: (Uint8Array|null);
+		prevDeviceEpochHmac?: (Uint8Array|null);
+		epochStoragePublicKeySig?: (Uint8Array|null);
+	}
+
+	interface WebRotateEpochMemberInput extends IWebRotateEpochMemberInput, $ProtoJSON {}
+
+	class WebRotateEpochMemberInput {
+		constructor(p?: IWebRotateEpochMemberInput);
+		static create(p?: IWebRotateEpochMemberInput): WebRotateEpochMemberInput;
+		static fromObject(d: $ProtoObject): WebRotateEpochMemberInput;
+		static toObject: $ProtoToObject<WebRotateEpochMemberInput>;
+		static encode: $ProtoEncode<IWebRotateEpochMemberInput>;
+		static decode: $ProtoDecode<WebRotateEpochMemberInput>;
+	}
+
+	interface IWebRotateEpochOutput {
+		success?: (proto.IRotateEpochSuccess|null);
+		error?: (string|null);
+	}
+
+	interface WebRotateEpochOutput extends IWebRotateEpochOutput, $ProtoJSON {}
+
+	class WebRotateEpochOutput {
+		constructor(p?: IWebRotateEpochOutput);
+		static create(p?: IWebRotateEpochOutput): WebRotateEpochOutput;
+		static fromObject(d: $ProtoObject): WebRotateEpochOutput;
+		static toObject: $ProtoToObject<WebRotateEpochOutput>;
+		static encode: $ProtoEncode<IWebRotateEpochOutput>;
+		static decode: $ProtoDecode<WebRotateEpochOutput>;
+	}
+
+	interface IWebVirtualDeviceOutput {
+		vdId?: (Uint8Array|null);
+		vdPublicKey?: (Uint8Array|null);
+		vdEpochStoragePublicKey?: (Uint8Array|null);
+		vdEpochStoragePublicKeySig?: (Uint8Array|null);
+		ocmfRotationToken?: (Uint8Array|null);
+		deviceEpochHmac?: (Uint8Array|null);
+		encryptedSecretValues?: (proto.IWebEncryptedSecretValuesOutput|null);
+	}
+
+	interface WebVirtualDeviceOutput extends IWebVirtualDeviceOutput, $ProtoJSON {}
+
+	class WebVirtualDeviceOutput {
+		constructor(p?: IWebVirtualDeviceOutput);
+		static create(p?: IWebVirtualDeviceOutput): WebVirtualDeviceOutput;
+		static fromObject(d: $ProtoObject): WebVirtualDeviceOutput;
+		static toObject: $ProtoToObject<WebVirtualDeviceOutput>;
+		static encode: $ProtoEncode<IWebVirtualDeviceOutput>;
+		static decode: $ProtoDecode<WebVirtualDeviceOutput>;
 	}
 
 	interface IWrapTransportSigningPublicKeyInput {
