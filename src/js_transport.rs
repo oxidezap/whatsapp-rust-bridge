@@ -122,6 +122,7 @@ struct Ingress {
     sizes: VecDeque<usize>,
     queued_bytes: usize,
     byte_limit: usize,
+    event_limit: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -141,6 +142,10 @@ impl Admission {
 }
 
 impl Ingress {
+    fn fits(&self, size: usize) -> bool {
+        self.sizes.len() < self.event_limit && size <= self.byte_limit - self.queued_bytes
+    }
+
     fn admission(&mut self, size: usize) -> Admission {
         if self.tx.is_closed() {
             self.clear();
@@ -152,7 +157,7 @@ impl Ingress {
         while self.sizes.len() > queued {
             self.queued_bytes -= self.sizes.pop_front().expect("queued event size");
         }
-        if !self.tx.is_full() && size <= self.byte_limit - self.queued_bytes {
+        if self.fits(size) {
             return Admission::Ready;
         }
         self.close_on_overflow()
@@ -175,25 +180,49 @@ impl Ingress {
         if admission != Admission::Ready {
             return admission;
         }
+        self.push(size, event)
+    }
+
+    fn enqueue_after_copy(&mut self, bytes: Bytes) -> Admission {
+        let size = bytes.len();
+        let event = TransportEvent::DataReceived(bytes);
+        // The JS copy may re-enter the host. The ledger can overcount queued
+        // events, so refresh it when this event might exceed a limit.
+        if self.fits(size) {
+            self.push(size, event)
+        } else {
+            self.enqueue(size, event)
+        }
+    }
+
+    fn push(&mut self, size: usize, event: TransportEvent) -> Admission {
         match self.tx.try_send(event) {
             Ok(()) => {
                 self.sizes.push_back(size);
                 self.queued_bytes += size;
                 Admission::Ready
             }
-            Err(async_channel::TrySendError::Closed(_)) => Admission::Closed,
+            Err(async_channel::TrySendError::Closed(_)) => {
+                self.clear();
+                Admission::Closed
+            }
             Err(async_channel::TrySendError::Full(_)) => self.close_on_overflow(),
         }
     }
 }
 
-fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>, byte_limit: usize) -> JsValue {
+fn create_js_handle(
+    event_tx: async_channel::Sender<TransportEvent>,
+    event_limit: usize,
+    byte_limit: usize,
+) -> JsValue {
     let obj = js_sys::Object::new();
     let ingress = Rc::new(RefCell::new(Ingress {
         tx: event_tx,
         sizes: VecDeque::new(),
         queued_bytes: 0,
         byte_limit,
+        event_limit,
     }));
 
     let queue = ingress.clone();
@@ -205,9 +234,7 @@ fn create_js_handle(event_tx: async_channel::Sender<TransportEvent>, byte_limit:
             return;
         }
         let bytes = Bytes::from(crate::js_bytes::to_vec(&data));
-        let admission = queue
-            .borrow_mut()
-            .enqueue(bytes.len(), TransportEvent::DataReceived(bytes));
+        let admission = queue.borrow_mut().enqueue_after_copy(bytes);
         admission.report();
     }) as Box<dyn FnMut(js_sys::Uint8Array)>);
     let _ = js_sys::Reflect::set(&obj, &"onData".into(), &on_data.into_js_value());
@@ -374,12 +401,12 @@ impl TransportFactory for JsTransportFactory {
         &self,
     ) -> Result<(Arc<dyn Transport>, Receiver<TransportEvent>), anyhow::Error> {
         log::debug!("JsTransportFactory::create_transport called");
-        // Sized for burst absorption; overflow is a real lag signal, not noise.
-        let (event_tx, event_rx) = async_channel::bounded(INGRESS_EVENT_LIMIT);
+        // The JS handle enforces both limits. Allocate queue segments as events arrive.
+        let (event_tx, event_rx) = async_channel::unbounded();
         self.callbacks
             .callback_state
             .register_event_stream(&event_tx);
-        let handle = create_js_handle(event_tx, INGRESS_BYTE_LIMIT);
+        let handle = create_js_handle(event_tx, INGRESS_EVENT_LIMIT, INGRESS_BYTE_LIMIT);
 
         log::debug!("Calling JS connect(handle)...");
         self.callbacks.call_connect_js(handle).await?;
@@ -453,8 +480,8 @@ mod ingress_tests {
 
     #[wasm_bindgen_test]
     fn ingress_charges_only_queued_bytes_and_closes_on_overflow() {
-        let (tx, rx) = async_channel::bounded(16);
-        let handle = create_js_handle(tx, 8);
+        let (tx, rx) = async_channel::unbounded();
+        let handle = create_js_handle(tx, 16, 8);
         invoke(&handle, "onConnected", None);
         invoke(&handle, "onData", Some(5));
         invoke(&handle, "onData", Some(3));
@@ -479,9 +506,59 @@ mod ingress_tests {
     }
 
     #[wasm_bindgen_test]
+    fn ingress_rechecks_the_budget_after_a_reentrant_copy() {
+        let (tx, rx) = async_channel::unbounded();
+        let handle = create_js_handle(tx, 1, 8);
+        let send = js_sys::Function::new_with_args(
+            "handle",
+            "const data = new Uint8Array(1); let reads = 0; \
+            Object.defineProperty(data, 'length', { get() { \
+                if (++reads === 2) handle.onConnected(); return 1; \
+            } }); handle.onData(data);",
+        );
+        send.call1(&JsValue::UNDEFINED, &handle).unwrap();
+        assert!(rx.is_closed());
+        assert!(matches!(rx.try_recv().unwrap(), TransportEvent::Connected));
+        assert!(matches!(
+            rx.try_recv(),
+            Err(async_channel::TryRecvError::Closed)
+        ));
+    }
+
+    #[wasm_bindgen_test]
+    fn ingress_refresh_after_copy_reuses_a_drained_slot() {
+        let (tx, rx) = async_channel::unbounded();
+        let mut ingress = Ingress {
+            tx,
+            sizes: VecDeque::new(),
+            queued_bytes: 0,
+            byte_limit: 8,
+            event_limit: 2,
+        };
+        assert!(ingress.enqueue(0, TransportEvent::Connected) == Admission::Ready);
+        assert!(ingress.admission(1) == Admission::Ready);
+        assert!(
+            ingress.enqueue(0, TransportEvent::Disconnected(DisconnectReason::Unknown))
+                == Admission::Ready
+        );
+        assert!(matches!(rx.try_recv().unwrap(), TransportEvent::Connected));
+
+        assert!(ingress.enqueue_after_copy(Bytes::from_static(b"x")) == Admission::Ready);
+        assert!(!rx.is_closed());
+        assert!(matches!(
+            rx.try_recv().unwrap(),
+            TransportEvent::Disconnected(DisconnectReason::Unknown)
+        ));
+        assert!(matches!(
+            rx.try_recv().unwrap(),
+            TransportEvent::DataReceived(data) if data.as_ref() == b"x"
+        ));
+    }
+
+    #[wasm_bindgen_test]
     fn ingress_keeps_event_limit_and_isolates_connections() {
-        let (tx, rx) = async_channel::bounded(1);
-        let handle = create_js_handle(tx, 8);
+        let (tx, rx) = async_channel::unbounded();
+        let handle = create_js_handle(tx, 1, 8);
         invoke(&handle, "onData", Some(0));
         invoke(&handle, "onDisconnected", None);
         assert!(rx.is_closed());
@@ -489,20 +566,25 @@ mod ingress_tests {
             matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.is_empty())
         );
 
-        let (tx, rx) = async_channel::bounded(1);
-        let handle = create_js_handle(tx, 8);
+        let (tx, rx) = async_channel::unbounded();
+        let handle = create_js_handle(tx, 1, 8);
         invoke(&handle, "onData", Some(9));
         assert!(matches!(
             rx.try_recv(),
             Err(async_channel::TryRecvError::Closed)
         ));
 
-        let (tx, rx) = async_channel::bounded(1);
-        let handle = create_js_handle(tx, 8);
+        let (tx, rx) = async_channel::unbounded();
+        let handle = create_js_handle(tx, 1, 8);
         invoke(&handle, "onData", Some(8));
         assert!(!rx.is_closed());
         assert!(
             matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.len() == 8)
         );
+        invoke(&handle, "onData", Some(1));
+        assert!(
+            matches!(rx.try_recv().unwrap(), TransportEvent::DataReceived(data) if data.len() == 1)
+        );
+        assert!(!rx.is_closed());
     }
 }
