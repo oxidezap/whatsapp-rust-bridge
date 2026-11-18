@@ -455,51 +455,53 @@ export class BinaryReader extends BaseBinaryReader {
 }
 
 class NativeUtf8Reader extends BinaryReader {
-  #view: Buffer;
-
-  constructor(data: Uint8Array, view: Buffer) {
-    super(data);
-    this.#view = view;
-  }
+  #view: Buffer | null | undefined;
 
   override string(strict?: boolean): string {
-    if (strict || this.#view.byteLength !== this.len) return super.string(strict);
+    if (strict) return super.string(strict);
+
     const byteLength = this.uint32();
     const start = this.pos;
     this.pos += byteLength;
     this.checkBounds();
-    return this.#view.toString("utf8", start, this.pos);
+
+    // A final string alone cannot amortize creating the Buffer view.
+    if (this.#view === undefined && this.pos < this.len) {
+      this.#view = nativeUtf8View(NodeBuffer!, this.wireBytes);
+    }
+    return this.#view && this.#view.byteLength === this.len
+      ? this.#view.toString("utf8", start, this.pos)
+      : utf8Decoder.decode(this.wireBytes.subarray(start, this.pos));
   }
 }
 
 export function prepareProtoDecodeInput(data: Uint8Array): Uint8Array | BinaryReader {
   // Test the last byte of the minimum input size without invoking a custom length getter.
   return NodeBuffer && data[MIN_NATIVE_UTF8_INPUT_BYTES - 1] !== undefined
-    ? nativeUtf8Input(NodeBuffer, data)
+    ? new NativeUtf8Reader(data)
     : data;
 }
 
-function nativeUtf8Input(buffer: typeof Buffer, data: Uint8Array): Uint8Array | BinaryReader {
+function nativeUtf8View(buffer: typeof Buffer, data: Uint8Array): Buffer | null {
   if (Object.hasOwn(data, "subarray") || Object.hasOwn(data, "buffer") ||
     Object.hasOwn(data, "byteOffset") || Object.hasOwn(data, "byteLength") ||
-    Object.hasOwn(data, "length")) return data;
+    Object.hasOwn(data, "length")) return null;
 
   const prototype = Object.getPrototypeOf(data);
-  if (prototype !== buffer.prototype && prototype !== Uint8Array.prototype) return data;
+  if (prototype !== buffer.prototype && prototype !== Uint8Array.prototype) return null;
   const store = data.buffer;
   if (Object.getPrototypeOf(store) !== ArrayBuffer.prototype ||
-    Object.hasOwn(store, "resizable") || ("resizable" in store && store.resizable)) return data;
+    Object.hasOwn(store, "resizable") || ("resizable" in store && store.resizable)) return null;
 
   if (prototype === buffer.prototype) {
     // Older Node releases dispatch Buffer.toString through this.utf8Slice.
     return Object.hasOwn(data, "toString") || Object.hasOwn(data, "utf8Slice")
-      ? data
-      : new NativeUtf8Reader(data, data as Buffer);
+      ? null
+      : data as Buffer;
   }
 
-  if (Object.hasOwn(data, "constructor") || Object.hasOwn(store, "byteLength")) return data;
-  const view = buffer.from(store, data.byteOffset, data.byteLength);
-  return new NativeUtf8Reader(data, view);
+  if (Object.hasOwn(data, "constructor") || Object.hasOwn(store, "byteLength")) return null;
+  return buffer.from(store, data.byteOffset, data.byteLength);
 }
 
 /**
