@@ -24,15 +24,45 @@ for (const bytes of [view, plain]) {
 const dataView = new DataView(view.buffer, view.byteOffset, view.byteLength);
 assert.equal(proto.Message.decode(dataView).conversation, expected);
 
-const customized = new Uint8Array(input);
-Object.defineProperty(customized, "subarray", {
-  value(start, end) {
-    if (start === 2 && end === 8) return new Uint8Array([0x7a]);
-    return Uint8Array.prototype.subarray.call(this, start, end);
+const incompleteString = new Uint8Array(128);
+incompleteString.set([0x0a, 0x80, 0x01]);
+assert.throws(() => decodeProto("Message", incompleteString), /premature EOF/);
+assert.throws(() => proto.Message.decode(Buffer.from(incompleteString)), /premature EOF/);
+
+for (const bytes of [new Uint8Array(input), Buffer.from(input)]) {
+  const subarray = bytes.subarray;
+  let subarrayReads = 0;
+  Object.defineProperty(bytes, "subarray", {
+    get() {
+      if (++subarrayReads > 1) return subarray;
+      return (start, end) => start === 2 && end === 8
+        ? new Uint8Array([0x7a])
+        : subarray.call(bytes, start, end);
+    },
+  });
+  assert.equal(decodeProto("Message", bytes).conversation, "z");
+}
+
+const customLength = new Uint8Array(input);
+let lengthReads = 0;
+Object.defineProperty(customLength, "byteLength", {
+  get() {
+    assert.equal(++lengthReads, 1);
+    return input.byteLength;
   },
 });
-assert.equal(decodeProto("Message", customized).conversation, "z");
-assert.equal(proto.Message.decode(customized).conversation, "z");
+assert.equal(decodeProto("Message", customLength).conversation, expected);
+assert.equal(lengthReads, 1);
+
+const customSlice = Buffer.from(input);
+customSlice.utf8Slice = () => "z";
+assert.equal(decodeProto("Message", customSlice).conversation, expected);
+
+const backingWithCustomLength = new ArrayBuffer(input.length + 5);
+const customBacking = new Uint8Array(backingWithCustomLength, 5);
+customBacking.set(input);
+Object.defineProperty(backingWithCustomLength, "byteLength", { value: 0 });
+assert.equal(decodeProto("Message", customBacking).conversation, expected);
 
 const customSpecies = new Uint8Array(input);
 customSpecies.constructor = {

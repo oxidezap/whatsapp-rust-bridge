@@ -473,30 +473,33 @@ class NativeUtf8Reader extends BinaryReader {
 }
 
 export function prepareProtoDecodeInput(data: Uint8Array): Uint8Array | BinaryReader {
-  // Reuse one Node byte view across the string fields of a larger message.
-  // Small inputs, resizable backing stores and custom views keep the reader's
-  // normal TextDecoder path.
-  return NodeBuffer && data.byteLength >= MIN_NATIVE_UTF8_INPUT_BYTES
+  // Test the last byte of the minimum input size without invoking a custom length getter.
+  return NodeBuffer && data[MIN_NATIVE_UTF8_INPUT_BYTES - 1] !== undefined
     ? nativeUtf8Input(NodeBuffer, data)
     : data;
 }
 
 function nativeUtf8Input(buffer: typeof Buffer, data: Uint8Array): Uint8Array | BinaryReader {
-  if (Object.hasOwn(data, "buffer") || Object.hasOwn(data, "byteOffset") ||
-    Object.hasOwn(data, "byteLength")) return data;
-  const store = data.buffer;
-  if (!(store instanceof ArrayBuffer) || ("resizable" in store && store.resizable)) return data;
+  if (Object.hasOwn(data, "subarray") || Object.hasOwn(data, "buffer") ||
+    Object.hasOwn(data, "byteOffset") || Object.hasOwn(data, "byteLength") ||
+    Object.hasOwn(data, "length")) return data;
+
   const prototype = Object.getPrototypeOf(data);
-  if (prototype === buffer.prototype && data.subarray === buffer.prototype.subarray &&
-    data.toString === buffer.prototype.toString) {
-    return new NativeUtf8Reader(data, data as Buffer);
+  if (prototype !== buffer.prototype && prototype !== Uint8Array.prototype) return data;
+  const store = data.buffer;
+  if (Object.getPrototypeOf(store) !== ArrayBuffer.prototype ||
+    Object.hasOwn(store, "resizable") || ("resizable" in store && store.resizable)) return data;
+
+  if (prototype === buffer.prototype) {
+    // Older Node releases dispatch Buffer.toString through this.utf8Slice.
+    return Object.hasOwn(data, "toString") || Object.hasOwn(data, "utf8Slice")
+      ? data
+      : new NativeUtf8Reader(data, data as Buffer);
   }
-  if (prototype === Uint8Array.prototype && data.subarray === Uint8Array.prototype.subarray &&
-    !Object.hasOwn(data, "constructor")) {
-    const view = buffer.from(store, data.byteOffset, data.byteLength);
-    return new NativeUtf8Reader(data, view);
-  }
-  return data;
+
+  if (Object.hasOwn(data, "constructor") || Object.hasOwn(store, "byteLength")) return data;
+  const view = buffer.from(store, data.byteOffset, data.byteLength);
+  return new NativeUtf8Reader(data, view);
 }
 
 /**
