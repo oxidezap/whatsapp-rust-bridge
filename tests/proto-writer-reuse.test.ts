@@ -1,8 +1,11 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 
-test("the packaged Node writer keeps outputs and nested encodes independent", async () => {
-  const child = Bun.spawn(["node", join(import.meta.dir, "fixtures/proto-writer-reuse.mjs")], {
+test.each([
+  ["native", "keeps outputs and nested encodes independent"],
+  ["process-shim", "accepts a host with partial Node metadata"],
+])("the packaged proto writer in %s %s", async (runtime) => {
+  const child = Bun.spawn(["node", join(import.meta.dir, "fixtures/proto-writer-reuse.mjs"), runtime], {
     stdout: "pipe",
     stderr: "pipe",
   });

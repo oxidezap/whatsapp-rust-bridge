@@ -246,7 +246,8 @@ function unpairedSurrogatePath(
 // With Buf's growable writer, the extra scrub still beats repeated small
 // allocations on Node. Bun's writer allocations are cheaper in this workload.
 const NODE_REUSES_PROTO_WRITER = typeof process !== "undefined" &&
-  process.release?.name === "node" && !process.versions.bun && !process.versions.deno;
+  process?.release?.name === "node" && !!process.versions?.node &&
+  !process.versions.bun && !process.versions.deno;
 const MAX_REUSABLE_PROTO_BYTES = 4 * 1024;
 let idleWriter: BinaryWriter | undefined;
 let writerZeroes: Uint8Array | undefined;
