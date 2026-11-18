@@ -13,9 +13,9 @@
 import { packedContents } from "./pack";
 
 // SDK pin 8b58ebaa measures 8,773,254 bytes in CI run 44201922025.
-// The paired ingress build on main (#179) adds 389 bytes.
-// Budget the combined estimate pending measurement on the merged branch.
-const MAX_UNPACKED_BYTES = 8_773_643;
+// CI run 44204626051 measures 8,773,651 bytes with main merged.
+// Use the measured package size as the cap.
+const MAX_UNPACKED_BYTES = 8_773_651;
 
 const { files, unpackedSize: total } = packedContents();
 
