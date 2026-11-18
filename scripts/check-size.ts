@@ -12,11 +12,10 @@
  */
 import { packedContents } from "./pack";
 
-// The SDK pin at 8b58ebaa, including its updated protobuf schema, measures
-// 8,773,254 bytes unpacked in CI run 44201922025 with Binaryen 133.
-// Bridge main at a9a303a measures 8,617,116 bytes in CI run 44190810381.
-// Budget the measured artifact without adding headroom.
-const MAX_UNPACKED_BYTES = 8_773_254;
+// SDK pin 8b58ebaa measures 8,773,254 bytes in CI run 44201922025.
+// The paired ingress build on main (#179) adds 389 bytes.
+// Budget the combined estimate pending measurement on the merged branch.
+const MAX_UNPACKED_BYTES = 8_773_643;
 
 const { files, unpackedSize: total } = packedContents();
 
