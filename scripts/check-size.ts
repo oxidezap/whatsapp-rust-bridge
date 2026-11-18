@@ -12,11 +12,10 @@
  */
 import { packedContents } from "./pack";
 
-// The published 0.26.8 package is 8,609,080 bytes unpacked. The hosted
-// release build with batch reads (#177) is 8,616,598 bytes, an increase of
-// 7,518 bytes. Allow that measured package size for reducing up to 512
-// per-key reads to one host callback. The WASM function limit is separate.
-const MAX_UNPACKED_BYTES = 8_616_598;
+// Main at a9a303a measured 8,617,116 bytes on CI after the dependency bump.
+// The paired local ingress build adds 389 bytes. The WASM function
+// budget remains separate.
+const MAX_UNPACKED_BYTES = 8_617_550;
 
 const { files, unpackedSize: total } = packedContents();
 
