@@ -526,6 +526,36 @@ mod ingress_tests {
     }
 
     #[wasm_bindgen_test]
+    fn ingress_refresh_after_copy_reuses_a_drained_slot() {
+        let (tx, rx) = async_channel::unbounded();
+        let mut ingress = Ingress {
+            tx,
+            sizes: VecDeque::new(),
+            queued_bytes: 0,
+            byte_limit: 8,
+            event_limit: 2,
+        };
+        assert!(ingress.enqueue(0, TransportEvent::Connected) == Admission::Ready);
+        assert!(ingress.admission(1) == Admission::Ready);
+        assert!(
+            ingress.enqueue(0, TransportEvent::Disconnected(DisconnectReason::Unknown))
+                == Admission::Ready
+        );
+        assert!(matches!(rx.try_recv().unwrap(), TransportEvent::Connected));
+
+        assert!(ingress.enqueue_after_copy(Bytes::from_static(b"x")) == Admission::Ready);
+        assert!(!rx.is_closed());
+        assert!(matches!(
+            rx.try_recv().unwrap(),
+            TransportEvent::Disconnected(DisconnectReason::Unknown)
+        ));
+        assert!(matches!(
+            rx.try_recv().unwrap(),
+            TransportEvent::DataReceived(data) if data.as_ref() == b"x"
+        ));
+    }
+
+    #[wasm_bindgen_test]
     fn ingress_keeps_event_limit_and_isolates_connections() {
         let (tx, rx) = async_channel::unbounded();
         let handle = create_js_handle(tx, 1, 8);
