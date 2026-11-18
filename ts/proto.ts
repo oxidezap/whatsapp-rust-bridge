@@ -33,7 +33,7 @@ import {
 } from "./generated/whatsapp";
 
 interface MessageFns<T> {
-  encode(message: T, writer?: any): any;
+  encode(message: T, writer?: BinaryWriter): BinaryWriter;
   decode(input: Uint8Array | any, length?: number): T;
   fromPartial(obj: any): T;
 }
@@ -79,6 +79,7 @@ const REGISTRY: Record<string, MessageFns<any>> = {
 import * as gen from "./generated/whatsapp";
 import {
   BinaryReader,
+  BinaryWriter,
   InvalidUtf8CountingReader,
   UnpairedSurrogateError,
   isLong,
@@ -242,6 +243,29 @@ function unpairedSurrogatePath(
   return paths.size === 1 ? matches[0]!.path : undefined;
 }
 
+// With Buf's growable writer, the extra scrub still beats repeated small
+// allocations on Node. Bun's writer allocations are cheaper in this workload.
+const NODE_REUSES_PROTO_WRITER = typeof process !== "undefined" &&
+  process.release?.name === "node" && !process.versions.bun && !process.versions.deno;
+const MAX_REUSABLE_PROTO_BYTES = 4 * 1024;
+let idleWriter: BinaryWriter | undefined;
+let writerZeroes: Uint8Array | undefined;
+
+function encodeWithReusableWriter(fns: MessageFns<unknown>, message: unknown): Uint8Array {
+  const writer = idleWriter ?? new BinaryWriter();
+  // An input getter can encode again while the outer writer is in a fork.
+  idleWriter = undefined;
+  const bytes = fns.encode(message, writer).finish();
+  if (bytes.byteLength <= MAX_REUSABLE_PROTO_BYTES && idleWriter === undefined) {
+    // Finish copies the output and resets the cursor and fork stack. Erase
+    // the written bytes before keeping the allocation between calls.
+    const zeroes = writerZeroes ??= new Uint8Array(MAX_REUSABLE_PROTO_BYTES);
+    writer.raw(zeroes.subarray(0, bytes.byteLength)).finish();
+    idleWriter = writer;
+  }
+  return bytes;
+}
+
 /**
  * Encode `obj` as `typeName`.
  *
@@ -261,7 +285,9 @@ export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   // before the encoder immediately walked it again.
   const normalized = normalizeProtoInput(obj ?? {});
   try {
-    return fns.encode(normalized).finish();
+    return NODE_REUSES_PROTO_WRITER
+      ? encodeWithReusableWriter(fns, normalized)
+      : fns.encode(normalized).finish();
   } catch (error) {
     if (error instanceof UnpairedSurrogateError && error.path === undefined) {
       const path = unpairedSurrogatePath(declaredFieldsOf(fns, normalized), error);
