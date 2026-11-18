@@ -82,6 +82,8 @@ import {
   BinaryWriter,
   InvalidUtf8CountingReader,
   UnpairedSurrogateError,
+  USE_NODE_PROTO_FAST_PATH,
+  prepareProtoDecodeInput,
   isLong,
   longToBigInt,
   unpairedSurrogateIndex,
@@ -245,9 +247,6 @@ function unpairedSurrogatePath(
 
 // With Buf's growable writer, the extra scrub still beats repeated small
 // allocations on Node. Bun's writer allocations are cheaper in this workload.
-const NODE_REUSES_PROTO_WRITER = typeof process !== "undefined" &&
-  process?.release?.name === "node" && !!process.versions?.node &&
-  !process.versions.bun && !process.versions.deno;
 const MAX_REUSABLE_PROTO_BYTES = 4 * 1024;
 let idleWriter: BinaryWriter | undefined;
 let writerZeroes: Uint8Array | undefined;
@@ -286,7 +285,7 @@ export function encodeProto(typeName: string, obj: unknown): Uint8Array {
   // before the encoder immediately walked it again.
   const normalized = normalizeProtoInput(obj ?? {});
   try {
-    return NODE_REUSES_PROTO_WRITER
+    return USE_NODE_PROTO_FAST_PATH
       ? encodeWithReusableWriter(fns, normalized)
       : fns.encode(normalized).finish();
   } catch (error) {
@@ -316,7 +315,9 @@ export function decodeProto(
   report?: ProtoDecodeReport,
 ): unknown {
   const fns = resolve(typeName);
-  if (report === undefined) return fns.decode(data);
+  if (report === undefined) {
+    return fns.decode(USE_NODE_PROTO_FAST_PATH ? prepareProtoDecodeInput(data) : data);
+  }
 
   const reader = new InvalidUtf8CountingReader(data);
   const decoded = fns.decode(reader, data.length);

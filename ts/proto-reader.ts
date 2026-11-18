@@ -318,6 +318,12 @@ export class BinaryWriter extends BaseBinaryWriter {
 const utf8Decoder = new TextDecoder("utf-8", { ignoreBOM: true });
 const utf8Encoder = new TextEncoder();
 
+export const USE_NODE_PROTO_FAST_PATH = typeof process !== "undefined" &&
+  process?.release?.name === "node" && !!process.versions?.node &&
+  !process.versions.bun && !process.versions.deno;
+const NodeBuffer = USE_NODE_PROTO_FAST_PATH ? globalThis.Buffer : undefined;
+const MIN_NATIVE_UTF8_INPUT_BYTES = 128;
+
 export class BinaryReader extends BaseBinaryReader {
   protected readonly wireBytes: Uint8Array;
 
@@ -446,6 +452,48 @@ export class BinaryReader extends BaseBinaryReader {
   sfixed64Value(): Int64 {
     return signedWordsToInt64(this.sfixed32(), this.sfixed32());
   }
+}
+
+class NativeUtf8Reader extends BinaryReader {
+  #view: Buffer;
+
+  constructor(data: Uint8Array, view: Buffer) {
+    super(data);
+    this.#view = view;
+  }
+
+  override string(strict?: boolean): string {
+    if (strict || this.#view.byteLength !== this.len) return super.string(strict);
+    const byteLength = this.uint32();
+    const start = this.pos;
+    this.pos += byteLength;
+    this.checkBounds();
+    return this.#view.toString("utf8", start, this.pos);
+  }
+}
+
+export function prepareProtoDecodeInput(data: Uint8Array): Uint8Array | BinaryReader {
+  // Reuse one Node byte view across the string fields of a larger message.
+  // Small inputs, resizable backing stores and custom views keep the reader's
+  // normal TextDecoder path.
+  return NodeBuffer && data.byteLength >= MIN_NATIVE_UTF8_INPUT_BYTES
+    ? nativeUtf8Input(NodeBuffer, data)
+    : data;
+}
+
+function nativeUtf8Input(buffer: typeof Buffer, data: Uint8Array): Uint8Array | BinaryReader {
+  const store = data.buffer;
+  if (!(store instanceof ArrayBuffer) || ("resizable" in store && store.resizable)) return data;
+  const prototype = Object.getPrototypeOf(data);
+  if (prototype === buffer.prototype && data.subarray === buffer.prototype.subarray &&
+    data.toString === buffer.prototype.toString) {
+    return new NativeUtf8Reader(data, data as Buffer);
+  }
+  if (prototype === Uint8Array.prototype && data.subarray === Uint8Array.prototype.subarray) {
+    const view = buffer.from(store, data.byteOffset, data.byteLength);
+    return new NativeUtf8Reader(data, view);
+  }
+  return data;
 }
 
 /**
