@@ -1499,11 +1499,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "voip-abi"
+version = "0.1.0"
+
+[[package]]
 name = "wacore"
 version = "0.7.0"
 source = "git+https://github.com/oxidezap/whatsapp-rust?rev=8b58ebaa0ef96f28f38e2e1d1e66e56092118813#8b58ebaa0ef96f28f38e2e1d1e66e56092118813"
 dependencies = [
  "aes",
+ "aes-gcm",
  "anyhow",
  "async-channel",
  "async-lock",
@@ -1543,6 +1548,7 @@ dependencies = [
  "wacore-libsignal",
  "wacore-noise",
  "waproto",
+ "zerocopy",
  "zeroize",
 ]
 
@@ -1856,6 +1862,7 @@ dependencies = [
  "tracing-core",
  "tsify",
  "uuid",
+ "voip-abi",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
@@ -1909,6 +1916,26 @@ dependencies = [
  "quote",
  "syn 3.0.10",
  "synstructure",
+]
+
+[[package]]
+name = "zerocopy"
+version = "0.8.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5fe1f8f1b06191a00962174c61aa5005e0bb391a6d80d07e24d115c01a92ed8"
+dependencies = [
+ "zerocopy-derive",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.8.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "863ad3ac83293fb4d740aedbfdc9240dd8d1a50c1099acd76ce80ce7c7230c7f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]

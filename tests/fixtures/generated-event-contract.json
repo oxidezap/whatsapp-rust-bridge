@@ -9,6 +9,10 @@
     "onServerAckBatch": "onServerAckBatch?(batch: ServerAckWireBatch): void;",
     "onReceiptBatchBorrowed": "onReceiptBatchBorrowed?(batch: ReceiptWireBatch): void;",
     "onServerAckBatchBorrowed": "onServerAckBatchBorrowed?(batch: ServerAckWireBatch): void;",
-    "onEventBatch": "onEventBatch?(batch: EventWireEnvelope): void;"
+    "onEventBatch": "onEventBatch?(batch: EventWireEnvelope): void;",
+    "onCallAudio": "onCallAudio?(frame: CallAudioFrame): void;",
+    "onCallEvent": "onCallEvent?(event: CallMediaEvent): void;",
+    "onCallVideo": "onCallVideo?(frame: CallVideoFrame): void;",
+    "onCallPcm": "onCallPcm?(frame: CallPcmFrame): void;"
   }
 }

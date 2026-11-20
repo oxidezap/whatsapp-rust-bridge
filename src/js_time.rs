@@ -1,8 +1,8 @@
 //! WASM time providers backed by JS globals.
 
+use super::clock_core as wacore;
+use wacore::time::{MonotonicProvider, TimeProvider};
 use wasm_bindgen::prelude::*;
-use whatsapp_rust::wacore;
-use whatsapp_rust::wacore::time::{MonotonicProvider, TimeProvider};
 
 #[wasm_bindgen]
 extern "C" {
@@ -19,8 +19,6 @@ extern "C" {
 
 pub struct JsTimeProvider;
 
-crate::wasm_send_sync!(JsTimeProvider);
-
 impl TimeProvider for JsTimeProvider {
     fn now_millis(&self) -> i64 {
         js_sys::Date::now() as i64
@@ -31,8 +29,6 @@ impl TimeProvider for JsTimeProvider {
 /// Available in browsers, Node 16+, and Bun. The spec guarantees the value
 /// is monotonic non-decreasing within an agent.
 pub struct JsMonotonicProvider;
-
-crate::wasm_send_sync!(JsMonotonicProvider);
 
 thread_local! {
     /// Probed once: hosts either have a usable `performance.now` or they never

@@ -4,35 +4,6 @@ pub(super) fn catalog() -> Vec<Operation> {
     vec![
         Operation {
             attributes: attributes(quote!(
-                /// Reject an incoming call.
-                #[wasm_bindgen(js_name = rejectCall)]
-            )),
-            signature: parse_quote!(
-                async fn reject_call(
-                    &self,
-                    call_id: &str,
-                    peer: &str,
-                    call_creator: &str,
-                ) -> Result<(), crate::errors::BridgeError>
-            ),
-            inputs: vec![
-                Input::Jid {
-                    binding: parse_quote!(peer),
-                    value: parse_quote!(peer),
-                },
-                Input::Jid {
-                    binding: parse_quote!(call_creator),
-                    value: parse_quote!(call_creator),
-                },
-            ],
-            boundary: Boundary::AsyncOwned,
-            evaluation: Evaluation::Await,
-            admission: Admission::Unwaited(Unwaited::ConnectionBound),
-            call: parse_quote!(client.voip().reject_call(call_id, &peer, &call_creator)),
-            output: ReturnAdapter::MapError,
-        },
-        Operation {
-            attributes: attributes(quote!(
                 /// Send a raw binary node stanza to WhatsApp servers.
                 /// Accepts a JS object matching `{ tag: string, attrs: Record<string, string>, content?: ... }`.
                 #[wasm_bindgen(js_name = sendNode)]
