@@ -335,55 +335,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      # The script installs the packed production build outside this checkout
+      # and checks both module modes before the preview can be published.
+      - name: Install the tarball in isolation and check both module modes
+        run: bun run check:published-tarball
+
       - name: Publish a preview package
         continue-on-error: true
         run: npm exec --no -- pkg-pr-new publish --previewVersion --no-template
-
-  # The installed-tarball contract lives here rather than in the unit tests:
-  # what `dist/` typechecks as inside this checkout is not what a consumer
-  # installs. This packs the declarations and verifies the package manifest
-  # supplies their `@bufbuild/protobuf` wire types in strict consumer mode.
-  # Packing, installing twice and typechecking twice is far past the per-test
-  # clock budget, so it is a job of its own.
-  #
-  # Reuse the production build. Lifecycle checks must exercise wasm-opt's
-  # shipped bytes as well as the declarations, without paying for a rebuild.
-  published-tarball:
-    name: Published tarball contract
-    needs: [changes, build-and-test]
-    if: ${{ !cancelled() && needs.changes.outputs.build == 'true' && needs.build-and-test.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Install Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install JavaScript dependencies
-        run: bun install
-
-      - name: Download the production build
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # same pin as release
-        with:
-          name: production-dist
-          path: dist
-
-      # Packs the tarball (`npm pack` runs `prepack`, the same guard a real
-      # publish goes through), installs it in a directory outside the
-      # repository with only explicit TypeScript/Node tooling beside it and
-      # typechecks a real consumer with `skipLibCheck: false` in Bundler and
-      # NodeNext modes
-      # before running the root and `proto-types` exports.
-      - name: Install the tarball in isolation and check both module modes
-        run: bun run check:published-tarball
 
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
@@ -432,7 +391,7 @@ jobs:
   success:
     name: All checks passed
     if: always()
-    needs: [changes, fmt-clippy, build-and-test, published-tarball, rust-tests]
+    needs: [changes, fmt-clippy, build-and-test, rust-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job passed or was deliberately skipped

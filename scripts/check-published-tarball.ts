@@ -9,7 +9,7 @@
  *
  * Run: `bun run check:published-tarball` (needs `dist/`, i.e. a build first).
  * Pack plus two installs plus two typechecks is too heavy for the per-test
- * clock gate, so CI runs this as its own job.
+ * clock gate, so CI runs this as a separate step after the production build.
  */
 import {
   existsSync,
