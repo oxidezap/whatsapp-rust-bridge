@@ -24,19 +24,6 @@ env:
   NODE_VERSION: 26.13.0
 
 jobs:
-  release-contract:
-    name: Release ordering and retry contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - run: node --test .github/scripts/release.test.mjs
-
   # release-please keeps its release pull request rebased on main, so every
   # feature that lands re-triggers a full run on a diff that is a version
   # string and a changelog entry — 7 of the 30 runs in the last five days, at
@@ -45,17 +32,18 @@ jobs:
   # This decides that from the diff rather than from who authored it. A commit
   # message is a claim anyone can make; the set of changed files is not.
   changes:
-    name: What changed
+    name: Change detection and release contract
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       build: ${{ steps.decide.outputs.build }}
     steps:
-      # No checkout. The compare API answers this in one request, and it gives
+      # The classifier uses the compare API before checking out the test code. It gives
       # the same answer for a pull request and for the push that merges it —
       # which is what keeps a change from skipping CI on one and taking it on
       # the other.
       - id: decide
+        timeout-minutes: 5
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -134,11 +122,24 @@ jobs:
             decide false "every changed file is a release version bump"
           fi
           decide true "the change reaches the build"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: release-checkout
+        if: ${{ !cancelled() }}
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        id: release-node
+        if: ${{ !cancelled() && steps.release-checkout.outcome == 'success' }}
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Test release ordering and retry contract
+        if: ${{ !cancelled() && steps.release-node.outcome == 'success' }}
+        run: node --test .github/scripts/release.test.mjs
 
   fmt-clippy:
     name: Rust Format & Clippy
     needs: changes
-    if: needs.changes.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.build == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -201,7 +202,7 @@ jobs:
     # reach the tests a minute sooner.
     name: Build + Test (Bun)
     needs: changes
-    if: needs.changes.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.build == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -350,7 +351,7 @@ jobs:
   published-tarball:
     name: Published tarball contract
     needs: [changes, build-and-test]
-    if: needs.changes.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.build == 'true' && needs.build-and-test.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -387,7 +388,7 @@ jobs:
   rust-tests:
     name: Rust Unit Tests (wasm32 / Node)
     needs: changes
-    if: needs.changes.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.build == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
