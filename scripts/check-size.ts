@@ -76,7 +76,7 @@ for (const file of [...files].sort((a, b) => b.size - a.size).slice(0, 5)) {
 
 if (total > MAX_UNPACKED_BYTES) {
   console.error(
-    `check-size: ${mb(total)} unpacked, over the ${mb(MAX_UNPACKED_BYTES)} budget ` +
+    `check-size: ${mb(total)} (${total} bytes) unpacked, over the ${mb(MAX_UNPACKED_BYTES)} budget ` +
       `by ${mb(total - MAX_UNPACKED_BYTES)}.\n` +
       `check-size: trim it, or raise MAX_UNPACKED_BYTES in scripts/check-size.ts ` +
       `in the commit that spends the bytes.`
@@ -90,6 +90,6 @@ if (total > MAX_UNPACKED_BYTES) {
 }
 
 console.log(
-  `check-size: ${mb(total)} unpacked across ${files.length} files, ` +
+  `check-size: ${mb(total)} (${total} bytes) unpacked across ${files.length} files, ` +
     `${mb(MAX_UNPACKED_BYTES - total)} under budget`
 );

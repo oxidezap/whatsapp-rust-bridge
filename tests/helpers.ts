@@ -102,19 +102,16 @@ export function createHttp(): JsHttpClientConfig {
       headers: Record<string, string>,
       body: Uint8Array | null
     ) {
-      try {
-        const res = await fetch(url, {
-          method,
-          headers,
-          body: body ?? undefined,
-        });
-        return {
-          statusCode: res.status,
-          body: new Uint8Array(await res.arrayBuffer()),
-        };
-      } catch {
-        return { statusCode: 0, body: new Uint8Array(0) };
-      }
+      const res = await fetch(url, {
+        redirect: "error",
+        method,
+        headers,
+        body: body ?? undefined,
+      });
+      return {
+        statusCode: res.status,
+        body: new Uint8Array(await res.arrayBuffer()),
+      };
     },
   } satisfies JsHttpClientConfig;
 }

@@ -20,6 +20,7 @@
  */
 import { readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { minifySharedCode } from "./minify-shared";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -59,6 +60,10 @@ try {
     );
   }
   const chunk = chunks[0]!;
+  // Bun handles bundling; Terser's safe compression removes repeated generated
+  // expressions without property mangling or assumptions about host callbacks.
+  const sharedPath = join(SCRATCH, chunk);
+  writeFileSync(sharedPath, await minifySharedCode(readFileSync(sharedPath, "utf8")));
   renameSync(join(SCRATCH, "index.js"), join(DIST, "index.js"));
   renameSync(join(SCRATCH, "host.js"), join(DIST, "host.js"));
   renameSync(join(SCRATCH, chunk), join(DIST, "bridge.js"));

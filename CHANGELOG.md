@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.26.8](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.7...v0.26.8) (2026-11-14)
+
+
+### Bug Fixes
+
+* **deps:** adopt Rust 1.100 stable and scope UUID to stickers ([#169](https://github.com/oxidezap/whatsapp-rust-bridge/issues/169)) ([ac89b63](https://github.com/oxidezap/whatsapp-rust-bridge/commit/ac89b632381e3c3b028223202cbf045eb549eddd))
+* **deps:** bump whatsapp-rust pin for group sync and history fixes ([#173](https://github.com/oxidezap/whatsapp-rust-bridge/issues/173)) ([890af43](https://github.com/oxidezap/whatsapp-rust-bridge/commit/890af43b11ae945e6dbd8e7566268f5ad171f6da))
+* **deps:** bump whatsapp-rust pin for Signal and crypto updates ([#171](https://github.com/oxidezap/whatsapp-rust-bridge/issues/171)) ([9bc96a6](https://github.com/oxidezap/whatsapp-rust-bridge/commit/9bc96a63d96889c8bcdc6f6eec786b14c13d1eea))
+
+## [0.26.7](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.6...v0.26.7) (2026-11-12)
+
+
+### Bug Fixes
+
+* **deps:** update whatsapp-rust within existing size budget ([#167](https://github.com/oxidezap/whatsapp-rust-bridge/issues/167)) ([0938ac5](https://github.com/oxidezap/whatsapp-rust-bridge/commit/0938ac585bedef3b7b70c6f0ca9e55e34c5a53c3))
+
+## [0.26.6](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.5...v0.26.6) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** bump whatsapp-rust pin for ADV recovery and storage enumeration ([#163](https://github.com/oxidezap/whatsapp-rust-bridge/issues/163)) ([c9e1f9c](https://github.com/oxidezap/whatsapp-rust-bridge/commit/c9e1f9cb635a46e93b15fe6090beed895783c43a))
+
+## [0.26.5](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.4...v0.26.5) (2026-11-07)
+
+
+### Bug Fixes
+
+* **signal:** update core and configure static media hosts ([#161](https://github.com/oxidezap/whatsapp-rust-bridge/issues/161)) ([318ab5a](https://github.com/oxidezap/whatsapp-rust-bridge/commit/318ab5a5e76cc16aa47d3249efe1b92eb708217a))
+
 ## [0.26.4](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.3...v0.26.4) (2026-11-01)
 
 

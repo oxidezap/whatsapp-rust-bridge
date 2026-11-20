@@ -678,6 +678,8 @@ fn parse_file(path: &Path, types: &mut BTreeMap<String, TsTypeDef>) {
     parse_source(&content, types);
 }
 
+/// Read Serde-visible shapes, including private fields and serialization shadows,
+/// so generated declarations describe data that actually crosses the boundary.
 fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
     let Ok(file) = syn::parse_file(content) else {
         return;
@@ -761,6 +763,7 @@ fn parse_source(content: &str, types: &mut BTreeMap<String, TsTypeDef>) {
                             let (ts_type, optional) = timestamp_module_type(f)
                                 .or_else(|| serialize_with_type(f))
                                 .or_else(|| boundary_stringified_jid(&name, f))
+                                .or_else(|| boundary_identity_key(&name, f))
                                 .unwrap_or_else(|| rust_type_to_ts(&f.ty));
                             let serde_name = get_serde_rename(f);
                             TsField {
@@ -1374,10 +1377,10 @@ fn timestamp_module_type(field: &syn::Field) -> Option<(String, bool)> {
     let module = serde_timestamp_module(&field.attrs)?;
     let module = module.rsplit("::").next().unwrap_or_default();
     match module {
-        "ts_seconds" | "ts_milliseconds" | "ts_microseconds" | "ts_nanoseconds" => {
-            Some(("number".to_string(), false))
-        }
-        "ts_seconds_option"
+        "serde_seconds" | "ts_seconds" | "ts_milliseconds" | "ts_microseconds"
+        | "ts_nanoseconds" => Some(("number".to_string(), false)),
+        "serde_seconds_option"
+        | "ts_seconds_option"
         | "ts_milliseconds_option"
         | "ts_microseconds_option"
         | "ts_nanoseconds_option" => Some(("number | null".to_string(), true)),
@@ -1429,6 +1432,7 @@ fn serialize_with_type(field: &syn::Field) -> Option<(String, bool)> {
     match path.rsplit("::").next().unwrap_or_default() {
         // Writes the bytes the field's own `Option<Vec<u8>>` already names.
         "serialize_optional_bytes" => None,
+        "serialize_duration" => Some(("[number, number]".to_string(), false)),
         // `GroupInfo::lid_pn` is a slice of pairs sorted for binary search that
         // writes the `lid_to_pn_map` object the persisted blob has always
         // carried, so the type and the wire shape disagree by design.
@@ -1468,6 +1472,38 @@ fn boundary_stringified_jid(struct_name: &str, field: &syn::Field) -> Option<(St
         }
         _ => None,
     }
+}
+
+/// These event fields use the ordinary Serde tuple-array path, not the byte
+/// serializer used by proto and record projections. Describe that runtime
+/// representation without changing other byte-oriented declarations.
+fn boundary_identity_key(struct_name: &str, field: &syn::Field) -> Option<(String, bool)> {
+    let name = field.ident.as_ref()?.to_string();
+    if struct_name != "IdentityChange"
+        || !matches!(
+            name.as_str(),
+            "previous_identity_key" | "current_identity_key"
+        )
+    {
+        return None;
+    }
+    let Type::Path(TypePath { path, .. }) = &field.ty else {
+        return None;
+    };
+    let last = path.segments.last()?;
+    if last.ident != "Option" {
+        return None;
+    }
+    let PathArguments::AngleBracketed(args) = &last.arguments else {
+        return None;
+    };
+    let GenericArgument::Type(Type::Array(array)) = args.args.first()? else {
+        return None;
+    };
+    if !matches!(array.elem.as_ref(), Type::Path(TypePath { path, .. }) if path.is_ident("u8")) {
+        return None;
+    }
+    Some(("number[] | null".to_owned(), true))
 }
 
 /// The function a field's `serialize_with` names, ignoring `with` — unlike
@@ -1523,7 +1559,7 @@ fn is_datetime(ty: &Type) -> bool {
             let Some(last) = path.segments.last() else {
                 return false;
             };
-            if last.ident == "DateTime" {
+            if last.ident == "DateTime" || last.ident == "Timestamp" {
                 return true;
             }
             match last.ident.to_string().as_str() {
@@ -1662,6 +1698,7 @@ fn rust_type_to_ts(ty: &Type) -> (String, bool) {
                 // `Serialize` writes. A field annotated with one of chrono's
                 // `ts_*` modules writes a number instead; that is read off the
                 // field, which this sees nothing of.
+                "Timestamp" => ("number".to_string(), false),
                 "DateTime" => ("string".to_string(), false),
 
                 // Jid → Jid (structured object with user, server, device, etc.)
@@ -1916,6 +1953,23 @@ fn type_aliases_in(content: &str) -> BTreeMap<String, String> {
         return collected;
     };
     for item in &file.items {
+        // Serde newtypes write their single field, including private fields.
+        // Resolve these like aliases so mobile binding wrappers cannot leave
+        // dangling names in generated consumer declarations.
+        if let Item::Struct(value) = item
+            && is_pub(&value.vis)
+            && value.generics.params.is_empty()
+            && has_serde_derive(&value.attrs)
+            && serde_container_shadow(&value.attrs).is_none()
+            && let Fields::Unnamed(fields) = &value.fields
+            && fields.unnamed.len() == 1
+            && fields.unnamed[0].attrs.is_empty()
+        {
+            collected.insert(
+                value.ident.to_string(),
+                fields.unnamed[0].ty.to_token_stream().to_string(),
+            );
+        }
         if let Item::Type(alias) = item
             && is_pub(&alias.vis)
             && alias.generics.type_params().next().is_none()
@@ -2376,6 +2430,40 @@ mod tests {
         assert_eq!(ts_of("AliasUnderTest"), "Uint8Array");
         assert_eq!(ts_of("Vec<AliasUnderTest>"), "Uint8Array[]");
         assert_eq!(ts_of("Option<AliasUnderTest>"), "Uint8Array | null");
+    }
+
+    #[test]
+    fn serde_newtypes_resolve_the_private_field_they_serialize() {
+        type_aliases().lock().unwrap().extend(type_aliases_in(
+            r#"
+            #[derive(Serialize, Deserialize)]
+            pub struct BindingUnderTest([u8; 32]);
+            pub struct NotSerializedUnderTest([u8; 32]);
+            #[derive(Serialize)]
+            pub struct TupleUnderTest(u32, u32);
+        "#,
+        ));
+        assert_eq!(ts_of("BindingUnderTest"), "Uint8Array");
+        assert_eq!(ts_of("Option<BindingUnderTest>"), "Uint8Array | null");
+        assert_eq!(ts_of("NotSerializedUnderTest"), "NotSerializedUnderTest");
+        assert_eq!(ts_of("TupleUnderTest"), "TupleUnderTest");
+    }
+
+    #[test]
+    fn identity_event_key_declarations_follow_ordinary_serde_arrays() {
+        let declaration = generated_type(
+            r#"
+            #[derive(Serialize)]
+            pub struct IdentityChange {
+                pub previous_identity_key: Option<[u8; 32]>,
+                pub current_identity_key: Option<[u8; 32]>,
+            }
+        "#,
+            "IdentityChange",
+        );
+        assert!(declaration.contains("previous_identity_key?: number[] | null"));
+        assert!(declaration.contains("current_identity_key?: number[] | null"));
+        assert_eq!(ts_of("Option<[u8; 32]>"), "Uint8Array | null");
     }
 
     /// The mapping must not swallow the ordinary case: a type this generator

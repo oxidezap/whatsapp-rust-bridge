@@ -73,7 +73,7 @@ default = [
 ]
 audio = ["dep:symphonia"]
 image = ["dep:image"]
-sticker = ["dep:img-parts"]
+sticker = ["dep:img-parts", "dep:uuid"]
 
 # One per `#[wasm_bindgen]` domain in `src/wasm_client/`. Connection and
 # messaging have no feature: a client that cannot connect or send is not a
@@ -151,9 +151,8 @@ thiserror = { version = "2.0.21", default-features = false }
 tracing = { version = "0.1.44", default-features = false, features = ["std"], optional = true }
 tracing-core = { version = "0.1.36", default-features = false, features = ["std"], optional = true }
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
-uuid = { version = "1.29.0", default-features = false, features = ["v4", "js"] }
+uuid = { version = "1.29.0", default-features = false, features = ["v4", "js"], optional = true }
 voip-abi = { path = "crates/voip-abi", optional = true }
-
 
 wasm-bindgen = "0.2.130"
 wasm-bindgen-futures = "0.4.80"
@@ -164,7 +163,7 @@ web-sys = { version = "0.3.107", features = [
     "WritableStream",
     "Window",
 ] }
-whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "3357b5f30551eef21a91c324a46b1211fa0ae26b", default-features = false }
+whatsapp-rust = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "8b58ebaa0ef96f28f38e2e1d1e66e56092118813", default-features = false }
 
 # Runs the crate's `#[test]` unit tests on wasm32 in Node via
 # `wasm-pack test --node` — plain `cargo test` can't, because the crate only
@@ -206,12 +205,6 @@ opt-level = 3
 # speed-oriented codegen as zlib itself. Higher-level core/client crates remain
 # size-optimized; promoting them increased resident memory disproportionately.
 [profile.release.package.wacore-binary]
-opt-level = 3
-
-# Every ratchet step runs a scalar multiplication, so this field arithmetic is
-# the single most expensive thing on the per-message path. Its neighbours on
-# that path (sha2, subtle, digest) measured flat and stay size-optimized.
-[profile.release.package.curve25519-dalek]
 opt-level = 3
 
 [profile.release.package.wacore]

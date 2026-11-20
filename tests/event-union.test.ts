@@ -11,6 +11,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import * as ts from "../scripts/typescript-api";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DECLARATIONS = join(ROOT, "dist", "whatsapp_rust_bridge.d.ts");
 
@@ -94,25 +96,38 @@ const PUBLISHED: Record<string, string> = {
   pairing_code_error: "PairingCodeError",
 };
 
-function publishedUnion(): Record<string, string> {
-  const source = readFileSync(DECLARATIONS, "utf8");
-  const block = source.split("export type WhatsAppEvent =\n")[1]?.split("\n;")[0];
-  expect(block, "dist declares no WhatsAppEvent union").toBeDefined();
+function typeTokens(text: string): string {
+  const scanner = ts.createScanner(true, ts.LanguageVariant.Standard, text);
+  const parts: string[] = [];
+  for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) parts.push(scanner.getTokenText());
+  return parts.join("");
+}
 
+async function publishedUnion(): Promise<Record<string, string>> {
+  const source = await ts.createSourceFile("surface.d.ts", readFileSync(DECLARATIONS, "utf8"));
+  const declaration = source.statements.find(s => ts.isTypeAliasDeclaration(s) && s.name.text === "WhatsAppEvent") as ts.TypeAliasDeclaration | undefined;
+  expect(declaration, "dist declares no WhatsAppEvent union").toBeDefined();
+  expect(ts.isUnionTypeNode(declaration!.type)).toBe(true);
   const entries: Record<string, string> = {};
-  for (const line of block!.split("\n")) {
-    const match = /^\| \{ type: '([a-z_]+)'; data: (.*) \}$/.exec(line);
-    expect(match, `unparsed union entry: ${line}`).not.toBeNull();
-    entries[match![1]] = match![2];
+  for (const entry of (declaration!.type as ts.UnionTypeNode).types) {
+    expect(ts.isTypeLiteralNode(entry)).toBe(true);
+    const fields = (entry as ts.TypeLiteralNode).members;
+    const type = fields.find(f => f.name?.getText(source) === "type") as ts.PropertySignature;
+    const data = fields.find(f => f.name?.getText(source) === "data") as ts.PropertySignature;
+    expect(fields.length).toBe(2);
+    expect(ts.isLiteralTypeNode(type.type!)).toBe(true);
+    const literal = (type.type as ts.LiteralTypeNode).literal;
+    expect(ts.isStringLiteral(literal)).toBe(true);
+    entries[(literal as ts.StringLiteral).text] = typeTokens(data.type!.getText(source));
   }
   return entries;
 }
 
-test("every published event keeps its wire name and payload type", () => {
+test("every published event keeps its wire name and payload type", async () => {
   expect(
     existsSync(DECLARATIONS),
     "dist/whatsapp_rust_bridge.d.ts is absent \u2014 run `bun run build` first",
   ).toBe(true);
 
-  expect(publishedUnion()).toEqual(PUBLISHED);
+  expect(await publishedUnion()).toEqual(Object.fromEntries(Object.entries(PUBLISHED).map(([name, type]) => [name, typeTokens(type)])));
 });

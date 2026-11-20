@@ -9,6 +9,7 @@
 //!
 //! Complex types (Device, AppStateSyncKey, HashState, etc.) are serialized as JSON bytes.
 
+use std::collections::{HashMap, hash_map::Entry};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, Ordering};
 
@@ -104,12 +105,22 @@ fn pair_refs<K, V>(entries: &[(K, V)]) -> impl Iterator<Item = (&K, &V)> + Clone
     entries.iter().map(|(key, value)| (key, value))
 }
 
+/// Match a case-sensitive user only at a Signal namespace or device boundary.
 #[inline]
 fn signal_address_matches_user(address: &str, user: &str) -> bool {
     address
         .strip_prefix(user)
         .and_then(|rest| rest.as_bytes().first())
         .is_some_and(|separator| matches!(separator, b'@' | b':'))
+}
+
+/// Keep only exact-user addresses and avoid allocating duplicate shared strings.
+fn collect_signal_address(addresses: &mut Vec<Arc<str>>, address: &str, user: &str) {
+    if signal_address_matches_user(address, user)
+        && !addresses.iter().any(|known| known.as_ref() == address)
+    {
+        addresses.push(Arc::from(address));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -167,10 +178,11 @@ pub struct JsBackend {
 
 crate::wasm_send_sync!(JsBackend);
 
-/// Chunk size for value-scanning enumeration (delete-expired sweeps). Bounds
-/// how many values are materialized across the FFI boundary at once so a
-/// 20k-entry namespace doesn't spike JS-side memory in a single call.
+/// Bounds the rows materialized per JS call in read batches and expiry sweeps.
 const SCAN_CHUNK: usize = 512;
+
+type IndexedRows = Vec<(usize, Vec<u8>)>;
+
 impl JsBackend {
     fn new(h: JsBackendHandles) -> Self {
         // A capability is only honored when its required method is actually
@@ -260,6 +272,66 @@ impl JsBackend {
 
     async fn js_get_many(&self, store: &str, keys: &[String]) -> Result<Vec<(String, Vec<u8>)>> {
         self.js_get_many_raw(store, keys).await
+    }
+
+    // Share one poll implementation across the three storage traits in the release WASM.
+    #[inline(never)]
+    fn js_read_batch<'a>(
+        &'a self,
+        store: &'static str,
+        keys: &'a [&str],
+    ) -> wacore::runtime::BoxFuture<'a, Result<IndexedRows>> {
+        Box::pin(async move {
+            let mut values = Vec::new();
+            let Some(callback) = &self.get_many_fn else {
+                for (index, key) in keys.iter().enumerate() {
+                    if let Some(value) = self.js_get(store, key).await? {
+                        values.push((index, value));
+                    }
+                }
+                return Ok(values);
+            };
+
+            for (chunk_index, chunk) in keys.chunks(SCAN_CHUNK).enumerate() {
+                let mut requested = HashMap::with_capacity(chunk.len());
+                let unique = js_sys::Array::new();
+                for &key in chunk {
+                    match requested.entry(key) {
+                        Entry::Vacant(entry) => {
+                            entry.insert((1, None));
+                            unique.push(&key.into());
+                        }
+                        Entry::Occupied(mut entry) => entry.get_mut().0 += 1,
+                    }
+                }
+                for (key, value) in Self::call_get_many(callback, store, unique).await? {
+                    match requested.get_mut(key.as_str()) {
+                        Some((_, slot @ None)) => *slot = Some(value),
+                        _ => {
+                            return Err(js_err_to_store_err(
+                                "getMany",
+                                JsValue::from_str("returned an unrequested or duplicate key"),
+                            ));
+                        }
+                    }
+                }
+
+                let offset = chunk_index * SCAN_CHUNK;
+                for (index, key) in chunk.iter().enumerate() {
+                    let (remaining, slot) = requested.get_mut(key).expect("inserted request key");
+                    *remaining -= 1;
+                    let value = if *remaining == 0 {
+                        slot.take()
+                    } else {
+                        slot.clone()
+                    };
+                    if let Some(value) = value {
+                        values.push((offset + index, value));
+                    }
+                }
+            }
+            Ok(values)
+        })
     }
 
     async fn js_list_keys(&self, store: &str, prefix: Option<&str>) -> Result<Vec<String>> {
@@ -391,21 +463,13 @@ impl JsBackend {
         if keys.is_empty() {
             return Ok(Vec::new());
         }
-        if let Some(f) = self.get_many_fn.as_ref() {
+        if let Some(callback) = self.get_many_fn.as_ref() {
             let arr = js_sys::Array::new();
-            for k in keys {
-                arr.push(&JsValue::from_str(k));
+            for key in keys {
+                arr.push(&JsValue::from_str(key));
             }
-            let result = f
-                .call2(&JsValue::NULL, &store.into(), &arr.into())
-                .map_err(|e| js_err_to_store_err("getMany", e))?;
-            let resolved = resolve_promise(result)
-                .await
-                .map_err(|e| js_err_to_store_err("getMany", e))?;
-            return parse_entry_array(resolved, "getMany");
+            return Self::call_get_many(callback, store, arr).await;
         }
-        // Fallback: per-key gets (raw — this IS the raw path; the cache-aware
-        // js_get_many handles caching before delegating here).
         let mut out = Vec::with_capacity(keys.len());
         for k in keys {
             if let Some(v) = self.js_get_raw(store, k).await? {
@@ -413,6 +477,21 @@ impl JsBackend {
             }
         }
         Ok(out)
+    }
+
+    async fn call_get_many(
+        callback: &js_sys::Function,
+        store: &str,
+        keys: js_sys::Array,
+    ) -> Result<Vec<(String, Vec<u8>)>> {
+        let len = keys.length() as usize;
+        let result = callback
+            .call2(&JsValue::NULL, &store.into(), &keys)
+            .map_err(|error| js_err_to_store_err("getMany", error))?;
+        let resolved = resolve_promise(result)
+            .await
+            .map_err(|error| js_err_to_store_err("getMany", error))?;
+        parse_entry_array(resolved, "getMany", len)
     }
 
     /// Enumerate live keys in `store` (optionally prefix-filtered) via the
@@ -579,20 +658,26 @@ impl JsBackend {
         store: &str,
         key: &str,
     ) -> Result<Option<T>> {
-        match self.js_get(store, key).await? {
-            Some(bytes) => {
-                let value: T = serde_json::from_slice(&bytes).map_err(|e| {
-                    wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError {
-                        op: "deserialize",
-                        store: store.to_string(),
-                        key: key.to_string(),
-                        source: e,
-                    }))
-                })?;
-                Ok(Some(value))
-            }
-            None => Ok(None),
-        }
+        self.js_get(store, key)
+            .await?
+            .map(|bytes| Self::decode_json(&bytes, store, key))
+            .transpose()
+    }
+
+    /// Keep the namespace and key attached to failures in single and batch reads.
+    fn decode_json<T: serde::de::DeserializeOwned>(
+        bytes: &[u8],
+        store: &str,
+        key: &str,
+    ) -> Result<T> {
+        serde_json::from_slice(bytes).map_err(|source| {
+            wacore::store::error::StoreError::Serialization(Box::new(JsonStoreError {
+                op: "deserialize",
+                store: store.into(),
+                key: key.into(),
+                source,
+            }))
+        })
     }
 
     async fn js_set_json<T: serde::Serialize>(
@@ -620,6 +705,16 @@ impl JsBackend {
 generated_signal_store! {
 
 
+    async fn get_sessions_batch(&self, addresses: &[Arc<str>]) -> Result<Vec<(Arc<str>, Bytes)>> {
+        let keys: Vec<_> = addresses.iter().map(AsRef::as_ref).collect();
+        Ok(self
+            .js_read_batch(STORE_SESSION, &keys)
+            .await?
+            .into_iter()
+            .map(|(index, value)| (Arc::clone(&addresses[index]), Bytes::from(value)))
+            .collect())
+    }
+
     async fn load_identity(&self, address: &str) -> Result<Option<[u8; 32]>> {
         match self.js_get(STORE_IDENTITY, address).await? {
             Some(bytes) => Ok(Some(bytes.try_into().map_err(|v: Vec<u8>| {
@@ -630,6 +725,38 @@ generated_signal_store! {
             })?)),
             None => Ok(None),
         }
+    }
+
+    /// Recover durable addresses across all Signal namespaces, including sender tracking.
+    /// Enumeration must cover historical state; unsupported hosts fail closed.
+    async fn get_signal_addresses_for_user(&self, user: &str) -> Result<Vec<Arc<str>>> {
+        let mut addresses = Vec::<Arc<str>>::new();
+        if self.has_enumerate {
+            for store in [STORE_SESSION, STORE_IDENTITY, STORE_SENDER_KEY_DEVICES] {
+                let keys = self.js_list_keys(store, (store != STORE_SENDER_KEY_DEVICES).then_some(user)).await?;
+                if store == STORE_SENDER_KEY_DEVICES {
+                    for chunk in keys.chunks(SCAN_CHUNK) {
+                        for (group, bytes) in self.js_get_many(store, chunk).await? {
+                            let devices: Vec<(String, bool)> = Self::decode_json(&bytes, store, &group)?;
+                            for (address, _) in devices {
+                                collect_signal_address(&mut addresses, &address, user);
+                            }
+                        }
+                    }
+                } else {
+                    for address in keys {
+                        collect_signal_address(&mut addresses, &address, user);
+                    }
+                }
+            }
+        } else {
+            // An index of new writes cannot account for state predating this adapter.
+            return Err(wacore::store::error::StoreError::Io(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "identity recovery requires listKeys with capabilities.enumerate",
+            )));
+        }
+        Ok(addresses)
     }
 
     async fn has_signal_state_for_user(&self, user: &str) -> Result<bool> {
@@ -842,6 +969,25 @@ generated_app_sync_store! {
         self.js_get(STORE_MUTATION_MAC, &key).await
     }
 
+    async fn get_mutation_macs(
+        &self,
+        name: &str,
+        index_macs: &[[u8; 32]],
+    ) -> Result<HashMap<[u8; 32], Vec<u8>>> {
+        let mut macs = HashMap::new();
+        for chunk in index_macs.chunks(SCAN_CHUNK) {
+            let keys: Vec<_> = chunk
+                .iter()
+                .map(|mac| format!("{}:{}", name, to_hex(mac)))
+                .collect();
+            let key_refs: Vec<_> = keys.iter().map(String::as_str).collect();
+            for (index, value) in self.js_read_batch(STORE_MUTATION_MAC, &key_refs).await? {
+                macs.insert(chunk[index], value);
+            }
+        }
+        Ok(macs)
+    }
+
     async fn delete_mutation_macs(&self, name: &str, index_macs: &[Vec<u8>]) -> Result<()> {
         for im in index_macs {
             let key = format!("{}:{}", name, to_hex(im));
@@ -929,6 +1075,23 @@ generated_app_sync_store! {
 // ---------------------------------------------------------------------------
 
 generated_protocol_store! {
+
+    async fn get_devices_batch(&self, users: &[&str]) -> Result<Vec<DeviceListRecord>> {
+        if self.get_many_fn.is_none() {
+            let mut records = Vec::new();
+            for user in users {
+                if let Some(record) = self.get_devices(user).await? {
+                    records.push(record);
+                }
+            }
+            return Ok(records);
+        }
+        self.js_read_batch(STORE_DEVICE_LIST, users)
+            .await?
+            .into_iter()
+            .map(|(index, value)| Self::decode_json(&value, STORE_DEVICE_LIST, users[index]))
+            .collect()
+    }
 
     // --- Sender Key Device Tracking ---
 
@@ -1553,13 +1716,24 @@ impl DeviceStore for JsBackend {
 /// batch rather than being silently dropped — a dropped entry would look like a
 /// missing key to the caller, which on the expiry path can prune a live key
 /// from the self-index while its value is still stored.
-fn parse_entry_array(value: JsValue, context: &'static str) -> Result<Vec<(String, Vec<u8>)>> {
+fn parse_entry_array(
+    value: JsValue,
+    context: &'static str,
+    max_entries: usize,
+) -> Result<Vec<(String, Vec<u8>)>> {
     let arr: js_sys::Array = value
         .dyn_into()
         .map_err(|_| js_err_to_store_err(context, JsValue::from_str("expected array")))?;
+    let len = arr.length() as usize;
+    if len > max_entries {
+        return Err(js_err_to_store_err(
+            context,
+            JsValue::from_str("returned more rows than requested keys"),
+        ));
+    }
     let malformed =
         || js_err_to_store_err(context, JsValue::from_str("malformed [key, value] entry"));
-    let mut out = Vec::with_capacity(arr.length() as usize);
+    let mut out = Vec::with_capacity(len);
     for entry in arr.iter() {
         let tuple = entry.dyn_into::<js_sys::Array>().map_err(|_| malformed())?;
         let key = tuple.get(0).as_string().ok_or_else(malformed)?;
@@ -1680,6 +1854,162 @@ mod batch_store_tests {
             cap_enumerate: false,
             cap_prefix_delete: false,
         })
+    }
+
+    fn read_backend(slot: &str, callback: &str) -> JsBackend {
+        let mut handles = super::device_account_authority_tests::mem_handles(slot);
+        handles.get_fn = js_sys::Function::new_no_args("throw new Error('per-key read')");
+        handles.get_many_fn = Some(js_sys::Function::new_with_args("store, keys", callback));
+        JsBackend::new(handles)
+    }
+
+    #[test]
+    async fn read_batches_use_one_host_call_per_chunk_and_preserve_found_rows() {
+        let slot = "__batchReads";
+        let calls = js_sys::Array::new();
+        js_sys::Reflect::set(&js_sys::global(), &"__batchReadCalls".into(), &calls).unwrap();
+        let backend = read_backend(
+            slot,
+            r#"
+                globalThis.__batchReadCalls.push([store, keys.length]);
+                return Promise.resolve(keys.slice().reverse().flatMap(key => {
+                    const value = globalThis.__batchReads.get(store + ':' + key);
+                    return value === undefined ? [] : [[key, value]];
+                }));
+            "#,
+        );
+        backend.put_session("alice:7", b"valid").await.unwrap();
+        backend.put_session("bob:2", b"").await.unwrap();
+        let mut addresses: Vec<Arc<str>> = (0..SCAN_CHUNK - 3)
+            .map(|i| Arc::from(format!("missing:{i}")))
+            .collect();
+        addresses.extend(["alice:7", "bob:2", "alice:7", "absent"].map(Arc::from));
+        let sessions = backend.get_sessions_batch(&addresses).await.unwrap();
+        let expected = [
+            ("alice:7", &b"valid"[..]),
+            ("bob:2", &b""[..]),
+            ("alice:7", &b"valid"[..]),
+        ];
+        assert_eq!(
+            sessions
+                .iter()
+                .map(|(key, bytes)| (key.as_ref(), bytes.as_ref()))
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert!(backend.get_sessions_batch(&[]).await.unwrap().is_empty());
+
+        let record = DeviceListRecord {
+            user: Arc::from("alice"),
+            devices: Box::new([]),
+            timestamp: 123,
+            phash: None,
+            raw_id: None,
+        };
+        backend.update_device_list(record).await.unwrap();
+        let records = backend
+            .get_devices_batch(&["missing", "alice"])
+            .await
+            .unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].user.as_ref(), "alice");
+        assert_eq!(records[0].timestamp, 123);
+
+        let index_mac = [3; 32];
+        let key = format!("regular:{}", to_hex(&index_mac));
+        backend
+            .js_set(STORE_MUTATION_MAC, &key, b"mac")
+            .await
+            .unwrap();
+        let macs = backend
+            .get_mutation_macs("regular", &[[9; 32], index_mac])
+            .await
+            .unwrap();
+        assert_eq!(macs, HashMap::from([(index_mac, b"mac".to_vec())]));
+
+        let seen = calls
+            .iter()
+            .map(|call| {
+                let call = js_sys::Array::from(&call);
+                (
+                    call.get(0).as_string().unwrap(),
+                    call.get(1).as_f64().unwrap() as usize,
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            seen,
+            [
+                (STORE_SESSION.into(), SCAN_CHUNK - 1),
+                (STORE_SESSION.into(), 1),
+                (STORE_DEVICE_LIST.into(), 2),
+                (STORE_MUTATION_MAC.into(), 2),
+            ]
+        );
+    }
+
+    #[test]
+    async fn read_batches_work_without_get_many() {
+        let backend = JsBackend::new(super::device_account_authority_tests::mem_handles(
+            "__singleReads",
+        ));
+        backend.put_session("bob:2", b"old").await.unwrap();
+        assert_eq!(
+            backend
+                .get_sessions_batch(&[Arc::from("absent"), Arc::from("bob:2")])
+                .await
+                .unwrap(),
+            vec![(Arc::from("bob:2"), Bytes::from_static(b"old"))]
+        );
+        assert!(
+            backend
+                .get_devices_batch(&["absent"])
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            backend
+                .get_mutation_macs("regular", &[[4; 32]])
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    async fn invalid_batch_responses_fail_without_single_read_fallback() {
+        for (callback, expected) in [
+            (
+                "return [['unrequested', new Uint8Array(1)]];",
+                "unrequested or duplicate",
+            ),
+            (
+                "return [[keys[0], new Uint8Array(1)], [keys[0], new Uint8Array(1)]];",
+                "unrequested or duplicate",
+            ),
+            ("return [[keys[0], 'malformed']];", "malformed"),
+            (
+                "return [[keys[0], new Uint8Array(1)], [keys[1], new Uint8Array(1)], [keys[0], new Uint8Array(1)]];",
+                "more rows than requested keys",
+            ),
+            (
+                "return Promise.reject(new Error('read failed'));",
+                "read failed",
+            ),
+        ] {
+            let backend = read_backend("__badBatch", callback);
+            let error = backend
+                .get_sessions_batch(&[Arc::from("alice:7"), Arc::from("bob:2")])
+                .await
+                .unwrap_err();
+            assert!(
+                std::error::Error::source(&error)
+                    .unwrap()
+                    .to_string()
+                    .contains(expected)
+            );
+        }
     }
 
     fn recorded(slot: &str) -> (String, js_sys::Array) {
@@ -2832,5 +3162,281 @@ mod atomic_storage_contract_tests {
         assert_eq!(row.token, b"old");
         assert_eq!(row.token_timestamp, 10);
         assert_eq!(row.sender_timestamp, None);
+    }
+}
+
+#[cfg(test)]
+mod signal_address_tests {
+    use super::*;
+    use std::error::Error as _;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    fn host(slot: &str) -> JsValue {
+        js_sys::eval(include_str!("../tests/fixtures/signal-address-storage.js"))
+            .unwrap()
+            .dyn_into::<js_sys::Function>()
+            .unwrap()
+            .call1(&JsValue::NULL, &slot.into())
+            .unwrap()
+    }
+    fn backend(value: &JsValue) -> JsBackend {
+        JsBackend::new(JsBackendHandles::from_js(value).unwrap())
+    }
+    async fn addresses(store: &dyn SignalStore, user: &str) -> Vec<String> {
+        let mut result = store
+            .get_signal_addresses_for_user(user)
+            .await
+            .unwrap()
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+        result.sort();
+        result
+    }
+
+    #[test]
+    async fn durable_enumeration_unions_namespaces_and_sources_across_adapters() {
+        let first = backend(&host("signal-union"));
+        first
+            .put_session("Alice:1@s.whatsapp.net", b"session")
+            .await
+            .unwrap();
+        first
+            .put_identities_batch(&[
+                (Arc::from("Alice:2@lid"), [1; 32]),
+                (Arc::from("Alice:1@s.whatsapp.net"), [2; 32]),
+            ])
+            .await
+            .unwrap();
+        first
+            .set_sender_key_status(
+                "group",
+                &[
+                    ("Alice:3@lid", false),
+                    ("Alice:1@s.whatsapp.net", true),
+                    ("Alicee:3@lid", true),
+                ],
+            )
+            .await
+            .unwrap();
+        for other in [
+            "Alicee:1@lid",
+            "alice:1@lid",
+            "Alice_1:1@lid",
+            "Alice%:1@lid",
+            "Alice",
+        ] {
+            first.put_session(other, b"other").await.unwrap();
+        }
+        let second = backend(&host("signal-union"));
+        assert_eq!(
+            addresses(&second, "Alice").await,
+            ["Alice:1@s.whatsapp.net", "Alice:2@lid", "Alice:3@lid"]
+        );
+        assert_eq!(addresses(&second, "Alice_1").await, ["Alice_1:1@lid"]);
+        assert_eq!(addresses(&second, "Alice%").await, ["Alice%:1@lid"]);
+        assert_eq!(addresses(&second, "alice").await, ["alice:1@lid"]);
+        let isolated = backend(&host("signal-other-account"));
+        assert!(addresses(&isolated, "Alice").await.is_empty());
+        second
+            .delete_session("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second
+            .delete_identity("Alice:1@s.whatsapp.net")
+            .await
+            .unwrap();
+        second.clear_sender_key_devices("group").await.unwrap();
+        assert_eq!(addresses(&first, "Alice").await, ["Alice:2@lid"]);
+    }
+
+    #[test]
+    async fn unavailable_or_failed_enumeration_never_returns_a_partial_set() {
+        let value = host("signal-errors");
+        let fail = js_sys::Function::new_with_args(
+            "store",
+            "if(store === 'identity') throw new Error('identity scan failed'); return ['a:1@lid'];",
+        );
+        js_sys::Reflect::set(&value, &"listKeys".into(), &fail).unwrap();
+        let error = backend(&value)
+            .get_signal_addresses_for_user("a")
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .source()
+                .unwrap()
+                .to_string()
+                .contains("identity scan failed")
+        );
+        js_sys::Reflect::set(&value, &"capabilities".into(), &JsValue::NULL).unwrap();
+        assert!(
+            matches!(backend(&value).get_signal_addresses_for_user("a").await.unwrap_err(), wacore::store::error::StoreError::Io(error) if error.kind() == std::io::ErrorKind::Unsupported)
+        );
+    }
+
+    fn set_batch(value: &JsValue, enabled: bool) {
+        let capabilities = js_sys::Reflect::get(value, &"capabilities".into()).unwrap();
+        js_sys::Reflect::set(&capabilities, &"batch".into(), &enabled.into()).unwrap();
+    }
+
+    fn reads(value: &JsValue) -> js_sys::Array {
+        js_sys::Reflect::get(value, &"reads".into())
+            .unwrap()
+            .dyn_into()
+            .unwrap()
+    }
+
+    /// Prove 1,025 tracking rows use bounded batches and retain each exact-user address once.
+    #[test]
+    async fn sender_tracking_reads_are_bounded_and_deduplicated() {
+        let value = host("signal-bounded");
+        set_batch(&value, true);
+        let store = backend(&value);
+        for index in 0..(SCAN_CHUNK * 2 + 1) {
+            store
+                .js_set_json(
+                    STORE_SENDER_KEY_DEVICES,
+                    &format!("group-{index}"),
+                    &vec![
+                        ("a:2@lid", false),
+                        ("a@s.whatsapp.net.1", true),
+                        ("aa:1@lid", true),
+                    ],
+                )
+                .await
+                .unwrap();
+        }
+        assert_eq!(
+            addresses(&store, "a").await,
+            ["a:2@lid", "a@s.whatsapp.net.1"]
+        );
+        assert_eq!(reads(&value).length(), 3);
+        let calls: Vec<(String, String, usize)> =
+            serde_wasm_bindgen::from_value(reads(&value).into()).unwrap();
+        assert_eq!(
+            calls,
+            vec![
+                (
+                    "getMany".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    SCAN_CHUNK
+                ),
+                (
+                    "getMany".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    SCAN_CHUNK
+                ),
+                ("getMany".into(), STORE_SENDER_KEY_DEVICES.into(), 1),
+            ]
+        );
+    }
+
+    /// Prove non-batch hosts use per-key reads and tolerate rows removed after listing.
+    #[test]
+    async fn sender_tracking_falls_back_by_key_and_skips_missing_rows() {
+        let value = host("signal-fallback");
+        let store = backend(&value);
+        store
+            .js_set_json(STORE_SENDER_KEY_DEVICES, "group", &vec![("a@lid.1", true)])
+            .await
+            .unwrap();
+        let list = js_sys::Function::new_with_args(
+            "store",
+            "return store === 'sender_key_devices' ? ['missing','group'] : [];",
+        );
+        js_sys::Reflect::set(&value, &"listKeys".into(), &list).unwrap();
+        let store = backend(&value);
+        assert_eq!(addresses(&store, "a").await, ["a@lid.1"]);
+        let calls: Vec<(String, String, String)> =
+            serde_wasm_bindgen::from_value(reads(&value).into()).unwrap();
+        assert_eq!(
+            calls,
+            vec![
+                (
+                    "get".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    "missing".into()
+                ),
+                (
+                    "get".into(),
+                    STORE_SENDER_KEY_DEVICES.into(),
+                    "group".into()
+                ),
+            ]
+        );
+    }
+
+    /// Prove invalid JSON and tuple shapes retain their store/key context with either host profile.
+    #[test]
+    async fn invalid_sender_rows_preserve_json_context_in_both_host_profiles() {
+        for batching in [false, true] {
+            let value = host(if batching {
+                "signal-bad-batch"
+            } else {
+                "signal-bad-single"
+            });
+            set_batch(&value, batching);
+            let store = backend(&value);
+            for bytes in [b"not json".as_slice(), b"[[42,true]]".as_slice()] {
+                store
+                    .js_set(STORE_SENDER_KEY_DEVICES, "bad-group", bytes)
+                    .await
+                    .unwrap();
+                let error = store.get_signal_addresses_for_user("a").await.unwrap_err();
+                let wacore::store::error::StoreError::Serialization(source) = error else {
+                    panic!("expected JSON error")
+                };
+                let text = source.to_string();
+                assert!(text.contains("sender_key_devices"), "{text}");
+                assert!(text.contains("bad-group"), "{text}");
+            }
+        }
+    }
+
+    #[test]
+    async fn builtin_memory_backend_enumerates_identity_and_sender_tracking_without_sessions() {
+        let store = new_in_memory_backend();
+        store.put_identity("a@lid.2", [2; 32]).await.unwrap();
+        store
+            .set_sender_key_status("group", &[("a@s.whatsapp.net.3", false)])
+            .await
+            .unwrap();
+        let mut result = store.get_signal_addresses_for_user("a").await.unwrap();
+        result.sort();
+        assert_eq!(
+            result,
+            vec![Arc::<str>::from("a@lid.2"), Arc::from("a@s.whatsapp.net.3")]
+        );
+    }
+
+    #[test]
+    async fn core_cache_collects_cached_and_durable_addresses_through_js_adapter() {
+        use wacore::libsignal::protocol::{ProtocolAddress, SessionRecord};
+        use wacore::store::signal_cache::SignalStoreCache;
+        let durable = backend(&host("signal-cache-union"));
+        durable.put_identity("a:2@lid", [2; 32]).await.unwrap();
+        durable
+            .set_sender_key_status("group", &[("a:3@lid", true)])
+            .await
+            .unwrap();
+        let cache = SignalStoreCache::new();
+        cache
+            .put_session(
+                &ProtocolAddress::new("a@s.whatsapp.net", 1.into()),
+                SessionRecord::new_fresh(),
+            )
+            .await;
+        let result = cache
+            .signal_addresses_for_user("a", &durable)
+            .await
+            .unwrap();
+        assert!(
+            result
+                .iter()
+                .any(|address| address.as_ref() == "a@s.whatsapp.net.1")
+        );
+        assert!(result.iter().any(|address| address.as_ref() == "a:2@lid"));
+        assert!(result.iter().any(|address| address.as_ref() == "a:3@lid"));
     }
 }

@@ -514,6 +514,13 @@ export interface HistorySyncAdmissionMetadata {
 
 export interface ClientPolicies {
   /**
+   * Additional exact HTTPS authorities for static media, e.g. "cdn.example:8443".
+   * No schemes, paths, wildcards or redirects. The core validates the origin;
+   * the HTTP adapter owns TLS trust and must not follow redirects.
+   * Captured per client at construction; omitted means no additional hosts.
+   */
+  additionalStaticMediaHosts?: readonly string[];
+  /**
    * Synchronously decide whether to accept a history-sync chunk.
     * Only the boolean true accepts. False permanently acknowledges the chunk
     * and prevents retry. Thrown errors and non-boolean results do the same,
@@ -2568,12 +2575,19 @@ pub async fn create_whatsapp_client(
     let noise_cert_policy = parse_noise_cert_policy(noise_cert_policy_js.as_ref())?;
     let history_sync_admission =
         crate::history_sync_admission::JsHistorySyncAdmission::from_policies(policies_js.as_ref())?;
+    let additional_static_media_hosts =
+        crate::history_sync_admission::static_media_hosts(policies_js.as_ref())?;
     #[cfg(feature = "client-voip-control")]
     let extensions = crate::voip::ClientExtensions::from_js(extensions_js.as_ref())?;
     #[cfg(not(feature = "client-voip-control"))]
     reject_voip_extensions(extensions_js.as_ref())?;
 
-    let base_runtime = Arc::new(WasmRuntime) as Arc<dyn wacore::runtime::Runtime>;
+    // The core owns runtime ports through Arc even on the local WASM executor.
+    #[allow(clippy::arc_with_non_send_sync)]
+    let base_runtime = Arc::new(wacore::runtime::CryptoRuntime::new(
+        Arc::new(WasmRuntime),
+        crate::js_crypto::default_provider(),
+    )) as Arc<dyn wacore::runtime::Runtime>;
     #[cfg(feature = "memory-profiling")]
     let (runtime, alloc_meter): (
         Arc<dyn wacore::runtime::Runtime>,
@@ -2642,7 +2656,10 @@ pub async fn create_whatsapp_client(
     let override_version = parse_optional_version(version_js.as_ref())?;
     let wanted_pre_key_count = parse_optional_count(wanted_pre_key_count_js.as_ref())?;
 
+    let mut options = whatsapp_rust::client::ClientOptions::default();
+    options.additional_static_media_hosts = additional_static_media_hosts;
     let builder = whatsapp_rust::client::ClientBuilder::new()
+        .with_options(options)
         .with_runtime_arc(runtime.clone())
         .with_persistence_manager(persistence_manager.clone())
         .with_transport_factory_arc(transport_factory)
@@ -2757,6 +2774,90 @@ pub async fn create_whatsapp_client(
         #[cfg(feature = "client-calls-media")]
         calls_live: std::rc::Rc::new(std::cell::Cell::new(true)),
     })
+}
+
+#[cfg(all(test, feature = "client-media"))]
+mod static_media_policy_tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    async fn client(policies: Option<JsValue>, http: JsValue) -> WasmWhatsAppClient {
+        let transport = js_sys::eval("({connect(){},send(){},disconnect(){}})").unwrap();
+        create_whatsapp_client(
+            transport, http, None, None, None, None, None, None, policies, None,
+        )
+        .await
+        .unwrap()
+    }
+
+    /// Exercise origin checks through actual constructed clients and HTTP callbacks.
+    #[test]
+    async fn configured_static_hosts_are_exact_copied_and_per_client() {
+        // The HTTP adapter calls with a null receiver, so capture state in a closure.
+        let http = js_sys::eval("(() => {const calls=[];return {calls,execute:async url=>{calls.push(url);return {statusCode:302,body:new Uint8Array()}}}})()").unwrap();
+        let policies = js_sys::eval("({additionalStaticMediaHosts:['cdn.example:8443']})").unwrap();
+        let strict = client(None, http.clone()).await;
+        let configured = client(Some(policies.clone()), http.clone()).await;
+        let original =
+            js_sys::Reflect::get(&policies, &"additionalStaticMediaHosts".into()).unwrap();
+        js_sys::Reflect::set(&original, &0.into(), &"elsewhere.example".into()).unwrap();
+        let calls: js_sys::Array = js_sys::Reflect::get(&http, &"calls".into())
+            .unwrap()
+            .unchecked_into();
+        let mut image = whatsapp_rust::waproto::whatsapp::message::ImageMessage::default();
+        image.static_url = Some("https://cdn.example:8443/fixture".into());
+        image.media_key = Some(vec![0; 32]);
+        image.file_sha256 = Some(vec![0; 32]);
+        image.file_enc_sha256 = Some(vec![0; 32]);
+        let limits = whatsapp_rust::download::DownloadLimits::default();
+        assert!(
+            strict
+                .client
+                .unwaited(Unwaited::Local)
+                .download(&image, limits)
+                .await
+                .is_err()
+        );
+        assert_eq!(calls.length(), 0);
+        assert!(
+            configured
+                .client
+                .unwaited(Unwaited::Local)
+                .download(&image, limits)
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            calls.length(),
+            1,
+            "the authorized origin must reach HTTP; 302 must not be followed"
+        );
+        for url in [
+            "https://cdn.example:8444/fixture",
+            "http://cdn.example:8443/fixture",
+            "https://cdn.example.evil:8443/fixture",
+            "https://elsewhere.example/fixture",
+        ] {
+            image.static_url = Some(url.into());
+            assert!(
+                configured
+                    .client
+                    .unwaited(Unwaited::Local)
+                    .download(&image, limits)
+                    .await
+                    .is_err()
+            );
+            assert_eq!(calls.length(), 1, "untrusted origin reached HTTP");
+        }
+        strict
+            .client
+            .unwaited(Unwaited::Local)
+            .signal_shutdown_sync();
+        configured
+            .client
+            .unwaited(Unwaited::Local)
+            .signal_shutdown_sync();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -4461,7 +4562,7 @@ mod event_delivery_tests {
             Receipt::builder()
                 .source(source)
                 .message_ids(vec![id.into()])
-                .timestamp(wacore::chrono::DateTime::from_timestamp(1, 0).expect("valid timestamp"))
+                .timestamp(wacore::Timestamp::from_secs(1).expect("valid timestamp"))
                 .r#type(ReceiptType::Delivered)
                 .offline(false)
                 .build(),
@@ -4739,7 +4840,7 @@ mod dispatched_event_tests {
     use std::time::Duration;
     use wasm_bindgen::closure::Closure;
     use wasm_bindgen_test::wasm_bindgen_test as test;
-    use whatsapp_rust::wacore::chrono::{DateTime, Utc};
+    use whatsapp_rust::Timestamp;
     use whatsapp_rust::wacore::pair_code::PairCodeRejection;
     use whatsapp_rust::wacore::types::events::{
         AppStateSyncFailed, ArchiveUpdate, CallLogSync, ClientExpirationChanged, ContactRemoved,
@@ -4802,8 +4903,41 @@ mod dispatched_event_tests {
         raw.parse().expect("valid jid")
     }
 
-    fn timestamp() -> DateTime<Utc> {
-        DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp")
+    fn timestamp() -> Timestamp {
+        Timestamp::from_secs(1_700_000_000).expect("valid timestamp")
+    }
+
+    /// Pin the dispatched Serde array representation used by generated key types.
+    #[test]
+    async fn identity_change_keys_preserve_array_values_and_omission() {
+        use wacore::types::events::IdentityChange;
+        for present in [false, true] {
+            let event = if present {
+                IdentityChange::builder()
+                    .user(jid("100@s.whatsapp.net"))
+                    .implicit(true)
+                    .previous_identity_key([11; 32])
+                    .current_identity_key([22; 32])
+                    .build()
+            } else {
+                IdentityChange::builder()
+                    .user(jid("100@s.whatsapp.net"))
+                    .implicit(false)
+                    .build()
+            };
+            let (name, data) = deliver(Event::IdentityChange(event)).await;
+            assert_eq!(name, "identity_change");
+            for (key, byte) in [("previous_identity_key", 11), ("current_identity_key", 22)] {
+                if present {
+                    let value = field(&data, key);
+                    assert!(js_sys::Array::is_array(&value));
+                    let bytes: Vec<u8> = serde_wasm_bindgen::from_value(value).unwrap();
+                    assert_eq!(bytes, vec![byte; 32]);
+                } else {
+                    assert!(!js_sys::Reflect::has(&data, &key.into()).unwrap());
+                }
+            }
+        }
     }
 
     #[test]
@@ -4838,10 +4972,7 @@ mod dispatched_event_tests {
         use wacore::types::events::{LabelSublistChange, LabelSublistUpdate};
         for (change, time) in [
             (LabelSublistChange::Upsert { sub_list_id: 0 }, None),
-            (
-                LabelSublistChange::Remove,
-                Some(DateTime::from_timestamp(0, 0).unwrap()),
-            ),
+            (LabelSublistChange::Remove, Some(Timestamp::UNIX_EPOCH)),
         ] {
             let update = LabelSublistUpdate::builder()
                 .predefined_id(-123)
@@ -4872,10 +5003,7 @@ mod dispatched_event_tests {
                         field(&data, "change").as_string().as_deref(),
                         Some("Remove")
                     );
-                    assert_eq!(
-                        field(&data, "action_timestamp").as_string().as_deref(),
-                        Some("1970-01-01T00:00:00Z")
-                    );
+                    assert_eq!(field(&data, "action_timestamp").as_f64(), Some(0.0));
                 }
                 _ => unreachable!(),
             }
@@ -4920,11 +5048,9 @@ mod dispatched_event_tests {
             Some("5511999")
         );
         assert_eq!(field(&data, "from_full_sync").as_bool(), Some(false));
-        // A `DateTime<Utc>` with no serde attribute crosses as chrono's RFC 3339
-        // string, the same as every app-state event already exposed.
         assert_eq!(
-            field(&data, "timestamp").as_string().as_deref(),
-            Some("2023-11-14T22:13:20Z")
+            field(&data, "timestamp").as_f64(),
+            Some(1_700_000_000_000.0)
         );
     }
 

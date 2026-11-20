@@ -48,6 +48,9 @@ What it is not is a release. Preview builds carry the version
 install is a deliberate pin, and it stays on that commit until you change it.
 They are for trying a change, not for running one.
 
+`bun run build` normalizes source roots to `bridge`, `core`, crate/version and
+`rust/library`. Diagnostic filenames and line numbers remain available.
+
 ## Persistent storage
 
 Persistent storage hosts must implement all six `JsStoreCallbacks` methods:
@@ -64,6 +67,11 @@ Use a transaction, CAS, or a lock shared by all relevant adapters/processes;
 separate writes, a non-transactional batch, or an adapter-local mutex are insufficient.
 Resolve only at the host's persistence boundary and propagate post-commit errors.
 The generated callback declarations describe the existing namespaces and byte layouts.
+
+ADV identity recovery requires `listKeys` with `capabilities.enumerate: true`,
+including historical state in the account scope. If enumeration is unavailable,
+recovery fails with a storage error. The backend cannot detect incomplete
+successful `listKeys` results. The in-memory backend supports this directly.
 
 ## Host-loaded runtimes
 

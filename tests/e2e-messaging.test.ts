@@ -293,6 +293,28 @@ describe.skipIf(!hasMockServer)("Two-client E2E messaging", () => {
     60000
   );
 
+  test("group sends preserve supplied message context across small and large payloads", async () => {
+    const metadata = await alice.client.createGroup("Synthetic context regression", [bobJid]);
+    expect(metadata.id.endsWith("@g.us")).toBe(true);
+    for (const [index, text] of ["synthetic group context", "synthetic group payload ".repeat(1024)].entries()) {
+      const secret = new Uint8Array(32).fill(37 + index);
+      const before = bob.events.length;
+      const encoded = encodeProto("Message", {
+        conversation: text,
+        messageContextInfo: { messageSecret: secret, messageAddOnDurationInSecs: 0 },
+      });
+      expect(await alice.client.sendMessageBytes(metadata.id, encoded)).toBeTruthy();
+      const event = await waitForEventMatching(bob.events,
+        (event) => isIncomingMessage(event, text), 15000, before);
+      const data = (event as { data: MessageEventData }).data;
+      expect(data.info.source.is_group).toBe(true);
+      expect(data.info.source.chat.user).toBe(metadata.id.split("@")[0]);
+      const context = data.message.messageContextInfo as { messageSecret?: Uint8Array; messageAddOnDurationInSecs?: number };
+      expect(context.messageSecret).toEqual(secret);
+      expect(context.messageAddOnDurationInSecs).toBe(0);
+    }
+  }, 30000);
+
   test(
     "messages arrive quickly (under 2 seconds)",
     async () => {

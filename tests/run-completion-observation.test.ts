@@ -18,6 +18,7 @@
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
+import * as ts from "../scripts/typescript-api";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import WebSocket from "ws";
@@ -400,18 +401,20 @@ describe("run completion emitted types", () => {
     "utf8"
   );
 
-  test("the observation export and its result union are declared", () => {
-    expect(declarations).toContain(
-      "waitForRunCompletion(): Promise<RunCompletionResult>"
-    );
-    for (const tag of [
-      'reason: "shutdown-requested"',
-      'reason: "auto-reconnect-disabled"',
-      'reason: "stopped"',
-      'reason: "already-running"',
-    ]) {
-      expect(declarations).toContain(tag);
-    }
+  test("the observation export and its result union are declared", async () => {
+    const source = await ts.createSourceFile("surface.d.ts", declarations);
+    const client = source.statements.find(s => ts.isClassDeclaration(s) && s.name?.text === "WasmWhatsAppClient") as ts.ClassDeclaration;
+    const observation = client.members.find(m => m.name?.getText(source) === "waitForRunCompletion") as ts.MethodDeclaration;
+    expect(observation.parameters.length).toBe(0);
+    expect(observation.type?.getText(source).replace(/\s/g, "")).toBe("Promise<RunCompletionResult>");
+    const result = source.statements.find(s => ts.isTypeAliasDeclaration(s) && s.name.text === "RunCompletionResult") as ts.TypeAliasDeclaration;
+    expect(ts.isUnionTypeNode(result.type)).toBe(true);
+    const reasons = (result.type as ts.UnionTypeNode).types.map(t => {
+      const reason = (t as ts.TypeLiteralNode).members.find(m => m.name?.getText(source) === "reason") as ts.PropertySignature;
+      return ((reason.type as ts.LiteralTypeNode).literal as ts.StringLiteral).text;
+    });
+    expect(reasons).toEqual(expect.arrayContaining(["shutdown-requested", "auto-reconnect-disabled", "stopped", "already-running"]));
+    const types = new Set(source.statements.filter(ts.isTypeAliasDeclaration).map(t => t.name.text));
     for (const cause of [
       "DisconnectReasonResult",
       "ConnectErrorResult",
@@ -419,7 +422,7 @@ describe("run completion emitted types", () => {
       "NoiseHandshakeFailureResult",
       "ProtocolTerminalReasonResult",
     ]) {
-      expect(declarations).toContain(cause);
+      expect(types).toContain(cause);
     }
   });
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import * as ts from "../scripts/typescript-api";
 import { compactDeclarationTrivia } from "../scripts/dts-trivia";
@@ -110,11 +110,15 @@ test("trivia retains comment bytes, literals and newline-sensitive signatures", 
 });
 
 test("actual published declarations retain own AST/docs, specifiers and idempotence", async () => {
-  for (const name of ["proto-types.d.ts", "whatsapp_rust_bridge.d.ts"]) {
+  for (const name of readdirSync("dist").filter(name => name.endsWith(".d.ts"))) {
     const path = `dist/${name}`;
     expect(existsSync(path), `${path} is absent — run \`bun run build\` first`).toBe(true);
     const original = readFileSync(path, "utf8");
     const candidate = compactDeclarationTrivia(original);
+    expect(candidate, `${name} was not compacted by the production build`).toBe(original);
+    if (name === "whatsapp_rust_bridge.d.ts") {
+      expect(commentTokens(original)).toEqual(commentTokens(readFileSync(`pkg/${name}`, "utf8")));
+    }
     expect(commentTokens(candidate)).toEqual(commentTokens(original));
     expect(await fingerprint(candidate, new Map())).toEqual(await fingerprint(original, new Map()));
     expect(compactDeclarationTrivia(candidate)).toBe(candidate);
