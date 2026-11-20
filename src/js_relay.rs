@@ -20,6 +20,10 @@ use bytes::Bytes;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
+#[path = "../shared/js_relay_connection.rs"]
+mod js_relay_connection;
+use js_relay_connection::{close_detached, resolve_connection};
+
 use whatsapp_rust::wacore::voip::transport::{
     RelayDisconnectReason, RelayEndpointParams, RelayTransport, RelayTransportEvent,
     RelayTransportFactory, RelayTransportProvider,
@@ -282,8 +286,7 @@ impl JsRelayConnection {
         // Promise — but refusing it here would strand a channel the host
         // already opened. Accept it and let the missing-open watchdog below
         // (the engine's own allocate deadline) bound the wait.
-        let future: JsFuture = JsFuture::from(js_sys::Promise::resolve(&val));
-        let val = future
+        let val = resolve_connection(val)
             .await
             .map_err(|e| anyhow::anyhow!("createRelayConnection rejected: {e:?}"))?;
         Self::from_handle(val)
@@ -300,11 +303,7 @@ impl JsRelayConnection {
         {
             Some(send) => send,
             None => {
-                if let Ok(result) = close_fn.call0(&val) {
-                    wasm_bindgen_futures::spawn_local(async move {
-                        let _ = resolve_maybe("close", result).await;
-                    });
-                }
+                close_detached(&close_fn, &val);
                 return Err(anyhow::anyhow!("relay handle.send must be a function"));
             }
         };
@@ -460,6 +459,27 @@ impl RelayTransport for JsRelayTransport {
 mod relay_event_tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    async fn cancelled_dial_closes_late_connection() {
+        let (resolve, promise) = {
+            let mut resolve = None;
+            let promise = js_sys::Promise::new(&mut |callback, _| resolve = Some(callback));
+            (resolve.unwrap(), promise)
+        };
+        let mut dial = Box::pin(JsRelayConnection::from_js(promise.into()));
+        assert!(futures::poll!(dial.as_mut()).is_pending());
+        drop(dial);
+
+        let handle =
+            js_sys::eval("({ closes: 0, send() {}, close() { this.closes++; } })").unwrap();
+        resolve.call1(&JsValue::UNDEFINED, &handle).unwrap();
+        JsFuture::from(js_sys::Promise::resolve(&JsValue::UNDEFINED))
+            .await
+            .unwrap();
+        let closes = js_sys::Reflect::get(&handle, &"closes".into()).unwrap();
+        assert_eq!(closes.as_f64(), Some(1.0));
+    }
 
     fn packet(n: u8) -> Bytes {
         Bytes::from(vec![n])

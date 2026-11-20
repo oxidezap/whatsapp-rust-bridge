@@ -231,7 +231,7 @@ That distribution is a consumer's memory, and it hangs off one wasm-opt flag: `-
 
 ## Bumping the whatsapp-rust pin
 
-The pin is one `rev` in `Cargo.toml` on the `whatsapp-rust` git dependency. Point it at the newest upstream main head, run `cargo update -p whatsapp-rust`, and keep the `Cargo.lock` diff to the whatsapp source lines. Revert unrelated hunks if they flip.
+Run `bun run bump:wacore` to move the bridge and VoIP engine to the latest upstream `main` commit, or pass a full SHA. The command updates both manifests and lockfiles, then builds the package. Review lockfile changes for unrelated updates.
 
 The PR title is semantic because the release workflow reads it. Previous bumps look like `fix(deps): bump whatsapp-rust pin for <what>`. The body lists what entered between the pins from the upstream log, split into what bridge callers can feel and what they cannot, and says whether `bun run gen:bridge-types` drifted.
 

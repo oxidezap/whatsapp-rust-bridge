@@ -4,8 +4,8 @@
  *
  * A `rev` pin never moves under `cargo update`, so plain
  * `cargo update -p whatsapp-rust` silently rebuilds the same commit. This
- * is the single entrypoint: it resolves the SHA, rewrites only the pin,
- * refreshes the lockfile, then runs the build itself, so an explicit SHA
+ * is the single entrypoint: it resolves the SHA, rewrites both sets of pins,
+ * refreshes both lockfiles, then runs the build itself, so an explicit SHA
  * reaches the parser and is never forwarded to the build.
  *
  * Run: bun run scripts/bump-wacore.ts [full-commit-sha]
@@ -70,12 +70,12 @@ const REV_RE = /rev\s*=\s*"([^"]*)"/;
  * so unrelated manifest content is never touched. Rewriting the SHA that
  * is already pinned is a valid idempotent no-op.
  */
-export function rewritePin(manifest: string, sha: string): string {
+export function rewritePin(manifest: string, sha: string, dependency = CORE_PACKAGE): string {
   const lines = manifest.split("\n");
-  const hits = lines.filter((line) => /^\s*whatsapp-rust\s*=/.test(line));
+  const hits = lines.filter((line) => line.split("=", 1)[0].trim() === dependency);
   if (hits.length !== 1) {
     throw new Error(
-      `bump:wacore expected exactly one ${CORE_PACKAGE} dependency line, found ${hits.length}`
+      `bump:wacore expected exactly one ${dependency} dependency line, found ${hits.length}`
     );
   }
   if (!REV_RE.test(hits[0])) {
@@ -86,55 +86,84 @@ export function rewritePin(manifest: string, sha: string): string {
   return next.join("\n");
 }
 
+const CARGO_PROJECTS = [
+  { manifest: "Cargo.toml", lock: "Cargo.lock", packages: [CORE_PACKAGE] },
+  {
+    manifest: "crates/voip-wasm/Cargo.toml",
+    lock: "crates/voip-wasm/Cargo.lock",
+    packages: ["wacore", "wacore-binary"],
+  },
+] as const;
+
+const CARGO_FILES = CARGO_PROJECTS.flatMap(({ manifest, lock }) => [manifest, lock]);
+type CargoFile = (typeof CARGO_FILES)[number];
+type CargoManifest = (typeof CARGO_PROJECTS)[number]["manifest"];
+
 export interface BumpDeps {
-  readManifest(): string;
-  writeManifest(content: string): void;
-  /** True when Cargo.toml differs from HEAD (staged or unstaged). */
+  readFile(path: CargoFile): string;
+  writeFile(path: CargoFile, content: string): void;
   manifestDirty(): boolean;
   resolveSha(target: BumpTarget): Promise<string>;
-  cargoUpdate(): void;
-  /** Runs the build with no arguments; the SHA never reaches it. */
+  cargoUpdate(manifest: CargoManifest, packages: readonly string[]): void;
   runBuild(): void;
 }
 
-/** Full orchestration with injectable seams; returns the pinned SHA. */
 export async function runBump(argv: string[], deps: BumpDeps): Promise<string> {
   const target = parseBumpArgs(argv);
-  if (deps.manifestDirty()) {
-    throw new Error("bump:wacore refuses to run with uncommitted Cargo.toml changes");
-  }
-  const sha = await deps.resolveSha(target);
-  const before = deps.readManifest();
-  const written = rewritePin(before, sha);
-  deps.writeManifest(written);
-  try {
-    deps.cargoUpdate();
-  } catch (error) {
-    // Restore only what this run wrote: concurrent manifest edits made
-    // after the write are left in place and reported instead.
-    if (deps.readManifest() === written) {
-      deps.writeManifest(before);
+  const assertClean = () => {
+    if (deps.manifestDirty()) {
+      throw new Error("bump:wacore refuses to run with uncommitted Cargo manifest or lockfile changes");
     }
-    throw new Error(
-      `bump:wacore: cargo update failed${deps.readManifest() === before ? " (manifest restored)" : " (manifest left with concurrent edits)"}: ${error instanceof Error ? error.message : error}`
-    );
+  };
+  assertClean();
+  const sha = await deps.resolveSha(target);
+  assertClean();
+
+  const before = new Map(CARGO_FILES.map((path) => [path, deps.readFile(path)] as const));
+  const manifests = CARGO_PROJECTS.map(({ manifest, packages }) =>
+    packages.reduce((content, name) => rewritePin(content, sha, name), before.get(manifest)!),
+  );
+  const written = new Map<CargoFile, string>();
+  try {
+    for (const [index, { manifest }] of CARGO_PROJECTS.entries()) {
+      deps.writeFile(manifest, manifests[index]);
+      written.set(manifest, manifests[index]);
+    }
+    for (const { manifest, lock, packages } of CARGO_PROJECTS) {
+      try {
+        deps.cargoUpdate(manifest, packages);
+      } finally {
+        written.set(lock, deps.readFile(lock));
+      }
+    }
+  } catch (error) {
+    const concurrent: CargoFile[] = [];
+    for (const [path, content] of written) {
+      if (deps.readFile(path) === content) {
+        deps.writeFile(path, before.get(path)!);
+      } else {
+        concurrent.push(path);
+      }
+    }
+    const outcome = concurrent.length ? `concurrent edits left in ${concurrent.join(", ")}` : "files restored";
+    throw new Error(`bump:wacore: update failed (${outcome}): ${error instanceof Error ? error.message : error}`);
   }
   deps.runBuild();
   return sha;
 }
 
 function realDeps(root: string): BumpDeps {
-  const manifestPath = join(root, "Cargo.toml");
   return {
-    readManifest: () => readFileSync(manifestPath, "utf8"),
-    writeManifest: (content) => writeFileSync(manifestPath, content),
+    readFile: (path) => readFileSync(join(root, path), "utf8"),
+    writeFile: (path, content) => writeFileSync(join(root, path), content),
     manifestDirty: () => isManifestDirty(root),
     resolveSha: async (target) =>
       target.kind === "sha" ? target.sha : await resolveLatestMain(),
-    cargoUpdate: () => {
-      const proc = Bun.spawnSync({ cmd: ["cargo", "update", "-p", CORE_PACKAGE], cwd: root });
+    cargoUpdate: (manifest, packages) => {
+      const args = ["update", "--manifest-path", manifest, ...packages.flatMap((name) => ["-p", name])];
+      const proc = Bun.spawnSync({ cmd: ["cargo", ...args], cwd: root, stderr: "inherit" });
       if ((proc.exitCode ?? 1) !== 0) {
-        throw new Error("cargo update -p whatsapp-rust failed");
+        throw new Error(`cargo ${args.join(" ")} failed`);
       }
     },
     runBuild: () => {
@@ -151,12 +180,12 @@ function realDeps(root: string): BumpDeps {
   };
 }
 
-/** True when Cargo.toml differs from HEAD, staged or unstaged. */
 export function isManifestDirty(root: string): boolean {
   const proc = Bun.spawnSync({
-    cmd: ["git", "status", "--porcelain", "--", "Cargo.toml"],
+    cmd: ["git", "status", "--porcelain", "--", ...CARGO_FILES],
     cwd: root,
   });
+  if (proc.exitCode !== 0) throw new Error("bump:wacore could not check Git status");
   return proc.stdout.toString().trim().length > 0;
 }
 

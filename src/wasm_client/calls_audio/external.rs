@@ -448,6 +448,7 @@ pub struct WasmCallControl {
 
 crate::wasm_send_sync!(WasmCallControl);
 
+/// Attach the shared call controller to an existing connection and Signal repository.
 #[wasm_bindgen(js_name = createCallControl, unchecked_return_type = "WasmCallControl")]
 #[allow(clippy::arc_with_non_send_sync)] // WASM runtime and registry are local; core contracts share them through Arc.
 pub async fn create_call_control(
@@ -456,6 +457,7 @@ pub async fn create_call_control(
         unchecked_param_type = "Pick<WhatsAppEventCallbacks, 'onEvent' | 'onCallPcm' | 'onCallEvent'>"
     )]
     callbacks: JsValue,
+    #[wasm_bindgen(unchecked_param_type = "import('./voip-backend.js').ClientExtensions")]
     extensions: JsValue,
 ) -> Result<WasmCallControl, crate::errors::BridgeError> {
     create_call_control_with_ceiling(host, callbacks, extensions, crate::voip::OPEN_CEILING).await

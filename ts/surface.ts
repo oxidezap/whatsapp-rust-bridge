@@ -74,13 +74,10 @@ export type {
 import {
   initWasmEngine as _initWasmEngine,
   createWhatsAppClient as _createWhatsAppClient,
-  createCallControl as _createCallControl,
 } from "../pkg/whatsapp_rust_bridge.js";
 import type { WhatsAppEventHandler, JsTransportCallbacks, JsHttpClientConfig, JsStoreCallbacks, CacheConfig, ClientPolicies } from "../pkg/whatsapp_rust_bridge.js";
-import type { DirectCallHostCallbacks, WhatsAppEventCallbacks, WasmCallControl, WasmCallHandle, WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
+import type { WasmWhatsAppClient } from "../pkg/whatsapp_rust_bridge.js";
 import type { ClientExtensions } from "./voip-backend";
-
-export type { WasmCallHandle };
 
 // initWasmEngine and createWhatsAppClient need explicit typing
 // because they use skip_typescript in Rust for complex params.
@@ -103,10 +100,3 @@ export const createWhatsAppClient: (
   policies?: ClientPolicies | null,
   extensions?: ClientExtensions | null,
 ) => Promise<WasmWhatsAppClient> = _createWhatsAppClient as any;
-
-/** Attach the shared call controller to an existing connection and Signal repository. */
-export const createCallControl: (
-  host: DirectCallHostCallbacks,
-  callbacks: Pick<WhatsAppEventCallbacks, "onEvent" | "onCallPcm" | "onCallEvent">,
-  extensions: ClientExtensions,
-) => Promise<WasmCallControl> = _createCallControl;

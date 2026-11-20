@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -32,6 +32,13 @@ const MANIFEST = [
   `[features]`,
   `legacy-session = ["whatsapp-rust/legacy-session-interop"]`,
   ``,
+].join("\n");
+
+const ENGINE = [
+  "[dependencies]",
+  `wacore = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "0ca19b249daff66d196fea988bd5643951f47ffc", features = ["voip"] }`,
+  `wacore-binary = { git = "https://github.com/oxidezap/whatsapp-rust", rev = "0ca19b249daff66d196fea988bd5643951f47ffc" }`,
+  "",
 ].join("\n");
 
 const NEXT = "f".repeat(40);
@@ -105,17 +112,22 @@ describe("bump:wacore latest-main resolution", () => {  test("the HEAD symref li
 
 describe("bump:wacore orchestration", () => {
   function fixtureDeps(overrides: Partial<BumpDeps> = {}): BumpDeps & {
-    files: { manifest: string };
+    files: Record<Parameters<BumpDeps["readFile"]>[0], string>;
     calls: { cargoUpdate: number; runBuild: number; resolved: string[] };
   } {
-    const files = { manifest: MANIFEST };
+    const files = {
+      "Cargo.toml": MANIFEST,
+      "Cargo.lock": "root lock",
+      "crates/voip-wasm/Cargo.toml": ENGINE,
+      "crates/voip-wasm/Cargo.lock": "engine lock",
+    };
     const calls = { cargoUpdate: 0, runBuild: 0, resolved: [] as string[] };
     return {
       files,
       calls,
-      readManifest: () => files.manifest,
-      writeManifest: (content) => {
-        files.manifest = content;
+      readFile: (path) => files[path],
+      writeFile: (path, content) => {
+        files[path] = content;
       },
       manifestDirty: () => false,
       resolveSha: async (target) => {
@@ -137,8 +149,9 @@ describe("bump:wacore orchestration", () => {
     const deps = fixtureDeps();
     const sha = await runBump([NEXT], deps);
     expect(sha).toBe(NEXT);
-    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
-    expect(deps.calls.cargoUpdate).toBe(1);
+    expect(deps.files["Cargo.toml"]).toContain(`rev = "${NEXT}"`);
+    expect(deps.files["crates/voip-wasm/Cargo.toml"].match(new RegExp(NEXT, "g"))).toHaveLength(2);
+    expect(deps.calls.cargoUpdate).toBe(2);
     // The build runs with no arguments by construction: an explicit SHA
     // cannot leak into it the way `cmd arg && build` chains leak argv.
     expect(deps.calls.runBuild).toBe(1);
@@ -149,13 +162,13 @@ describe("bump:wacore orchestration", () => {
     const deps = fixtureDeps();
     await runBump([], deps);
     expect(deps.calls.resolved).toEqual(["latest"]);
-    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
+    expect(deps.files["Cargo.toml"]).toContain(`rev = "${NEXT}"`);
   });
 
   test("a dirty manifest refuses before any write or resolution", async () => {
     const deps = fixtureDeps({ manifestDirty: () => true });
     await expect(runBump([NEXT], deps)).rejects.toThrow(/uncommitted/);
-    expect(deps.files.manifest).toBe(MANIFEST);
+    expect(deps.files["Cargo.toml"]).toBe(MANIFEST);
     expect(deps.calls.cargoUpdate).toBe(0);
     expect(deps.calls.runBuild).toBe(0);
   });
@@ -168,7 +181,29 @@ describe("bump:wacore orchestration", () => {
       },
     });
     await expect(runBump([NEXT], deps)).rejects.toThrow(/restored/);
-    expect(deps.files.manifest).toBe(MANIFEST);
+    expect(deps.files["Cargo.toml"]).toBe(MANIFEST);
+    expect(deps.calls.runBuild).toBe(0);
+  });
+
+  test("engine update failure restores both manifests and lockfiles", async () => {
+    const deps = fixtureDeps();
+    const before = { ...deps.files };
+    const updates: Array<[string, readonly string[]]> = [];
+    deps.cargoUpdate = (manifest, packages) => {
+      updates.push([manifest, packages]);
+      if (manifest === "Cargo.toml") {
+        deps.files["Cargo.lock"] = "updated root lock";
+      } else {
+        deps.files["crates/voip-wasm/Cargo.lock"] = "updated engine lock";
+        throw new Error("engine update failed");
+      }
+    };
+    await expect(runBump([NEXT], deps)).rejects.toThrow(/restored/);
+    expect(updates).toEqual([
+      ["Cargo.toml", ["whatsapp-rust"]],
+      ["crates/voip-wasm/Cargo.toml", ["wacore", "wacore-binary"]],
+    ]);
+    expect(deps.files).toEqual(before);
     expect(deps.calls.runBuild).toBe(0);
   });
 
@@ -176,11 +211,11 @@ describe("bump:wacore orchestration", () => {
     const deps = fixtureDeps();
     const concurrent = MANIFEST + "# concurrent edit\n";
     deps.cargoUpdate = () => {
-      deps.files.manifest = concurrent;
+      deps.files["Cargo.toml"] = concurrent;
       throw new Error("cargo update failed");
     };
     await expect(runBump([NEXT], deps)).rejects.toThrow(/concurrent edits/);
-    expect(deps.files.manifest).toBe(concurrent);
+    expect(deps.files["Cargo.toml"]).toBe(concurrent);
   });
 
   test("build failure keeps the coherent pin and lock", async () => {
@@ -190,7 +225,7 @@ describe("bump:wacore orchestration", () => {
       },
     });
     await expect(runBump([NEXT], deps)).rejects.toThrow("build broke");
-    expect(deps.files.manifest).toContain(`rev = "${NEXT}"`);
+    expect(deps.files["Cargo.toml"]).toContain(`rev = "${NEXT}"`);
   });
 
   test("rewriting the already-pinned SHA is idempotent", () => {
@@ -233,6 +268,14 @@ describe("bump:wacore dirty detection", () => {
   test("unstaged edits are dirty", () => {
     const dir = fixtureRepo();
     writeFileSync(join(dir, "Cargo.toml"), MANIFEST + "# edit\n");
+    expect(isManifestDirty(dir)).toBe(true);
+  });
+
+  test("an uncommitted VoIP lockfile is dirty", () => {
+    const dir = fixtureRepo();
+    const engine = join(dir, "crates", "voip-wasm");
+    mkdirSync(engine, { recursive: true });
+    writeFileSync(join(engine, "Cargo.lock"), "# new lockfile\n");
     expect(isManifestDirty(dir)).toBe(true);
   });
 
