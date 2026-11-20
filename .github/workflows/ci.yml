@@ -349,6 +349,8 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.build == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      WASM_BINDGEN_VERSION: 0.2.130
     steps:
       - uses: actions/checkout@v7
 
@@ -361,28 +363,31 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Install wasm-pack
+      - name: Check the wasm-bindgen runner version
+        run: |
+          resolved=$(cargo tree --locked --target wasm32-unknown-unknown -i wasm-bindgen --depth 0 --prefix none)
+          if [ "$resolved" != "wasm-bindgen v$WASM_BINDGEN_VERSION" ]; then
+            echo "::error::Update WASM_BINDGEN_VERSION to match the resolved wasm-bindgen: $resolved"
+            exit 1
+          fi
+
+      - name: Install wasm-bindgen test runner
         uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
-          tool: wasm-pack@0.15.1
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
 
       - name: Install Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # `cargo test` can't run here: the crate only builds for wasm32, which has
-      # no native test harness. `test:rust` (wasm-pack test --node) runs the
-      # crate's `#[test]` unit tests (aliased to `#[wasm_bindgen_test]` in each
-      # test module) on wasm32 inside Node, so CI flags regressions in the
-      # pure-Rust logic (write-back cache, error mapping, …).
+      # wasm-pack first runs cargo build --tests, then cargo test with this
+      # runner. Running cargo test directly avoids compiling the crate twice.
       - name: Run Rust unit tests (wasm32 in Node)
-        run: bun run test:rust
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+          WASM_BINDGEN_TEST_ONLY_NODE: 1
+        run: cargo test --target wasm32-unknown-unknown
 
   # The one check worth requiring on a branch. It has to report on every run,
   # including the ones where the jobs above were skipped, or a required check
