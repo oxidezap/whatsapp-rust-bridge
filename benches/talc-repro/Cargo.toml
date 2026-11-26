@@ -1,0 +1,25 @@
+[package]
+name = "talc-repro"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Standalone on purpose: the point of this crate is to run the same test bodies
+# against two talc versions, which the bridge's own manifest cannot do while it
+# pins one. `cargo update -p talc --precise <version>` switches the arm.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Deliberately a range, not a pin: the arm is chosen with
+# `cargo update -p talc --precise <version>` and recorded in Cargo.lock.
+talc = { version = "5", default-features = false }
+
+[dev-dependencies]
+# Pinned to the version the bridge's own lockfile resolves. The test runner
+# rejects an artifact whose generated wasm-bindgen schema it does not match, so
+# one installed runner has to serve both this crate and `bun run test:rust`.
+wasm-bindgen-test = "=0.3.76"
+
+[profile.release]
+opt-level = "z"

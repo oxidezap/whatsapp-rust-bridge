@@ -1,0 +1,8 @@
+# Caps linear memory so the 5.0.3 runaway fails in a second instead of walking
+# to 4 GiB. `memory.grow` returns -1 at the cap, `allocate` gives up, and the
+# repro reports a failed allocation rather than hanging the runner.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--max-memory=268435456"]
+
+[build]
+target = "wasm32-unknown-unknown"
