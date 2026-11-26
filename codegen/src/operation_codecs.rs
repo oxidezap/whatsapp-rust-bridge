@@ -115,9 +115,9 @@ impl InputCodec {
                 description,
             } => {
                 if *description {
-                    quote!(let #binding=#value.as_deref().map(whatsapp_rust::features::GroupDescription::new).transpose()?;)
+                    quote!(let #binding=#value.as_deref().map(|value| whatsapp_rust::features::GroupDescription::new(value).map_err(|error| crate::errors::invalid_arg("description", error.to_string()))).transpose()?;)
                 } else {
-                    quote!(let #binding=whatsapp_rust::features::GroupSubject::new(#value)?;)
+                    quote!(let #binding=whatsapp_rust::features::GroupSubject::new(#value).map_err(|error| crate::errors::invalid_arg("subject", error.to_string()))?;)
                 }
             }
             Self::MessageKey { binding, chat, key } => {

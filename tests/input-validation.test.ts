@@ -25,16 +25,35 @@ async function offlineClient() {
   );
 }
 
-async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string }> {
+async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string; field?: string }> {
   try {
     await promise;
   } catch (error) {
-    return error as Error & { kind?: string };
+    return error as Error & { kind?: string; field?: string };
   }
   throw new Error("expected the call to reject");
 }
 
 const CHAT = "5511999999999@s.whatsapp.net";
+
+test("oversized group text reports its argument", async () => {
+  const client = await offlineClient();
+  try {
+    const jid = "120363000000000000@g.us";
+    const subject = await rejection(client.groupUpdateSubject(jid, "é".repeat(101)));
+    expect(subject.kind).toBe("invalid-argument");
+    expect(subject.field).toBe("subject");
+
+    const description = await rejection(client.groupUpdateDescription(jid, "é".repeat(2049)));
+    expect(description.kind).toBe("invalid-argument");
+    expect(description.field).toBe("description");
+
+    expect((await rejection(client.groupUpdateSubject(jid, "é".repeat(100)))).kind).toBe("not-connected");
+    expect((await rejection(client.groupUpdateDescription(jid, null))).kind).toBe("not-connected");
+  } finally {
+    client.free();
+  }
+}, 20000);
 
 describe("a mistyped parameter rejects", () => {
   test("a string enum given a number", async () => {
