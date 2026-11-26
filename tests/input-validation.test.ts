@@ -25,16 +25,35 @@ async function offlineClient() {
   );
 }
 
-async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string }> {
+async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: string; field?: string }> {
   try {
     await promise;
   } catch (error) {
-    return error as Error & { kind?: string };
+    return error as Error & { kind?: string; field?: string };
   }
   throw new Error("expected the call to reject");
 }
 
 const CHAT = "5511999999999@s.whatsapp.net";
+
+test("oversized group text reports its argument", async () => {
+  const client = await offlineClient();
+  try {
+    const jid = "120363000000000000@g.us";
+    const subject = await rejection(client.groupUpdateSubject(jid, "é".repeat(101)));
+    expect(subject.kind).toBe("invalid-argument");
+    expect(subject.field).toBe("subject");
+
+    const description = await rejection(client.groupUpdateDescription(jid, "é".repeat(2049)));
+    expect(description.kind).toBe("invalid-argument");
+    expect(description.field).toBe("description");
+
+    expect((await rejection(client.groupUpdateSubject(jid, "é".repeat(100)))).kind).toBe("not-connected");
+    expect((await rejection(client.groupUpdateDescription(jid, null))).kind).toBe("not-connected");
+  } finally {
+    client.free();
+  }
+}, 20000);
 
 describe("a mistyped parameter rejects", () => {
   test("a string enum given a number", async () => {
@@ -143,18 +162,19 @@ describe("a well-formed parameter still crosses", () => {
   test("the valid shapes reach the core rather than being rejected here", async () => {
     const client = await offlineClient();
     try {
-      // Each of these is the correct shape, so it must get past deserialization
-      // and stop at the connection instead.
+      // Valid input reaches the core's connection or visitor-token checks.
       const chatState = await rejection(client.sendChatState(CHAT, "composing"));
       expect(chatState.kind).not.toBe("invalid-argument");
 
       const options = await rejection(
         client.getCollections(CHAT, { after: "cursor-1", itemLimit: 3 })
       );
-      expect(options.kind).toBe("not-connected");
+      expect(options.kind).toBe("invalid-argument");
+      expect(options.message).toContain("options.catalogVisitorToken");
 
       const omitted = await rejection(client.getCollections(CHAT));
-      expect(omitted.kind).toBe("not-connected");
+      expect(omitted.kind).toBe("invalid-argument");
+      expect(omitted.message).toContain("options.catalogVisitorToken");
 
       const keys = await rejection(
         client.readMessages([{ remoteJid: CHAT, id: "MSG1" }])

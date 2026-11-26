@@ -41,7 +41,8 @@ impl WasmWhatsAppClient {
             let subject: &str = &subject;
             let result: Result<(), crate::errors::BridgeError> = (async move {
                 let group_jid = parse_jid(jid)?;
-                let group_subject = whatsapp_rust::features::GroupSubject::new(subject)?;
+                let group_subject = whatsapp_rust::features::GroupSubject::new(subject)
+                    .map_err(|error| crate::errors::invalid_arg("subject", error.to_string()))?;
                 let client = operation_client.online().await?;
                 client
                     .groups()
@@ -75,7 +76,11 @@ impl WasmWhatsAppClient {
                 let group_jid = parse_jid(jid)?;
                 let desc = description
                     .as_deref()
-                    .map(whatsapp_rust::features::GroupDescription::new)
+                    .map(|value| {
+                        whatsapp_rust::features::GroupDescription::new(value).map_err(|error| {
+                            crate::errors::invalid_arg("description", error.to_string())
+                        })
+                    })
                     .transpose()?;
                 let client = operation_client.online().await?;
                 client

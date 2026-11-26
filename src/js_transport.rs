@@ -349,12 +349,15 @@ crate::wasm_send_sync!(JsTransportInner);
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for JsTransportInner {
-    async fn send(&self, data: Bytes) -> Result<(), anyhow::Error> {
+    async fn send(&self, data: Bytes) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if self.disconnected.load(Ordering::Acquire) {
-            anyhow::bail!("transport is disconnected");
+            return Err(std::io::Error::other("transport is disconnected").into());
         }
         log::trace!("Transport::send {} bytes", data.len());
-        self.callbacks.call_send(&data).await
+        self.callbacks
+            .call_send(&data)
+            .await
+            .map_err(anyhow::Error::into_boxed_dyn_error)
     }
 
     async fn disconnect(&self) {
@@ -399,7 +402,10 @@ impl JsTransportFactory {
 impl TransportFactory for JsTransportFactory {
     async fn create_transport(
         &self,
-    ) -> Result<(Arc<dyn Transport>, Receiver<TransportEvent>), anyhow::Error> {
+    ) -> Result<
+        (Arc<dyn Transport>, Receiver<TransportEvent>),
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         log::debug!("JsTransportFactory::create_transport called");
         // The JS handle enforces both limits. Allocate queue segments as events arrive.
         let (event_tx, event_rx) = async_channel::unbounded();
@@ -409,7 +415,10 @@ impl TransportFactory for JsTransportFactory {
         let handle = create_js_handle(event_tx, INGRESS_EVENT_LIMIT, INGRESS_BYTE_LIMIT);
 
         log::debug!("Calling JS connect(handle)...");
-        self.callbacks.call_connect_js(handle).await?;
+        self.callbacks
+            .call_connect_js(handle)
+            .await
+            .map_err(anyhow::Error::into_boxed_dyn_error)?;
         log::debug!("JS connect(handle) returned successfully");
 
         let transport = Arc::new(JsTransportInner {

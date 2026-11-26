@@ -119,7 +119,14 @@ pub(super) fn catalog() -> Vec<Operation> {
             boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
-            call: parse_quote!(client.business().get_catalog(&target, &opts)),
+            call: parse_quote!(async {
+                let business = client.business();
+                let business = match input.catalog_visitor_token.as_deref() {
+                    Some(token) => business.with_catalog_visitor_token(token),
+                    None => business,
+                };
+                business.get_catalog(&target, &opts).await
+            }),
             output: ReturnAdapter::Dto {
                 projection: Projection::Catalog,
                 envelope: Envelope::Value,
@@ -169,7 +176,14 @@ pub(super) fn catalog() -> Vec<Operation> {
             boundary: Boundary::AsyncOwned,
             evaluation: Evaluation::AwaitFallible,
             admission: Admission::Online,
-            call: parse_quote!(client.business().get_collections(&target, &opts)),
+            call: parse_quote!(async {
+                let business = client.business();
+                let business = match input.catalog_visitor_token.as_deref() {
+                    Some(token) => business.with_catalog_visitor_token(token),
+                    None => business,
+                };
+                business.get_collections(&target, &opts).await
+            }),
             output: ReturnAdapter::Dto {
                 projection: Projection::Collections,
                 envelope: Envelope::Value,

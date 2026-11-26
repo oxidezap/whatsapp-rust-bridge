@@ -251,6 +251,8 @@ export type CappingOteStatus = "NOT_ELIGIBLE" | "ELIGIBLE" | "ACTIVE_IN_CURRENT_
 /** Where the account stands against the cap. Unknown wire values are preserved by all capping classifications. Consumers must allow additional recognized variants in future releases.  ``` use whatsapp_rust::{CappingStatus, CappingOteStatus, CappingMvStatus}; let status = CappingStatus::from("FUTURE_CAP"); match &status { CappingStatus::Other(value) => assert_eq!(value, "FUTURE_CAP"), _ => panic!("unexpected classification"), } assert_eq!(status.as_str(), "FUTURE_CAP"); assert_eq!(CappingOteStatus::from("FUTURE_OTE").as_str(), "FUTURE_OTE"); assert_eq!(CappingMvStatus::from("FUTURE_MV").as_str(), "FUTURE_MV"); ``` */
 export type CappingStatus = "NONE" | "FIRST_WARNING" | "SECOND_WARNING" | "CAPPED" | string;
 
+export type CatalogNonceStatus = "Success" | "RecoveryRequired";
+
 /** Activity within one chat, independently of global availability.  Serde names describe activity, not literal stanza tags. Recording audio projects to `<composing media="audio"/>`; idle projects to `<paused/>`. */
 export type ChatActivity = "typing" | "recording_audio" | "idle";
 

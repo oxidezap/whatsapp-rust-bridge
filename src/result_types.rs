@@ -276,6 +276,8 @@ pub struct TargetMessageKey {
 #[derive(Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", default)]
 pub struct CatalogOptionsInput {
+    /// WhatsApp catalog application token required for visitor reads.
+    pub catalog_visitor_token: Option<String>,
     pub limit: Option<u32>,
     /// Cursor from a previous page's `afterCursor`.
     pub after: Option<String>,
@@ -291,6 +293,8 @@ pub struct CatalogOptionsInput {
 #[derive(Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", default)]
 pub struct CollectionOptionsInput {
+    /// WhatsApp catalog application token required for visitor reads.
+    pub catalog_visitor_token: Option<String>,
     pub collection_limit: Option<u32>,
     /// Products returned inline per collection.
     pub item_limit: Option<u32>,

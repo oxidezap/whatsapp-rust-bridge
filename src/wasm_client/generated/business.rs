@@ -132,7 +132,15 @@ impl WasmWhatsAppClient {
                     }
                     opts.after = input.after;
                     let client = operation_client.online().await?;
-                    let value = client.business().get_catalog(&target, &opts).await?;
+                    let value = async {
+                        let business = client.business();
+                        let business = match input.catalog_visitor_token.as_deref() {
+                            Some(token) => business.with_catalog_visitor_token(token),
+                            None => business,
+                        };
+                        business.get_catalog(&target, &opts).await
+                    }
+                    .await?;
                     to_ts(crate::result_types::project_catalog(&value))
                 })
                 .await;
@@ -183,7 +191,15 @@ impl WasmWhatsAppClient {
                 }
                 opts.after = input.after;
                 let client = operation_client.online().await?;
-                let value = client.business().get_collections(&target, &opts).await?;
+                let value = async {
+                    let business = client.business();
+                    let business = match input.catalog_visitor_token.as_deref() {
+                        Some(token) => business.with_catalog_visitor_token(token),
+                        None => business,
+                    };
+                    business.get_collections(&target, &opts).await
+                }
+                .await?;
                 to_ts(crate::result_types::project_collections(&value))
             })
             .await;

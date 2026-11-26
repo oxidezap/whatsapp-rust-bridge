@@ -645,6 +645,16 @@ macro_rules! classify {
 }
 
 classify! {
+    whatsapp_rust::wacore::net::HttpError {}
+    whatsapp_rust::wacore::upload::MediaEncryptionError {}
+    whatsapp_rust::wacore::protocol::StringLengthError {}
+    whatsapp_rust::ClientUploadError {}
+    whatsapp_rust::MappingLearningError {}
+    whatsapp_rust::pdo::PdoError {}
+    whatsapp_rust::wacore::poll::PollVoteError {}
+    whatsapp_rust::prekeys::PreKeyUploadError {}
+    whatsapp_rust::ReceiptError {}
+    whatsapp_rust::wacore::store::error::StoreError {}
     // Every variant carries a source; the walk and the core's answers cover it.
     ChatStateError {}
 
@@ -706,6 +716,7 @@ classify! {
     // malformed response is the server's doing, not the caller's.
     BusinessError {
         BusinessError::InvalidUpdate(detail) => invalid_arg("update", detail.to_string()),
+        BusinessError::CatalogVisitorTokenRequired => invalid_arg("options.catalogVisitorToken", "required for visitor catalog reads"),
         BusinessError::MalformedResponse { operation, detail } =>
             protocol_violation(format!("malformed {operation} response: {detail}")),
     }
@@ -1101,7 +1112,7 @@ mod tests {
             },
         };
         let error = D::WriterCleanup {
-            failure: Box::new(original),
+            failure: Box::new(original).into(),
             cleanup: std::io::Error::other("cleanup failed"),
         };
         match BridgeError::from(error) {
@@ -1123,7 +1134,10 @@ mod tests {
     #[test]
     fn download_integrity_failure_keeps_crypto_kind_through_host_failover() {
         let error = whatsapp_rust::download::ClientDownloadError::HostsUnreachable(
-            wacore::download::MediaDecryptionError::EncryptedSha256Mismatch.into(),
+            Box::new(whatsapp_rust::download::DownloadCause::Decryption(
+                wacore::download::MediaDecryptionError::EncryptedSha256Mismatch,
+            ))
+            .into(),
         );
         assert!(matches!(
             BridgeError::from(error),
@@ -1231,8 +1245,10 @@ mod tests {
             error_type: None,
             backoff: None,
         };
-        let be: BridgeError =
-            whatsapp_rust::features::GroupError::Internal(anyhow::Error::new(carrier)).into();
+        let be: BridgeError = whatsapp_rust::features::GroupError::Internal(
+            anyhow::Error::new(carrier).reallocate_into_boxed_dyn_error_without_backtrace(),
+        )
+        .into();
         match be {
             BridgeError::Server {
                 server_code,
@@ -1420,9 +1436,9 @@ mod tests {
         }
 
         // Two hops, through a variant that is itself transport-unavailable-shaped.
-        let be: BridgeError = ClientError::Iq(IqError::ClientState(Box::new(ClientError::Iq(
-            rejected(401),
-        ))))
+        let be: BridgeError = ClientError::Iq(IqError::ClientState(
+            Box::new(ClientError::Iq(rejected(401))).into(),
+        ))
         .into();
         match be {
             BridgeError::Server { server_code, .. } => assert_eq!(server_code, 401),
@@ -1619,6 +1635,11 @@ mod tests {
                 )
                 .into(),
                 "invalid-argument:update",
+            ),
+            (
+                "BusinessError::CatalogVisitorTokenRequired",
+                BusinessError::CatalogVisitorTokenRequired.into(),
+                "invalid-argument:options.catalogVisitorToken",
             ),
             (
                 "BusinessError::MalformedResponse",
@@ -1843,7 +1864,7 @@ mod tests {
         let failed: BridgeError =
             SendError::NoRecipientDevice(NoRecipientDeviceError::EncryptionFailed {
                 attempted: 3,
-                source: anyhow::anyhow!("no session"),
+                source: Box::new(wacore::send::DeviceEncryptionError::NoCiphertext).into(),
             })
             .into();
         let payload = payload_of(&failed);
@@ -1858,7 +1879,9 @@ mod tests {
     #[test]
     fn unknown_iq_variant_lands_in_internal_with_full_chain() {
         // EncodeError carries an anyhow source; we want display_chain to walk it.
-        let inner = anyhow::anyhow!("encoder blew up");
+        let inner = whatsapp_rust::IqEncodeError::Binary(wacore_binary::error::BinaryError::Zlib(
+            "encoder blew up".into(),
+        ));
         let iq = IqError::EncodeError(inner);
         let be: BridgeError = iq.into();
         match be {
