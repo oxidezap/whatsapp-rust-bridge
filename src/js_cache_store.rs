@@ -9,7 +9,7 @@ use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use whatsapp_rust::wacore::store::cache::CacheStore;
+use whatsapp_rust::wacore::store::cache::{CacheError, CacheResult, CacheStore};
 
 generated_cache_callbacks!();
 
@@ -38,28 +38,32 @@ async fn resolve_promise(val: JsValue) -> Result<JsValue, anyhow::Error> {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl CacheStore for JsCacheStoreAdapter {
-    async fn get(&self, namespace: &str, key: &str) -> anyhow::Result<Option<Vec<u8>>> {
-        let result = self
-            .get_fn
-            .call2(
-                &JsValue::NULL,
-                &JsValue::from_str(namespace),
-                &JsValue::from_str(key),
-            )
-            .map_err(|e| anyhow::anyhow!("cache get error: {e:?}"))?;
+    async fn get(&self, namespace: &str, key: &str) -> CacheResult<Option<Vec<u8>>> {
+        let result: anyhow::Result<_> = async {
+            let result = self
+                .get_fn
+                .call2(
+                    &JsValue::NULL,
+                    &JsValue::from_str(namespace),
+                    &JsValue::from_str(key),
+                )
+                .map_err(|e| anyhow::anyhow!("cache get error: {e:?}"))?;
 
-        let resolved = resolve_promise(result).await?;
+            let resolved = resolve_promise(result).await?;
 
-        if resolved.is_null() || resolved.is_undefined() {
-            return Ok(None);
+            if resolved.is_null() || resolved.is_undefined() {
+                return Ok(None);
+            }
+
+            if resolved.is_instance_of::<Uint8Array>() {
+                let arr = Uint8Array::unchecked_from_js(resolved);
+                return Ok(Some(crate::js_bytes::to_vec(&arr)));
+            }
+
+            Ok(None)
         }
-
-        if resolved.is_instance_of::<Uint8Array>() {
-            let arr = Uint8Array::unchecked_from_js(resolved);
-            return Ok(Some(crate::js_bytes::to_vec(&arr)));
-        }
-
-        Ok(None)
+        .await;
+        result.map_err(|error| CacheError::from_boxed(error.into_boxed_dyn_error()))
     }
 
     async fn set(
@@ -68,49 +72,61 @@ impl CacheStore for JsCacheStoreAdapter {
         key: &str,
         value: &[u8],
         ttl: Option<Duration>,
-    ) -> anyhow::Result<()> {
-        let uint8 = Uint8Array::from(value);
-        let ttl_js = match ttl {
-            Some(d) => JsValue::from_f64(d.as_secs() as f64),
-            None => JsValue::undefined(),
-        };
+    ) -> CacheResult<()> {
+        let result: anyhow::Result<_> = async {
+            let uint8 = Uint8Array::from(value);
+            let ttl_js = match ttl {
+                Some(d) => JsValue::from_f64(d.as_secs() as f64),
+                None => JsValue::undefined(),
+            };
 
-        let result = self
-            .set_fn
-            .bind2(
-                &JsValue::NULL,
-                &JsValue::from_str(namespace),
-                &JsValue::from_str(key),
-            )
-            .call2(&JsValue::NULL, &uint8.into(), &ttl_js)
-            .map_err(|e| anyhow::anyhow!("cache set error: {e:?}"))?;
+            let result = self
+                .set_fn
+                .bind2(
+                    &JsValue::NULL,
+                    &JsValue::from_str(namespace),
+                    &JsValue::from_str(key),
+                )
+                .call2(&JsValue::NULL, &uint8.into(), &ttl_js)
+                .map_err(|e| anyhow::anyhow!("cache set error: {e:?}"))?;
 
-        resolve_promise(result).await?;
-        Ok(())
+            resolve_promise(result).await?;
+            Ok(())
+        }
+        .await;
+        result.map_err(|error| CacheError::from_boxed(error.into_boxed_dyn_error()))
     }
 
-    async fn delete(&self, namespace: &str, key: &str) -> anyhow::Result<()> {
-        let result = self
-            .delete_fn
-            .call2(
-                &JsValue::NULL,
-                &JsValue::from_str(namespace),
-                &JsValue::from_str(key),
-            )
-            .map_err(|e| anyhow::anyhow!("cache delete error: {e:?}"))?;
+    async fn delete(&self, namespace: &str, key: &str) -> CacheResult<()> {
+        let result: anyhow::Result<_> = async {
+            let result = self
+                .delete_fn
+                .call2(
+                    &JsValue::NULL,
+                    &JsValue::from_str(namespace),
+                    &JsValue::from_str(key),
+                )
+                .map_err(|e| anyhow::anyhow!("cache delete error: {e:?}"))?;
 
-        resolve_promise(result).await?;
-        Ok(())
+            resolve_promise(result).await?;
+            Ok(())
+        }
+        .await;
+        result.map_err(|error| CacheError::from_boxed(error.into_boxed_dyn_error()))
     }
 
-    async fn clear(&self, namespace: &str) -> anyhow::Result<()> {
-        let result = self
-            .clear_fn
-            .call1(&JsValue::NULL, &JsValue::from_str(namespace))
-            .map_err(|e| anyhow::anyhow!("cache clear error: {e:?}"))?;
+    async fn clear(&self, namespace: &str) -> CacheResult<()> {
+        let result: anyhow::Result<_> = async {
+            let result = self
+                .clear_fn
+                .call1(&JsValue::NULL, &JsValue::from_str(namespace))
+                .map_err(|e| anyhow::anyhow!("cache clear error: {e:?}"))?;
 
-        resolve_promise(result).await?;
-        Ok(())
+            resolve_promise(result).await?;
+            Ok(())
+        }
+        .await;
+        result.map_err(|error| CacheError::from_boxed(error.into_boxed_dyn_error()))
     }
 }
 

@@ -344,10 +344,19 @@ mod run_completion_tests {
         assert_eq!(payload["stage"], "socket");
         assert_eq!(payload["timeoutMs"], 5000.0);
 
-        let version = connect_error_to_result(&E::Version(anyhow::anyhow!("no version")));
+        let version_error = whatsapp_rust::version::VersionError::Shape(
+            whatsapp_rust::version::VersionShapeError::Body {
+                url: "test",
+                detail: "no version".into(),
+            },
+        );
+        let version = connect_error_to_result(&E::Version(Box::new(version_error).into()));
         let payload = serde_json::to_value(&version).expect("serializes");
         assert_eq!(payload["kind"], "version");
-        assert_eq!(payload["message"], "no version");
+        assert_eq!(
+            payload["message"],
+            "could not decode the response body from test: no version"
+        );
 
         for (error, kind) in [
             (E::AlreadyConnected, "already-connected"),
@@ -378,7 +387,8 @@ mod run_completion_tests {
     fn handshake_failures_cross_typed() {
         use whatsapp_rust::handshake::HandshakeError as H;
 
-        let transport = handshake_failure_to_result(&H::Transport(anyhow::anyhow!("socket gone")));
+        let transport =
+            handshake_failure_to_result(&H::Transport(anyhow::anyhow!("socket gone").into()));
         let payload = serde_json::to_value(&transport).expect("serializes");
         assert_eq!(payload["kind"], "transport");
         assert_eq!(payload["message"], "socket gone");
@@ -542,7 +552,7 @@ mod run_completion_tests {
             0,
             &C::AutoReconnectDisabled {
                 connection: None,
-                connect_error: Some(E::Transport(anyhow::anyhow!("boom"))),
+                connect_error: Some(E::Transport(anyhow::anyhow!("boom").into())),
                 protocol_error: None,
             },
         ));
